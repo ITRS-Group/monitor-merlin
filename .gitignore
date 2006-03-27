@@ -1,0 +1,13 @@
+*.o
+*.so
+core*
+mod.log
+junk
+monitor
+nagios
+mrd
+test
+blread
+endpoint
+*.log
+*.bin

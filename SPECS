@@ -1,0 +1,123 @@
+Distributed OP5 Monitor
+
+Introduction
+------------
+In accordance with our plans to conquer the world and deliver services
+to large enterprices a more scalable version of OP5 Monitor need to be
+created.
+
+Goal
+----
+Today the only way to scale OP5 Monitor is to upgrade the hardware and we
+have a strong need to scale beyond the limits of a single system.
+
+The goal of this project is to add a better method to scale OP5 Monitor for
+larger networks but also smaller in need of redundancy.
+
+This shall be done by adding posibilities to create distributed Monitoring
+systems.
+
+The distributed design shall be available on all OP5 System platforms from
+version 2.6
+
+
+Specification
+-------------
+Two cornerstones are used
+
+- NOC
+Central monitoring server with responsibility for config, logs and so on.
+In absence of a POLLER the NOC shall be able to also act as a POLLER.
+
+- POLLER
+Local or remote server that is responsible for executing of active checks
+and receiving of passive check results.
+
+
+Requirements
+------------
+Since timing of events are done on each client on its own, all servers
+must be properly synchronized via NTP to the NOC servers. The NOC-servers
+shall in turn be synchronized to the same low-stratum NTP-server(s), or
+to a refclock.
+
+
+Information flow
+----------------
+
+POLLER ---> NOC = check results
+NOC <--> POLLER = Host & Service commands
+NOC ---> POLLER = config (rsync? scp?)
+NOC <--> NOC = everything (loadbalanced)
+
+* All configuration is done from (one of) the NOCs
+* local commands can be issued from both NOC and POLLER systems.
+
+Definition of local commands
+
+Host
+ Disable & Enable Active Checks of this host
+ Re-schedule the next check of this host
+ Submit passive check result for this host
+ Start & Stop accepting passive checks for this host
+ Start & Stop obsessing over this host
+ Acknowledge This Host Problem
+ Remove Problem Acknowledgement
+ Enable & Disable notifications for this host
+ Delay Next Host Notification
+ Schedule & Cancel downtime for this host
+ Enable & Disable notifications for all services on this host
+ Schedule a check of all services on this host
+ Enable & Disable checks of all services on this host
+ Enable & Disable event handler for this host
+ Enable & Disable flap detection for this host
+
+Service
+ Enable & Disable Active Checks Of This Service
+ Re-schedule Next Service Check
+ Submit Passive Check Result For This Service
+ Start & Stop Accepting Passive Checks For This Service
+ Start & Stop Obsessing Over This Service
+ Acknowledge This Service Problem
+ Remove Problem Acknowledgement
+ Enable & Disable Notifications For This Service
+ Delay Next Service Notification
+ Schedule Downtime For This Service
+ Cancel Scheduled Downtime For This Service
+ Enable & Disable Event Handler For This Service
+ Enable & Disable Flap Detection For This Service
+
+
+Technicalia
+-----------
+* Node-to-node communication setup:
+  Upon startup, all nodes set up a listening socket and poll it
+  (using select()) for inbound connections. Each new connection
+  resets the timer.
+
+  When the time is up, the noc hosts fires up a connect() attempt
+  to each of the still unconnected pollers, using non-blocking
+  sockets and polling for writability. The pollers check the
+  listening socket for inbound connections from the nocs (how to
+  solve peers?) and then initiate connections to the nocs themselves,
+  again using non-blocking sockets, and writes their unsent events to
+  binary logfiles, one for each noc (and peer?).
+
+  nocs and pollers alike both continuously check for inbound connections.
+
+  When two hosts simultaneously connect to each other, a pulse shall
+  be sent and read immediately. The node that first sent the pulse, as
+  determined by gettimeofday(), shall maintain its connect()'ed socket.
+
+* Daemon-Module communication:
+  The daemon is responsible for creating the socket. When no socket is
+  present the module shall utilize a binary logging interface and at
+  each new event check for the presence of the socket. When the socket
+  appears (is created by the daemon), the module shall connect to that
+  socket and write() its data there instead. The daemon will take
+  responsibility for sending and deleting the binary backlog.
+
+  When the daemon is started but receives no pulse within twice the
+  configured pulse_interval it shall assume that the Nagios process
+  has died or is otherwise incapable of connect()ing to the socket
+  and take appropriate actions.
