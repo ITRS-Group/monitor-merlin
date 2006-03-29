@@ -43,7 +43,11 @@ void handle_service_result(struct proto_hdr *hdr, void *buf)
 	xfree(srv->plugin_output);
 	srv->plugin_output = strdup(ds->output + (off_t)ds);
 	xfree(srv->perf_data);
-	srv->perf_data = strdup(ds->perf_data + (off_t)ds);
+	if (ds->perf_data)
+		srv->perf_data = strdup(ds->perf_data + (off_t)ds);
+	else
+		srv->perf_data = NULL;
+
 	srv->last_state = srv->current_state;
 	srv->current_state = ds->state;
 	srv->last_check = ds->end_time.tv_sec;
@@ -53,6 +57,35 @@ void handle_service_result(struct proto_hdr *hdr, void *buf)
 		   srv->description, srv->host_name);
 }
 
+
+void handle_host_result(struct proto_hdr *hdr, void *buf)
+{
+	host *hst;
+
+	nebstruct_host_check_data *ds = (nebstruct_host_check_data *)buf;
+	ds->host_name += (off_t)ds;
+
+	linfo("received check result for host '%s'", ds->host_name);
+
+	hst = find_host(ds->host_name);
+	ldebug("Located host '%s'", hst->name);
+
+	xfree(hst->plugin_output);
+	hst->plugin_output = strdup(ds->output + (off_t)ds);
+
+	xfree(hst->perf_data);
+	if (ds->perf_data)
+		hst->perf_data = strdup(ds->perf_data + (off_t)ds);
+	else
+		hst->perf_data = NULL;
+
+	hst->last_state = hst->current_state;
+	hst->current_state = ds->state;
+	hst->last_check = ds->end_time.tv_sec;
+	hst->has_been_checked = 1;
+
+	ldebug("Updating status for host '%s'", hst->name);
+}
 
 /* events that require status updates return 1, others return 0 */
 int handle_ipc_event(struct proto_hdr *hdr, void *buf)
@@ -66,16 +99,14 @@ int handle_ipc_event(struct proto_hdr *hdr, void *buf)
 	}
 
 	switch (hdr->type) {
-#if 0
 	case NEBCALLBACK_HOST_STATUS_DATA:
 		handle_host_result(hdr, buf);
 		return 1;
-#endif
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 		handle_service_result(hdr, buf);
 		return 1;
 	default:
-		lwarn("Ignoring unrecognized callback type: %d", hdr->type);
+		lwarn("Ignoring unrecognized/unhandled callback type: %d", hdr->type);
 	}
 
 	return 0;
