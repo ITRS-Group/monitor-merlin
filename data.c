@@ -20,18 +20,21 @@
  * The pointer offset is then set to reflect the start of the string relative
  * to the beginning of the memory chunk.
  */
-static int
-__blockify(void *ds, off_t offset, int strings, off_t *ptrs, char *buf, int buflen)
+int blockify(void *ds, int cb_type, char *buf, int buflen)
 {
 	int i;
 	int slen[5] = { 0, 0, 0, 0, 0 }; /* max number of strings is 5 */
 	size_t strsize = 0;
-	int len;
-	char *sp; /* source pointer */
-	off_t off = offset; /* offset relative to start of chunk */
+	int len, strings;
+	char *sp;
+	off_t off, offset, *ptrs;
 
-	if(!ds)
+	if (!ds || cb_type < 0 || cb_type >= NEBCALLBACK_NUMITEMS)
 		return 0;
+
+	offset = off = hook_info[cb_type].offset;
+	strings = hook_info[cb_type].strings;
+	ptrs = hook_info[cb_type].ptrs;
 
 	for(i = 0; i < strings; i++) {
 		if (!ptrs[i])
@@ -109,21 +112,8 @@ __blockify(void *ds, off_t offset, int strings, off_t *ptrs, char *buf, int bufl
 }
 
 
-int blockify(void *data, int cb_type, char *buf, int buflen)
-{
-	if (cb_type < 0 || cb_type >= NEBCALLBACK_NUMITEMS)
-		return 0;
-
-	return __blockify(data, hook_info[cb_type].offset,
-					  hook_info[cb_type].strings, hook_info[cb_type].ptrs,
-					  buf, buflen);
-}
-
-/*
- * Each string is strduped out of the original chunk, and the pointer is
- * set blindly to the beginning of the new string. The strings must be
- * strdup()'ed since Nagios will free() them otherwise.
- */
+/* Undo the pointer mangling done above (well, not exactly, but the string
+ * pointers will point to the location of the string in the block anyways) */
 int deblockify(void *ds, off_t len, int cb_type)
 {
 	off_t *ptrs;
@@ -135,9 +125,8 @@ int deblockify(void *ds, off_t len, int cb_type)
 	strings = hook_info[cb_type].strings;
 	ptrs = hook_info[cb_type].ptrs;
 
-	/* beware the black magic */
 	for (i = 0; i < strings; i++) {
-		off_t offset;
+		char *ptr;
 
 		if (!ptrs[i]) {
 			lwarn("!ptrs[%d]; strings == %d. Fix the hook_info struct", i, strings);
@@ -145,24 +134,24 @@ int deblockify(void *ds, off_t len, int cb_type)
 		}
 
 		/* get the relative offset */
-		memcpy(&offset, (char *)ds + ptrs[i], sizeof(offset));
+		memcpy(&ptr, (char *)ds + ptrs[i], sizeof(ptr));
 
-		if (!offset) /* ignore null pointers from original struct */
+		if (!ptr) /* ignore null pointers from original struct */
 			continue;
 
 		/* make sure we don't overshoot the buffer */
-		if (offset > len) {
+		if ((off_t)ptr > len) {
 			ldebug("Nulling OOB pointer %u for type %d", i, *(int *)ds);
-			ldebug("offset: %lu; len: %lu; overshot with %lu bytes",
-			       offset, len, offset - len);
+			ldebug("offset: %p; len: %lu; overshot with %lu bytes",
+			       ptr, len, (off_t)ptr - len);
 
-			offset = 0;
+			ptr = NULL;
 		}
 		else
-			offset += (off_t)ds;
+			ptr += (off_t)ds;
 
 		/* now write it back to the proper location */
-		memcpy((char *)ds + ptrs[i], &offset, sizeof(offset));
+		memcpy((char *)ds + ptrs[i], &ptr, sizeof(ptr));
 	}
 
 	return 1;
