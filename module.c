@@ -37,16 +37,22 @@ void handle_service_result(struct proto_hdr *hdr, void *buf)
 		  ds->service_description, ds->host_name);
 
 	srv = find_service(ds->host_name, ds->service_description);
+	if (!srv) {
+		lerr("Unable to find service '%s' on host '%s'", ds->service_description, ds->host_name);
+		return;
+	}
 	ldebug("Located service '%s' on host '%s'",
 		   srv->description, srv->host_name);
 
 	xfree(srv->plugin_output);
 	srv->plugin_output = strdup(ds->output + (off_t)ds);
 	xfree(srv->perf_data);
-	if (ds->perf_data)
+	if (ds->perf_data && (off_t)ds->perf_data < MAX_PKT_SIZE) {
 		srv->perf_data = strdup(ds->perf_data + (off_t)ds);
-	else
+	}
+	else {
 		srv->perf_data = NULL;
+	}
 
 	srv->last_state = srv->current_state;
 	srv->current_state = ds->state;
