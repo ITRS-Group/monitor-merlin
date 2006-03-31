@@ -303,11 +303,11 @@ int ipc_write(const void *buf, size_t len, unsigned msec)
 
 	binlog(debug_write, buf, len);
 
-	ldebug("Trying send(%d, %p, %d, MSG_DONTWAIT | MSG_NOSIGNAL)",
+	ldebug("ipc_write: Trying send(%d, %p, %d, MSG_DONTWAIT | MSG_NOSIGNAL)",
 		   ipc_sock, buf, len);
 	result = send(ipc_sock, buf, len, MSG_DONTWAIT | MSG_NOSIGNAL);
 	if (result != len)
-		lwarn("send(%d, %p, %d, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d: %s",
+		lwarn("ipc_write: send(%d, %p, %d, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d: %s",
 			  ipc_sock, buf, len, result, strerror(errno));
 
 	if (result < 0) {
