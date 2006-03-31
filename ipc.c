@@ -292,7 +292,7 @@ int ipc_write(const void *buf, size_t len, unsigned msec)
 	if (len > MAX_PKT_SIZE)
 		return 0;
 
-	linfo("ipc: Writing %d bytes to ipc socket %d", len, ipc_sock);
+	ldebug("ipc: Writing %d bytes to ipc socket %d", len, ipc_sock);
 
 	if (result < 1) {
 		ldebug("ipc_poll() returned %d: %s (not writing)",
