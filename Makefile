@@ -21,6 +21,8 @@ mod: mrm.so
 
 blread: blread.o data.o $(COMMON_OBJS)
 
+data.o: hookinfo.h
+
 blread.o: test/blread.c $(DEPS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
