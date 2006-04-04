@@ -25,7 +25,7 @@ int mode;
 extern hostgroup *hostgroup_list;
 #define mrm_reap_interval 5
 
-void handle_service_result(struct proto_hdr *hdr, void *buf)
+static int handle_service_result(struct proto_hdr *hdr, void *buf)
 {
 	service *srv;
 	nebstruct_service_check_data *ds = (nebstruct_service_check_data *)buf;
@@ -36,7 +36,7 @@ void handle_service_result(struct proto_hdr *hdr, void *buf)
 	srv = find_service(ds->host_name, ds->service_description);
 	if (!srv) {
 		lerr("Unable to find service '%s' on host '%s'", ds->service_description, ds->host_name);
-		return;
+		return 0;
 	}
 	ldebug("Located service '%s' on host '%s'",
 		   srv->description, srv->host_name);
@@ -54,10 +54,12 @@ void handle_service_result(struct proto_hdr *hdr, void *buf)
 
 	ldebug("Updating status for service '%s' on host '%s'",
 		   srv->description, srv->host_name);
+
+	return 1;
 }
 
 
-void handle_host_result(struct proto_hdr *hdr, void *buf)
+static int handle_host_result(struct proto_hdr *hdr, void *buf)
 {
 	host *hst;
 
@@ -80,6 +82,8 @@ void handle_host_result(struct proto_hdr *hdr, void *buf)
 	hst->has_been_checked = 1;
 
 	ldebug("Updating status for host '%s'", hst->name);
+
+	return 1;
 }
 
 /* events that require status updates return 1, others return 0 */
@@ -98,11 +102,9 @@ int handle_ipc_event(struct proto_hdr *hdr, void *buf)
 
 	switch (hdr->type) {
 	case NEBCALLBACK_HOST_STATUS_DATA:
-		handle_host_result(hdr, buf);
-		return 1;
+		return handle_host_result(hdr, buf);
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
-		handle_service_result(hdr, buf);
-		return 1;
+		return handle_service_result(hdr, buf);
 	default:
 		lwarn("Ignoring unrecognized/unhandled callback type: %d", hdr->type);
 	}
