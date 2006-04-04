@@ -30,9 +30,6 @@ void handle_service_result(struct proto_hdr *hdr, void *buf)
 	service *srv;
 	nebstruct_service_check_data *ds = (nebstruct_service_check_data *)buf;
 
-	ds->host_name += (off_t)ds;
-	ds->service_description += (off_t)ds;
-
 	linfo("Received check result for service '%s' on host '%s'",
 		  ds->service_description, ds->host_name);
 
@@ -45,10 +42,10 @@ void handle_service_result(struct proto_hdr *hdr, void *buf)
 		   srv->description, srv->host_name);
 
 	xfree(srv->plugin_output);
-	srv->plugin_output = strdup(ds->output + (off_t)ds);
+	srv->plugin_output = strdup(ds->output);
 	xfree(srv->perf_data);
-	if (ds->perf_data && (off_t)ds->perf_data < MAX_PKT_SIZE) {
-		srv->perf_data = strdup(ds->perf_data + (off_t)ds);
+	if (ds->perf_data) {
+		srv->perf_data = strdup(ds->perf_data);
 	}
 	else {
 		srv->perf_data = NULL;
@@ -69,7 +66,6 @@ void handle_host_result(struct proto_hdr *hdr, void *buf)
 	host *hst;
 
 	nebstruct_host_check_data *ds = (nebstruct_host_check_data *)buf;
-	ds->host_name += (off_t)ds;
 
 	linfo("received check result for host '%s'", ds->host_name);
 
@@ -77,11 +73,11 @@ void handle_host_result(struct proto_hdr *hdr, void *buf)
 	ldebug("Located host '%s'", hst->name);
 
 	xfree(hst->plugin_output);
-	hst->plugin_output = strdup(ds->output + (off_t)ds);
+	hst->plugin_output = strdup(ds->output);
 
 	xfree(hst->perf_data);
 	if (ds->perf_data)
-		hst->perf_data = strdup(ds->perf_data + (off_t)ds);
+		hst->perf_data = strdup(ds->perf_data);
 	else
 		hst->perf_data = NULL;
 
@@ -103,6 +99,9 @@ int handle_ipc_event(struct proto_hdr *hdr, void *buf)
 		linfo("I'm a poller, so ignoring inbound non-control packet");
 		return 0;
 	}
+
+	/* restore the pointers so the various handlers won't have to */
+	deblockify(buf, hdr->len, hdr->type);
 
 	switch (hdr->type) {
 	case NEBCALLBACK_HOST_STATUS_DATA:
