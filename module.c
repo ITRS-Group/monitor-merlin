@@ -101,7 +101,7 @@ int handle_ipc_event(struct proto_hdr *hdr, void *buf)
 	deblockify(buf, hdr->len, hdr->type);
 
 	switch (hdr->type) {
-	case NEBCALLBACK_HOST_STATUS_DATA:
+	case NEBCALLBACK_HOST_CHECK_DATA:
 		return handle_host_result(hdr, buf);
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 		return handle_service_result(hdr, buf);
