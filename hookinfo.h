@@ -85,24 +85,23 @@ static struct hook_info_struct {
 	},
 
 	/* NEBCALLBACK_SERVICE_CHECK_DATA */
-	{ 5, sizeof(nebstruct_service_check_data),
+	{ 4, sizeof(nebstruct_service_check_data),
 		{
 			offsetof(nebstruct_service_check_data, host_name),
 			offsetof(nebstruct_service_check_data, service_description),
-			offsetof(nebstruct_service_check_data, command_line),
 			offsetof(nebstruct_service_check_data, output),
 			offsetof(nebstruct_service_check_data, perf_data),
+			0
 		},
 	},
 
 	/* NEBCALLBACK_HOST_CHECK_DATA */
-	{ 4, sizeof(nebstruct_host_check_data),
+	{ 3, sizeof(nebstruct_host_check_data),
 		{
 			offsetof(nebstruct_host_check_data, host_name),
-			offsetof(nebstruct_host_check_data, command_line),
 			offsetof(nebstruct_host_check_data, output),
 			offsetof(nebstruct_host_check_data, perf_data),
-			0,
+			0, 0
 		}
 	},
 
