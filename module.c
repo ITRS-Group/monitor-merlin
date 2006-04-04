@@ -180,9 +180,6 @@ int mrm_ipc_write(const char *key, const void *buf, int len, int type)
 	if (key)
 		sel_id = hash_find_val(key);
 
-	if (!chunk)
-		return -1;
-
 	memset(chunk, 0, sizeof(chunk));
 	hdr = (struct proto_hdr *)chunk;
 	hdr->protocol = 0;
