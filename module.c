@@ -43,13 +43,9 @@ void handle_service_result(struct proto_hdr *hdr, void *buf)
 
 	xfree(srv->plugin_output);
 	srv->plugin_output = strdup(ds->output);
+
 	xfree(srv->perf_data);
-	if (ds->perf_data) {
-		srv->perf_data = strdup(ds->perf_data);
-	}
-	else {
-		srv->perf_data = NULL;
-	}
+	srv->perf_data = xstrdup(ds->perf_data);
 
 	srv->last_state = srv->current_state;
 	srv->current_state = ds->state;
@@ -76,10 +72,7 @@ void handle_host_result(struct proto_hdr *hdr, void *buf)
 	hst->plugin_output = strdup(ds->output);
 
 	xfree(hst->perf_data);
-	if (ds->perf_data)
-		hst->perf_data = strdup(ds->perf_data);
-	else
-		hst->perf_data = NULL;
+	hst->perf_data = xstrdup(ds->perf_data);
 
 	hst->last_state = hst->current_state;
 	hst->current_state = ds->state;
