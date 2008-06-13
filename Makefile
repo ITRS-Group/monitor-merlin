@@ -6,18 +6,20 @@ DAEMON_OBJS = mrd.o net.o
 MODULE_OBJS = module.o data.o hooks.o control.o hash.o
 MODULE_DEPS = module.h hash.h
 DEPS = Makefile config.h ipc.h logging.h shared.h types.h net.h
-PROG = mrd
+DSO = merlin
+PROG = $(DSO)d
+NEB = $(DSO).so
 MOD_LDFLAGS = -shared
 
-all: mrd mrm.so
+all: $(NEB) $(PROG)
 
 $(PROG): $(DAEMON_OBJS) $(COMMON_OBJS)
 	$(CC) $(LDFLAGS) $(LIBS) $^ -o $@
 
-mrm.so: $(MODULE_OBJS) $(COMMON_OBJS)
+$(NEB): $(MODULE_OBJS) $(COMMON_OBJS)
 	$(CC) $(MOD_LDFLAGS) $(LDFLAGS) $^ -o $@
 
-mod: mrm.so
+mod: $(NEB)
 
 blread: blread.o data.o $(COMMON_OBJS)
 
