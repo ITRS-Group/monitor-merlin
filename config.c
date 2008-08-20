@@ -260,7 +260,6 @@ static struct compound *parse_file(char *path, struct compound *parent, unsigned
 					*p++ = '\0';
 				if (*p && p <= lend) {
 					v.val = p;
-					*v.val_end++;
 				}
 			}
 		}

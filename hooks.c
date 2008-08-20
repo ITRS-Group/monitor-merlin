@@ -43,9 +43,6 @@ int hook_service_result(int cb, void *data)
 
 	len = blockify(ds, cb, buf, sizeof(buf));
 
-	if (!buf)
-		return -1;
-
 	result = mrm_ipc_write(ds->host_name, buf, len, cb);
 
 	return result;
