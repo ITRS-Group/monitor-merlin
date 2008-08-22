@@ -11,27 +11,33 @@ PROG = $(DSO)d
 NEB = $(DSO).so
 MOD_LDFLAGS = -shared
 
+ifndef V
+	QUIET_CC    = @echo '   ' CC $@;
+	QUIET_LINK  = @echo '   ' LINK $@;
+endif
+
 all: $(NEB) $(PROG)
 
 $(PROG): $(DAEMON_OBJS) $(COMMON_OBJS)
-	$(CC) $(LDFLAGS) $(LIBS) $^ -o $@
+	$(QUIET_LINK)$(CC) $(LDFLAGS) $(LIBS) $^ -o $@
 
 $(NEB): $(MODULE_OBJS) $(COMMON_OBJS)
-	$(CC) $(MOD_LDFLAGS) $(LDFLAGS) $^ -o $@
+	$(QUIET_LINK)$(CC) $(MOD_LDFLAGS) $(LDFLAGS) $^ -o $@
 
-mod: $(NEB)
+%.o: %.c
+	$(QUIET_CC)$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 blread: blread.o data.o $(COMMON_OBJS)
 
 data.o: hookinfo.h
 
 blread.o: test/blread.c $(DEPS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 endpoint: endpoint.o data.o $(COMMON_OBJS)
 
 endpoint.o: test/endpoint.c $(DEPS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 ipc.o net.o: protocol.h
 
@@ -41,13 +47,13 @@ $(DAEMON_OBJS): $(DAEMON_DEPS) $(DEPS)
 $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
 
 clean: clean-core clean-log
-	rm -f *.{o,so,out} $(PROG) mrm.so blread endpoint ipc.{read,write}.bin
+	rm -f $(NEB) $(PROG) *.o blread endpoint
 
 clean-core:
-	rm -f core*
+	rm -f core core.[0-9]*
 
 clean-log:
 	rm -f ipc.{read,write}.bin *.log
 
 ## PHONY targets
-.PHONY: clean touch clean-core clean-log
+.PHONY: clean clean-core clean-log
