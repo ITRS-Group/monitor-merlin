@@ -1,16 +1,27 @@
-#ifndef HASH_H
+#ifndef _HASH_H_
+#define _HASH_H_
 #include <stdio.h>
 
 #define HASH_BUCKETS (1 << 10)
 
-typedef struct hash_bucket {
-	const unsigned char *key;
-	unsigned int val;
-	struct hash_bucket *next;
-} hash_bucket;
+struct hash_table;
+typedef struct hash_table hash_table;
 
-void *hash_init(void);
-int hash_add(char *key, unsigned int val);
-hash_bucket *hash_find(const char *key);
-int hash_find_val(const char *key);
+#define TABLE hash_table *table
+extern hash_table *hash_init(size_t buckets);
+extern void *hash_find(TABLE, const char *key);
+extern void *hash_find2(TABLE, const char *k1, const char *k2);
+extern int hash_add(TABLE, const char *key, void *data);
+extern int hash_add2(TABLE, const char *k1, const char *k2, void *data);
+extern int hash_add_unique(TABLE, const char *key, void *data);
+extern int hash_add_unique2(TABLE, const char *k1, const char *k2, void *data);
+extern void *hash_update(TABLE, const char *key, void *data);
+extern void *hash_update2(TABLE, const char *k1, const char *k2, void *data);
+extern void *hash_remove(TABLE, const char *key);
+extern void *hash_remove2(TABLE, const char *k1, const char *k2);
+extern void hash_remove_data(TABLE, const char *k1, const void *data);
+extern void hash_remove_data2(TABLE, const char *k1, const char *k2, const void *data);
+extern void hash_walk_data(TABLE, int (*walker)(void *data));
+extern int hash_check_table(TABLE);
+extern size_t hash_count_entries(TABLE);
 #endif /* HASH_H */

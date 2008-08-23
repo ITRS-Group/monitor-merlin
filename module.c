@@ -194,7 +194,7 @@ int mrm_ipc_write(const char *key, const void *buf, int len, int type)
 	return result;
 }
 
-
+hash_table *host_hash_table;
 static void setup_host_hash_tables(void)
 {
 	hostgroup *hg;
@@ -202,7 +202,8 @@ static void setup_host_hash_tables(void)
 	int *num_ents = NULL;
 
 	linfo("Creating hash tables");
-	if (!hash_init()) {
+	host_hash_table = hash_init(2048);
+	if (host_hash_table) {
 		lerr("Failed to initialize hash tables: Out of memory");
 		exit(1);
 	}
@@ -234,7 +235,7 @@ static void setup_host_hash_tables(void)
 			}
 			num_ents[id]++;
 			ldebug("\tAdding host '%s'", m->host_name);
-			hash_add(m->host_name, id);
+			hash_add(host_hash_table, m->host_name, (void *)id);
 		}
 	}
 

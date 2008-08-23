@@ -22,6 +22,7 @@
 
 #include "shared.h"
 #include "logging.h"
+#include "hash.h"
 
 typedef struct BINLOG_HEAD {
 	int type;
@@ -41,6 +42,9 @@ typedef struct linked_item {
 	struct linked_item *next_item;
 } linked_item;
 
+
+extern hash_table *host_hash_table;
+#define hash_find_val(key) (int)hash_find(host_hash_table, key)
 
 /** global variables exported by Nagios **/
 extern char *config_file;
