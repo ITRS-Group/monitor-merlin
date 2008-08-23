@@ -115,8 +115,12 @@ static void grok_daemon_compound(struct compound *comp)
 			continue;
 		}
 
-		if (!grok_common_var(comp, comp->vlist[i]))
-			cfg_error(comp, v, "Unknown variable");
+		if (grok_common_var(comp, v))
+			continue;
+		if (log_grok_var(v->var, v->val))
+			continue;
+
+		cfg_error(comp, v, "Unknown variable");
 	}
 }
 

@@ -270,8 +270,14 @@ static void grok_module_compound(struct compound *comp)
 	int i;
 
 	for (i = 0; i < comp->nested; i++) {
-		if (!grok_common_var(comp, comp->vlist[i]))
-			cfg_error(comp, comp->vlist[i], "Unknown variable");
+		struct cfg_var *v = comp->vlist[i];
+
+		if (grok_common_var(comp, v))
+			continue;
+		if (log_grok_var(v->var, v->val))
+			continue;
+
+		cfg_error(comp, comp->vlist[i], "Unknown variable");
 	}
 }
 
