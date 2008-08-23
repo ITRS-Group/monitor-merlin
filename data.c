@@ -104,7 +104,6 @@ int deblockify(void *ds, off_t len, int cb_type)
 		if (!ptr) /* ignore null pointers from original struct */
 			continue;
 
-		ldebug("i: %d; offset %p", i, ptr);
 		/* make sure we don't overshoot the buffer */
 		if ((off_t)ptr > len) {
 			ldebug("Nulling OOB pointer %u for type %d", i, *(int *)ds);
