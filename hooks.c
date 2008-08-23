@@ -65,7 +65,6 @@ int hook_host_result(int cb, void *data)
 	linfo("Active check result processed for host '%s'", ds->host_name);
 	len = blockify(ds, cb, buf, sizeof(buf));
 	result = mrm_ipc_write(ds->host_name, buf, len, cb);
-	free(buf);
 
 	return result;
 }
