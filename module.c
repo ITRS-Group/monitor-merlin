@@ -203,7 +203,7 @@ static void setup_host_hash_tables(void)
 
 	linfo("Creating hash tables");
 	host_hash_table = hash_init(2048);
-	if (host_hash_table) {
+	if (!host_hash_table) {
 		lerr("Failed to initialize hash tables: Out of memory");
 		exit(1);
 	}
