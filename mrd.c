@@ -109,9 +109,10 @@ static void grok_daemon_compound(struct compound *comp)
 		if (!strcmp(v->var, "port")) {
 			char *endp;
 
-			def_port = strtoul(v->var, &endp, 0);
+			def_port = strtoul(v->val, &endp, 0);
 			if (def_port < 1 || def_port > 65535 || *endp)
-				cfg_error(comp, v, "Illegal value");
+				cfg_error(comp, v, "Illegal value for port: %s", v->val);
+			continue;
 		}
 
 		if (!grok_common_var(comp, comp->vlist[i]))
