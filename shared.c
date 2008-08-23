@@ -68,14 +68,6 @@ int grok_common_var(struct compound *config, struct cfg_var *v)
 	return 0;
 }
 
-void grok_common_compound(struct compound *comp)
-{
-	int i;
-
-	for (i = 0; i < comp->vars; i++)
-		grok_common_var(comp, comp->vlist[i]);
-}
-
 static int nsel;
 static char **selection_table = NULL;
 

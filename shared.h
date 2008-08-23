@@ -56,7 +56,6 @@ extern const int module;
 /** prototypes **/
 extern char *next_word(char *str);
 extern int grok_common_var(struct compound *config, struct cfg_var *v);
-extern void grok_common_compound(struct compound *comp);
 extern void index_selections(void);
 extern int add_selection(char *name);
 extern char *get_sel_name(int index);

@@ -99,6 +99,25 @@ static void grok_node(struct compound *c, struct node *node)
 	}
 }
 
+static void grok_daemon_compound(struct compound *comp)
+{
+	int i;
+
+	for (i = 0; i < comp->vars; i++) {
+		struct cfg_var *v = comp->vlist[i];
+
+		if (!strcmp(v->var, "port")) {
+			char *endp;
+
+			def_port = strtoul(v->var, &endp, 0);
+			if (def_port < 1 || def_port > 65535 || *endp)
+				cfg_error(comp, v, "Illegal value");
+		}
+
+		if (!grok_common_var(comp, comp->vlist[i]))
+			cfg_error(comp, v, "Unknown variable");
+	}
+}
 
 int grok_config(char *path)
 {
@@ -142,7 +161,7 @@ int grok_config(char *path)
 			continue;
 
 		if (!strcmp(c->name, "daemon")) {
-			grok_common_compound(c);
+			grok_daemon_compound(c);
 			continue;
 		}
 

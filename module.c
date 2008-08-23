@@ -264,6 +264,15 @@ static int slurp_selection(struct compound *c)
 	return 0;
 }
 
+static void grok_module_compound(struct compound *comp)
+{
+	int i;
+
+	for (i = 0; i < comp->nested; i++) {
+		if (!grok_common_var(comp, comp->vlist[i]))
+			cfg_error(comp, comp->vlist[i], "Unknown variable");
+	}
+}
 
 static void read_config(char *cfg_file)
 {
@@ -282,7 +291,7 @@ static void read_config(char *cfg_file)
 		struct compound *c = config->nest[i];
 
 		if (!strcmp(c->name, "module")) {
-			grok_common_compound(c);
+			grok_module_compound(c);
 			continue;
 		}
 		if (is_noc && !strncmp(c->name, "poller", 6)) {
