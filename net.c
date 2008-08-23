@@ -284,16 +284,19 @@ static int net_is_connected(int sock, struct sockaddr_in *sain)
 }
 
 
+#ifdef NET_DEBUG
 static void print_node_status(struct node *node)
 {
 	printf("%s node '%s' (%s : %d) is %s. socket is %d",
 		   node_type(node), node->name, inet_ntoa(node->sain.sin_addr),
 		   ntohs(node->sain.sin_port), node_state(node), node->sock);
 }
+#endif
 
 
 static void print_node_status_list(void)
 {
+#ifdef NET_DEBUG
 	int i;
 	putchar('\n');
 	putchar('\n');
@@ -301,6 +304,7 @@ static void print_node_status_list(void)
 		print_node_status(node_table[i]);
 	putchar('\n');
 	putchar('\n');
+#endif
 }
 
 
