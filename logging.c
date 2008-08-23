@@ -108,9 +108,9 @@ static void vlog(int severity, const char *fmt, va_list ap)
 	va_list(ap2);
 
 	va_copy(ap2, ap);
-	printf("[%lu] %d: ", time(NULL), severity);
-	vprintf(fmt, ap2);
-	putchar('\n');
+	fprintf(log_fp, "[%lu] %d: ", time(NULL), severity);
+	vfprintf(log_fp, fmt, ap2);
+	fputc('\n', log_fp);
 }
 
 void loginfo(const char *fmt, ...)
