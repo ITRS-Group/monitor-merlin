@@ -86,8 +86,10 @@ void log_deinit(void)
 
 int log_init(void)
 {
-	if (!log_file || !strcmp(log_file, "stdout"))
+	if (!log_file || !strcmp(log_file, "stdout")) {
 		log_fp = stdout;
+		return 0;
+	}
 
 	if (!strcmp(log_file, "stderr"))
 		log_fp = stderr;
