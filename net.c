@@ -642,7 +642,7 @@ int send_ipc_data(const struct proto_hdr *hdr)
 
 	result = ipc_read(buf + sizeof(*hdr), hdr->len, 0);
 	if (result != hdr->len) {
-		lerr("Protocol heder claims body size is %d, but ipc_read returned %d: %s",
+		lerr("Protocol header claims body size is %d, but ipc_read returned %d: %s",
 			 hdr->len, result, strerror(errno));
 		return -1;
 	}
