@@ -18,12 +18,9 @@ int io_send_all(int fd, const void *buf, size_t len)
 	while (total < len) {
 		int sent;
 
-		ldebug("io_send_all: Trying send(%d, %p, %d, MSG_DONTWAIT | MSG_NOSIGNAL",
-			   fd, buf + total, len - total);
 		sent = send(fd, buf + total, len - total, MSG_DONTWAIT | MSG_NOSIGNAL);
 
 		if (sent < 0) {
-			ldebug("io_send_all(): send() returned %d: %s", sent, strerror(errno));
 			if (errno != EAGAIN)
 				return sent;
 

@@ -98,7 +98,6 @@ int ipc_init(int is_module)
 	if (!ipc_is_module) {
 		if (unlink(ipc_sock_path) && errno != ENOENT)
 			return -1;
-		ldebug("unlink() didn't complain, or errno == ENOENT");
 	}
 
 	if (sock == -1) {
@@ -116,21 +115,18 @@ int ipc_init(int is_module)
 	}
 
 	if (!ipc_is_module) {
-		ldebug("ipc: Trying 'bind' on socket");
 		if (bind(sock, sa, slen) < 0) {
 			lerr("Failed to bind ipc socket: %s", strerror(errno));
 			close(ipc_sock);
 			return -1;
 		}
-		ldebug("Apparently bind() worked well. Socket should be ready now");
 
 		if (listen(sock, 1) < 0)
-			ldebug("listen() returned < 0: %s", strerror(errno));
+			lerr("listen(%d, 1) failed: %s", sock, strerror(errno));
 
 		return sock;
 	}
 
-	ldebug("ipc: Trying 'connect()' to local stream socket at '%s'", ipc_sock_path);
 	if (connect(sock, sa, slen) < 0) {
 		lerr("Failed to connect to ipc socket: %s", strerror(errno));
 		switch (errno) {
@@ -146,8 +142,6 @@ int ipc_init(int is_module)
 		ipc_sock = sock = -1;
 	}
 	else {
-		ldebug("ipc: connect() seems to have worked OK");
-
 		ipc_sock = sock;
 
 		/* let everybody know we're alive and active */
@@ -204,9 +198,6 @@ static int ipc_is_connected(int msec)
 		result = getsockopt(ipc_sock, SOL_SOCKET, SO_ERROR, &optval, &slen);
 	}
 
-	ldebug("ipc_is_connected() returning %d, ipc_sock is %d",
-		   ipc_sock != -1, ipc_sock);
-
 	return ipc_sock != -1;
 }
 
@@ -231,7 +222,7 @@ static void binlog(const char *path, const void *buf, int len)
 
 	fd = open(path, O_WRONLY | O_CREAT | O_APPEND, 0666);
 	if (fd == -1)
-		printf("Failed to open/create '%s': %s\n", path, strerror(errno));
+		lerr("Failed to open/create '%s': %s\n", path, strerror(errno));
 	else {
 		write(fd, buf, len);
 		close(fd);
@@ -243,7 +234,6 @@ int ipc_read(void *buf, size_t len, unsigned msec)
 {
 	int result;
 
-	ldebug("ipc: In ipc_read()");
 	result = ipc_read_ok(msec);
 
 	/* read max 4k in one go */
@@ -251,21 +241,14 @@ int ipc_read(void *buf, size_t len, unsigned msec)
 		return 0;
 
 	if (result < 1) {
-		ldebug("ipc: ipc_poll() returned %d: %s (not reading)",
-			   result, strerror(errno));
-
 		return result;
 	}
 
-	ldebug("ipc: Trying recv(%d, %p, %d, MSG_DONTWAIT | MSG_NOSIGNAL)",
-		   ipc_sock, buf, len);
 	result = recv(ipc_sock, buf, len, MSG_DONTWAIT | MSG_NOSIGNAL);
-	ldebug("ipc: read() returned %d: %s", result, strerror(errno));
 	/* if there was inbound data, but none to read that usually means
 	 * the other end disconnected or died, so we close the socket and
 	 * set it to -1 so that ipc_is_connected() will work properly */
 	if (!result) {
-		ldebug("ipc: Closing IPC socket to make room for new connection");
 		close(ipc_sock);
 		ipc_sock = -1;
 	}
@@ -292,19 +275,12 @@ int ipc_write(const void *buf, size_t len, unsigned msec)
 	if (len > MAX_PKT_SIZE)
 		return 0;
 
-	ldebug("ipc: Writing %d bytes to ipc socket %d", len, ipc_sock);
-
 	if (result < 1) {
-		ldebug("ipc_poll() returned %d: %s (not writing)",
-			   result, strerror(errno));
-
 		return result;
 	}
 
 	binlog(debug_write, buf, len);
 
-	ldebug("ipc_write: Trying send(%d, %p, %d, MSG_DONTWAIT | MSG_NOSIGNAL)",
-		   ipc_sock, buf, len);
 	result = send(ipc_sock, buf, len, MSG_DONTWAIT | MSG_NOSIGNAL);
 	if (result != len)
 		lwarn("ipc_write: send(%d, %p, %d, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d: %s",

@@ -38,8 +38,6 @@ static int handle_service_result(struct proto_hdr *hdr, void *buf)
 		lerr("Unable to find service '%s' on host '%s'", ds->service_description, ds->host_name);
 		return 0;
 	}
-	ldebug("Located service '%s' on host '%s'",
-		   srv->description, srv->host_name);
 
 	xfree(srv->plugin_output);
 	srv->plugin_output = strdup(ds->output);
@@ -68,7 +66,6 @@ static int handle_host_result(struct proto_hdr *hdr, void *buf)
 	linfo("received check result for host '%s'", ds->host_name);
 
 	hst = find_host(ds->host_name);
-	ldebug("Located host '%s'", hst->name);
 
 	xfree(hst->plugin_output);
 	hst->plugin_output = strdup(ds->output);
@@ -214,17 +211,14 @@ static void setup_host_hash_tables(void)
 
 	num_ents = calloc(nsel, sizeof(int));
 
-	ldebug("Setting up host hash tables");
 	for (hg = hostgroup_list; hg; hg = hg->next) {
 		int id = get_sel_id(hg->group_name);
 		struct hostgroupmember_struct *m;
 
 		if (id < 0) {
-			ldebug("Hostgroup '%s' is not interesting", hg->group_name);
 			continue;
 		}
 
-		ldebug("Adding hosts from hostgroup '%s'", hg->group_name);
 		for (m = hg->members; m; m = m->next) {
 			unsigned int sel = hash_find_val(m->host_name);
 
@@ -234,7 +228,6 @@ static void setup_host_hash_tables(void)
 				continue;
 			}
 			num_ents[id]++;
-			ldebug("\tAdding host '%s'", m->host_name);
 			hash_add(host_hash_table, m->host_name, (void *)id);
 		}
 	}
@@ -396,7 +389,6 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	/* make sure we can catch whatever we want */
 	event_broker_options = BROKER_EVERYTHING;
 
-	ldebug("Forcing coredumps");
 	daemon_dumps_core = 1;
 	home = getenv("HOME");
 	if (!home)

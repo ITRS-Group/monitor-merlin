@@ -39,7 +39,6 @@ int blockify(void *data, int cb_type, char *buf, int buflen)
 
 		memcpy(&sp, (char *)buf + ptrs[i], sizeof(sp));
 		if (!sp) {	/* NULL pointers remain NULL pointers */
-			ldebug("Hopping NULL pointer %d", i);
 			continue;
 		}
 

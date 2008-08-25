@@ -231,7 +231,6 @@ void polling_loop(void)
 		}
 
 		count = 0;
-		linfo("ipc_read() returned %d: %s", result, strerror(errno));
 		net_poll();
 	}
 }

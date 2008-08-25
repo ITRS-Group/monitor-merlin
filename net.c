@@ -131,12 +131,6 @@ void create_node_tree(struct node *table, unsigned n)
 		}
 	}
 
-	for (i = 0; i < n; i++) {
-		struct node *node = node_table[i];
-
-		ldebug("node: %s; type: %d", node->name, node->type);
-	}
-
 	base = *node_table;
 }
 
@@ -166,11 +160,7 @@ static int net_complete_connection(struct node *node)
 	int error, fail;
 	socklen_t optlen = sizeof(int);
 
-	ldebug("%s %s is %s, with input ready. Trying getsockopt()",
-		   node_type(node), node->name, node_state(node));
 	error = getsockopt(node->sock, SOL_SOCKET, SO_ERROR, &fail, &optlen);
-//	ldebug("getsockopt() returned %d ('%s'). opt is %d",
-//		   result, strerror(errno), opt);
 
 	if (!error && !fail) {
 		/* successful connection */
@@ -199,9 +189,6 @@ static int net_try_connect(struct node *node)
 	struct sockaddr *sa = (struct sockaddr *)&node->sain;
 	int result;
 
-	ldebug("net_try_connect() for node '%s'. node is %s",
-	       node->name, node_state(node));
-
 	if (node->sock == -1) {
 		struct timeval sock_timeout = { 10, 0 };
 
@@ -223,7 +210,8 @@ static int net_try_connect(struct node *node)
 
 	if (node->status != STATE_PENDING) {
 		sa->sa_family = AF_INET;
-		ldebug("Connecting to %s:%d", inet_ntoa(node->sain.sin_addr), ntohs(node->sain.sin_port));
+		ldebug("Connecting to %s:%d", inet_ntoa(node->sain.sin_addr),
+		       ntohs(node->sain.sin_port));
 
 		if (connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
 			lerr("connect() failed to node '%s' (%s:%d): %s",
@@ -237,6 +225,9 @@ static int net_try_connect(struct node *node)
 			if (errno != EINPROGRESS && errno != EALREADY)
 				return -1;
 		}
+		else
+			linfo("Successfully connected to %s:%d",
+			      inet_ntoa(node->sain.sin_addr), ntohs(node->port));
 
 		node->status = STATE_PENDING;
 	}
@@ -274,8 +265,6 @@ static int net_is_connected(int sock, struct sockaddr_in *sain)
 	if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &optval, &slen) < 0) {
 		lerr("getsockopt() failed: %s", strerror(errno));
 	}
-	else
-		ldebug("getsockopt() set optval to %d: %s", optval, strerror(optval));
 
 	if (!optval)
 		return 1;
@@ -328,11 +317,6 @@ static int node_is_connected(struct node *node)
 	if (!result && errno == ENOTCONN)
 		node->status = STATE_NONE;
 
-	ldebug("net_is_connected() for '%s' (%s:%d) returned %d (%s:%d): %s",
-		   node->name, inet_ntoa(node->sain.sin_addr), ntohs(node->sain.sin_port),
-		   result, inet_ntoa(sain.sin_addr), ntohs(sain.sin_port),
-		   strerror(errno));
-
 	if (result)
 		node->status = STATE_CONNECTED;
 
@@ -368,8 +352,6 @@ static int net_negotiate_socket(struct node *node, int lis)
 
 	result = select(sel + 1, &rd, &wr, NULL, &tv);
 	if (result < 0) {
-		ldebug("select in negotiate_socket() returned %d: %s",
-			   result, strerror(errno));
 		close(lis);
 		close(con);
 		node->status = STATE_NONE;
@@ -511,14 +493,6 @@ int net_init(void)
 	result = listen(net_sock, SOMAXCONN);
 	if (result < 0)
 		return -1;
-
-	int i;
-	for (i = 0; i < num_nodes; i++) {
-		struct node *node = node_table[i];
-
-		ldebug("node->name: %s; node->sock: %d; node->type: %d; node->hostgroup: %s",
-			   node->name, node->sock, node->type, node->hostgroup);
-	}
 
 	return 0;
 }
@@ -731,9 +705,6 @@ int net_poll(void)
 	gettimeofday(&start, NULL);
 	nfound = select(sel_val + 1, &rd, &wr, NULL, &to);
 	gettimeofday(&end, NULL);
-	ldebug("select(%d, ...) returned %d in %lu.%lu seconds",
-		   sel_val + 1, nfound,
-		   end.tv_sec - start.tv_sec, end.tv_usec - start.tv_usec);
 	print_node_status_list();
 
 	if (!nfound) {
@@ -746,7 +717,6 @@ int net_poll(void)
 
 	/* check for inbound connections first */
 	if (FD_ISSET(net_sock, &rd)) {
-		ldebug("network socket is ready for reading (inbound connection)");
 		net_accept_one();
 		socks++;
 	}
@@ -763,7 +733,6 @@ int net_poll(void)
 		if (node->status == STATE_PENDING && FD_ISSET(node->sock, &wr)) {
 			socks++;
 			if (net_complete_connection(node)) {
-				ldebug("Failed to complete connection to node '%s'", node->name);
 				net_disconnect(node);
 			}
 			continue;
@@ -780,8 +749,7 @@ int net_poll(void)
 		check_node_activity(node);
 	}
 
-	if (nfound != socks)
-		ldebug("nfound: %d; socks: %d; MISMATCH!", nfound, socks);
+	assert(nfound == socks);
 
 	return 0;
 }
