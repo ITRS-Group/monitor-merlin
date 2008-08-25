@@ -4,7 +4,6 @@
 #include <time.h>
 #include <sys/time.h>
 #include <string.h>
-#include <syslog.h>
 #include <unistd.h>
 #include <errno.h>
 
@@ -105,65 +104,21 @@ int log_init(void)
 	return 0;
 }
 
-static void vlog(int severity, const char *fmt, va_list ap)
+void log_msg(int severity, const char *fmt, ...)
 {
-	va_list(ap2);
+	va_list ap;
+	int len;
 
-	va_copy(ap2, ap);
 	if (!log_fp)
 		log_init();
-
 	if (!log_fp)
 		log_fp = stdout;
 
 	fprintf(log_fp, "[%lu] %d: ", time(NULL), severity);
-	vfprintf(log_fp, fmt, ap2);
-	fputc('\n', log_fp);
-}
 
-void loginfo(const char *fmt, ...)
-{
-	va_list ap;
 	va_start(ap, fmt);
-	vlog(LOG_INFO, fmt, ap);
+	len = vfprintf(log_fp, fmt, ap);
 	va_end(ap);
-}
-
-void logwarn(const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	vlog(LOG_WARNING, fmt, ap);
-	va_end(ap);
-}
-
-void logerr(const char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
-	vlog(LOG_ERR, fmt, ap);
-	va_end(ap);
-}
-
-void logdebug(const char *fmt, ...)
-{
-	if (log_opts & LOGDEBUG) {
-		va_list ap;
-		va_start(ap, fmt);
-		vlog(LOG_DEBUG, fmt, ap);
-		va_end(ap);
-	}
-}
-
-/* log a system call failure and return -1 to indicate failure */
-int sflog(const char *syscall, const char *func, int line)
-{
-	if (errno) {
-		lerr("%s() failed in %s @ %d: %d, %s",
-			 syscall, func, line, errno, strerror(errno));
-		return -1;
-	}
-
-	ldebug("%s(): Success in %s @ %d", syscall, func, line);
-	return 0;
+	if (fmt[len] != '\n')
+		fputc('\n', log_fp);
 }
