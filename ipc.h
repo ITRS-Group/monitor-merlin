@@ -8,13 +8,13 @@
 # define UNIX_PATH_MAX 108
 #endif
 
-extern int ipc_init(int is_module);
-#define ipc_bind() ipc_init(0)
-#define ipc_connect() ipc_init(1)
+extern int ipc_init(void);
+#define ipc_bind() ipc_init()
+#define ipc_connect() ipc_init()
 
-extern int ipc_deinit(int is_module);
-#define ipc_unlink() ipc_deinit(0)
-#define ipc_disconnect() ipc_init(1)
+extern int ipc_deinit(void);
+#define ipc_unlink() ipc_deinit()
+#define ipc_disconnect() ipc_init()
 
 extern int ipc_grok_var(char *var, char *val);
 extern int ipc_read(void *buf, size_t len, unsigned msec);

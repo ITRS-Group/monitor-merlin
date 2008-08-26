@@ -250,6 +250,8 @@ int main(int argc, char **argv)
 	int i;
 	char *config_file = NULL;
 
+	is_module = 0;
+
 	for (i = 1; i < argc; i++) {
 		char *arg = argv[i];
 		if (*arg == '-') {

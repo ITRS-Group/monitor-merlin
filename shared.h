@@ -49,9 +49,11 @@ static inline void *xfree(void *ptr)
 
 #define xstrdup(str) str ? strdup(str) : NULL
 
-/** global variables in both module and daemon **/
-extern int is_noc, debug;
-extern const int module;
+/** global variables present in both module and daemon **/
+extern int is_noc;
+extern int is_module;
+extern int pulse_interval;
+extern int debug;
 
 /** prototypes **/
 extern char *next_word(char *str);

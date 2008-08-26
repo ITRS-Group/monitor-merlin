@@ -525,7 +525,6 @@ static int net_sendto(struct node *node, const void *data, size_t len)
 #define set_inactive(node) ipc_send_ctrl(CTRL_INACTIVE, node->selection)
 #define set_active(node) ipc_send_ctrl(CTRL_ACTIVE, node->selection)
 
-#define pulse_interval 15
 static void check_node_activity(struct node *node)
 {
 	time_t now = time(NULL);

@@ -6,9 +6,11 @@
 #include "config.h"
 #include "ipc.h"
 
-/** global variables present in both daemon and module with same defaults **/
+/** global variables present in both daemon and module **/
 int is_noc = 0; /* default to poller in daemon and module */
-int debug = 0;
+int debug = 0;  /* doesn't actually do anything right now */
+int is_module = 1; /* the daemon sets this to 0 immediately */
+int pulse_interval = 15;
 
 #ifndef ISSPACE
 # define ISSPACE(c) (c == ' ' || c == '\t')
@@ -28,7 +30,6 @@ char *next_word(char *str)
 	return NULL;
 }
 
-int pulse_interval = 15;
 int grok_common_var(struct compound *config, struct cfg_var *v)
 {
 	if (!strcmp(v->var, "mode")) {

@@ -7,8 +7,6 @@
 #include <sys/poll.h>
 #include <signal.h>
 
-static int ipc_is_module = -1; /* simplify re-initializing the ipc socket */
-
 #define ipc_read_ok(msec) ipc_poll(POLLIN, msec)
 #define ipc_write_ok(msec) ipc_poll(POLLOUT, msec)
 
@@ -21,9 +19,9 @@ static char *ipc_sock_path = NULL;
 
 static int ipc_reinit(void)
 {
-	ipc_deinit(ipc_is_module);
+	ipc_deinit();
 
-	return ipc_init(ipc_is_module);
+	return ipc_init();
 }
 
 
@@ -77,7 +75,7 @@ int ipc_grok_var(char *var, char *val)
 	return 0;
 }
 
-int ipc_init(int is_module)
+int ipc_init(void)
 {
 	struct sockaddr_un saun;
 	struct sockaddr *sa = (struct sockaddr *)&saun;
@@ -88,14 +86,13 @@ int ipc_init(int is_module)
 
 	linfo("Initializing IPC socket '%s' for %s", ipc_sock_path,
 	      is_module ? "module" : "daemon");
-	ipc_is_module = is_module;
 
 	memset(&saun, 0, sizeof(saun));
 	sa->sa_family = AF_UNIX;
 	memcpy(saun.sun_path, ipc_sock_path, slen);
 	slen += sizeof(struct sockaddr);
 
-	if (!ipc_is_module) {
+	if (!is_module) {
 		if (unlink(ipc_sock_path) && errno != ENOENT)
 			return -1;
 	}
@@ -114,7 +111,7 @@ int ipc_init(int is_module)
 		setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &optval, sizeof(int));
 	}
 
-	if (!ipc_is_module) {
+	if (!is_module) {
 		if (bind(sock, sa, slen) < 0) {
 			lerr("Failed to bind ipc socket: %s", strerror(errno));
 			close(ipc_sock);
@@ -153,7 +150,7 @@ int ipc_init(int is_module)
 }
 
 
-int ipc_deinit(int is_module)
+int ipc_deinit(void)
 {
 	int result;
 
@@ -180,7 +177,7 @@ static int ipc_is_connected(int msec)
 
 		slen = sizeof(saun);
 
-		if (ipc_is_module)
+		if (is_module)
 			return ipc_reinit();
 
 		if (poll(&pfd, 1, msec) > 0) {
@@ -235,6 +232,8 @@ int ipc_read(void *buf, size_t len, unsigned msec)
 	int result;
 
 	result = ipc_read_ok(msec);
+	if (result < 0)
+		ldebug("ipc_read_ok returned %d: %s", result, strerror(errno));
 
 	/* read max 4k in one go */
 	if (len > 4096)
@@ -314,7 +313,7 @@ int ipc_write(const void *buf, size_t len, unsigned msec)
 	}
 
 	if (errno == ENOTCONN || errno == EFAULT || errno == EPIPE) {
-		lerr("Trying to re-initialize ipc socket. ipc_is_module is %d", ipc_is_module);
+		lerr("Trying to re-initialize ipc socket. is_module is %d", is_module);
 		ipc_reinit();
 	}
 
