@@ -36,7 +36,7 @@ static struct node *base, **noc_table, **poller_table, **peer_table;
 //static struct timeval sock_to = { 0, 0 };
 static struct node **selection_table;
 
-static const char *node_state(struct node *node)
+static inline const char *node_state(struct node *node)
 {
 	switch (node->status) {
 	case STATE_NONE:
