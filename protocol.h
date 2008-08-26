@@ -3,6 +3,8 @@
 
 #include <sys/types.h>
 
+#define MERLIN_PROTOCOL_VERSION 0
+
 /* some special cases for the 'type' field.
  * NET_* can be used over network
  * IPC_* is for ipc communication */

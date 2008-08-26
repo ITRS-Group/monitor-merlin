@@ -630,14 +630,19 @@ static void net_input(struct node *node)
 int send_ipc_data(const struct proto_hdr *hdr)
 {
 	int result, len, i;
-	void *buf;
+	char buf[MAX_PKT_SIZE + sizeof(struct proto_hdr)];
+
+	if (hdr->protocol > MERLIN_PROTOCOL_VERSION) {
+		ldebug("Bad protocol version: %d (me = %d)", hdr->protocol,
+		       MERLIN_PROTOCOL_VERSION);
+		return -1;
+	}
+	if (hdr->len > MAX_PKT_SIZE) {
+		ldebug("Packet is too large: %d > %d", hdr->len, MAX_PKT_SIZE);
+		return -1;
+	}
 
 	len = hdr->len + sizeof(*hdr);
-
-	buf = malloc(len);
-	if (!buf)
-		return -1;
-
 	memcpy(buf, hdr, sizeof(*hdr));
 
 	result = ipc_read(buf + sizeof(*hdr), hdr->len, 0);
@@ -663,8 +668,6 @@ int send_ipc_data(const struct proto_hdr *hdr)
 			net_sendto(node, buf, len);
 		}
 	}
-
-	free(buf);
 
 	return 0;
 }
