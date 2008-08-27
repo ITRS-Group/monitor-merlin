@@ -8,6 +8,9 @@ struct hash_table;
 typedef struct hash_table hash_table;
 
 #define TABLE hash_table *table
+extern size_t hash_get_max_entries(TABLE);
+extern size_t hash_get_num_entries(TABLE);
+extern size_t hash_table_size(TABLE);
 extern hash_table *hash_init(size_t buckets);
 extern void *hash_find(TABLE, const char *key);
 extern void *hash_find2(TABLE, const char *k1, const char *k2);

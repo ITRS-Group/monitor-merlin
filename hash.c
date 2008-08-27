@@ -20,6 +20,22 @@ struct hash_table {
 	size_t max_entries;
 };
 
+/* struct data access functions */
+size_t hash_get_max_entries(hash_table *table)
+{
+	return table ? table->max_entries : 0;
+}
+
+size_t hash_get_num_entries(hash_table *table)
+{
+	return table ? table->entries : 0;
+}
+
+size_t hash_table_size(hash_table *table)
+{
+	return table ? table->num_buckets : 0;
+}
+
 /*
  * polynomial conversion ignoring overflows
  *
@@ -67,7 +83,7 @@ int hash_add(hash_table *table, const char *key, void *data)
 	return hash_add_bucket(table, key, NULL, data, hash_func(key));
 }
 
-hash_bucket *hash_get_bucket(hash_table *table, const char *key)
+static hash_bucket *hash_get_bucket(hash_table *table, const char *key)
 {
 	hash_bucket *bkt;
 
@@ -83,7 +99,7 @@ hash_bucket *hash_get_bucket(hash_table *table, const char *key)
 	return NULL;
 }
 
-hash_bucket *hash_get_bucket2(hash_table *table, const char *k1, const char *k2)
+static hash_bucket *hash_get_bucket2(hash_table *table, const char *k1, const char *k2)
 {
 	hash_bucket *bkt;
 
@@ -161,7 +177,7 @@ void *hash_update2(hash_table *table, const char *key, const char *key2, void *d
 	}
 
 	bkt->data = data;
-	return 0;
+	return NULL;
 }
 
 static inline void *hash_destroy_bucket(hash_bucket *bkt)
