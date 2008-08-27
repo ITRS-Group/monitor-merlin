@@ -16,6 +16,7 @@
 
 extern int h_errno;
 
+#include "net.h"
 #include "redundancy.h"
 #include "types.h"
 #include "shared.h"
@@ -26,7 +27,6 @@ extern int h_errno;
 
 #define DEF_SOCK_TIMEOUT 50000
 
-extern int def_port;
 static int net_sock = -1; /* listening sock descriptor */
 
 #define num_nodes (nocs + pollers + peers)
@@ -476,7 +476,7 @@ int net_init(void)
 	socklen_t addrlen = sizeof(inbound);
 
 	sain.sin_addr.s_addr = 0;
-	sain.sin_port = ntohs(def_port);
+	sain.sin_port = ntohs(default_port);
 	sa->sa_family = AF_INET;
 
 	net_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);

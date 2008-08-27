@@ -30,7 +30,7 @@
 
 extern const char *__progname;
 
-int def_port = 15551;
+int default_port = 15551;
 
 static void dump_core(int sig)
 {
@@ -109,8 +109,8 @@ static void grok_daemon_compound(struct compound *comp)
 		if (!strcmp(v->var, "port")) {
 			char *endp;
 
-			def_port = strtoul(v->val, &endp, 0);
-			if (def_port < 1 || def_port > 65535 || *endp)
+			default_port = strtoul(v->val, &endp, 0);
+			if (default_port < 1 || default_port > 65535 || *endp)
 				cfg_error(comp, v, "Illegal value for port: %s", v->val);
 			continue;
 		}
@@ -147,7 +147,7 @@ int grok_config(char *path)
 			continue;
 
 		if (!strcmp(v->var, "port")) {
-			def_port = (unsigned short)strtoul(v->val, NULL, 0);
+			default_port = (unsigned short)strtoul(v->val, NULL, 0);
 			continue;
 		}
 
