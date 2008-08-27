@@ -16,10 +16,10 @@
 #define lerr(fmt, args...) \
 	log_msg(LOG_ERR, fmt, ##args)
 
-void log_deinit(void);
-int log_grok_var(char *var, char *val);
-void log_msg(int severity, const char *fmt, ...)
+extern int log_init(void);
+extern void log_deinit(void);
+extern int log_grok_var(char *var, char *val);
+extern void log_msg(int severity, const char *fmt, ...)
 	__attribute__((__format__(__printf__, 2, 3)));
-int sflog(const char *syscall, const char *func, int line);
 
 #endif
