@@ -214,19 +214,19 @@ static void polling_loop(void)
 	net_poll();
 
 	for (;;) {
-		struct proto_hdr head;
+		struct proto_hdr hdr;
 		int result;
 
 		/* we want to keep the ipc socket emptied, so keep reading until
 		 * it returns zero, or until we've done it 5 times */
-		result = ipc_read(&head, sizeof(head), 0);
-		if (result > 0) {
-			send_ipc_data(&head);
+		result = ipc_read(&hdr, sizeof(hdr), 0);
+		if (result == sizeof(hdr)) {
+			send_ipc_data(&hdr);
 
 			if (++count < 5)
 				continue;
 		}
-		if (result < 0) {
+		else if (result < 0) {
 			lerr("ipc_read() returned %d: %s", result, strerror(errno));
 		}
 
