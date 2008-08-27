@@ -44,6 +44,6 @@ int hook_comment(int cb, void *data);
 int hook_downtime(int cb, void *data);
 
 /** misc functions **/
-time_t get_last_cfg_change(void);
+extern time_t get_last_cfg_change(void);
 
 #endif /* REDUNDANCY_H */

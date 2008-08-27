@@ -87,15 +87,6 @@
 #define GETGROUPS_T gid_t
 #define RETSIGTYPE void
 
-#ifndef RTLD_GLOBAL
-#define RTLD_GLOBAL 0
-#endif
-
-#ifndef RTLD_NOW
-#define RTLD_NOW 0
-#endif
-
-
 /***** HEADER FILES *****/
 
 #include <stdio.h>
@@ -284,6 +275,14 @@
 #ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
 #endif
+#endif
+
+#ifndef RTLD_GLOBAL
+#define RTLD_GLOBAL 0
+#endif
+
+#ifndef RTLD_NOW
+#define RTLD_NOW 0
 #endif
 
 

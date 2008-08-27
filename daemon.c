@@ -124,7 +124,7 @@ static void grok_daemon_compound(struct compound *comp)
 	}
 }
 
-int grok_config(char *path)
+static int grok_config(char *path)
 {
 	int i, node_i = 0;
 	struct compound *config;
@@ -206,7 +206,7 @@ int grok_config(char *path)
 }
 
 
-void polling_loop(void)
+static void polling_loop(void)
 {
 	int count = 0;
 
@@ -236,7 +236,7 @@ void polling_loop(void)
 }
 
 
-void clean_exit(int sig)
+static void clean_exit(int sig)
 {
 	ipc_unlink();
 	net_deinit();

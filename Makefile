@@ -10,6 +10,7 @@ DSO = merlin
 PROG = $(DSO)d
 NEB = $(DSO).so
 MOD_LDFLAGS = -shared
+SPARSE_FLAGS += -Wno-transparent-union
 
 ifndef V
 	QUIET_CC    = @echo '   ' CC $@;
@@ -17,6 +18,9 @@ ifndef V
 endif
 
 all: $(NEB) $(PROG)
+
+check:
+	@for i in *.c; do sparse $(CFLAGS) $(SPARSE_FLAGS) $$i; done
 
 $(PROG): $(DAEMON_OBJS) $(COMMON_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $(LIBS) $^ -o $@

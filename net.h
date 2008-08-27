@@ -2,10 +2,10 @@
 #define NET_H
 
 #include "protocol.h"
+#include "types.h"
 
 extern int default_port;
 
-extern struct node *nodelist_by_selection(int sel);
 extern void create_node_tree(struct node *table, unsigned n);
 extern int net_resolve(const char *cp, struct in_addr *inp);
 extern struct node *find_node(struct sockaddr_in *sain, const char *name);
