@@ -21,6 +21,7 @@
 #include <nagios/broker.h>
 
 #include "shared.h"
+#include "data.h"
 #include "logging.h"
 #include "hash.h"
 
@@ -51,8 +52,6 @@ extern char *config_file;
 extern int event_broker_options;
 
 /** prototypes **/
-extern int blockify(void *data, int cb_type, char *buf, int buflen);
-extern int deblockify(void *ds, off_t len, int cb_type);
 extern int cb_handler(int cmd, void *data); /* the callback handler */
 extern void file_list_free(struct file_list *list);
 extern int mrm_ipc_write(const char *key, const void *buf, int len, int type);
