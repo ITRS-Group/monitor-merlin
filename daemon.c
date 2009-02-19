@@ -31,6 +31,7 @@
 extern const char *__progname;
 
 int default_port = 15551;
+extern int ipc_sock;
 
 static void dump_core(int sig)
 {
@@ -55,18 +56,23 @@ static void usage(char *fmt, ...)
 }
 
 
-void destroy_node(struct node *node)
+/* node connect/disconnect handlers */
+static int node_action_handler(struct node *node, int action)
 {
-	if (!node)
-		return;
+	ldebug("Handling action %d for node '%s'", action, node->name);
+	/* only NOCs can take over checks */
+	if (!is_noc)
+		return 0;
 
-	if (node->name)
-		free(node->name);
+	switch (action) {
+	case STATE_CONNECTED:
+		return proto_ctrl(ipc_sock, CTRL_ACTIVE, node->id);
+	case STATE_NONE:
+		return proto_ctrl(ipc_sock, CTRL_INACTIVE, node->id);
+	}
 
-	close(node->sock);
-	free(node);
+	return 1;
 }
-
 
 static void grok_node(struct compound *c, struct node *node)
 {
