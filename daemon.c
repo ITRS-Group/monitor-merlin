@@ -28,6 +28,8 @@
 #include "net.h"
 #include "protocol.h"
 
+int mrm_db_update(void *buf);
+
 extern const char *__progname;
 
 int default_port = 15551;
@@ -250,6 +252,7 @@ static int handle_ipc_data(const struct proto_hdr *hdr)
 	}
 
 	result = send_ipc_data(buf);
+	result |= mrm_db_update(buf);
 
 	return result;
 }

@@ -2,15 +2,16 @@ CC = gcc
 CPPFLAGS = -I.
 CFLAGS = -O2 -pipe -Wall -ggdb3
 COMMON_OBJS = config.o ipc.o shared.o logging.o io.o protocol.o
-DAEMON_OBJS = daemon.o net.o
+DAEMON_OBJS = daemon.o net.o sql.o db_updater.o data.o
 MODULE_OBJS = module.o data.o hooks.o control.o hash.o
 MODULE_DEPS = module.h hash.h
-DAEMON_DEPS = net.h
+DAEMON_DEPS = net.h sql.h
 DEPS = Makefile config.h ipc.h logging.h shared.h types.h
 DSO = merlin
 PROG = $(DSO)d
 NEB = $(DSO).so
 MOD_LDFLAGS = -shared
+DAEMON_LDFLAGS = -L/usr/lib/mysql -L/usr/lib64/mysql -lmysqlclient
 SPARSE_FLAGS += -Wno-transparent-union
 
 ifndef V
@@ -24,7 +25,7 @@ check:
 	@for i in *.c; do sparse $(CFLAGS) $(SPARSE_FLAGS) $$i; done
 
 $(PROG): $(DAEMON_OBJS) $(COMMON_OBJS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) $(LIBS) $^ -o $@
+	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $(LIBS) $^ -o $@
 
 $(NEB): $(MODULE_OBJS) $(COMMON_OBJS)
 	$(QUIET_LINK)$(CC) $(MOD_LDFLAGS) $(LDFLAGS) $^ -o $@
