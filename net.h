@@ -14,6 +14,6 @@ extern int net_init(void);
 extern int shoutcast(int type, void *buf, size_t len);
 extern int read_all(int fd, void *buf, size_t len);
 extern int net_poll(void);
-extern int send_ipc_data(const struct proto_hdr *head);
+extern int send_ipc_data(const char *buf);
 
 #endif /* NET_H */

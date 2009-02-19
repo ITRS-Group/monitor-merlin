@@ -206,6 +206,46 @@ static int grok_config(char *path)
 }
 
 
+static int handle_ipc_data(const struct proto_hdr *hdr)
+{
+	int result;
+	size_t len;
+	static char *buf = NULL;
+	static size_t bufsize = 0;
+
+	if (hdr->protocol > MERLIN_PROTOCOL_VERSION) {
+		ldebug("Bad protocol version: %d (me = %d)", hdr->protocol,
+					   MERLIN_PROTOCOL_VERSION);
+		return -1;
+	}
+
+	if (hdr->len > MAX_PKT_SIZE) {
+		ldebug("Packet is too large: %d > %d", hdr->len, MAX_PKT_SIZE);
+		return -1;
+	}
+
+	len = hdr->len + sizeof(*hdr);
+	if (bufsize < len)
+		buf = realloc(buf, len);
+	if (!buf) {
+		lerr("Failed to malloc %d bytes of data from handle_ipc_data(): %s",
+			 len, strerror(errno));
+		return -1;
+	}
+
+	memcpy(buf, hdr, sizeof(*hdr));
+	result = ipc_read(buf + sizeof(*hdr), hdr->len, 0);
+	if (result != hdr->len) {
+		lerr("Protocol header claims body size is %d, but ipc_read returned %d: %s",
+			 hdr->len, result, strerror(errno));
+		return -1;
+	}
+
+	result = send_ipc_data(buf);
+
+	return result;
+}
+
 static void polling_loop(void)
 {
 	int count = 0;
@@ -221,7 +261,7 @@ static void polling_loop(void)
 		 * it returns zero, or until we've done it 5 times */
 		result = ipc_read(&hdr, sizeof(hdr), 0);
 		if (result == sizeof(hdr)) {
-			send_ipc_data(&hdr);
+			handle_ipc_data(&hdr);
 
 			if (++count < 5)
 				continue;

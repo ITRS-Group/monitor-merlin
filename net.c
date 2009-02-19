@@ -626,37 +626,17 @@ static void net_input(struct node *node)
 }
 
 
-int send_ipc_data(const struct proto_hdr *hdr)
+int send_ipc_data(const char *buf)
 {
-	int result, len, i;
-	char buf[MAX_PKT_SIZE + sizeof(struct proto_hdr)];
-
-	if (hdr->protocol > MERLIN_PROTOCOL_VERSION) {
-		ldebug("Bad protocol version: %d (me = %d)", hdr->protocol,
-		       MERLIN_PROTOCOL_VERSION);
-		return -1;
-	}
-	if (hdr->len > MAX_PKT_SIZE) {
-		ldebug("Packet is too large: %d > %d", hdr->len, MAX_PKT_SIZE);
-		return -1;
-	}
-
-	len = hdr->len + sizeof(*hdr);
-	memcpy(buf, hdr, sizeof(*hdr));
-
-	result = ipc_read(buf + sizeof(*hdr), hdr->len, 0);
-	if (result != hdr->len) {
-		lerr("Protocol header claims body size is %d, but ipc_read returned %d: %s",
-			 hdr->len, result, strerror(errno));
-		return -1;
-	}
+	int i;
+	struct proto_hdr *hdr = (struct proto_hdr *)buf;
 
 	if (is_noc && hdr->selection != 0xffff) {
 		struct node *node = nodelist_by_selection(hdr->selection);
 
 		ldebug("Sending to nodes by selection '%s'", get_sel_name(hdr->selection));
 		for (; node; node = node->next)
-			net_sendto(node, buf, len);
+			net_sendto(node, buf, hdr->len);
 	}
 	else {
 		ldebug("Sending to all %d nocs and peers", nocs + peers);
@@ -664,7 +644,7 @@ int send_ipc_data(const struct proto_hdr *hdr)
 		for (i = 0; i < nocs + peers; i++) {
 			struct node *node = node_table[i];
 
-			net_sendto(node, buf, len);
+			net_sendto(node, buf, hdr->len);
 		}
 	}
 
