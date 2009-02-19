@@ -103,6 +103,8 @@ static void grok_node(struct compound *c, struct node *node)
 		else
 			cfg_error(c, v, "Unknown variable\n");
 	}
+	node->action = node_action_handler;
+	node->last_action = -1;
 }
 
 static void grok_daemon_compound(struct compound *comp)
