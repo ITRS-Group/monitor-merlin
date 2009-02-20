@@ -268,7 +268,8 @@ static int handle_ipc_data(const struct proto_hdr *hdr)
 	}
 
 	result = send_ipc_data(buf);
-	result |= mrm_db_update(buf);
+	if (use_database)
+		result |= mrm_db_update(buf);
 
 	return result;
 }
