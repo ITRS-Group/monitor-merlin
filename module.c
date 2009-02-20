@@ -152,7 +152,7 @@ static int mrm_ipc_reap(void *discard)
 	ldebug("**** SCHEDULING NEW REAPING AT %lu", time(NULL) + mrm_reap_interval);
 	schedule_new_event(EVENT_USER_FUNCTION, TRUE,
 	                   time(NULL) + mrm_reap_interval, FALSE,
-	                   0, NULL, FALSE, mrm_ipc_reap, NULL);
+	                   0, NULL, FALSE, mrm_ipc_reap, NULL, 0);
 
 	return len;
 }
@@ -213,7 +213,7 @@ static void setup_host_hash_tables(void)
 
 	for (hg = hostgroup_list; hg; hg = hg->next) {
 		int id = get_sel_id(hg->group_name);
-		struct hostgroupmember_struct *m;
+		struct hostsmember_struct *m;
 
 		if (id < 0) {
 			continue;
@@ -369,7 +369,7 @@ static int mrm_ipc_connect(void *discard)
 
 	if (result < 0)
 		schedule_new_event(EVENT_USER_FUNCTION, TRUE, time(NULL) + 10, FALSE,
-						   0, NULL, FALSE, mrm_ipc_connect, NULL);
+						   0, NULL, FALSE, mrm_ipc_connect, NULL, 0);
 
 	return result;
 }

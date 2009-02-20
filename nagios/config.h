@@ -2,8 +2,8 @@
 /************************************************************************
  *
  * Nagios Config Header File
- * Written By: Ethan Galstad (nagios@nagios.org)
- * Last Modified: 12-23-2005
+ * Written By: Ethan Galstad (egalstad@nagios.org)
+ * Last Modified: 11-02-2008
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -24,6 +24,11 @@
 
 #define DEFAULT_NAGIOS_USER "nagios"
 #define DEFAULT_NAGIOS_GROUP "nagios"
+
+/* stop gcc from bitching about implicit asprintf declarations */
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE 1
+#endif
 
 /* Event broker integration */
 #define USE_EVENT_BROKER 1
@@ -73,6 +78,19 @@
 #define HAVE_STRTOUL 1
 #define HAVE_INITGROUPS 1
 /* #undef HAVE_GETLOADAVG */
+#define HAVE_GLIB 1
+
+
+
+/***** ASPRINTF() AND FRIENDS *****/
+
+/* #undef HAVE_VSNPRINTF */
+/* #undef HAVE_SNPRINTF */
+/* #undef HAVE_ASPRINTF */
+/* #undef HAVE_VASPRINTF */
+#define HAVE_C99_VSNPRINTF 1
+#define HAVE_VA_COPY 1
+/* #undef HAVE___VA_COPY */
 
 
 
@@ -86,6 +104,8 @@
 #define SOCKET_SIZE_TYPE size_t
 #define GETGROUPS_T gid_t
 #define RETSIGTYPE void
+
+
 
 /***** HEADER FILES *****/
 
@@ -110,6 +130,11 @@
 #define HAVE_SYS_RESOURCE_H 1
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
+#endif
+
+#define HAVE_LIMITS_H 1
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
 #endif
 
 #define HAVE_PWD_H 1
@@ -160,6 +185,11 @@
 #define HAVE_FCNTL_H 1
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
+
+#define HAVE_STDARG_H 1
+#ifdef HAVE_STDARG_H
+#include <stdarg.h>
 #endif
 
 #define HAVE_SYS_TYPES_H 1
@@ -241,6 +271,11 @@
 #include <netdb.h>
 #endif
 
+#define HAVE_LIBGEN_H 1
+#ifdef HAVE_LIBGEN_H
+#include <libgen.h>
+#endif
+
 #define HAVE_SYS_UN_H 1
 #ifdef HAVE_SYS_UN_H
 #include <sys/un.h>
@@ -277,6 +312,8 @@
 #endif
 #endif
 
+
+/* moved to end to prevent AIX compiler warnings */
 #ifndef RTLD_GLOBAL
 #define RTLD_GLOBAL 0
 #endif

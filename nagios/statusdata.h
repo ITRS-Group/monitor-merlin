@@ -2,8 +2,8 @@
  *
  * STATUSDATA.H - Header for external status data routines
  *
- * Copyright (c) 2000-2005 Ethan Galstad (nagios@nagios.org)
- * Last Modified:   11-25-2005
+ * Copyright (c) 2000-2007 Ethan Galstad (egalstad@nagios.org)
+ * Last Modified:   10-19-2007
  *
  * License:
  *
@@ -38,8 +38,9 @@
 #define READ_PROGRAM_STATUS	1
 #define READ_HOST_STATUS	2
 #define READ_SERVICE_STATUS	4
+#define READ_CONTACT_STATUS     8
 
-#define READ_ALL_STATUS_DATA    READ_PROGRAM_STATUS | READ_HOST_STATUS | READ_SERVICE_STATUS
+#define READ_ALL_STATUS_DATA    READ_PROGRAM_STATUS | READ_HOST_STATUS | READ_SERVICE_STATUS | READ_CONTACT_STATUS
 
 
 
@@ -56,6 +57,7 @@
 typedef struct hoststatus_struct{
 	char    *host_name;
 	char    *plugin_output;
+	char    *long_plugin_output;
 	char    *perf_data;
 	int     status;
 	time_t  last_update;
@@ -65,6 +67,7 @@ typedef struct hoststatus_struct{
 	int     max_attempts;
 	time_t  last_check;
 	time_t  next_check;
+	int     check_options;
 	int     check_type;
 	time_t	last_state_change;
 	time_t	last_hard_state_change;
@@ -102,6 +105,7 @@ typedef struct servicestatus_struct{
 	char    *host_name;
 	char    *description;
 	char    *plugin_output;
+	char    *long_plugin_output;
 	char    *perf_data;
 	int     max_attempts;
 	int     current_attempt;
@@ -111,6 +115,7 @@ typedef struct servicestatus_struct{
 	int     should_be_scheduled;
 	time_t  last_check;
 	time_t  next_check;
+	int     check_options;
 	int     check_type;
 	int	checks_enabled;
 	time_t	last_state_change;
@@ -186,6 +191,7 @@ int cleanup_status_data(char *,int);                    /* cleans up status data
 int update_program_status(int);                         /* updates program status data */
 int update_host_status(host *,int);                     /* updates host status data */
 int update_service_status(service *,int);               /* updates service status data */
+int update_contact_status(contact *,int);               /* updates contact status data */
 #endif
 
 #ifdef __cplusplus

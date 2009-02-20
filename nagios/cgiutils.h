@@ -2,8 +2,8 @@
 /************************************************************************
  *
  * CGIUTILS.H - Header file for common CGI functions
- * Copyright (c) 1999-2006  Ethan Galstad (nagios@nagios.org)
- * Last Modified: 01-20-2006
+ * Copyright (c) 1999-2008  Ethan Galstad (egalstad@nagios.org)
+ * Last Modified: 10-15-2008
  *
  * License:
  *
@@ -59,7 +59,7 @@ extern "C" {
 #define CONFIG_CGI              "config.cgi"
 #define OUTAGES_CGI		"outages.cgi"
 #define TRENDS_CGI		"trends.cgi"
-#define AVAIL_CGI		"avail.cgi"
+#define AVAIL_CGI		"/monitor/op5/reports/gui/avail_result.php"
 #define TAC_CGI			"tac.cgi"
 #define STATUSWML_CGI           "statuswml.cgi"
 #define TRACEROUTE_CGI		"traceroute.cgi"
@@ -138,7 +138,7 @@ extern "C" {
 #define DELETE_ICON			"delete.gif"
 #define DELAY_ICON			"delay.gif"
 #define DOWNTIME_ICON			"downtime.gif"
-#define PASSIVE_ICON			"unknown.png"
+#define PASSIVE_ICON			"passiveonly.gif"
 #define RIGHT_ARROW_ICON		"right.gif"
 #define LEFT_ARROW_ICON			"left.gif"
 #define UP_ARROW_ICON			"up.gif"
@@ -185,6 +185,9 @@ extern "C" {
 
 #define CONTEXT_HELP_ICON1		"contexthelp1.gif"
 #define CONTEXT_HELP_ICON2		"contexthelp2.gif"
+
+#define SPLUNK_SMALL_WHITE_ICON		"splunk1.gif"
+#define SPLUNK_SMALL_BLACK_ICON		"splunk2.gif"
 
 
 
@@ -233,6 +236,8 @@ extern "C" {
 #define NOTIFICATION_HOST_ACK		1024
 #define NOTIFICATION_SERVICE_FLAP	2048
 #define NOTIFICATION_HOST_FLAP		4096
+#define NOTIFICATION_SERVICE_CUSTOM     8192
+#define NOTIFICATION_HOST_CUSTOM        16384
 
 
 /********************** HOST AND SERVICE ALERT TYPES **********************/
@@ -289,6 +294,8 @@ extern "C" {
 #define HOST_PASSIVE_CHECKS_ENABLED	32768
 #define HOST_PASSIVE_CHECK           	65536
 #define HOST_ACTIVE_CHECK            	131072
+#define HOST_HARD_STATE			262144
+#define HOST_SOFT_STATE			524288
 
 
 #define SERVICE_SCHEDULED_DOWNTIME	1
@@ -309,6 +316,8 @@ extern "C" {
 #define SERVICE_PASSIVE_CHECKS_ENABLED	32768
 #define SERVICE_PASSIVE_CHECK           65536
 #define SERVICE_ACTIVE_CHECK            131072
+#define SERVICE_HARD_STATE		262144
+#define SERVICE_SOFT_STATE		524288
 
 
 /****************************** SSI TYPES  ********************************/
@@ -454,23 +463,29 @@ int read_main_config_file(char *);
 int read_all_object_configuration_data(char *,int);
 int read_all_status_data(char *,int);
 
-int hashfunc1(const char *name1, int hashslots);
-int hashfunc2(const char *name1, const char *name2, int hashslots);
-int compare_hashdata1(const char *,const char *);
-int compare_hashdata2(const char *,const char *,const char *,const char *);
+int hashfunc(const char *name1, const char *name2, int hashslots);
+int compare_hashdata(const char *,const char *,const char *,const char *);
 
 void strip(char *);                                		/* strips newlines, carriage returns, and spaces from end of buffer */
+char *unescape_newlines(char *);
 void sanitize_plugin_output(char *);                            /* strips HTML and bad characters from plugin output */
+void strip_html_brackets(char *);				/* strips > and < from string */
+int process_macros(char *,char **,int);				/* processes macros in a string */
 
 void get_time_string(time_t *,char *,int,int);			/* gets a date/time string */
-void get_interval_time_string(int,char *,int);			/* gets a time string for an interval of time */
+void get_datetime_string(time_t *,char *,int,int);
+void get_interval_time_string(double,char *,int);		/* gets a time string for an interval of time */
 void get_expire_time_string(time_t *,char *,int);		/* gets a date/time string in the format used for Expire: tags*/
 
 char * my_strtok(char *,char *);				/* replacement for strtok() function - doesn't skip multiple tokens */
 char * my_strsep (char **, const char *);
+#ifdef REMOVED_10182007
+int my_free(void **);                                   	/* my wrapper for free() */
+#endif
 
 char * url_encode(char *);		        		/* encodes a string in proper URL format */
-char * html_encode(char *);					/* encodes a string in HTML format (for what the user sees) */
+char * html_encode(char *,int);					/* encodes a string in HTML format (for what the user sees) */
+char * escape_string(char *);					/* escape string for html form usage */
 
 void get_time_breakdown(unsigned long,int *,int *,int *,int *);	/* given total seconds, get days, hours, minutes, seconds */
 
@@ -478,11 +493,16 @@ void get_log_archive_to_use(int,char *,int);			/* determines the name of the log
 void determine_log_rotation_times(int);
 int determine_archive_to_use_from_time(time_t);
 
-void print_extra_host_url(char *,char *);
-void print_extra_service_url(char *,char *,char *);
+void print_extra_hostgroup_url(char *,char *);
+void print_extra_servicegroup_url(char *,char *);
 
 void display_info_table(char *,int,authdata *);
 void display_nav_table(char *,int);
+
+void display_splunk_host_url(host *);
+void display_splunk_service_url(service *);
+void display_splunk_generic_url(char *,int);
+void strip_splunk_query_terms(char *);
 
 void include_ssi_files(char *,int);                             /* include user-defined SSI footers/headers */
 void include_ssi_file(char *);                                  /* include user-defined SSI footer/header */

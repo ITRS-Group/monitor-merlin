@@ -2,8 +2,8 @@
  *
  * BROKER.H - Event broker includes for Nagios
  *
- * Copyright (c) 2002-2005 Ethan Galstad (nagios@nagios.org)
- * Last Modified:   12-16-2005
+ * Copyright (c) 2002-2006 Ethan Galstad (egalstad@nagios.org)
+ * Last Modified:   12-12-2006
  *
  * License:
  *
@@ -102,11 +102,14 @@
 #define NEBTYPE_SERVICECHECK_PROCESSED           701
 #define NEBTYPE_SERVICECHECK_RAW_START           702   /* NOT IMPLEMENTED */
 #define NEBTYPE_SERVICECHECK_RAW_END             703   /* NOT IMPLEMENTED */
+#define NEBTYPE_SERVICECHECK_ASYNC_PRECHECK      704
 
 #define NEBTYPE_HOSTCHECK_INITIATE               800   /* a check of the route to the host has been initiated */
 #define NEBTYPE_HOSTCHECK_PROCESSED              801   /* the processed/final result of a host check */
 #define NEBTYPE_HOSTCHECK_RAW_START              802   /* the start of a "raw" host check */
 #define NEBTYPE_HOSTCHECK_RAW_END                803   /* a finished "raw" host check */
+#define NEBTYPE_HOSTCHECK_ASYNC_PRECHECK         804
+#define NEBTYPE_HOSTCHECK_SYNC_PRECHECK          805
 
 #define NEBTYPE_COMMENT_ADD                      900
 #define NEBTYPE_COMMENT_DELETE                   901
@@ -124,10 +127,12 @@
 #define NEBTYPE_PROGRAMSTATUS_UPDATE             1200
 #define NEBTYPE_HOSTSTATUS_UPDATE                1201
 #define NEBTYPE_SERVICESTATUS_UPDATE             1202
+#define NEBTYPE_CONTACTSTATUS_UPDATE             1203
 
 #define NEBTYPE_ADAPTIVEPROGRAM_UPDATE           1300
 #define NEBTYPE_ADAPTIVEHOST_UPDATE              1301
 #define NEBTYPE_ADAPTIVESERVICE_UPDATE           1302
+#define NEBTYPE_ADAPTIVECONTACT_UPDATE           1303
 
 #define NEBTYPE_EXTERNALCOMMAND_START            1400
 #define NEBTYPE_EXTERNALCOMMAND_END              1401
@@ -181,30 +186,32 @@
 #ifdef USE_EVENT_BROKER
 struct timeval get_broker_timestamp(struct timeval *);
 void broker_program_state(int,int,int,struct timeval *);
-void broker_timed_event(int,int,int,timed_event *event,struct timeval *);
+void broker_timed_event(int,int,int,timed_event *,struct timeval *);
 void broker_log_data(int,int,int,char *,unsigned long,time_t,struct timeval *);
 void broker_event_handler(int,int,int,int,void *,int,int,struct timeval,struct timeval,double,int,int,int,char *,char *,char *,struct timeval *);
 void broker_ocp_data(int,int,int,void *,int,int,double,int,int,struct timeval *);
 void broker_system_command(int,int,int,struct timeval,struct timeval,double,int,int,int,char *,char *,struct timeval *);
-void broker_host_check(int,int,int,host *,int,int,int,struct timeval,struct timeval,char *,double,double,int,int,int,char *,char *,char *,struct timeval *);
-void broker_service_check(int,int,int,service *,int,struct timeval,struct timeval,char *,double,double,int,int,int,char *,struct timeval *);
+int broker_host_check(int,int,int,host *,int,int,int,struct timeval,struct timeval,char *,double,double,int,int,int,char *,char *,char *,char *,struct timeval *);
+int broker_service_check(int,int,int,service *,int,struct timeval,struct timeval,char *,double,double,int,int,int,char *,struct timeval *);
 void broker_comment_data(int,int,int,int,int,char *,char *,time_t,char *,char *,int,int,int,time_t,unsigned long,struct timeval *);
 void broker_downtime_data(int,int,int,int,char *,char *,time_t,char *,char *,time_t,time_t,int,unsigned long,unsigned long,unsigned long,struct timeval *);
 void broker_flapping_data(int,int,int,int,void *,double,double,double,struct timeval *);
 void broker_program_status(int,int,int,struct timeval *);
 void broker_host_status(int,int,int,host *,struct timeval *);
 void broker_service_status(int,int,int,service *,struct timeval *);
+void broker_contact_status(int,int,int,contact *,struct timeval *);
 void broker_notification_data(int,int,int,int,int,struct timeval,struct timeval,void *,char *,char *,int,int,struct timeval *);
 void broker_contact_notification_data(int,int,int,int,int,struct timeval,struct timeval,void *,contact *,char *,char *,int,struct timeval *);
 void broker_contact_notification_method_data(int,int,int,int,int,struct timeval,struct timeval,void *,contact *,char *,char *,char *,int,struct timeval *);
-void broker_adaptive_program_data(int,int,int,int,unsigned long,unsigned long,unsigned long,unsigned long,char *,char *,struct timeval *);
+void broker_adaptive_program_data(int,int,int,int,unsigned long,unsigned long,unsigned long,unsigned long,struct timeval *);
 void broker_adaptive_host_data(int,int,int,host *,int,unsigned long,unsigned long,struct timeval *);
 void broker_adaptive_service_data(int,int,int,service *,int,unsigned long,unsigned long,struct timeval *);
+void broker_adaptive_contact_data(int,int,int,contact *,int,unsigned long,unsigned long,unsigned long,unsigned long,unsigned long,unsigned long, struct timeval *);
 void broker_external_command(int,int,int,int,time_t,char *,char *,struct timeval *);
 void broker_aggregated_status_data(int,int,int,struct timeval *);
 void broker_retention_data(int,int,int,struct timeval *);
 void broker_acknowledgement_data(int,int,int,int,void *,char *,char *,int,int,int,struct timeval *);
-void broker_statechange_data(int,int,int,int,void *,int,int,int,int,struct timeval *timestamp);
+void broker_statechange_data(int,int,int,int,void *,int,int,int,int,struct timeval *);
 #endif
 
 

@@ -1,8 +1,8 @@
 /************************************************************************
  *
  * Nagios Common Header File
- * Written By: Ethan Galstad (nagios@nagios.org)
- * Last Modified: 12-01-2005
+ * Written By: Ethan Galstad (egalstad@nagios.org)
+ * Last Modified: 10-22-2007
  *
  * License:
  *
@@ -21,8 +21,11 @@
  ************************************************************************/
 
 
-#define PROGRAM_VERSION "2.0"
-#define PROGRAM_MODIFICATION_DATE "02-07-2006"
+#define PROGRAM_VERSION "3.0.6"
+#define PROGRAM_MODIFICATION_DATE "12-14-2008"
+
+/*#define DEBUG_CHECK_IPC 1 */
+/*#define DEBUG_CHECK_IPC2 1*/
 
 
 
@@ -38,6 +41,9 @@
 
 /* Experimental performance tweaks - use with caution */
 #undef USE_MEMORY_PERFORMANCE_TWEAKS
+
+/* my_free has been freed from bondage as a function */
+#define my_free(ptr) { if(ptr) { free(ptr); ptr = NULL; } }
 
 
 
@@ -171,6 +177,7 @@
 #define CMD_SCHEDULE_HOSTGROUP_SVC_DOWNTIME             85
 #define CMD_SCHEDULE_HOST_SVC_DOWNTIME                  86
 
+/* new commands in Nagios 2.x found below... */
 #define CMD_PROCESS_HOST_CHECK_RESULT		        87
 
 #define CMD_START_EXECUTING_HOST_CHECKS			88
@@ -256,6 +263,45 @@
 #define CMD_SET_HOST_NOTIFICATION_NUMBER                142
 #define CMD_SET_SVC_NOTIFICATION_NUMBER                 143
 
+/* new commands in Nagios 3.x found below... */
+#define CMD_CHANGE_HOST_CHECK_TIMEPERIOD                144  
+#define CMD_CHANGE_SVC_CHECK_TIMEPERIOD                 145
+
+#define CMD_PROCESS_FILE                                146
+
+#define CMD_CHANGE_CUSTOM_HOST_VAR                      147
+#define CMD_CHANGE_CUSTOM_SVC_VAR                       148
+#define CMD_CHANGE_CUSTOM_CONTACT_VAR                   149
+
+#define CMD_ENABLE_CONTACT_HOST_NOTIFICATIONS           150
+#define CMD_DISABLE_CONTACT_HOST_NOTIFICATIONS          151
+#define CMD_ENABLE_CONTACT_SVC_NOTIFICATIONS            152
+#define CMD_DISABLE_CONTACT_SVC_NOTIFICATIONS           153
+
+#define CMD_ENABLE_CONTACTGROUP_HOST_NOTIFICATIONS      154
+#define CMD_DISABLE_CONTACTGROUP_HOST_NOTIFICATIONS     155
+#define CMD_ENABLE_CONTACTGROUP_SVC_NOTIFICATIONS       156
+#define CMD_DISABLE_CONTACTGROUP_SVC_NOTIFICATIONS      157
+
+#define CMD_CHANGE_RETRY_HOST_CHECK_INTERVAL            158
+
+#define CMD_SEND_CUSTOM_HOST_NOTIFICATION               159
+#define CMD_SEND_CUSTOM_SVC_NOTIFICATION                160
+
+#define CMD_CHANGE_HOST_NOTIFICATION_TIMEPERIOD         161
+#define CMD_CHANGE_SVC_NOTIFICATION_TIMEPERIOD          162
+#define CMD_CHANGE_CONTACT_HOST_NOTIFICATION_TIMEPERIOD 163
+#define CMD_CHANGE_CONTACT_SVC_NOTIFICATION_TIMEPERIOD  164
+
+#define CMD_CHANGE_HOST_MODATTR                         165
+#define CMD_CHANGE_SVC_MODATTR                          166
+#define CMD_CHANGE_CONTACT_MODATTR                      167
+#define CMD_CHANGE_CONTACT_MODHATTR                     168
+#define CMD_CHANGE_CONTACT_MODSATTR                     169
+
+/* custom command introduced in Nagios 3.x */
+#define CMD_CUSTOM_COMMAND                              999
+
 
 
 /************************ SERVICE CHECK TYPES ****************************/
@@ -283,6 +329,14 @@
 #define ANY_DOWNTIME                    3       /* host or service downtime */
 
 
+/************************** NOTIFICATION OPTIONS *************************/
+
+#define NOTIFICATION_OPTION_NONE        0
+#define NOTIFICATION_OPTION_BROADCAST   1
+#define NOTIFICATION_OPTION_FORCED      2
+#define NOTIFICATION_OPTION_INCREMENT   4
+
+
 /************************** ACKNOWLEDGEMENT TYPES ************************/
 
 #define HOST_ACKNOWLEDGEMENT            0
@@ -297,6 +351,15 @@
 
 #define NOTIFICATION_DEPENDENCY		1
 #define EXECUTION_DEPENDENCY		2
+
+
+
+/********************** HOST/SERVICE CHECK OPTIONS ***********************/
+
+#define CHECK_OPTION_NONE		0	/* no check options */
+#define CHECK_OPTION_FORCE_EXECUTION	1	/* force execution of a check (ignores disabled services/hosts, invalid timeperiods) */
+#define CHECK_OPTION_FRESHNESS_CHECK    2       /* this is a freshness check */
+#define CHECK_OPTION_ORPHAN_CHECK       4       /* this is an orphan check */
 
 
 /**************************** PROGRAM MODES ******************************/
@@ -318,6 +381,23 @@
 
 #define LOG_VERSION_1           "1.0"
 #define LOG_VERSION_2           "2.0"
+
+
+
+/*************************** CHECK STATISTICS ****************************/
+
+#define ACTIVE_SCHEDULED_SERVICE_CHECK_STATS 0
+#define ACTIVE_ONDEMAND_SERVICE_CHECK_STATS  1
+#define PASSIVE_SERVICE_CHECK_STATS          2
+#define ACTIVE_SCHEDULED_HOST_CHECK_STATS    3
+#define ACTIVE_ONDEMAND_HOST_CHECK_STATS     4
+#define PASSIVE_HOST_CHECK_STATS             5
+#define ACTIVE_CACHED_HOST_CHECK_STATS       6
+#define ACTIVE_CACHED_SERVICE_CHECK_STATS    7
+#define EXTERNAL_COMMAND_STATS               8
+#define PARALLEL_HOST_CHECK_STATS            9
+#define SERIAL_HOST_CHECK_STATS              10
+#define MAX_CHECK_STATS_TYPES                11
 
 
 /************************* GENERAL DEFINITIONS  **************************/
@@ -359,6 +439,16 @@
 #define READ_ALL_OBJECT_DATA            READ_HOSTS | READ_HOSTGROUPS | READ_CONTACTS | READ_CONTACTGROUPS | READ_SERVICES | READ_COMMANDS | READ_TIMEPERIODS | READ_SERVICEESCALATIONS | READ_SERVICEDEPENDENCIES | READ_HOSTDEPENDENCIES | READ_HOSTESCALATIONS | READ_HOSTEXTINFO | READ_SERVICEEXTINFO | READ_SERVICEGROUPS
 
 
+/************************** DATE RANGE TYPES ****************************/
+
+#define DATERANGE_CALENDAR_DATE  0  /* 2008-12-25 */
+#define DATERANGE_MONTH_DATE     1  /* july 4 (specific month) */
+#define DATERANGE_MONTH_DAY      2  /* day 21 (generic month) */
+#define DATERANGE_MONTH_WEEK_DAY 3  /* 3rd thursday (specific month) */
+#define DATERANGE_WEEK_DAY       4  /* 3rd thursday (generic month) */
+#define DATERANGE_TYPES          5 
+
+
 /************************** DATE/TIME TYPES *****************************/
 
 #define LONG_DATE_TIME			0
@@ -379,8 +469,9 @@
 /************************** MISC DEFINITIONS ****************************/
 
 #define MAX_FILENAME_LENGTH			256	/* max length of path/filename that Nagios will process */
-#define MAX_INPUT_BUFFER			1024	/* size in bytes of max. input buffer (for reading files) */
-#define MAX_COMMAND_BUFFER                      8192    /* max length of raw or processed command line */
+#define MAX_INPUT_BUFFER			1024	/* size in bytes of max. input buffer (for reading files, misc stuff) */
+#define MAX_COMMAND_BUFFER			32768    /* max length of raw or processed command line */
+#define MAX_EXTERNAL_COMMAND_LENGTH             8192    /* max length of an external command */
 
 #define MAX_DATETIME_LENGTH			48
 
@@ -402,6 +493,8 @@
 #define MODATTR_RETRY_CHECK_INTERVAL            2048
 #define MODATTR_MAX_CHECK_ATTEMPTS              4096
 #define MODATTR_FRESHNESS_CHECKS_ENABLED        8192
-
+#define MODATTR_CHECK_TIMEPERIOD                16384
+#define MODATTR_CUSTOM_VARIABLE                 32768
+#define MODATTR_NOTIFICATION_TIMEPERIOD         65536
 
 	

@@ -2,8 +2,8 @@
  *
  * NEBSTRUCTS.H - Event broker includes for Nagios
  *
- * Copyright (c) 2003-2005 Ethan Galstad (nagios@nagios.org)
- * Last Modified: 12-17-2005
+ * Copyright (c) 2003-2007 Ethan Galstad (egalstad@nagios.org)
+ * Last Modified: 10-28-2007
  *
  * License:
  *
@@ -55,6 +55,8 @@ typedef struct nebstruct_timed_event_struct{
 	int             recurring;
 	time_t          run_time;
 	void            *event_data;
+
+	void            *event_ptr;
         }nebstruct_timed_event_data;
 
 
@@ -111,6 +113,8 @@ typedef struct nebstruct_event_handler_struct{
 	double          execution_time;
 	int             return_code;
 	char            *output;
+
+	void            *object_ptr;
         }nebstruct_event_handler_data;
 
 
@@ -138,7 +142,10 @@ typedef struct nebstruct_host_check_struct{
 	double          latency;
 	int             return_code;
 	char            *output;
+	char            *long_output;
 	char            *perf_data;
+
+	void            *object_ptr;
         }nebstruct_host_check_data;
 
 
@@ -167,7 +174,10 @@ typedef struct nebstruct_service_check_struct{
 	double          latency;
 	int             return_code;
 	char            *output;
+	char            *long_output;
 	char            *perf_data;
+
+	void            *object_ptr;
         }nebstruct_service_check_data;
 
 
@@ -190,6 +200,8 @@ typedef struct nebstruct_comment_struct{
 	int             expires;
 	time_t          expire_time;
 	unsigned long   comment_id;
+
+	void            *object_ptr; /* not implemented yet */
         }nebstruct_comment_data;
 
 
@@ -212,6 +224,8 @@ typedef struct nebstruct_downtime_struct{
 	unsigned long   duration;
 	unsigned long   triggered_by;
 	unsigned long   downtime_id;
+
+	void            *object_ptr; /* not implemented yet */
         }nebstruct_downtime_data;
 
 
@@ -229,6 +243,8 @@ typedef struct nebstruct_flapping_struct{
 	double          high_threshold;
 	double          low_threshold;
 	unsigned long   comment_id;
+
+	void            *object_ptr;
         }nebstruct_flapping_data;
 
 
@@ -284,6 +300,17 @@ typedef struct nebstruct_service_status_struct{
         }nebstruct_service_status_data;
 
 
+/* contact status structure */
+typedef struct nebstruct_contact_status_struct{
+	int             type;
+	int             flags;
+	int             attr;
+	struct timeval  timestamp;
+
+	void            *object_ptr;
+        }nebstruct_contact_status_data;
+
+
 /* notification data structure */
 typedef struct nebstruct_notification_struct{
 	int             type;
@@ -303,6 +330,8 @@ typedef struct nebstruct_notification_struct{
 	char            *ack_data;
 	int             escalated;
 	int             contacts_notified;
+
+	void            *object_ptr;
         }nebstruct_notification_data;
 
 
@@ -325,6 +354,9 @@ typedef struct nebstruct_contact_notification_struct{
 	char            *ack_author;
 	char            *ack_data;
 	int             escalated;
+
+	void            *object_ptr;
+	void            *contact_ptr;
         }nebstruct_contact_notification_data;
 
 
@@ -349,6 +381,9 @@ typedef struct nebstruct_contact_notification_method_struct{
 	char            *ack_author;
 	char            *ack_data;
 	int             escalated;
+
+	void            *object_ptr;
+	void            *contact_ptr;
         }nebstruct_contact_notification_method_data;
 
 
@@ -364,8 +399,6 @@ typedef struct nebstruct_adaptive_program_data_struct{
 	unsigned long   modified_host_attributes;
 	unsigned long   modified_service_attribute;
 	unsigned long   modified_service_attributes;
-	char            *global_host_event_handler;
-	char            *global_service_event_handler;
         }nebstruct_adaptive_program_data;
 
 
@@ -379,6 +412,7 @@ typedef struct nebstruct_adaptive_host_data_struct{
 	int             command_type;
 	unsigned long   modified_attribute;
 	unsigned long   modified_attributes;
+
 	void            *object_ptr;
         }nebstruct_adaptive_host_data;
 
@@ -393,8 +427,28 @@ typedef struct nebstruct_adaptive_service_data_struct{
 	int             command_type;
 	unsigned long   modified_attribute;
 	unsigned long   modified_attributes;
+
 	void            *object_ptr;
         }nebstruct_adaptive_service_data;
+
+
+/* adaptive contact data structure */
+typedef struct nebstruct_adaptive_contact_data_struct{
+	int             type;
+	int             flags;
+	int             attr;
+	struct timeval  timestamp;
+
+	int             command_type;
+	unsigned long   modified_attribute;
+	unsigned long   modified_attributes;
+	unsigned long   modified_host_attribute;
+	unsigned long   modified_host_attributes;
+	unsigned long   modified_service_attribute;
+	unsigned long   modified_service_attributes;
+
+	void            *object_ptr;
+        }nebstruct_adaptive_contact_data;
 
 
 /* external command data structure */
@@ -447,6 +501,8 @@ typedef struct nebstruct_acknowledgement_struct{
 	int             is_sticky;
 	int             persistent_comment;
 	int             notify_contacts;
+
+	void            *object_ptr;
         }nebstruct_acknowledgement_data;
 
 
@@ -465,6 +521,8 @@ typedef struct nebstruct_statechange_struct{
 	int             current_attempt;
 	int             max_attempts;
 	char            *output;
+
+	void            *object_ptr;
         }nebstruct_statechange_data;
 
 #ifdef __cplusplus
