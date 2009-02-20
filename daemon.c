@@ -365,6 +365,8 @@ int main(int argc, char **argv)
 	signal(SIGINT, clean_exit);
 	signal(SIGTERM, clean_exit);
 	signal(SIGPIPE, dump_core);
+	if (use_database)
+		sql_init();
 	polling_loop();
 
 	clean_exit(0);
