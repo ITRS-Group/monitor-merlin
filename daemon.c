@@ -27,10 +27,13 @@
 #include "ipc.h"
 #include "net.h"
 #include "protocol.h"
+#include "sql.h"
 
 int mrm_db_update(void *buf);
 
 extern const char *__progname;
+
+static int use_database;
 
 int default_port = 15551;
 extern int ipc_sock;
@@ -131,6 +134,19 @@ static void grok_daemon_compound(struct compound *comp)
 			continue;
 
 		cfg_error(comp, v, "Unknown variable");
+	}
+
+	for (i = 0; i < comp->nested; i++) {
+		struct compound *c = comp->nest[i];
+		int vi;
+
+		if (!strcmp(c->name, "database")) {
+			use_database = 1;
+			for (vi = 0; vi < c->vars; vi++) {
+				struct cfg_var *v = c->vlist[vi];
+				sql_config(v->var, v->val);
+			}
+		}
 	}
 }
 
