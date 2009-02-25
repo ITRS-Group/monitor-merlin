@@ -14,8 +14,6 @@
 #include <sys/select.h>
 #include <fcntl.h>
 
-extern int h_errno;
-
 #include "net.h"
 #include "redundancy.h"
 #include "types.h"

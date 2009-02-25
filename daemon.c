@@ -36,7 +36,6 @@ extern const char *__progname;
 static int use_database;
 
 int default_port = 15551;
-extern int ipc_sock;
 
 static void dump_core(int sig)
 {

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <errno.h>
 
+#if 0
 int proto_read_event(int sock, struct proto_hdr *hdr, void **buf)
 {
 	int len;
@@ -47,6 +48,7 @@ int proto_send_event(int sock, struct proto_hdr *hdr, void *buf)
 
 	return io_send_all(sock, sb, HDR_SIZE + hdr->len);
 }
+#endif
 
 int proto_ctrl(int sock, int control_type, int selection)
 {

@@ -21,3 +21,5 @@ extern int ipc_read(void *buf, size_t len, unsigned msec);
 extern int ipc_write(const void *buf, size_t len, unsigned msec);
 extern int ipc_send_ctrl(int control_type, int selection);
 #endif
+
+extern int ipc_sock;
