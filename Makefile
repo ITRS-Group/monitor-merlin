@@ -12,7 +12,7 @@ PROG = $(DSO)d
 NEB = $(DSO).so
 MOD_LDFLAGS = -shared
 DAEMON_LDFLAGS = -L/usr/lib/mysql -L/usr/lib64/mysql -lmysqlclient
-SPARSE_FLAGS += -Wno-transparent-union
+SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 
 ifndef V
 	QUIET_CC    = @echo '   ' CC $@;
@@ -22,7 +22,7 @@ endif
 all: $(NEB) $(PROG)
 
 check:
-	@for i in *.c; do sparse $(CFLAGS) $(SPARSE_FLAGS) $$i; done
+	@for i in *.c; do sparse $(CFLAGS) $(SPARSE_FLAGS) $$i 2>&1; done | grep -v /usr/include
 
 $(PROG): $(DAEMON_OBJS) $(COMMON_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $(LIBS) $^ -o $@
