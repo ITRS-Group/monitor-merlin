@@ -3,9 +3,16 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
 #include <signal.h>
 #include <grp.h>
 #include <pwd.h>
+#include <string.h>
+
+#include "logging.h"
 
 static const char *daemon_pidfile;
 
