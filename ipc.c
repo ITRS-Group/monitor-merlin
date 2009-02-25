@@ -79,7 +79,14 @@ int ipc_init(void)
 {
 	struct sockaddr_un saun;
 	struct sockaddr *sa = (struct sockaddr *)&saun;
-	socklen_t slen = strlen(ipc_sock_path);
+	socklen_t slen;
+
+	if (!ipc_sock_path) {
+		lerr("Attempting to initialize ipc socket, but no socket path has been set\n");
+		return -1;
+	}
+
+	slen = strlen(ipc_sock_path);
 
 	if (!ipc_sock_path)
 		ipc_sock_path = strdup("/opt/monitor/op5/mrd/socket.mrd");
