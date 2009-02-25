@@ -1,7 +1,10 @@
 CC = gcc
 CPPFLAGS = -I.
 CFLAGS = -O2 -pipe -Wall -ggdb3
-COMMON_OBJS = config.o ipc.o shared.o logging.o io.o protocol.o
+SHARED_OBJS = config.o ipc.o shared.o io.o protocol.o data.o
+TEST_OBJS = test_utils.o $(SHARED_OBJS)
+TEST_DEPS = test_utils.h
+COMMON_OBJS = logging.o $(SHARED_OBJS)
 DAEMON_OBJS = daemon.o net.o sql.o db_updater.o data.o
 MODULE_OBJS = module.o data.o hooks.o control.o hash.o
 MODULE_DEPS = module.h hash.h
@@ -23,6 +26,9 @@ all: $(NEB) $(PROG)
 
 check:
 	@for i in *.c; do sparse $(CFLAGS) $(SPARSE_FLAGS) $$i 2>&1; done | grep -v /usr/include
+
+blktest: blktest.o $(TEST_OBJS) $(TEST_DEPS)
+	$(QUIET_LINK)$(CC) $(LDFLAGS) $^ -o $@
 
 $(PROG): $(DAEMON_OBJS) $(COMMON_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $(LIBS) $^ -o $@
