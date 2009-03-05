@@ -95,6 +95,7 @@ static int grok_config(char *path)
 int main(int argc, char **argv)
 {
 	int errors = 0;
+	char silly_buf[1024];
 
 	if (argc < 2) {
 		ipc_grok_var("ipc_socket", "/opt/monitor/op5/merlin/ipc.sock");
@@ -104,9 +105,11 @@ int main(int argc, char **argv)
 	}
 
 	ipc_init();
+	while ((fgets(silly_buf, sizeof(silly_buf), stdin))) {
+		errors += test_service_check_data();
+		errors += test_host_check_data();
+	}
 
-	errors += test_service_check_data();
-	errors += test_host_check_data();
 	printf("Total errrors: %d\n", errors);
 
 	return !!errors;
