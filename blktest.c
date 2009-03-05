@@ -15,7 +15,7 @@ int test_service_check_data()
 {
 	nebstruct_service_check_data *orig, *mod;
 	char buf[16384];
-	int errors = 0;
+	int len, errors = 0;
 
 	orig = malloc(sizeof(*orig));
 	mod = malloc(sizeof(*mod));
@@ -24,13 +24,21 @@ int test_service_check_data()
 	orig->host_name = strdup(HOST_NAME);
 	orig->output = strdup(OUTPUT);
 	orig->perf_data = strdup(PERF_DATA);
-	blockify(orig, NEBCALLBACK_SERVICE_CHECK_DATA, buf, sizeof(buf));
+	len = blockify(orig, NEBCALLBACK_SERVICE_CHECK_DATA, buf, sizeof(buf));
+	printf("blockify() returned %d\n", len);
 	deblockify(buf, sizeof(buf), NEBCALLBACK_SERVICE_CHECK_DATA);
 	mod = (nebstruct_service_check_data *)buf;
+	errors += mod->host_name == orig->host_name;
+	errors += mod->service_description == orig->service_description;
+	errors += mod->output == orig->output;
+	errors += mod->perf_data == orig->perf_data;
 	errors += !!strcmp(mod->host_name, orig->host_name);
 	errors += !!strcmp(mod->service_description, orig->service_description);
 	errors += !!strcmp(mod->output, orig->output);
 	errors += !!strcmp(mod->perf_data, orig->perf_data);
+	printf("Sending ipc_event for service '%s' on host '%s'\n  output: '%s'\n  perfdata: %s'\n",
+		   mod->service_description, mod->host_name, mod->output, mod->perfdata);
+	ipc_send_event(NEBCALLBACK_SERVICE_CHECK_DATA, 0, buf, len);
 
 	return errors;
 }
@@ -39,7 +47,7 @@ int test_host_check_data()
 {
 	nebstruct_host_check_data *orig, *mod;
 	char buf[16384];
-	int errors = 0;
+	int len, errors = 0;
 
 	orig = malloc(sizeof(*orig));
 	mod = malloc(sizeof(*mod));
@@ -47,18 +55,19 @@ int test_host_check_data()
 	orig->host_name = HOST_NAME;
 	orig->output = OUTPUT;
 	orig->perf_data = PERF_DATA;
-	blockify(orig, NEBCALLBACK_HOST_CHECK_DATA, buf, sizeof(buf));
+	len = blockify(orig, NEBCALLBACK_HOST_CHECK_DATA, buf, sizeof(buf));
+	printf("blockify() returned %d\n", len);
 	deblockify(buf, sizeof(buf), NEBCALLBACK_HOST_CHECK_DATA);
 	mod = (nebstruct_host_check_data *)buf;
+	errors += mod->host_name == orig->host_name;
+	errors += mod->output == orig->output;
+	errors += mod->perf_data == orig->perf_data;
 	errors += !!strcmp(mod->host_name, orig->host_name);
 	errors += !!strcmp(mod->output, orig->output);
 	errors += !!strcmp(mod->perf_data, orig->perf_data);
-	printf("orig: '%s' (%p); mod: '%s' (%p)\n",
-		   orig->host_name, orig->host_name, mod->host_name, mod->host_name);
-	printf("orig: '%s' (%p); mod: '%s' (%p)\n",
-		   orig->output, orig->output, mod->output, mod->output);
-	printf("orig: '%s' (%p); mod: '%s' (%p)\n",
-		   orig->perf_data, orig->perf_data, mod->perf_data, mod->perf_data);
+	printf("Sending ipc_event for host '%s'\n  output: '%s'\n  perfdata: %s'\n",
+		   mod->host_name, mod->output, mod->perfdata);
+	ipc_send_event(NEBCALLBACK_HOST_CHECK_DATA, 0, buf, len);
 
 	return errors;
 }
