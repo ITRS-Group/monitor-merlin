@@ -7,6 +7,7 @@
 
 static int mdb_update_host_status(const nebstruct_host_check_data *p)
 {
+	ldebug("Updating db for host '%s'\n", p->host_name);
 	return sql_query
 		("UPDATE host SET current_attempt = %d, check_type = %d, "
 		 "state_type = %d, current_state = %d, timeout = %d, "
@@ -24,6 +25,8 @@ static int mdb_update_host_status(const nebstruct_host_check_data *p)
 
 static int mdb_update_service_status(const nebstruct_service_check_data *p)
 {
+	ldebug("Updating db for service '%s' on host '%s'\n",
+		   p->service_description, p->host_name);
 	return sql_query
 		("UPDATE service SET current_attempt = %d, check_type = %d, "
 		 "state_type = %d, current_state = %d, timeout = %d, "
