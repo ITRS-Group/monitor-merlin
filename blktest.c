@@ -97,12 +97,11 @@ int main(int argc, char **argv)
 	int errors = 0;
 
 	if (argc < 2) {
-		printf("usage: %s <config-file>\n", argv[0]);
-		return 1;
+		ipc_grok_var("ipc_socket", "/opt/monitor/op5/merlin/ipc.sock");
+	} else {
+		printf("Reading config from '%s'\n", argv[1]);
+		grok_config(argv[1]);
 	}
-
-	printf("Reading config from '%s'\n", argv[1]);
-	grok_config(argv[1]);
 
 	ipc_init();
 
