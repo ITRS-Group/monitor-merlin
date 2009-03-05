@@ -3,6 +3,7 @@
 #include "sql.h"
 #include "data.h"
 #include "protocol.h"
+#include "logging.h"
 
 static int mdb_update_host_status(const nebstruct_host_check_data *p)
 {
@@ -43,6 +44,10 @@ int mrm_db_update(void *buf)
 	struct proto_hdr *hdr = (struct proto_hdr *)buf;
 	int errors = 0;
 
+	if (!buf) {
+		ldebug("buf is NULL in mrm_db_update");
+		return 0;
+	}
 	deblockify(buf, hdr->len, hdr->type);
 	switch (hdr->type) {
 	case NEBCALLBACK_HOST_CHECK_DATA:
