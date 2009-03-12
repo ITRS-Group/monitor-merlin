@@ -37,7 +37,7 @@ int test_service_check_data()
 	errors += !!strcmp(mod->output, orig->output);
 	errors += !!strcmp(mod->perf_data, orig->perf_data);
 	printf("Sending ipc_event for service '%s' on host '%s'\n  output: '%s'\n  perfdata: %s'\n",
-		   mod->service_description, mod->host_name, mod->output, mod->perfdata);
+		   mod->service_description, mod->host_name, mod->output, mod->perf_data);
 	ipc_send_event(NEBCALLBACK_SERVICE_CHECK_DATA, 0, buf, len);
 
 	return errors;
@@ -66,7 +66,7 @@ int test_host_check_data()
 	errors += !!strcmp(mod->output, orig->output);
 	errors += !!strcmp(mod->perf_data, orig->perf_data);
 	printf("Sending ipc_event for host '%s'\n  output: '%s'\n  perfdata: %s'\n",
-		   mod->host_name, mod->output, mod->perfdata);
+		   mod->host_name, mod->output, mod->perf_data);
 	ipc_send_event(NEBCALLBACK_HOST_CHECK_DATA, 0, buf, len);
 
 	return errors;
