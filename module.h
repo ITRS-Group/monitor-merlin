@@ -24,6 +24,7 @@
 #include "data.h"
 #include "logging.h"
 #include "hash.h"
+#include "protocol.h"
 
 typedef struct BINLOG_HEAD {
 	int type;
@@ -54,7 +55,7 @@ extern int event_broker_options;
 /** prototypes **/
 extern int cb_handler(int cmd, void *data); /* the callback handler */
 extern void file_list_free(struct file_list *list);
-extern int mrm_ipc_write(const char *key, const void *buf, int len, int type);
+extern int mrm_ipc_write(const char *key, struct proto_pkt *pkt);
 time_t get_last_cfg_change(void);
 
 int print_service_check_data(nebstruct_service_check_data *ds);

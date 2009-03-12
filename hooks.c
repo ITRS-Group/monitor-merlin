@@ -28,8 +28,8 @@
 int hook_service_result(int cb, void *data)
 {
 	nebstruct_service_check_data *ds = (nebstruct_service_check_data *)data;
-	char buf[MAX_PKT_SIZE];
-	int len, result;
+	struct proto_pkt pkt;
+	int result;
 
 	if (ds->type != NEBTYPE_SERVICECHECK_PROCESSED
 		|| ds->check_type != SERVICE_CHECK_ACTIVE
@@ -41,9 +41,9 @@ int hook_service_result(int cb, void *data)
 	linfo("Active check result processed for service '%s' on host '%s'",
 		  ds->service_description, ds->host_name);
 
-	len = blockify(ds, cb, buf, sizeof(buf));
-
-	result = mrm_ipc_write(ds->host_name, buf, len, cb);
+	pkt.hdr.type = cb;
+	pkt.hdr.len = blockify(ds, cb, pkt.body, sizeof(pkt.body));
+	result = mrm_ipc_write(ds->host_name, &pkt);
 
 	return result;
 }
@@ -51,8 +51,8 @@ int hook_service_result(int cb, void *data)
 int hook_host_result(int cb, void *data)
 {
 	nebstruct_host_check_data *ds = (nebstruct_host_check_data *)data;
-	char buf[MAX_PKT_SIZE];
-	int len, result;
+	struct proto_pkt pkt;
+	int result;
 
 	/* ignore un-processed and passive checks */
 	if (ds->type != NEBTYPE_HOSTCHECK_PROCESSED ||
@@ -63,8 +63,9 @@ int hook_host_result(int cb, void *data)
 	}
 
 	linfo("Active check result processed for host '%s'", ds->host_name);
-	len = blockify(ds, cb, buf, sizeof(buf));
-	result = mrm_ipc_write(ds->host_name, buf, len, cb);
+	pkt.hdr.type = cb;
+	pkt.hdr.len = blockify(ds, cb, pkt.body, sizeof(pkt.body));
+	result = mrm_ipc_write(ds->host_name, &pkt);
 
 	return result;
 }

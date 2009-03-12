@@ -84,26 +84,26 @@ static int handle_host_result(struct proto_hdr *hdr, void *buf)
 }
 
 /* events that require status updates return 1, others return 0 */
-int handle_ipc_event(struct proto_hdr *hdr, void *buf)
+int handle_ipc_event(struct proto_pkt *pkt)
 {
 	linfo("Inbound IPC event, callback %d, len %d, type, %d",
-		   hdr->type, hdr->len, *(int *)buf);
+		   pkt->hdr.type, pkt->hdr.len, *(int *)pkt->body);
 
-	if (!is_noc && hdr->type != CTRL_PACKET) {
+	if (!is_noc && pkt->hdr.type != CTRL_PACKET) {
 		linfo("I'm a poller, so ignoring inbound non-control packet");
 		return 0;
 	}
 
 	/* restore the pointers so the various handlers won't have to */
-	deblockify(buf, hdr->len, hdr->type);
+	deblockify(pkt->body, pkt->hdr.len, pkt->hdr.type);
 
-	switch (hdr->type) {
+	switch (pkt->hdr.type) {
 	case NEBCALLBACK_HOST_CHECK_DATA:
-		return handle_host_result(hdr, buf);
+		return handle_host_result(&pkt->hdr, pkt->body);
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
-		return handle_service_result(hdr, buf);
+		return handle_service_result(&pkt->hdr, pkt->body);
 	default:
-		lwarn("Ignoring unrecognized/unhandled callback type: %d", hdr->type);
+		lwarn("Ignoring unrecognized/unhandled callback type: %d", pkt->hdr.type);
 	}
 
 	return 0;
@@ -113,35 +113,16 @@ int handle_ipc_event(struct proto_hdr *hdr, void *buf)
 static int mrm_ipc_reap(void *discard)
 {
 	int len, events = 0;
-	struct proto_hdr hdr;
+	struct proto_pkt pkt;
 
-	while ((len = ipc_read(&hdr, sizeof(hdr), 0))) {
-		char buf[MAX_PKT_SIZE];
-
-		if (len != sizeof(hdr)) {
-			lerr("Incomplete read(). Read %d bytes, expected %d", len, sizeof(hdr));
-			break;
-		}
-
+	while ((len = ipc_read_event(&pkt))) {
 		/* control packets are handled separately */
-		if (hdr.type == CTRL_PACKET) {
-			handle_control(hdr.len, hdr.selection);
+		if (pkt.hdr.type == CTRL_PACKET) {
+			handle_control(pkt.hdr.len, pkt.hdr.selection);
 			continue;
 		}
 
-		if (hdr.len > MAX_PKT_SIZE) {
-			lerr("Header claims body is %d bytes. Max allowed is %d",
-				 hdr.len, MAX_PKT_SIZE);
-			break;
-		}
-
-		len = ipc_read(buf, hdr.len, 0);
-		if (len == hdr.len)
-			events += handle_ipc_event(&hdr, buf);
-		else if (len < 0)
-			lerr("ipc_read() failed: %s", strerror(errno));
-		else if (len != hdr.len)
-			lerr("Incomplete read(). Read %d bytes, expected %d", len, hdr.len);
+		events += handle_ipc_event(&pkt);
 	}
 
 	if (events) {
@@ -160,35 +141,17 @@ static int mrm_ipc_reap(void *discard)
 
 
 /* abstract out sending headers and such fluff */
-int mrm_ipc_write(const char *key, const void *buf, int len, int type)
+int mrm_ipc_write(const char *key, struct proto_pkt *pkt)
 {
-	struct proto_hdr *hdr;
-	int result, sel_id = -1;
-	char chunk[MAX_PKT_SIZE];
+	int selection = hash_find_val(key);
 
-	if (!buf)
-		return -1;
-
-	if (len > sizeof(chunk)) {
-		ldebug("Skipping unseemly large event: %dKB\n", len >> 10);
+	if (selection < 0) {
+		lwarn("key '%s' doesn't match any possible selection\n", key);
 		return -1;
 	}
 
-	if (key)
-		sel_id = hash_find_val(key);
-
-	memset(chunk, 0, sizeof(chunk));
-	hdr = (struct proto_hdr *)chunk;
-	hdr->protocol = 0;
-	hdr->type = type;
-	hdr->selection = sel_id & 0xffff;
-	hdr->len = len;
-	gettimeofday(&hdr->sent, NULL);
-
-	memcpy(&chunk[sizeof(struct proto_hdr)], buf, len);
-	result = ipc_write(chunk, len + sizeof(struct proto_hdr), 0);
-
-	return result;
+	pkt->hdr.selection = selection & 0xffff;
+	return proto_send_event(ipc_sock_desc(), pkt);
 }
 
 hash_table *host_hash_table;
