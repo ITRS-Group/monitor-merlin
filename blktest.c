@@ -5,17 +5,18 @@
 #include "nagios/nebstructs.h"
 #include "nagios/nebcallbacks.h"
 #include "test_utils.h"
+#include "ipc.h"
 
 #define HOST_NAME "thehost"
 #define SERVICE_DESCRIPTION "A service of random description"
 #define OUTPUT "The plugin output"
 #define PERF_DATA "random_value='5;5;5'"
 
-int test_service_check_data()
+int test_service_check_data(int *errors)
 {
 	nebstruct_service_check_data *orig, *mod;
 	char buf[16384];
-	int len, errors = 0;
+	int len;
 
 	orig = malloc(sizeof(*orig));
 	mod = malloc(sizeof(*mod));
@@ -28,26 +29,25 @@ int test_service_check_data()
 	printf("blockify() returned %d\n", len);
 	deblockify(buf, sizeof(buf), NEBCALLBACK_SERVICE_CHECK_DATA);
 	mod = (nebstruct_service_check_data *)buf;
-	errors += mod->host_name == orig->host_name;
-	errors += mod->service_description == orig->service_description;
-	errors += mod->output == orig->output;
-	errors += mod->perf_data == orig->perf_data;
-	errors += !!strcmp(mod->host_name, orig->host_name);
-	errors += !!strcmp(mod->service_description, orig->service_description);
-	errors += !!strcmp(mod->output, orig->output);
-	errors += !!strcmp(mod->perf_data, orig->perf_data);
+	*errors += mod->host_name == orig->host_name;
+	*errors += mod->service_description == orig->service_description;
+	*errors += mod->output == orig->output;
+	*errors += mod->perf_data == orig->perf_data;
+	*errors += !!strcmp(mod->host_name, orig->host_name);
+	*errors += !!strcmp(mod->service_description, orig->service_description);
+	*errors += !!strcmp(mod->output, orig->output);
+	*errors += !!strcmp(mod->perf_data, orig->perf_data);
 	printf("Sending ipc_event for service '%s' on host '%s'\n  output: '%s'\n  perfdata: %s'\n",
 		   mod->service_description, mod->host_name, mod->output, mod->perf_data);
-	ipc_send_event(NEBCALLBACK_SERVICE_CHECK_DATA, 0, buf, len);
-
-	return errors;
+	len = blockify(orig, NEBCALLBACK_SERVICE_CHECK_DATA, buf, sizeof(buf));
+	return ipc_send_event(NEBCALLBACK_SERVICE_CHECK_DATA, 0, buf, len);
 }
 
-int test_host_check_data()
+int test_host_check_data(int *errors)
 {
 	nebstruct_host_check_data *orig, *mod;
 	char buf[16384];
-	int len, errors = 0;
+	int len;
 
 	orig = malloc(sizeof(*orig));
 	mod = malloc(sizeof(*mod));
@@ -59,17 +59,16 @@ int test_host_check_data()
 	printf("blockify() returned %d\n", len);
 	deblockify(buf, sizeof(buf), NEBCALLBACK_HOST_CHECK_DATA);
 	mod = (nebstruct_host_check_data *)buf;
-	errors += mod->host_name == orig->host_name;
-	errors += mod->output == orig->output;
-	errors += mod->perf_data == orig->perf_data;
-	errors += !!strcmp(mod->host_name, orig->host_name);
-	errors += !!strcmp(mod->output, orig->output);
-	errors += !!strcmp(mod->perf_data, orig->perf_data);
+	*errors += mod->host_name == orig->host_name;
+	*errors += mod->output == orig->output;
+	*errors += mod->perf_data == orig->perf_data;
+	*errors += !!strcmp(mod->host_name, orig->host_name);
+	*errors += !!strcmp(mod->output, orig->output);
+	*errors += !!strcmp(mod->perf_data, orig->perf_data);
 	printf("Sending ipc_event for host '%s'\n  output: '%s'\n  perfdata: %s'\n",
 		   mod->host_name, mod->output, mod->perf_data);
-	ipc_send_event(NEBCALLBACK_HOST_CHECK_DATA, 0, buf, len);
-
-	return errors;
+	len = blockify(orig, NEBCALLBACK_HOST_CHECK_DATA, buf, sizeof(buf));
+	return ipc_send_event(NEBCALLBACK_HOST_CHECK_DATA, 0, buf, len);
 }
 
 static int grok_config(char *path)
@@ -94,7 +93,6 @@ static int grok_config(char *path)
 
 int main(int argc, char **argv)
 {
-	int errors = 0;
 	char silly_buf[1024];
 
 	if (argc < 2) {
@@ -106,11 +104,17 @@ int main(int argc, char **argv)
 
 	ipc_init();
 	while ((fgets(silly_buf, sizeof(silly_buf), stdin))) {
-		errors += test_service_check_data();
-		errors += test_host_check_data();
+		int errors = 0;
+
+		if (!ipc_is_connected()) {
+			printf("ipc socket is not connected\n");
+			continue;
+		}
+		test_host_check_data(&errors);
+		test_service_check_data(&errors);
+		printf("## Total errrors: %d\n", errors);
 	}
 
-	printf("Total errrors: %d\n", errors);
 
-	return !!errors;
+	return 0;
 }
