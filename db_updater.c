@@ -9,11 +9,11 @@ static int mdb_update_host_status(const nebstruct_host_check_data *p)
 {
 	ldebug("Updating db for host '%s'\n", p->host_name);
 	return sql_query
-		("UPDATE host SET current_attempt = %d, check_type = %d, "
+		("UPDATE monitor_gui.host SET current_attempt = %d, check_type = %d, "
 		 "state_type = %d, current_state = %d, timeout = %d, "
 		 "start_time = %lu, end_time = %lu, early_timeout = %d, "
 		 "execution_time = %f, latency = '%.3f', "
-		 "return_code = %d, output = '%s', perf_data = '%s' "
+		 "return_code = %d, plugin_output = '%s', perf_data = '%s' "
 		 "WHERE host_name = '%s'",
 		 p->current_attempt, p->check_type,
 		 p->state_type, p->state, p->timeout,
@@ -28,12 +28,12 @@ static int mdb_update_service_status(const nebstruct_service_check_data *p)
 	ldebug("Updating db for service '%s' on host '%s'\n",
 		   p->service_description, p->host_name);
 	return sql_query
-		("UPDATE service SET current_attempt = %d, check_type = %d, "
+		("UPDATE monitor_gui.service SET current_attempt = %d, check_type = %d, "
 		 "state_type = %d, current_state = %d, timeout = %d, "
 		 "start_time = %lu, end_time = %lu, early_timeout = %d, "
 		 "execution_time = %f, latency = '%.3f', "
-		 "return_code = %d, output = '%s', perf_data = '%s' "
-		 " WHERE host_name = '%s' AND service_description = '%s'",
+		 "return_code = %d, plugin_output = '%s', perf_data = '%s' "
+		 " WHERE host_name = (SELECT id FROM monitor_gui.host WHERE host_name = '%s') AND service_description = '%s'",
 		 p->current_attempt, p->check_type,
 		 p->state_type, p->state, p->timeout,
 		 p->start_time.tv_sec, p->end_time.tv_sec, p->early_timeout,
