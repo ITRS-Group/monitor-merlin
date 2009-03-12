@@ -3,6 +3,7 @@
 
 #include <unistd.h>
 #include <sys/un.h>
+#include "protocol.h"
 
 #ifndef UNIX_PATH_MAX
 # define UNIX_PATH_MAX 108
@@ -20,6 +21,7 @@ extern int ipc_grok_var(char *var, char *val);
 extern int ipc_read(void *buf, size_t len, unsigned msec);
 extern int ipc_write(const void *buf, size_t len, unsigned msec);
 extern int ipc_send_ctrl(int control_type, int selection);
+extern int ipc_read_event(struct proto_pkt *pkt);
 #endif
 
 extern int ipc_sock;

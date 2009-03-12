@@ -195,12 +195,6 @@ static int ipc_is_connected(int msec)
 			}
 		}
 	}
-	else {
-		int result, optval;
-
-		slen = sizeof(optval);
-		result = getsockopt(ipc_sock, SOL_SOCKET, SO_ERROR, &optval, &slen);
-	}
 
 	return ipc_sock != -1;
 }
@@ -273,6 +267,23 @@ int ipc_send_ctrl(int control_type, int selection)
 	return proto_ctrl(ipc_sock, control_type, selection);
 }
 
+int ipc_read_event(struct proto_pkt *pkt)
+{
+	if (ipc_read_ok(0)) {
+		int result;
+		result = proto_read_event(ipc_sock, pkt);
+		if (result < 1) {
+			if (result < 0)
+				linfo("proto_read_event(%d, ...) failed: %s", ipc_sock, strerror(errno));
+			else
+				linfo("ipc socket peer disconnected");
+			ipc_reinit();
+		}
+		return result;
+	}
+
+	return -1;
+}
 
 int ipc_write(const void *buf, size_t len, unsigned msec)
 {
