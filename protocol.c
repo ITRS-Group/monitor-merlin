@@ -1,54 +1,63 @@
+#include <string.h>
+#include <errno.h>
+#include <stdio.h>
+#include <unistd.h>
 #include "io.h"
 #include "protocol.h"
 #include "logging.h"
-#include <string.h>
-#include <errno.h>
 
-#if 0
-int proto_read_event(int sock, struct proto_hdr *hdr, void **buf)
+int proto_read_event(int sock, struct proto_pkt *pkt)
 {
-	int len;
+	int len, result;
 
-	*buf = NULL;
-
-	len = io_recv_all(sock, hdr, HDR_SIZE);
+	len = io_recv_all(sock, &pkt->hdr, HDR_SIZE);
 	if (len != HDR_SIZE) {
-		if (len < 0) {
-			lerr("recv(%d, ..., %d, MSG_DONTWAIT | MSG_NOSIGNAL) failed: %s",
-				 sock, HDR_SIZE, strerror(errno));
-		}
-		if (len) {
-			lerr("In read_event: Incomplete header read(). Expected %d, got %d",
-				 HDR_SIZE, len);
-			return 0;
-		}
-
-		return len;
+		lerr("In read_event: Incomplete header read(). Expected %d, got %d",
+			 HDR_SIZE, len);
+		return -1;
 	}
 
-	*buf = malloc(hdr->len);
-	if (*buf)
-		return io_recv_all(sock, *buf, HDR_SIZE + hdr->len);
+	if (pkt->hdr.protocol != MERLIN_PROTOCOL_VERSION) {
+		lerr("Bad protocol version (%d, expected %d)\n",
+			 pkt->hdr.protocol, MERLIN_PROTOCOL_VERSION);
+		return -1;
+	}
 
-	return 0;
+	if (pkt->hdr.type == CTRL_PACKET)
+		return len;
+
+	result = io_recv_all(sock, pkt->body, pkt->hdr.len);
+	if (result != pkt->hdr.len) {
+		lwarn("Bogus read in proto_read_event(). got %d, expected %d",
+			  result, pkt->hdr.len);
+	}
+	else {
+		ldebug("Successfully read 1 event (%d bytes; %d bytes body) from socket %d\n",
+			   HDR_SIZE + result, pkt->hdr.len, sock);
+	}
+
+	return result;
 }
 
-int proto_send_event(int sock, struct proto_hdr *hdr, void *buf)
+int proto_send_event(int sock, struct proto_pkt *pkt)
 {
-	char sb[MAX_PKT_SIZE + HDR_SIZE];
+	pkt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
 
-	if (hdr->type == CTRL_PACKET)
-		return io_send_all(sock, hdr, HDR_SIZE);
+	if (pkt->hdr.len < 0 || packet_size(pkt) > TOTAL_PKT_SIZE) {
+		ldebug("header is invalid, or packet is too large. aborting\n");
+		return -1;
+	}
 
-	if (hdr->len < 0 || hdr->len > MAX_PKT_SIZE || !buf)
-		return 0;
+	/*
+	 * if this is a control packet, we mustn't use hdr->len
+	 * to calculate the total size of the payload, or we'll
+	 * send random bits of data across the link
+	 */
+	if (pkt->hdr.type == CTRL_PACKET)
+		return io_send_all(sock, &pkt->hdr, HDR_SIZE);
 
-	memcpy(sb, hdr, HDR_SIZE);
-	memcpy(&sb[HDR_SIZE], buf, hdr->len);
-
-	return io_send_all(sock, sb, HDR_SIZE + hdr->len);
+	return io_send_all(sock, pkt, packet_size(pkt));
 }
-#endif
 
 int proto_ctrl(int sock, int control_type, int selection)
 {
