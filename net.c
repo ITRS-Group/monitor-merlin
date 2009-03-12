@@ -34,6 +34,11 @@ static struct node *base, **noc_table, **poller_table, **peer_table;
 //static struct timeval sock_to = { 0, 0 };
 static struct node **selection_table;
 
+int net_sock_desc(void)
+{
+	return net_sock;
+}
+
 static inline const char *node_state(struct node *node)
 {
 	switch (node->status) {
@@ -394,7 +399,7 @@ static int net_negotiate_socket(struct node *node, int lis)
 }
 
 
-static int net_accept_one(void)
+int net_accept_one(void)
 {
 	int sock;
 	struct node *node;
@@ -497,16 +502,19 @@ int net_init(void)
 
 
 /* send a specific packet to a specific host */
-static int net_sendto(struct node *node, const void *data, size_t len)
+static int net_sendto(struct node *node, struct proto_pkt *pkt)
 {
 	int result;
 
-	linfo("sending %d bytes to %s node '%s' (%s:%d). sock is %d",
-		  len, node_type(node), node->name, inet_ntoa(node->sain.sin_addr),
-		  ntohs(node->sain.sin_port), node->sock);
+	if (!pkt || !node) {
+		ldebug("net_sendto() called with neither node nor pkt");
+		return -1;
+	}
 
-	if (!data || !len)
-		return 0;
+	linfo("sending %d bytes to %s node '%s' (%s:%d). sock is %d",
+		  packet_size(pkt), node_type(node), node->name,
+		  inet_ntoa(node->sain.sin_addr),
+		  ntohs(node->sain.sin_port), node->sock);
 
 	if (!node_is_connected(node)) {
 		linfo("node '%s' is not connected, so not sending", node->name);
@@ -514,7 +522,7 @@ static int net_sendto(struct node *node, const void *data, size_t len)
 	}
 
 	node->last_sent = time(NULL);
-	result = io_send_all(node->sock, data, len);
+	result = io_send_all(node->sock, pkt, packet_size(pkt));
 
 	return result;
 }
@@ -624,17 +632,16 @@ static void net_input(struct node *node)
 }
 
 
-int send_ipc_data(const char *buf)
+int net_send_ipc_data(struct proto_pkt *pkt)
 {
 	int i;
-	struct proto_hdr *hdr = (struct proto_hdr *)buf;
 
-	if (is_noc && hdr->selection != 0xffff) {
-		struct node *node = nodelist_by_selection(hdr->selection);
+	if (is_noc && pkt->hdr.selection != 0xffff) {
+		struct node *node = nodelist_by_selection(pkt->hdr.selection);
 
-		ldebug("Sending to nodes by selection '%s'", get_sel_name(hdr->selection));
+		ldebug("Sending to nodes by selection '%s'", get_sel_name(pkt->hdr.selection));
 		for (; node; node = node->next)
-			net_sendto(node, buf, hdr->len);
+			net_sendto(node, pkt);
 	}
 	else {
 		ldebug("Sending to all %d nocs and peers", nocs + peers);
@@ -642,16 +649,84 @@ int send_ipc_data(const char *buf)
 		for (i = 0; i < nocs + peers; i++) {
 			struct node *node = node_table[i];
 
-			net_sendto(node, buf, hdr->len);
+			net_sendto(node, pkt);
 		}
 	}
 
 	return 0;
 }
 
+int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
+{
+	int i;
+
+	for (i = 0; i < num_nodes; i++) {
+		struct node *node = node_table[i];
+
+		if (!node_is_connected(node) && node->status != STATE_PENDING)
+			continue;
+
+		if (node->status == STATE_PENDING)
+			FD_SET(node->sock, wr);
+		else
+			FD_SET(node->sock, rd);
+
+		if (node->sock > sel_val)
+			sel_val = node->sock;
+	}
+
+	return sel_val;
+}
 
 #define READ_OK 1
 #define WRITE_OK 2
+int net_handle_polling_results(fd_set *rd, fd_set *wr)
+{
+	int sockets = 0;
+	int i;
+
+	/* loop the nodes and see which ones have sent something */
+	for (i = 0; i < num_nodes; i++) {
+		struct node *node = node_table[i];
+
+		/* skip obviously bogus sockets */
+		if (node->sock < 0)
+			continue;
+
+		/* new connections go first */
+		if (node->status == STATE_PENDING && FD_ISSET(node->sock, wr)) {
+			printf("node socket %d is ready for writing\n", node->sock);
+			sockets++;
+			if (net_complete_connection(node)) {
+				net_disconnect(node);
+			}
+			continue;
+		}
+		/* handle input, and missing input. All nodes should send
+		 * a pulse at least once in a while, so we know it's still OK.
+		 * If they fail to do that, we may have to take action. */
+		if (FD_ISSET(node->sock, rd)) {
+			printf("node socket %d is ready for reading\n", node->sock);
+			sockets++;
+			net_input(node);
+			continue;
+		}
+
+		check_node_activity(node);
+	}
+
+	return sockets;
+}
+
+void check_all_node_activity(void)
+{
+	int i;
+
+	/* make sure we always check activity level among the nodes */
+	for (i = 0; i < num_nodes; i++)
+		check_node_activity(node_table[i]);
+}
+
 /* poll for INBOUND socket events and completion of pending connections */
 int net_poll(void)
 {
@@ -660,6 +735,7 @@ int net_poll(void)
 	int i, sel_val = 0, nfound = 0;
 	int socks = 0;
 
+	printf("net_sock = %d\n", net_sock);
 	sel_val = net_sock;
 
 	/* add the rest of the sockets to the fd_set */
@@ -688,9 +764,6 @@ int net_poll(void)
 	print_node_status_list();
 
 	if (!nfound) {
-		/* make sure we always check activity level among the nodes */
-		for (i = 0; i < num_nodes; i++)
-			check_node_activity(node_table[i]);
 
 		return 0;
 	}
@@ -699,34 +772,6 @@ int net_poll(void)
 	if (FD_ISSET(net_sock, &rd)) {
 		net_accept_one();
 		socks++;
-	}
-
-	/* loop the nodes and see which ones have sent something */
-	for (i = 0; i < num_nodes; i++) {
-		struct node *node = node_table[i];
-
-		/* skip obviously bogus sockets */
-		if (node->sock < 0)
-			continue;
-
-		/* new connections go first */
-		if (node->status == STATE_PENDING && FD_ISSET(node->sock, &wr)) {
-			socks++;
-			if (net_complete_connection(node)) {
-				net_disconnect(node);
-			}
-			continue;
-		}
-		/* handle input, and missing input. All nodes should send
-		 * a pulse at least once in a while, so we know it's still OK.
-		 * If they fail to do that, we may have to take action. */
-		if (FD_ISSET(node->sock, &rd)) {
-			socks++;
-			net_input(node);
-			continue;
-		}
-
-		check_node_activity(node);
 	}
 
 	assert(nfound == socks);

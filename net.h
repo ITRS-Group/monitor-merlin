@@ -1,6 +1,7 @@
 #ifndef NET_H
 #define NET_H
 
+#include <netdb.h>
 #include "protocol.h"
 #include "types.h"
 
@@ -14,6 +15,10 @@ extern int net_init(void);
 extern int shoutcast(int type, void *buf, size_t len);
 extern int read_all(int fd, void *buf, size_t len);
 extern int net_poll(void);
-extern int send_ipc_data(const char *buf);
-
+extern int net_send_ipc_data(struct proto_pkt *pkt);
+extern int net_sock_desc();
+extern int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val);
+extern void check_all_node_activity(void);
+extern int net_accept_one(void);
+extern int net_handle_polling_results(fd_set *rd, fd_set *wr);
 #endif /* NET_H */

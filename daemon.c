@@ -20,6 +20,7 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "shared.h"
 #include "config.h"
@@ -29,7 +30,7 @@
 #include "protocol.h"
 #include "sql.h"
 
-int mrm_db_update(void *buf);
+int mrm_db_update(struct proto_pkt *pkt);
 
 extern const char *__progname;
 
@@ -231,75 +232,82 @@ static int grok_config(char *path)
 }
 
 
-static int handle_ipc_data(const struct proto_hdr *hdr)
+static int handle_ipc_data(struct proto_pkt *pkt)
 {
-	int result;
-	size_t len;
-	static char *buf = NULL;
-	static size_t bufsize = 0;
+	int result = 0;
 
-	if (hdr->protocol > MERLIN_PROTOCOL_VERSION) {
-		ldebug("Bad protocol version: %d (me = %d)", hdr->protocol,
-					   MERLIN_PROTOCOL_VERSION);
-		return -1;
-	}
+	if (pkt->hdr.type == CTRL_PACKET)
+		return 0;
 
-	if (hdr->len > MAX_PKT_SIZE) {
-		ldebug("Packet is too large: %d > %d", hdr->len, MAX_PKT_SIZE);
-		return -1;
-	}
-
-	len = hdr->len + sizeof(*hdr);
-	if (bufsize < len)
-		buf = realloc(buf, len);
-	if (!buf) {
-		lerr("Failed to malloc %d bytes of data from handle_ipc_data(): %s",
-			 len, strerror(errno));
-		return -1;
-	}
-
-	memcpy(buf, hdr, sizeof(*hdr));
-	result = ipc_read(buf + sizeof(*hdr), hdr->len, 0);
-	if (result != hdr->len) {
-		lerr("Protocol header claims body size is %d, but ipc_read returned %d: %s",
-			 hdr->len, result, strerror(errno));
-		return -1;
-	}
-
-	result = send_ipc_data(buf);
-	if (use_database)
-		result |= mrm_db_update(buf);
+	result = net_send_ipc_data(pkt);
+//	if (use_database)
+		result |= mrm_db_update(pkt);
 
 	return result;
 }
 
+
+int io_poll_sockets(void)
+{
+	fd_set rd, wr;
+	int sel_val, ipc_sock, net_sock, nfound;
+	int sockets = 0;
+	static struct proto_pkt *pkt = NULL;
+
+	if (!pkt) {
+		pkt = calloc(sizeof(*pkt), 1);
+		if (!pkt)
+			return -1;
+	}
+
+	sel_val = net_sock = net_sock_desc();
+	ipc_sock = ipc_sock_desc();
+	if (ipc_sock > sel_val)
+		sel_val = ipc_sock;
+	FD_ZERO(&rd);
+	FD_ZERO(&wr);
+	FD_SET(ipc_sock, &rd);
+
+	ldebug("ipc_sock: %d\nnet_sock: %d\n", ipc_sock, net_sock);
+	sel_val = net_polling_helper(&rd, &wr, sel_val);
+	nfound = select(sel_val + 1, &rd, &wr, NULL, NULL);
+	ldebug("select() returned %d (errno = %d: %s)\n", nfound, errno, strerror(errno));
+	if (nfound < 0) {
+		sleep(1);
+		return -1;
+	}
+
+	if (!nfound) {
+		check_all_node_activity();
+		return 0;
+	}
+
+	if (FD_ISSET(ipc_sock, &rd)) {
+		struct proto_pkt pkt;
+		sockets++;
+		printf("inbound data available on ipc socket\n");
+		if (ipc_read_event(&pkt) > 0)
+			handle_ipc_data(&pkt);
+		else
+			ldebug("ipc_read_event() failed");
+	}
+
+	/* check for inbound connections first */
+	if (FD_ISSET(net_sock, &rd)) {
+		printf("inbound data available on network socket\n");
+		net_accept_one();
+		sockets++;
+	}
+
+	sockets += net_handle_polling_results(&rd, &wr);
+
+	return 0;
+}
+
 static void polling_loop(void)
 {
-	int count = 0;
-
-	/* do this once first so we can avoid the binary backlog unnecessarily */
-	net_poll();
-
-	for (;;) {
-		struct proto_hdr hdr;
-		int result;
-
-		/* we want to keep the ipc socket emptied, so keep reading until
-		 * it returns zero, or until we've done it 5 times */
-		result = ipc_read(&hdr, sizeof(hdr), 0);
-		if (result == sizeof(hdr)) {
-			handle_ipc_data(&hdr);
-
-			if (++count < 5)
-				continue;
-		}
-		else if (result < 0) {
-			lerr("ipc_read() returned %d: %s", result, strerror(errno));
-		}
-
-		count = 0;
-		net_poll();
-	}
+	for (;;)
+		io_poll_sockets();
 }
 
 
@@ -314,7 +322,7 @@ static void clean_exit(int sig)
 
 int main(int argc, char **argv)
 {
-	int i;
+	int i, result;
 	char *config_file = NULL;
 
 	is_module = 0;
@@ -353,7 +361,9 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (ipc_bind() < 0) {
+	result = ipc_bind();
+	printf("ipc_init() returned %d\n", result);
+	if (result < 0) {
 		printf("Failed to initalize ipc socket: %s\n", strerror(errno));
 		return 1;
 	}

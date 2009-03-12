@@ -116,11 +116,13 @@ int ipc_init(void)
 
 		setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &optval, sizeof(int));
 		setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &optval, sizeof(int));
+		if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0)
+			lwarn("ipc: fcntl(sock, F_SEFTL, O_NONBLOCKING) failed");
 	}
 
 	if (!is_module) {
 		if (bind(sock, sa, slen) < 0) {
-			lerr("Failed to bind ipc socket: %s", strerror(errno));
+			lerr("Failed to bind ipc socket %d to path '%s' with len %d: %s", sock, ipc_sock_path, slen, strerror(errno));
 			close(ipc_sock);
 			return -1;
 		}
@@ -132,7 +134,7 @@ int ipc_init(void)
 	}
 
 	if (connect(sock, sa, slen) < 0) {
-		lerr("Failed to connect to ipc socket: %s", strerror(errno));
+		lerr("Failed to connect to ipc socket (%d): %s", errno, strerror(errno));
 		switch (errno) {
 		case EBADF:
 		case ENOTSOCK:
@@ -174,29 +176,35 @@ int ipc_deinit(void)
 }
 
 
-static int ipc_is_connected(int msec)
+int ipc_is_connected(int msec)
 {
 	struct sockaddr_un saun;
-	socklen_t slen;
+	socklen_t slen = sizeof(struct sockaddr_un);
 
-	if (ipc_sock == -1) {
-		struct pollfd pfd = { sock, POLLIN, 0 };
+	if (ipc_sock < 0)
+		return 0;
 
-		slen = sizeof(saun);
+	if (is_module)
+		return ipc_reinit();
 
-		if (is_module)
-			return ipc_reinit();
-
-		if (poll(&pfd, 1, msec) > 0) {
-			ipc_sock = accept(sock, (struct sockaddr *)&saun, &slen);
-			if (ipc_sock < 0) {
-				lerr("ipc: accept() failed: %s", strerror(errno));
-				return 0;
-			}
+	if (io_poll(sock, POLLIN, msec) > 0) {
+		ipc_sock = accept(sock, (struct sockaddr *)&saun, &slen);
+		if (ipc_sock < 0) {
+			lerr("ipc: accept() failed: %s", strerror(errno));
+			return 0;
 		}
 	}
 
 	return ipc_sock != -1;
+}
+
+
+int ipc_sock_desc(void)
+{
+	if (ipc_is_connected(0) && ipc_sock != -1)
+		return ipc_sock;
+
+	return sock;
 }
 
 
@@ -267,6 +275,30 @@ int ipc_send_ctrl(int control_type, int selection)
 	return proto_ctrl(ipc_sock, control_type, selection);
 }
 
+int ipc_send_event(struct proto_pkt *pkt)
+{
+	int result;
+
+	if (!ipc_is_connected(0)) {
+		linfo("ipc is not connected\n");
+		return -1;
+	}
+
+	if (!ipc_write_ok(0)) {
+		linfo("ipc socket isn't ready to accept data: %s", strerror(errno));
+		return -1;
+	}
+
+	result = proto_send_event(ipc_sock, pkt);
+	if (result < 0 && errno == EPIPE) {
+		ipc_reinit();
+		/* XXX: possible infinite loop */
+		return ipc_send_event(pkt);
+	}
+
+	return result;
+}
+
 int ipc_read_event(struct proto_pkt *pkt)
 {
 	if (ipc_read_ok(0)) {
@@ -289,16 +321,21 @@ int ipc_write(const void *buf, size_t len, unsigned msec)
 {
 	int result = ipc_write_ok(msec);
 
-	if (len > MAX_PKT_SIZE)
+	printf("trying to write %d bytes of data to ipc socket\n", len);
+	if (len > TOTAL_PKT_SIZE) {
+		printf("  packet is too big. aborting\n");
 		return 0;
+	}
 
 	if (result < 1) {
+		printf("  writing is not possible. aborting\n");
 		return result;
 	}
 
 	binlog(debug_write, buf, len);
 
 	result = send(ipc_sock, buf, len, MSG_DONTWAIT | MSG_NOSIGNAL);
+	printf("  send(%d, buf, %d, MSG_DONTWAIT | MSG_NOSIGNAL); returned %d\n", ipc_sock, len, result);
 	if (result != len)
 		lwarn("ipc_write: send(%d, %p, %d, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d: %s",
 			  ipc_sock, buf, len, result, strerror(errno));

@@ -42,25 +42,25 @@ static int mdb_update_service_status(const nebstruct_service_check_data *p)
 		 sql_escape(p->host_name), sql_escape(p->service_description));
 }
 
-int mrm_db_update(void *buf)
+int mrm_db_update(struct proto_pkt *pkt)
 {
-	struct proto_hdr *hdr = (struct proto_hdr *)buf;
 	int errors = 0;
 
-	if (!buf) {
-		ldebug("buf is NULL in mrm_db_update");
+	if (!pkt) {
+		ldebug("pkt is NULL in mrm_db_update");
 		return 0;
 	}
-	deblockify(buf, hdr->len, hdr->type);
-	switch (hdr->type) {
+	deblockify(pkt->body, pkt->hdr.len, pkt->hdr.type);
+	switch (pkt->hdr.type) {
 	case NEBCALLBACK_HOST_CHECK_DATA:
-		errors = mdb_update_host_status(buf);
+		errors = mdb_update_host_status((void *)pkt->body);
 		break;
 
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
-		errors = mdb_update_service_status(buf);
+		errors = mdb_update_service_status((void *)pkt->body);
 		break;
 	default:
+		ldebug("Unknown callback type. Weird, to say the least...");
 		break;
 	}
 
