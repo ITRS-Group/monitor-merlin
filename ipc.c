@@ -12,7 +12,7 @@
 
 static char *debug_write, *debug_read;
 
-static int sock = -1; /* for bind() and such */
+static int listen_sock = -1; /* for bind() and such */
 int ipc_sock = -1; /* once connected, we operate on this */
 static char *ipc_sock_path = NULL;
 
@@ -104,36 +104,38 @@ int ipc_init(void)
 			return -1;
 	}
 
-	if (sock == -1) {
+	if (listen_sock == -1) {
 		int optval = 128 << 10; /* set socket buffers to 128KB */
-		slen += offsetof(struct sockaddr_un, sun_path);
 
-		sock = socket(AF_UNIX, SOCK_STREAM, 0);
-		if (sock < 0) {
+		listen_sock = socket(AF_UNIX, SOCK_STREAM, 0);
+		if (listen_sock < 0) {
 			lerr("Failed to obtain ipc socket: %s", strerror(errno));
 			return -1;
 		}
 
-		setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &optval, sizeof(int));
-		setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &optval, sizeof(int));
-		if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0)
+		setsockopt(listen_sock, SOL_SOCKET, SO_SNDBUF, &optval, sizeof(int));
+		setsockopt(listen_sock, SOL_SOCKET, SO_RCVBUF, &optval, sizeof(int));
+		if (fcntl(listen_sock, F_SETFL, O_NONBLOCK) < 0)
 			lwarn("ipc: fcntl(sock, F_SEFTL, O_NONBLOCKING) failed");
 	}
 
 	if (!is_module) {
-		if (bind(sock, sa, slen) < 0) {
-			lerr("Failed to bind ipc socket %d to path '%s' with len %d: %s", sock, ipc_sock_path, slen, strerror(errno));
-			close(ipc_sock);
+		slen += offsetof(struct sockaddr_un, sun_path);
+		if (bind(listen_sock, sa, slen) < 0) {
+			lerr("Failed to bind ipc socket %d to path '%s' with len %d: %s",
+				 listen_sock, ipc_sock_path, slen, strerror(errno));
+			close(listen_sock);
+			listen_sock = -1;
 			return -1;
 		}
 
-		if (listen(sock, 1) < 0)
-			lerr("listen(%d, 1) failed: %s", sock, strerror(errno));
+		if (listen(listen_sock, 1) < 0)
+			lerr("listen(%d, 1) failed: %s", listen_sock, strerror(errno));
 
-		return sock;
+		return listen_sock;
 	}
 
-	if (connect(sock, sa, slen) < 0) {
+	if (connect(listen_sock, sa, slen) < 0) {
 		lerr("Failed to connect to ipc socket (%d): %s", errno, strerror(errno));
 		switch (errno) {
 		case EBADF:
@@ -144,18 +146,18 @@ int ipc_init(void)
 		default:
 			return -1;
 		}
-		close(sock);
-		ipc_sock = sock = -1;
+		close(listen_sock);
+		ipc_sock = listen_sock = -1;
 	}
 	else {
-		ipc_sock = sock;
+		ipc_sock = listen_sock;
 
 		/* let everybody know we're alive and active */
 		linfo("Shoutcasting active status through IPC socket");
 		ipc_send_ctrl(CTRL_ACTIVE, -1);
 	}
 
-	return sock;
+	return listen_sock;
 }
 
 
@@ -164,13 +166,13 @@ int ipc_deinit(void)
 	int result;
 
 	result = close(ipc_sock);
-	close(sock);
+	close(listen_sock);
 
 	if (!is_module)
 		result |= unlink(ipc_sock_path);
 
 	ipc_sock = -1;
-	sock = -1;
+	listen_sock = -1;
 
 	return result;
 }
@@ -187,8 +189,8 @@ int ipc_is_connected(int msec)
 	if (is_module)
 		return ipc_reinit();
 
-	if (io_poll(sock, POLLIN, msec) > 0) {
-		ipc_sock = accept(sock, (struct sockaddr *)&saun, &slen);
+	if (io_poll(listen_sock, POLLIN, msec) > 0) {
+		ipc_sock = accept(listen_sock, (struct sockaddr *)&saun, &slen);
 		if (ipc_sock < 0) {
 			lerr("ipc: accept() failed: %s", strerror(errno));
 			return 0;
@@ -204,7 +206,7 @@ int ipc_sock_desc(void)
 	if (ipc_is_connected(0) && ipc_sock != -1)
 		return ipc_sock;
 
-	return sock;
+	return listen_sock;
 }
 
 
