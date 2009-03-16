@@ -16,6 +16,7 @@ NEB = $(DSO).so
 MOD_LDFLAGS = -shared
 DAEMON_LDFLAGS = -L/usr/lib/mysql -L/usr/lib64/mysql -lmysqlclient
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
+DESTDIR = /tmp/merlin
 
 ifndef V
 	QUIET_CC    = @echo '   ' CC $@;
@@ -23,6 +24,12 @@ ifndef V
 endif
 
 all: $(NEB) $(PROG)
+
+install: all
+	@echo "Installing to $(DESTDIR)"
+	test -d $(DESTDIR) || mkdir -m 755 -p $(DESTDIR)
+	cp -a db.sql $(NEB) $(PROG) $(DESTDIR)
+	cp -a example.conf $(DESTDIR)/merlin.conf
 
 check:
 	@for i in *.c; do sparse $(CFLAGS) $(SPARSE_FLAGS) $$i 2>&1; done | grep -v /usr/include
