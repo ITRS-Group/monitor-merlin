@@ -268,7 +268,7 @@ int io_poll_sockets(void)
 	FD_ZERO(&wr);
 	FD_SET(ipc_sock, &rd);
 
-	ldebug("ipc_sock: %d\nnet_sock: %d\n", ipc_sock, net_sock);
+	ldebug("ipc_sock: %d; net_sock: %d\n", ipc_sock, net_sock);
 	sel_val = net_polling_helper(&rd, &wr, sel_val);
 	nfound = select(sel_val + 1, &rd, &wr, NULL, NULL);
 	ldebug("select() returned %d (errno = %d: %s)\n", nfound, errno, strerror(errno));
