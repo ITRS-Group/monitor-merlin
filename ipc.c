@@ -289,7 +289,7 @@ int ipc_send_event(struct proto_pkt *pkt)
 		return -1;
 	}
 
-	if (!ipc_write_ok(0)) {
+	if (!ipc_write_ok(100)) {
 		linfo("ipc socket isn't ready to accept data: %s", strerror(errno));
 		return -1;
 	}
