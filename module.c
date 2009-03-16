@@ -151,7 +151,7 @@ int mrm_ipc_write(const char *key, struct proto_pkt *pkt)
 	}
 
 	pkt->hdr.selection = selection & 0xffff;
-	return proto_send_event(ipc_sock_desc(), pkt);
+	return ipc_send_event(pkt);
 }
 
 hash_table *host_hash_table;
