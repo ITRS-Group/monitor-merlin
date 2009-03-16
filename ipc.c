@@ -183,11 +183,11 @@ int ipc_is_connected(int msec)
 	struct sockaddr_un saun;
 	socklen_t slen = sizeof(struct sockaddr_un);
 
-	if (ipc_sock < 0)
-		return 0;
-
-	if (is_module)
-		return ipc_reinit();
+	if (is_module) {
+		if (ipc_sock < 0)
+			return ipc_reinit();
+		return 1;
+	}
 
 	if (io_poll(listen_sock, POLLIN, msec) > 0) {
 		ipc_sock = accept(listen_sock, (struct sockaddr *)&saun, &slen);
@@ -203,7 +203,10 @@ int ipc_is_connected(int msec)
 
 int ipc_sock_desc(void)
 {
-	if (ipc_is_connected(0) && ipc_sock != -1)
+	if (is_module)
+		return ipc_sock;
+
+	if (ipc_sock > -1)
 		return ipc_sock;
 
 	return listen_sock;
