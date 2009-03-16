@@ -17,7 +17,7 @@ int ipc_sock = -1; /* once connected, we operate on this */
 static char *ipc_sock_path = NULL;
 
 
-static int ipc_reinit(void)
+int ipc_reinit(void)
 {
 	ipc_deinit();
 

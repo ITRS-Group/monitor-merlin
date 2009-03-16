@@ -115,6 +115,7 @@ int main(int argc, char **argv)
 
 		if (!ipc_is_connected()) {
 			printf("ipc socket is not connected\n");
+			ipc_reinit();
 			continue;
 		}
 		test_host_check_data(&errors);
