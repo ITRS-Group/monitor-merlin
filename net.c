@@ -640,6 +640,10 @@ int net_send_ipc_data(struct proto_pkt *pkt)
 		struct node *node = nodelist_by_selection(pkt->hdr.selection);
 
 		ldebug("Sending to nodes by selection '%s'", get_sel_name(pkt->hdr.selection));
+		if (!node) {
+			lerr("No matching selection for id %d", pkt->hdr.selection);
+			return -1;
+		}
 		for (; node; node = node->next)
 			net_sendto(node, pkt);
 	}
