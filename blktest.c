@@ -73,7 +73,7 @@ int test_host_check_data(int *errors)
 		   mod->host_name, mod->output, mod->perf_data);
 	len = blockify(orig, NEBCALLBACK_HOST_CHECK_DATA, pkt.body, sizeof(pkt.body));
 	pkt.hdr.len = len;
-	pkt.hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
+	pkt.hdr.type = NEBCALLBACK_HOST_CHECK_DATA;
 	pkt.hdr.selection = 0;
 	return ipc_send_event(&pkt);
 }
