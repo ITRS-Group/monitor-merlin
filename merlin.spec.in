@@ -30,7 +30,7 @@ Summary: The merlin daemon is a multiplexing event-transport program
 Group: op5/Monitor
 Requires: libdbi
 
-%description merlin
+%description -n merlin
 The merlin daemon is a multiplexing event-transport program designed to
 link multiple Nagios instances together. It can also inject status
 data into a variety of databases, using libdbi.
@@ -95,7 +95,7 @@ grep -q merlin.so %prefix/etc/nagios.cfg || \
 %defattr(-,root,root)
 %mod_path/merlin.so
 
-%files merlin
+%files -n merlin
 %defattr(-,root,root)
 %mod_path/merlin.conf
 %mod_path/db.sql
