@@ -115,7 +115,7 @@ const char *sql_table_name(void)
 
 int sql_config(const char *key, const char *value)
 {
-	if (!prefixcmp(key, "name"))
+	if (!prefixcmp(key, "name") || !prefixcmp(key, "database"))
 		db.name = strdup(value);
 	else if (!prefixcmp(key, "user"))
 		db.user = strdup(value);
@@ -123,6 +123,8 @@ int sql_config(const char *key, const char *value)
 		db.pass = strdup(value);
 	else if (!prefixcmp(key, "host"))
 		db.host = strdup(value);
+	else if (!prefixcmp(key, "type"))
+		db.type = strdup(value);
 	else if (!prefixcmp(key, "port")) {
 		char *endp;
 
