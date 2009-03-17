@@ -37,7 +37,7 @@ size_t sql_escape(const char *src, char **dst)
  * the db-link to theh callers. It's also nifty as we
  * want to remain database layer agnostic
  */
-const char *sql_error()
+const char *sql_error(void)
 {
 	const char *msg;
 
