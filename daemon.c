@@ -247,18 +247,11 @@ static int handle_ipc_data(struct proto_pkt *pkt)
 }
 
 
-int io_poll_sockets(void)
+static int io_poll_sockets(void)
 {
 	fd_set rd, wr;
 	int sel_val, ipc_sock, net_sock, nfound;
 	int sockets = 0;
-	static struct proto_pkt *pkt = NULL;
-
-	if (!pkt) {
-		pkt = calloc(sizeof(*pkt), 1);
-		if (!pkt)
-			return -1;
-	}
 
 	sel_val = net_sock = net_sock_desc();
 	ipc_sock = ipc_sock_desc();
