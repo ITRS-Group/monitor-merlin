@@ -14,7 +14,7 @@ DSO = merlin
 PROG = $(DSO)d
 NEB = $(DSO).so
 MOD_LDFLAGS = -shared
-DAEMON_LDFLAGS = -L/usr/lib/mysql -L/usr/lib64/mysql -lmysqlclient
+DAEMON_LDFLAGS = -ldbi
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
 

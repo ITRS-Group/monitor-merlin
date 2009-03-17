@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include "sql.h"
 #include "logging.h"
+#include <dbi/dbi.h>
+#include <string.h>
 
 static struct {
 	char *host;
@@ -10,8 +12,11 @@ static struct {
 	char *user;
 	char *pass;
 	char *table;
+	char *type;
+	char *encoding;
 	unsigned int port;
-	MYSQL *link;
+	dbi_conn conn;
+	dbi_result result;
 } db;
 
 #undef ESC_BUFSIZE
@@ -21,28 +26,9 @@ static struct {
 #define MAX_ESC_STRING ((ESC_BUFSIZE * 2) + 1)
 
 #define esc(s) sql_escape(s)
-char *sql_escape(const char *str)
+size_t sql_escape(const char *src, char **dst)
 {
-	static int idx = 0;
-	static char buf_ary[ESC_BUFS][ESC_BUFSIZE];
-	char *buf;
-	int len;
-
-	if (!str || !*str)
-		return "";
-
-	len = strlen(str);
-
-	if (len >= MAX_ESC_STRING) {
-		lerr("len > MAX_ESC_STRING in sql_escape (%d > %d)", len, MAX_ESC_STRING);
-		return "";
-	}
-
-	buf = buf_ary[idx++ & (ESC_BUFS - 1)];
-	idx &= ESC_BUFS - 1;
-	mysql_real_escape_string(db.link, buf, str, len);
-
-	return buf;
+	return dbi_conn_escape_string_copy(db.conn, src, dst);
 }
 
 /*
@@ -53,69 +39,60 @@ char *sql_escape(const char *str)
  */
 const char *sql_error()
 {
-	return mysql_error(db.link);
+	const char *msg;
+
+	dbi_conn_error(db.conn, &msg);
+
+	return msg;
 }
 
-int sql_errno(void)
+void sql_free_result(void)
 {
-	return mysql_errno(db.link);
-}
-
-SQL_RESULT *sql_get_result(void)
-{
-	return mysql_use_result(db.link);
-}
-
-SQL_ROW sql_fetch_row(MYSQL_RES *result)
-{
-	return mysql_fetch_row(result);
-}
-
-void sql_free_result(SQL_RESULT *result)
-{
-	mysql_free_result(result);
+	dbi_result_free(db.result);
 }
 
 int sql_query(const char *fmt, ...)
 {
-	char *query;
-	int len, result = 0;
+	unsigned char *query;
+	int len;
 	va_list ap;
 
 	va_start(ap, fmt);
-	len = vasprintf(&query, fmt, ap);
+	len = vasprintf((char **)&query, fmt, ap);
 	va_end(ap);
 
 	if (len == -1 || !query) {
 		linfo("sql_query: Failed to build query from format-string '%s'", fmt);
 		return -1;
 	}
-	if ((result = mysql_real_query(db.link, query, len)))
-		linfo("mysql_query(): Failed to run [%s]: %s",
-			  query, mysql_error(db.link));
+	db.result = dbi_conn_query_null(db.conn, query, len);
+	if (!db.result) {
+		linfo("dbi_conn_query_null(): Failed to run [%s]: %s",
+			  query, sql_error());
+	}
 
 	free(query);
 
-	return result;
+	return !!db.result;
 }
 
 int sql_init(void)
 {
-	if (!(db.link = mysql_init(NULL)))
-		return -1;
+	dbi_initialize(NULL);
+	db.conn = dbi_conn_new(db.type ? db.type : "mysql");
+	dbi_conn_set_option(db.conn, "host", db.host ? db.host : "localhost");
+	dbi_conn_set_option(db.conn, "username", db.user ? db.user : "monitor");
+	dbi_conn_set_option(db.conn, "password", db.pass ? db.pass : "monitor");
+	dbi_conn_set_option(db.conn, "dbname", db.name ? db.name : "monitor_gui");
+	if (db.port)
+		dbi_conn_set_option_numeric(db.conn, "port", db.port);
+	dbi_conn_set_option(db.conn, "encoding", db.encoding ? db.encoding : "UTF-8");
 
-	if (!db.host) {
-		db.host = "";
-		db.port = 0;
-	}
-
-	if (!(mysql_real_connect(db.link, db.host, db.user, db.pass,
-							 db.name, db.port, NULL, 0)))
-	{
+	if (dbi_conn_connect(db.conn) < 0) {
 		lerr("Failed to connect to '%s' at '%s':'%d' using %s:%s as credentials: %s",
-		     db.name, db.host, db.port, db.user, db.pass, mysql_error(db.link));
+		     db.name, db.host, db.port, db.user, db.pass, sql_error());
 
-		db.link = NULL;
+		db.conn = NULL;
 		return -1;
 	}
 
@@ -124,7 +101,7 @@ int sql_init(void)
 
 int sql_close(void)
 {
-	mysql_close(db.link);
+	dbi_conn_close(db.conn);
 	return 0;
 }
 
