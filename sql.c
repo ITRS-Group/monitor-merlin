@@ -26,9 +26,18 @@ static struct {
 #define MAX_ESC_STRING ((ESC_BUFSIZE * 2) + 1)
 
 #define esc(s) sql_escape(s)
+size_t sql_quote(const char *src, char **dst)
+{
+	return dbi_conn_quote_string_copy(db.conn, src, dst);
+}
+
 size_t sql_escape(const char *src, char **dst)
 {
-	return dbi_conn_escape_string_copy(db.conn, src, dst);
+	size_t len;
+	len = dbi_conn_quote_string_copy(db.conn, src, dst);
+	*dst[len] = 0;
+	(*dst)++;
+	return len - 2;
 }
 
 /*
