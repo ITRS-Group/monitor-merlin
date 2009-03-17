@@ -69,3 +69,13 @@ int hook_host_result(int cb, void *data)
 
 	return result;
 }
+
+int hook_generic(int cb, void *data)
+{
+	struct proto_pkt pkt;
+
+	pkt.hdr.type = cb;
+	pkt.hdr.len = blockify(data, cb, pkt.body, sizeof(pkt.body));
+	pkt.hdr.selection = 0xffff;
+	return ipc_send_event(&pkt);
+}
