@@ -13,7 +13,7 @@
 static char *debug_write, *debug_read;
 
 static int listen_sock = -1; /* for bind() and such */
-int ipc_sock = -1; /* once connected, we operate on this */
+static int ipc_sock = -1; /* once connected, we operate on this */
 static char *ipc_sock_path = NULL;
 static size_t ipc_events;
 

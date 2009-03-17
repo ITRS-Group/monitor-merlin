@@ -71,9 +71,9 @@ static int node_action_handler(struct node *node, int action)
 
 	switch (action) {
 	case STATE_CONNECTED:
-		return proto_ctrl(ipc_sock, CTRL_ACTIVE, node->id);
+		return ipc_send_ctrl(CTRL_ACTIVE, node->id);
 	case STATE_NONE:
-		return proto_ctrl(ipc_sock, CTRL_INACTIVE, node->id);
+		return ipc_send_ctrl(CTRL_INACTIVE, node->id);
 	}
 
 	return 1;

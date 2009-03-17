@@ -27,5 +27,3 @@ extern int ipc_sock_desc(void);
 extern int ipc_is_connected(int msec);
 extern int ipc_reinit();
 #endif
-
-extern int ipc_sock;
