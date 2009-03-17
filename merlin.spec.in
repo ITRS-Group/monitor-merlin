@@ -15,10 +15,9 @@ Group: op5/Monitor
 URL: http://www.op5.se
 Source0: %name-%version.tar.gz
 Prefix: /opt/monitor
-Requires: monitor >= 4.0, %name-daemon
+Requires: monitor >= 4.0, merlin
 BuildRequires: mysql-devel
 BuildRoot: /override/%name-%version
-PreReq: monitor-webconfig >= 3.3.0
 
 %description
 %name is an event broker module running inside Nagios. Its' only
@@ -26,7 +25,7 @@ purpose in life is to send events from the Nagios core to the merlin
 daemon, which then takes appropriate action.
 
 
-%package merlin
+%package -n merlin
 Summary: The merlin daemon is a multiplexing event-transport program
 Group: op5/Monitor
 Requires: libdbi
