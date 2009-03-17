@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 	while ((fgets(silly_buf, sizeof(silly_buf), stdin))) {
 		int errors = 0;
 
-		if (!ipc_is_connected()) {
+		if (!ipc_is_connected(0)) {
 			printf("ipc socket is not connected\n");
 			ipc_reinit();
 			continue;
