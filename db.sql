@@ -30,6 +30,28 @@ CREATE TABLE program_status(
 	global_service_event_handler	text
 );
 
+
+DROP TABLE IF EXISTS comment;
+CREATE TABLE comment(
+	id					INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	host_name			varchar(255),
+	service_description	varchar(255),
+	comment_type		int,
+	entry_time			int(10),
+	author_name			varchar(255),
+	comment_data		text,
+	persistent			tinyint(2),
+	source				int,
+	entry_type			int,
+	expires				int,
+	expire_time			int(10),
+	comment_id			int not null,
+	KEY host_comment(host_name),
+	KEY service_comment(host_name, service_description),
+	UNIQUE KEY comment_id(comment_id)
+);
+
+
 DROP TABLE IF EXISTS user;
 CREATE TABLE user(
 	id			INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
