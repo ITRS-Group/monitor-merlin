@@ -112,6 +112,7 @@ static struct hook_info_struct {
 			offsetof(nebstruct_comment_data, service_description),
 			offsetof(nebstruct_comment_data, author_name),
 			offsetof(nebstruct_comment_data, comment_data),
+			0,
 		},
 	},
 
@@ -136,7 +137,13 @@ static struct hook_info_struct {
 	},
 
 	/* NEBCALLBACK_PROGRAM_STATUS_DATA */
-	{ 0, 0, { 0, 0, 0, 0, 0 }, },
+	{ 0, 0,
+		{
+			offsetof(nebstruct_program_status_data, global_host_event_handler),
+			offsetof(nebstruct_program_status_data, global_service_event_handler),
+			0, 0, 0
+		},
+	},
 
 	/* NEBCALLBACK_HOST_STATUS_DATA */
 	{ 0, 0, { 0, 0, 0, 0, 0 }, },
