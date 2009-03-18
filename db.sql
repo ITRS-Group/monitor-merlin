@@ -2,6 +2,34 @@
 -- Database design for the monitor_gui database
 --
 
+DROP TABLE IF EXISTS program_status;
+CREATE TABLE program_status(
+	instance_id						int,
+	instance_name					varchar(255),
+	is_running						tinyint(2),
+	last_alive						int(10) NOT NULL,
+	program_start					int(10) NOT NULL,
+	pid								int(6) NOT NULL,
+	daemon_mode						tinyint(2),
+	last_command_check				int(10),
+	last_log_rotation				int(10),
+	notifications_enabled			tinyint(2),
+	active_service_checks_enabled	tinyint(2),
+	passive_service_checks_enabled	tinyint(2),
+	active_host_checks_enabled		tinyint(2),
+	passive_host_checks_enabled		tinyint(2),
+	event_handlers_enabled			tinyint(2),
+	flap_detection_enabled			tinyint(2),
+	failure_prediction_enabled		tinyint(2),
+	process_performance_data		tinyint(2),
+	obsess_over_hosts				tinyint(2),
+	obsess_over_services			tinyint(2),
+	modified_host_attributes		int,
+	modified_service_attributes		int,
+	global_host_event_handler		text,
+	global_service_event_handler	text
+);
+
 DROP TABLE IF EXISTS user;
 CREATE TABLE user(
 	id			INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
