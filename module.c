@@ -305,24 +305,33 @@ int post_config_init(int cb, void *ds)
 /* hooks for use in the table below */
 extern int hook_host_result(int cb, void *data);
 extern int hook_service_result(int cb, void *data);
+extern int hook_generic(int cb, void *data);
+#define CB_ENTRY(modonly, macro, hook) \
+	{ modonly, macro, #macro, hook, #hook }
 static struct callback_struct {
 	int pollers_only;
 	int type;
+	char *name;
 	int (*hook)(int, void *);
+	char *hook_name;
 } callback_table[] = {
-//	{ 1, NEBCALLBACK_PROCESS_DATA, post_config_init },
-//	{ 0, NEBCALLBACK_LOG_DATA, cb_handler },
-//	{ 1, NEBCALLBACK_SYSTEM_COMMAND_DATA, cb_handler },
-//	{ 1, NEBCALLBACK_EVENT_HANDLER_DATA, cb_handler },
-//	{ 1, NEBCALLBACK_NOTIFICATION_DATA, cb_handler },
-	{ 1, NEBCALLBACK_SERVICE_CHECK_DATA, hook_service_result },
-	{ 1, NEBCALLBACK_HOST_CHECK_DATA, hook_host_result },
-//	{ 0, NEBCALLBACK_COMMENT_DATA, cb_handler },
-//	{ 0, NEBCALLBACK_DOWNTIME_DATA, cb_handler },
-//	{ NEBCALLBACK_FLAPPING_DATA, cb_handler },
-//	{ 0, NEBCALLBACK_PROGRAM_STATUS_DATA, cb_handler },
-//	{ 0, NEBCALLBACK_HOST_STATUS_DATA, cb_handler },
-//	{ 0, NEBCALLBACK_SERVICE_STATUS_DATA, cb_handler },
+/*
+	CB_ENTRY(1, NEBCALLBACK_PROCESS_DATA, post_config_init),
+	CB_ENTRY(0, NEBCALLBACK_LOG_DATA, hook_generic),
+	CB_ENTRY(1, NEBCALLBACK_SYSTEM_COMMAND_DATA, hook_generic),
+	CB_ENTRY(1, NEBCALLBACK_EVENT_HANDLER_DATA, hook_generic),
+	CB_ENTRY(1, NEBCALLBACK_NOTIFICATION_DATA, hook_generic),
+ */
+	CB_ENTRY(1, NEBCALLBACK_SERVICE_CHECK_DATA, hook_service_result),
+	CB_ENTRY(1, NEBCALLBACK_HOST_CHECK_DATA, hook_host_result),
+	CB_ENTRY(0, NEBCALLBACK_COMMENT_DATA, hook_generic),
+	CB_ENTRY(0, NEBCALLBACK_DOWNTIME_DATA, hook_generic),
+	CB_ENTRY(1, NEBCALLBACK_FLAPPING_DATA, hook_generic),
+	CB_ENTRY(0, NEBCALLBACK_PROGRAM_STATUS_DATA, hook_generic),
+/*
+	CB_ENTRY(0, NEBCALLBACK_HOST_STATUS_DATA, hook_generic),
+	CB_ENTRY(0, NEBCALLBACK_SERVICE_STATUS_DATA, hook_generic),
+ */
 };
 
 
