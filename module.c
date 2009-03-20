@@ -344,11 +344,18 @@ static struct callback_struct {
 
 static int mrm_ipc_connect(void *discard)
 {
-	int result = ipc_connect();
+	int result;
 
-	if (result < 0)
+	ldebug("Attempting ipc connect");
+	result = ipc_connect();
+	if (result < 0) {
+		lerr("IPC connection failed. Re-scheduling to try again in 10 seconds");
 		schedule_new_event(EVENT_USER_FUNCTION, TRUE, time(NULL) + 10, FALSE,
 						   0, NULL, FALSE, mrm_ipc_connect, NULL, 0);
+	}
+	else {
+		ldebug("IPC successfully connected");
+	}
 
 	return result;
 }
