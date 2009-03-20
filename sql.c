@@ -57,7 +57,10 @@ const char *sql_error(void)
 
 void sql_free_result(void)
 {
-	dbi_result_free(db.result);
+	if (db.result) {
+		dbi_result_free(db.result);
+		db.result = NULL;
+	}
 }
 
 int sql_query(const char *fmt, ...)
