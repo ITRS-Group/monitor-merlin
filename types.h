@@ -16,6 +16,12 @@
 #define STATE_CONNECTED 3
 
 /** structures **/
+struct backlog {
+	char *path;             /* path to this particular backlog */
+	size_t entries;         /* number of events in backlog */
+	int fd;                 /* file-descriptor. should be -1 when not in use */
+};
+
 struct node {
 	char *name;
 	int id;                 /* internal index lookup number */
@@ -32,6 +38,7 @@ struct node {
 	time_t last_sent;       /* when we sent something last */
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
 	int (*action)(struct node *, int); /* (daemon) action handler */
+	struct backlog backlog;
 	struct node *next;      /* linked list (and tabulated) */
 };
 
