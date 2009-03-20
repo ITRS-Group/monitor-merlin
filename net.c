@@ -502,7 +502,7 @@ int net_init(void)
 
 
 /* send a specific packet to a specific host */
-static int net_sendto(struct node *node, struct proto_pkt *pkt)
+static int net_sendto(struct node *node, struct merlin_event *pkt)
 {
 	int result;
 
@@ -549,7 +549,7 @@ static void check_node_activity(struct node *node)
 
 static void net_input(struct node *node)
 {
-	struct proto_hdr hdr;
+	struct merlin_header hdr;
 	int len;
 
 	linfo("Data available from %s '%s' (%s)", node_type(node),
@@ -632,7 +632,7 @@ static void net_input(struct node *node)
 }
 
 
-int net_send_ipc_data(struct proto_pkt *pkt)
+int net_send_ipc_data(struct merlin_event *pkt)
 {
 	int i;
 

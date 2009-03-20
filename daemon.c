@@ -30,7 +30,7 @@
 #include "protocol.h"
 #include "sql.h"
 
-int mrm_db_update(struct proto_pkt *pkt);
+int mrm_db_update(struct merlin_event *pkt);
 
 extern const char *__progname;
 
@@ -232,7 +232,7 @@ static int grok_config(char *path)
 }
 
 
-static int handle_ipc_data(struct proto_pkt *pkt)
+static int handle_ipc_data(struct merlin_event *pkt)
 {
 	int result = 0;
 
@@ -276,7 +276,7 @@ static int io_poll_sockets(void)
 	}
 
 	if (FD_ISSET(ipc_sock, &rd)) {
-		struct proto_pkt pkt;
+		struct merlin_event pkt;
 		sockets++;
 		printf("inbound data available on ipc socket\n");
 		if (ipc_read_event(&pkt) > 0)

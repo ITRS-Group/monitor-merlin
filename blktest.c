@@ -16,7 +16,7 @@
 int test_service_check_data(int *errors)
 {
 	nebstruct_service_check_data *orig, *mod;
-	struct proto_pkt pkt;
+	struct merlin_event pkt;
 	int len;
 
 	orig = malloc(sizeof(*orig));
@@ -52,7 +52,7 @@ int test_service_check_data(int *errors)
 int test_host_check_data(int *errors)
 {
 	nebstruct_host_check_data *orig, *mod;
-	struct proto_pkt pkt;
+	struct merlin_event pkt;
 	int len;
 
 	orig = malloc(sizeof(*orig));

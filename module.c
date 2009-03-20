@@ -25,7 +25,7 @@ int mode;
 extern hostgroup *hostgroup_list;
 #define mrm_reap_interval 5
 
-static int handle_service_result(struct proto_hdr *hdr, void *buf)
+static int handle_service_result(struct merlin_header *hdr, void *buf)
 {
 	service *srv;
 	nebstruct_service_check_data *ds = (nebstruct_service_check_data *)buf;
@@ -57,7 +57,7 @@ static int handle_service_result(struct proto_hdr *hdr, void *buf)
 }
 
 
-static int handle_host_result(struct proto_hdr *hdr, void *buf)
+static int handle_host_result(struct merlin_header *hdr, void *buf)
 {
 	host *hst;
 
@@ -84,7 +84,7 @@ static int handle_host_result(struct proto_hdr *hdr, void *buf)
 }
 
 /* events that require status updates return 1, others return 0 */
-int handle_ipc_event(struct proto_pkt *pkt)
+int handle_ipc_event(struct merlin_event *pkt)
 {
 	linfo("Inbound IPC event, callback %d, len %d, type, %d",
 		   pkt->hdr.type, pkt->hdr.len, *(int *)pkt->body);
@@ -113,7 +113,7 @@ int handle_ipc_event(struct proto_pkt *pkt)
 static int mrm_ipc_reap(void *discard)
 {
 	int len, events = 0;
-	struct proto_pkt pkt;
+	struct merlin_event pkt;
 
 	if (!ipc_is_connected(0)) {
 		ldebug("ipc is not connected. Reaping aborted");
@@ -148,7 +148,7 @@ static int mrm_ipc_reap(void *discard)
 
 
 /* abstract out sending headers and such fluff */
-int mrm_ipc_write(const char *key, struct proto_pkt *pkt)
+int mrm_ipc_write(const char *key, struct merlin_event *pkt)
 {
 	int selection = hash_find_val(key);
 

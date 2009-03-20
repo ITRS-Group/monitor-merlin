@@ -142,7 +142,7 @@ int mrm_db_add_comment(const nebstruct_comment_data *p)
 	return result;
 }
 
-int mrm_db_update(struct proto_pkt *pkt)
+int mrm_db_update(struct merlin_event *pkt)
 {
 	int errors = 0;
 

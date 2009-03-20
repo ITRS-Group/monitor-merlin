@@ -12,15 +12,15 @@
 #define CTRL_INACTIVE 2
 #define CTRL_ACTIVE   3
 
-#define HDR_SIZE (sizeof(struct proto_hdr))
-#define PKT_SIZE (sizeof(struct proto_pkt))
-#define BODY_SIZE (TOTAL_PKT_SIZE - sizeof(struct proto_hdr))
+#define HDR_SIZE (sizeof(struct merlin_header))
+#define PKT_SIZE (sizeof(struct merlin_event))
+#define BODY_SIZE (TOTAL_PKT_SIZE - sizeof(struct merlin_header))
 #define TOTAL_PKT_SIZE 32768
 #define MAX_PKT_SIZE TOTAL_PKT_SIZE /* for now. remove this macro later */
 
 #define packet_size(pkt) ((pkt->hdr.len) + HDR_SIZE)
 
-struct proto_hdr {
+struct merlin_header {
 	u_int16_t protocol;   /* always 0 for now */
 	u_int16_t type;       /* event type */
 	u_int16_t selection;  /* used when noc Nagios communicates with mrd */
@@ -31,13 +31,13 @@ struct proto_hdr {
 	char padding[64 - sizeof(struct timeval) - (2 * 5)];
 } __attribute__((packed));
 
-struct proto_pkt {
-	struct proto_hdr hdr;
+struct merlin_event {
+	struct merlin_header hdr;
 	char body[BODY_SIZE];
 } __attribute__((packed));
 
-extern int proto_send_event(int sock, struct proto_pkt *pkt);
-extern int proto_read_event(int sock, struct proto_pkt *pkt);
+extern int proto_send_event(int sock, struct merlin_event *pkt);
+extern int proto_read_event(int sock, struct merlin_event *pkt);
 extern int proto_ctrl(int sock, int control_type, int selection);
 
 #endif
