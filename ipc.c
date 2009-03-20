@@ -298,6 +298,7 @@ int ipc_send_event(struct proto_pkt *pkt)
 	if (result < 0 && errno == EPIPE) {
 		ipc_reinit();
 		/* XXX: possible infinite loop */
+		ldebug("loop much, do you?");
 		return ipc_send_event(pkt);
 	}
 
