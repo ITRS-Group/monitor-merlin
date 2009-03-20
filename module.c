@@ -387,7 +387,9 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
 		struct callback_struct *cb = &callback_table[i];
 
-		if (!is_noc || !cb->pollers_only)
+		/* This should be changed to also include
+		 * have_peers || use_database */
+		/* if (!is_noc || !cb->pollers_only) */
 			neb_register_callback(cb->type, neb_handle, 0, cb->hook);
 	}
 
