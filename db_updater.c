@@ -164,6 +164,7 @@ int mrm_db_update(struct proto_pkt *pkt)
 		break;
 	default:
 		ldebug("Unknown callback type. Weird, to say the least...");
+		return -1;
 		break;
 	}
 	sql_free_result();
