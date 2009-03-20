@@ -115,6 +115,13 @@ static int mrm_ipc_reap(void *discard)
 	int len, events = 0;
 	struct proto_pkt pkt;
 
+	if (!ipc_is_connected(0)) {
+		ldebug("ipc is not connected. Reaping aborted");
+		return 0;
+	}
+	else
+		ldebug("reaping ipc events");
+
 	while ((len = ipc_read_event(&pkt))) {
 		/* control packets are handled separately */
 		if (pkt.hdr.type == CTRL_PACKET) {
