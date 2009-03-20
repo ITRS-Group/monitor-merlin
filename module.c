@@ -361,7 +361,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 
 	neb_handle = (void *)handle;
 
-	linfo("Loading Monitor Redundancy Module");
+	linfo("Loading Merlin Module");
 
 	read_config(arg);
 
