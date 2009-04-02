@@ -50,6 +50,9 @@ const char *sql_error(void)
 {
 	const char *msg;
 
+	if (!db.conn)
+		return "no db connection";
+
 	dbi_conn_error(db.conn, &msg);
 
 	return msg;
@@ -90,15 +93,40 @@ int sql_query(const char *fmt, ...)
 
 int sql_init(void)
 {
-	dbi_initialize(NULL);
-	db.conn = dbi_conn_new(db.type ? db.type : "mysql");
-	dbi_conn_set_option(db.conn, "host", db.host ? db.host : "localhost");
-	dbi_conn_set_option(db.conn, "username", db.user ? db.user : "monitor");
-	dbi_conn_set_option(db.conn, "password", db.pass ? db.pass : "monitor");
-	dbi_conn_set_option(db.conn, "dbname", db.name ? db.name : "monitor_gui");
+	int result;
+	dbi_driver driver;
+
+	result = dbi_initialize(NULL);
+	if (result < 1) {
+		lerr("Failed to initialize any libdbi drivers");
+		return -1;
+	}
+
+	if (!db.type)
+		db.type = "mysql";
+
+	driver = dbi_driver_open(db.type);
+	if (!driver) {
+		lerr("Failed to open libdbi driver '%s'", db.type);
+		return -1;
+	}
+
+	db.conn = dbi_conn_open(driver);
+	if (!db.conn) {
+		lerr("Failed to create a database connection instance");
+		return -1;
+	}
+
+	result = dbi_conn_set_option(db.conn, "host", db.host ? db.host : "localhost");
+	result |= dbi_conn_set_option(db.conn, "username", db.user ? db.user : "monitor");
+	result |= dbi_conn_set_option(db.conn, "password", db.pass ? db.pass : "monitor");
+	result |= dbi_conn_set_option(db.conn, "dbname", db.name ? db.name : "monitor_gui");
 	if (db.port)
-		dbi_conn_set_option_numeric(db.conn, "port", db.port);
-	dbi_conn_set_option(db.conn, "encoding", db.encoding ? db.encoding : "UTF-8");
+		result |= dbi_conn_set_option_numeric(db.conn, "port", db.port);
+	result |= dbi_conn_set_option(db.conn, "encoding", db.encoding ? db.encoding : "UTF-8");
+	if (result) {
+		lerr("Failed to set one or more database connection options");
+	}
 
 	if (dbi_conn_connect(db.conn) < 0) {
 		lerr("Failed to connect to '%s' at '%s':'%d' using %s:%s as credentials: %s",
