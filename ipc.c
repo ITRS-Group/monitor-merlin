@@ -120,8 +120,15 @@ int ipc_init(void)
 	}
 
 	if (!is_module) {
+		mode_t old_umask;
+		int result;
+
 		slen += offsetof(struct sockaddr_un, sun_path);
-		if (bind(listen_sock, sa, slen) < 0) {
+		/* Socket is made world writable for now */
+		old_umask = umask(0);
+		result = bind(listen_sock, sa, slen);
+		umask(old_umask);
+		if (result < 0) {
 			lerr("Failed to bind ipc socket %d to path '%s' with len %d: %s",
 				 listen_sock, ipc_sock_path, slen, strerror(errno));
 			close(listen_sock);
