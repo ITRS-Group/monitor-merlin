@@ -115,40 +115,45 @@ static int mdb_update_program_status(const nebstruct_program_status_data *p)
 	return result;
 }
 
-int mrm_db_add_comment(const nebstruct_comment_data *p)
+int mdb_handle_comment(const nebstruct_comment_data *p)
 {
 	int result;
 	char *host_name, *author_name, *comment_data;
+	char *service_description = NULL;
+
+	if (p->type == NEBTYPE_COMMENT_DELETE) {
+		ldebug("Deleting comment with id %lu", p->comment_id);
+		result = sql_query
+			("DELETE FROM monitor_gui.comment WHERE comment_id = %lu",
+			 p->comment_id);
+		return result;
+	}
+
+	if (p->service_description) {
+		ldebug("Adding service comment for service '%s' on host '%s'",
+			   p->service_description, p->host_name);
+	} else {
+		ldebug("Adding host comment for host '%s'", p->host_name);
+	}
 
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->author_name, &author_name);
 	sql_quote(p->comment_data, &comment_data);
 
-	if (p->service_description) {
-		char *service_description = NULL;
+	if (p->service_description)
 		sql_quote(p->service_description, &service_description);
-		result = sql_query
-			("INSERT INTO monitor_gui.comment(comment_type, host_name, "
-			 "service_description, entry_time, author_name, comment_data, "
-			 "persistent, source, entry_type, expires, expire_time, "
-			 "comment_id) "
-			 "VALUES(%d, %s, %s, %lu, %s, %s, %d, %d, %d, %d, %lu, %lu)",
-			 p->comment_type, host_name, service_description, p->entry_time,
-			 author_name, comment_data, p->persistent, p->source,
-			 p->entry_type, p->expires, p->expire_time, p->comment_id);
-		free(service_description);
-	}
-	else {
-		result = sql_query
-			("INSERT INTO monitor_gui.comment(comment_type, host_name, "
-			 "entry_time, author_name, comment_data, "
-			 "persistent, source, entry_type, expires, expire_time, "
-			 "comment_id) "
-			 "VALUES(%d, %s, %lu, %s, %s, %d, %d, %d, %d, %lu, %lu)",
-			 p->comment_type, host_name, p->entry_time,
-			 author_name, comment_data, p->persistent, p->source,
-			 p->entry_type, p->expires, p->expire_time, p->comment_id);
-	}
+
+	result = sql_query
+		("INSERT INTO monitor_gui.comment(comment_type, host_name, "
+		 "service_description, entry_time, author_name, comment_data, "
+		 "persistent, source, entry_type, expires, expire_time, "
+		 "comment_id) "
+		 "VALUES(%d, %s, %s, %lu, %s, %s, %d, %d, %d, %d, %lu, %lu)",
+		 p->comment_type, host_name,
+		 service_description ? service_description : "''", p->entry_time,
+		 author_name, comment_data, p->persistent, p->source,
+		 p->entry_type, p->expires, p->expire_time, p->comment_id);
+
 	free(host_name);
 	free(author_name);
 	free(comment_data);
@@ -174,6 +179,9 @@ int mrm_db_update(struct merlin_event *pkt)
 		break;
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 		errors = mdb_update_program_status((void *)pkt->body);
+		break;
+	case NEBCALLBACK_COMMENT_DATA:
+		errors = mdb_handle_comment((void *)pkt->body);
 		break;
 	default:
 		ldebug("Unknown callback type. Weird, to say the least...");
