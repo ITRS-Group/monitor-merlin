@@ -62,7 +62,6 @@ int test_host_check_data(int *errors)
 	int len;
 
 	orig = malloc(sizeof(*orig));
-	mod = malloc(sizeof(*mod));
 
 	orig->host_name = HOST_NAME;
 	orig->output = OUTPUT;
