@@ -86,6 +86,57 @@ int test_host_check_data(int *errors)
 	return ipc_send_event(&pkt);
 }
 
+#define AUTHOR_NAME "Pelle plutt"
+#define COMMENT_DATA "comment data"
+int test_adding_comment(int *errors, char *service_description)
+{
+	nebstruct_comment_data *orig, *mod;
+	struct merlin_event pkt;
+	int len;
+
+	orig = calloc(1, sizeof(*orig));
+	orig->host_name = HOST_NAME;
+	orig->author_name = AUTHOR_NAME;
+	orig->comment_data = COMMENT_DATA;
+	orig->entry_time = time(NULL);
+	orig->expires = 1;
+	orig->expire_time = time(NULL) + 300;
+	orig->comment_id = 1;
+	if (service_description)
+		orig->service_description = service_description;
+	len = blockify(orig, NEBCALLBACK_COMMENT_DATA, pkt.body, sizeof(pkt.body));
+	printf("blockify returned %d\n", len);
+	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_COMMENT_DATA);
+	mod = (nebstruct_comment_data *)pkt.body;
+	test_compare(host_name);
+	test_compare(author_name);
+	test_compare(comment_data);
+	if (service_description) {
+		test_compare(service_description);
+	}
+	len = blockify(orig, NEBCALLBACK_COMMENT_DATA, pkt.body, sizeof(pkt.body));
+	mod->type = NEBTYPE_COMMENT_ADD;
+	pkt.hdr.len = len;
+	pkt.hdr.type = NEBCALLBACK_COMMENT_DATA;
+	pkt.hdr.selection = 0;
+	return ipc_send_event(&pkt);
+}
+
+int test_deleting_comment(int *errors)
+{
+	nebstruct_comment_data *orig;
+	struct merlin_event pkt;
+
+	orig = (void *)pkt.body;
+	memset(orig, 0, sizeof(*orig));
+	orig->type = NEBTYPE_COMMENT_DELETE;
+	orig->comment_id = 1;
+	pkt.hdr.len = sizeof(*orig);
+	pkt.hdr.type = NEBCALLBACK_COMMENT_DATA;
+	pkt.hdr.selection = 0;
+	return ipc_send_event(&pkt);
+}
+
 static int grok_config(char *path)
 {
 	struct compound *config;
@@ -144,6 +195,10 @@ int main(int argc, char **argv)
 		}
 		test_host_check_data(&errors);
 		test_service_check_data(&errors);
+		test_adding_comment(&errors, NULL);
+		test_deleting_comment(&errors);
+		test_adding_comment(&errors, "PING");
+		test_deleting_comment(&errors);
 		printf("## Total errrors: %d\n", errors);
 	}
 
