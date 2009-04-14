@@ -4,6 +4,7 @@
  */
 #include "nagios/nebstructs.h"
 #include "nagios/nebcallbacks.h"
+#include "nagios/broker.h"
 #include "test_utils.h"
 #include "ipc.h"
 #include "protocol.h"
@@ -43,6 +44,7 @@ int test_service_check_data(int *errors)
 	printf("Sending ipc_event for service '%s' on host '%s'\n  output: '%s'\n  perfdata: %s'\n",
 		   mod->service_description, mod->host_name, mod->output, mod->perf_data);
 	len = blockify(orig, NEBCALLBACK_SERVICE_CHECK_DATA, pkt.body, sizeof(pkt.body));
+	mod->type = NEBTYPE_SERVICECHECK_PROCESSED;
 	pkt.hdr.len = len;
 	pkt.hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
 	pkt.hdr.selection = 0;
@@ -76,6 +78,7 @@ int test_host_check_data(int *errors)
 	printf("Sending ipc_event for host '%s'\n  output: '%s'\n  perfdata: %s'\n",
 		   mod->host_name, mod->output, mod->perf_data);
 	len = blockify(orig, NEBCALLBACK_HOST_CHECK_DATA, pkt.body, sizeof(pkt.body));
+	mod->type = NEBTYPE_HOSTCHECK_PROCESSED;
 	pkt.hdr.len = len;
 	pkt.hdr.type = NEBCALLBACK_HOST_CHECK_DATA;
 	pkt.hdr.selection = 0;
