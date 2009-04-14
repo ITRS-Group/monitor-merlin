@@ -1,5 +1,6 @@
 #include <nagios/nebstructs.h>
 #include <nagios/nebcallbacks.h>
+#include <nagios/broker.h>
 #include "sql.h"
 #include "data.h"
 #include "protocol.h"
@@ -9,6 +10,9 @@ static int mdb_update_host_status(const nebstruct_host_check_data *p)
 {
 	char *output, *perf_data = NULL;
 	int result;
+
+	if (p->type != NEBTYPE_HOSTCHECK_PROCESSED)
+		return 0;
 
 	sql_quote(p->output, &output);
 	if (p->perf_data)
@@ -40,6 +44,9 @@ static int mdb_update_service_status(const nebstruct_service_check_data *p)
 {
 	char *output, *perf_data = NULL, *service_description;
 	int result;
+
+	if (p->type != NEBTYPE_SERVICECHECK_PROCESSED)
+		return 0;
 
 	sql_quote(p->output, &output);
 	if (p->perf_data)
