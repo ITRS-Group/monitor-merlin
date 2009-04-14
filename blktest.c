@@ -14,6 +14,14 @@
 #define OUTPUT "The plugin output"
 #define PERF_DATA "random_value='5;5;5'"
 
+#define test_compare(str) _compare_ptr_strings(mod->str, orig->str, errors)
+
+static inline void _compare_ptr_strings(char *a, char *b, int *errors)
+{
+	*errors += a == b;
+	*errors += !!strcmp(a, b);
+}
+
 int test_service_check_data(int *errors)
 {
 	nebstruct_service_check_data *orig, *mod;
@@ -33,14 +41,10 @@ int test_service_check_data(int *errors)
 	printf("blockify() returned %d\n", len);
 	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_SERVICE_CHECK_DATA);
 	mod = (nebstruct_service_check_data *)pkt.body;
-	*errors += mod->host_name == orig->host_name;
-	*errors += mod->service_description == orig->service_description;
-	*errors += mod->output == orig->output;
-	*errors += mod->perf_data == orig->perf_data;
-	*errors += !!strcmp(mod->host_name, orig->host_name);
-	*errors += !!strcmp(mod->service_description, orig->service_description);
-	*errors += !!strcmp(mod->output, orig->output);
-	*errors += !!strcmp(mod->perf_data, orig->perf_data);
+	test_compare(host_name);
+	test_compare(output);
+	test_compare(perf_data);
+	test_compare(service_description);
 	printf("Sending ipc_event for service '%s' on host '%s'\n  output: '%s'\n  perfdata: %s'\n",
 		   mod->service_description, mod->host_name, mod->output, mod->perf_data);
 	len = blockify(orig, NEBCALLBACK_SERVICE_CHECK_DATA, pkt.body, sizeof(pkt.body));
@@ -69,12 +73,9 @@ int test_host_check_data(int *errors)
 	printf("blockify() returned %d\n", len);
 	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_HOST_CHECK_DATA);
 	mod = (nebstruct_host_check_data *)pkt.body;
-	*errors += mod->host_name == orig->host_name;
-	*errors += mod->output == orig->output;
-	*errors += mod->perf_data == orig->perf_data;
-	*errors += !!strcmp(mod->host_name, orig->host_name);
-	*errors += !!strcmp(mod->output, orig->output);
-	*errors += !!strcmp(mod->perf_data, orig->perf_data);
+	test_compare(host_name);
+	test_compare(output);
+	test_compare(perf_data);
 	printf("Sending ipc_event for host '%s'\n  output: '%s'\n  perfdata: %s'\n",
 		   mod->host_name, mod->output, mod->perf_data);
 	len = blockify(orig, NEBCALLBACK_HOST_CHECK_DATA, pkt.body, sizeof(pkt.body));
