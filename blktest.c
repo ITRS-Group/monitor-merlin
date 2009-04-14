@@ -8,6 +8,7 @@
 #include "test_utils.h"
 #include "ipc.h"
 #include "protocol.h"
+#include "hookinfo.h"
 
 #define HOST_NAME "thehost"
 #define SERVICE_DESCRIPTION "A service of random description"
@@ -108,6 +109,7 @@ static int grok_config(char *path)
 int main(int argc, char **argv)
 {
 	char silly_buf[1024];
+	int i, errors = 0;
 
 	if (argc < 2) {
 		ipc_grok_var("ipc_socket", "/opt/monitor/op5/merlin/ipc.sock");
@@ -116,9 +118,24 @@ int main(int argc, char **argv)
 		grok_config(argv[1]);
 	}
 
+	for (i = 0; i < NEBCALLBACK_NUMITEMS; i++) {
+		struct hook_info_struct *hi = &hook_info[i];
+
+		if (hi->cb_type != i) {
+			errors++;
+			printf("hook_info for callback %d claims it's for callback %d\n",
+					i, hi->cb_type);
+		}
+	}
+	if (errors) {
+		printf("%d error(s) in hookinfo struct. Expect coredumps\n", errors);
+		errors = 0;
+	} else {
+		printf("No errors in hookinfo struct ordering\n");
+	}
+
 	ipc_init();
 	while ((fgets(silly_buf, sizeof(silly_buf), stdin))) {
-		int errors = 0;
 
 		if (!ipc_is_connected(0)) {
 			printf("ipc socket is not connected\n");
