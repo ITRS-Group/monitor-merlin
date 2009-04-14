@@ -10,8 +10,8 @@
 #include "protocol.h"
 #include "hookinfo.h"
 
-#define HOST_NAME "thehost"
-#define SERVICE_DESCRIPTION "A service of random description"
+#define HOST_NAME "devel"
+#define SERVICE_DESCRIPTION "PING"
 #define OUTPUT "The plugin output"
 #define PERF_DATA "random_value='5;5;5'"
 
