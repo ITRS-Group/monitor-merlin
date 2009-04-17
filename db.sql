@@ -1,3 +1,4 @@
+SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 --
 -- Database design for the monitor_gui database
 --
@@ -607,3 +608,31 @@ CREATE UNIQUE INDEX objvar ON custom_vars(obj_type, obj_id, variable);
 -- Obsoleted tables
 DROP TABLE IF EXISTS hostextinfo;
 DROP TABLE IF EXISTS serviceextinfo;
+
+DROP TABLE IF EXISTS `db_version`;
+CREATE TABLE `db_version` (
+  `version` int(11)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+INSERT INTO db_version(version) VALUES(1);
+
+DROP TABLE IF EXISTS `report_data`;
+CREATE TABLE `report_data` (
+  `id` int(11) NOT NULL auto_increment,
+  `timestamp` int(11) NOT NULL default '0',
+  `event_type` int(11) NOT NULL default '0',
+  `flags` int(11),
+  `attrib` int(11),
+  `host_name` varchar(160) default '',
+  `service_description` varchar(160) default '',
+  `state` int(2) NOT NULL default '0',
+  `hard` int(2) NOT NULL default '0',
+  `retry` int(5) NOT NULL default '0',
+  `downtime_depth` int(11),
+  `output` text,
+  PRIMARY KEY  (`id`),
+  KEY          (`timestamp`),
+  KEY event_type (event_type),
+  KEY host_name (host_name),
+  KEY host_name_2 (host_name,service_description),
+  KEY state (state)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
