@@ -28,6 +28,10 @@ static struct {
 #define esc(s) sql_escape(s)
 size_t sql_quote(const char *src, char **dst)
 {
+	if (!src) {
+		*dst = NULL;
+		return 0;
+	}
 	return dbi_conn_quote_string_copy(db.conn, src, dst);
 }
 
