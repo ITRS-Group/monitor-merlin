@@ -257,6 +257,31 @@ static int mdb_handle_comment(const nebstruct_comment_data *p)
 	return result;
 }
 
+#define safe_str(str) (str == NULL ? "" : str)
+static int mdb_handle_notification(const nebstruct_notification_data *p)
+{
+	char *host_name, *service_description;
+	char *output, *ack_author, *ack_data;
+
+	sql_quote(p->host_name, &host_name);
+	sql_quote(p->service_description, &service_description);
+	sql_quote(p->output, &output);
+	sql_quote(p->ack_author, &ack_author);
+	sql_quote(p->ack_data, &ack_data);
+
+	return sql_query
+		("INSERT INTO notification "
+		 "(notification_type, start_time, end_time, host_name,"
+		 "service_description, reason_type, state, output,"
+		 "ack_author, ack_data, escalated, contacts_notified) "
+		 "VALUES(%d, %lu, %lu, '%s',"
+		 "'%s', %d, %d, '%s', '%s', '%s', %d, %d)",
+		 p->notification_type, p->start_time.tv_sec, p->end_time.tv_sec,
+		 host_name,  safe_str(service_description), p->reason_type, p->state,
+		 safe_str(output), safe_str(ack_author), safe_str(ack_data),
+		 p->escalated, p->contacts_notified);
+}
+
 int mrm_db_update(struct merlin_event *pkt)
 {
 	int errors = 0;
@@ -285,6 +310,9 @@ int mrm_db_update(struct merlin_event *pkt)
 		break;
 	case NEBCALLBACK_FLAPPING_DATA:
 		errors = mdb_handle_flapping((void *)pkt->body);
+		break;
+	case NEBCALLBACK_NOTIFICATION_DATA:
+		errors = mdb_handle_notification((void *)pkt->body);
 		break;
 	default:
 		ldebug("Unknown callback type. Weird, to say the least...");
