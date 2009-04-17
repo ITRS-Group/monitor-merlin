@@ -115,6 +115,78 @@ static int mdb_update_program_status(const nebstruct_program_status_data *p)
 	return result;
 }
 
+static int mdb_handle_downtime(const nebstruct_downtime_data *p)
+{
+	int result;
+	char *comment_data = NULL, *author_name = NULL;
+	char *host_name = NULL, *service_description = NULL;
+
+	if (p->type == NEBTYPE_DOWNTIME_DELETE) {
+		ldebug("Deleting downtime with id %lu", p->downtime_id);
+		result = sql_query("DELETE FROM monitor_gui.scheduled_downtime "
+						   "WHERE downtime_id = %lu", p->downtime_id);
+		if (p->start_time > time(NULL))
+			return result;
+	}
+
+	if (p->service_description) {
+		ldebug("Handling downtime type %d (%d) for service '%s' on host '%s'",
+			   p->type, p->downtime_type, p->service_description, p->host_name);
+	} else {
+		ldebug("Handling downtime type %d (%d) for host '%s'",
+			   p->type, p->downtime_type, p->host_name);
+	}
+
+	if (p->type != NEBTYPE_DOWNTIME_DELETE) {
+		sql_quote(p->host_name, &host_name);
+		if (p->service_description)
+			sql_quote(p->service_description, &service_description);
+	}
+
+	switch (p->type) {
+	case NEBTYPE_DOWNTIME_START:
+	case NEBTYPE_DOWNTIME_STOP:
+		result = sql_query
+			("UPDATE monitor_gui.%s "
+			 "SET scheduled_downtime_depth = scheduled_downtime_depth %c 1 "
+			 "WHERE host_name = '%s' AND service_description = '%s'",
+			 p->service_description ? "service" : "host",
+			 p->type == NEBTYPE_DOWNTIME_START ? '+' : '-',
+			 host_name, service_description);
+		break;
+	case NEBTYPE_DOWNTIME_LOAD:
+		sql_query("DELETE FROM scheduled_downtime WHERE downtime_id = %lu",
+				  p->downtime_id);
+		/* fallthrough */
+	case NEBTYPE_DOWNTIME_ADD:
+		sql_quote(p->author_name, &author_name);
+		sql_quote(p->comment_data, &comment_data);
+		result = sql_query
+			("INSERT INTO monitor_gui.scheduled_downtime "
+			 "(downtime_type, host_name, service_description, entry_time, "
+			 "author_name, comment_data, start_time, end_time, fixed, "
+			 "duration, triggered_by, downtime_id) "
+			 "VALUES(%d, '%s', '%s', %lu, "
+			 "       '%s', '%s', %lu, %lu, %d, "
+			 "       %lu, %lu, %lu)",
+			 p->downtime_type, host_name, service_description, p->entry_time,
+			 author_name, comment_data, p->start_time, p->end_time,
+			 p->fixed, p->duration, p->triggered_by, p->downtime_id);
+		free(author_name);
+		free(comment_data);
+		break;
+	case NEBTYPE_DOWNTIME_DELETE:
+		sql_query("DELETE FROM scheduled_downtime WHERE downtime_id = %lu",
+				  p->downtime_id);
+		break;
+	default:
+		linfo("Unknown downtime type %d", p->type);
+		break;
+	}
+
+	return result;
+}
+
 int mdb_handle_comment(const nebstruct_comment_data *p)
 {
 	int result;
@@ -182,6 +254,9 @@ int mrm_db_update(struct merlin_event *pkt)
 		break;
 	case NEBCALLBACK_COMMENT_DATA:
 		errors = mdb_handle_comment((void *)pkt->body);
+		break;
+	case NEBCALLBACK_DOWNTIME_DATA:
+		errors = mdb_handle_downtime((void *)pkt->body);
 		break;
 	default:
 		ldebug("Unknown callback type. Weird, to say the least...");

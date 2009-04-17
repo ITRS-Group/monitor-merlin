@@ -31,6 +31,26 @@ CREATE TABLE program_status(
 );
 
 
+DROP TABLE IF EXISTS scheduled_downtime;
+CREATE TABLE scheduled_downtime(
+	id						INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	downtime_type			int,
+	host_name				varchar(255),
+	service_description		varchar(255),
+	entry_time				int(11),
+	author_name				varchar(255),
+	comment_data			text,
+	start_time				int(11),
+	end_time				int(11),
+	fixed					tinyint(2),
+	duration				int(11),
+	triggered_by			int,
+	downtime_id				int NOT NULL,
+	KEY host_downtime(host_name),
+	KEY service_downtime(service_description),
+	UNIQUE KEY downtime_id(downtime_id)
+);
+
 DROP TABLE IF EXISTS comment;
 CREATE TABLE comment(
 	id					INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
