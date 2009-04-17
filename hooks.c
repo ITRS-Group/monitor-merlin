@@ -21,6 +21,15 @@
 #include "protocol.h"
 #include "ipc.h"
 
+int hook_generic(int cb, void *data)
+{
+	struct merlin_event pkt;
+
+	pkt.hdr.type = cb;
+	pkt.hdr.len = blockify(data, cb, pkt.body, sizeof(pkt.body));
+	pkt.hdr.selection = 0xffff;
+	return ipc_send_event(&pkt);
+}
 
 /*
  * The hooks are called from broker.c in Nagios.
@@ -70,12 +79,12 @@ int hook_host_result(int cb, void *data)
 	return result;
 }
 
-int hook_generic(int cb, void *data)
+int hook_notification(int cb, void *data)
 {
-	struct merlin_event pkt;
+	nebstruct_notification_data *ds = (nebstruct_notification_data *)data;
 
-	pkt.hdr.type = cb;
-	pkt.hdr.len = blockify(data, cb, pkt.body, sizeof(pkt.body));
-	pkt.hdr.selection = 0xffff;
-	return ipc_send_event(&pkt);
+	if (ds->type != NEBTYPE_NOTIFICATION_END)
+		return 0;
+
+	return hook_generic(cb, data);
 }

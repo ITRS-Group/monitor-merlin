@@ -312,6 +312,7 @@ int post_config_init(int cb, void *ds)
 /* hooks for use in the table below */
 extern int hook_host_result(int cb, void *data);
 extern int hook_service_result(int cb, void *data);
+extern int hook_notification(int cb, void *data);
 extern int hook_generic(int cb, void *data);
 #define CB_ENTRY(modonly, macro, hook) \
 	{ modonly, macro, #macro, hook, #hook }
@@ -327,8 +328,8 @@ static struct callback_struct {
 	CB_ENTRY(0, NEBCALLBACK_LOG_DATA, hook_generic),
 	CB_ENTRY(1, NEBCALLBACK_SYSTEM_COMMAND_DATA, hook_generic),
 	CB_ENTRY(1, NEBCALLBACK_EVENT_HANDLER_DATA, hook_generic),
-	CB_ENTRY(1, NEBCALLBACK_NOTIFICATION_DATA, hook_generic),
- */
+*/	CB_ENTRY(0, NEBCALLBACK_NOTIFICATION_DATA, hook_notification),
+
 	CB_ENTRY(1, NEBCALLBACK_SERVICE_CHECK_DATA, hook_service_result),
 	CB_ENTRY(1, NEBCALLBACK_HOST_CHECK_DATA, hook_host_result),
 	CB_ENTRY(0, NEBCALLBACK_COMMENT_DATA, hook_generic),
