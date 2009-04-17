@@ -2,8 +2,8 @@
 -- Database design for the monitor_gui database
 --
 
-DROP TABLE IF EXISTS notifications;
-CREATE TABLE notifications(
+DROP TABLE IF EXISTS notification;
+CREATE TABLE notification(
 	id						int NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	notification_type		int,
 	start_time				int(11),
