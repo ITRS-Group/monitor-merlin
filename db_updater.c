@@ -187,6 +187,31 @@ static int mdb_handle_downtime(const nebstruct_downtime_data *p)
 	return result;
 }
 
+static int mdb_handle_flapping(const nebstruct_flapping_data *p)
+{
+	int result;
+	char *host_name, *service_description = NULL;
+
+	sql_quote(p->host_name, &host_name);
+	if (service_description)
+		sql_quote(p->service_description, &service_description);
+
+	result = sql_query
+		("UPDATE monitor_gui.%s SET is_flapping = %d, "
+		 "flapping_comment_id = %lu, percent_state_change = %f"
+		 "WHERE host_name = '%s' AND service_description = '%s'",
+		 service_description ? "service" : "host",
+		 p->type == NEBTYPE_FLAPPING_START,
+		 p->comment_id, p->percent_change,
+		 host_name, service_description ? service_description : "");
+
+	if (service_description)
+		free(service_description);
+	free(host_name);
+
+	return result;
+}
+
 static int mdb_handle_comment(const nebstruct_comment_data *p)
 {
 	int result;
@@ -257,6 +282,9 @@ int mrm_db_update(struct merlin_event *pkt)
 		break;
 	case NEBCALLBACK_DOWNTIME_DATA:
 		errors = mdb_handle_downtime((void *)pkt->body);
+		break;
+	case NEBCALLBACK_FLAPPING_DATA:
+		errors = mdb_handle_flapping((void *)pkt->body);
 		break;
 	default:
 		ldebug("Unknown callback type. Weird, to say the least...");
