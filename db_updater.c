@@ -6,6 +6,8 @@
 #include "protocol.h"
 #include "logging.h"
 
+#define safe_str(str) (str == NULL ? "" : str)
+#define safe_free(str) do { if (str) free(str) } while (0)
 static int mdb_update_host_status(const nebstruct_host_check_data *p)
 {
 	char *output, *perf_data = NULL;
@@ -15,8 +17,7 @@ static int mdb_update_host_status(const nebstruct_host_check_data *p)
 		return 0;
 
 	sql_quote(p->output, &output);
-	if (p->perf_data)
-		sql_quote(p->perf_data, &perf_data);
+	sql_quote(p->perf_data, &perf_data);
 
 	ldebug("Updating db for host '%s'\n", p->host_name);
 	result = sql_query
@@ -30,12 +31,11 @@ static int mdb_update_host_status(const nebstruct_host_check_data *p)
 		 p->state_type, p->state, p->timeout,
 		 p->start_time.tv_sec, p->end_time.tv_sec, p->early_timeout,
 		 p->execution_time, p->latency, p->end_time.tv_sec,
-		 p->return_code, output, perf_data ? perf_data : "",
+		 p->return_code, output, safe_str(perf_data),
 		 p->host_name);
 
 	free(output);
-	if (perf_data)
-		free(perf_data);
+	safe_free(perf_data);
 
 	return result;
 }
@@ -49,8 +49,7 @@ static int mdb_update_service_status(const nebstruct_service_check_data *p)
 		return 0;
 
 	sql_quote(p->output, &output);
-	if (p->perf_data)
-		sql_quote(p->perf_data, &perf_data);
+	sql_quote(p->perf_data, &perf_data);
 	sql_quote(p->service_description, &service_description);
 
 	ldebug("Updating db for service '%s' on host '%s'\n",
@@ -66,12 +65,11 @@ static int mdb_update_service_status(const nebstruct_service_check_data *p)
 		 p->state_type, p->state, p->timeout,
 		 p->start_time.tv_sec, p->end_time.tv_sec, p->early_timeout,
 		 p->execution_time, p->latency, p->end_time.tv_sec,
-		 p->return_code, output, perf_data ? perf_data : "",
+		 p->return_code, output, safe_str(perf_data),
 		 p->host_name, service_description);
 
 	free(output);
-	if (perf_data)
-		free(perf_data);
+	safe_free(perf_data);
 	free(service_description);
 
 	return result;
@@ -139,8 +137,7 @@ static int mdb_handle_downtime(const nebstruct_downtime_data *p)
 
 	if (p->type != NEBTYPE_DOWNTIME_DELETE) {
 		sql_quote(p->host_name, &host_name);
-		if (p->service_description)
-			sql_quote(p->service_description, &service_description);
+		sql_quote(p->service_description, &service_description);
 	}
 
 	switch (p->type) {
@@ -152,7 +149,7 @@ static int mdb_handle_downtime(const nebstruct_downtime_data *p)
 			 "WHERE host_name = '%s' AND service_description = '%s'",
 			 p->service_description ? "service" : "host",
 			 p->type == NEBTYPE_DOWNTIME_START ? '+' : '-',
-			 host_name, service_description);
+			 host_name, safe_str(service_description));
 		break;
 	case NEBTYPE_DOWNTIME_LOAD:
 		sql_query("DELETE FROM scheduled_downtime WHERE downtime_id = %lu",
@@ -169,9 +166,10 @@ static int mdb_handle_downtime(const nebstruct_downtime_data *p)
 			 "VALUES(%d, '%s', '%s', %lu, "
 			 "       '%s', '%s', %lu, %lu, %d, "
 			 "       %lu, %lu, %lu)",
-			 p->downtime_type, host_name, service_description, p->entry_time,
-			 author_name, comment_data, p->start_time, p->end_time,
-			 p->fixed, p->duration, p->triggered_by, p->downtime_id);
+			 p->downtime_type, host_name, safe_str(service_description),
+			 p->entry_time, author_name, comment_data, p->start_time,
+			 p->end_time, p->fixed, p->duration, p->triggered_by,
+			 p->downtime_id);
 		free(author_name);
 		free(comment_data);
 		break;
@@ -184,6 +182,9 @@ static int mdb_handle_downtime(const nebstruct_downtime_data *p)
 		break;
 	}
 
+	safe_free(host_name);
+	safe_free(service_description);
+
 	return result;
 }
 
@@ -193,8 +194,7 @@ static int mdb_handle_flapping(const nebstruct_flapping_data *p)
 	char *host_name, *service_description = NULL;
 
 	sql_quote(p->host_name, &host_name);
-	if (service_description)
-		sql_quote(p->service_description, &service_description);
+	sql_quote(p->service_description, &service_description);
 
 	result = sql_query
 		("UPDATE monitor_gui.%s SET is_flapping = %d, "
@@ -203,10 +203,9 @@ static int mdb_handle_flapping(const nebstruct_flapping_data *p)
 		 service_description ? "service" : "host",
 		 p->type == NEBTYPE_FLAPPING_START,
 		 p->comment_id, p->percent_change,
-		 host_name, service_description ? service_description : "");
+		 host_name, safe_str(service_description));
 
-	if (service_description)
-		free(service_description);
+	safe_free(service_description);
 	free(host_name);
 
 	return result;
@@ -215,8 +214,7 @@ static int mdb_handle_flapping(const nebstruct_flapping_data *p)
 static int mdb_handle_comment(const nebstruct_comment_data *p)
 {
 	int result;
-	char *host_name, *author_name, *comment_data;
-	char *service_description = NULL;
+	char *host_name, *author_name, *comment_data, *service_description;
 
 	if (p->type == NEBTYPE_COMMENT_DELETE) {
 		ldebug("Deleting comment with id %lu", p->comment_id);
@@ -236,9 +234,7 @@ static int mdb_handle_comment(const nebstruct_comment_data *p)
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->author_name, &author_name);
 	sql_quote(p->comment_data, &comment_data);
-
-	if (p->service_description)
-		sql_quote(p->service_description, &service_description);
+	sql_quote(p->service_description, &service_description);
 
 	result = sql_query
 		("INSERT INTO monitor_gui.comment(comment_type, host_name, "
@@ -247,17 +243,18 @@ static int mdb_handle_comment(const nebstruct_comment_data *p)
 		 "comment_id) "
 		 "VALUES(%d, %s, %s, %lu, %s, %s, %d, %d, %d, %d, %lu, %lu)",
 		 p->comment_type, host_name,
-		 service_description ? service_description : "''", p->entry_time,
+		 safe_str(service_description), p->entry_time,
 		 author_name, comment_data, p->persistent, p->source,
 		 p->entry_type, p->expires, p->expire_time, p->comment_id);
 
 	free(host_name);
 	free(author_name);
 	free(comment_data);
+	safe_free(service_description);
+
 	return result;
 }
 
-#define safe_str(str) (str == NULL ? "" : str)
 static int mdb_handle_notification(const nebstruct_notification_data *p)
 {
 	char *host_name, *service_description;
