@@ -7,7 +7,7 @@
 #include "logging.h"
 
 #define safe_str(str) (str == NULL ? "" : str)
-#define safe_free(str) do { if (str) free(str) } while (0)
+#define safe_free(str) do { if (str) free(str); } while (0)
 static int mdb_update_host_status(const nebstruct_host_check_data *p)
 {
 	char *output, *perf_data = NULL;
