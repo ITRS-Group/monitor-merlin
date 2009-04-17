@@ -2,6 +2,25 @@
 -- Database design for the monitor_gui database
 --
 
+DROP TABLE IF EXISTS notifications;
+CREATE TABLE notifications(
+	id						int NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	notification_type		int,
+	start_time				int(11),
+	end_time				int(11),
+	host_name				varchar(255),
+	service_description		varchar(255),
+	reason_type				int,
+	state					int,
+	output					text,
+	ack_author				varchar(255),
+	ack_data				text,
+	escalated				int,
+	contacts_notified		int,
+	KEY host_name(host_name),
+	KEY service_name(host_name, service_description)
+);
+
 DROP TABLE IF EXISTS program_status;
 CREATE TABLE program_status(
 	instance_id						int,
