@@ -187,7 +187,7 @@ static int mdb_handle_downtime(const nebstruct_downtime_data *p)
 	return result;
 }
 
-int mdb_handle_comment(const nebstruct_comment_data *p)
+static int mdb_handle_comment(const nebstruct_comment_data *p)
 {
 	int result;
 	char *host_name, *author_name, *comment_data;
