@@ -73,6 +73,8 @@ int io_recv_all(int fd, void *buf, size_t len)
 				   fd, len - total, rd, strerror(errno));
 			if (errno != EAGAIN)
 				return rd;
+
+			continue;
 		}
 		total += rd;
 	} while (total < len && rd > 0);
