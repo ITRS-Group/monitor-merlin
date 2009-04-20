@@ -26,6 +26,11 @@ int proto_read_event(int sock, struct merlin_event *pkt)
 	if (pkt->hdr.type == CTRL_PACKET)
 		return len;
 
+	if (!pkt->hdr.len) {
+		lerr("Non-control packet of type %d with zero size length (this should never happen)", pkt->hdr.type);
+		return len;
+	}
+
 	result = io_recv_all(sock, pkt->body, pkt->hdr.len);
 	if (result != pkt->hdr.len) {
 		lwarn("Bogus read in proto_read_event(). got %d, expected %d",
