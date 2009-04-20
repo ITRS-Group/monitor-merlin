@@ -18,7 +18,8 @@
 #define TOTAL_PKT_SIZE 32768
 #define MAX_PKT_SIZE TOTAL_PKT_SIZE /* for now. remove this macro later */
 
-#define packet_size(pkt) ((pkt->hdr.len) + HDR_SIZE)
+#define packet_size(pkt) \
+	(pkt->hdr.type == CTRL_PACKET ? HDR_SIZE : (pkt->hdr.len + HDR_SIZE))
 
 struct merlin_header {
 	u_int16_t protocol;   /* always 0 for now */
@@ -35,6 +36,9 @@ struct merlin_event {
 	struct merlin_header hdr;
 	char body[BODY_SIZE];
 } __attribute__((packed));
+
+typedef struct merlin_header merlin_header;
+typedef struct merlin_event merlin_event;
 
 extern int proto_send_event(int sock, struct merlin_event *pkt);
 extern int proto_read_event(int sock, struct merlin_event *pkt);
