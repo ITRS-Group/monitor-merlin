@@ -6,20 +6,20 @@
 #include "protocol.h"
 #include "logging.h"
 
-#define safe_str(str) (str == NULL ? "" : str)
+#define safe_str(str) (str == NULL ? "''" : str)
 #define safe_free(str) do { if (str) free(str); } while (0)
 static int mdb_update_host_status(const nebstruct_host_check_data *p)
 {
-	char *output, *perf_data = NULL;
+	char *host_name, *output, *perf_data = NULL;
 	int result;
 
 	if (p->type != NEBTYPE_HOSTCHECK_PROCESSED)
 		return 0;
 
+	sql_quote(p->host_name, &host_name);
 	sql_quote(p->output, &output);
 	sql_quote(p->perf_data, &perf_data);
 
-	ldebug("Updating db for host '%s'\n", p->host_name);
 	result = sql_query
 		("UPDATE monitor_gui.host SET current_attempt = %d, check_type = %d, "
 		 "state_type = %d, current_state = %d, timeout = %d, "
@@ -34,6 +34,7 @@ static int mdb_update_host_status(const nebstruct_host_check_data *p)
 		 p->return_code, output, safe_str(perf_data),
 		 p->host_name);
 
+	free(host_name);
 	free(output);
 	safe_free(perf_data);
 
@@ -42,25 +43,24 @@ static int mdb_update_host_status(const nebstruct_host_check_data *p)
 
 static int mdb_update_service_status(const nebstruct_service_check_data *p)
 {
-	char *output, *perf_data = NULL, *service_description;
+	char *host_name, *output, *perf_data, *service_description;
 	int result;
 
 	if (p->type != NEBTYPE_SERVICECHECK_PROCESSED)
 		return 0;
 
+	sql_quote(p->host_name, &host_name);
 	sql_quote(p->output, &output);
 	sql_quote(p->perf_data, &perf_data);
 	sql_quote(p->service_description, &service_description);
 
-	ldebug("Updating db for service '%s' on host '%s'\n",
-		   p->service_description, p->host_name);
 	result = sql_query
 		("UPDATE monitor_gui.service SET current_attempt = %d, check_type = %d, "
 		 "state_type = %d, current_state = %d, timeout = %d, "
 		 "start_time = %lu, end_time = %lu, early_timeout = %d, "
 		 "execution_time = %f, latency = '%.3f', last_check = %lu, "
 		 "return_code = %d, plugin_output = %s, perf_data = %s "
-		 " WHERE host_name = (SELECT id FROM monitor_gui.host WHERE host_name = '%s') AND service_description = %s",
+		 " WHERE host_name = (SELECT id FROM monitor_gui.host WHERE host_name = %s) AND service_description = %s",
 		 p->current_attempt, p->check_type,
 		 p->state_type, p->state, p->timeout,
 		 p->start_time.tv_sec, p->end_time.tv_sec, p->early_timeout,
@@ -68,6 +68,7 @@ static int mdb_update_service_status(const nebstruct_service_check_data *p)
 		 p->return_code, output, safe_str(perf_data),
 		 p->host_name, service_description);
 
+	free(host_name);
 	free(output);
 	safe_free(perf_data);
 	free(service_description);
@@ -81,7 +82,6 @@ static int mdb_update_program_status(const nebstruct_program_status_data *p)
 	char *global_service_event_handler;
 	int result;
 
-	ldebug("Updating program status data");
 	sql_quote(p->global_host_event_handler, &global_host_event_handler);
 	sql_quote(p->global_service_event_handler, &global_service_event_handler);
 
@@ -116,23 +116,13 @@ static int mdb_update_program_status(const nebstruct_program_status_data *p)
 static int mdb_handle_downtime(const nebstruct_downtime_data *p)
 {
 	int result;
-	char *comment_data = NULL, *author_name = NULL;
-	char *host_name = NULL, *service_description = NULL;
+	char *host_name, *service_description, *comment_data, *author_name;
 
 	if (p->type == NEBTYPE_DOWNTIME_DELETE) {
-		ldebug("Deleting downtime with id %lu", p->downtime_id);
 		result = sql_query("DELETE FROM monitor_gui.scheduled_downtime "
 						   "WHERE downtime_id = %lu", p->downtime_id);
 		if (p->start_time > time(NULL))
 			return result;
-	}
-
-	if (p->service_description) {
-		ldebug("Handling downtime type %d (%d) for service '%s' on host '%s'",
-			   p->type, p->downtime_type, p->service_description, p->host_name);
-	} else {
-		ldebug("Handling downtime type %d (%d) for host '%s'",
-			   p->type, p->downtime_type, p->host_name);
 	}
 
 	if (p->type != NEBTYPE_DOWNTIME_DELETE) {
@@ -146,7 +136,7 @@ static int mdb_handle_downtime(const nebstruct_downtime_data *p)
 		result = sql_query
 			("UPDATE monitor_gui.%s "
 			 "SET scheduled_downtime_depth = scheduled_downtime_depth %c 1 "
-			 "WHERE host_name = '%s' AND service_description = '%s'",
+			 "WHERE host_name = %s AND service_description = %s",
 			 p->service_description ? "service" : "host",
 			 p->type == NEBTYPE_DOWNTIME_START ? '+' : '-',
 			 host_name, safe_str(service_description));
@@ -163,8 +153,8 @@ static int mdb_handle_downtime(const nebstruct_downtime_data *p)
 			 "(downtime_type, host_name, service_description, entry_time, "
 			 "author_name, comment_data, start_time, end_time, fixed, "
 			 "duration, triggered_by, downtime_id) "
-			 "VALUES(%d, '%s', '%s', %lu, "
-			 "       '%s', '%s', %lu, %lu, %d, "
+			 "VALUES(%d, %s, %s, %lu, "
+			 "       %s, %s, %lu, %lu, %d, "
 			 "       %lu, %lu, %lu)",
 			 p->downtime_type, host_name, safe_str(service_description),
 			 p->entry_time, author_name, comment_data, p->start_time,
@@ -199,7 +189,7 @@ static int mdb_handle_flapping(const nebstruct_flapping_data *p)
 	result = sql_query
 		("UPDATE monitor_gui.%s SET is_flapping = %d, "
 		 "flapping_comment_id = %lu, percent_state_change = %f"
-		 "WHERE host_name = '%s' AND service_description = '%s'",
+		 "WHERE host_name = %s AND service_description = %s",
 		 service_description ? "service" : "host",
 		 p->type == NEBTYPE_FLAPPING_START,
 		 p->comment_id, p->percent_change,
@@ -217,18 +207,10 @@ static int mdb_handle_comment(const nebstruct_comment_data *p)
 	char *host_name, *author_name, *comment_data, *service_description;
 
 	if (p->type == NEBTYPE_COMMENT_DELETE) {
-		ldebug("Deleting comment with id %lu", p->comment_id);
 		result = sql_query
 			("DELETE FROM monitor_gui.comment WHERE comment_id = %lu",
 			 p->comment_id);
 		return result;
-	}
-
-	if (p->service_description) {
-		ldebug("Adding service comment for service '%s' on host '%s'",
-			   p->service_description, p->host_name);
-	} else {
-		ldebug("Adding host comment for host '%s'", p->host_name);
 	}
 
 	sql_quote(p->host_name, &host_name);
@@ -271,8 +253,8 @@ static int mdb_handle_notification(const nebstruct_notification_data *p)
 		 "(notification_type, start_time, end_time, host_name,"
 		 "service_description, reason_type, state, output,"
 		 "ack_author, ack_data, escalated, contacts_notified) "
-		 "VALUES(%d, %lu, %lu, '%s',"
-		 "'%s', %d, %d, '%s', '%s', '%s', %d, %d)",
+		 "VALUES(%d, %lu, %lu, %s,"
+		 "%s, %d, %d, %s, %s, %s, %d, %d)",
 		 p->notification_type, p->start_time.tv_sec, p->end_time.tv_sec,
 		 host_name,  safe_str(service_description), p->reason_type, p->state,
 		 safe_str(output), safe_str(ack_author), safe_str(ack_data),
@@ -284,7 +266,7 @@ int mrm_db_update(struct merlin_event *pkt)
 	int errors = 0;
 
 	if (!pkt) {
-		ldebug("pkt is NULL in mrm_db_update");
+		lerr("pkt is NULL in mrm_db_update");
 		return 0;
 	}
 	deblockify(pkt->body, pkt->hdr.len, pkt->hdr.type);
