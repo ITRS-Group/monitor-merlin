@@ -106,7 +106,7 @@ static int mdb_update_program_status(const nebstruct_program_status_data *p)
 		 p->failure_prediction_enabled, p->process_performance_data,
 		 p->obsess_over_hosts, p->obsess_over_services,
 		 p->modified_host_attributes, p->modified_service_attributes,
-		 global_host_event_handler, global_service_event_handler);
+		 safe_str(global_host_event_handler), safe_str(global_service_event_handler));
 
 	free(global_host_event_handler);
 	free(global_service_event_handler);
