@@ -27,6 +27,8 @@ int hook_generic(int cb, void *data)
 
 	pkt.hdr.type = cb;
 	pkt.hdr.len = blockify(data, cb, pkt.body, sizeof(pkt.body));
+	if (!pkt.hdr.len)
+		lerr("Header len is 0 for callback %d. Update offset in hookinfo.h", cb);
 	pkt.hdr.selection = 0xffff;
 	return ipc_send_event(&pkt);
 }
