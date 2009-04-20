@@ -101,7 +101,7 @@ static struct hook_info_struct {
 			0, 0, 0
 		},
 	},
-	{ NEBCALLBACK_PROGRAM_STATUS_DATA, 0, 0,
+	{ NEBCALLBACK_PROGRAM_STATUS_DATA, 2, sizeof(nebstruct_program_status_data),
 		{
 			offsetof(nebstruct_program_status_data, global_host_event_handler),
 			offsetof(nebstruct_program_status_data, global_service_event_handler),
