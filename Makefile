@@ -13,8 +13,8 @@ DEPS = Makefile config.h ipc.h logging.h shared.h types.h
 DSO = merlin
 PROG = $(DSO)d
 NEB = $(DSO).so
-MOD_LDFLAGS = -shared
-DAEMON_LDFLAGS = -ldbi
+MOD_LDFLAGS = -shared -ggdb3
+DAEMON_LDFLAGS = -ldbi -ggdb3
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
 
