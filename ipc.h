@@ -24,6 +24,8 @@ extern int ipc_send_ctrl(int control_type, int selection);
 extern int ipc_send_event(struct merlin_event *pkt);
 extern int ipc_read_event(struct merlin_event *pkt);
 extern int ipc_sock_desc(void);
+extern int ipc_listen_sock_desc(void);
 extern int ipc_is_connected(int msec);
-extern int ipc_reinit();
+extern int ipc_reinit(void);
+extern int ipc_accept(void);
 #endif

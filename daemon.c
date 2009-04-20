@@ -246,22 +246,33 @@ static int handle_ipc_data(struct merlin_event *pkt)
 	return result;
 }
 
+static int max(int a, int b)
+{
+	return a > b ? b : a;
+}
 
 static int io_poll_sockets(void)
 {
 	fd_set rd, wr;
-	int sel_val, ipc_sock, net_sock, nfound;
+	int sel_val, ipc_sock, ipc_listen_sock, net_sock, nfound;
 	int sockets = 0;
 
 	sel_val = net_sock = net_sock_desc();
+	ipc_listen_sock = ipc_listen_sock_desc();
 	ipc_sock = ipc_sock_desc();
+	sel_val = max(sel_val, max(ipc_sock, ipc_listen_sock));
 	if (ipc_sock > sel_val)
 		sel_val = ipc_sock;
+	if (ipc_listen_sock > sel_val)
+		sel_val = ipc_listen_sock;
+
 	FD_ZERO(&rd);
 	FD_ZERO(&wr);
-	FD_SET(ipc_sock, &rd);
+	if (ipc_sock > 0)
+		FD_SET(ipc_sock, &rd);
+	FD_SET(ipc_listen_sock, &rd);
 
-	ldebug("ipc_sock: %d; net_sock: %d\n", ipc_sock, net_sock);
+	ldebug("ipc_listen_sock: %d; ipc_sock: %d; net_sock: %d", ipc_listen_sock, ipc_sock, net_sock);
 	sel_val = net_polling_helper(&rd, &wr, sel_val);
 	nfound = select(sel_val + 1, &rd, &wr, NULL, NULL);
 	ldebug("select() returned %d (errno = %d: %s)\n", nfound, errno, strerror(errno));
@@ -275,7 +286,11 @@ static int io_poll_sockets(void)
 		return 0;
 	}
 
-	if (FD_ISSET(ipc_sock, &rd)) {
+	if (ipc_listen_sock > 0 && FD_ISSET(ipc_listen_sock, &rd)) {
+		ldebug("Accepting inbound connection on ipc socket");
+		ipc_accept();
+	}
+	if (ipc_sock > 0 && FD_ISSET(ipc_sock, &rd)) {
 		struct merlin_event pkt;
 		sockets++;
 		printf("inbound data available on ipc socket\n");

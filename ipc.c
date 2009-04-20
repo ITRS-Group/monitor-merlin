@@ -24,6 +24,22 @@ int ipc_reinit(void)
 	return ipc_init();
 }
 
+int ipc_accept(void)
+{
+	struct sockaddr_un saun;
+	socklen_t slen = sizeof(struct sockaddr_un);
+
+	if (ipc_sock != -1) {
+		lwarn("New connection inbound when one already exists. Dropping old");
+	}
+
+	ipc_sock = accept(listen_sock, (struct sockaddr *)&saun, &slen);
+	if (ipc_sock < 0)
+		lerr("Failed to accept() from listen_sock (%d): %s",
+			 listen_sock, strerror(errno));
+
+	return ipc_sock;
+}
 
 static int ipc_set_sock_path(const char *path)
 {
@@ -99,12 +115,7 @@ int ipc_init(void)
 	memcpy(saun.sun_path, ipc_sock_path, slen);
 	slen += sizeof(struct sockaddr);
 
-	if (!is_module) {
-		if (unlink(ipc_sock_path) && errno != ENOENT)
-			return -1;
-	}
-
-	if (listen_sock == -1) {
+	if (listen_sock == -1 || (is_module && ipc_sock == -1)) {
 		int optval = 128 << 10; /* set socket buffers to 128KB */
 
 		listen_sock = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -122,6 +133,9 @@ int ipc_init(void)
 	if (!is_module) {
 		mode_t old_umask;
 		int result;
+
+		if (unlink(ipc_sock_path) && errno != ENOENT)
+			return -1;
 
 		slen += offsetof(struct sockaddr_un, sun_path);
 		/* Socket is made world writable for now */
@@ -193,6 +207,7 @@ int ipc_is_connected(int msec)
 	if (is_module) {
 		if (ipc_sock < 0)
 			return ipc_reinit();
+
 		return 1;
 	}
 
@@ -207,16 +222,14 @@ int ipc_is_connected(int msec)
 	return ipc_sock != -1;
 }
 
+int ipc_listen_sock_desc(void)
+{
+	return listen_sock;
+}
 
 int ipc_sock_desc(void)
 {
-	if (is_module)
-		return ipc_sock;
-
-	if (ipc_sock > -1)
-		return ipc_sock;
-
-	return listen_sock;
+	return ipc_sock;
 }
 
 
@@ -314,7 +327,7 @@ int ipc_send_event(struct merlin_event *pkt)
 
 int ipc_read_event(struct merlin_event *pkt)
 {
-	if (ipc_read_ok(0)) {
+	if (ipc_read_ok(100)) {
 		int result;
 		result = proto_read_event(ipc_sock, pkt);
 		if (result < 1) {
