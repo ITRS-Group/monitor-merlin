@@ -1,4 +1,5 @@
-/* Conversion table to blockify and de-blockify data-structs sent from
+/**
+ * Conversion table to blockify and de-blockify data-structs sent from
  * Nagios to event broker modules.
  *
  * To add more checks here, first go check in nagios/include/nebcallbacks.h
@@ -8,7 +9,8 @@
  *
  * 'strings' is the number of dynamic strings (char *)
  * 'offset' is 'sizeof(nebstruct_something_data)'
- * 'ptrs[]' are the offsets of each char *. use the offsetof() macro */
+ * 'ptrs[]' are the offsets of each char *. use the offsetof() macro
+ */
 
 #include "shared.h"
 #include <nagios/nebstructs.h>
@@ -26,8 +28,12 @@ static struct hook_info_struct {
 	{ NEBCALLBACK_RESERVED4, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_RAW_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_NEB_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
-	{ NEBCALLBACK_PROCESS_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
-	{ NEBCALLBACK_TIMED_EVENT_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
+	{ NEBCALLBACK_PROCESS_DATA, 0, sizeof(nebstruct_process_data),
+		{ 0, 0, 0, 0, 0 },
+	},
+	{ NEBCALLBACK_TIMED_EVENT_DATA, 0, sizeof(nebstruct_timed_event_data),
+		{ 0, 0, 0, 0, 0 },
+	},
 	{ NEBCALLBACK_LOG_DATA, 1, sizeof(nebstruct_log_data),
 		{
 			offsetof(nebstruct_log_data, data),
@@ -86,7 +92,7 @@ static struct hook_info_struct {
 		},
 	},
 	{ NEBCALLBACK_DOWNTIME_DATA, 4, sizeof(nebstruct_downtime_data),
-		{ 
+		{
 			offsetof(nebstruct_downtime_data, host_name),
 			offsetof(nebstruct_downtime_data, service_description),
 			offsetof(nebstruct_downtime_data, author_name),
@@ -108,18 +114,33 @@ static struct hook_info_struct {
 			0, 0, 0
 		},
 	},
-	{ NEBCALLBACK_HOST_STATUS_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
-	{ NEBCALLBACK_SERVICE_STATUS_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
+	{ NEBCALLBACK_HOST_STATUS_DATA, 0, sizeof(nebstruct_host_status_data),
+		{ 0, 0, 0, 0, 0 },
+	},
+	{ NEBCALLBACK_SERVICE_STATUS_DATA, 0, sizeof(nebstruct_host_status_data),
+		{ 0, 0, 0, 0, 0 },
+	},
 	{ NEBCALLBACK_ADAPTIVE_PROGRAM_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_ADAPTIVE_HOST_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_ADAPTIVE_SERVICE_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
-	{ NEBCALLBACK_EXTERNAL_COMMAND_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
+	{ NEBCALLBACK_EXTERNAL_COMMAND_DATA, 0, sizeof(nebstruct_external_command_data),
+		{ 0, 0, 0, 0, 0 },
+	},
 	{ NEBCALLBACK_AGGREGATED_STATUS_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_RETENTION_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_CONTACT_NOTIFICATION_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
-	{ NEBCALLBACK_ACKNOWLEDGEMENT_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
-	{ NEBCALLBACK_STATE_CHANGE_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
+	{ NEBCALLBACK_ACKNOWLEDGEMENT_DATA, 0, sizeof(nebstruct_acknowledgement_data),
+		{ 0, 0, 0, 0, 0 },
+	},
+	{ NEBCALLBACK_STATE_CHANGE_DATA, 3, sizeof(nebstruct_statechange_data),
+		{
+			offsetof(nebstruct_statechange_data, host_name),
+			offsetof(nebstruct_statechange_data, service_description),
+			offsetof(nebstruct_statechange_data, output),
+			0, 0
+		},
+	},
 	{ NEBCALLBACK_CONTACT_STATUS_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_ADAPTIVE_CONTACT_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 };
