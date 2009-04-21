@@ -1,5 +1,4 @@
 CC = gcc
-CPPFLAGS = -I.
 CFLAGS = -O2 -pipe -Wall -ggdb3
 SHARED_OBJS = config.o ipc.o shared.o io.o protocol.o data.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)

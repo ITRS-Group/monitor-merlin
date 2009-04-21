@@ -1,6 +1,6 @@
-#include <nagios/nebstructs.h>
-#include <nagios/nebcallbacks.h>
-#include <nagios/broker.h>
+#include "nagios/nebstructs.h"
+#include "nagios/nebcallbacks.h"
+#include "nagios/broker.h"
 #include "sql.h"
 #include "data.h"
 #include "protocol.h"

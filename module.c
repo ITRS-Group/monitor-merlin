@@ -12,9 +12,8 @@
 #include "hash.h"
 #include "ipc.h"
 #include "protocol.h"
-#include <nagios/nebstructs.h>
-#include <nagios/objects.h>
-#include <nagios/statusdata.h>
+#include "nagios/objects.h"
+#include "nagios/statusdata.h"
 
 int cb_handler(int, void *);
 
