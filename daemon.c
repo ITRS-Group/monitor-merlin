@@ -315,35 +315,47 @@ static void clean_exit(int sig)
 
 int main(int argc, char **argv)
 {
-	int i, result;
+	int i, result, stop = 0;
 	char *config_file = NULL;
 
 	is_module = 0;
 
 	for (i = 1; i < argc; i++) {
-		char *arg = argv[i];
-		if (*arg == '-') {
-			switch (arg[1]) {
-			case 'h':
-				usage(NULL);
-				break;
-			case 'c':
-				config_file = argv[++i];
-				break;
-			case 'd':
-				debug++;
-				break;
-			default:
-				usage("Unknown option: %c\n", arg[1]);
-				break;
-			}
-		}
-		else {
-			if (!config_file)
+		char *opt, *arg = argv[i];
+
+		if (*arg != '-') {
+			if (!config_file) {
 				config_file = arg;
-			else
-				usage("Unknown option: %s\n", arg);
+				continue;
+			}
+			goto unknown_argument;
 		}
+
+		if (!strcmp(arg, "-h") || !strcmp(arg, "--help"))
+			usage(NULL);
+		if (!strcmp(arg, "-k") || !strcmp(arg, "--kill")) {
+			stop = 1;
+			continue;
+		}
+		if (!strcmp(arg, "-d") || !strcmp(arg, "--debug")) {
+			debug++;
+			continue;
+		}
+
+		if ((opt = strchr(arg, '=')))
+			opt++;
+		else if (i < argc - 1)
+			opt = argv[i + 1];
+		else
+			usage("Argument '%s' requires an option parameter");
+
+		i++;
+		if (!strcmp(arg, "--config") || !strcmp(arg, "-c")) {
+			config_file = opt;
+			continue;
+		}
+		unknown_argument:
+		usage("Unknown argument: %s", arg);
 	}
 
 	if (!config_file)
