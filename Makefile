@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -O2 -pipe -Wall -ggdb3
+CFLAGS = -O2 -pipe -Wall -ggdb3 -fPIC
 SHARED_OBJS = config.o ipc.o shared.o io.o protocol.o data.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
 TEST_DEPS = test_utils.h
