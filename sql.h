@@ -18,6 +18,7 @@ extern void sql_free_result(void);
 extern int sql_query(const char *fmt, ...)
 	__attribute__((__format__(__printf__, 1, 2)));
 
-extern const char *sql_table_name();
+extern const char *sql_table_name(void);
+extern const char *sql_db_name(void);
 
 #endif

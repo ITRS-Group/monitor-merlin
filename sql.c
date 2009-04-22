@@ -149,6 +149,14 @@ int sql_close(void)
 	return 0;
 }
 
+const char *sql_db_name(void)
+{
+	if (!db.name)
+		return "merlin";
+
+	return db.name;
+}
+
 const char *sql_table_name(void)
 {
 	if (!db.table)
