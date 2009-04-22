@@ -1,6 +1,8 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <sys/time.h>
+
 /* for node->status */
 #define STATE_NONE 0
 #define STATE_PENDING 1
@@ -26,5 +28,6 @@ struct node {
 	int (*action)(struct node *, int); /* (daemon) action handler */
 	struct node *next;      /* linked list (and tabulated) */
 };
+typedef struct node merlin_node;
 
 #endif /* TYPES_H */
