@@ -6,6 +6,7 @@
 #include "net.h"
 #include "protocol.h"
 #include "sql.h"
+#include "daemonize.h"
 
 int mrm_db_update(struct merlin_event *pkt);
 
@@ -366,6 +367,15 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	if (!pidfile)
+		pidfile = "/var/run/merlin.pid";
+
+	if (stop)
+		return kill_daemon(pidfile);
+
+	if (use_database)
+		sql_init();
+
 	result = ipc_bind();
 	if (result < 0) {
 		printf("Failed to initalize ipc socket: %s\n", strerror(errno));
@@ -376,11 +386,10 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	daemonize(merlin_user, NULL, pidfile, 0);
 	signal(SIGINT, clean_exit);
 	signal(SIGTERM, clean_exit);
 	signal(SIGPIPE, dump_core);
-	if (use_database)
-		sql_init();
 	polling_loop();
 
 	clean_exit(0);
