@@ -119,7 +119,7 @@ static int mdb_update_program_status(const nebstruct_program_status_data *p)
 
 static int mdb_handle_downtime(const nebstruct_downtime_data *p)
 {
-	int result;
+	int result = 0;
 	char *host_name, *service_description, *comment_data, *author_name;
 
 	if (p->type == NEBTYPE_DOWNTIME_DELETE) {
