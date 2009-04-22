@@ -1,11 +1,3 @@
-/*
- * Author: Andreas Ericsson <ae@op5.se>
- *
- * Copyright(C) 2006 OP5 AB
- * All rights reserved.
- *
- */
-
 #include <signal.h>
 #include <stdio.h>
 #include <sys/types.h>

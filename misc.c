@@ -1,13 +1,3 @@
-/*
- * Author: Andreas Ericsson <ae@op5.se>
- *
- * Copyright(C) 2005 OP5 AB
- * All rights reserved.
- *
- * Turn this file to the nebapi.c (or neblib?) eventually.
- *
- */
-
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>

@@ -1,11 +1,3 @@
-/*
- * Author: Andreas Ericsson <ae@op5.se>
- *
- * Copryight(C) 2005 OP5 AB
- * All rights reserved.
- *
- */
-
 #ifndef TYPES_H
 #define TYPES_H
 

@@ -1,11 +1,3 @@
-/*
- * Author: Andreas Ericsson <ae@op5.se>
- *
- * Copyright (C) 2004 OP5 AB
- * All rights reserved.
- *
- */
-
 #ifndef REDUNDANCY_H_
 #define REDUNDANCY_H_
 

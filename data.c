@@ -1,11 +1,3 @@
-/*
- * Author: Andreas Ericsson <ae@op5.se>
- *
- * Copyright(C) 2005 OP5 AB
- * All rights reserved.
- *
- */
-
 #include "module.h"
 #include "hookinfo.h"
 

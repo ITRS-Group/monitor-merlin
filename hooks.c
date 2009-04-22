@@ -1,12 +1,4 @@
 /*
- * Author: Andreas Ericsson <ae@op5.se>
- *
- * Copyright(C) 2005 OP5 AB
- * All rights reserved.
- *
- */
-
-/*
  * Process In/Out
  *
  * This file contains functions that shuffle data from the module part of

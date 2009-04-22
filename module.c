@@ -1,11 +1,3 @@
-/*
- * Author: Andreas Ericsson <ae@op5.se>
- *
- * Copyright(C) 2005 OP5 AB
- * All rights reserved.
- *
- */
-
 #define NSCORE
 #include <signal.h>
 #include "module.h"

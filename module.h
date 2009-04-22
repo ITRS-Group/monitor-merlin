@@ -1,11 +1,3 @@
-/*
- * Author: Andreas Ericsson <ae@op5.se>
- *
- * Copyright (C) 2004,2006 OP5 AB
- * All rights reserved.
- *
- */
-
 #ifndef MRM_MOD_H
 #define MRM_MOD_H
 
