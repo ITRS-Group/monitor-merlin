@@ -12,7 +12,7 @@ int mrm_db_update(struct merlin_event *pkt);
 extern const char *__progname;
 
 static int use_database;
-
+static const char *pidfile, *merlin_user;
 int default_port = 15551;
 
 static void dump_core(int sig)
@@ -58,7 +58,7 @@ static int node_action_handler(struct node *node, int action)
 
 static void grok_node(struct compound *c, struct node *node)
 {
-	int i;
+	unsigned int i;
 
 	if (!node)
 		return;
@@ -102,6 +102,14 @@ static void grok_daemon_compound(struct compound *comp)
 			default_port = strtoul(v->val, &endp, 0);
 			if (default_port < 1 || default_port > 65535 || *endp)
 				cfg_error(comp, v, "Illegal value for port: %s", v->val);
+			continue;
+		}
+		if (!strcmp(v->var, "pidfile")) {
+			pidfile = strdup(v->val);
+			continue;
+		}
+		if (!strcmp(v->var, "merlin_user")) {
+			merlin_user = strdup(v->val);
 			continue;
 		}
 
@@ -347,7 +355,6 @@ int main(int argc, char **argv)
 	}
 
 	result = ipc_bind();
-	printf("ipc_init() returned %d\n", result);
 	if (result < 0) {
 		printf("Failed to initalize ipc socket: %s\n", strerror(errno));
 		return 1;
