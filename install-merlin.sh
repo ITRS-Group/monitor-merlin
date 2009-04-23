@@ -219,6 +219,8 @@ cat << EOF
   Misc settings:
     Nagios config file  (--nagios-cfg): $nagios_cfg
     Destination directory (--dest-dir): $dest_dir
+
+  You have chosen to install the following components: $install
 EOF
 
 case $(ask "Does this look ok? [Y/n]" "ynYN" y) in
@@ -229,13 +231,13 @@ say
 say "Installing"
 say
 
-if $(echo "$install" | grep 'files'); then
+if echo "$install" | grep 'files'; then
 	install_files || abort "Failed to install files."
 fi
-if $(echo "$install" | grep 'db'); then
+if echo "$install" | grep 'db'; then
 	db_setup || abort "Failed to setup database."
 fi
-if $(echo "$install" | grep 'config'); then
+if echo "$install" | grep 'config'; then
 	modify_nagios_cfg || abort "Failed to modify Nagios config."
 fi
 
