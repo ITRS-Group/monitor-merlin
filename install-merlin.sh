@@ -12,6 +12,7 @@ db_name=merlin
 db_user=merlin
 db_pass=merlin
 batch=
+install=db,files,config
 
 raw_sed_version=$(sed --version | sed '1q')
 sed_version=$(echo "$raw_sed_version" | sed -e 's/[^0-9]*//' -e 's/[.]//g')
@@ -126,6 +127,7 @@ install_files ()
 	chmod 644 "$dest_dir/merlin.so"
 	if [ $(id -u) -eq 0 ]; then
 		cp "$src_dir/init.sh" /etc/init.d/merlind
+		chmod  755 /etc/init.d/merlind
 	else
 		say "Lacking root permissions, so not installing init-script."
 	fi
@@ -187,6 +189,13 @@ while test "$1"; do
 		--batch)
 			batch=y
 			;;
+		--install=*)
+			install=$(get_arg "$1")
+			;;
+		--install)
+			shift
+			install="$1"
+			;;
 		*)
 			echo "Illegal argument. I have no idea what to make of '$1'"
 			exit 1
@@ -194,6 +203,11 @@ while test "$1"; do
 	esac
 	shift
 done
+
+if ! $(echo "$install" | grep -e db -e files -e config); then
+	echo "You have chosen to install nothing"
+	echo "You must pass one or more of 'db,files,config' to --install"
+fi
 
 cat << EOF
   Database settings:
@@ -215,9 +229,15 @@ say
 say "Installing"
 say
 
-install_files || abort "Failed to install files."
-db_setup || abort "Failed to setup database."
-modify_nagios_cfg || abort "Failed to modify Nagios config."
+if $(echo "$install" | grep 'files'); then
+	install_files || abort "Failed to install files."
+fi
+if $(echo "$install" | grep 'db'); then
+	db_setup || abort "Failed to setup database."
+fi
+if $(echo "$install" | grep 'config'); then
+	modify_nagios_cfg || abort "Failed to modify Nagios config."
+fi
 
 say 
 say "Installation successfully completed"
