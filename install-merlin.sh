@@ -227,6 +227,17 @@ case $(ask "Does this look ok? [Y/n]" "ynYN" y) in
 	n|N) echo "Aborting installation"; exit 1;;
 esac
 
+components=
+for i in db config files; do
+	echo "$install" | grep -q $i && components="$i"
+done
+if ! test "$components"; then
+	echo "### No components selected to install."
+	echo "### You must pass one or more of 'db', 'config' and 'files'"
+	echo "### to the --install argument"
+	exit 1
+fi
+
 say
 say "Installing"
 say
