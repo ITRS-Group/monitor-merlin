@@ -27,7 +27,7 @@ all: $(NEB) $(PROG)
 install: all
 	@echo "Installing to $(DESTDIR)"
 	test -d $(DESTDIR) || mkdir -m 755 -p $(DESTDIR)
-	cp -a db.sql $(NEB) $(PROG) $(DESTDIR)
+	cp -a install-merlin.sh db.sql $(NEB) $(PROG) $(DESTDIR)
 	cp -a example.conf $(DESTDIR)/merlin.conf
 
 check:
