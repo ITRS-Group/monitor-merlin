@@ -121,10 +121,11 @@ install_files ()
 	test -d "$dest_dir/logs" || mkdir -p 775 "$dest_dir/logs"
 	test -d "$dest_dir" || { echo "$dest_dir is not a directory"; return 1; }
 	macro_subst "$src_dir/example.conf" > "$dest_dir/merlin.conf"
-	cp "$src_dir/"merlin{d,.so} "$dest_dir"
+	macro_subst "$src_dir/import.php" > "$dest_dir/import.php"
+	cp "$src_dir/"{merlind,merlin.so,install-merlin.sh,db.sql} "$dest_dir"
 	cp "$src_dir/db.sql" "$dest_dir"
-	chmod 755 "$dest_dir/merlind"
-	chmod 600 "$dest_dir/merlin.conf"
+	chmod 755 "$dest_dir/"{merlind,import.php,install-merlin.sh}
+	chmod 640 "$dest_dir/merlin.conf" "$dest_dir/merlin.so"
 	chmod 644 "$dest_dir/merlin.so"
 	if [ $(id -u) -eq 0 -o "$root_path" ]; then
 		cp "$src_dir/init.sh" /etc/init.d/merlind
