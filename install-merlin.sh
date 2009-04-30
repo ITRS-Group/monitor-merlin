@@ -221,10 +221,17 @@ if [ "$db_pass" = "generate" ]; then
 	db_pass=$(dd if=/dev/random bs=32 count=1 | sha1sum | sed -n '$s/\([0-9a-f]*\).*/\1/p')
 fi
 
-if ! $(echo "$install" | grep -e db -e files -e config); then
-	echo "You have chosen to install nothing"
-	echo "You must pass one or more of 'db,files,config' to --install"
-fi
+for c in $(echo "$install" | sed 's/,/ /g'); do
+	case "$c" in
+		files|db|config) ;;
+		*)
+			echo "I don't know how to install component $c"
+			echo "You may only pass one or more of 'db,files,config' to --install"
+			echo "and you must pass one of them if you use --install"
+			exit 1
+			;;
+	esac
+done
 
 cat << EOF
   Database settings:
