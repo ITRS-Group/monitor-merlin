@@ -9,9 +9,9 @@ $DEBUG = true;
 
 $gui_db_opt['type'] = 'mysql'; // mysql is the only one supported for now.
 $gui_db_opt['host'] = 'localhost';
-$gui_db_opt['user'] = 'merlin';
-$gui_db_opt['passwd'] = 'merlin';
-$gui_db_opt['database'] = 'merlin';
+$gui_db_opt['user'] = '@@DBUSER@@';
+$gui_db_opt['passwd'] = '@@DBPASS@@';
+$gui_db_opt['database'] = '@@DBNAME@@';
 $gui_dbh = false; // database resource
 
 # internal object indexing cache
@@ -747,5 +747,4 @@ function gui_db_connect()
 	return mysql_select_db($gui_db_opt['database']);
 }
 
-$DEBUG = true;
 import_objects_from_cache();
