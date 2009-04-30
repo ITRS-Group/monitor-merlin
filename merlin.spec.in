@@ -47,6 +47,8 @@ rm -rf %buildroot
 make DESTDIR=%buildroot%mod_path install
 chmod 755 %buildroot%mod_path/{merlind,merlin.so,install-merlin.sh}
 chmod 644 %buildroot%mod_path/db.sql
+mkdir -m 755 %buildroot/etc/init.d
+cp %_srcdir/init.sh %buildroot/etc/init.d/merlind
 
 
 %pre
@@ -85,6 +87,7 @@ fi
 %mod_path/db.sql
 %mod_path/merlind
 %mod_path/install-merlin.sh
+/etc/init.d/merlind
 
 %changelog
 * Tue Mar 17 2009 Andreas Ericsson <ae@op5.se>
