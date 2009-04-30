@@ -1,6 +1,6 @@
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 --
--- Database design for the monitor_gui database
+-- Database design for the merlin database
 --
 
 DROP TABLE IF EXISTS notification;
