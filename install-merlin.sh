@@ -204,6 +204,10 @@ while test "$1"; do
 	shift
 done
 
+if [ "$db_pass" = "generate" ]; then
+	db_pass=$(dd if=/dev/random bs=32 count=1 | sha1sum | sed -n '$s/\([0-9a-f]*\).*/\1/p')
+fi
+
 if ! $(echo "$install" | grep -e db -e files -e config); then
 	echo "You have chosen to install nothing"
 	echo "You must pass one or more of 'db,files,config' to --install"
