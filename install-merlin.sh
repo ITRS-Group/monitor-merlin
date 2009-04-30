@@ -7,6 +7,7 @@ popd >/dev/null 2>&1
 
 nagios_cfg=/opt/monitor/etc/nagios.cfg
 dest_dir=/opt/monitor/op5/merlin
+root_path=
 db_type=mysql
 db_name=merlin
 db_user=merlin
@@ -125,7 +126,7 @@ install_files ()
 	chmod 755 "$dest_dir/merlind"
 	chmod 600 "$dest_dir/merlin.conf"
 	chmod 644 "$dest_dir/merlin.so"
-	if [ $(id -u) -eq 0 ]; then
+	if [ $(id -u) -eq 0 -o "$root_path" ]; then
 		cp "$src_dir/init.sh" /etc/init.d/merlind
 		chmod  755 /etc/init.d/merlind
 	else
@@ -196,6 +197,13 @@ while test "$1"; do
 			shift
 			install="$1"
 			;;
+		--root=*)
+			root_path=$(get_arg "$1")
+			;;
+		--root)
+			shift
+			root_path="$1"
+			;;
 		*)
 			echo "Illegal argument. I have no idea what to make of '$1'"
 			exit 1
@@ -203,6 +211,8 @@ while test "$1"; do
 	esac
 	shift
 done
+
+test "$root_path" && dest_dir="$root_path/$dest_dir"
 
 if [ "$db_pass" = "generate" ]; then
 	db_pass=$(dd if=/dev/random bs=32 count=1 | sha1sum | sed -n '$s/\([0-9a-f]*\).*/\1/p')
@@ -220,11 +230,12 @@ cat << EOF
     Username (--db-user): $db_user
     Password (--db-pass): $db_pass
 
-  Misc settings:
+  Path settings:
     Nagios config file  (--nagios-cfg): $nagios_cfg
     Destination directory (--dest-dir): $dest_dir
+    Base root                 (--root): $root_path
 
-  You have chosen to install the following components: $install
+  Installing the following components: $install
 EOF
 
 case $(ask "Does this look ok? [Y/n]" "ynYN" y) in
@@ -260,3 +271,4 @@ say
 say "Installation successfully completed"
 say
 say "You will need to restart Nagios for changes to take effect"
+say
