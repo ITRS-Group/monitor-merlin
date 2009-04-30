@@ -84,6 +84,7 @@ fi
 %mod_path/merlin.conf
 %mod_path/db.sql
 %mod_path/merlind
+%mod_path/install-merlin.sh
 
 %changelog
 * Tue Mar 17 2009 Andreas Ericsson <ae@op5.se>
