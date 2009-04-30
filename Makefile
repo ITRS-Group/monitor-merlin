@@ -26,9 +26,7 @@ all: $(NEB) $(PROG)
 
 install: all
 	@echo "Installing to $(DESTDIR)"
-	test -d $(DESTDIR) || mkdir -m 755 -p $(DESTDIR)
-	cp -a install-merlin.sh db.sql $(NEB) $(PROG) $(DESTDIR)
-	cp -a example.conf $(DESTDIR)/merlin.conf
+	sh install-merlin.sh --dest-dir="$(DESTDIR)"
 
 check:
 	@for i in *.c; do sparse $(CFLAGS) $(SPARSE_FLAGS) $$i 2>&1; done | grep -v /usr/include
