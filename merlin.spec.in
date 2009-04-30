@@ -54,24 +54,26 @@ sh install-merlin.sh --batch --root=%buildroot --install=files \
 # in dlopen(). If we're installing anew, we need to update the
 # config and then restart. Either way, it's safe to stop it
 # unconditionally here
-sh /etc/rc.d/init.d/monitor stop || :
-sh /etc/rc.d/init.d/monitor slay || :
+sh /etc/init.d/monitor stop || :
+sh /etc/init.d/monitor slay || :
 
 
 %preun
 if [ $1 -eq 0 ]; then
 	# removing the ndbneb module entirely
-	sh /etc/rc.d/init.d/monitor stop || :
-	sh /etc/rc.d/init.d/monitor slay || :
+	sh /etc/init.d/monitor stop || :
+	sh /etc/init.d/monitor slay || :
 	sed -i /merlin.so/d %prefix/etc/nagios.cfg
-	sh /etc/rc.d/init.d/monitor start || :
+	sh /etc/init.d/monitor start || :
+	sh /etc/init.d/merlind stop || :
 fi
 
 %post
 %mod_path/install-merlin.sh --batch --install=db,config \
 	--nagios-cfg=%nagios_cfg
 # now start monitor again
-/etc/rc.d/init.d/monitor start
+/etc/init.d/monitor start || :
+/etc/init.d/merlind restart || :
 
 
 %files
