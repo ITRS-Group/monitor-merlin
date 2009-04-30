@@ -128,8 +128,10 @@ install_files ()
 	chmod 640 "$dest_dir/merlin.conf" "$dest_dir/merlin.so"
 	chmod 644 "$dest_dir/merlin.so"
 	if [ $(id -u) -eq 0 -o "$root_path" ]; then
-		cp "$src_dir/init.sh" /etc/init.d/merlind
-		chmod  755 /etc/init.d/merlind
+		init_path="$root_path/etc/init.d"
+		test -d "$init_path" || mkdir -p "$init_path"
+		macro_subst "$src_dir/init.sh" > "$init_path/merlind"
+		chmod  755 "$init_path/merlind"
 	else
 		say "Lacking root permissions, so not installing init-script."
 	fi
