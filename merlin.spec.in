@@ -82,7 +82,7 @@ fi
 
 %files -n merlin
 %defattr(-,root,root)
-%mod_path/merlin.conf
+%config %mod_path/merlin.conf
 %mod_path/db.sql
 %mod_path/merlind
 %mod_path/install-merlin.sh
