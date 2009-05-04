@@ -117,6 +117,15 @@ say ()
 
 install_files ()
 {
+	missing=
+	for i in merlin.so merlind example.conf install-merlin.sh db.sql; do
+		if ! test -f "$src_dir/$i"; then
+			echo "$src_dir/$i is missing"
+			missing="$missing $src_dir/$i"
+		fi
+	done
+	test "$missing" && abort "Essential files are missing. Perhaps you need to run 'make'?"
+
 	test -d "$dest_dir" || mkdir -p 755 "$dest_dir"
 	test -d "$dest_dir/logs" || mkdir -p 775 "$dest_dir/logs"
 	test -d "$dest_dir" || { echo "$dest_dir is not a directory"; return 1; }
@@ -136,15 +145,6 @@ install_files ()
 		say "Lacking root permissions, so not installing init-script."
 	fi
 }
-
-missing=
-for i in merlin.so db.sql merlind example.conf; do
-	if ! test -f "$src_dir/$i"; then
-		echo "$src_dir/$i is missing"
-		missing="$missing $src_dir/$i"
-	fi
-done
-test "$missing" && abort "Essential files are missing. Perhaps you need to run 'make'?"
 
 while test "$1"; do
 	case "$1" in
