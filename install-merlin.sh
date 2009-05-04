@@ -273,7 +273,7 @@ if echo "$install" | grep -q 'files'; then
 	install_files || abort "Failed to install files."
 fi
 if echo "$install" | grep -q 'init'; then
-	install_init | abort "Failed to install merlind init script"
+	install_init || abort "Failed to install merlind init script"
 fi
 if echo "$install" | grep -q 'db'; then
 	db_setup || abort "Failed to setup database."
