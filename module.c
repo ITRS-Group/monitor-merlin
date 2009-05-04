@@ -223,7 +223,7 @@ static void grok_module_compound(struct compound *comp)
 {
 	int i;
 
-	for (i = 0; i < comp->nested; i++) {
+	for (i = 0; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
 
 		if (grok_common_var(comp, v))
@@ -360,9 +360,9 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 
 	neb_handle = (void *)handle;
 
-	linfo("Loading Merlin Module");
-
 	read_config(arg);
+
+	linfo("Merlin Module Loaded");
 
 	/* make sure we can catch whatever we want */
 	event_broker_options = BROKER_EVERYTHING;
