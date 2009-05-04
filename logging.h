@@ -12,16 +12,24 @@
 #define	LOG_INFO	6	/* informational */
 #define	LOG_DEBUG	7	/* debug-level messages */
 
-#define ldebug(fmt, args...) \
+#ifdef DEBUG_LOGGING
+# define ldebug(fmt, args...) \
 	log_msg(LOG_DEBUG, "%s:%s():%d: " fmt, __FILE__, __func__, __LINE__, ##args)
-#define linfo(fmt, args...) \
+# define linfo(fmt, args...) \
 	log_msg(LOG_INFO, "%s:%s():%d " fmt, __FILE__, __func__, __LINE__, ##args)
-#define lmsg(fmt, args...) \
+# define lmsg(fmt, args...) \
 	log_msg(LOG_NOTICE, "%s:%s():%d " fmt, __FILE__, __func__, __LINE__, ##args)
-#define lwarn(fmt, args...) \
+# define lwarn(fmt, args...) \
 	log_msg(LOG_WARNING, "%s:%s():%d " fmt, __FILE__, __func__, __LINE__, ##args)
-#define lerr(fmt, args...) \
+# define lerr(fmt, args...) \
 	log_msg(LOG_ERR, "%s:%s():%d " fmt, __FILE__, __func__, __LINE__, ##args)
+#else
+# define ldebug(fmt, args...) log_msg(LOG_DEBUG, fmt, ##args)
+# define linfo(fmt, args...) log_msg(LOG_INFO, fmt, ##args)
+# define lmsg(fmt, args...) log_msg(LOG_NOTICE, fmt, ##args)
+# define lwarn(fmt, args...) log_msg(LOG_WARNING, fmt, ##args)
+# define lerr(fmt, args...) log_msg(LOG_ERR, fmt, ##args)
+#endif
 
 #define logerr lerr
 
