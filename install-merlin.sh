@@ -118,7 +118,7 @@ say ()
 install_files ()
 {
 	missing=
-	for i in merlin.so merlind example.conf install-merlin.sh db.sql; do
+	for i in merlin.so merlind example.conf install-merlin.sh db.sql init.sh; do
 		if ! test -f "$src_dir/$i"; then
 			echo "$src_dir/$i is missing"
 			missing="$missing $src_dir/$i"
@@ -129,12 +129,12 @@ install_files ()
 	test -d "$dest_dir" || mkdir -p 755 "$dest_dir"
 	test -d "$dest_dir/logs" || mkdir -p 775 "$dest_dir/logs"
 	test -d "$dest_dir" || { echo "$dest_dir is not a directory"; return 1; }
+	cp "$src_dir/"{merlind,merlin.so,install-merlin.sh} "$dest_dir"
+	cp "$src_dir/"{init.sh,install-merlin.sh,db.sql,example.conf} "$dest_dir"
 	macro_subst "$src_dir/example.conf" > "$dest_dir/merlin.conf"
 	macro_subst "$src_dir/import.php" > "$dest_dir/import.php"
-	cp "$src_dir/"{merlind,merlin.so,install-merlin.sh,db.sql} "$dest_dir"
-	cp "$src_dir/db.sql" "$dest_dir"
-	chmod 755 "$dest_dir/"{merlind,import.php,install-merlin.sh}
-	chmod 640 "$dest_dir/merlin.conf" "$dest_dir/merlin.so"
+	chmod 755 "$dest_dir/"{merlind,import.php,install-merlin.sh,init.sh}
+	chmod 640 "$dest_dir/"{merlin.conf,example.conf,merlin.so}
 	chmod 644 "$dest_dir/merlin.so"
 	if [ $(id -u) -eq 0 -o "$root_path" ]; then
 		init_path="$root_path/etc/init.d"
