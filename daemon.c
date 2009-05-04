@@ -16,6 +16,9 @@ static int use_database;
 static const char *pidfile, *merlin_user;
 int default_port = 15551;
 
+static void usage(char *fmt, ...)
+	__attribute__((format(printf,1,2)));
+
 static void dump_core(int sig)
 {
 	kill(getpid(), SIGSEGV);
@@ -348,7 +351,7 @@ int main(int argc, char **argv)
 		else if (i < argc - 1)
 			opt = argv[i + 1];
 		else
-			usage("Argument '%s' requires an option parameter");
+			usage("Unknown argument, or argument '%s' requires a parameter", arg);
 
 		i++;
 		if (!strcmp(arg, "--config") || !strcmp(arg, "-c")) {
