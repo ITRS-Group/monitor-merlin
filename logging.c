@@ -122,4 +122,6 @@ void log_msg(int severity, const char *fmt, ...)
 	va_end(ap);
 	if (fmt[len] != '\n')
 		fputc('\n', log_fp);
+	fflush(log_fp);
+	fsync(fileno(log_fp));
 }
