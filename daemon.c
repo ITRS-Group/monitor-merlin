@@ -282,7 +282,7 @@ static int io_poll_sockets(void)
 	if (ipc_sock > 0 && FD_ISSET(ipc_sock, &rd)) {
 		struct merlin_event pkt;
 		sockets++;
-		printf("inbound data available on ipc socket\n");
+		linfo("inbound data available on ipc socket\n");
 		if (ipc_read_event(&pkt) > 0)
 			handle_ipc_data(&pkt);
 		else
