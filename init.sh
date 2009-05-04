@@ -26,7 +26,7 @@ start ()
 
 stop ()
 {
-	"$BINDIR/$prog" -k
+	"$BINDIR/$prog" -c "$CONFIG_FILE" -k
 }
 
 case "$1" in
