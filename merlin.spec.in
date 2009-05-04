@@ -44,7 +44,7 @@ CFLAGS="%optflags" make
 
 %install
 rm -rf %buildroot
-sh install-merlin.sh --batch --root=%buildroot --install=files \
+sh install-merlin.sh --batch --root=%buildroot --install=files,init \
 	--dest-dir %mod_path
 
 

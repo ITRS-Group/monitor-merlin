@@ -13,7 +13,7 @@ db_name=merlin
 db_user=merlin
 db_pass=merlin
 batch=
-install=db,files,config
+install=db,files,config,init
 
 raw_sed_version=$(sed --version | sed '1q')
 sed_version=$(echo "$raw_sed_version" | sed -e 's/[^0-9]*//' -e 's/[.]//g')
@@ -136,6 +136,10 @@ install_files ()
 	chmod 755 "$dest_dir/"{merlind,import.php,install-merlin.sh,init.sh}
 	chmod 640 "$dest_dir/"{merlin.conf,example.conf,merlin.so}
 	chmod 644 "$dest_dir/merlin.so"
+}
+
+install_init ()
+{
 	if [ $(id -u) -eq 0 -o "$root_path" ]; then
 		init_path="$root_path/etc/init.d"
 		test -d "$init_path" || mkdir -p "$init_path"
@@ -145,6 +149,7 @@ install_files ()
 		say "Lacking root permissions, so not installing init-script."
 	fi
 }
+
 
 while test "$1"; do
 	case "$1" in
@@ -269,6 +274,9 @@ say
 
 if echo "$install" | grep -q 'files'; then
 	install_files || abort "Failed to install files."
+fi
+if echo "$install" | grep -q 'init'; then
+	install_init | abort "Failed to install merlind init script"
 fi
 if echo "$install" | grep -q 'db'; then
 	db_setup || abort "Failed to setup database."
