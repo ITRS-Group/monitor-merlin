@@ -46,6 +46,7 @@ CFLAGS="%optflags" make
 rm -rf %buildroot
 sh install-merlin.sh --batch --root=%buildroot --install=files,init \
 	--dest-dir %mod_path
+mkdir -p -m 777 %buildroot/%mod_path/logs
 
 
 %pre
@@ -90,6 +91,7 @@ fi
 %mod_path/example.conf
 %mod_path/init.sh
 /etc/init.d/merlind
+%dir %mod_path/logs
 
 %changelog
 * Tue Mar 17 2009 Andreas Ericsson <ae@op5.se>
