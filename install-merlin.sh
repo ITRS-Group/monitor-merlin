@@ -228,7 +228,7 @@ fi
 
 for c in $(echo "$install" | sed 's/,/ /g'); do
 	case "$c" in
-		files|db|config) ;;
+		files|db|config|init) ;;
 		*)
 			echo "I don't know how to install component $c"
 			echo "You may only pass one or more of 'db,files,config' to --install"
