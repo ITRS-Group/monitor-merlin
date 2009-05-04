@@ -66,6 +66,7 @@ int log_grok_var(char *var, char *val)
 
 	if (!strcmp(var, "log_file")) {
 		log_file = strdup(val);
+		fprintf(stderr, "Logging to '%s'\n", log_file);
 		return 1;
 	}
 
