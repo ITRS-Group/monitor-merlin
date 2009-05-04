@@ -15,7 +15,7 @@ Group: op5/Monitor
 URL: http://www.op5.se
 Source0: %name-%version.tar.gz
 Prefix: /opt/monitor
-Requires: monitor >= 4.0, merlin
+Requires: monitor >= 4.0, merlin = %version-%release
 BuildRequires: mysql-devel
 BuildRoot: /override/%name-%version
 
