@@ -126,16 +126,15 @@ install_files ()
 	done
 	test "$missing" && abort "Essential files are missing. Perhaps you need to run 'make'?"
 
-	test -d "$dest_dir" || mkdir -p 755 "$dest_dir"
-	test -d "$dest_dir/logs" || mkdir -p 775 "$dest_dir/logs"
-	test -d "$dest_dir" || { echo "$dest_dir is not a directory"; return 1; }
-	cp "$src_dir/"{merlind,merlin.so,install-merlin.sh} "$dest_dir"
-	cp "$src_dir/"{init.sh,install-merlin.sh,db.sql,example.conf} "$dest_dir"
-	macro_subst "$src_dir/example.conf" > "$dest_dir/merlin.conf"
-	macro_subst "$src_dir/import.php" > "$dest_dir/import.php"
-	chmod 755 "$dest_dir/"{merlind,import.php,install-merlin.sh,init.sh}
-	chmod 640 "$dest_dir/"{merlin.conf,example.conf,merlin.so}
-	chmod 644 "$dest_dir/merlin.so"
+	test -d "$root_path/$dest_dir" || mkdir -p 755 "$root_path/$dest_dir"
+	test -d "$root_path/$dest_dir/logs" || mkdir -p 775 "$root_path/$dest_dir/logs"
+	test -d "$root_path/$dest_dir" || { echo "$root_path/$dest_dir is not a directory"; return 1; }
+	cp "$src_dir/"{merlind,merlin.so,install-merlin.sh} "$root_path/$dest_dir"
+	cp "$src_dir/"{init.sh,install-merlin.sh,db.sql,example.conf} "$root_path/$dest_dir"
+	macro_subst "$src_dir/example.conf" > "$root_path/$dest_dir/merlin.conf"
+	macro_subst "$src_dir/import.php" > "$root_path/$dest_dir/import.php"
+	chmod 755 "$root_path/$dest_dir/"{merlind,import.php,install-merlin.sh,init.sh}
+	chmod 644 "$root_path/$dest_dir/"{merlin.conf,example.conf,merlin.so}
 }
 
 install_init ()
@@ -219,8 +218,6 @@ while test "$1"; do
 	esac
 	shift
 done
-
-test "$root_path" && dest_dir="$root_path/$dest_dir"
 
 if [ "$db_pass" = "generate" ]; then
 	db_pass=$(dd if=/dev/random bs=32 count=1 | sha1sum | sed -n '$s/\([0-9a-f]*\).*/\1/p')
