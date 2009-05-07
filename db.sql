@@ -379,7 +379,7 @@ CREATE UNIQUE INDEX hostgroup_name ON hostgroup(hostgroup_name);
 DROP TABLE IF EXISTS service;
 CREATE TABLE service(
 	id								INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	host_name						INT NOT NULL,
+	host_name						VARCHAR(75) NOT NULL,
 	service_description				VARCHAR(160) NOT NULL,
 	display_name					VARCHAR(160),
 	is_volatile						BOOL,

@@ -61,14 +61,14 @@ static int mdb_update_service_status(const nebstruct_service_check_data *p)
 		 "start_time = %lu, end_time = %lu, early_timeout = %d, "
 		 "execution_time = %f, latency = '%.3f', last_check = %lu, "
 		 "return_code = %d, plugin_output = %s, perf_data = %s "
-		 " WHERE host_name = (SELECT id FROM %s.host WHERE host_name = %s) AND service_description = %s",
+		 " WHERE host_name = %s AND service_description = %s",
 		 sql_db_name(),
 		 p->current_attempt, p->check_type,
 		 p->state_type, p->state, p->timeout,
 		 p->start_time.tv_sec, p->end_time.tv_sec, p->early_timeout,
 		 p->execution_time, p->latency, p->end_time.tv_sec,
 		 p->return_code, output, safe_str(perf_data),
-		 sql_db_name(), host_name, service_description);
+		 host_name, service_description);
 
 	free(host_name);
 	free(output);
