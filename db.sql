@@ -49,7 +49,7 @@ CREATE TABLE program_status(
 	global_host_event_handler		text,
 	global_service_event_handler	text
 );
-
+INSERT INTO program_status(instance_id, instance_name) VALUES(0, "Local Nagios/Merlin Instance");
 
 DROP TABLE IF EXISTS scheduled_downtime;
 CREATE TABLE scheduled_downtime(
