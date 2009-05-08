@@ -527,7 +527,6 @@ CREATE TABLE servicedependency(
 	execution_failure_options		VARCHAR(15),
 	notification_failure_options	VARCHAR(15)
 ) ;
-CREATE UNIQUE INDEX service ON servicedependency(service);
 
 
 DROP TABLE IF EXISTS serviceescalation;
