@@ -88,6 +88,7 @@ fi
 %mod_path/merlind
 %mod_path/install-merlin.sh
 %mod_path/import.php
+%mod_path/object_importer.inc.php
 %mod_path/example.conf
 %mod_path/init.sh
 /etc/init.d/merlind

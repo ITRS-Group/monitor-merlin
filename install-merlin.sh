@@ -133,6 +133,7 @@ install_files ()
 	cp "$src_dir/"{init.sh,install-merlin.sh,db.sql,example.conf} "$root_path/$dest_dir"
 	macro_subst "$src_dir/example.conf" > "$root_path/$dest_dir/merlin.conf"
 	macro_subst "$src_dir/import.php" > "$root_path/$dest_dir/import.php"
+	macro_subst "$src_dir/object_importer.inc.php" > "$root_path/$dest_dir/object_importer.inc.php"
 	chmod 755 "$root_path/$dest_dir/"{merlind,import.php,install-merlin.sh,init.sh}
 	chmod 644 "$root_path/$dest_dir/"{merlin.conf,example.conf,merlin.so}
 }
