@@ -128,7 +128,7 @@ class nagios_object_importer
 			$v_ary = array(); # reset between each loop
 			if ($group === 'servicegroup') {
 				while ($srv = array_pop($ary)) {
-					$host = $this->rev_idx_table['host'][array_pop($ary)];
+					$host = array_pop($ary);
 					$v_ary[] = $this->rev_idx_table['service']["$host;$srv"];
 				}
 			}
