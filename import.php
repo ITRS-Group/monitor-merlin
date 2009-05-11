@@ -50,7 +50,6 @@ $db_object_tables = array
 # object relations table used to determine db junction table names etc
 $Object_Relation['host'] =
   array('parents' => 'host',
-		'check_command' => 'command',
 		'notification_period' => 'timeperiod',
 		'contacts' => 'contact',
 		'contact_groups' => 'contactgroup'
@@ -65,14 +64,11 @@ $Object_Relation['service'] =
 		'contact_groups' => 'contactgroup',
 		'notification_period' => 'timeperiod',
 		'check_period' => 'timeperiod',
-		'check_command' => 'command'
 		);
 
 $Object_Relation['contact'] =
   array('host_notification_period' => 'timeperiod',
 		'service_notification_period' => 'timeperiod',
-		'host_notification_commands' => 'command',
-		'service_notification_commands' => 'command'
 		);
 
 $Object_Relation['contactgroup'] =
