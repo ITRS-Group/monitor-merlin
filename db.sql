@@ -213,7 +213,7 @@ CREATE TABLE host(
 	retry_interval					SMALLINT,
 	active_checks_enabled			BOOL,
 	passive_checks_enabled			BOOL,
-	check_period					INT,
+	check_period					VARCHAR(75),
 	obsess_over_host				BOOL,
 	check_freshness					BOOL,
 	freshness_threshold				FLOAT,
@@ -229,7 +229,7 @@ CREATE TABLE host(
 	retain_nonstatus_information	BOOL,
 	notification_interval			MEDIUMINT,
 	first_notification_delay		INT,
-	notification_period				INT,
+	notification_period				VARCHAR(75),
 	notification_options			VARCHAR(15),
 	notifications_enabled			BOOL,
 	stalking_options				VARCHAR(15),
@@ -361,7 +361,7 @@ CREATE TABLE service(
 	retry_interval					SMALLINT,
 	active_checks_enabled			BOOL,
 	passive_checks_enabled			BOOL,
-	check_period					INT,
+	check_period					VARCHAR(75),
 	parallelize_check				BOOL,
 	obsess_over_service				BOOL,
 	check_freshness					BOOL,
@@ -378,7 +378,7 @@ CREATE TABLE service(
 	retain_nonstatus_information	BOOL,
 	notification_interval			INT,
 	first_notification_delay		INT,
-	notification_period				INT,
+	notification_period				VARCHAR(75),
 	notification_options			VARCHAR(15),
 	notifications_enabled			BOOL,
 	stalking_options				VARCHAR(15),
@@ -493,7 +493,7 @@ CREATE TABLE servicedependency(
 	id								INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	service							INT NOT NULL,
 	dependent_service				INT NOT NULL,
-	dependency_period				INT,
+	dependency_period				VARCHAR(75),
 	inherits_parent					BOOL,
 	execution_failure_options		VARCHAR(15),
 	notification_failure_options	VARCHAR(15)
@@ -508,7 +508,7 @@ CREATE TABLE serviceescalation(
 	first_notification				MEDIUMINT,
 	last_notification				MEDIUMINT,
 	notification_interval			MEDIUMINT,
-	escalation_period				INT,
+	escalation_period				VARCHAR(75),
 	escalation_options				VARCHAR(15)
 ) ;
 
@@ -532,7 +532,7 @@ CREATE TABLE hostdependency(
 	id								INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	host_name						INT NOT NULL,
 	dependent_host_name				INT NOT NULL,
-	dependency_period				INT,
+	dependency_period				VARCHAR(75),
 	inherits_parent					BOOL,
 	execution_failure_options		VARCHAR(15),
 	notification_failure_options	VARCHAR(15)
@@ -547,7 +547,7 @@ CREATE TABLE hostescalation(
 	first_notification				INT,
 	last_notification				INT,
 	notification_interval			INT,
-	escalation_period				INT,
+	escalation_period				VARCHAR(75),
 	escalation_options				VARCHAR(15)
 ) ;
 

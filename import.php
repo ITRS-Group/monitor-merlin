@@ -50,7 +50,6 @@ $db_object_tables = array
 # object relations table used to determine db junction table names etc
 $Object_Relation['host'] =
   array('parents' => 'host',
-		'notification_period' => 'timeperiod',
 		'contacts' => 'contact',
 		'contact_groups' => 'contactgroup'
 		);
@@ -59,16 +58,8 @@ $Object_Relation['hostgroup'] =
   array('members' => 'host');
 
 $Object_Relation['service'] =
-  array('host_name' => 'host',
-		'contacts' => 'contact',
+  array('contacts' => 'contact',
 		'contact_groups' => 'contactgroup',
-		'notification_period' => 'timeperiod',
-		'check_period' => 'timeperiod',
-		);
-
-$Object_Relation['contact'] =
-  array('host_notification_period' => 'timeperiod',
-		'service_notification_period' => 'timeperiod',
 		);
 
 $Object_Relation['contactgroup'] =
@@ -77,14 +68,12 @@ $Object_Relation['contactgroup'] =
 $Object_Relation['servicedependency'] =
   array('host_name' => 'host',
 		'dependent_host_name' => 'host',
-		'dependency_period' => 'timeperiod',
 		);
 
 $Object_Relation['serviceescalation'] =
   array('host_name' => 'host',
 		'contacts' => 'contact',
 		'contact_groups' => 'contactgroup',
-		'escalation_period' => 'timeperiod',
 		);
 
 $Object_Relation['servicegroup'] =
@@ -93,12 +82,11 @@ $Object_Relation['servicegroup'] =
 $Object_Relation['hostdependency'] =
   array('host_name' => 'host',
 		'dependent_host_name' => 'host',
-		'dependency_period' => 'timeperiod');
+		);
 
 $Object_Relation['hostescalation'] =
   array('host_name' => 'host',
 		'contact_groups' => 'contactgroup',
-		'escalation_period' => 'timeperiod',
 		'contacts' => 'contact',
 		'contact_groups' => 'contactgroup',
 		);
