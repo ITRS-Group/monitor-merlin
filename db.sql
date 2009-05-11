@@ -92,42 +92,6 @@ CREATE TABLE comment(
 );
 
 
-DROP TABLE IF EXISTS user;
-CREATE TABLE user(
-	id			INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	username	VARCHAR(100) NOT NULL,
-	password	VARCHAR(41) NOT NULL,
-	token		VARCHAR(41),
-	token_time	INT(11),
-	role_id		INT(11),
-	KEY username(username)
-);
-
-DROP TABLE IF EXISTS user_pref;
-CREATE TABLE user_pref(
-	id			INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	user_id		INT NOT NULL,
-	widget		INT NOT NULL,
-	var			VARCHAR(255) NOT NULL,
-	value		TEXT,
-	KEY user_var(user_id, var),
-	KEY user_widget(user_id, widget),
-	KEY user_widget_var(user_id, widget, var)
-);
-
-DROP TABLE IF EXISTS permissions;
-CREATE TABLE permissions(
-	role_id	INT NOT NULL,
-	var		VARCHAR(255) NOT NULL,
-	value	TEXT
-);
-
-DROP TABLE IF EXISTS roles;
-CREATE TABLE roles(
-	id		INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	name	VARCHAR(255)
-);
-
 DROP TABLE IF EXISTS gui_action_log;
 CREATE TABLE gui_action_log(
 	user			VARCHAR(30) NOT NULL,
