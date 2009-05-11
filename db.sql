@@ -5,6 +5,7 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 
 DROP TABLE IF EXISTS notification;
 CREATE TABLE notification(
+	instance_id				int NOT NULL DEFAULT 0,
 	id						int NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	notification_type		int,
 	start_time				int(11),
@@ -24,7 +25,7 @@ CREATE TABLE notification(
 
 DROP TABLE IF EXISTS program_status;
 CREATE TABLE program_status(
-	instance_id						int,
+	instance_id						int NOT NULL DEFAULT 0,
 	instance_name					varchar(255),
 	is_running						tinyint(2),
 	last_alive						int(10),
@@ -53,6 +54,7 @@ INSERT INTO program_status(instance_id, instance_name) VALUES(0, "Local Nagios/M
 
 DROP TABLE IF EXISTS scheduled_downtime;
 CREATE TABLE scheduled_downtime(
+	instance_id				int NOT NULL DEFAULT 0,
 	id						INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	downtime_type			int,
 	host_name				varchar(255),
@@ -73,6 +75,7 @@ CREATE TABLE scheduled_downtime(
 
 DROP TABLE IF EXISTS comment;
 CREATE TABLE comment(
+	instance_id			int NOT NULL DEFAULT 0,
 	id					INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	host_name			varchar(255),
 	service_description	varchar(255),
@@ -117,6 +120,7 @@ INSERT INTO gui_access VALUES('monitor', 1, 1, 1, 1, 1, 1, 1, 1, 1);
 
 DROP TABLE IF EXISTS contact;
 CREATE TABLE contact(
+	instance_id							INT NOT NULL DEFAULT 0,
 	id								    INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	contact_name					    VARCHAR(75),
 	alias							    VARCHAR(160) NOT NULL,
@@ -152,6 +156,7 @@ CREATE TABLE contact_contactgroup(
 
 DROP TABLE IF EXISTS contactgroup;
 CREATE TABLE contactgroup(
+	instance_id			int NOT NULL DEFAULT 0,
 	id					INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	contactgroup_name	VARCHAR(75) NOT NULL,
 	alias				VARCHAR(160) NOT NULL
@@ -160,6 +165,7 @@ CREATE UNIQUE INDEX contactgroup_name ON contactgroup(contactgroup_name);
 
 DROP TABLE IF EXISTS timeperiod;
 CREATE TABLE timeperiod(
+	instance_id				int NOT NULL DEFAULT 0,
 	id						INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	timeperiod_name			VARCHAR(75) NOT NULL,
 	alias					VARCHAR(160) NOT NULL,
@@ -183,6 +189,7 @@ CREATE TABLE timeperiod_exclude(
 
 DROP TABLE IF EXISTS command;
 CREATE TABLE command(
+	instance_id		int NOT NULL DEFAULT 0,
 	id				INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	command_name	VARCHAR(75) NOT NULL,
 	command_line	BLOB NOT NULL
@@ -193,6 +200,7 @@ CREATE UNIQUE INDEX command_name ON command(command_name);
 -- host table
 DROP TABLE IF EXISTS host;
 CREATE TABLE host(
+	instance_id						int NOT NULL DEFAULT 0,
 	id								INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	host_name						VARCHAR(75),
 	alias							VARCHAR(100) NOT NULL,
@@ -327,6 +335,7 @@ CREATE TABLE host_hostgroup(
 
 DROP TABLE IF EXISTS hostgroup;
 CREATE TABLE hostgroup(
+	instance_id			int NOT NULL DEFAULT 0,
 	id 		 			INT NOT NULL PRIMARY KEY,
 	hostgroup_name		VARCHAR(75),
 	alias				VARCHAR(160),
@@ -339,6 +348,7 @@ CREATE UNIQUE INDEX hostgroup_name ON hostgroup(hostgroup_name);
 
 DROP TABLE IF EXISTS service;
 CREATE TABLE service(
+	instance_id						int NOT NULL DEFAULT 0,
 	id								INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	host_name						VARCHAR(75) NOT NULL,
 	service_description				VARCHAR(160) NOT NULL,
@@ -467,6 +477,7 @@ CREATE TABLE service_servicegroup(
 
 DROP TABLE IF EXISTS servicegroup;
 CREATE TABLE servicegroup(
+	instance_id			int NOT NULL DEFAULT 0,
 	id					INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	servicegroup_name	VARCHAR(75) NOT NULL,
 	alias				VARCHAR(160) NOT NULL,
@@ -491,6 +502,7 @@ CREATE TABLE servicedependency(
 
 DROP TABLE IF EXISTS serviceescalation;
 CREATE TABLE serviceescalation(
+	instance_id						int NOT NULL DEFAULT 0,
 	id								INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	service							INT NOT NULL,
 	first_notification				MEDIUMINT,
@@ -516,6 +528,7 @@ CREATE TABLE serviceescalation_contactgroup(
 
 DROP TABLE IF EXISTS hostdependency;
 CREATE TABLE hostdependency(
+	instance_id						int NOT NULL DEFAULT 0,
 	id								INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	host_name						INT NOT NULL,
 	dependent_host_name				INT NOT NULL,
@@ -527,6 +540,7 @@ CREATE TABLE hostdependency(
 
 DROP TABLE IF EXISTS hostescalation;
 CREATE TABLE hostescalation(
+	instance_id						int NOT NULL DEFAULT 0,
 	id								INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	template						INT,
 	host_name						INT NOT NULL,
