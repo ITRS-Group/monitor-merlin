@@ -199,17 +199,25 @@ static int mdb_handle_flapping(const nebstruct_flapping_data *p)
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->service_description, &service_description);
 
-	result = sql_query
-		("UPDATE %s.%s SET is_flapping = %d, "
-		 "flapping_comment_id = %lu, percent_state_change = %f"
-		 "WHERE host_name = %s AND service_description = %s",
-		 sql_db_name(),
-		 service_description ? "service" : "host",
-		 p->type == NEBTYPE_FLAPPING_START,
-		 p->comment_id, p->percent_change,
-		 host_name, safe_str(service_description));
+	if (service_description) {
+		result = sql_query
+			("UPDATE %s.service SET is_flapping = %d, "
+			 "flapping_comment_id = %lu, percent_state_change = %f "
+			 "WHERE host_name = %s AND service_description = %s",
+			 sql_db_name(),
+			 p->type == NEBTYPE_FLAPPING_START,
+			 p->comment_id, p->percent_change,
+			 host_name, safe_str(service_description));
+		free(service_description);
+	} else {
+		result = sql_query
+			("UPDATE %s.host SET is_flapping = %d, "
+			 "flapping_comment_id = %lu, percent_state_change = %f "
+			 "WHERE host_name = %s",
+			 sql_db_name(), p->type == NEBTYPE_FLAPPING_START,
+			 p->comment_id, p->percent_change, host_name);
+	}
 
-	safe_free(service_description);
 	free(host_name);
 
 	return result;
