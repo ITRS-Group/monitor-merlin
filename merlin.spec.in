@@ -70,11 +70,13 @@ if [ $1 -eq 0 ]; then
 fi
 
 %post
+/etc/init.d/monitor start || :
+
+
+%post -n merlin
 %mod_path/install-merlin.sh --batch --install=db,config \
 	--nagios-cfg=%nagios_cfg
-# now start monitor again
-/etc/init.d/monitor start || :
-/etc/init.d/merlind restart || :
+/etc/init.d/merlind restart
 
 
 %files
