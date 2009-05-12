@@ -70,14 +70,8 @@ class nagios_object_importer
 		$this->obj_rel['contactgroup'] =
 			array('members' => 'contact');
 
-		$this->obj_rel['servicedependency'] =
-			array('host_name' => 'host',
-				  'dependent_host_name' => 'host',
-				  );
-
 		$this->obj_rel['serviceescalation'] =
-			array('host_name' => 'host',
-				  'contacts' => 'contact',
+			array('contacts' => 'contact',
 				  'contact_groups' => 'contactgroup',
 				  );
 
