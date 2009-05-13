@@ -3,22 +3,20 @@ Distributed OP5 Monitor
 Introduction
 ------------
 In accordance with our plans to conquer the world and deliver services
-to large enterprices a more scalable version of OP5 Monitor need to be
-created.
+to large enterprices a more scalable version of Nagios and op5 Monitor 
+need to be created.
 
 Goal
 ----
-Today the only way to scale OP5 Monitor is to upgrade the hardware and we
+Today the only way to scale op5 Monitor is to upgrade the hardware and we
 have a strong need to scale beyond the limits of a single system.
 
-The goal of this project is to add a better method to scale OP5 Monitor for
-larger networks but also smaller in need of redundancy.
+The goal of this project is to add a better method to scale Nagios and 
+by that also op5 Monitor for larger networks but also smaller in need of
+redundancy.
 
 This shall be done by adding posibilities to create distributed Monitoring
 systems.
-
-The distributed design shall be available on all OP5 System platforms from
-version 2.6
 
 
 Specification
