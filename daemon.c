@@ -376,8 +376,10 @@ int main(int argc, char **argv)
 	if (stop)
 		return kill_daemon(pidfile);
 
-	if (use_database)
-		sql_init();
+	if (use_database && sql_init() < 0) {
+		fprintf(stderr, "Failed to initialize SQL connection. Aborting.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	result = ipc_bind();
 	if (result < 0) {
