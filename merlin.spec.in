@@ -76,6 +76,7 @@ fi
 %post -n merlin
 %mod_path/install-merlin.sh --batch --install=db,config \
 	--nagios-cfg=%nagios_cfg
+/sbin/chkconfig --add merlind
 /etc/init.d/merlind restart
 
 
