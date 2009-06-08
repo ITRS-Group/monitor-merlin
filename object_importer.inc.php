@@ -19,7 +19,7 @@ class nagios_object_importer
 	private $idx_table = array();
 	private $rev_idx_table = array();
 
-	private $db_object_tables = array
+	private $tables_to_truncate = array
 		('command',
 		 'contact',
 		 'contact_contactgroup',
@@ -208,7 +208,7 @@ class nagios_object_importer
 		$obj_type = false;
 		$obj_key = 1;
 
-		foreach($this->db_object_tables as $table)
+		foreach($this->tables_to_truncate as $table)
 			$this->sql_exec_query("TRUNCATE $table");
 
 		# service slave objects are handled separately
