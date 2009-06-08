@@ -19,6 +19,7 @@ class nagios_object_importer
 	private $idx_table = array();
 	private $rev_idx_table = array();
 	private $base_oid = array();
+	private $imported = array();
 
 	private $tables_to_truncate = array
 		('command',
@@ -218,6 +219,15 @@ class nagios_object_importer
 		}
 	}
 
+	private function purge_old_objects()
+	{
+		foreach ($this->imported as $obj_type => $ids) {
+			$query = "DELETE FROM $obj_type WHERE id NOT IN (";
+			$query .= join(', ', array_keys($ids)) . ')';
+			$result = $this->sql_exec_query($query);
+		}
+	}
+
 	// pull all objects from objects.cache
 	function import_objects_from_cache($object_cache = '/opt/monitor/var/objects.cache')
 	{
@@ -359,6 +369,9 @@ class nagios_object_importer
 		# mop up any leftovers
 		$this->done_parsing_obj_type_objects($last_obj_type, $obj_array);
 
+		# and remove 'dead' objects from the database
+		$this->purge_old_objects();
+
 		assert('empty($obj_array)');
 
 		if(!isset($_SERVER['REMOTE_USER'])) $user = 'local';
@@ -437,6 +450,9 @@ class nagios_object_importer
 	 */
 	function glue_object($obj_key, $obj_type, &$obj)
 	{
+		if ($obj_type === 'host' || $obj_type === 'service') {
+			$this->imported[$obj_type][$obj_key] = true;
+		}
 		if (isset($this->obj_rel[$obj_type]))
 			$spec = $this->obj_rel[$obj_type];
 
