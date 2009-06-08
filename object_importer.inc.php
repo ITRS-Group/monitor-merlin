@@ -24,7 +24,6 @@ class nagios_object_importer
 		 'contact',
 		 'contact_contactgroup',
 		 'contactgroup',
-		 'host',
 		 'host_contact',
 		 'host_contactgroup',
 		 'host_hostgroup',
@@ -34,7 +33,6 @@ class nagios_object_importer
 		 'hostescalation_contact',
 		 'hostescalation_contactgroup',
 		 'hostgroup',
-		 'service',
 		 'service_contact',
 		 'service_contactgroup',
 		 'service_servicegroup',
@@ -201,6 +199,24 @@ class nagios_object_importer
 		return true;
 	}
 
+	private function preload_object_index($obj_type, $query)
+	{
+		$this->idx_table[$obj_type] = array();
+		$this->rev_idx_table[$obj_type] = array();
+		$result = $this->sql_exec_query($query);
+		while ($row = $this->sql_fetch_row($result)) {
+			$this->idx_table[$obj_type][$row[0]] = $row[1];
+			$this->rev_idx_table[$obj_type][$row[1]] = $row[0];
+		}
+		$result = $this->sql_exec_query("SELECT MAX(id) FROM $obj_type");
+		$row = $this->sql_fetch_row($result);
+		if ($row) {
+			$this->base_oid[$obj_type] = $row[0] + 1;
+		} else {
+			$this->base_oid[$obj_type] = 1;
+		}
+	}
+
 	// pull all objects from objects.cache
 	function import_objects_from_cache($object_cache = '/opt/monitor/var/objects.cache')
 	{
@@ -210,6 +226,9 @@ class nagios_object_importer
 
 		foreach($this->tables_to_truncate as $table)
 			$this->sql_exec_query("TRUNCATE $table");
+
+		$this->preload_object_index('host', 'SELECT id, host_name FROM host');
+		$this->preload_object_index('service', "SELECT id, CONCAT(host_name, ';', service_description) FROM service");
 
 		# service slave objects are handled separately
 		$service_slaves =
@@ -263,8 +282,15 @@ class nagios_object_importer
 					$obj_name = "$obj[host_name];$obj[service_description]";
 
 				if($obj_name) {
-					$this->rev_idx_table[$obj_type][$obj_name] = $obj_key;
+					# use pre-loaded object id if available
+					if (isset($this->rev_idx_table[$obj_type][$obj_name])) {
+						$obj_key = $this->rev_idx_table[$obj_type][$obj_name];
+					}
+					else {
+						$this->rev_idx_table[$obj_type][$obj_name] = $obj_key;
+					}
 				}
+
 				switch ($obj_type) {
 				 case 'host':
 					if (!isset($obj['parents']))
@@ -449,11 +475,22 @@ class nagios_object_importer
 				$obj[$k] = '\'' . $this->sql_escape_string($v) . '\'';
 		}
 
-		# all vars are properly mangled, so let's run the query
-		$target_vars = implode(',', array_keys($obj));
-		$target_values = implode(',', array_values($obj));
-		$query = "REPLACE INTO $obj_type($target_vars) " .
-			"VALUES($target_values)";
+		if ($obj_type === 'host' || $obj_type === 'service') {
+			$query = "UPDATE $obj_type SET ";
+			$oid = $obj['id'];
+			unset($obj['id']);
+			$params = array();
+			foreach ($obj as $k => $v) {
+				$params[] = "$k = $v";
+			}
+			$query .= join(", ", $params) . " WHERE id = $oid";
+		} else {
+			# all vars are properly mangled, so let's run the query
+			$target_vars = implode(',', array_keys($obj));
+			$target_values = implode(',', array_values($obj));
+			$query = "REPLACE INTO $obj_type($target_vars) " .
+				"VALUES($target_values)";
+		}
 		if (!$this->sql_exec_query($query)) {
 			$this->errors++;
 			return false;
