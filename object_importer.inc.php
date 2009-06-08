@@ -18,6 +18,7 @@ class nagios_object_importer
 	# internal object indexing cache
 	private $idx_table = array();
 	private $rev_idx_table = array();
+	private $base_oid = array();
 
 	private $tables_to_truncate = array
 		('command',
@@ -266,6 +267,8 @@ class nagios_object_importer
 					$this->done_parsing_obj_type_objects($last_obj_type, $obj_array);
 					$last_obj_type = $obj_type;
 					$obj_key = 1;
+					if (isset($this->base_oid[$obj_type]))
+						$obj_key = $this->base_oid[$obj_type]++;
 				}
 				$obj = array();
 				continue;
