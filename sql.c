@@ -122,9 +122,9 @@ int sql_init(void)
 	}
 
 	result = dbi_conn_set_option(db.conn, "host", db.host ? db.host : "localhost");
-	result |= dbi_conn_set_option(db.conn, "username", db.user ? db.user : "monitor");
-	result |= dbi_conn_set_option(db.conn, "password", db.pass ? db.pass : "monitor");
-	result |= dbi_conn_set_option(db.conn, "dbname", db.name ? db.name : "monitor_gui");
+	result |= dbi_conn_set_option(db.conn, "username", db.user ? db.user : "merlin");
+	result |= dbi_conn_set_option(db.conn, "password", db.pass ? db.pass : "merlin");
+	result |= dbi_conn_set_option(db.conn, "dbname", db.name ? db.name : "merlin");
 	if (db.port)
 		result |= dbi_conn_set_option_numeric(db.conn, "port", db.port);
 	result |= dbi_conn_set_option(db.conn, "encoding", db.encoding ? db.encoding : "UTF-8");
