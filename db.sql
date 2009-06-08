@@ -241,6 +241,7 @@ CREATE TABLE host(
 	statusmap_image		VARCHAR(60),
 	2d_coords			VARCHAR(20),
 	3d_coords			VARCHAR(30),
+	vrml_image			VARCHAR(60),
 	failure_prediction_enabled		BOOL,
 	problem_has_been_acknowledged int(10) NOT NULL default 0,
 	acknowledgement_type int(10) NOT NULL default 0,
