@@ -476,6 +476,8 @@ class nagios_object_importer
 
 			if (!is_numeric($v))
 				$obj[$k] = '\'' . $this->sql_escape_string($v) . '\'';
+			else
+				$obj[$k] = '\'' . $v . '\'';
 		}
 
 		if ($obj_type === 'host' || $obj_type === 'service') {
