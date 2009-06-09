@@ -229,11 +229,14 @@ class nagios_object_importer
 	}
 
 	// pull all objects from objects.cache
-	function import_objects_from_cache($object_cache = '/opt/monitor/var/objects.cache')
+	function import_objects_from_cache($object_cache = false)
 	{
 		$last_obj_type = false;
 		$obj_type = false;
 		$obj_key = 1;
+
+		if (!$object_cache)
+			$object_cache = '/opt/monitor/var/objects.cache';
 
 		foreach($this->tables_to_truncate as $table)
 			$this->sql_exec_query("TRUNCATE $table");
@@ -387,9 +390,12 @@ class nagios_object_importer
 		return false;
 	}
 
-	function import_objects_if_new_cache($object_cache = '/opt/monitor/var/objects.cache')
+	function import_objects_if_new_cache($object_cache = false)
 	{
 		$import_time = 0;
+
+		if (!$object_cache)
+			$object_cache = '/opt/monitor/var/objects.cache';
 
 		$result = $this->sql_exec_query
 			('SELECT UNIX_TIMESTAMP(time) AS time ' .
@@ -402,7 +408,7 @@ class nagios_object_importer
 
 		$cache_time = filemtime($object_cache);
 		if($cache_time > $import_time) {
-			return($this->import_objects_from_cache());
+			return($this->import_objects_from_cache($object_cache));
 		}
 
 		return(0);
