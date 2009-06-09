@@ -503,7 +503,7 @@ static int net_sendto(struct node *node, struct merlin_event *pkt)
 		return -1;
 	}
 
-	linfo("sending %d bytes to %s node '%s' (%s:%d). sock is %d",
+	linfo("sending %zu bytes to %s node '%s' (%s:%d). sock is %d",
 		  packet_size(pkt), node_type(node), node->name,
 		  inet_ntoa(node->sain.sin_addr),
 		  ntohs(node->sain.sin_port), node->sock);
@@ -575,7 +575,7 @@ static void net_input(struct node *node)
 	}
 
 	if (len != sizeof(hdr)) {
-		lwarn("Malformatted mrm header from %s (%d bytes, expected %d): %s",
+		lwarn("Malformatted mrm header from %s (%d bytes, expected %zu): %s",
 			  inet_ntoa(node->sain.sin_addr), len, sizeof(hdr), strerror(errno));
 		return;
 	}

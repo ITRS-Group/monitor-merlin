@@ -36,7 +36,7 @@ int io_send_all(int fd, const void *buf, size_t len)
 			return 0;
 		}
 		if (sent < 0) {
-			lerr("send(%d, (buf + total), %d, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d (%s)",
+			lerr("send(%d, (buf + total), %zu, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d (%s)",
 				 fd, len - total, sent, strerror(errno));
 			if (errno != EAGAIN)
 				return sent;
@@ -69,7 +69,7 @@ int io_recv_all(int fd, void *buf, size_t len)
 		}
 
 		if (rd < 0) {
-			ldebug("recv(%d, (buf + total), %d, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d (%s)",
+			ldebug("recv(%d, (buf + total), %zu, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d (%s)",
 				   fd, len - total, rd, strerror(errno));
 			if (errno != EAGAIN)
 				return rd;

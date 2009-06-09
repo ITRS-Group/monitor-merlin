@@ -12,7 +12,7 @@ int proto_read_event(int sock, struct merlin_event *pkt)
 
 	len = io_recv_all(sock, &pkt->hdr, HDR_SIZE);
 	if (len != HDR_SIZE) {
-		lerr("In read_event: Incomplete header read(). Expected %d, got %d",
+		lerr("In read_event: Incomplete header read(). Expected %zu, got %d",
 			 HDR_SIZE, len);
 		return -1;
 	}
@@ -37,7 +37,7 @@ int proto_read_event(int sock, struct merlin_event *pkt)
 			  result, pkt->hdr.len);
 	}
 	else {
-		ldebug("Successfully read 1 event (%d bytes; %d bytes body) from socket %d\n",
+		ldebug("Successfully read 1 event (%zu bytes; %u bytes body) from socket %d\n",
 			   HDR_SIZE + result, pkt->hdr.len, sock);
 	}
 

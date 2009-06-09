@@ -350,7 +350,7 @@ int ipc_write(const void *buf, size_t len, unsigned msec)
 {
 	int result = ipc_write_ok(msec);
 
-	printf("trying to write %d bytes of data to ipc socket\n", len);
+	ldebug("trying to write %zu bytes of data to ipc socket\n", len);
 	if (len > TOTAL_PKT_SIZE) {
 		printf("  packet is too big. aborting\n");
 		return 0;
@@ -364,9 +364,9 @@ int ipc_write(const void *buf, size_t len, unsigned msec)
 	binlog(debug_write, buf, len);
 
 	result = send(ipc_sock, buf, len, MSG_DONTWAIT | MSG_NOSIGNAL);
-	printf("  send(%d, buf, %d, MSG_DONTWAIT | MSG_NOSIGNAL); returned %d\n", ipc_sock, len, result);
+	ldebug("  send(%d, buf, %zu, MSG_DONTWAIT | MSG_NOSIGNAL); returned %d\n", ipc_sock, len, result);
 	if (result != len)
-		lwarn("ipc_write: send(%d, %p, %d, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d: %s",
+		lwarn("ipc_write: send(%d, %p, %zu, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d: %s",
 			  ipc_sock, buf, len, result, strerror(errno));
 
 	if (result < 0) {

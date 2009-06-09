@@ -72,19 +72,19 @@ void sql_free_result(void)
 
 int sql_query(const char *fmt, ...)
 {
-	unsigned char *query;
+	char *query;
 	int len;
 	va_list ap;
 
 	va_start(ap, fmt);
-	len = vasprintf((char **)&query, fmt, ap);
+	len = vasprintf(&query, fmt, ap);
 	va_end(ap);
 
 	if (len == -1 || !query) {
 		linfo("sql_query: Failed to build query from format-string '%s'", fmt);
 		return -1;
 	}
-	db.result = dbi_conn_query_null(db.conn, query, len);
+	db.result = dbi_conn_query_null(db.conn, (unsigned char *)query, len);
 	if (!db.result) {
 		linfo("dbi_conn_query_null(): Failed to run [%s]: %s",
 			  query, sql_error());
