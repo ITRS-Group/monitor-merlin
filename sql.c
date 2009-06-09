@@ -25,7 +25,6 @@ static struct {
 #define ESC_BUFS 8 /* must be a power of 2 */
 #define MAX_ESC_STRING ((ESC_BUFSIZE * 2) + 1)
 
-#define esc(s) sql_escape(s)
 size_t sql_quote(const char *src, char **dst)
 {
 	if (!src) {
