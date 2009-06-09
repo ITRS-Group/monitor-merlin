@@ -25,7 +25,7 @@ CREATE TABLE notification(
 
 DROP TABLE IF EXISTS program_status;
 CREATE TABLE program_status(
-	instance_id						int NOT NULL DEFAULT 0,
+	instance_id						int NOT NULL DEFAULT 0 PRIMARY KEY,
 	instance_name					varchar(255),
 	is_running						tinyint(2),
 	last_alive						int(10),
@@ -45,6 +45,8 @@ CREATE TABLE program_status(
 	process_performance_data		tinyint(2),
 	obsess_over_hosts				tinyint(2),
 	obsess_over_services			tinyint(2),
+	check_host_freshness			tinyint(2),
+	check_service_freshness			tinyint(2),
 	modified_host_attributes		int,
 	modified_service_attributes		int,
 	global_host_event_handler		text,
@@ -249,6 +251,7 @@ CREATE TABLE host(
 	current_state int(10) NOT NULL default '0',
 	last_state int(10) NOT NULL default '0',
 	last_hard_state int(10) NOT NULL default '0',
+	last_notification int(10) NOT NULL default '0',
 	output text,
 	long_output text,
 	perf_data text,
