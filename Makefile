@@ -43,6 +43,9 @@ $(NEB): $(MODULE_OBJS)
 %.o: %.c
 	$(QUIET_CC)$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
+dbitest: dbitest.o sql.o test_utils.o
+	$(QUIET_LINK)$(CC) $(CFLAGS) $(CPPFLAGS) $(DAEMON_LDFLAGS) $^ -o $@
+
 blread: blread.o data.o $(COMMON_OBJS)
 
 data.o: hookinfo.h
