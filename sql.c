@@ -171,19 +171,26 @@ const char *sql_table_name(void)
 
 int sql_config(const char *key, const char *value)
 {
-	if (!prefixcmp(key, "name") || !prefixcmp(key, "database"))
-		db.name = strdup(value);
-	else if (!prefixcmp(key, "user"))
-		db.user = strdup(value);
-	else if (!prefixcmp(key, "pass"))
-		db.pass = strdup(value);
-	else if (!prefixcmp(key, "host"))
-		db.host = strdup(value);
-	else if (!prefixcmp(key, "type"))
-		db.type = strdup(value);
-	else if (!prefixcmp(key, "port")) {
-		char *endp;
+	char *value_cpy;
 
+	if (value)
+		value_cpy = strdup(value);
+	else
+		value_cpy = NULL;
+
+	if (!prefixcmp(key, "name") || !prefixcmp(key, "database"))
+		db.name = value_cpy;
+	else if (!prefixcmp(key, "user"))
+		db.user = value_cpy;
+	else if (!prefixcmp(key, "pass"))
+		db.pass = value_cpy;
+	else if (!prefixcmp(key, "host"))
+		db.host = value_cpy;
+	else if (!prefixcmp(key, "type"))
+		db.type = value_cpy;
+	else if (!prefixcmp(key, "port") && value) {
+		char *endp;
+		free(value_cpy);
 		db.port = (unsigned int)strtoul(value, &endp, 0);
 
 		if (endp == value || *endp != 0)
