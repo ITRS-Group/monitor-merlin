@@ -21,6 +21,9 @@ class nagios_object_importer
 	private $base_oid = array();
 	private $imported = array();
 
+	# denotes if we're importing status.sav or objects.cache
+	private $importing_status = false;
+
 	private $tables_to_truncate = array
 		('command',
 		 'contact',
@@ -47,6 +50,15 @@ class nagios_object_importer
 		 'timeperiod_exclude',
 		 'custom_vars',
 		 );
+
+	# conversion table for variable names
+	private $convert = array();
+	private $conv_type = array
+		('info' => false, 'program' => 'program_status',
+		 'servicecomment' => 'comment', 'hostcomment' => 'comment');
+
+	# allowed variables for each object
+	private $allowed_vars = array();
 
 	# object relations table used to determine db junction table names etc
 	protected $Object_Relation = array();
@@ -92,6 +104,21 @@ class nagios_object_importer
 
 		$this->obj_rel['timeperiod'] =
 			array('exclude' => 'timeperiod');
+		$this->convert['host'] = array
+			('check_execution_time' => 'execution_time',
+			 'plugin_output' => 'output',
+			 'long_plugin_output' => 'long_output',
+			 'enable_notifications' => 'notifications_enabled',
+			 'check_latency' => 'latency',
+			 'performance_data' => 'perf_data',
+			 'normal_check_interval' => 'check_interval',
+			 'retry_check_interval' => 'retry_interval',
+			 'state_history' => false,
+			 'modified_host_attributes' => false,
+			 'modified_service_attributes' => false,
+			 'modified_attributes' => false,
+			 );
+		$this->convert['service'] = $this->convert['host'];
 	}
 
 	function get_junction_table_name($obj_type, $v_name)
@@ -228,6 +255,55 @@ class nagios_object_importer
 		}
 	}
 
+	private function is_allowed_var($obj_type, $k)
+	{
+		if (!$this->importing_status)
+			return true;
+
+		if ($obj_type === 'info')
+			return false;
+
+		if (!isset($this->allowed_vars[$obj_type])) {
+			$result = $this->sql_exec_query("describe $obj_type");
+			if (!$result)
+				return false;
+
+			while ($row = $this->sql_fetch_row($result)) {
+				$this->allowed_vars[$obj_type][$row[0]] = $row[0];
+			}
+		}
+
+		return isset($this->allowed_vars[$obj_type][$k]);
+	}
+
+	private function mangle_var_name($obj_type, $k)
+	{
+		if (!$this->importing_status)
+			return $k;
+
+		if (empty($k)) {
+			echo("Found empty \$k with obj_type $obj_type\n");
+			echo var_dump($k);
+			exit(1);
+		}
+
+		if (isset($this->convert[$obj_type][$k]))
+			return $this->convert[$obj_type][$k];
+		if ($obj_type === 'program_status') {
+			if (substr($k, 0, strlen('enable_')) === 'enable_') {
+				return substr($k, strlen('enable_')) . '_enabled';
+			}
+			switch ($k) {
+			 case 'normal_check_interval': case 'next_comment_id':
+			 case 'next_downtime_id': case 'next_event_id':
+			 case 'next_problem_id': case 'next_notification_id':
+				return false;
+				break;
+			}
+		}
+		return $k;
+	}
+
 	// pull all objects from objects.cache
 	function import_objects_from_cache($object_cache = false)
 	{
@@ -265,13 +341,28 @@ class nagios_object_importer
 		while (!feof($fh)) {
 			$line = trim(fgets($fh));
 
-			if(empty($line) || $line{0} === '#') continue;
-			if(!$obj_type) {
+			if (empty($line) || $line{0} === '#')
+				continue;
+
+			if (!$obj_type) {
+				$obj = array();
 				$str = explode(' ', $line, 3);
-				$obj_type = $str[1];
+				if ($str[0] === 'define') {
+					$obj_type = $str[1];
+				} else {
+					$obj_type = $str[0];
+				}
+
+				if ($obj_type === 'info' || $obj_type === 'program') {
+					$this->importing_status = true;
+				}
+
+				if (!empty($this->conv_type[$obj_type])) {
+					$obj_type = $this->conv_type[$obj_type];
+				}
 
 				# get rid of objects as early as we can
-				if($obj_type !== $last_obj_type) {
+				if ($obj_type !== $last_obj_type) {
 					if (isset($this->obj_rel[$obj_type]))
 						$relation = $this->obj_rel[$obj_type];
 					else
@@ -288,29 +379,31 @@ class nagios_object_importer
 			}
 
 			// we're inside an object now, so check for closure and tag if so
-			$str = explode("\t", $line);
+			$str = preg_split("/[\t=]/", $line, 2);
 
 			// end of object? check type and populate index table
-			if($str[0] === '}') {
+			if ($str[0] === '}') {
+				$obj_name = false;
 				if (isset($obj[$obj_type . '_name']))
 					$obj_name = $obj[$obj_type . '_name'];
 				elseif($obj_type === 'service')
 					$obj_name = "$obj[host_name];$obj[service_description]";
 
-				if($obj_name) {
+				if ($obj_name) {
 					# use pre-loaded object id if available
 					if (isset($this->rev_idx_table[$obj_type][$obj_name])) {
 						$obj_key = $this->rev_idx_table[$obj_type][$obj_name];
 					}
 					else {
 						$this->rev_idx_table[$obj_type][$obj_name] = $obj_key;
+						$obj['is a fresh one'] = true;
 					}
 				}
 
 				switch ($obj_type) {
-				 case 'host':
+				 case 'host': case 'program_status':
 					if (!isset($obj['parents']))
-						$this->glue_object($obj_key, 'host', $obj);
+						$this->glue_object($obj_key, $obj_type, $obj);
 					break;
 				 case 'timeperiod':
 					if (!isset($obj['exclude']))
@@ -332,7 +425,9 @@ class nagios_object_importer
 				continue;
 			}
 
-			$k = $str[0];
+			$k = $this->mangle_var_name($obj_type, $str[0]);
+			if (!$k || !$this->is_allowed_var($obj_type, $k))
+				continue;
 			$v = $str[1];
 
 			switch ($k) {
@@ -375,6 +470,10 @@ class nagios_object_importer
 		# and remove 'dead' objects from the database
 		$this->purge_old_objects();
 
+		if (!empty($obj_array)) {
+			echo "obj_array is not empty\n";
+			print_r(array_keys($obj_array));
+		}
 		assert('empty($obj_array)');
 
 		if(!isset($_SERVER['REMOTE_USER'])) $user = 'local';
@@ -456,13 +555,35 @@ class nagios_object_importer
 	 */
 	function glue_object($obj_key, $obj_type, &$obj)
 	{
+		if (isset($this->conv_type[$obj_type]))
+			$obj_type = $this->conv_type[$obj_type];
+
+		# Some objects are converted into oblivion when we're
+		# importing status.sav. We ignore those here.
+		if (!$obj_type) {
+			$obj = false;
+			return;
+		}
+
+		$fresh = isset($obj['is a fresh one']);
+		if ($fresh) {
+			unset($obj['is a fresh one']);
+		}
+
 		if ($obj_type === 'host' || $obj_type === 'service') {
 			$this->imported[$obj_type][$obj_key] = true;
 		}
 		if (isset($this->obj_rel[$obj_type]))
 			$spec = $this->obj_rel[$obj_type];
 
-		$obj['id'] = $obj_key;
+		if ($obj_type === 'program_status') {
+			unset($obj['id']);
+			$obj['instance_id'] = 0;
+			$obj['instance_name'] = 'Local Nagios/Merlin instance';
+			$obj['is_running'] = 1;
+		} else {
+			$obj['id'] = $obj_key;
+		}
 
 		# stash away custom variables so the normal object
 		# handling code doesn't have to deal with it.
@@ -502,7 +623,7 @@ class nagios_object_importer
 				$obj[$k] = '\'' . $v . '\'';
 		}
 
-		if ($obj_type === 'host' || $obj_type === 'service') {
+		if (!$fresh && ($obj_type === 'host' || $obj_type === 'service')) {
 			$query = "UPDATE $obj_type SET ";
 			$oid = $obj['id'];
 			unset($obj['id']);
@@ -535,7 +656,8 @@ class nagios_object_importer
 	/**
 	 * A wrapper for glue_objects
 	 */
-	function glue_objects(&$obj_list, $obj_type) {
+	function glue_objects(&$obj_list, $obj_type)
+	{
 		# no objects, so no glueing to be done
 		if (empty($obj_list))
 			return true;
