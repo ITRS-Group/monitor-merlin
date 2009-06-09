@@ -1,0 +1,48 @@
+$mod_path=/opt/monitor/op5/merlin
+$nagios_cfg=/opt/monitor/etc/nagios.cfg
+$prefix=/opt/monitor
+
+%packager op5 AB
+%product monitor-merlin is a Nagios module designed to communicate with Merlin
+%vendor op5 AB
+%version @@VERSION@@
+%release @@RELEASE@@
+%copyright GPL
+%readme README
+%description monitor-merlin is an event broker module running inside Nagios. Its' only
+%description purpose in life is to send events from the Nagios core to the merlin
+%description daemon, which then takes appropriate action.
+
+%requires monitor 4.0
+%requires merlin @@VERSION@@ @@VERSION@@
+
+
+%preinstall <op5build/preinstall
+%postinstall <op5build/postinstall
+%preremove <op5build/preremove
+
+# Files
+# d 755 $daemon_user $daemon_group $prefix -
+f 755 root root $mod_path/merlin.so merlin.so
+
+
+
+%subpackage merlin
+
+%product The merlin daemon is a multiplexing event-transport program
+
+%description The merlin daemon is a multiplexing event-transport program designed to
+%description link multiple Nagios instances together. It can also inject status
+%description data into a variety of databases, using libdbi.
+
+%requires libdbi
+
+f 644 root root $mod_path/db.sql db.sql
+f 755 root root $mod_path/merlind merlind
+f 755 root root $mod_path/install-merlin.sh install-merlin.sh
+f 644 root root $mod_path/import.php import.php
+f 644 root root $mod_path/object_importer.inc.php object_importer.inc.php
+f 644 root root $mod_path/example.conf example.conf
+f 755 root root $mod_path/init.sh init.sh
+f 755 root root /etc/init.d/merlind merlind
+d 775 root apache $mod_path/logs

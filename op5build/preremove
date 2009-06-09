@@ -1,0 +1,8 @@
+if [ $1 -eq 0 ]; then
+   # removing the ndbneb module entirely
+   sh /etc/init.d/monitor stop || :
+   sh /etc/init.d/monitor slay || :
+   sed -i /merlin.so/d $prefix/etc/nagios.cfg
+   sh /etc/init.d/monitor start || :
+   sh /etc/init.d/merlind stop || :
+fi

@@ -1,0 +1,7 @@
+# If we're upgrading the module while Nagios makes a call
+# into it, we'll end up with a core-dump due to some weirdness
+# in dlopen(). If we're installing anew, we need to update the
+# config and then restart. Either way, it's safe to stop it
+# unconditionally here
+sh /etc/init.d/monitor stop || :
+sh /etc/init.d/monitor slay || :
