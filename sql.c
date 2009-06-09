@@ -70,6 +70,11 @@ void sql_free_result(void)
 	}
 }
 
+dbi_result sql_get_result(void)
+{
+	return db.result;
+}
+
 int sql_query(const char *fmt, ...)
 {
 	char *query;
