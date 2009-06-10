@@ -4,7 +4,8 @@ SHARED_OBJS = config.o ipc.o shared.o io.o protocol.o data.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
 TEST_DEPS = test_utils.h
 COMMON_OBJS = logging.o $(SHARED_OBJS)
-DAEMON_OBJS = daemonize.o daemon.o net.o sql.o db_updater.o $(COMMON_OBJS)
+DAEMON_OBJS = status.o daemonize.o daemon.o net.o sql.o db_updater.o
+DAEMON_OBJS += $(COMMON_OBJS)
 MODULE_OBJS = module.o hooks.o control.o hash.o $(COMMON_OBJS)
 MODULE_DEPS = module.h hash.h
 DAEMON_DEPS = net.h sql.h
@@ -43,7 +44,7 @@ $(NEB): $(MODULE_OBJS)
 %.o: %.c
 	$(QUIET_CC)$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
-dbitest: dbitest.o sql.o test_utils.o
+dbitest: dbitest.o sql.o test_utils.o status.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(CPPFLAGS) $(DAEMON_LDFLAGS) $^ -o $@
 
 blread: blread.o data.o $(COMMON_OBJS)
