@@ -591,7 +591,7 @@ static void net_input(struct node *node)
 	node->last_recv = time(NULL);
 
 	if (hdr.type == CTRL_PACKET) {
-		switch (hdr.len) {
+		switch (hdr.code) {
 		case CTRL_PULSE:
 			/* noop. we've already updated the last_recv time */
 			break;

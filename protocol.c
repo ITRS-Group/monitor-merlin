@@ -23,13 +23,13 @@ int proto_read_event(int sock, struct merlin_event *pkt)
 		return -1;
 	}
 
-	if (pkt->hdr.type == CTRL_PACKET)
-		return len;
-
-	if (!pkt->hdr.len) {
+	if (!pkt->hdr.len && pkt->hdr.type != CTRL_PACKET) {
 		lerr("Non-control packet of type %d with zero size length (this should never happen)", pkt->hdr.type);
 		return len;
 	}
+
+	if (!pkt->hdr.len)
+		return HDR_SIZE;
 
 	result = io_recv_all(sock, pkt->body, pkt->hdr.len);
 	if (result != pkt->hdr.len) {
@@ -53,14 +53,6 @@ int proto_send_event(int sock, struct merlin_event *pkt)
 		return -1;
 	}
 
-	/*
-	 * if this is a control packet, we mustn't use hdr->len
-	 * to calculate the total size of the payload, or we'll
-	 * send random bits of data across the link
-	 */
-	if (pkt->hdr.type == CTRL_PACKET)
-		return io_send_all(sock, &pkt->hdr, HDR_SIZE);
-
 	return io_send_all(sock, pkt, packet_size(pkt));
 }
 
@@ -71,7 +63,8 @@ int proto_ctrl(int sock, int control_type, int selection)
 	memset(&hdr, 0, HDR_SIZE);
 
 	hdr.type = CTRL_PACKET;
-	hdr.len = control_type;
+	hdr.len = 0;
+	hdr.code = control_type;
 	hdr.selection = selection;
 
 	return io_send_all(sock, &hdr, HDR_SIZE);

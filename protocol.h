@@ -5,8 +5,7 @@
 
 #define MERLIN_PROTOCOL_VERSION 0
 
-/* If "type" is CTRL_PACKET, then "len" is one of the following.
- * control packets never have a body */
+/* If "type" is CTRL_PACKET, then "code" is one of the following */
 #define CTRL_PACKET   0xffff
 #define CTRL_PULSE    1
 #define CTRL_INACTIVE 2
@@ -18,18 +17,18 @@
 #define TOTAL_PKT_SIZE 32768
 #define MAX_PKT_SIZE TOTAL_PKT_SIZE /* for now. remove this macro later */
 
-#define packet_size(pkt) \
-	(pkt->hdr.type == CTRL_PACKET ? HDR_SIZE : (pkt->hdr.len + HDR_SIZE))
+#define packet_size(pkt) (pkt->hdr.len + HDR_SIZE)
 
 struct merlin_header {
 	u_int16_t protocol;   /* always 0 for now */
 	u_int16_t type;       /* event type */
+	u_int16_t code;       /* event code (used for control packets) */
 	u_int16_t selection;  /* used when noc Nagios communicates with mrd */
 	u_int32_t len;        /* size of body */
 	struct timeval sent;  /* when this message was sent */
 
 	/* pad to 64 bytes for future extensions */
-	char padding[64 - sizeof(struct timeval) - (2 * 5)];
+	char padding[64 - sizeof(struct timeval) - (2 * 6)];
 } __attribute__((packed));
 
 struct merlin_event {
