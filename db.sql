@@ -144,7 +144,9 @@ CREATE TABLE contact(
 	address3						    VARCHAR(100),
 	address4						    VARCHAR(100),
 	address5						    VARCHAR(100),
-	address6						    VARCHAR(100)
+	address6						    VARCHAR(100),
+	last_host_notification				INT(10),
+	last_service_notification			INT(10)
 ) ;
 CREATE UNIQUE INDEX contact_name ON contact(contact_name);
 
