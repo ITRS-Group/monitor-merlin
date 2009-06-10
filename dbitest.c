@@ -7,14 +7,20 @@
 int main(int argc, char **argv)
 {
 	size_t hosts, services;
-	int i;
+	int i, iterations = 1;
 
 	if (sql_init() < 0)
 		die("sql_init() failed");
 
-	for (i = 0; i < 100; i++) {
+	for (i = 1; i < argc; i++) {
+		if (atoi(argv[i]) > 0)
+			iterations = atoi(argv[i]);
+	}
+
+	for (i = 0; i < iterations; i++) {
 		prime_object_states(&hosts, &services);
-		sleep(1);
+		if (iterations > 1)
+			sleep(1);
 	}
 	printf("Primed status for %zu hosts and %zu services\n", hosts, services);
 
