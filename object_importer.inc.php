@@ -55,6 +55,9 @@ class nagios_object_importer
 	private $convert = array();
 	private $conv_type = array
 		('info' => false, 'program' => 'program_status',
+		 'programstatus' => 'program_status',
+		 'hoststatus' => 'host', 'servicestatus' => 'service',
+		 'contactstatus' => 'contact',
 		 'servicecomment' => 'comment', 'hostcomment' => 'comment');
 
 	# allowed variables for each object
@@ -119,6 +122,7 @@ class nagios_object_importer
 			 'modified_attributes' => false,
 			 );
 		$this->convert['service'] = $this->convert['host'];
+		$this->convert['contact'] = $this->convert['host'];
 	}
 
 	function get_junction_table_name($obj_type, $v_name)
@@ -623,7 +627,9 @@ class nagios_object_importer
 				$obj[$k] = '\'' . $v . '\'';
 		}
 
-		if (!$fresh && ($obj_type === 'host' || $obj_type === 'service')) {
+		if ((!$fresh && ($obj_type === 'host' || $obj_type === 'service'))
+			|| ($obj_type === 'contact' && $this->importing_status))
+		{
 			$query = "UPDATE $obj_type SET ";
 			$oid = $obj['id'];
 			unset($obj['id']);
