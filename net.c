@@ -541,14 +541,14 @@ static void check_node_activity(merlin_node *node)
 
 static void net_input(merlin_node *node)
 {
-	struct merlin_header hdr;
+	merlin_event pkt;
 	int len;
 
 	linfo("Data available from %s '%s' (%s)", node_type(node),
 		  node->name, inet_ntoa(node->sain.sin_addr));
 
 	errno = 0;
-	len = io_recv_all(node->sock, &hdr, sizeof(hdr));
+	len = proto_read_event(node->sock, &pkt);
 	if (len < 0) {
 		lerr("read() from %s node %s failed: %s",
 			 node_type(node), node->name, strerror(errno));
@@ -574,53 +574,22 @@ static void net_input(merlin_node *node)
 		return;
 	}
 
-	if (len != sizeof(hdr)) {
-		lwarn("Malformatted mrm header from %s (%d bytes, expected %zu): %s",
-			  inet_ntoa(node->sain.sin_addr), len, sizeof(hdr), strerror(errno));
-		return;
-	}
-
 	/* We read something the size of an mrm packet header */
 	ldebug("Read %d bytes from %s", len, inet_ntoa(node->sain.sin_addr));
 	ldebug("message; protocol: %u, type: %u, len: %d",
-		   hdr.protocol, hdr.type, hdr.len);
+		   pkt.hdr.protocol, pkt.hdr.type, pkt.hdr.len);
 
 	if (!node->last_recv)
 		set_active(node);
 
 	node->last_recv = time(NULL);
 
-	if (hdr.type == CTRL_PACKET) {
-		switch (hdr.code) {
-		case CTRL_PULSE:
-			/* noop. we've already updated the last_recv time */
-			break;
-		default:
-			ipc_write(&hdr, sizeof(hdr), 0);
-			break;
-		}
+	if (pkt.hdr.type == CTRL_PACKET && pkt.hdr.code == CTRL_PULSE) {
+		/* noop. we've already updated the last_recv time */
+		return;
 	}
-	else if (!hdr.len) {
-		lwarn("%s '%s' claims empty body, but packet type isn't CONTROL",
-		      node_type(node), node->name);
-	}
-	else {
-		int buflen, result;
-		void *buf;
 
-		buflen = sizeof(hdr) + hdr.len;
-		buf = malloc(buflen);
-		memcpy(buf, &hdr, sizeof(hdr));
-
-		len = io_recv_all(node->sock, buf + sizeof(hdr), hdr.len);
-		result = ipc_write(buf, buflen, 0);
-		if (result != buflen) {
-			lerr("ipc_write() returned %d, expected %d: %s",
-			      result, buflen, strerror(errno));
-		}
-
-		free(buf);
-	}
+	return;
 }
 
 
