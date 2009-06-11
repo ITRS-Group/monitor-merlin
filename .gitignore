@@ -10,4 +10,4 @@ endpoint
 *.log
 *.bin
 merlind
-blktest
+*test
