@@ -6,6 +6,7 @@
 #include "protocol.h"
 #include "nagios/objects.h"
 #include "nagios/statusdata.h"
+#include "nagios/macros.h"
 
 int cb_handler(int, void *);
 
@@ -271,12 +272,83 @@ void *neb_handle = NULL;
 
 extern int event_broker_options;
 
-/* this function gets called before and after Nagios has read its config.
- * we want to setup object lists and such here, so we only care about the
- * case where config has already been read */
+extern char *macro_x[MACRO_X_COUNT];
+extern char *config_file;
+
+static int send_paths(void)
+{
+	size_t config_path_len, cache_path_len;
+	char *cache_file, *status_log;
+
+	cache_file = macro_x[MACRO_OBJECTCACHEFILE];
+	status_log = macro_x[MACRO_STATUSDATAFILE];
+	if (!config_file || !cache_file) {
+		ldebug("config_file or xodtemplate_cache_file not set");
+		return -1;
+	}
+
+	merlin_event pkt;
+	pkt.hdr.type = CTRL_PACKET;
+	pkt.hdr.code = CTRL_PATHS;
+	pkt.hdr.protocol = MERLIN_PROTOCOL_VERSION;
+	memset(pkt.body, 0, sizeof(pkt.body));
+
+	/*
+	 * Add the paths to pkt.body as nul-terminated strings.
+	 * We simply rely on 32K bytes to be enough to hold the
+	 * three paths we're interested in (and they are if we're
+	 * on a unixy system, where PATH_MAX is normally 4096).
+	 * We cheat a little and use pkt.hdr.len as an offset
+	 * to the bytestream.
+	 */
+	config_path_len = strlen(config_file);
+	cache_path_len = strlen(cache_file);
+	memcpy(pkt.body, config_file, config_path_len);
+	pkt.hdr.len = config_path_len;
+	memcpy(pkt.body + pkt.hdr.len + 1, cache_file, cache_path_len);
+	pkt.hdr.len += cache_path_len + 1;
+	if (status_log && *status_log) {
+		memcpy(pkt.body + pkt.hdr.len + 1, status_log, strlen(status_log));
+		pkt.hdr.len += strlen(status_log) + 1;
+	}
+
+	/* nul-terminate and include the nul-char */
+	pkt.body[pkt.hdr.len++] = 0;
+	pkt.hdr.selection = 0;
+
+	return ipc_send_event(&pkt);
+}
+
+
+static int mrm_ipc_connect(void *discard)
+{
+	int result;
+
+	ldebug("Attempting ipc connect");
+	result = ipc_connect();
+	if (result < 0) {
+		lerr("IPC connection failed. Re-scheduling to try again in 10 seconds");
+		schedule_new_event(EVENT_USER_FUNCTION, TRUE, time(NULL) + 10, FALSE,
+						   0, NULL, FALSE, mrm_ipc_connect, NULL, 0);
+	}
+	else {
+		ldebug("IPC successfully connected");
+		send_paths();
+	}
+
+	return result;
+}
+
+
+/*
+ * This function gets called before and after Nagios has read its config
+ * and written its objects.cache and status.log files.
+ * We want to setup object lists and such here, so we only care about the
+ * case where config has already been read.
+ */
 int post_config_init(int cb, void *ds)
 {
-	if (*(int *)ds != NEBTYPE_PROCESS_START)
+	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
 		return 0;
 
 	/* only call this function once */
@@ -285,6 +357,7 @@ int post_config_init(int cb, void *ds)
 	linfo("Object configuration parsed.");
 	setup_host_hash_tables();
 	create_object_lists();
+	mrm_ipc_connect(NULL);
 
 	if (is_noc) {
 		int i;
@@ -334,25 +407,6 @@ static struct callback_struct {
 };
 
 
-static int mrm_ipc_connect(void *discard)
-{
-	int result;
-
-	ldebug("Attempting ipc connect");
-	result = ipc_connect();
-	if (result < 0) {
-		lerr("IPC connection failed. Re-scheduling to try again in 10 seconds");
-		schedule_new_event(EVENT_USER_FUNCTION, TRUE, time(NULL) + 10, FALSE,
-						   0, NULL, FALSE, mrm_ipc_connect, NULL, 0);
-	}
-	else {
-		ldebug("IPC successfully connected");
-	}
-
-	return result;
-}
-
-
 int nebmodule_init(int flags, char *arg, nebmodule *handle)
 {
 	char *home = NULL;
@@ -387,8 +441,6 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 
 	/* this gets de-registered immediately, so we need to add it manually */
 	neb_register_callback(NEBCALLBACK_PROCESS_DATA, neb_handle, 0, post_config_init);
-
-	mrm_ipc_connect(NULL);
 
 	return 0;
 }

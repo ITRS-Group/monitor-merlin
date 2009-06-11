@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <signal.h>
 #include "shared.h"
 #include "config.h"
@@ -220,13 +221,61 @@ static int grok_config(char *path)
 	return 1;
 }
 
+/** FIXME: this is fugly and lacks error checking */
+static char *import_command = "php /home/exon/git/monitor/merlin/import.php";
+static int import_objects_and_status(char *cfg, char *cache, char *status)
+{
+	char *cmd;
+	int result;
+
+	asprintf(&cmd, "%s --nagios-cfg=%s --cache=%s", import_command, cfg, cache);
+	if (status) {
+		asprintf(&cmd, "%s --status-log=%s", cmd, status);
+	}
+
+	ldebug("Executing import command '%s'", cmd);
+	result = system(cmd);
+	free(cmd);
+
+	return result;
+}
+
+/* nagios.cfg, objects.cache and (optionally) status.log */
+static char *nagios_paths[3] = { NULL, NULL, NULL };
+static char *nagios_paths_arena;
+static int read_nagios_paths(merlin_event *pkt)
+{
+	int i;
+	size_t offset = 0;
+
+	if (nagios_paths_arena)
+		free(nagios_paths_arena);
+	nagios_paths_arena = malloc(pkt->hdr.len);
+	if (!nagios_paths_arena)
+		return -1;
+	memcpy(nagios_paths_arena, pkt->body, pkt->hdr.len);
+
+	for (i = 0; i < ARRAY_SIZE(nagios_paths) && offset < pkt->hdr.len; i++) {
+		nagios_paths[i] = nagios_paths_arena + offset;
+		ldebug("nagios_paths[%d]: %s", i, nagios_paths[i]);
+		offset += strlen(nagios_paths[i]) + 1;
+	}
+
+	import_objects_and_status(nagios_paths[0], nagios_paths[1], nagios_paths[2]);
+
+	return 0;
+}
 
 static int handle_ipc_data(struct merlin_event *pkt)
 {
 	int result = 0;
 
-	if (pkt->hdr.type == CTRL_PACKET)
+	if (pkt->hdr.type == CTRL_PACKET) {
+		if (pkt->hdr.code == CTRL_PATHS) {
+			read_nagios_paths(pkt);
+		}
 		return 0;
+	}
 
 	result = net_send_ipc_data(pkt);
 //	if (use_database)
@@ -391,7 +440,9 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	daemonize(merlin_user, NULL, pidfile, 0);
+	if (!debug)
+		daemonize(merlin_user, NULL, pidfile, 0);
+
 	signal(SIGINT, clean_exit);
 	signal(SIGTERM, clean_exit);
 	signal(SIGPIPE, dump_core);
