@@ -22,16 +22,16 @@ static int net_sock = -1; /* listening sock descriptor */
 #define num_nodes (nocs + pollers + peers)
 #define node_table noc_table
 static unsigned nocs, pollers, peers;
-static struct node *base, **noc_table, **poller_table, **peer_table;
+static merlin_node *base, **noc_table, **poller_table, **peer_table;
 //static struct timeval sock_to = { 0, 0 };
-static struct node **selection_table;
+static merlin_node **selection_table;
 
 int net_sock_desc(void)
 {
 	return net_sock;
 }
 
-static inline const char *node_state(struct node *node)
+static inline const char *node_state(merlin_node *node)
 {
 	switch (node->status) {
 	case STATE_NONE:
@@ -48,7 +48,7 @@ static inline const char *node_state(struct node *node)
 
 }
 
-static const char *node_type(struct node *node)
+static const char *node_type(merlin_node *node)
 {
 	switch (node->type) {
 	case MODE_NOC:
@@ -63,14 +63,14 @@ static const char *node_type(struct node *node)
 }
 
 
-static struct node *add_node_to_list(struct node *node, struct node *list)
+static merlin_node *add_node_to_list(merlin_node *node, merlin_node *list)
 {
 	node->next = list;
 	return node;
 }
 
 
-static struct node *nodelist_by_selection(int sel)
+static merlin_node *nodelist_by_selection(int sel)
 {
 	if (sel < 0 || sel > get_num_selections())
 		return NULL;
@@ -79,14 +79,14 @@ static struct node *nodelist_by_selection(int sel)
 }
 
 
-void create_node_tree(struct node *table, unsigned n)
+void create_node_tree(merlin_node *table, unsigned n)
 {
 	int i, xnoc, xpeer, xpoll;
 
-	selection_table = calloc(get_num_selections() + 1, sizeof(struct node *));
+	selection_table = calloc(get_num_selections() + 1, sizeof(merlin_node *));
 
 	for (i = 0; i < n; i++) {
-		struct node *node = &table[i];
+		merlin_node *node = &table[i];
 		int id = get_sel_id(node->hostgroup);
 		switch (node->type) {
 		case MODE_NOC:
@@ -104,14 +104,14 @@ void create_node_tree(struct node *table, unsigned n)
 
 	/* this way, we can keep them all linear while each has its own
 	 * table and still not waste much memory. pretty nifty, really */
-	node_table = calloc(num_nodes, sizeof(struct node *));
+	node_table = calloc(num_nodes, sizeof(merlin_node *));
 	noc_table = node_table;
 	peer_table = &node_table[nocs];
 	poller_table = &node_table[nocs + peers];
 
 	xnoc = xpeer = xpoll = 0;
 	for (i = 0; i < n; i++) {
-		struct node *node = &table[i];
+		merlin_node *node = &table[i];
 
 		switch (node->type) {
 		case MODE_NOC:
@@ -137,12 +137,12 @@ int net_resolve(const char *cp, struct in_addr *inp)
 
 
 /* do a node lookup based on name *or* ip-address + port */
-struct node *find_node(struct sockaddr_in *sain, const char *name)
+merlin_node *find_node(struct sockaddr_in *sain, const char *name)
 {
 	int i;
 
 	if (sain) for (i = 0; i < num_nodes; i++) {
-		struct node *node = node_table[i];
+		merlin_node *node = node_table[i];
 		if (node->sain.sin_addr.s_addr == sain->sin_addr.s_addr)
 			return node;
 	}
@@ -150,7 +150,7 @@ struct node *find_node(struct sockaddr_in *sain, const char *name)
 }
 
 
-static int net_complete_connection(struct node *node)
+static int net_complete_connection(merlin_node *node)
 {
 	int error, fail;
 	socklen_t optlen = sizeof(int);
@@ -170,7 +170,7 @@ static int net_complete_connection(struct node *node)
 
 
 /* close down the connection to a node and mark it as down */
-static void net_disconnect(struct node *node)
+static void net_disconnect(merlin_node *node)
 {
 	close(node->sock);
 	node->status = STATE_NONE;
@@ -179,7 +179,7 @@ static void net_disconnect(struct node *node)
 }
 
 
-static int net_try_connect(struct node *node)
+static int net_try_connect(merlin_node *node)
 {
 	struct sockaddr *sa = (struct sockaddr *)&node->sain;
 	int result;
@@ -269,7 +269,7 @@ static int net_is_connected(int sock, struct sockaddr_in *sain)
 
 
 #ifdef NET_DEBUG
-static void print_node_status(struct node *node)
+static void print_node_status(merlin_node *node)
 {
 	printf("%s node '%s' (%s : %d) is %s. socket is %d",
 		   node_type(node), node->name, inet_ntoa(node->sain.sin_addr),
@@ -294,7 +294,7 @@ static void print_node_status_list(void)
 
 /* check if a node is connected.
  * Return 1 if yes and 0 if not */
-static int node_is_connected(struct node *node)
+static int node_is_connected(merlin_node *node)
 {
 	struct sockaddr_in sain;
 	int result;
@@ -321,7 +321,7 @@ static int node_is_connected(struct node *node)
 
 /* con is the one that might be in a connection attempt
  * lis is the one we found with accept. */
-static int net_negotiate_socket(struct node *node, int lis)
+static int net_negotiate_socket(merlin_node *node, int lis)
 {
 	fd_set rd, wr;
 	int result, con = node->sock, sel = con;
@@ -394,7 +394,7 @@ static int net_negotiate_socket(struct node *node, int lis)
 int net_accept_one(void)
 {
 	int sock;
-	struct node *node;
+	merlin_node *node;
 	struct sockaddr_in sain;
 	socklen_t slen = sizeof(struct sockaddr_in);
 
@@ -452,7 +452,7 @@ int net_deinit(void)
 	int i;
 
 	for (i = 0; i < num_nodes; i++) {
-		struct node *node = node_table[i];
+		merlin_node *node = node_table[i];
 		net_disconnect(node);
 		free(node);
 	}
@@ -494,7 +494,7 @@ int net_init(void)
 
 
 /* send a specific packet to a specific host */
-static int net_sendto(struct node *node, struct merlin_event *pkt)
+static int net_sendto(merlin_node *node, struct merlin_event *pkt)
 {
 	int result;
 
@@ -523,7 +523,7 @@ static int net_sendto(struct node *node, struct merlin_event *pkt)
 #define set_inactive(node) ipc_send_ctrl(CTRL_INACTIVE, node->selection)
 #define set_active(node) ipc_send_ctrl(CTRL_ACTIVE, node->selection)
 
-static void check_node_activity(struct node *node)
+static void check_node_activity(merlin_node *node)
 {
 	time_t now = time(NULL);
 
@@ -539,7 +539,7 @@ static void check_node_activity(struct node *node)
 }
 
 
-static void net_input(struct node *node)
+static void net_input(merlin_node *node)
 {
 	struct merlin_header hdr;
 	int len;
@@ -629,7 +629,7 @@ int net_send_ipc_data(struct merlin_event *pkt)
 	int i;
 
 	if (is_noc && pkt->hdr.selection != 0xffff) {
-		struct node *node = nodelist_by_selection(pkt->hdr.selection);
+		merlin_node *node = nodelist_by_selection(pkt->hdr.selection);
 
 		ldebug("Sending to nodes by selection '%s'", get_sel_name(pkt->hdr.selection));
 		if (!node) {
@@ -643,7 +643,7 @@ int net_send_ipc_data(struct merlin_event *pkt)
 		ldebug("Sending to all %d nocs and peers", nocs + peers);
 
 		for (i = 0; i < nocs + peers; i++) {
-			struct node *node = node_table[i];
+			merlin_node *node = node_table[i];
 
 			net_sendto(node, pkt);
 		}
@@ -657,7 +657,7 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 	int i;
 
 	for (i = 0; i < num_nodes; i++) {
-		struct node *node = node_table[i];
+		merlin_node *node = node_table[i];
 
 		if (!node_is_connected(node) && node->status != STATE_PENDING)
 			continue;
@@ -683,7 +683,7 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 
 	/* loop the nodes and see which ones have sent something */
 	for (i = 0; i < num_nodes; i++) {
-		struct node *node = node_table[i];
+		merlin_node *node = node_table[i];
 
 		/* skip obviously bogus sockets */
 		if (node->sock < 0)
@@ -698,6 +698,7 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 			}
 			continue;
 		}
+
 		/* handle input, and missing input. All nodes should send
 		 * a pulse at least once in a while, so we know it's still OK.
 		 * If they fail to do that, we may have to take action. */
@@ -739,7 +740,7 @@ int net_poll(void)
 	FD_ZERO(&wr);
 	FD_SET(net_sock, &rd);
 	for (i = 0; i < num_nodes; i++) {
-		struct node *node = node_table[i];
+		merlin_node *node = node_table[i];
 
 		if (!node_is_connected(node) && node->status != STATE_PENDING)
 			continue;

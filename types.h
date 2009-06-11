@@ -10,7 +10,7 @@
 #define STATE_CONNECTED 3
 
 /** structures **/
-struct node {
+struct merlin_node {
 	char *name;
 	int id;                 /* internal index lookup number */
 	int sock;               /* the socket */
@@ -24,9 +24,9 @@ struct node {
 	time_t last_recv;       /* last time node sent something to us */
 	time_t last_sent;       /* when we sent something last */
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
-	int (*action)(struct node *, int); /* (daemon) action handler */
-	struct node *next;      /* linked list (and tabulated) */
+	int (*action)(struct merlin_node *, int); /* (daemon) action handler */
+	struct merlin_node *next; /* linked list (and tabulated) */
 };
-typedef struct node merlin_node;
+typedef struct merlin_node merlin_node;
 
 #endif /* TYPES_H */

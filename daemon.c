@@ -44,7 +44,7 @@ static void usage(char *fmt, ...)
 
 
 /* node connect/disconnect handlers */
-static int node_action_handler(struct node *node, int action)
+static int node_action_handler(merlin_node *node, int action)
 {
 	ldebug("Handling action %d for node '%s'", action, node->name);
 	/* only NOCs can take over checks */
@@ -61,7 +61,7 @@ static int node_action_handler(struct node *node, int action)
 	return 1;
 }
 
-static void grok_node(struct compound *c, struct node *node)
+static void grok_node(struct compound *c, merlin_node *node)
 {
 	unsigned int i;
 
@@ -144,7 +144,7 @@ static int grok_config(char *path)
 {
 	int i, node_i = 0;
 	struct compound *config;
-	struct node *table;
+	merlin_node *table;
 
 	if (!path)
 		return 0;
@@ -172,11 +172,11 @@ static int grok_config(char *path)
 
 	/* each compound represents either a node or an error. we'll bail
 	 * on errors, but it's nice to keep nodes in continuous memory */
-	table = calloc(config->nested, sizeof(struct node));
+	table = calloc(config->nested, sizeof(merlin_node));
 
 	for (i = 0; i < config->nested; i++) {
 		struct compound *c = config->nest[i];
-		struct node *node;
+		merlin_node *node;
 
 		if (!strcmp(c->name, "module"))
 			continue;
