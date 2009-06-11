@@ -289,7 +289,7 @@ static int handle_ipc_data(struct merlin_event *pkt)
 
 static int max(int a, int b)
 {
-	return a > b ? b : a;
+	return a > b ? a : b;
 }
 
 static int io_poll_sockets(void)
