@@ -10,6 +10,7 @@
 #define CTRL_PULSE    1
 #define CTRL_INACTIVE 2
 #define CTRL_ACTIVE   3
+#define CTRL_PATHS    4
 
 #define HDR_SIZE (sizeof(struct merlin_header))
 #define PKT_SIZE (sizeof(struct merlin_event))
