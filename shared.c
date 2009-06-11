@@ -7,7 +7,7 @@
 #include "ipc.h"
 
 /** global variables present in both daemon and module **/
-int is_noc = 0; /* default to poller in daemon and module */
+int is_noc = 0; /* denotes if we have pollers or peers */
 int debug = 0;  /* doesn't actually do anything right now */
 int is_module = 1; /* the daemon sets this to 0 immediately */
 int pulse_interval = 15;
