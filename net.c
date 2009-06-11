@@ -222,7 +222,7 @@ static int net_try_connect(struct node *node)
 		}
 		else
 			linfo("Successfully connected to %s:%d",
-			      inet_ntoa(node->sain.sin_addr), ntohs(node->port));
+			      inet_ntoa(node->sain.sin_addr), ntohs(node->sain.sin_port));
 
 		node->status = STATE_PENDING;
 	}
