@@ -539,6 +539,7 @@ static void check_node_activity(merlin_node *node)
 }
 
 
+extern int handle_network_event(merlin_node *node, merlin_event *pkt);
 static void net_input(merlin_node *node)
 {
 	merlin_event pkt;
@@ -589,6 +590,7 @@ static void net_input(merlin_node *node)
 		return;
 	}
 
+	handle_network_event(node, &pkt);
 	return;
 }
 
