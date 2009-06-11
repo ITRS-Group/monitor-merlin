@@ -248,6 +248,9 @@ static int read_nagios_paths(merlin_event *pkt)
 	int i;
 	size_t offset = 0;
 
+	if (!use_database)
+		return 0;
+
 	if (nagios_paths_arena)
 		free(nagios_paths_arena);
 	nagios_paths_arena = malloc(pkt->hdr.len);
@@ -278,7 +281,7 @@ static int handle_ipc_data(struct merlin_event *pkt)
 	}
 
 	result = net_send_ipc_data(pkt);
-//	if (use_database)
+	if (use_database)
 		result |= mrm_db_update(pkt);
 
 	return result;
