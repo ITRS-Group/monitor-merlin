@@ -30,18 +30,17 @@ char *next_word(char *str)
 	return NULL;
 }
 
+const char *config_key_expires(const char *var)
+{
+	if (!strcmp(var, "mode"))
+		return "2009-10";
+
+	return NULL;
+}
+
 int grok_common_var(struct compound *config, struct cfg_var *v)
 {
-	if (!strcmp(v->var, "mode")) {
-		if (!strcmp(v->val, "poller"))
-			is_noc = 0;
-		else if (!strcmp(v->val, "noc") || !strcmp(v->val, "master"))
-			is_noc = 1;
-		else
-			cfg_error(config, v, "Unknown value");
-
-		return 1;
-	}
+	const char *expires;
 
 	if (!strcmp(v->var, "pulse_interval")) {
 		pulse_interval = (unsigned)strtoul(v->val, NULL, 10);
@@ -64,6 +63,12 @@ int grok_common_var(struct compound *config, struct cfg_var *v)
 			cfg_error(config, v, "Failed to grok logging option");
 
 		return 1;
+	}
+
+	expires = config_key_expires(v->var);
+	if (expires) {
+		cfg_warn(config, v, "'%s' is a deprecated variable, scheduled for "
+			 "removal at the first release after %s", v->var, expires);
 	}
 
 	return 0;

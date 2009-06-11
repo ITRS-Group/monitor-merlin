@@ -190,12 +190,14 @@ static int grok_config(char *path)
 		node->name = next_word(c->name);
 
 		if (!strncmp(c->name, "poller", 6)) {
+			is_noc = 1;
 			node->type = MODE_POLLER;
 			grok_node(c, node);
 			if (!node->hostgroup)
 				cfg_error(c, NULL, "Missing 'hostgroup' variable\n");
 		}
 		else if (!strncmp(c->name, "peer", 4)) {
+			is_noc = 1;
 			node->type = MODE_PEER;
 			grok_node(c, node);
 		}
