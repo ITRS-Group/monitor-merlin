@@ -61,6 +61,14 @@ static int node_action_handler(merlin_node *node, int action)
 	return 1;
 }
 
+
+int handle_network_event(merlin_node *node, merlin_event *pkt)
+{
+	ipc_send_event(pkt);
+	mrm_db_update(pkt);
+	return 0;
+}
+
 static void grok_node(struct compound *c, merlin_node *node)
 {
 	unsigned int i;
