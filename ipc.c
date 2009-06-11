@@ -327,7 +327,22 @@ int ipc_send_event(struct merlin_event *pkt)
 
 int ipc_read_event(struct merlin_event *pkt)
 {
-	if (ipc_read_ok(100)) {
+	int poll_result;
+
+	if (ipc_sock < 0) {
+		ldebug("Asked to read from ipc socket with negative value");
+		return -1;
+	}
+	poll_result = ipc_read_ok(100);
+	if (!poll_result)
+		return 0;
+
+	if (poll_result < 0) {
+		ipc_reinit();
+		return -1;
+	}
+
+	if (poll_result > 0) {
 		int result;
 		result = proto_read_event(ipc_sock, pkt);
 		if (result < 1) {
@@ -343,7 +358,7 @@ int ipc_read_event(struct merlin_event *pkt)
 		return result;
 	}
 
-	return -1;
+	return 0;
 }
 
 int ipc_write(const void *buf, size_t len, unsigned msec)
