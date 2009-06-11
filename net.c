@@ -674,9 +674,16 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 		 * a pulse at least once in a while, so we know it's still OK.
 		 * If they fail to do that, we may have to take action. */
 		if (FD_ISSET(node->sock, rd)) {
+			int result;
+
 			printf("node socket %d is ready for reading\n", node->sock);
 			sockets++;
-			net_input(node);
+			do {
+				/* read all available events */
+				net_input(node);
+				result = io_poll_read(node->sock, 50);
+			} while (result > 0);
+
 			continue;
 		}
 
