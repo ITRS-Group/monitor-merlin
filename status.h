@@ -8,7 +8,7 @@ struct object_state {
 typedef struct object_state object_state;
 
 /* macros used on the 'state' member of the object_state struct */
-#define extract_state(st) (state & 0xffff)
+#define extract_state(state) (state & 0xffff)
 #define extract_type(state) ((state >> 16) & 1)
 #define concat_state(type, state) ((type << 16) | state)
 
