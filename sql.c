@@ -155,18 +155,27 @@ int sql_close(void)
 
 const char *sql_db_name(void)
 {
-	if (!db.name)
-		return "merlin";
+	return db.name ? db.name : "merlin";
+}
 
-	return db.name;
+const char *sql_db_user(void)
+{
+	return db.user ? db.user : "merlin";
+}
+
+const char *sql_db_pass(void)
+{
+	return db.pass ? db.pass : "merlin";
+}
+
+const char *sql_db_host(void)
+{
+	return db.pass ? db.pass : "localhost";
 }
 
 const char *sql_table_name(void)
 {
-	if (!db.table)
-		return "report_data";
-
-	return db.table;
+	return db.table ? db.table : "report_data";
 }
 
 int sql_config(const char *key, const char *value)

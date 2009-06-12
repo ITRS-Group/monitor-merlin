@@ -20,5 +20,8 @@ extern int sql_query(const char *fmt, ...)
 extern dbi_result sql_get_result(void);
 extern const char *sql_table_name(void);
 extern const char *sql_db_name(void);
+extern const char *sql_db_user(void);
+extern const char *sql_db_pass(void);
+extern const char *sql_db_host(void);
 
 #endif
