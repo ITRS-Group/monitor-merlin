@@ -36,7 +36,7 @@ static struct object_state *store_object_states(dbi_result result, size_t *count
 		os->name = dbi_result_get_string_copy_idx(result, 1);
 		state = dbi_result_get_int_idx(result, 2);
 		state_type = dbi_result_get_int_idx(result, 3);
-		os->state = (state_type << 16) | state;
+		os->state = concat_state(state_type, state);
 	}
 
 	/*
