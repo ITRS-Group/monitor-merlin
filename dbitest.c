@@ -1,6 +1,7 @@
 #include "sql.h"
 #include "status.h"
 #include <stdio.h>
+#include <unistd.h>
 
 #define die(fmt, args...) do { fprintf(stderr, fmt, ##args); exit(1); } while(0)
 
