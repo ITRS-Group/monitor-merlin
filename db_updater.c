@@ -5,6 +5,7 @@
 #include "data.h"
 #include "protocol.h"
 #include "logging.h"
+#include "status.h"
 
 #define safe_str(str) (str == NULL ? "''" : str)
 #define safe_free(str) do { if (str) free(str); } while (0)
@@ -12,14 +13,28 @@ static int mdb_update_host_status(const nebstruct_host_check_data *p)
 {
 	char *host_name, *output, *long_output, *perf_data = NULL;
 	int result;
+	object_state *st;
 
 	if (p->type != NEBTYPE_HOSTCHECK_PROCESSED)
 		return 0;
+
+	st = get_host_state(p->host_name);
 
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->output, &output);
 	sql_quote(p->perf_data, &perf_data);
 	sql_quote(p->long_output, &long_output);
+
+	if (st) {
+		if (p->state != extract_state(st->state)) {
+			result = sql_query("UPDATE %s.host SET last_state_change = %lu "
+				   "WHERE host_name = %s",
+				   sql_db_name(), p->end_time.tv_sec, host_name);
+			sql_free_result();
+		}
+
+		st->state = concat_state(p->state_type, p->state);
+	}
 
 	result = sql_query
 		("UPDATE %s.host SET current_attempt = %d, check_type = %d, "
@@ -48,15 +63,29 @@ static int mdb_update_service_status(const nebstruct_service_check_data *p)
 {
 	char *host_name, *output, *long_output, *perf_data, *service_description;
 	int result;
+	object_state *st;
 
 	if (p->type != NEBTYPE_SERVICECHECK_PROCESSED)
 		return 0;
 
+	st = get_service_state(p->host_name, p->service_description);
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->output, &output);
 	sql_quote(p->output, &long_output);
 	sql_quote(p->perf_data, &perf_data);
 	sql_quote(p->service_description, &service_description);
+
+	if (st) {
+		if (p->state != extract_state(st->state)) {
+
+			result = sql_query("UPDATE %s.service SET last_state_change = %lu "
+					   "WHERE host_name = %s AND service_description = %s",
+					   sql_db_name(), p->end_time.tv_sec, host_name, service_description);
+			sql_free_result();
+		}
+
+		st->state = concat_state(p->state_type, p->state);
+	}
 
 	result = sql_query
 		("UPDATE %s.service SET current_attempt = %d, check_type = %d, "
