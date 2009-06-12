@@ -1,13 +1,20 @@
 #include "sql.h"
+#include "status.h"
 #include <stdio.h>
+#include <string.h>
 #include <dbi/dbi.h>
 
-struct object_state {
-	char *name;
-	int state;
-};
 static struct object_state *object_states[2];
 static size_t num_objects[2];
+
+static int state_compare(const void *_a, const void *_b)
+{
+	object_state *a, *b;
+	a = (object_state *)_a;
+	b = (object_state *)_b;
+
+	return strcmp(a->name, b->name);
+}
 
 static struct object_state *store_object_states(dbi_result result, size_t *count)
 {
@@ -31,6 +38,16 @@ static struct object_state *store_object_states(dbi_result result, size_t *count
 		state_type = dbi_result_get_int_idx(result, 3);
 		os->state = (state_type << 16) | state;
 	}
+
+	/*
+	 * Some sql engines sort case-insensitively, but we can't
+	 * use that since "FOO" and "foo" are both valid names, and
+	 * we're not allowed to be agnostic about them.
+	 * In order to be 100% safe, we sort the results ourself
+	 * instead. Note that in most cases, this will just loop
+	 * once over the objects without actually do anything.
+	 */
+	qsort(state_ary, *count, sizeof(object_state), state_compare);
 
 	out:
 	sql_free_result();
@@ -76,4 +93,50 @@ int prime_object_states(size_t *hosts, size_t *services)
 	destroy_states(object_states[1], num_objects[1]);
 
 	return prime_host_states(hosts) | prime_service_states(services);
+}
+
+static inline object_state *get_object_state(const char *name, int id)
+{
+	size_t mid, low, high;
+	int result;
+	object_state *ary;
+
+	high = num_objects[id];
+	ary = object_states[id];
+	low = 0;
+
+	/* binary search in the alphabetically sorted array */
+	while (low < high) {
+		object_state *st;
+
+		mid = low + ((high - low) / 2);
+		st = &ary[mid];
+		result = strcmp(name, st->name);
+		if (result > 0) {
+			low = mid + 1;
+			continue;
+		}
+		if (result < 0) {
+			high = mid;
+			continue;
+		}
+
+		/* we hit the sweet spot */
+		return st;
+	}
+
+	return NULL;
+}
+
+object_state *get_host_state(const char *name)
+{
+	return get_object_state(name, 0);
+}
+
+object_state *get_service_state(const char *h_name, const char *s_name)
+{
+	char name[4096];
+
+	snprintf(name, sizeof(name) - 1, "%s;%s", h_name, s_name);
+	return get_object_state(name, 1);
 }
