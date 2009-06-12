@@ -95,7 +95,7 @@ int prime_object_states(size_t *hosts, size_t *services)
 	return prime_host_states(hosts) | prime_service_states(services);
 }
 
-static inline object_state *get_object_state(const char *name, int id)
+object_state *get_object_state(const char *name, size_t id)
 {
 	size_t mid, high, low = 0;
 	int result;
@@ -138,4 +138,14 @@ object_state *get_service_state(const char *h_name, const char *s_name)
 
 	snprintf(name, sizeof(name) - 1, "%s;%s", h_name, s_name);
 	return get_object_state(name, 1);
+}
+
+size_t foreach_state(int id, int (*fn)(object_state *))
+{
+	size_t i;
+	for (i = 0; i < num_objects[id]; i++) {
+		object_state *st = &object_states[id][i];
+		fn(st);
+	}
+	return i;
 }
