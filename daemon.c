@@ -15,6 +15,7 @@ extern const char *__progname;
 
 static int use_database;
 static const char *pidfile, *merlin_user;
+static char *import_program = "php /home/exon/git/monitor/merlin/import.php";
 int default_port = 15551;
 
 static void usage(char *fmt, ...)
@@ -125,6 +126,10 @@ static void grok_daemon_compound(struct compound *comp)
 			merlin_user = strdup(v->val);
 			continue;
 		}
+		if (!strcmp(v->var, "import_program")) {
+			import_program = strdup(v->val);
+			continue;
+		}
 
 		if (grok_common_var(comp, v))
 			continue;
@@ -232,7 +237,6 @@ static int grok_config(char *path)
 }
 
 /** FIXME: this is fugly and lacks error checking */
-static char *import_command = "php /home/exon/git/monitor/merlin/import.php";
 static int import_objects_and_status(char *cfg, char *cache, char *status)
 {
 	char *cmd;
@@ -240,7 +244,7 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 
 	asprintf(&cmd, "%s --nagios-cfg=%s --cache=%s "
 			 "--db-name=%s --db-user=%s --db-pass=%s --db-host=%s",
-			 import_command, cfg, cache,
+			 import_program, cfg, cache,
 			 sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host());
 	if (status) {
 		asprintf(&cmd, "%s --status-log=%s", cmd, status);
