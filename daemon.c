@@ -238,7 +238,10 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 	char *cmd;
 	int result;
 
-	asprintf(&cmd, "%s --nagios-cfg=%s --cache=%s", import_command, cfg, cache);
+	asprintf(&cmd, "%s --nagios-cfg=%s --cache=%s "
+			 "--db-name=%s --db-user=%s --db-pass=%s --db-host=%s",
+			 import_command, cfg, cache,
+			 sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host());
 	if (status) {
 		asprintf(&cmd, "%s --status-log=%s", cmd, status);
 	}
