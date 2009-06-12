@@ -97,13 +97,12 @@ int prime_object_states(size_t *hosts, size_t *services)
 
 static inline object_state *get_object_state(const char *name, int id)
 {
-	size_t mid, low, high;
+	size_t mid, high, low = 0;
 	int result;
 	object_state *ary;
 
 	high = num_objects[id];
 	ary = object_states[id];
-	low = 0;
 
 	/* binary search in the alphabetically sorted array */
 	while (low < high) {

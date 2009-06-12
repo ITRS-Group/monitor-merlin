@@ -62,7 +62,7 @@ if (PHP_SAPI !== 'cli') {
 	usage("This program can only be run from the command-line\n");
 }
 
-$dry_run = $cache = $status_log = false;
+$nagios_cfg = $dry_run = $cache = $status_log = false;
 for ($i = 1; $i < $argc; $i++) {
 	$arg = $argv[$i];
 	if (substr($arg, 0, 2) !== '--') {
