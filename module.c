@@ -256,6 +256,8 @@ static void read_config(char *cfg_file)
 			grok_module_compound(c);
 			continue;
 		}
+		if (!prefixcmp(c->name, "poller") || !prefixcmp(c->name, "peer"))
+			is_noc = 1;
 		if (is_noc && !prefixcmp(c->name, "poller")) {
 			if (!slurp_selection(c))
 				cfg_error(c, NULL, "Poller without 'hostgroup' statement");
