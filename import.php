@@ -23,12 +23,12 @@ function usage($msg = false)
 
 	echo "Usage: $progname <options> --cache=/path/to/objects.cache\n";
 	echo "\n";
-	echo "--dbname   name of database to import to\n";
-	echo "--dbuser   database username\n";
-	echo "--dbhost   database host\n";
-	echo "--dbpass   database password\n";
-	echo "--dbtype   database type (mysql is the only supported for now)\n";
-	echo "--cache    path to the objects.cache file to import\n";
+	echo "--db-name   name of database to import to\n";
+	echo "--db-user   database username\n";
+	echo "--db-host   database host\n";
+	echo "--db-pass   database password\n";
+	echo "--db-type   database type (mysql is the only supported for now)\n";
+	echo "--cache     path to the objects.cache file to import\n";
 	exit(1);
 }
 
@@ -83,11 +83,11 @@ for ($i = 1; $i < $argc; $i++) {
 		usage("$arg requires an option\n");
 	}
 	switch ($arg) {
-	 case 'dbname': $imp->db_database = $opt; break;
-	 case 'dbuser': $imp->db_user = $opt; break;
-	 case 'dbpass': $imp->db_pass = $opt; break;
-	 case 'dbtype': $imp->db_type = $opt; break;
-	 case 'dbhost': $imp->db_host = $opt; break;
+	 case 'db-name': $imp->db_database = $opt; break;
+	 case 'db-user': $imp->db_user = $opt; break;
+	 case 'db-pass': $imp->db_pass = $opt; break;
+	 case 'db-type': $imp->db_type = $opt; break;
+	 case 'db-host': $imp->db_host = $opt; break;
 	 case 'cache': $cache = $opt; break;
 	 case 'status-log': $status_log = $opt; break;
 	 case 'nagios-cfg': $nagios_cfg = $opt; break;
@@ -98,6 +98,7 @@ for ($i = 1; $i < $argc; $i++) {
 	}
 }
 
+echo "Importing objects to database $imp->db_database\n";
 if ($cache)
 	echo "importing objects from $cache\n";
 
