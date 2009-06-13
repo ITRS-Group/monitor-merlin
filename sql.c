@@ -170,7 +170,7 @@ const char *sql_db_pass(void)
 
 const char *sql_db_host(void)
 {
-	return db.pass ? db.pass : "localhost";
+	return db.host ? db.host : "localhost";
 }
 
 const char *sql_table_name(void)
