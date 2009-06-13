@@ -95,7 +95,8 @@ int handle_ipc_event(struct merlin_event *pkt)
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 		return handle_service_result(&pkt->hdr, pkt->body);
 	default:
-		lwarn("Ignoring unrecognized/unhandled callback type: %d", pkt->hdr.type);
+		lwarn("Ignoring unrecognized/unhandled callback type: %d (%s)",
+		      pkt->hdr.type, callback_name(pkt->hdr.type));
 	}
 
 	return 0;

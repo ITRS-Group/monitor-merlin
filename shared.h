@@ -64,5 +64,5 @@ extern int add_selection(char *name);
 extern char *get_sel_name(int index);
 extern int get_sel_id(const char *name);
 extern int get_num_selections(void);
-
+extern const char *callback_name(int id);
 #endif
