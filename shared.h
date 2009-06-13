@@ -48,6 +48,7 @@ static inline void *xfree(void *ptr)
 }
 
 #define xstrdup(str) str ? strdup(str) : NULL
+#define prefixcmp(a, b) strncmp(a, b, strlen(b))
 
 /** global variables present in both module and daemon **/
 extern int is_noc;

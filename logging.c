@@ -50,7 +50,7 @@ int log_grok_var(char *var, char *val)
 				if (!opt) /* failed to find a valid word */
 					return 0;
 
-				if (!strncmp(p, opt, strlen(opt))) {
+				if (!prefixcmp(p, opt)) {
 					log_opts |= opt_codes[i].val;
 					if (!mod) /* not '+' or '-', so add all levels below it */
 						log_opts |= opt_codes[i].val - 1;

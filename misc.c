@@ -107,7 +107,7 @@ static struct file_list *recurse_cfg_dir(char *path, struct file_list *list,
 		if (!S_ISREG(st.st_mode) && !S_ISLNK(st.st_mode))
 			continue;
 		len = strlen(df->d_name);
-		if (len < 4 || (strncmp(&df->d_name[len - 4], ".cfg", 4)))
+		if (len < 4 || (strcmp(&df->d_name[len - 4], ".cfg")))
 			continue;
 
 		/* found a file matching "*.cfg" pattern */
@@ -148,7 +148,7 @@ static struct file_list *get_cfg_files(char *str, struct file_list *list)
 		return NULL;
 
 	for (i = 0; i < size; i += strlen(&p[i]) + 1) {
-		if (!strncmp(&p[i], "cfg_file=", 9)) {
+		if (!prefixcmp(&p[i], "cfg_file=")) {
 			i += 9;
 			if (!list) {
 				base = list = malloc(sizeof(struct file_list));
@@ -167,7 +167,7 @@ static struct file_list *get_cfg_files(char *str, struct file_list *list)
 				return base ? base : list;
 			stat(list->name, &list->st);
 		}
-		else if (!strncmp(&p[i], "cfg_dir=", 8)) {
+		else if (!prefixcmp(&p[i], "cfg_dir=")) {
 			i += 8;
 			list = recurse_cfg_dir(&p[i], list, 4, 0);
 		}

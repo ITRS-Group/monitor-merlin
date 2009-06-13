@@ -51,14 +51,14 @@ int grok_common_var(struct compound *config, struct cfg_var *v)
 		return 1;
 	}
 
-	if (!strncmp(v->var, "ipc_", 4)) {
+	if (!prefixcmp(v->var, "ipc_")) {
 		if (!ipc_grok_var(v->var, v->val))
 			cfg_error(config, v, "Failed to grok IPC option");
 
 		return 1;
 	}
 
-	if (!strncmp(v->var, "log_", 4)) {
+	if (!prefixcmp(v->var, "log_")) {
 		if (!log_grok_var(v->var, v->val))
 			cfg_error(config, v, "Failed to grok logging option");
 
