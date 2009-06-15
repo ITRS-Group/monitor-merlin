@@ -45,7 +45,12 @@ $(NEB): $(MODULE_OBJS)
 	$(QUIET_CC)$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 dbitest: dbitest.o sql.o test_utils.o status.o
-	$(QUIET_LINK)$(CC) $(CFLAGS) $(CPPFLAGS) $(DAEMON_LDFLAGS) $^ -o $@
+	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $(DAEMON_LDFLAGS) $^ -o $@
+
+bltest: binlog.o bltest.o
+	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $(DAEMON_LDFLAGS) $^ -o $@
+
+bltest.o: bltest.c binlog.h
 
 blread: blread.o data.o $(COMMON_OBJS)
 
