@@ -24,6 +24,7 @@ class nagios_object_importer
 	# denotes if we're importing status.sav or objects.cache
 	private $importing_status = false;
 
+	private $tables_truncated = false;
 	private $tables_to_truncate = array
 		('command',
 		 'contact',
@@ -318,8 +319,14 @@ class nagios_object_importer
 		if (!$object_cache)
 			$object_cache = '/opt/monitor/var/objects.cache';
 
-		foreach($this->tables_to_truncate as $table)
-			$this->sql_exec_query("TRUNCATE $table");
+		# if we're about to import a status log file, we'll
+		# wipe the recently imported objects in case we truncate
+		# the tables again, so avoid it if we've already done it once
+		if (!$this->tables_truncated) {
+			foreach($this->tables_to_truncate as $table)
+				$this->sql_exec_query("TRUNCATE $table");
+			$this->tables_truncated = true;
+		}
 
 		$this->preload_object_index('host', 'SELECT id, host_name FROM host');
 		$this->preload_object_index('service', "SELECT id, CONCAT(host_name, ';', service_description) FROM service");
