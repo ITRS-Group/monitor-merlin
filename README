@@ -47,3 +47,82 @@ mysql databases at the moment. Patches welcome to make it also
 handle postgresql and whatever else you feel there is a need for.
 If a different database type is selected, the install script will
 still work, but it will not create the database for you.
+
+Configuration
+-------------
+Configuring merlin is pretty straight-forward. Check the example.conf
+file that accompanies this release and you'll see most of the common
+examples available.
+
+The thing it doesn't really cover very well is how to configure nocs,
+peers and pollers, which is described more in-depth here.
+
+In order to set up a loadbalanced system (ie, 2 or more peers), all
+you need to do is add a section similar to the following to your
+merlin configuration files on your merlin-empowered Nagios systems.
+Let's pretend we have "nagios1" and "nagios2" in the network and
+you wish for them to be set up in loadbalanced/redundancy mode.
+nagios1 has 192.168.1.1 as IP. nagios2 has 192.168.1.2. Both use
+port 15551 (the default).
+
+On nagios1, add the following section to your merlin.conf file:
+  --------------
+  peer nagios2 {
+    address = 192.168.1.2
+    port = 15551; # optional, since 15551 is the default
+  }
+  --------------
+
+On nagios2, add the following section to your merlin.conf file:
+  --------------
+  peer nagios1 {
+    address = 192.168.1.1
+    port = 15551; # optional, since 15551 is the default
+  }
+  --------------
+
+Assuming nagios2 is a poller-node instead, responsible for checking
+hosts in germany, you need to create a hostgroup in Nagios containing
+all the hosts in germany that you want nagios2 to check for you. Let's
+assume you call that hostgroup "germany-hosts". Then you need to add
+following sections to your merlin.conf files.
+
+On nagios1 (the "master" server), add the following section:
+  --------------
+  poller nagios2 {
+    address = 192.168.1.2
+	port = 15551
+	hostgroup = germany-hosts; # name of the hostgroup containing all
+	                           # the hosts you want this poller to check
+  }
+  --------------
+
+On nagios2 (the slave server), add the following section:
+  --------------
+  noc nagios1 {
+    address = 192.168.1.1
+	port = 15551
+  }
+  --------------
+
+Note that these configuration sections need to be in the base section
+of the configuration file. They must *not* be inside the daemon section.
+This is because the NOC server will disable checks for all its pollers
+once those pollers connect, and therefore it needs to read the list of
+available nodes at configuration time.
+
+A merlin node can have up to 65534 neighbours (assuming your system
+lets a single program have that many file-descriptors open). A neighbour
+is, in merlin terminology, a node that merlin connects to directly, so
+you can build arbitrarily large networks by just specifying multiple
+tiers of pollers.
+
+A single merlin node can have pollers, peers and noc nodes in its own
+neighbourhood. As such, a single merlin node can, at the same time be
+a peer (to its peers), a noc (to its pollers) and a poller (to its
+nocs). One section has to be added to the merlin.conf file for each
+of the hosts in its neighbourhood. The section must contain the
+address of the neighbour, the port the neighbour is listening to
+(unless it's the default port 15551) and, if the neighbour is a poller,
+the section *must* contain a hostgroup statement declaring which
+hostgroup the poller is responsible for checking.
