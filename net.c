@@ -613,7 +613,8 @@ int net_send_ipc_data(struct merlin_event *pkt)
 		for (; node; node = node->next)
 			net_sendto(node, pkt);
 	}
-	else {
+
+	if (num_nocs + num_peers) {
 		ldebug("Sending to %u nocs and %u peers", num_nocs, num_peers);
 
 		for (i = 0; i < num_nocs + num_peers; i++) {
