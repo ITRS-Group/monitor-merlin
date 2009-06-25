@@ -288,7 +288,7 @@ int binlog_flush(binlog *bl)
 	}
 	free(bl->cache);
 	bl->cache = NULL;
-	bl->write_index = bl->read_index = bl->alloc = 0;
+	bl->size = bl->write_index = bl->read_index = bl->alloc = 0;
 
 	return 0;
 }
