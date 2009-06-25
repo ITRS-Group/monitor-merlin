@@ -40,4 +40,8 @@ case "$1" in
 		stop
 		start
 		;;
+	*)
+		echo "Usage: $0 start|stop|restart|reload"
+		exit 1
+		;;
 esac
