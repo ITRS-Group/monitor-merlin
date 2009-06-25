@@ -78,13 +78,8 @@ static int handle_host_result(struct merlin_header *hdr, void *buf)
 /* events that require status updates return 1, others return 0 */
 int handle_ipc_event(struct merlin_event *pkt)
 {
-	linfo("Inbound IPC event, callback %d, len %d, type, %d",
+	linfo("Inbound IPC event, callback %d, len %d, type %d",
 		   pkt->hdr.type, pkt->hdr.len, *(int *)pkt->body);
-
-	if (!is_noc && pkt->hdr.type != CTRL_PACKET) {
-		linfo("I'm a poller, so ignoring inbound non-control packet");
-		return 0;
-	}
 
 	/* restore the pointers so the various handlers won't have to */
 	deblockify(pkt->body, pkt->hdr.len, pkt->hdr.type);
@@ -257,9 +252,7 @@ static void read_config(char *cfg_file)
 			grok_module_compound(c);
 			continue;
 		}
-		if (!prefixcmp(c->name, "poller") || !prefixcmp(c->name, "peer"))
-			is_noc = 1;
-		if (is_noc && !prefixcmp(c->name, "poller")) {
+		if (!prefixcmp(c->name, "poller")) {
 			if (!slurp_selection(c))
 				cfg_error(c, NULL, "Poller without 'hostgroup' statement");
 		}
@@ -361,15 +354,6 @@ int post_config_init(int cb, void *ds)
 	setup_host_hash_tables();
 	create_object_lists();
 	mrm_ipc_connect(NULL);
-
-	if (is_noc) {
-		int i;
-
-		for (i = 0; i < get_num_selections(); i++) {
-			enable_disable_checks(i, 0);
-		}
-	}
-
 	mrm_ipc_reap(NULL);
 
 	return 0;
@@ -436,10 +420,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
 		struct callback_struct *cb = &callback_table[i];
 
-		/* This should be changed to also include
-		 * have_peers || use_database */
-		/* if (!is_noc || !cb->pollers_only) */
-			neb_register_callback(cb->type, neb_handle, 0, cb->hook);
+		neb_register_callback(cb->type, neb_handle, 0, cb->hook);
 	}
 
 	/* this gets de-registered immediately, so we need to add it manually */

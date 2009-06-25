@@ -47,10 +47,11 @@ static void usage(char *fmt, ...)
 /* node connect/disconnect handlers */
 static int node_action_handler(merlin_node *node, int action)
 {
-	ldebug("Handling action %d for node '%s'", action, node->name);
 	/* only NOCs can take over checks */
-	if (!is_noc)
+	if (node->type != MODE_POLLER)
 		return 0;
+
+	ldebug("Handling action %d for node '%s'", action, node->name);
 
 	switch (action) {
 	case STATE_CONNECTED:
@@ -203,14 +204,12 @@ static int grok_config(char *path)
 		node->name = next_word(c->name);
 
 		if (!prefixcmp(c->name, "poller")) {
-			is_noc = 1;
 			node->type = MODE_POLLER;
 			grok_node(c, node);
 			if (!node->hostgroup)
 				cfg_error(c, NULL, "Missing 'hostgroup' variable\n");
 		}
 		else if (!prefixcmp(c->name, "peer")) {
-			is_noc = 1;
 			node->type = MODE_PEER;
 			grok_node(c, node);
 		}

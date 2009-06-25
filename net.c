@@ -527,8 +527,8 @@ static void check_node_activity(merlin_node *node)
 {
 	time_t now = time(NULL);
 
-	/* pollers don't care about nocs (XXX: What about peers?) */
-	if (!is_noc)
+	/* we only bother about pollers, so return early if we have none */
+	if (!num_pollers)
 		return;
 
 	if (node->sock == -1 || node->status != STATE_CONNECTED)
@@ -599,7 +599,7 @@ int net_send_ipc_data(struct merlin_event *pkt)
 {
 	int i;
 
-	if (is_noc && pkt->hdr.selection != 0xffff) {
+	if (num_pollers && pkt->hdr.selection != 0xffff) {
 		merlin_node *node = nodelist_by_selection(pkt->hdr.selection);
 
 		ldebug("Sending to nodes by selection '%s'", get_sel_name(pkt->hdr.selection));

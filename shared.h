@@ -51,7 +51,6 @@ static inline void *xfree(void *ptr)
 #define prefixcmp(a, b) strncmp(a, b, strlen(b))
 
 /** global variables present in both module and daemon **/
-extern int is_noc;
 extern int is_module;
 extern int pulse_interval;
 extern int debug;
