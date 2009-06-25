@@ -599,6 +599,9 @@ int net_send_ipc_data(struct merlin_event *pkt)
 {
 	int i;
 
+	if (!num_nodes)
+		return 0;
+
 	if (num_pollers && pkt->hdr.selection != 0xffff) {
 		merlin_node *node = nodelist_by_selection(pkt->hdr.selection);
 
