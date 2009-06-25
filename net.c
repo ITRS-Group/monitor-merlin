@@ -19,9 +19,9 @@
 
 static int net_sock = -1; /* listening sock descriptor */
 
-#define num_nodes (nocs + pollers + peers)
+#define num_nodes (num_nocs + num_pollers + num_peers)
 #define node_table noc_table
-static unsigned nocs, pollers, peers;
+static unsigned num_nocs, num_pollers, num_peers;
 static merlin_node *base, **noc_table, **poller_table, **peer_table;
 //static struct timeval sock_to = { 0, 0 };
 static merlin_node **selection_table;
@@ -90,14 +90,14 @@ void create_node_tree(merlin_node *table, unsigned n)
 		int id = get_sel_id(node->hostgroup);
 		switch (node->type) {
 		case MODE_NOC:
-			nocs++;
+			num_nocs++;
 			break;
 		case MODE_POLLER:
-			pollers++;
+			num_pollers++;
 			selection_table[id] = add_node_to_list(node, selection_table[id]);
 			break;
 		case MODE_PEER:
-			peers++;
+			num_peers++;
 			break;
 		}
 	}
@@ -106,8 +106,8 @@ void create_node_tree(merlin_node *table, unsigned n)
 	 * table and still not waste much memory. pretty nifty, really */
 	node_table = calloc(num_nodes, sizeof(merlin_node *));
 	noc_table = node_table;
-	peer_table = &node_table[nocs];
-	poller_table = &node_table[nocs + peers];
+	peer_table = &node_table[num_nocs];
+	poller_table = &node_table[num_nocs + num_peers];
 
 	xnoc = xpeer = xpoll = 0;
 	for (i = 0; i < n; i++) {
@@ -611,9 +611,9 @@ int net_send_ipc_data(struct merlin_event *pkt)
 			net_sendto(node, pkt);
 	}
 	else {
-		ldebug("Sending to all %d nocs and peers", nocs + peers);
+		ldebug("Sending to %u nocs and %u peers", num_nocs, num_peers);
 
-		for (i = 0; i < nocs + peers; i++) {
+		for (i = 0; i < num_nocs + num_peers; i++) {
 			merlin_node *node = node_table[i];
 
 			net_sendto(node, pkt);
