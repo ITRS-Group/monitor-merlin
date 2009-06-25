@@ -7,7 +7,6 @@
 #include <fcntl.h>
 
 #include "net.h"
-#include "redundancy.h"
 #include "types.h"
 #include "shared.h"
 #include "logging.h"

@@ -28,6 +28,17 @@
 #include "logging.h"
 #include "config.h"
 
+/*
+ * debug macros. All of them (including assert), goes away when NDEBUG
+ * is specified. None of these may have side-effects (Heisenbugs)
+ */
+#ifndef NDEBUG
+# include <assert.h>
+# define dbug(s) fprintf(stderr, s " @ %s->%s:%d", __FILE__, __func__, __LINE__)
+#else
+# define dbug(s)
+#endif
+
 #ifndef offsetof
 # define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
 #endif

@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <dirent.h>
 
-#include "redundancy.h"
 #include "config.h"
 #include "module.h"
 
