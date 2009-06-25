@@ -262,6 +262,7 @@ int binlog_add(binlog *bl, void *buf, size_t len)
 		return binlog_mem_add(bl, buf, len);
 	}
 
+	binlog_flush(bl);
 	return binlog_file_add(bl, buf, len);
 }
 
