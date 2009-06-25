@@ -6,6 +6,7 @@
 #include "protocol.h"
 #include "logging.h"
 #include "status.h"
+#include "daemon.h"
 
 #define safe_str(str) (str == NULL ? "''" : str)
 #define safe_free(str) do { if (str) free(str); } while (0)

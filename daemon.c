@@ -8,8 +8,7 @@
 #include "protocol.h"
 #include "sql.h"
 #include "daemonize.h"
-
-int mrm_db_update(struct merlin_event *pkt);
+#include "daemon.h"
 
 extern const char *__progname;
 
@@ -63,13 +62,6 @@ static int node_action_handler(merlin_node *node, int action)
 	return 1;
 }
 
-
-int handle_network_event(merlin_node *node, merlin_event *pkt)
-{
-	ipc_send_event(pkt);
-	mrm_db_update(pkt);
-	return 0;
-}
 
 static void grok_node(struct compound *c, merlin_node *node)
 {

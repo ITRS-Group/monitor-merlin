@@ -13,6 +13,7 @@
 #include "protocol.h"
 #include "ipc.h"
 #include "io.h"
+#include "daemon.h"
 
 #define DEF_SOCK_TIMEOUT 50000
 
@@ -538,7 +539,25 @@ static void check_node_activity(merlin_node *node)
 }
 
 
-extern int handle_network_event(merlin_node *node, merlin_event *pkt);
+int handle_network_event(merlin_node *node, merlin_event *pkt)
+{
+	if (node->type == MODE_POLLER && num_nocs) {
+		int i;
+
+		linfo("Passing on event from poller %s to %d nocs",
+			  node->name, num_nocs);
+
+		for (i = 0; i < num_nocs; i++) {
+			merlin_node *noc = noc_table[i];
+			net_sendto(noc, pkt);
+		}
+	}
+
+	ipc_send_event(pkt);
+	mrm_db_update(pkt);
+	return 0;
+}
+
 static void net_input(merlin_node *node)
 {
 	merlin_event pkt;
