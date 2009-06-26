@@ -58,6 +58,10 @@ static int handle_host_result(struct merlin_header *hdr, void *buf)
 	linfo("received check result for host '%s'", ds->host_name);
 
 	hst = find_host(ds->host_name);
+	if (!hst) {
+		lerr("Unable to find host '%s'", ds->host_name);
+		return 0;
+	}
 
 	xfree(hst->plugin_output);
 	hst->plugin_output = strdup(ds->output);
