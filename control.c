@@ -113,7 +113,7 @@ void disable_all_distributed_checks(void)
 {
 	int i;
 
-	for (i = 0; i <= get_num_selections(); i++)
+	for (i = 0; i < get_num_selections(); i++)
 		enable_disable_checks(i, 0);
 }
 
