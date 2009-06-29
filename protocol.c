@@ -5,6 +5,7 @@
 #include "io.h"
 #include "protocol.h"
 #include "logging.h"
+#include "shared.h"
 
 int proto_read_event(int sock, struct merlin_event *pkt)
 {
@@ -37,8 +38,8 @@ int proto_read_event(int sock, struct merlin_event *pkt)
 			  result, pkt->hdr.len);
 	}
 	else {
-		ldebug("Successfully read 1 event (%zu bytes; %u bytes body) from socket %d\n",
-			   HDR_SIZE + result, pkt->hdr.len, sock);
+		ldebug("Successfully read 1 %s event (%zu bytes; %u bytes body) from socket %d\n",
+			   callback_name(pkt->hdr.type), HDR_SIZE + result, pkt->hdr.len, sock);
 	}
 
 	return result;
