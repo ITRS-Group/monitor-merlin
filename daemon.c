@@ -13,7 +13,7 @@
 
 extern const char *__progname;
 
-static int use_database;
+int use_database;
 static const char *pidfile, *merlin_user;
 static char *import_program = "php /home/exon/git/monitor/merlin/import.php";
 int default_port = 15551;

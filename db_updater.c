@@ -321,6 +321,9 @@ int mrm_db_update(struct merlin_event *pkt)
 {
 	int errors = 0;
 
+	if (!use_database)
+		return 0;
+
 	if (!pkt) {
 		lerr("pkt is NULL in mrm_db_update");
 		return 0;
