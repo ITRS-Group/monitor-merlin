@@ -19,14 +19,15 @@ static int mdb_update_host_status(const nebstruct_host_check_data *p)
 	if (p->type != NEBTYPE_HOSTCHECK_PROCESSED)
 		return 0;
 
-	st = get_host_state(p->host_name);
-
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->output, &output);
 	sql_quote(p->perf_data, &perf_data);
 	sql_quote(p->long_output, &long_output);
 
-	if (st) {
+	st = get_host_state(p->host_name);
+	if (!st) {
+		lerr("Failed to find stored state for host '%s'", p->host_name);
+	} else {
 		if (p->state != extract_state(st->state)) {
 			result = sql_query("UPDATE %s.host SET last_state_change = %lu "
 				   "WHERE host_name = %s",
@@ -69,16 +70,18 @@ static int mdb_update_service_status(const nebstruct_service_check_data *p)
 	if (p->type != NEBTYPE_SERVICECHECK_PROCESSED)
 		return 0;
 
-	st = get_service_state(p->host_name, p->service_description);
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->output, &output);
 	sql_quote(p->output, &long_output);
 	sql_quote(p->perf_data, &perf_data);
 	sql_quote(p->service_description, &service_description);
 
-	if (st) {
+	st = get_service_state(p->host_name, p->service_description);
+	if (!st) {
+		lerr("Failed to get stored state for service '%s' on host '%s'",
+			 p->service_description, p->host_name);
+	} else {
 		if (p->state != extract_state(st->state)) {
-
 			result = sql_query("UPDATE %s.service SET last_state_change = %lu "
 					   "WHERE host_name = %s AND service_description = %s",
 					   sql_db_name(), p->end_time.tv_sec, host_name, service_description);
