@@ -9,6 +9,7 @@
 #include "sql.h"
 #include "daemonize.h"
 #include "daemon.h"
+#include "status.h"
 
 extern const char *__progname;
 
@@ -16,6 +17,7 @@ static int use_database;
 static const char *pidfile, *merlin_user;
 static char *import_program = "php /home/exon/git/monitor/merlin/import.php";
 int default_port = 15551;
+size_t hosts, services;
 
 static void usage(char *fmt, ...)
 	__attribute__((format(printf,1,2)));
@@ -273,6 +275,7 @@ static int read_nagios_paths(merlin_event *pkt)
 	}
 
 	import_objects_and_status(nagios_paths[0], nagios_paths[1], nagios_paths[2]);
+	prime_object_states(&hosts, &services);
 
 	return 0;
 }
@@ -456,6 +459,9 @@ int main(int argc, char **argv)
 	signal(SIGINT, clean_exit);
 	signal(SIGTERM, clean_exit);
 	signal(SIGPIPE, dump_core);
+	prime_object_states(&hosts, &services);
+	linfo("Primed object states for %zu hosts and %zu services",
+		  hosts, services);
 	linfo("Merlin daemon %s successfully initialized", merlin_version);
 	polling_loop();
 
