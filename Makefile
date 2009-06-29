@@ -3,7 +3,7 @@ CFLAGS = -O2 -pipe -Wall -ggdb3 -fPIC
 SHARED_OBJS = config.o ipc.o shared.o io.o protocol.o data.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
 TEST_DEPS = test_utils.h
-COMMON_OBJS = logging.o $(SHARED_OBJS)
+COMMON_OBJS = version.o logging.o $(SHARED_OBJS)
 DAEMON_OBJS = status.o daemonize.o daemon.o net.o sql.o db_updater.o
 DAEMON_OBJS += $(COMMON_OBJS)
 MODULE_OBJS = module.o hooks.o control.o hash.o $(COMMON_OBJS)
@@ -70,6 +70,9 @@ $(COMMON_OBJS): $(DEPS)
 module.o: module.c $(MODULE_DEPS) $(DEPS) hash.h
 $(DAEMON_OBJS): $(DAEMON_DEPS) $(DEPS)
 $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
+
+version.c: gen-version.sh
+	sh gen-version.sh > version.c
 
 clean: clean-core clean-log
 	rm -f $(NEB) $(PROG) *.o blread endpoint

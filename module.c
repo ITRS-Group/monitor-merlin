@@ -430,6 +430,8 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	/* this gets de-registered immediately, so we need to add it manually */
 	neb_register_callback(NEBCALLBACK_PROCESS_DATA, neb_handle, 0, post_config_init);
 
+	linfo("Merlin module %s initialized successfully", merlin_version);
+
 	return 0;
 }
 

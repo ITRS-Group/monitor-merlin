@@ -11,3 +11,4 @@ endpoint
 *.bin
 merlind
 *test
+version.c

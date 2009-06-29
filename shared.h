@@ -66,6 +66,8 @@ extern int is_module;
 extern int pulse_interval;
 extern int debug;
 
+extern const char *merlin_version;
+
 /** prototypes **/
 extern char *next_word(char *str);
 extern int grok_common_var(struct compound *config, struct cfg_var *v);
