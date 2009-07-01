@@ -175,14 +175,21 @@ static int mdb_handle_downtime(const nebstruct_downtime_data *p)
 	switch (p->type) {
 	case NEBTYPE_DOWNTIME_START:
 	case NEBTYPE_DOWNTIME_STOP:
-		result = sql_query
-			("UPDATE %s.%s "
-			 "SET scheduled_downtime_depth = scheduled_downtime_depth %c 1 "
-			 "WHERE host_name = %s AND service_description = %s",
-			 sql_db_name(),
-			 p->service_description ? "service" : "host",
-			 p->type == NEBTYPE_DOWNTIME_START ? '+' : '-',
-			 host_name, safe_str(service_description));
+		if (!service_description) {
+			result = sql_query
+				("UPDATE %s.host SET "
+				 "scheduled_downtime_depth = scheduled_downtime_depth %c 1 "
+				 "WHERE host_name = %s", sql_db_name(),
+				 p->type == NEBTYPE_DOWNTIME_START ? '+' : '-', host_name);
+		} else {
+			result = sql_query
+				("UPDATE %s.service SET "
+				 "scheduled_downtime_depth = scheduled_downtime_depth %c 1 "
+				 "WHERE host_name = %s AND service_description = %s",
+				 sql_db_name(),
+				 p->type == NEBTYPE_DOWNTIME_START ? '+' : '-',
+				 host_name, service_description);
+		}
 		break;
 	case NEBTYPE_DOWNTIME_LOAD:
 		result = sql_query
