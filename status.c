@@ -1,5 +1,6 @@
 #include "sql.h"
 #include "status.h"
+#include "daemon.h"
 #include <stdio.h>
 #include <string.h>
 #include <dbi/dbi.h>
@@ -89,6 +90,9 @@ static void destroy_states(struct object_state *ostate, size_t count)
 
 int prime_object_states(size_t *hosts, size_t *services)
 {
+	if (!use_database)
+		return 0;
+
 	destroy_states(object_states[0], num_objects[0]);
 	destroy_states(object_states[1], num_objects[1]);
 
