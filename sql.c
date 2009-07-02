@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "sql.h"
 #include "logging.h"
+#include "daemon.h"
 #include <dbi/dbi.h>
 #include <string.h>
 
@@ -80,6 +81,11 @@ int sql_query(const char *fmt, ...)
 	int len;
 	va_list ap;
 
+	if (!use_database) {
+		lerr("Not using a database, but daemon still issued a query");
+		return -1;
+	}
+
 	va_start(ap, fmt);
 	len = vasprintf(&query, fmt, ap);
 	va_end(ap);
@@ -103,6 +109,9 @@ int sql_init(void)
 {
 	int result;
 	dbi_driver driver;
+
+	if (!use_database)
+		return 0;
 
 	result = dbi_initialize(NULL);
 	if (result < 1) {
