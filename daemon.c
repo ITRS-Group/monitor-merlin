@@ -235,6 +235,10 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 	char *cmd;
 	int result;
 
+	/* don't bother if we're not using a datbase */
+	if (!use_database)
+		return 0;
+
 	asprintf(&cmd, "%s --nagios-cfg=%s --cache=%s "
 			 "--db-name=%s --db-user=%s --db-pass=%s --db-host=%s",
 			 import_program, cfg, cache,
