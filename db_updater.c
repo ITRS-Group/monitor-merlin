@@ -1,3 +1,4 @@
+
 #include "nagios/nebstructs.h"
 #include "nagios/nebcallbacks.h"
 #include "nagios/broker.h"
@@ -10,11 +11,10 @@
 
 #define safe_str(str) (str == NULL ? "''" : str)
 #define safe_free(str) do { if (str) free(str); } while (0)
-static int mdb_update_host_status(const nebstruct_host_check_data *p)
+static int mdb_update_host_status(object_state *st, const nebstruct_host_check_data *p)
 {
 	char *host_name, *output, *long_output, *perf_data = NULL;
 	int result;
-	object_state *st;
 
 	if (p->type != NEBTYPE_HOSTCHECK_PROCESSED)
 		return 0;
@@ -25,7 +25,6 @@ static int mdb_update_host_status(const nebstruct_host_check_data *p)
 	sql_quote(p->perf_data, &perf_data);
 	sql_quote(p->long_output, &long_output);
 
-	st = get_host_state(p->host_name);
 	if (!st) {
 		lerr("Failed to find stored state for host '%s'", p->host_name);
 	} else {
@@ -35,8 +34,6 @@ static int mdb_update_host_status(const nebstruct_host_check_data *p)
 				   sql_db_name(), p->end_time.tv_sec, host_name);
 			sql_free_result();
 		}
-
-		st->state = concat_state(p->state_type, p->state);
 	}
 
 	result = sql_query
@@ -62,11 +59,10 @@ static int mdb_update_host_status(const nebstruct_host_check_data *p)
 	return result;
 }
 
-static int mdb_update_service_status(const nebstruct_service_check_data *p)
+static int mdb_update_service_status(object_state *st, const nebstruct_service_check_data *p)
 {
 	char *host_name, *output, *long_output, *perf_data, *service_description;
 	int result;
-	object_state *st;
 
 	if (p->type != NEBTYPE_SERVICECHECK_PROCESSED)
 		return 0;
@@ -79,7 +75,6 @@ static int mdb_update_service_status(const nebstruct_service_check_data *p)
 	sql_quote(p->perf_data, &perf_data);
 	sql_quote(p->service_description, &service_description);
 
-	st = get_service_state(p->host_name, p->service_description);
 	if (!st) {
 		lerr("Failed to get stored state for service '%s' on host '%s'",
 			 p->service_description, p->host_name);
@@ -90,8 +85,6 @@ static int mdb_update_service_status(const nebstruct_service_check_data *p)
 					   sql_db_name(), p->end_time.tv_sec, host_name, service_description);
 			sql_free_result();
 		}
-
-		st->state = concat_state(p->state_type, p->state);
 	}
 
 	result = sql_query
@@ -330,6 +323,9 @@ static int mdb_handle_notification(const nebstruct_notification_data *p)
 int mrm_db_update(merlin_event *pkt)
 {
 	int errors = 0;
+	object_state *st;
+	nebstruct_host_check_data *hst;
+	nebstruct_service_check_data *srv;
 
 	if (!use_database)
 		return 0;
@@ -341,11 +337,27 @@ int mrm_db_update(merlin_event *pkt)
 	deblockify(pkt->body, pkt->hdr.len, pkt->hdr.type);
 	switch (pkt->hdr.type) {
 	case NEBCALLBACK_HOST_CHECK_DATA:
-		errors = mdb_update_host_status((void *)pkt->body);
+		hst = (nebstruct_host_check_data *)pkt->body;
+		st = get_host_state(hst->host_name);
+		errors = mdb_update_host_status(st, (void *)pkt->body);
+		/*
+		 * additional queries can be run here, being
+		 * passed the state struct if necessary
+		 */
+		if (st)
+			st->state = concat_state(hst->state_type, hst->state);
 		break;
 
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
-		errors = mdb_update_service_status((void *)pkt->body);
+		srv = (nebstruct_service_check_data *)pkt->body;
+		st = get_service_state(srv->host_name, srv->service_description);
+		errors = mdb_update_service_status(st, (void *)pkt->body);
+		/*
+		 * additional queries can be run here, being
+		 * passed the state struct if necessary
+		 */
+		if (st)
+			st->state = concat_state(srv->state, srv->state);
 		break;
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 		errors = mdb_update_program_status((void *)pkt->body);
