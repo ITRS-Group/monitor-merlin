@@ -26,7 +26,7 @@ static inline void _compare_ptr_strings(char *a, char *b, int *errors)
 int test_service_check_data(int *errors)
 {
 	nebstruct_service_check_data *orig, *mod;
-	struct merlin_event pkt;
+	merlin_event pkt;
 	int len;
 
 	orig = malloc(sizeof(*orig));
@@ -59,7 +59,7 @@ int test_service_check_data(int *errors)
 int test_host_check_data(int *errors)
 {
 	nebstruct_host_check_data *orig, *mod;
-	struct merlin_event pkt;
+	merlin_event pkt;
 	int len;
 
 	orig = malloc(sizeof(*orig));
@@ -91,7 +91,7 @@ int test_host_check_data(int *errors)
 int test_adding_comment(int *errors, char *service_description)
 {
 	nebstruct_comment_data *orig, *mod;
-	struct merlin_event pkt;
+	merlin_event pkt;
 	int len;
 
 	orig = calloc(1, sizeof(*orig));
@@ -125,7 +125,7 @@ int test_adding_comment(int *errors, char *service_description)
 int test_deleting_comment(int *errors)
 {
 	nebstruct_comment_data *orig;
-	struct merlin_event pkt;
+	merlin_event pkt;
 
 	orig = (void *)pkt.body;
 	memset(orig, 0, sizeof(*orig));

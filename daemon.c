@@ -284,7 +284,7 @@ static int read_nagios_paths(merlin_event *pkt)
 	return 0;
 }
 
-static int handle_ipc_data(struct merlin_event *pkt)
+static int handle_ipc_data(merlin_event *pkt)
 {
 	int result = 0;
 
@@ -346,7 +346,7 @@ static int io_poll_sockets(void)
 		ipc_accept();
 	}
 	if (ipc_sock > 0 && FD_ISSET(ipc_sock, &rd)) {
-		struct merlin_event pkt;
+		merlin_event pkt;
 		sockets++;
 		linfo("inbound data available on ipc socket\n");
 		if (ipc_read_event(&pkt) > 0)

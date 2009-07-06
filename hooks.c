@@ -15,7 +15,7 @@
 
 int hook_generic(int cb, void *data)
 {
-	struct merlin_event pkt;
+	merlin_event pkt;
 
 	pkt.hdr.type = cb;
 	pkt.hdr.len = blockify(data, cb, pkt.body, sizeof(pkt.body));
@@ -31,7 +31,7 @@ int hook_generic(int cb, void *data)
 int hook_service_result(int cb, void *data)
 {
 	nebstruct_service_check_data *ds = (nebstruct_service_check_data *)data;
-	struct merlin_event pkt;
+	merlin_event pkt;
 	int result;
 
 	if (ds->type != NEBTYPE_SERVICECHECK_PROCESSED
@@ -54,7 +54,7 @@ int hook_service_result(int cb, void *data)
 int hook_host_result(int cb, void *data)
 {
 	nebstruct_host_check_data *ds = (nebstruct_host_check_data *)data;
-	struct merlin_event pkt;
+	merlin_event pkt;
 	int result;
 
 	/* ignore un-processed and passive checks */

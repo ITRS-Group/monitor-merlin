@@ -4,6 +4,6 @@
 #include "protocol.h"
 
 extern int use_database;
-extern int mrm_db_update(struct merlin_event *pkt);
+extern int mrm_db_update(merlin_event *pkt);
 
 #endif

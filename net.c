@@ -494,7 +494,7 @@ int net_init(void)
 
 
 /* send a specific packet to a specific host */
-static int net_sendto(merlin_node *node, struct merlin_event *pkt)
+static int net_sendto(merlin_node *node, merlin_event *pkt)
 {
 	int result;
 
@@ -613,7 +613,7 @@ static void net_input(merlin_node *node)
 }
 
 
-int net_send_ipc_data(struct merlin_event *pkt)
+int net_send_ipc_data(merlin_event *pkt)
 {
 	int i;
 

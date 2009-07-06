@@ -12,9 +12,9 @@
 #define CTRL_ACTIVE   3
 #define CTRL_PATHS    4
 
-#define HDR_SIZE (sizeof(struct merlin_header))
-#define PKT_SIZE (sizeof(struct merlin_event))
-#define BODY_SIZE (TOTAL_PKT_SIZE - sizeof(struct merlin_header))
+#define HDR_SIZE (sizeof(merlin_header))
+#define PKT_SIZE (sizeof(merlin_event))
+#define BODY_SIZE (TOTAL_PKT_SIZE - sizeof(merlin_header))
 #define TOTAL_PKT_SIZE 32768
 #define MAX_PKT_SIZE TOTAL_PKT_SIZE /* for now. remove this macro later */
 
@@ -31,17 +31,16 @@ struct merlin_header {
 	/* pad to 64 bytes for future extensions */
 	char padding[64 - sizeof(struct timeval) - (2 * 6)];
 } __attribute__((packed));
+typedef struct merlin_header merlin_header;
 
 struct merlin_event {
-	struct merlin_header hdr;
+	merlin_header hdr;
 	char body[BODY_SIZE];
 } __attribute__((packed));
-
-typedef struct merlin_header merlin_header;
 typedef struct merlin_event merlin_event;
 
-extern int proto_send_event(int sock, struct merlin_event *pkt);
-extern int proto_read_event(int sock, struct merlin_event *pkt);
+extern int proto_send_event(int sock, merlin_event *pkt);
+extern int proto_read_event(int sock, merlin_event *pkt);
 extern int proto_ctrl(int sock, int control_type, int selection);
 
 #endif

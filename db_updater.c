@@ -327,7 +327,7 @@ static int mdb_handle_notification(const nebstruct_notification_data *p)
 		 p->escalated, p->contacts_notified);
 }
 
-int mrm_db_update(struct merlin_event *pkt)
+int mrm_db_update(merlin_event *pkt)
 {
 	int errors = 0;
 

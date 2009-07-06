@@ -7,7 +7,7 @@
 #include "logging.h"
 #include "shared.h"
 
-int proto_read_event(int sock, struct merlin_event *pkt)
+int proto_read_event(int sock, merlin_event *pkt)
 {
 	int len, result;
 
@@ -45,7 +45,7 @@ int proto_read_event(int sock, struct merlin_event *pkt)
 	return result;
 }
 
-int proto_send_event(int sock, struct merlin_event *pkt)
+int proto_send_event(int sock, merlin_event *pkt)
 {
 	pkt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
 
@@ -59,7 +59,7 @@ int proto_send_event(int sock, struct merlin_event *pkt)
 
 int proto_ctrl(int sock, int control_type, int selection)
 {
-	struct merlin_header hdr;
+	merlin_header hdr;
 
 	memset(&hdr, 0, HDR_SIZE);
 

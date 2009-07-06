@@ -300,7 +300,7 @@ int ipc_send_ctrl(int control_type, int selection)
 	return proto_ctrl(ipc_sock, control_type, selection);
 }
 
-int ipc_send_event(struct merlin_event *pkt)
+int ipc_send_event(merlin_event *pkt)
 {
 	int result;
 
@@ -325,7 +325,7 @@ int ipc_send_event(struct merlin_event *pkt)
 	return result;
 }
 
-int ipc_read_event(struct merlin_event *pkt)
+int ipc_read_event(merlin_event *pkt)
 {
 	int poll_result;
 

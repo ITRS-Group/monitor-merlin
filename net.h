@@ -15,7 +15,7 @@ extern int net_init(void);
 extern int shoutcast(int type, void *buf, size_t len);
 extern int read_all(int fd, void *buf, size_t len);
 extern int net_poll(void);
-extern int net_send_ipc_data(struct merlin_event *pkt);
+extern int net_send_ipc_data(merlin_event *pkt);
 extern int net_sock_desc();
 extern int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val);
 extern void check_all_node_activity(void);
