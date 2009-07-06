@@ -131,7 +131,13 @@ static struct hook_info_struct {
 	{ NEBCALLBACK_CONTACT_NOTIFICATION_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_ACKNOWLEDGEMENT_DATA, 0, sizeof(nebstruct_acknowledgement_data),
-		{ 0, 0, 0, 0, 0 },
+		{
+			offsetof(nebstruct_acknowledgement_data, host_name),
+			offsetof(nebstruct_acknowledgement_data, service_description),
+			offsetof(nebstruct_acknowledgement_data, author_name),
+			offsetof(nebstruct_acknowledgement_data, comment_data),
+			0
+		},
 	},
 	{ NEBCALLBACK_STATE_CHANGE_DATA, 3, sizeof(nebstruct_statechange_data),
 		{
