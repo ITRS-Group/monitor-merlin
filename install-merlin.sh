@@ -59,15 +59,31 @@ db_setup ()
 {
 	case "$db_type" in
 		mysql)
+			# Create database if it do not exist
+			if [[ ! $(mysql -e "SHOW DATABASES LIKE '$db_name'") ]]; then
+				echo "Creating database $db_name"
+				mysql -e "CREATE DATABASE IF NOT EXISTS $db_name"
+			fi
+			# Always set privileges (to be on the extra safe side)
 			mysql -e \
 			  "GRANT ALL ON $db_name.* TO $db_user@localhost IDENTIFIED BY '$db_pass'"
 			mysql -e 'FLUSH PRIVILEGES'
-			query="SELECT last_check FROM report_data LIMIT 1"
-			if ! mysql $db_name -Be "$query" >/dev/null 2>&1; then
-				echo "Creating database $db_name"
-				mysqladmin create "$db_name"
-				mysql $db_name < $src_dir/db.sql
-			fi
+			# Fetch db_version and do upgrade stuff if/when needed
+			query="SELECT version FROM db_version"
+			db_version=$(mysql $db_name -BNe "$query" 2>/dev/null)
+			case "$db_version" in
+				"")
+					# No db installed
+					mysql $db_name < $src_dir/db.sql
+					;;
+				"1")
+					# DB Version is 1 and db should be re-installed (According to AE)
+					mysql $db_name < $src_dir/db.sql
+					;;
+				*)
+					# Unknown version, should we handle this?
+					;;
+			esac
 			;;
 		*)
 			echo "Unknown database type '$db_type'"
