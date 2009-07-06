@@ -58,7 +58,7 @@ mkdir -p -m 777 %buildroot/%mod_path/logs
 echo "Running pre scriptlet"
 sh /etc/init.d/monitor stop || :
 sh /etc/init.d/monitor slay || :
-
+echo "Pre scriptlet done"
 
 %preun
 echo "Running preun scriptlet"
@@ -74,7 +74,7 @@ fi
 %post
 echo "Running post scriptlet"
 sh /etc/init.d/monitor start || :
-
+echo "Post scriptlet done"
 
 %post -n merlin
 %mod_path/install-merlin.sh --batch --install=db,config \
