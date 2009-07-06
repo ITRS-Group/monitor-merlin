@@ -124,7 +124,11 @@ static struct hook_info_struct {
 	{ NEBCALLBACK_ADAPTIVE_HOST_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_ADAPTIVE_SERVICE_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_EXTERNAL_COMMAND_DATA, 0, sizeof(nebstruct_external_command_data),
-		{ 0, 0, 0, 0, 0 },
+		{
+			offsetof(nebstruct_external_command_data, command_string),
+			offsetof(nebstruct_external_command_data, command_args),
+			0, 0, 0
+		},
 	},
 	{ NEBCALLBACK_AGGREGATED_STATUS_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_RETENTION_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
