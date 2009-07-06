@@ -45,7 +45,7 @@ static int mdb_update_host_status(const nebstruct_host_check_data *p)
 		 "start_time = %lu, end_time = %lu, early_timeout = %d, "
 		 "execution_time = %f, latency = '%.3f', last_check = %lu, "
 		 "return_code = %d, output = %s, long_output = %s, perf_data = %s "
-		 "WHERE host_name = '%s'",
+		 "WHERE host_name = %s",
 		 sql_db_name(),
 		 p->current_attempt, p->check_type,
 		 p->state_type, p->state, p->timeout,
