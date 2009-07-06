@@ -79,9 +79,14 @@ void enable_disable_checks(int selection, int enable)
 {
 	linked_item *list;
 	int nsel;
+	char *sel_name = NULL;
 
 	nsel = get_num_selections();
 	if (!nsel)
+		return;
+
+	sel_name = get_sel_name(selection);
+	if (!sel_name)
 		return;
 
 	if (selection < 0 || selection >= get_num_selections()) {
@@ -92,7 +97,7 @@ void enable_disable_checks(int selection, int enable)
 	}
 
 	linfo("%sabling active checks for hosts in hostgroup '%s'",
-	      enable ? "En" : "Dis", get_sel_name(selection));
+	      enable ? "En" : "Dis", sel_name);
 	for (list = mrm_host_list[selection]; list; list = list->next_item) {
 		host *hst = (host *)list->item;
 		hst->checks_enabled = enable;
@@ -100,7 +105,7 @@ void enable_disable_checks(int selection, int enable)
 	}
 
 	linfo("%sabling active checks for services of hosts in hostgroup '%s'",
-	      enable ? "En" : "Dis", get_sel_name(selection));
+	      enable ? "En" : "Dis", sel_name);
 	for (list = mrm_service_list[selection]; list; list = list->next_item) {
 		service *srv = (service *)list->item;
 		srv->checks_enabled = enable;
@@ -119,11 +124,19 @@ void disable_all_distributed_checks(void)
 
 void handle_control(int code, int selection)
 {
+	char *sel_name = NULL;
+
+	sel_name = get_sel_name(selection);
 	if (selection == -1)
 		linfo("Received general control packet, code %d", code);
-	else
-		linfo("Received control packet code %d for selection '%s'",
-			  code, get_sel_name(selection));
+	else {
+		if (!sel_name) {
+			lwarn("Received control packet code %d for invalid selection", code);
+		} else {
+			linfo("Received control packet code %d for selection '%s'",
+				  code, sel_name);
+		}
+	}
 
 	switch (code) {
 	case CTRL_INACTIVE:
