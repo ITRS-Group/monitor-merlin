@@ -97,7 +97,7 @@ int log_init(void)
 	if (log_fp)
 		return 0;
 
-	log_fp = fopen(log_file, "w+");
+	log_fp = fopen(log_file, "a");
 
 	if (!log_fp)
 		return -1;
