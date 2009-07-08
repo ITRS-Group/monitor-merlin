@@ -143,7 +143,7 @@ install_files ()
 	test "$missing" && abort "Essential files are missing. Perhaps you need to run 'make'?"
 
 	test -d "$root_path/$dest_dir" || mkdir -p 755 "$root_path/$dest_dir"
-	test -d "$root_path/$dest_dir/logs" || mkdir -p 775 "$root_path/$dest_dir/logs"
+	test -d "$root_path/$dest_dir/logs" || mkdir -p 777 "$root_path/$dest_dir/logs"
 	test -d "$root_path/$dest_dir" || { echo "$root_path/$dest_dir is not a directory"; return 1; }
 	cp "$src_dir/"{merlind,merlin.so,install-merlin.sh} "$root_path/$dest_dir"
 	cp "$src_dir/"{init.sh,install-merlin.sh,db.sql,example.conf} "$root_path/$dest_dir"
