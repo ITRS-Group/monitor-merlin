@@ -23,7 +23,6 @@ static int net_sock = -1; /* listening sock descriptor */
 #define node_table noc_table
 static unsigned num_nocs, num_pollers, num_peers;
 static merlin_node *base, **noc_table, **poller_table, **peer_table;
-//static struct timeval sock_to = { 0, 0 };
 static merlin_node **selection_table;
 
 int net_sock_desc(void)
