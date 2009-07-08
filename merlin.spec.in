@@ -73,8 +73,6 @@ fi
 
 %post
 echo "Running post scriptlet"
-sync
-sleep 5
 sh /etc/init.d/monitor start || :
 echo "Post scriptlet done"
 
