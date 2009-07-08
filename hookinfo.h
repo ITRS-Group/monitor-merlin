@@ -123,7 +123,7 @@ static struct hook_info_struct {
 	{ NEBCALLBACK_ADAPTIVE_PROGRAM_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_ADAPTIVE_HOST_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_ADAPTIVE_SERVICE_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
-	{ NEBCALLBACK_EXTERNAL_COMMAND_DATA, 0, sizeof(nebstruct_external_command_data),
+	{ NEBCALLBACK_EXTERNAL_COMMAND_DATA, 2, sizeof(nebstruct_external_command_data),
 		{
 			offsetof(nebstruct_external_command_data, command_string),
 			offsetof(nebstruct_external_command_data, command_args),
@@ -134,7 +134,7 @@ static struct hook_info_struct {
 	{ NEBCALLBACK_RETENTION_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_CONTACT_NOTIFICATION_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
-	{ NEBCALLBACK_ACKNOWLEDGEMENT_DATA, 0, sizeof(nebstruct_acknowledgement_data),
+	{ NEBCALLBACK_ACKNOWLEDGEMENT_DATA, 4, sizeof(nebstruct_acknowledgement_data),
 		{
 			offsetof(nebstruct_acknowledgement_data, host_name),
 			offsetof(nebstruct_acknowledgement_data, service_description),
