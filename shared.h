@@ -25,6 +25,7 @@
 #include <sys/param.h>
 #include <ctype.h>
 
+#include "types.h"
 #include "logging.h"
 #include "config.h"
 
@@ -67,6 +68,72 @@ extern int pulse_interval;
 extern int debug;
 
 extern const char *merlin_version;
+
+/** event structures where Nagios' doesn't provide good ones */
+struct monitored_object_state {
+	int initial_state;
+	int flap_detection_enabled;
+	double low_flap_threshold;
+	double high_flap_threshold;
+	int check_freshness;
+	int freshness_threshold;
+	int process_performance_data;
+	int checks_enabled;
+	int accept_passive_checks;
+	int event_handler_enabled;
+	int obsess;
+	int problem_has_been_acknowledged;
+	int acknowledgement_type;
+	int check_type;
+	int current_state;
+	int last_state;
+	int last_hard_state;
+	int state_type;
+	int current_attempt;
+	unsigned long current_event_id;
+	unsigned long last_event_id;
+	unsigned long current_problem_id;
+	unsigned long last_problem_id;
+	double latency;
+	double execution_time;
+	int notifications_enabled;
+	time_t last_notification;
+	time_t next_notification;
+	time_t next_check;
+	int should_be_scheduled;
+	time_t last_check;
+	time_t last_state_change;
+	time_t last_hard_state_change;
+	time_t last_time_up;
+	time_t last_time_down;
+	time_t last_time_unreachable;
+	int has_been_checked;
+	int current_notification_number;
+	unsigned long current_notification_id;
+	int check_flapping_recovery_notification;
+	int scheduled_downtime_depth;
+	int pending_flex_downtime;
+	int is_flapping;
+	unsigned long flapping_comment_id;
+	double percent_state_change;
+	char *plugin_output;
+	char *long_plugin_output;
+	char *perf_data;
+};
+typedef struct monitored_object_state monitored_object_state;
+
+struct merlin_host_status {
+	monitored_object_state state;
+	char *name;
+};
+typedef struct merlin_host_status merlin_host_status;
+
+struct merlin_service_status {
+	monitored_object_state state;
+	char *host_name;
+	char *service_description;
+};
+typedef struct merlin_service_status merlin_service_status;
 
 /** prototypes **/
 extern char *next_word(char *str);

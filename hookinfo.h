@@ -114,11 +114,23 @@ static struct hook_info_struct {
 			0, 0, 0
 		},
 	},
-	{ NEBCALLBACK_HOST_STATUS_DATA, 0, sizeof(nebstruct_host_status_data),
-		{ 0, 0, 0, 0, 0 },
+	{ NEBCALLBACK_HOST_STATUS_DATA, 4, sizeof(nebstruct_host_status_data),
+		{
+			offsetof(merlin_host_status, state.plugin_output),
+			offsetof(merlin_host_status, state.long_plugin_output),
+			offsetof(merlin_host_status, state.perf_data),
+			offsetof(merlin_host_status, name),
+			0
+		},
 	},
-	{ NEBCALLBACK_SERVICE_STATUS_DATA, 0, sizeof(nebstruct_host_status_data),
-		{ 0, 0, 0, 0, 0 },
+	{ NEBCALLBACK_SERVICE_STATUS_DATA, 5, sizeof(nebstruct_host_status_data),
+		{
+			offsetof(merlin_service_status, state.plugin_output),
+			offsetof(merlin_service_status, state.long_plugin_output),
+			offsetof(merlin_service_status, state.perf_data),
+			offsetof(merlin_service_status, host_name),
+			offsetof(merlin_service_status, service_description)
+		}
 	},
 	{ NEBCALLBACK_ADAPTIVE_PROGRAM_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_ADAPTIVE_HOST_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },

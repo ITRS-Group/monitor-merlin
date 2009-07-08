@@ -369,6 +369,8 @@ extern int hook_host_result(int cb, void *data);
 extern int hook_service_result(int cb, void *data);
 extern int hook_notification(int cb, void *data);
 extern int hook_generic(int cb, void *data);
+extern int hook_host_status(int cb, void *data);
+extern int hook_service_status(int cb, void *data);
 #define CB_ENTRY(modonly, macro, hook) \
 	{ modonly, macro, #macro, hook, #hook }
 static struct callback_struct {
@@ -391,10 +393,8 @@ static struct callback_struct {
 	CB_ENTRY(0, NEBCALLBACK_DOWNTIME_DATA, hook_generic),
 	CB_ENTRY(1, NEBCALLBACK_FLAPPING_DATA, hook_generic),
 	CB_ENTRY(0, NEBCALLBACK_PROGRAM_STATUS_DATA, hook_generic),
-/*
-	CB_ENTRY(0, NEBCALLBACK_HOST_STATUS_DATA, hook_generic),
-	CB_ENTRY(0, NEBCALLBACK_SERVICE_STATUS_DATA, hook_generic),
- */
+	CB_ENTRY(0, NEBCALLBACK_HOST_STATUS_DATA, hook_host_status),
+	CB_ENTRY(0, NEBCALLBACK_SERVICE_STATUS_DATA, hook_service_status),
 };
 
 
