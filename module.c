@@ -395,6 +395,7 @@ static struct callback_struct {
 	CB_ENTRY(0, NEBCALLBACK_PROGRAM_STATUS_DATA, hook_generic),
 	CB_ENTRY(0, NEBCALLBACK_HOST_STATUS_DATA, hook_host_status),
 	CB_ENTRY(0, NEBCALLBACK_SERVICE_STATUS_DATA, hook_service_status),
+	CB_ENTRY(0, NEBCALLBACK_EXTERNAL_COMMAND_DATA, hook_generic),
 };
 
 
