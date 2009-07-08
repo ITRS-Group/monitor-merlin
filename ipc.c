@@ -111,7 +111,7 @@ int ipc_init(void)
 	      is_module ? "module" : "daemon");
 
 	memset(&saun, 0, sizeof(saun));
-	sa->sa_family = AF_UNIX;
+	saun.sun_family = AF_UNIX;
 	memcpy(saun.sun_path, ipc_sock_path, slen);
 	slen += sizeof(struct sockaddr);
 

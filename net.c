@@ -472,7 +472,7 @@ int net_init(void)
 
 	sain.sin_addr.s_addr = 0;
 	sain.sin_port = ntohs(default_port);
-	sa->sa_family = AF_INET;
+	sain.sin_family = AF_INET;
 
 	net_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (net_sock < 0)
