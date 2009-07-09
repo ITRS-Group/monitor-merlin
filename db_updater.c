@@ -3,6 +3,92 @@
 
 #define safe_str(str) (str == NULL ? "''" : str)
 #define safe_free(str) do { if (str) free(str); } while (0)
+
+#define STATUS_QUERY(type) \
+	"UPDATE %s." type " SET " \
+	"initial_state = %d, flap_detection_enabled = %d, " \
+	"low_flap_threshold = %f, high_flap_threshold = %f, " \
+	"check_freshness = %d, freshness_threshold = %d, " \
+	"process_performance_data = %d, " \
+	"active_checks_enabled = %d, passive_checks_enabled = %d, " \
+	"obsess_over_" type " = %d, problem_has_been_acknowledged = %d, " \
+	"acknowledgement_type = %d, check_type = %d, " \
+	"current_state = %d, last_state = %d, " /* 16 - 17 */ \
+	"last_hard_state = %d, state_type = %d, " \
+	"current_attempt = %d, current_event_id = %lu, " \
+	"last_event_id = %lu, current_problem_id = %lu, " \
+	"last_problem_id = %lu, " \
+	"latency = %f, execution_time = %lf, "  /* 25 - 26 */ \
+	"notifications_enabled = %d, " \
+	"last_notification = %lu, " \
+	"next_check = %lu, should_be_scheduled = %d, last_check = %lu, " \
+	"last_state_change = %lu, last_hard_state_change = %lu, " \
+	"has_been_checked = %d, " \
+	"current_notification_number = %d, current_notification_id = %lu, " \
+	"check_flapping_recovery_notification = %d, " \
+	"scheduled_downtime_depth = %d, pending_flex_downtime = %d, " \
+	"is_flapping = %d, flapping_comment_id = %lu, " /* 40 - 41 */ \
+	"percent_state_change = %f "
+
+#define STATUS_ARGS \
+	sql_db_name(), \
+	p->state.initial_state, p->state.flap_detection_enabled, \
+	p->state.low_flap_threshold, p->state.high_flap_threshold, \
+	p->state.check_freshness, p->state.freshness_threshold, \
+	p->state.process_performance_data, \
+	p->state.checks_enabled, p->state.accept_passive_checks, \
+	p->state.obsess, p->state.problem_has_been_acknowledged, \
+	p->state.acknowledgement_type, p->state.check_type, \
+	p->state.current_state, p->state.last_state, \
+	p->state.last_hard_state, p->state.state_type, \
+	p->state.current_attempt, p->state.current_event_id, \
+	p->state.last_event_id, p->state.current_problem_id, \
+	p->state.last_problem_id, \
+	p->state.latency, p->state.execution_time, \
+	p->state.notifications_enabled, \
+	p->state.last_notification, \
+	p->state.next_check, p->state.should_be_scheduled, p->state.last_check, \
+	p->state.last_state_change, p->state.last_hard_state_change, \
+	p->state.has_been_checked, \
+	p->state.current_notification_number, p->state.current_notification_id, \
+	p->state.check_flapping_recovery_notification, \
+	p->state.scheduled_downtime_depth, p->state.pending_flex_downtime, \
+	p->state.is_flapping, p->state.flapping_comment_id, \
+	p->state.percent_state_change
+
+
+static int handle_host_status(const merlin_host_status *p)
+{
+	char *host_name;
+	int result;
+
+	ldebug("Updating status for host '%s'", p->name);
+
+	sql_quote(p->name, &host_name);
+	result = sql_query(STATUS_QUERY("host") " WHERE host_name = %s",
+					   STATUS_ARGS, host_name);
+	free(host_name);
+	return result;
+}
+
+static int handle_service_status(const merlin_service_status *p)
+{
+	char *host_name, *service_description;
+	int result;
+
+	ldebug("Updating status for service '%s' on host '%s'",
+		   p->service_description, p->host_name);
+
+	sql_quote(p->host_name, &host_name);
+	sql_quote(p->service_description, &service_description);
+	result = sql_query(STATUS_QUERY("service")
+					   " WHERE host_name = %s AND service_description = %s",
+					   STATUS_ARGS, host_name, service_description);
+	free(host_name);
+	free(service_description);
+	return result;
+}
+
 static int handle_host_result(object_state *st, const nebstruct_host_check_data *p)
 {
 	char *host_name, *output, *long_output, *perf_data = NULL;
@@ -365,6 +451,12 @@ int mrm_db_update(merlin_event *pkt)
 		break;
 	case NEBCALLBACK_NOTIFICATION_DATA:
 		errors = handle_notification((void *)pkt->body);
+		break;
+	case NEBCALLBACK_HOST_STATUS_DATA:
+		errors = handle_host_status((void *)pkt->body);
+		break;
+	case NEBCALLBACK_SERVICE_STATUS_DATA:
+		errors = handle_service_status((void *)pkt->body);
 		break;
 	default:
 		ldebug("Unknown callback type. Weird, to say the least...");
