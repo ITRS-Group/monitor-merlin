@@ -40,7 +40,7 @@ data into a variety of databases, using libdbi.
 %setup -q
 
 %build
-CFLAGS="%optflags" make
+make
 
 %install
 rm -rf %buildroot
