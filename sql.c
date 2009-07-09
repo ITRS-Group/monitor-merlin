@@ -44,16 +44,14 @@ size_t sql_escape(const char *src, char **dst)
  * the db-link to theh callers. It's also nifty as we
  * want to remain database layer agnostic
  */
-const char *sql_error(void)
+int sql_error(const char **msg)
 {
-	const char *msg;
+	if (!db.conn) {
+		*msg = strdup("no database connection");
+		return DBI_ERROR_NOCONN;
+	}
 
-	if (!db.conn)
-		return "no db connection";
-
-	dbi_conn_error(db.conn, &msg);
-
-	return msg;
+	return dbi_conn_error(db.conn, msg);
 }
 
 void sql_free_result(void)
@@ -72,7 +70,7 @@ dbi_result sql_get_result(void)
 int sql_query(const char *fmt, ...)
 {
 	char *query;
-	int len;
+	int len, db_error;
 	va_list ap;
 
 	if (!use_database) {
@@ -90,8 +88,19 @@ int sql_query(const char *fmt, ...)
 	}
 	db.result = dbi_conn_query_null(db.conn, (unsigned char *)query, len);
 	if (!db.result) {
+		const char *error_msg;
+		db_error = sql_error(&error_msg);
 		linfo("dbi_conn_query_null(): Failed to run [%s]: %s",
-			  query, sql_error());
+			  query, error_msg);
+
+		/*
+		 * if we failed because the connection has gone away, we try
+		 * reconnecting once and rerunning the query before giving up.
+		 */
+		if (db_error == DBI_ERROR_NOCONN && !sql_reinit()) {
+			db.result = dbi_conn_query_null(db.conn, (unsigned char *)query, len);
+			/* database backlog code goes here */
+		}
 	}
 
 	free(query);
@@ -140,8 +149,10 @@ int sql_init(void)
 	}
 
 	if (dbi_conn_connect(db.conn) < 0) {
+		const char *error_msg;
+		sql_error(&error_msg);
 		lerr("Failed to connect to '%s' at '%s':'%d' using %s:%s as credentials: %s",
-		     db.name, db.host, db.port, db.user, db.pass, sql_error());
+		     db.name, db.host, db.port, db.user, db.pass, error_msg);
 
 		db.conn = NULL;
 		return -1;
@@ -152,8 +163,17 @@ int sql_init(void)
 
 int sql_close(void)
 {
-	dbi_conn_close(db.conn);
+	if (db.conn)
+		dbi_conn_close(db.conn);
+
+	dbi_shutdown();
 	return 0;
+}
+
+int sql_reinit(void)
+{
+	sql_close();
+	return sql_init();
 }
 
 const char *sql_db_name(void)
