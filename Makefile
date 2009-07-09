@@ -84,4 +84,4 @@ clean-log:
 	rm -f ipc.{read,write}.bin *.log
 
 ## PHONY targets
-.PHONY: clean clean-core clean-log
+.PHONY: version.c clean clean-core clean-log
