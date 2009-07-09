@@ -26,8 +26,11 @@
 #include <ctype.h>
 
 #include "types.h"
+#include "io.h"
+#include "ipc.h"
 #include "logging.h"
 #include "config.h"
+#include "protocol.h"
 
 /*
  * debug macros. All of them (including assert), goes away when NDEBUG
@@ -145,4 +148,12 @@ extern char *get_sel_name(int index);
 extern int get_sel_id(const char *name);
 extern int get_num_selections(void);
 extern const char *callback_name(int id);
+
+/* data blockification routines */
+extern int blockify(void *data, int cb_type, char *buf, int buflen);
+extern int deblockify(void *ds, off_t len, int cb_type);
+static inline int blockify_event(merlin_event *pkt, void *data)
+{
+	return blockify(data, pkt->hdr.type, pkt->body, sizeof(pkt->body));
+}
 #endif

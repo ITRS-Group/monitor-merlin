@@ -1,4 +1,4 @@
-#include "module.h"
+#include "shared.h"
 #include "hookinfo.h"
 
 /*
