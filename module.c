@@ -393,9 +393,18 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 }
 
 
+/**
+ * Called by Nagios prior to the module being unloaded.
+ * This function is supposed to release all pointers we've allocated
+ * and make sure we reset it to a state where we can initialize it
+ * later.
+ */
 int nebmodule_deinit(int flags, int reason)
 {
 	linfo("Unloading Monitor Redundancy Module");
+
+	log_deinit();
+	ipc_deinit();
 
 	/* flush junk to disk */
 	sync();
