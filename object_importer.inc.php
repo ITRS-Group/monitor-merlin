@@ -573,6 +573,15 @@ class nagios_object_importer
 		if (isset($this->conv_type[$obj_type]))
 			$obj_type = $this->conv_type[$obj_type];
 
+		if ($this->importing_status) {
+			# mark hosts and services as pending if they
+			# haven't been checked and current_state = 0
+			if ($obj_type === 'host' || $obj_type === 'service') {
+				if ($obj['current_state'] == 0 && $obj['has_been_checked'] == 0)
+					$obj['current_state'] = 6;
+			}
+		}
+
 		# Some objects are converted into oblivion when we're
 		# importing status.sav. We ignore those here.
 		if (!$obj_type) {
