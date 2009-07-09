@@ -181,6 +181,17 @@ int merlin_mod_hook(int cb, void *data)
 {
 	merlin_event pkt;
 
+	ldebug("merlin_mod_hook(%d, %p) called", cb, data);
+	if (!data) {
+		lerr("eventbroker module called with NULL data");
+		return -1;
+	} else if (cb < 0 || cb > NEBCALLBACK_NUMITEMS) {
+		lerr("merlin_mod_hook() called with invalid callback id");
+		return -1;
+	}
+
+	linfo("Processing callback %s", callback_name(cb));
+
 	pkt.hdr.type = cb;
 	pkt.hdr.selection = 0xffff;
 	switch (cb) {
