@@ -1,11 +1,4 @@
 #include "shared.h"
-#include "logging.h"
-#include "ipc.h"
-#include "io.h"
-#include "protocol.h"
-
-#include <sys/poll.h>
-#include <signal.h>
 
 #define ipc_read_ok(msec) ipc_poll(POLLIN, msec)
 #define ipc_write_ok(msec) ipc_poll(POLLOUT, msec)

@@ -2,11 +2,7 @@
  * I/O utilities
  */
 
-#include "io.h"
-#include "protocol.h"
-#include "logging.h"
-#include <errno.h>
-#include <string.h>
+#include "shared.h"
 
 int io_poll(int fd, int events, int msec)
 {

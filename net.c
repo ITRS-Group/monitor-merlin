@@ -1,18 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
 #include <netdb.h>
 #include <sys/select.h>
 #include <fcntl.h>
-
-#include "net.h"
-#include "types.h"
-#include "shared.h"
-#include "logging.h"
-#include "protocol.h"
-#include "ipc.h"
-#include "io.h"
 #include "daemon.h"
 
 #define DEF_SOCK_TIMEOUT 50000

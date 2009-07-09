@@ -1,9 +1,5 @@
 #define NSCORE
-#include <signal.h>
 #include "module.h"
-#include "hash.h"
-#include "ipc.h"
-#include "protocol.h"
 #include "nagios/objects.h"
 #include "nagios/statusdata.h"
 #include "nagios/macros.h"

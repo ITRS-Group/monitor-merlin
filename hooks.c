@@ -12,8 +12,6 @@
 #define NSCORE
 #include "nagios/objects.h"
 #include "module.h"
-#include "protocol.h"
-#include "ipc.h"
 
 int hook_generic(int cb, void *data)
 {

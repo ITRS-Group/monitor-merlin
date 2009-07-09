@@ -31,6 +31,8 @@
 #include "logging.h"
 #include "config.h"
 #include "protocol.h"
+#include "nagios/nebstructs.h"
+#include "nagios/nebcallbacks.h"
 
 /*
  * debug macros. All of them (including assert), goes away when NDEBUG

@@ -1,15 +1,8 @@
 #define _GNU_SOURCE
 #include <signal.h>
-#include "shared.h"
-#include "config.h"
-#include "types.h"
-#include "ipc.h"
-#include "net.h"
-#include "protocol.h"
 #include "sql.h"
 #include "daemonize.h"
 #include "daemon.h"
-#include "status.h"
 
 extern const char *__progname;
 

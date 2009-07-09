@@ -13,8 +13,6 @@
  */
 
 #include "shared.h"
-#include "nagios/nebstructs.h"
-#include "nagios/nebcallbacks.h"
 
 static struct hook_info_struct {
 	int cb_type;

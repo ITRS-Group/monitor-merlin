@@ -1,11 +1,3 @@
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <dirent.h>
-
-#include "config.h"
 #include "module.h"
 
 /* does a deep free of a file_list struct */

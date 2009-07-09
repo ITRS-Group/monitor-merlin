@@ -1,9 +1,4 @@
-#include <stdarg.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <time.h>
-#include "test_utils.h"
+#include "shared.h"
 
 void log_msg(int severity, const char *fmt, ...)
 {

@@ -1,9 +1,4 @@
-#include "sql.h"
-#include "status.h"
 #include "daemon.h"
-#include <stdio.h>
-#include <string.h>
-#include <dbi/dbi.h>
 
 static struct object_state *object_states[2];
 static size_t num_objects[2];

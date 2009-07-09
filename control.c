@@ -5,9 +5,6 @@
 #define NSCORE
 
 #include "module.h"
-#include "shared.h"
-#include "hash.h"
-#include "protocol.h"
 
 static linked_item **mrm_host_list = NULL;
 static linked_item **mrm_service_list = NULL;

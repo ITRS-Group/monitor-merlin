@@ -2,8 +2,6 @@
  * This file contains tests for the "blockify()/deblockify()"
  * function, ensuring we don't garble data before we send it off
  */
-#include "nagios/nebstructs.h"
-#include "nagios/nebcallbacks.h"
 #include "nagios/broker.h"
 #include "shared.h"
 #include "hookinfo.h"

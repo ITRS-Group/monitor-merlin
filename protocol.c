@@ -1,10 +1,3 @@
-#include <string.h>
-#include <errno.h>
-#include <stdio.h>
-#include <unistd.h>
-#include "io.h"
-#include "protocol.h"
-#include "logging.h"
 #include "shared.h"
 
 int proto_read_event(int sock, merlin_event *pkt)

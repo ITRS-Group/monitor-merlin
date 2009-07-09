@@ -1,11 +1,5 @@
 #define _GNU_SOURCE
-#include <stdarg.h>
-#include <stdio.h>
-#include "sql.h"
-#include "logging.h"
 #include "daemon.h"
-#include <dbi/dbi.h>
-#include <string.h>
 
 static struct {
 	char *host;

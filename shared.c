@@ -1,11 +1,4 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include "nagios/nebcallbacks.h"
 #include "shared.h"
-#include "config.h"
-#include "ipc.h"
 
 /** global variables present in both daemon and module **/
 int debug = 0;  /* doesn't actually do anything right now */

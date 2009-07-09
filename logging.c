@@ -1,13 +1,3 @@
-#include <stdio.h>
-
-#include <stdarg.h>
-#include <time.h>
-#include <sys/time.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-
-#include "logging.h"
 #include "shared.h"
 
 #define LOGERR 1
