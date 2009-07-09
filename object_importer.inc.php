@@ -59,7 +59,8 @@ class nagios_object_importer
 		 'programstatus' => 'program_status',
 		 'hoststatus' => 'host', 'servicestatus' => 'service',
 		 'contactstatus' => 'contact',
-		 'servicecomment' => 'comment', 'hostcomment' => 'comment');
+		 'hostcomment' => 'comment', 'servicecomment' => 'comment',
+		 'hostdowntime' => 'downtime', 'servicedowntime' => 'downtime');
 
 	# allowed variables for each object
 	private $allowed_vars = array();

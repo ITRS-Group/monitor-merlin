@@ -3,6 +3,27 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 -- Database design for the merlin database
 --
 
+DROP TABLE IF EXISTS downtime;
+CREATE TABLE downtime(
+	id						int NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	downtime_id				int NOT NULL,
+	instance_id				int NOT NULL DEFAULT 0,
+	host_name				varchar(255),
+	service_description		varchar(255),
+	entry_time				int(11),
+	start_time				int(11),
+	end_time				int(11),
+	triggered_by			int,
+	fixed					int,
+	duration				int(11),
+	author					varchar(255) NOT NULL DEFAULT '',
+	comment					text,
+	KEY host_name(host_name),
+	KEY service(host_name, service_description),
+	KEY end_time(end_time),
+	KEY downtime_id(downtime_id)
+);
+
 DROP TABLE IF EXISTS notification;
 CREATE TABLE notification(
 	instance_id				int NOT NULL DEFAULT 0,
