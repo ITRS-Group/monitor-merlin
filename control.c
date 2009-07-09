@@ -114,14 +114,6 @@ void enable_disable_checks(int selection, int enable)
 }
 
 
-void disable_all_distributed_checks(void)
-{
-	int i;
-
-	for (i = 0; i < get_num_selections(); i++)
-		enable_disable_checks(i, 0);
-}
-
 void handle_control(int code, int selection)
 {
 	char *sel_name = NULL;

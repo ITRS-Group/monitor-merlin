@@ -23,7 +23,7 @@ static inline void _compare_ptr_strings(char *a, char *b, int *errors)
 	*errors += !!strcmp(a, b);
 }
 
-int test_service_check_data(int *errors)
+static int test_service_check_data(int *errors)
 {
 	nebstruct_service_check_data *orig, *mod;
 	merlin_event pkt;
@@ -56,7 +56,7 @@ int test_service_check_data(int *errors)
 	return ipc_send_event(&pkt);
 }
 
-int test_host_check_data(int *errors)
+static int test_host_check_data(int *errors)
 {
 	nebstruct_host_check_data *orig, *mod;
 	merlin_event pkt;
@@ -88,7 +88,7 @@ int test_host_check_data(int *errors)
 
 #define AUTHOR_NAME "Pelle plutt"
 #define COMMENT_DATA "comment data"
-int test_adding_comment(int *errors, char *service_description)
+static int test_adding_comment(int *errors, char *service_description)
 {
 	nebstruct_comment_data *orig, *mod;
 	merlin_event pkt;
@@ -122,7 +122,7 @@ int test_adding_comment(int *errors, char *service_description)
 	return ipc_send_event(&pkt);
 }
 
-int test_deleting_comment(int *errors)
+static int test_deleting_comment(int *errors)
 {
 	nebstruct_comment_data *orig;
 	merlin_event pkt;

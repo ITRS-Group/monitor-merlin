@@ -63,6 +63,7 @@ static inline void *xfree(void *ptr)
 #define prefixcmp(a, b) strncmp(a, b, strlen(b))
 
 /** global variables present in both module and daemon **/
+extern const char *merlin_version;
 extern int is_module;
 extern int pulse_interval;
 extern int debug;

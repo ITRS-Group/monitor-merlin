@@ -75,7 +75,7 @@ const char *callback_name(int id)
 	return callback_names[id];
 }
 
-const char *config_key_expires(const char *var)
+static const char *config_key_expires(const char *var)
 {
 	if (!strcmp(var, "mode"))
 		return "2009-10";

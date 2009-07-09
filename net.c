@@ -538,7 +538,7 @@ static void check_node_activity(merlin_node *node)
 }
 
 
-int handle_network_event(merlin_node *node, merlin_event *pkt)
+static int handle_network_event(merlin_node *node, merlin_event *pkt)
 {
 	if (node->type == MODE_POLLER && num_nocs) {
 		int i;

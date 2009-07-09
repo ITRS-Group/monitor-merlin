@@ -28,6 +28,7 @@ else
 fi
 
 version="$tag$patches"
+echo "#include \"shared.h\""
 echo "const char *merlin_version = \"$version\";";
 exit 0
 echo "beta=$beta"

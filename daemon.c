@@ -17,7 +17,7 @@ int use_database;
 static const char *pidfile, *merlin_user;
 static char *import_program = "php /home/exon/git/monitor/merlin/import.php";
 int default_port = 15551;
-size_t hosts, services;
+static size_t hosts, services;
 
 static void usage(char *fmt, ...)
 	__attribute__((format(printf,1,2)));

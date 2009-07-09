@@ -6,7 +6,7 @@
 #define die(fmt, args...) do { fprintf(stderr, fmt, ##args); exit(1); } while(0)
 
 static size_t ok, id;
-int try_states(object_state *orig)
+static int try_states(object_state *orig)
 {
 	object_state *st = get_object_state(orig->name, id);
 

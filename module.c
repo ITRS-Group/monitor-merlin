@@ -11,9 +11,6 @@
 int cb_handler(int, void *);
 
 /** code start **/
-struct file_list *config_file_list;
-
-int mode;
 extern hostgroup *hostgroup_list;
 #define mrm_reap_interval 5
 
@@ -279,6 +276,7 @@ static int send_paths(void)
 {
 	size_t config_path_len, cache_path_len;
 	char *cache_file, *status_log;
+	merlin_event pkt;
 
 	cache_file = macro_x[MACRO_OBJECTCACHEFILE];
 	status_log = macro_x[MACRO_STATUSDATAFILE];
@@ -287,7 +285,6 @@ static int send_paths(void)
 		return -1;
 	}
 
-	merlin_event pkt;
 	pkt.hdr.type = CTRL_PACKET;
 	pkt.hdr.code = CTRL_PATHS;
 	pkt.hdr.protocol = MERLIN_PROTOCOL_VERSION;
@@ -346,7 +343,7 @@ static int mrm_ipc_connect(void *discard)
  * We want to setup object lists and such here, so we only care about the
  * case where config has already been read.
  */
-int post_config_init(int cb, void *ds)
+static int post_config_init(int cb, void *ds)
 {
 	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
 		return 0;
