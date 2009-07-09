@@ -114,7 +114,7 @@ static struct hook_info_struct {
 			0, 0, 0
 		},
 	},
-	{ NEBCALLBACK_HOST_STATUS_DATA, 4, sizeof(nebstruct_host_status_data),
+	{ NEBCALLBACK_HOST_STATUS_DATA, 4, sizeof(merlin_host_status),
 		{
 			offsetof(merlin_host_status, state.plugin_output),
 			offsetof(merlin_host_status, state.long_plugin_output),
@@ -123,7 +123,7 @@ static struct hook_info_struct {
 			0
 		},
 	},
-	{ NEBCALLBACK_SERVICE_STATUS_DATA, 5, sizeof(nebstruct_host_status_data),
+	{ NEBCALLBACK_SERVICE_STATUS_DATA, 5, sizeof(merlin_service_status),
 		{
 			offsetof(merlin_service_status, state.plugin_output),
 			offsetof(merlin_service_status, state.long_plugin_output),
