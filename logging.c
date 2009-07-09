@@ -70,6 +70,7 @@ void log_deinit(void)
 		if (log_fp != stdout && log_fp != stderr) {
 			fsync(fileno(log_fp));
 			fclose(log_fp);
+			log_fp = NULL;
 		}
 	}
 }
