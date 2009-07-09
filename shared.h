@@ -29,7 +29,7 @@
 #include "io.h"
 #include "ipc.h"
 #include "logging.h"
-#include "config.h"
+#include "cfgfile.h"
 #include "protocol.h"
 #include "nagios/nebstructs.h"
 #include "nagios/nebcallbacks.h"
@@ -143,7 +143,7 @@ typedef struct merlin_service_status merlin_service_status;
 
 /** prototypes **/
 extern char *next_word(char *str);
-extern int grok_common_var(struct compound *config, struct cfg_var *v);
+extern int grok_common_var(struct cfg_comp *config, struct cfg_var *v);
 extern void index_selections(void);
 extern int add_selection(char *name);
 extern char *get_sel_name(int index);

@@ -1,27 +1,20 @@
-/*
- * read nested compound configuration files
- */
-
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <sys/types.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <sys/mman.h>
 #include <errno.h>
-#include <ctype.h>
-#include <glob.h>
 
-#include "config.h"
+#include "cfgfile.h"
 
-static struct compound *parse_file(char *path, struct compound *parent, unsigned line);
+static struct cfg_comp *parse_file(const char *path, struct cfg_comp *parent, unsigned line);
 
 /* read a file and return it in a buffer. Size is stored in *len.
  * If there are errors, return NULL and set *len to -errno */
-static char *cfg_read_file(char *path, unsigned *len)
+static char *cfg_read_file(const char *path, unsigned *len)
 {
 	int fd, rd = 0, total = 0;
 	struct stat st;
@@ -73,7 +66,7 @@ static char *cfg_read_file(char *path, unsigned *len)
 		return NULL;
 	}
 
-	/* force NUL-termination and insert a newline if there is none */
+	/* force newline+nul at EOF */
 	buf[st.st_size] = '\n';
 	buf[st.st_size + 1] = '\0';
 	*len = st.st_size;
@@ -81,29 +74,9 @@ static char *cfg_read_file(char *path, unsigned *len)
 	return buf;
 }
 
-/* handles the 'include' syntax. glob() must be available */
-static struct compound *include(const char *pattern, struct compound *parent, unsigned line)
+static struct cfg_comp *start_compound(const char *name, struct cfg_comp *cur, unsigned line)
 {
-	struct compound *comp;
-	glob_t gl;
-	size_t i;
-	int result;
-
-	if (!parent)
-		return NULL;
-
-	result = glob(pattern, 0, NULL, &gl);
-
-	/* do error checking here */
-	for (i = 0; i < gl.gl_pathc; i++)
-		comp = parse_file(gl.gl_pathv[i], parent, line);
-
-	return parent;
-}
-
-static struct compound *start_compound(char *name, struct compound *cur, unsigned line)
-{
-	struct compound *comp = calloc(1, sizeof(struct compound));
+	struct cfg_comp *comp = calloc(1, sizeof(struct cfg_comp));
 
 	if (comp) {
 		comp->start = line;
@@ -113,14 +86,14 @@ static struct compound *start_compound(char *name, struct compound *cur, unsigne
 
 	if (cur) {
 		cur->nested++;
-		cur->nest = realloc(cur->nest, sizeof(struct compound *) * cur->nested);
+		cur->nest = realloc(cur->nest, sizeof(struct cfg_comp *) * cur->nested);
 		cur->nest[cur->nested - 1] = comp;
 	}
 
 	return comp;
 }
 
-static struct compound *close_compound(struct compound *comp, unsigned line)
+static struct cfg_comp *close_compound(struct cfg_comp *comp, unsigned line)
 {
 	if (comp) {
 		comp->end = line;
@@ -130,14 +103,8 @@ static struct compound *close_compound(struct compound *comp, unsigned line)
 	return NULL;
 }
 
-static void add_var(struct compound *comp, struct cfg_var *v)
+static void add_var(struct cfg_comp *comp, struct cfg_var *v)
 {
-	/* the "include" directive has special meaning */
-	if (!strcmp(v->var, "include")) {
-		include(v->val, comp, v->line);
-		return;
-	}
-
 	if (comp->vars >= comp->vlist_len) {
 		comp->vlist_len += 5;
 		comp->vlist = realloc(comp->vlist, sizeof(struct cfg_var *) * comp->vlist_len);
@@ -154,8 +121,14 @@ static inline char *end_of_line(char *s)
 	for (; *s; s++) {
 		if (*s == '\n')
 			return s;
-		if (last != '\\' && (*s == ';' || *s == '{' || *s == '}')) {
-			return s;
+		if (last != '\\') {
+			if (*s == ';') {
+				*s = '\0';
+			}
+			else {
+				if (*s == '{' || *s == '}')
+					return s;
+			}
 		}
 		last = *s;
 	}
@@ -163,21 +136,19 @@ static inline char *end_of_line(char *s)
 	return NULL;
 }
 
-static struct compound *parse_file(char *path, struct compound *parent, unsigned line)
+static struct cfg_comp *parse_file(const char *path, struct cfg_comp *parent, unsigned line)
 {
-	unsigned buflen, i, lnum = 0, lcont = 0;
-	char *buf = cfg_read_file(path, &buflen);
+	unsigned compound_depth = 0, buflen, i, lnum = 0;
+	char *buf;
 	struct cfg_var v;
-	struct compound *comp = start_compound(path, parent, 0);
-	unsigned compound_depth = 0;
+	struct cfg_comp *comp;
 	char end = '\n'; /* count like cat -n */
 
-	if (!buf || !comp) {
-		if (comp)
-			free(comp);
-		if (buf)
-			free(buf);
+	if (!(comp = start_compound(path, parent, 0)))
+		return NULL;
 
+	if (!(buf = cfg_read_file(path, &buflen))) {
+		free(comp);
 		return NULL;
 	}
 
@@ -206,7 +177,7 @@ static struct compound *parse_file(char *path, struct compound *parent, unsigned
 
 		/* hop empty lines */
 		if (buf[i] == '\n') {
-			v.var = v.val = v.val_end = NULL;
+			v.key = v.value = NULL;
 			end = '\n';
 			continue;
 		}
@@ -220,51 +191,37 @@ static struct compound *parse_file(char *path, struct compound *parent, unsigned
 		while(ISSPACE(*lend))
 			lend--;
 
+		/* check for start of compound */
 		if (end == '{') {
-			lend[1] = '\0';
-			v.val_end = v.var = v.val = NULL;
+			v.key = v.value = NULL;
 			compound_depth++;
 			comp = start_compound(lstart, comp, lnum);
 			i = next - buf;
 			continue;
 		}
 
-		/* start of compound or line continuation */
-		if (*lend == '\\' && end == '\n') {
-			*lend = ' ';
-			while (ISSPACE(*lend))
-				lend--;
-
-			lcont |= 2;
-		}
-
-		if (lcont & 1) {
-			unsigned len = (lend - lstart) + 1;
-			*v.val_end++ = ' ';
-			memmove(v.val_end, lstart, len);
-			v.val_end += len;
-			*v.val_end = '\0';
-		}
-		lcont >>= 1 & 1;
-
-		if (!v.var) {
+		if (!v.key) {
 			char *p = lstart + 1;
 
 			v.line = lnum;
-			v.var = lstart;
-			v.val_end = lend;
+			v.key = lstart;
+
 			while (p < lend && !ISSPACE(*p) && *p != '=')
 				p++;
+
 			if (ISSPACE(*p) || *p == '=') {
+				v.key_len = p - &buf[i];
 				while(p < lend && (ISSPACE(*p) || *p == '='))
 					*p++ = '\0';
-				if (*p && p <= lend) {
-					v.val = p;
-				}
+
+				if (*p && p <= lend)
+					v.value = p;
 			}
 		}
 
-		if (v.var && *v.var && !lcont) {
+		if (v.key && *v.key) {
+			if (v.value)
+				v.value_len = 1 + lend - v.value;
 			add_var(comp, &v);
 			memset(&v, 0, sizeof(v));
 		}
@@ -280,28 +237,23 @@ static struct compound *parse_file(char *path, struct compound *parent, unsigned
 	return comp;
 }
 
-static void cfg_print_error(struct compound *comp, struct cfg_var *v,
+static void cfg_print_error(struct cfg_comp *comp, struct cfg_var *v,
                             const char *fmt, va_list ap)
 {
-	struct compound *c;
+	struct cfg_comp *c;
 
 	fprintf(stderr, "*** Configuration error\n");
 	if (v)
 		fprintf(stderr, "  on line %d, near '%s' = '%s'\n",
-				v->line, v->var, v->val);
+				v->line, v->key, v->value);
 
 	if (!comp->buf)
 		fprintf(stderr, "  in compound '%s' starting on line %d\n", comp->name, comp->start);
 
 	fprintf(stderr, "  in file ");
 	for (c = comp; c; c = c->parent) {
-		if (c->buf) {
+		if (c->buf)
 			fprintf(stderr, "'%s'", c->name);
-			if (c->parent)
-				fprintf(stderr, ", included from line %d in\n  ", c->start);
-			else
-				fprintf(stderr, "\n");
-		}
 	}
 
 	fprintf(stderr, "----\n");
@@ -312,7 +264,20 @@ static void cfg_print_error(struct compound *comp, struct cfg_var *v,
 }
 
 /** public functions **/
-void cfg_warn(struct compound *comp, struct cfg_var *v, const char *fmt, ...)
+
+/* this is significantly faster than doing strdup(), since
+ * it can copy word-wise rather than byte-wise */
+char *cfg_copy_value(struct cfg_var *v)
+{
+	char *ptr;
+
+	if ((ptr = calloc(v->value_len + 1, 1)))
+		return memcpy(ptr, v->value, v->value_len);
+
+	return NULL;
+}
+
+void cfg_warn(struct cfg_comp *comp, struct cfg_var *v, const char *fmt, ...)
 {
 	va_list ap;
 
@@ -321,7 +286,7 @@ void cfg_warn(struct compound *comp, struct cfg_var *v, const char *fmt, ...)
 	va_end(ap);
 }
 
-void cfg_error(struct compound *comp, struct cfg_var *v, const char *fmt, ...)
+void cfg_error(struct cfg_comp *comp, struct cfg_var *v, const char *fmt, ...)
 {
 	va_list ap;
 
@@ -336,7 +301,7 @@ void cfg_error(struct compound *comp, struct cfg_var *v, const char *fmt, ...)
  * Note that comp->name is never free()'d since it either
  * points to somewhere in comp->buf or is obtained from the caller
  * and may point to the stack of some other function */
-void cfg_destroy_compound(struct compound *comp)
+void cfg_destroy_compound(struct cfg_comp *comp)
 {
 	unsigned i;
 
@@ -367,15 +332,15 @@ void cfg_destroy_compound(struct compound *comp)
 		/* If there is a parent we'll likely enter this compound again.
 		 * If so, it mustn't try to free anything or read from any list,
 		 * so zero the entire compound, but preserve the parent pointer. */
-		struct compound *parent = comp->parent;
-		memset(comp, 0, sizeof(struct compound));
+		struct cfg_comp *parent = comp->parent;
+		memset(comp, 0, sizeof(struct cfg_comp));
 		comp->parent = parent;
 	}
 }
 
-struct compound *cfg_parse_file(char *path)
+struct cfg_comp *cfg_parse_file(const char *path)
 {
-	struct compound *comp = parse_file(path, NULL, 0);
+	struct cfg_comp *comp = parse_file(path, NULL, 0);
 
 	/* this is the public API, so make sure all compounds are closed */
 	if (comp && comp->parent) {

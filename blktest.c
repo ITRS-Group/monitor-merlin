@@ -135,7 +135,7 @@ static int test_deleting_comment(int *errors)
 
 static int grok_config(char *path)
 {
-	struct compound *config;
+	struct cfg_comp *config;
 	int i;
 
 	config = cfg_parse_file(path);
@@ -147,7 +147,7 @@ static int grok_config(char *path)
 
 		if (grok_common_var(config, v))
 			continue;
-		printf("'%s' = '%s' is not grok'ed as a common variable\n", v->var, v->val);
+		printf("'%s' = '%s' is not grok'ed as a common variable\n", v->key, v->value);
 	}
 
 	return 0;

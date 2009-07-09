@@ -76,12 +76,12 @@ static const char *config_key_expires(const char *var)
 	return NULL;
 }
 
-int grok_common_var(struct compound *config, struct cfg_var *v)
+int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 {
 	const char *expires;
 
-	if (!strcmp(v->var, "pulse_interval")) {
-		pulse_interval = (unsigned)strtoul(v->val, NULL, 10);
+	if (!strcmp(v->key, "pulse_interval")) {
+		pulse_interval = (unsigned)strtoul(v->value, NULL, 10);
 		if (!pulse_interval) {
 			cfg_warn(config, v, "Illegal pulse_interval. Using default.");
 			pulse_interval = 15;
@@ -89,24 +89,24 @@ int grok_common_var(struct compound *config, struct cfg_var *v)
 		return 1;
 	}
 
-	if (!prefixcmp(v->var, "ipc_")) {
-		if (!ipc_grok_var(v->var, v->val))
+	if (!prefixcmp(v->key, "ipc_")) {
+		if (!ipc_grok_var(v->key, v->value))
 			cfg_error(config, v, "Failed to grok IPC option");
 
 		return 1;
 	}
 
-	if (!prefixcmp(v->var, "log_")) {
-		if (!log_grok_var(v->var, v->val))
+	if (!prefixcmp(v->key, "log_")) {
+		if (!log_grok_var(v->key, v->value))
 			cfg_error(config, v, "Failed to grok logging option");
 
 		return 1;
 	}
 
-	expires = config_key_expires(v->var);
+	expires = config_key_expires(v->key);
 	if (expires) {
 		cfg_warn(config, v, "'%s' is a deprecated variable, scheduled for "
-			 "removal at the first release after %s", v->var, expires);
+			 "removal at the first release after %s", v->key, expires);
 	}
 
 	return 0;

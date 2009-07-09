@@ -58,7 +58,7 @@ static int node_action_handler(merlin_node *node, int action)
 }
 
 
-static void grok_node(struct compound *c, merlin_node *node)
+static void grok_node(struct cfg_comp *c, merlin_node *node)
 {
 	unsigned int i;
 
@@ -68,21 +68,21 @@ static void grok_node(struct compound *c, merlin_node *node)
 	for (i = 0; i < c->vars; i++) {
 		struct cfg_var *v = c->vlist[i];
 
-		if (!v->val)
+		if (!v->value)
 			cfg_error(c, v, "Variable must have a value\n");
 
-		if (node->type != MODE_NOC && !strcmp(v->var, "hostgroup")) {
-			node->hostgroup = strdup(v->val);
+		if (node->type != MODE_NOC && !strcmp(v->key, "hostgroup")) {
+			node->hostgroup = strdup(v->value);
 			node->selection = add_selection(node->hostgroup);
 		}
-		else if (!strcmp(v->var, "address")) {
-			if (!net_resolve(v->val, &node->sain.sin_addr))
-				cfg_error(c, v, "Unable to resolve '%s'\n", v->val);
+		else if (!strcmp(v->key, "address")) {
+			if (!net_resolve(v->value, &node->sain.sin_addr))
+				cfg_error(c, v, "Unable to resolve '%s'\n", v->value);
 		}
-		else if (!strcmp(v->var, "port")) {
-			node->sain.sin_port = ntohs((unsigned short)atoi(v->val));
+		else if (!strcmp(v->key, "port")) {
+			node->sain.sin_port = ntohs((unsigned short)atoi(v->value));
 			if (!node->sain.sin_port)
-				cfg_error(c, v, "Illegal value for port: %s\n", v->val);
+				cfg_error(c, v, "Illegal value for port: %s\n", v->value);
 		}
 		else
 			cfg_error(c, v, "Unknown variable\n");
@@ -91,51 +91,51 @@ static void grok_node(struct compound *c, merlin_node *node)
 	node->last_action = -1;
 }
 
-static void grok_daemon_compound(struct compound *comp)
+static void grok_daemon_compound(struct cfg_comp *comp)
 {
 	int i;
 
 	for (i = 0; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
 
-		if (!strcmp(v->var, "port")) {
+		if (!strcmp(v->key, "port")) {
 			char *endp;
 
-			default_port = strtoul(v->val, &endp, 0);
+			default_port = strtoul(v->value, &endp, 0);
 			if (default_port < 1 || default_port > 65535 || *endp)
-				cfg_error(comp, v, "Illegal value for port: %s", v->val);
+				cfg_error(comp, v, "Illegal value for port: %s", v->value);
 			continue;
 		}
-		if (!strcmp(v->var, "pidfile")) {
-			pidfile = strdup(v->val);
+		if (!strcmp(v->key, "pidfile")) {
+			pidfile = strdup(v->value);
 			continue;
 		}
-		if (!strcmp(v->var, "merlin_user")) {
-			merlin_user = strdup(v->val);
+		if (!strcmp(v->key, "merlin_user")) {
+			merlin_user = strdup(v->value);
 			continue;
 		}
-		if (!strcmp(v->var, "import_program")) {
-			import_program = strdup(v->val);
+		if (!strcmp(v->key, "import_program")) {
+			import_program = strdup(v->value);
 			continue;
 		}
 
 		if (grok_common_var(comp, v))
 			continue;
-		if (log_grok_var(v->var, v->val))
+		if (log_grok_var(v->key, v->value))
 			continue;
 
 		cfg_error(comp, v, "Unknown variable");
 	}
 
 	for (i = 0; i < comp->nested; i++) {
-		struct compound *c = comp->nest[i];
+		struct cfg_comp *c = comp->nest[i];
 		int vi;
 
 		if (!strcmp(c->name, "database")) {
 			use_database = 1;
 			for (vi = 0; vi < c->vars; vi++) {
 				struct cfg_var *v = c->vlist[vi];
-				sql_config(v->var, v->val);
+				sql_config(v->key, v->value);
 			}
 		}
 	}
@@ -144,7 +144,7 @@ static void grok_daemon_compound(struct compound *comp)
 static int grok_config(char *path)
 {
 	int i, node_i = 0;
-	struct compound *config;
+	struct cfg_comp *config;
 	merlin_node *table;
 
 	if (!path)
@@ -157,14 +157,14 @@ static int grok_config(char *path)
 	for (i = 0; i < config->vars; i++) {
 		struct cfg_var *v = config->vlist[i];
 
-		if (!v->val)
-			cfg_error(config, v, "No value for option '%s'", v->var);
+		if (!v->value)
+			cfg_error(config, v, "No value for option '%s'", v->key);
 
 		if (grok_common_var(config, v))
 			continue;
 
-		if (!strcmp(v->var, "port")) {
-			default_port = (unsigned short)strtoul(v->val, NULL, 0);
+		if (!strcmp(v->key, "port")) {
+			default_port = (unsigned short)strtoul(v->value, NULL, 0);
 			continue;
 		}
 
@@ -176,7 +176,7 @@ static int grok_config(char *path)
 	table = calloc(config->nested, sizeof(merlin_node));
 
 	for (i = 0; i < config->nested; i++) {
-		struct compound *c = config->nest[i];
+		struct cfg_comp *c = config->nest[i];
 		merlin_node *node;
 
 		if (!strcmp(c->name, "module"))
@@ -188,7 +188,7 @@ static int grok_config(char *path)
 		}
 
 		node = &table[node_i++];
-		node->name = next_word(c->name);
+		node->name = next_word((char *)c->name);
 
 		if (!prefixcmp(c->name, "poller")) {
 			node->type = MODE_POLLER;

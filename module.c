@@ -197,23 +197,23 @@ static void setup_host_hash_tables(void)
 }
 
 
-static int slurp_selection(struct compound *c)
+static int slurp_selection(struct cfg_comp *c)
 {
 	int i;
 
 	for (i = 0; i < c->vars; i++) {
 		struct cfg_var *v = c->vlist[i];
-		if (!v->val || strcmp(v->var, "hostgroup"))
+		if (!v->key || strcmp(v->key, "hostgroup"))
 			continue;
 
-		add_selection(v->val);
+		add_selection(v->value);
 		return 1;
 	}
 
 	return 0;
 }
 
-static void grok_module_compound(struct compound *comp)
+static void grok_module_compound(struct cfg_comp *comp)
 {
 	int i;
 
@@ -222,7 +222,7 @@ static void grok_module_compound(struct compound *comp)
 
 		if (grok_common_var(comp, v))
 			continue;
-		if (log_grok_var(v->var, v->val))
+		if (log_grok_var(v->key, v->value))
 			continue;
 
 		cfg_error(comp, comp->vlist[i], "Unknown variable");
@@ -232,7 +232,7 @@ static void grok_module_compound(struct compound *comp)
 static void read_config(char *cfg_file)
 {
 	int i;
-	struct compound *config = cfg_parse_file(cfg_file);
+	struct cfg_comp *config = cfg_parse_file(cfg_file);
 
 	if (!config) {
 		lwarn("Failed to read config file");
@@ -243,7 +243,7 @@ static void read_config(char *cfg_file)
 		grok_common_var(config, config->vlist[i]);
 
 	for (i = 0; i < config->nested; i++) {
-		struct compound *c = config->nest[i];
+		struct cfg_comp *c = config->nest[i];
 
 		if (!strcmp(c->name, "module")) {
 			grok_module_compound(c);
