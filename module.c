@@ -356,46 +356,13 @@ static int post_config_init(int cb, void *ds)
 	return 0;
 }
 
-
-/* hooks for use in the table below */
-extern int hook_host_result(int cb, void *data);
-extern int hook_service_result(int cb, void *data);
-extern int hook_notification(int cb, void *data);
-extern int hook_generic(int cb, void *data);
-extern int hook_host_status(int cb, void *data);
-extern int hook_service_status(int cb, void *data);
-#define CB_ENTRY(modonly, macro, hook) \
-	{ modonly, macro, #macro, hook, #hook }
-static struct callback_struct {
-	int pollers_only;
-	int type;
-	char *name;
-	int (*hook)(int, void *);
-	char *hook_name;
-} callback_table[] = {
-/*
-	CB_ENTRY(1, NEBCALLBACK_PROCESS_DATA, post_config_init),
-	CB_ENTRY(0, NEBCALLBACK_LOG_DATA, hook_generic),
-	CB_ENTRY(1, NEBCALLBACK_SYSTEM_COMMAND_DATA, hook_generic),
-	CB_ENTRY(1, NEBCALLBACK_EVENT_HANDLER_DATA, hook_generic),
-*/	CB_ENTRY(0, NEBCALLBACK_NOTIFICATION_DATA, hook_notification),
-
-	CB_ENTRY(1, NEBCALLBACK_SERVICE_CHECK_DATA, hook_service_result),
-	CB_ENTRY(1, NEBCALLBACK_HOST_CHECK_DATA, hook_host_result),
-	CB_ENTRY(0, NEBCALLBACK_COMMENT_DATA, hook_generic),
-	CB_ENTRY(0, NEBCALLBACK_DOWNTIME_DATA, hook_generic),
-	CB_ENTRY(1, NEBCALLBACK_FLAPPING_DATA, hook_generic),
-	CB_ENTRY(0, NEBCALLBACK_PROGRAM_STATUS_DATA, hook_generic),
-	CB_ENTRY(0, NEBCALLBACK_HOST_STATUS_DATA, hook_host_status),
-	CB_ENTRY(0, NEBCALLBACK_SERVICE_STATUS_DATA, hook_service_status),
-	CB_ENTRY(0, NEBCALLBACK_EXTERNAL_COMMAND_DATA, hook_generic),
-};
-
-
+/**
+ * Initialization routine for the eventbroker module. This
+ * function gets called by Nagios when it's done loading us
+ */
 int nebmodule_init(int flags, char *arg, nebmodule *handle)
 {
 	char *home = NULL;
-	int i;
 
 	neb_handle = (void *)handle;
 
@@ -415,11 +382,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	signal(SIGSEGV, SIG_DFL);
 	chdir(home);
 
-	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
-		struct callback_struct *cb = &callback_table[i];
-
-		neb_register_callback(cb->type, neb_handle, 0, cb->hook);
-	}
+	register_merlin_hooks();
 
 	/* this gets de-registered immediately, so we need to add it manually */
 	neb_register_callback(NEBCALLBACK_PROCESS_DATA, neb_handle, 0, post_config_init);
@@ -432,16 +395,12 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 
 int nebmodule_deinit(int flags, int reason)
 {
-	int i;
 	linfo("Unloading Monitor Redundancy Module");
 
 	/* flush junk to disk */
 	sync();
 
-	for (i = 0; callback_table[i].hook != NULL; i++) {
-		struct callback_struct *cb = &callback_table[i];
-		neb_deregister_callback(cb->type, cb->hook);
-	}
+	deregister_merlin_hooks();
 
 	return 0;
 }

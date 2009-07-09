@@ -35,6 +35,9 @@ typedef struct linked_item {
 extern hash_table *host_hash_table;
 #define hash_find_val(key) (int)hash_find(host_hash_table, key)
 
+/* global variables in the module only */
+extern void *neb_handle;
+
 /** global variables exported by Nagios **/
 extern char *config_file;
 extern int event_broker_options;
@@ -55,4 +58,8 @@ void enable_disable_checks(int selection, int status);
 void control_all_distributed_checks(void);
 void create_object_lists(void);
 void handle_control(int code, int selection);
+
+extern int register_merlin_hooks(void);
+extern int deregister_merlin_hooks(void);
+extern int merlin_mod_hook(int cb, void *data);
 #endif /* MRM_MOD_H */

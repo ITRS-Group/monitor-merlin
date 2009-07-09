@@ -13,30 +13,39 @@
 #include "nagios/objects.h"
 #include "module.h"
 
-int hook_generic(int cb, void *data)
+static int send_generic(merlin_event *pkt, void *data)
 {
-	merlin_event pkt;
+	pkt->hdr.len = blockify_event(pkt, data);
+	if (!pkt->hdr.len) {
+		lerr("Header len is 0 for callback %d. Update offset in hookinfo.h", pkt->hdr.type);
+		return -1;
+	}
 
-	pkt.hdr.type = cb;
-	pkt.hdr.len = blockify(data, cb, pkt.body, sizeof(pkt.body));
-	if (!pkt.hdr.len)
-		lerr("Header len is 0 for callback %d. Update offset in hookinfo.h", cb);
-	pkt.hdr.selection = 0xffff;
-	return ipc_send_event(&pkt);
+	return ipc_send_event(pkt);
+}
+
+static int get_selection(const char *key)
+{
+	int selection = hash_find_val(key);
+
+	if (selection < 0) {
+		lwarn("key '%s' doesn't match any possible selection", key);
+		return 0;
+	}
+
+	return selection & 0xffff;
 }
 
 /*
  * The hooks are called from broker.c in Nagios.
  */
-int hook_service_result(int cb, void *data)
+static int hook_service_result(merlin_event *pkt, void *data)
 {
 	nebstruct_service_check_data *ds = (nebstruct_service_check_data *)data;
-	merlin_event pkt;
-	int result;
 
 	if (ds->type != NEBTYPE_SERVICECHECK_PROCESSED
 		|| ds->check_type != SERVICE_CHECK_ACTIVE
-		|| cb != NEBCALLBACK_SERVICE_CHECK_DATA)
+		|| pkt->hdr.type != NEBCALLBACK_SERVICE_CHECK_DATA)
 	{
 		return 0;
 	}
@@ -44,34 +53,28 @@ int hook_service_result(int cb, void *data)
 	linfo("Active check result processed for service '%s' on host '%s'",
 		  ds->service_description, ds->host_name);
 
-	pkt.hdr.type = cb;
-	pkt.hdr.len = blockify(ds, cb, pkt.body, sizeof(pkt.body));
-	result = mrm_ipc_write(ds->host_name, &pkt);
+	pkt->hdr.selection = get_selection(ds->host_name);
 
-	return result;
+	return send_generic(pkt, ds);
 }
 
-int hook_host_result(int cb, void *data)
+static int hook_host_result(merlin_event *pkt, void *data)
 {
 	nebstruct_host_check_data *ds = (nebstruct_host_check_data *)data;
-	merlin_event pkt;
-	int result;
 
 	/* ignore un-processed and passive checks */
-	if (ds->type != NEBTYPE_HOSTCHECK_PROCESSED ||
-		ds->check_type != HOST_CHECK_ACTIVE ||
-		cb != NEBCALLBACK_HOST_CHECK_DATA)
+	if (ds->type != NEBTYPE_HOSTCHECK_PROCESSED
+		|| ds->check_type != HOST_CHECK_ACTIVE
+		|| pkt->hdr.type != NEBCALLBACK_HOST_CHECK_DATA)
 	{
 		return 0;
 	}
 
 	linfo("Active check result processed for host '%s'", ds->host_name);
-	pkt.hdr.type = cb;
-	pkt.hdr.len = blockify(ds, cb, pkt.body, sizeof(pkt.body));
-	result = mrm_ipc_write(ds->host_name, &pkt);
 
-	return result;
+	return send_generic(pkt, ds);
 }
+
 
 /**
  * host and service status structures share a *lot* of data,
@@ -121,8 +124,7 @@ int hook_host_result(int cb, void *data)
 	dest.long_plugin_output = src->long_plugin_output; \
 	dest.perf_data = src->perf_data;
 
-
-int hook_host_status(int cb, void *data)
+static int hook_host_status(merlin_event *pkt, void *data)
 {
 	nebstruct_host_status_data *ds = (nebstruct_host_status_data *)data;
 	merlin_host_status *st_obj;
@@ -139,10 +141,12 @@ int hook_host_status(int cb, void *data)
 	st_obj->state.obsess = obj->obsess_over_host;
 	st_obj->name = obj->name;
 
-	return 0;
+	pkt->hdr.selection = get_selection(obj->name);
+
+	return send_generic(pkt, st_obj);
 }
 
-int hook_service_status(int cb, void *data)
+static int hook_service_status(merlin_event *pkt, void *data)
 {
 	nebstruct_service_status_data *ds = (nebstruct_service_status_data *)data;
 	merlin_service_status *st_obj;
@@ -158,15 +162,106 @@ int hook_service_status(int cb, void *data)
 	st_obj->host_name = obj->host_name;
 	st_obj->service_description = obj->description;
 
-	return 0;
+	pkt->hdr.selection = get_selection(obj->host_name);
+
+	return send_generic(pkt, st_obj);
 }
 
-int hook_notification(int cb, void *data)
+static int hook_notification(merlin_event *pkt, void *data)
 {
 	nebstruct_notification_data *ds = (nebstruct_notification_data *)data;
 
 	if (ds->type != NEBTYPE_NOTIFICATION_END)
 		return 0;
 
-	return hook_generic(cb, data);
+	return send_generic(pkt, data);
+}
+
+int merlin_mod_hook(int cb, void *data)
+{
+	merlin_event pkt;
+
+	pkt.hdr.type = cb;
+	pkt.hdr.selection = 0xffff;
+	switch (cb) {
+	case NEBCALLBACK_NOTIFICATION_DATA:
+		return hook_notification(&pkt, data);
+
+	case NEBCALLBACK_HOST_CHECK_DATA:
+		return hook_host_result(&pkt, data);
+
+	case NEBCALLBACK_SERVICE_CHECK_DATA:
+		return hook_service_result(&pkt, data);
+
+	case NEBCALLBACK_COMMENT_DATA:
+	case NEBCALLBACK_DOWNTIME_DATA:
+	case NEBCALLBACK_FLAPPING_DATA:
+	case NEBCALLBACK_PROGRAM_STATUS_DATA:
+	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
+		return send_generic(&pkt, data);
+
+	case NEBCALLBACK_HOST_STATUS_DATA:
+		return hook_host_status(&pkt, data);
+
+	case NEBCALLBACK_SERVICE_STATUS_DATA:
+		return hook_service_status(&pkt, data);
+
+	default:
+		lerr("Unhandled callback '%s' in merlin_hook()", callback_name(cb));
+	}
+
+	return -1;
+}
+
+#define CB_ENTRY(pollers_only, type, hook) \
+	{ pollers_only, type, #type, #hook }
+static struct callback_struct {
+	int pollers_only;
+	int type;
+	char *name;
+	char *hook_name;
+} callback_table[] = {
+/*
+	CB_ENTRY(1, NEBCALLBACK_PROCESS_DATA, post_config_init),
+	CB_ENTRY(0, NEBCALLBACK_LOG_DATA, hook_generic),
+	CB_ENTRY(1, NEBCALLBACK_SYSTEM_COMMAND_DATA, hook_generic),
+	CB_ENTRY(1, NEBCALLBACK_EVENT_HANDLER_DATA, hook_generic),
+*/	CB_ENTRY(0, NEBCALLBACK_NOTIFICATION_DATA, hook_notification),
+
+	CB_ENTRY(1, NEBCALLBACK_SERVICE_CHECK_DATA, hook_service_result),
+	CB_ENTRY(1, NEBCALLBACK_HOST_CHECK_DATA, hook_host_result),
+	CB_ENTRY(0, NEBCALLBACK_COMMENT_DATA, hook_generic),
+	CB_ENTRY(0, NEBCALLBACK_DOWNTIME_DATA, hook_generic),
+	CB_ENTRY(1, NEBCALLBACK_FLAPPING_DATA, hook_generic),
+	CB_ENTRY(0, NEBCALLBACK_PROGRAM_STATUS_DATA, hook_generic),
+	CB_ENTRY(0, NEBCALLBACK_HOST_STATUS_DATA, hook_host_status),
+	CB_ENTRY(0, NEBCALLBACK_SERVICE_STATUS_DATA, hook_service_status),
+	CB_ENTRY(0, NEBCALLBACK_EXTERNAL_COMMAND_DATA, hook_generic),
+};
+
+extern void *neb_handle;
+int register_merlin_hooks(void)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
+		struct callback_struct *cb = &callback_table[i];
+
+		neb_register_callback(cb->type, neb_handle, 0, merlin_mod_hook);
+	}
+
+	return 0;
+}
+
+int deregister_merlin_hooks(void)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
+		struct callback_struct *cb = &callback_table[i];
+
+		neb_deregister_callback(cb->type, merlin_mod_hook);
+	}
+
+	return 0;
 }
