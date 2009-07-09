@@ -55,13 +55,10 @@ chmod 777 %buildroot/%mod_path/logs
 # in dlopen(). If we're installing anew, we need to update the
 # config and then restart. Either way, it's safe to stop it
 # unconditionally here
-echo "Running pre scriptlet"
 sh /etc/init.d/monitor stop || :
 sh /etc/init.d/monitor slay || :
-echo "Pre scriptlet done"
 
 %preun
-echo "Running preun scriptlet"
 if [ $1 -eq 0 ]; then
 	# removing the ndbneb module entirely
 	sh /etc/init.d/monitor stop || :
@@ -72,9 +69,7 @@ if [ $1 -eq 0 ]; then
 fi
 
 %post
-echo "Running post scriptlet"
 sh /etc/init.d/monitor start || :
-echo "Post scriptlet done"
 
 %post -n merlin
 %mod_path/install-merlin.sh --batch --install=db,config \
