@@ -40,6 +40,7 @@ extern char *config_file;
 extern int event_broker_options;
 
 /** prototypes **/
+extern int handle_ipc_event(merlin_event *pkt);
 extern int cb_handler(int cmd, void *data); /* the callback handler */
 extern void file_list_free(struct file_list *list);
 extern int mrm_ipc_write(const char *key, struct merlin_event *pkt);
