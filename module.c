@@ -245,7 +245,7 @@ static void read_config(char *cfg_file)
 	for (i = 0; i < config->nested; i++) {
 		struct cfg_comp *c = config->nest[i];
 
-		if (!strcmp(c->name, "module")) {
+		if (!prefixcmp(c->name, "module")) {
 			grok_module_compound(c);
 			continue;
 		}
