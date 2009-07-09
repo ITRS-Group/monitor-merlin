@@ -3,7 +3,7 @@
 
 #define safe_str(str) (str == NULL ? "''" : str)
 #define safe_free(str) do { if (str) free(str); } while (0)
-static int mdb_update_host_status(object_state *st, const nebstruct_host_check_data *p)
+static int handle_host_result(object_state *st, const nebstruct_host_check_data *p)
 {
 	char *host_name, *output, *long_output, *perf_data = NULL;
 	int result;
@@ -51,7 +51,7 @@ static int mdb_update_host_status(object_state *st, const nebstruct_host_check_d
 	return result;
 }
 
-static int mdb_update_service_status(object_state *st, const nebstruct_service_check_data *p)
+static int handle_service_result(object_state *st, const nebstruct_service_check_data *p)
 {
 	char *host_name, *output, *long_output, *perf_data, *service_description;
 	int result;
@@ -103,7 +103,7 @@ static int mdb_update_service_status(object_state *st, const nebstruct_service_c
 	return result;
 }
 
-static int mdb_update_program_status(const nebstruct_program_status_data *p)
+static int handle_program_status(const nebstruct_program_status_data *p)
 {
 	char *global_host_event_handler;
 	char *global_service_event_handler;
@@ -142,7 +142,7 @@ static int mdb_update_program_status(const nebstruct_program_status_data *p)
 	return result;
 }
 
-static int mdb_handle_downtime(const nebstruct_downtime_data *p)
+static int handle_downtime(const nebstruct_downtime_data *p)
 {
 	int result = 0;
 	char *host_name, *service_description, *comment_data, *author_name;
@@ -219,7 +219,7 @@ static int mdb_handle_downtime(const nebstruct_downtime_data *p)
 	return result;
 }
 
-static int mdb_handle_flapping(const nebstruct_flapping_data *p)
+static int handle_flapping(const nebstruct_flapping_data *p)
 {
 	int result;
 	char *host_name, *service_description = NULL;
@@ -251,7 +251,7 @@ static int mdb_handle_flapping(const nebstruct_flapping_data *p)
 	return result;
 }
 
-static int mdb_handle_comment(const nebstruct_comment_data *p)
+static int handle_comment(const nebstruct_comment_data *p)
 {
 	int result;
 	char *host_name, *author_name, *comment_data, *service_description;
@@ -287,7 +287,7 @@ static int mdb_handle_comment(const nebstruct_comment_data *p)
 	return result;
 }
 
-static int mdb_handle_notification(const nebstruct_notification_data *p)
+static int handle_notification(const nebstruct_notification_data *p)
 {
 	char *host_name, *service_description;
 	char *output, *ack_author, *ack_data;
@@ -331,7 +331,7 @@ int mrm_db_update(merlin_event *pkt)
 	case NEBCALLBACK_HOST_CHECK_DATA:
 		hst = (nebstruct_host_check_data *)pkt->body;
 		st = get_host_state(hst->host_name);
-		errors = mdb_update_host_status(st, (void *)pkt->body);
+		errors = handle_host_result(st, (void *)pkt->body);
 		/*
 		 * additional queries can be run here, being
 		 * passed the state struct if necessary
@@ -343,7 +343,7 @@ int mrm_db_update(merlin_event *pkt)
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 		srv = (nebstruct_service_check_data *)pkt->body;
 		st = get_service_state(srv->host_name, srv->service_description);
-		errors = mdb_update_service_status(st, (void *)pkt->body);
+		errors = handle_service_result(st, (void *)pkt->body);
 		/*
 		 * additional queries can be run here, being
 		 * passed the state struct if necessary
@@ -352,19 +352,19 @@ int mrm_db_update(merlin_event *pkt)
 			st->state = concat_state(srv->state, srv->state);
 		break;
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
-		errors = mdb_update_program_status((void *)pkt->body);
+		errors = handle_program_status((void *)pkt->body);
 		break;
 	case NEBCALLBACK_COMMENT_DATA:
-		errors = mdb_handle_comment((void *)pkt->body);
+		errors = handle_comment((void *)pkt->body);
 		break;
 	case NEBCALLBACK_DOWNTIME_DATA:
-		errors = mdb_handle_downtime((void *)pkt->body);
+		errors = handle_downtime((void *)pkt->body);
 		break;
 	case NEBCALLBACK_FLAPPING_DATA:
-		errors = mdb_handle_flapping((void *)pkt->body);
+		errors = handle_flapping((void *)pkt->body);
 		break;
 	case NEBCALLBACK_NOTIFICATION_DATA:
-		errors = mdb_handle_notification((void *)pkt->body);
+		errors = handle_notification((void *)pkt->body);
 		break;
 	default:
 		ldebug("Unknown callback type. Weird, to say the least...");
