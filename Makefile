@@ -2,7 +2,6 @@ CC = gcc
 CFLAGS = -O2 -pipe -Wall -ggdb3 -fPIC
 SHARED_OBJS = config.o ipc.o shared.o io.o protocol.o data.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
-TEST_DEPS = test_utils.h
 COMMON_OBJS = version.o logging.o $(SHARED_OBJS)
 DAEMON_OBJS = status.o daemonize.o daemon.o net.o sql.o db_updater.o
 DAEMON_OBJS += $(COMMON_OBJS)

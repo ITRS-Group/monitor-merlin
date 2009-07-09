@@ -5,9 +5,7 @@
 #include "nagios/nebstructs.h"
 #include "nagios/nebcallbacks.h"
 #include "nagios/broker.h"
-#include "test_utils.h"
-#include "ipc.h"
-#include "protocol.h"
+#include "shared.h"
 #include "hookinfo.h"
 
 #define HOST_NAME "devel"
