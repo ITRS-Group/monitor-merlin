@@ -194,6 +194,8 @@ static void setup_host_hash_tables(void)
 		else
 			ldebug("Hostgroup '%s' has %d hosts", get_sel_name(i), num_ents[i]);
 	}
+
+	free(num_ents);
 }
 
 

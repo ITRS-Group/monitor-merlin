@@ -127,44 +127,40 @@ static int hook_host_result(merlin_event *pkt, void *data)
 static int hook_host_status(merlin_event *pkt, void *data)
 {
 	nebstruct_host_status_data *ds = (nebstruct_host_status_data *)data;
-	merlin_host_status *st_obj;
+	merlin_host_status st_obj;
 	struct host_struct *obj;
 
 	obj = (struct host_struct *)ds->object_ptr;
 
-	st_obj = malloc(sizeof(*st_obj));
-
-	COPY_STATE_VARS(st_obj->state, obj);
-	st_obj->state.last_notification = obj->last_host_notification;
-	st_obj->state.next_notification = obj->next_host_notification;
-	st_obj->state.accept_passive_checks = obj->accept_passive_host_checks;
-	st_obj->state.obsess = obj->obsess_over_host;
-	st_obj->name = obj->name;
+	COPY_STATE_VARS(st_obj.state, obj);
+	st_obj.state.last_notification = obj->last_host_notification;
+	st_obj.state.next_notification = obj->next_host_notification;
+	st_obj.state.accept_passive_checks = obj->accept_passive_host_checks;
+	st_obj.state.obsess = obj->obsess_over_host;
+	st_obj.name = obj->name;
 
 	pkt->hdr.selection = get_selection(obj->name);
 
-	return send_generic(pkt, st_obj);
+	return send_generic(pkt, &st_obj);
 }
 
 static int hook_service_status(merlin_event *pkt, void *data)
 {
 	nebstruct_service_status_data *ds = (nebstruct_service_status_data *)data;
-	merlin_service_status *st_obj;
+	merlin_service_status st_obj;
 	struct service_struct *obj;
 
 	obj = (struct service_struct *)ds->object_ptr;
 
-	st_obj = malloc(sizeof(*st_obj));
-
-	COPY_STATE_VARS(st_obj->state, obj);
-	st_obj->state.last_notification = obj->last_notification;
-	st_obj->state.next_notification = obj->next_notification;
-	st_obj->host_name = obj->host_name;
-	st_obj->service_description = obj->description;
+	COPY_STATE_VARS(st_obj.state, obj);
+	st_obj.state.last_notification = obj->last_notification;
+	st_obj.state.next_notification = obj->next_notification;
+	st_obj.host_name = obj->host_name;
+	st_obj.service_description = obj->description;
 
 	pkt->hdr.selection = get_selection(obj->host_name);
 
-	return send_generic(pkt, st_obj);
+	return send_generic(pkt, &st_obj);
 }
 
 static int hook_notification(merlin_event *pkt, void *data)
