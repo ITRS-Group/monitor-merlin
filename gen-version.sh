@@ -1,6 +1,6 @@
 #!/bin/sh
 
-DEF_VER=v0.5
+DEF_VER=v0.6.1
 revision= patches= version= ver= beta=
 
 # First see if there is a version file (included in release tarballs),
