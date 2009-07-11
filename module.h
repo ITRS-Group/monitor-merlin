@@ -36,6 +36,7 @@ extern hash_table *host_hash_table;
 #define hash_find_val(key) (int)hash_find(host_hash_table, key)
 
 /* global variables in the module only */
+extern int merlin_should_send_paths;
 extern void *neb_handle;
 
 /** global variables exported by Nagios **/

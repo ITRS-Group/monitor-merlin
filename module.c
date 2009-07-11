@@ -5,6 +5,7 @@
 #include "nagios/macros.h"
 
 int cb_handler(int, void *);
+int merlin_should_send_paths = 1;
 
 /** code start **/
 extern hostgroup *hostgroup_list;
@@ -275,6 +276,10 @@ static int send_paths(void)
 	size_t config_path_len, cache_path_len;
 	char *cache_file, *status_log;
 	merlin_event pkt;
+	int result;
+
+	if (!merlin_should_send_paths)
+		return 0;
 
 	cache_file = macro_x[MACRO_OBJECTCACHEFILE];
 	status_log = macro_x[MACRO_STATUSDATAFILE];
@@ -311,9 +316,18 @@ static int send_paths(void)
 	pkt.body[pkt.hdr.len++] = 0;
 	pkt.hdr.selection = 0;
 
-	return ipc_send_event(&pkt);
+	result = ipc_send_event(&pkt);
+	if (result == packet_size(&pkt))
+		merlin_should_send_paths = 0;
+
+	return result;
 }
 
+static int mark_paths_unsent(void)
+{
+	merlin_should_send_paths = 1;
+	return 0;
+}
 
 static int mrm_ipc_connect(void *discard)
 {
@@ -328,7 +342,6 @@ static int mrm_ipc_connect(void *discard)
 	}
 	else {
 		ldebug("IPC successfully connected");
-		send_paths();
 	}
 
 	return result;
@@ -354,6 +367,7 @@ static int post_config_init(int cb, void *ds)
 	create_object_lists();
 	mrm_ipc_connect(NULL);
 	mrm_ipc_reap(NULL);
+	send_paths();
 
 	return 0;
 }
@@ -375,6 +389,9 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	/* make sure we can catch whatever we want */
 	event_broker_options = BROKER_EVERYTHING;
 
+	linfo("setting connect and disconnect handlers");
+	mrm_ipc_set_connect_handler(send_paths);
+	mrm_ipc_set_disconnect_handler(mark_paths_unsent);
 	daemon_dumps_core = 1;
 	home = getenv("HOME");
 	if (!home)
