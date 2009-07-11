@@ -10,6 +10,23 @@ static int ipc_sock = -1; /* once connected, we operate on this */
 static char *ipc_sock_path;
 static size_t ipc_events;
 
+/*
+ * these are, if set, run when completing or losing the ipc
+ * connection, respectively
+ */
+static int (*on_connect)(void);
+static int (*on_disconnect)(void);
+
+void mrm_ipc_set_connect_handler(int (*handler)(void))
+{
+	on_connect = handler;
+}
+
+void mrm_ipc_set_disconnect_handler(int (*handler)(void))
+{
+	on_disconnect = handler;
+}
+
 int ipc_reinit(void)
 {
 	ipc_deinit();
@@ -169,6 +186,10 @@ int ipc_init(void)
 		/* let everybody know we're alive and active */
 		linfo("Shoutcasting active status through IPC socket");
 		ipc_send_ctrl(CTRL_ACTIVE, -1);
+		if (on_connect) {
+			linfo("Running on_connect hook for module");
+			on_connect();
+		}
 	}
 
 	return listen_sock;
@@ -187,6 +208,9 @@ int ipc_deinit(void)
 
 	ipc_sock = -1;
 	listen_sock = -1;
+
+	if (on_disconnect)
+		on_disconnect();
 
 	return result;
 }
@@ -209,6 +233,8 @@ int ipc_is_connected(int msec)
 		if (ipc_sock < 0) {
 			lerr("ipc: accept() failed: %s", strerror(errno));
 			return 0;
+		} else if (on_connect) {
+			on_connect();
 		}
 	}
 

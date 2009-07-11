@@ -17,6 +17,8 @@ extern int ipc_deinit(void);
 #define ipc_unlink() ipc_deinit()
 #define ipc_disconnect() ipc_init()
 
+extern void mrm_ipc_set_connect_handler(int (*handler)(void));
+extern void mrm_ipc_set_disconnect_handler(int (*handler)(void));
 extern int ipc_grok_var(char *var, char *val);
 extern int ipc_read(void *buf, size_t len, unsigned msec);
 extern int ipc_write(const void *buf, size_t len, unsigned msec);
