@@ -341,7 +341,11 @@ class nagios_object_importer
 			array('serviceescalation' => 1,
 				  'servicedependency' => 1);
 
-		$fh = fopen($object_cache, "r");
+		if (!file_exists($object_cache))
+			return false;
+		else
+			$fh = fopen($object_cache, "r");
+
 		if (!$fh)
 			return false;
 
