@@ -8,7 +8,7 @@ extern const char *__progname;
 
 int use_database;
 static const char *pidfile, *merlin_user;
-static char *import_program = "php /home/exon/git/monitor/merlin/import.php";
+static char *import_program;
 int default_port = 15551;
 static size_t hosts, services;
 
@@ -232,6 +232,11 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 	if (!use_database)
 		return 0;
 
+	if (!import_program) {
+		lerr("No import program specified. Ignoring import event");
+		return 0;
+	}
+
 	asprintf(&cmd, "%s --nagios-cfg=%s --cache=%s "
 			 "--db-name=%s --db-user=%s --db-pass=%s --db-host=%s",
 			 import_program, cfg, cache,
@@ -427,6 +432,13 @@ int main(int argc, char **argv)
 	if (!grok_config(config_file)) {
 		fprintf(stderr, "%s contains errors. Bailing out\n", config_file);
 		return 1;
+	}
+
+	if (use_database && !import_program) {
+		fprintf(stderr, "Using database, but no import program configured\n");
+		fprintf(stderr, "Make sure you specify the import_program directive in\n");
+		fprintf(stderr, "the \"daemon\" section of your merlin configuration file\n");
+		exit(EXIT_FAILURE);
 	}
 
 	if (!pidfile)
