@@ -450,8 +450,14 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (!debug)
-		daemonize(merlin_user, NULL, pidfile, 0);
+	if (!debug) {
+		if (daemonize(merlin_user, NULL, pidfile, 0) < 0)
+			exit(EXIT_FAILURE);
+
+		fclose(stdin);
+		fclose(stdout);
+		fclose(stderr);
+	}
 
 	signal(SIGINT, clean_exit);
 	signal(SIGTERM, clean_exit);
