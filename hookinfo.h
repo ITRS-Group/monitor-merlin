@@ -11,6 +11,8 @@
  * 'offset' is 'sizeof(nebstruct_something_data)'
  * 'ptrs[]' are the offsets of each char *. use the offsetof() macro
  */
+#ifndef INCLUDE_hookinfo_h__
+#define INCLUDE_hookinfo_h__
 
 #include "shared.h"
 
@@ -164,3 +166,5 @@ static struct hook_info_struct {
 	{ NEBCALLBACK_CONTACT_STATUS_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_ADAPTIVE_CONTACT_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 };
+
+#endif /* INCLUDE_hookinfo_h__ */

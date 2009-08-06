@@ -1,5 +1,5 @@
-#ifndef _HASH_H_
-#define _HASH_H_
+#ifndef INCLUDE_hash_h__
+#define INCLUDE_hash_h__
 #include <stdio.h>
 
 #define HASH_BUCKETS (1 << 10)
@@ -27,4 +27,4 @@ extern void hash_remove_data2(TABLE, const char *k1, const char *k2, const void 
 extern void hash_walk_data(TABLE, int (*walker)(void *data));
 extern int hash_check_table(TABLE);
 extern size_t hash_count_entries(TABLE);
-#endif /* HASH_H */
+#endif /* INCLUDE_hash_h__ */

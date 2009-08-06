@@ -2,8 +2,8 @@
  * shared.h: Header file for code shared between module and daemon
  */
 
-#ifndef SHARED_H
-#define SHARED_H
+#ifndef INCLUDE_shared_h__
+#define INCLUDE_shared_h__
 
 #define NSCORE
 

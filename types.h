@@ -1,5 +1,5 @@
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef INCLUDE_types_h__
+#define INCLUDE_types_h__
 
 #include <sys/time.h>
 
@@ -29,4 +29,4 @@ struct merlin_node {
 };
 typedef struct merlin_node merlin_node;
 
-#endif /* TYPES_H */
+#endif /* INCLUDE_types_h__ */

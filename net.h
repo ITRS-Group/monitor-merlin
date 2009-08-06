@@ -1,5 +1,5 @@
-#ifndef NET_H
-#define NET_H
+#ifndef INCLUDE_net_h__
+#define INCLUDE_net_h__
 
 #include <netdb.h>
 #include "protocol.h"
@@ -21,4 +21,4 @@ extern int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val);
 extern void check_all_node_activity(void);
 extern int net_accept_one(void);
 extern int net_handle_polling_results(fd_set *rd, fd_set *wr);
-#endif /* NET_H */
+#endif /* INCLUDE_net_h__ */

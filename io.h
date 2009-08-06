@@ -1,5 +1,5 @@
-#ifndef IO_H
-#define IO_H
+#ifndef INCLUDE_io_h__
+#define INCLUDE_io_h__
 
 #include <sys/types.h>
 #include <sys/poll.h>
@@ -11,4 +11,4 @@ int io_poll(int fd, int events, int msec);
 int io_recv_all(int fd, void *buf, size_t len);
 int io_send_all(int fd, const void *buf, size_t len);
 
-#endif /* IO_H */
+#endif /* INCLUDE_io_h__ */

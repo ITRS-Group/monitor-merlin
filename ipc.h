@@ -1,5 +1,5 @@
-#ifndef IPC_H
-#define IPC_H
+#ifndef INCLUDE_ipc_h__
+#define INCLUDE_ipc_h__
 
 #include <unistd.h>
 #include <sys/un.h>
@@ -30,4 +30,5 @@ extern int ipc_listen_sock_desc(void);
 extern int ipc_is_connected(int msec);
 extern int ipc_reinit(void);
 extern int ipc_accept(void);
-#endif
+
+#endif /* INCLUDE_ipc_h__ */

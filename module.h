@@ -1,5 +1,5 @@
-#ifndef MRM_MOD_H
-#define MRM_MOD_H
+#ifndef INCLUDE_module_h__
+#define INCLUDE_module_h__
 
 #ifndef USE_EVENT_BROKER
 # define USE_EVENT_BROKER 1

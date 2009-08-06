@@ -1,5 +1,5 @@
-#ifndef _SQL_H_
-#define _SQL_H_
+#ifndef INCLUDE_sql_h__
+#define INCLUDE_sql_h__
 
 #include <dbi/dbi.h>
 

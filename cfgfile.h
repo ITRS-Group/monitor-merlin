@@ -1,5 +1,5 @@
-#ifndef _CFGFILE_H_
-#define _CFGFILE_H_
+#ifndef INCLUDE_cfgfile_h__
+#define INCLUDE_cfgfile_h__
 
 /* have a care with this one. It can't be used when (c) has side-effects */
 #undef ISSPACE

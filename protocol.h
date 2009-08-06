@@ -1,5 +1,5 @@
-#ifndef PROTOCOL_H
-#define PROTOCOL_H
+#ifndef INCLUDE_protocol_h__
+#define INCLUDE_protocol_h__
 
 #include <sys/types.h>
 

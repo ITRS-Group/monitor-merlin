@@ -1,5 +1,5 @@
-#ifndef LOGGING_H
-#define LOGGING_H
+#ifndef INCLUDE_logging_h__
+#define INCLUDE_logging_h__
 
 #include <stdarg.h>
 
