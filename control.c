@@ -2,8 +2,6 @@
  * Functions for controlling nagios' behaviour. Add more as needed.
  */
 
-#define NSCORE
-
 #include "module.h"
 
 static linked_item **mrm_host_list = NULL;

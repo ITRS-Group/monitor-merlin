@@ -5,13 +5,12 @@
 # define USE_EVENT_BROKER 1
 #endif
 
-/* common include files required for types in this file */
+#include "shared.h"
+#include "hash.h"
+
 #include "nagios/nebmods.h"
 #include "nagios/nebmodules.h"
 #include "nagios/broker.h"
-
-#include "shared.h"
-#include "hash.h"
 
 typedef struct BINLOG_HEAD {
 	int type;

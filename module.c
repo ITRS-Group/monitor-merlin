@@ -1,4 +1,3 @@
-#define NSCORE
 #include "module.h"
 #include "nagios/objects.h"
 #include "nagios/statusdata.h"

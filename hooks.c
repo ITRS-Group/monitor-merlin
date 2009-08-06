@@ -9,9 +9,8 @@
  * thingie.
  */
 
-#define NSCORE
-#include "nagios/objects.h"
 #include "module.h"
+#include "nagios/objects.h"
 
 static int send_generic(merlin_event *pkt, void *data)
 {
