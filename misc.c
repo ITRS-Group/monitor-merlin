@@ -51,10 +51,7 @@ static char *read_strip_split(char *fname, int *size)
 /* the static variable depth makes sure we don't loop for ever in
  * a nested symlink tree */
 static struct file_list *recurse_cfg_dir(char *path, struct file_list *list,
-										 int max_depth, int depth);
-
-static struct file_list *recurse_cfg_dir(char *path, struct file_list *list,
-										 int max_depth, int depth)
+					  int max_depth, int depth)
 {
 	DIR *dp;
 	struct dirent *df;
