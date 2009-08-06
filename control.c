@@ -70,6 +70,10 @@ void create_object_lists(void)
 }
 
 
+/* 
+ * enables or disables active checks of all hosts and services
+ * controlled by the node relating to selection id "selection"
+ */
 void enable_disable_checks(int selection, int enable)
 {
 	linked_item *list;
@@ -109,6 +113,10 @@ void enable_disable_checks(int selection, int enable)
 }
 
 
+/*
+ * Handles merlin control events inside the module. Control events
+ * that relate to cross-host communication only never reaches this.
+ */
 void handle_control(int code, int selection)
 {
 	char *sel_name = NULL;

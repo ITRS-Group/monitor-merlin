@@ -66,6 +66,12 @@ static merlin_node *nodelist_by_selection(int sel)
 }
 
 
+/*
+ * creates the node-table, with fanout indices at the various
+ * different types of nodes. This allows us to iterate over
+ * all the nodes or a particular subset of them using the same
+ * table, which is quite handy.
+ */
 void create_node_tree(merlin_node *table, unsigned n)
 {
 	int i, xnoc, xpeer, xpoll;
@@ -117,6 +123,9 @@ void create_node_tree(merlin_node *table, unsigned n)
 }
 
 
+/*
+ * FIXME: should also handle hostnames
+ */
 int net_resolve(const char *cp, struct in_addr *inp)
 {
 	return inet_aton(cp, inp);
@@ -137,6 +146,9 @@ merlin_node *find_node(struct sockaddr_in *sain, const char *name)
 }
 
 
+/*
+ * Completes a connection to a node we've attempted to connect to
+ */
 static int net_complete_connection(merlin_node *node)
 {
 	int error, fail;
@@ -166,11 +178,18 @@ static void net_disconnect(merlin_node *node)
 }
 
 
+/*
+ * Initiate a connection attempt to a node and mark it as PENDING.
+ * Note that since we're using sockets in non-blocking mode (in order
+ * to be able to effectively multiplex), the connection attempt will
+ * never be completed in this function
+ */
 static int net_try_connect(merlin_node *node)
 {
 	struct sockaddr *sa = (struct sockaddr *)&node->sain;
 	int result;
 
+	/* create the socket if necessary */
 	if (node->sock == -1) {
 		struct timeval sock_timeout = { 10, 0 };
 
@@ -190,6 +209,7 @@ static int net_try_connect(merlin_node *node)
 		}
 	}
 
+	/* don't try to connect to a node if an attempt is already pending */
 	if (node->status != STATE_PENDING) {
 		sa->sa_family = AF_INET;
 		ldebug("Connecting to %s:%d", inet_ntoa(node->sain.sin_addr),
@@ -218,6 +238,11 @@ static int net_try_connect(merlin_node *node)
 }
 
 
+/*
+ * checks if a socket is connected or not by looking up the ip and port
+ * of the remote host.
+ * Returns 1 if connected and 0 if not.
+ */
 static int net_is_connected(int sock, struct sockaddr_in *sain)
 {
 	socklen_t slen = sizeof(struct sockaddr_in);
@@ -306,7 +331,13 @@ static int node_is_connected(merlin_node *node)
 }
 
 
-/* con is the one that might be in a connection attempt
+/*
+ * Negotiate which socket to use for communication when the remote
+ * host has accepted a connection attempt from us while we have
+ * accepted one from the remote host. This shouldn't happen very
+ * often, but if it does we must make sure both ends agree on one
+ * socket to use.
+ * con is the one that might be in a connection attempt
  * lis is the one we found with accept. */
 static int net_negotiate_socket(merlin_node *node, int lis)
 {
@@ -318,8 +349,8 @@ static int net_negotiate_socket(merlin_node *node, int lis)
 	if (con == -1)
 		return lis;
 
-	if (con == -1)
-		return lis;
+	if (lis == -1)
+		return con;
 
 	/* fds are real sockets. check if both are connected */
 	FD_ZERO(&rd);
@@ -378,6 +409,10 @@ static int net_negotiate_socket(merlin_node *node, int lis)
 }
 
 
+/*
+ * Accept an inbound connection from a remote host
+ * Returns 0 on success and -1 on errors
+ */
 int net_accept_one(void)
 {
 	int sock;
@@ -450,6 +485,9 @@ int net_deinit(void)
 }
 
 
+/*
+ * set up the listening socket (if applicable)
+ */
 int net_init(void)
 {
 	int result, sockopt = 1;
@@ -507,9 +545,14 @@ static int net_sendto(merlin_node *node, merlin_event *pkt)
 }
 
 
+/*
+ * If a node hasn't been heard from in pulse_interval x 2 seconds,
+ * we mark it as no longer connected and send a CTRL_INACTIVE event
+ * to the module, signalling that our Nagios should, potentially,
+ * take over checks for the awol poller
+ */
 #define set_inactive(node) ipc_send_ctrl(CTRL_INACTIVE, node->selection)
 #define set_active(node) ipc_send_ctrl(CTRL_ACTIVE, node->selection)
-
 static void check_node_activity(merlin_node *node)
 {
 	time_t now = time(NULL);
@@ -526,6 +569,10 @@ static void check_node_activity(merlin_node *node)
 }
 
 
+/*
+ * Passes an event from a remote node to the broker module,
+ * any and all nocs and the database handling routines
+ */
 static int handle_network_event(merlin_node *node, merlin_event *pkt)
 {
 	if (node->type == MODE_POLLER && num_nocs) {
@@ -545,6 +592,11 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 	return 0;
 }
 
+
+/*
+ * Reads input from a particular node and ships it off to
+ * the "handle_network_event()" routine up above
+ */
 static void net_input(merlin_node *node)
 {
 	merlin_event pkt;
@@ -600,6 +652,9 @@ static void net_input(merlin_node *node)
 }
 
 
+/*
+ * Sends an event read from the ipc socket to the appropriate nodes
+ */
 int net_send_ipc_data(merlin_event *pkt)
 {
 	int i;
@@ -632,6 +687,13 @@ int net_send_ipc_data(merlin_event *pkt)
 	return 0;
 }
 
+
+/*
+ * Populates the fd_set's *rd and *wr with all the connected nodes'
+ * sockets.
+ * Returns the highest socket descriptor found, so the fd_set's can
+ * be passed to select(2)
+ */
 int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 {
 	int i;
@@ -654,6 +716,12 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 	return sel_val;
 }
 
+
+/*
+ * Handles polling results from a previous (successful) select(2)
+ * This is where new connections are handled and network input is
+ * scheduled for reading
+ */
 #define READ_OK 1
 #define WRITE_OK 2
 int net_handle_polling_results(fd_set *rd, fd_set *wr)

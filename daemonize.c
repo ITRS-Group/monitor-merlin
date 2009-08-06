@@ -16,6 +16,9 @@
 
 static const char *daemon_pidfile;
 
+/*
+ * Really stupid generic sighandler...
+ */
 static void sighandler(int sig)
 {
 	unlink(daemon_pidfile);
@@ -23,6 +26,11 @@ static void sighandler(int sig)
 	exit(EXIT_SUCCESS);
 }
 
+
+/*
+ * Read a pid from "pidfile", which must contain one pid
+ * and one pid only
+ */
 static int read_pid(const char *pidfile)
 {
 	int pid = 0, fd;
@@ -42,6 +50,10 @@ static int read_pid(const char *pidfile)
 	return pid;
 }
 
+
+/*
+ * Writes out the pidfile
+ */
 static int write_pid(const char *pidfile, int pid)
 {
 	FILE *fp;
@@ -55,6 +67,11 @@ static int write_pid(const char *pidfile, int pid)
 	return pid;
 }
 
+
+/*
+ * Checks if a process with the pid found in *pidfile already exists.
+ * Returns 1 if it does, and 0 if it doesn't.
+ */
 static int already_running(const char *pidfile)
 {
 	int pid = read_pid(pidfile);
@@ -92,6 +109,14 @@ static struct passwd *get_user_entry(const char *user)
 	exit(EXIT_FAILURE);
 }
 
+
+/*
+ * Drop privileges neatly
+ *
+ * This code was taken from a patch I wrote for the Openwall
+ * distro. The patch was/is used in bind, nmap and dhclient
+ * shipped with Openwall
+ */
 static unsigned drop_privs(struct passwd *pw)
 {
 	/* group first, or we won't be able to swap uid */

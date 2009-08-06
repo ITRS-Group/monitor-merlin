@@ -1,3 +1,8 @@
+/*
+ * This file is included by all module-specific C source files
+ * and by quite a few files with shared interest
+ */
+
 #ifndef INCLUDE_module_h__
 #define INCLUDE_module_h__
 

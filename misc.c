@@ -15,6 +15,11 @@ void file_list_free(struct file_list *list)
 	}
 }
 
+
+/*
+ * Reads a file named *fname into a buffer and zero-separates its
+ * lines into a pretty neat array
+ */
 static char *read_strip_split(char *fname, int *size)
 {
 	char *buf, *p;
@@ -47,9 +52,12 @@ static char *read_strip_split(char *fname, int *size)
 	return buf;
 }
 
-/* recursive function to scan for .cfg files */
-/* the static variable depth makes sure we don't loop for ever in
- * a nested symlink tree */
+
+/*
+ * recursive function to scan for .cfg files.
+ * the static variable depth makes sure we don't loop for ever in
+ * a nested symlink tree
+ */
 static struct file_list *recurse_cfg_dir(char *path, struct file_list *list,
 					  int max_depth, int depth)
 {

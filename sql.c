@@ -1,6 +1,10 @@
 #define _GNU_SOURCE
 #include "daemon.h"
 
+/*
+ * File-scoped definition of the database settings we've tried
+ * (or succeeded) connecting with
+ */
 static struct {
 	char *host;
 	char *name;
@@ -20,6 +24,10 @@ static struct {
 #define ESC_BUFS 8 /* must be a power of 2 */
 #define MAX_ESC_STRING ((ESC_BUFSIZE * 2) + 1)
 
+/*
+ * Quotes a string and escapes all meta-characters inside the string.
+ * **dst must be free()'d by the caller.
+ */
 size_t sql_quote(const char *src, char **dst)
 {
 	if (!src) {
@@ -29,6 +37,13 @@ size_t sql_quote(const char *src, char **dst)
 	return dbi_conn_quote_string_copy(db.conn, src, dst);
 }
 
+
+/*
+ * Escapes a string to make it suitable for use in sql-queries.
+ * It's up to the caller to put quotation marks around the string
+ * in the query. Use "sql_quote()" instead, since that has fewer
+ * operations and causes the sql queries to be shorter.
+ */
 size_t sql_escape(const char *src, char **dst)
 {
 	size_t len;
@@ -66,6 +81,7 @@ dbi_result sql_get_result(void)
 {
 	return db.result;
 }
+
 
 int sql_query(const char *fmt, ...)
 {
@@ -107,6 +123,7 @@ int sql_query(const char *fmt, ...)
 
 	return !!db.result;
 }
+
 
 int sql_init(void)
 {
@@ -161,6 +178,7 @@ int sql_init(void)
 	return 0;
 }
 
+
 int sql_close(void)
 {
 	if (db.conn)
@@ -170,11 +188,17 @@ int sql_close(void)
 	return 0;
 }
 
+
 int sql_reinit(void)
 {
 	sql_close();
 	return sql_init();
 }
+
+/*
+ * Some nifty helper functions which still allow us to keep the
+ * db struct in file scope
+ */
 
 const char *sql_db_name(void)
 {
@@ -201,6 +225,10 @@ const char *sql_table_name(void)
 	return db.table ? db.table : "report_data";
 }
 
+
+/*
+ * Config parameters from the "database" section end up here
+ */
 int sql_config(const char *key, const char *value)
 {
 	char *value_cpy;

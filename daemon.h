@@ -1,3 +1,7 @@
+/*
+ * This file is included by all C source files used exclusively by
+ * the merlin daemon
+ */
 #ifndef INCLUDE_daemon_h__
 #define INCLUDE_daemon_h__
 
