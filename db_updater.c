@@ -11,14 +11,15 @@
 	"check_freshness = %d, freshness_threshold = %d, " \
 	"process_performance_data = %d, " \
 	"active_checks_enabled = %d, passive_checks_enabled = %d, " \
+	"event_handler_enabled = %d, " \
 	"obsess_over_" type " = %d, problem_has_been_acknowledged = %d, " \
 	"acknowledgement_type = %d, check_type = %d, " \
-	"current_state = %d, last_state = %d, " /* 16 - 17 */ \
+	"current_state = %d, last_state = %d, " /* 17 - 18 */ \
 	"last_hard_state = %d, state_type = %d, " \
 	"current_attempt = %d, current_event_id = %lu, " \
 	"last_event_id = %lu, current_problem_id = %lu, " \
 	"last_problem_id = %lu, " \
-	"latency = %f, execution_time = %lf, "  /* 25 - 26 */ \
+	"latency = %f, execution_time = %lf, "  /* 26 - 27 */ \
 	"notifications_enabled = %d, " \
 	"last_notification = %lu, " \
 	"next_check = %lu, should_be_scheduled = %d, last_check = %lu, " \
@@ -27,7 +28,7 @@
 	"current_notification_number = %d, current_notification_id = %lu, " \
 	"check_flapping_recovery_notification = %d, " \
 	"scheduled_downtime_depth = %d, pending_flex_downtime = %d, " \
-	"is_flapping = %d, flapping_comment_id = %lu, " /* 40 - 41 */ \
+	"is_flapping = %d, flapping_comment_id = %lu, " /* 41 - 42 */ \
 	"percent_state_change = %f "
 
 #define STATUS_ARGS \
@@ -37,6 +38,7 @@
 	p->state.check_freshness, p->state.freshness_threshold, \
 	p->state.process_performance_data, \
 	p->state.checks_enabled, p->state.accept_passive_checks, \
+	p->state.event_handler_enabled, \
 	p->state.obsess, p->state.problem_has_been_acknowledged, \
 	p->state.acknowledgement_type, p->state.check_type, \
 	p->state.current_state, p->state.last_state, \
