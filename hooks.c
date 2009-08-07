@@ -177,7 +177,6 @@ int merlin_mod_hook(int cb, void *data)
 {
 	merlin_event pkt;
 
-	ldebug("merlin_mod_hook(%d, %p) called", cb, data);
 	if (!data) {
 		lerr("eventbroker module called with NULL data");
 		return -1;
