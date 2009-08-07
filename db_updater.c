@@ -458,6 +458,11 @@ int mrm_db_update(merlin_event *pkt)
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
 		errors = handle_service_status((void *)pkt->body);
 		break;
+
+		/* some callbacks are unhandled by design */
+	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
+		return 0;
+
 	default:
 		ldebug("Unknown callback type. Weird, to say the least...");
 		return -1;
