@@ -154,6 +154,7 @@ static int hook_service_status(merlin_event *pkt, void *data)
 	COPY_STATE_VARS(st_obj.state, obj);
 	st_obj.state.last_notification = obj->last_notification;
 	st_obj.state.next_notification = obj->next_notification;
+	st_obj.state.accept_passive_checks = obj->accept_passive_service_checks;
 	st_obj.host_name = obj->host_name;
 	st_obj.service_description = obj->description;
 
