@@ -466,9 +466,17 @@ int main(int argc, char **argv)
 		if (daemonize(merlin_user, NULL, pidfile, 0) < 0)
 			exit(EXIT_FAILURE);
 
+		/*
+		 * we'll leak these file-descriptors, but that
+		 * doesn't really matter as we just want accidental
+		 * output to go somewhere where it'll be ignored
+		 */
 		fclose(stdin);
+		open("/dev/null", O_RDONLY);
 		fclose(stdout);
+		open("/dev/null", O_WRONLY);
 		fclose(stderr);
+		open("/dev/null", O_WRONLY);
 	}
 
 	signal(SIGINT, clean_exit);
