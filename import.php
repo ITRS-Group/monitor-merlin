@@ -23,12 +23,14 @@ function usage($msg = false)
 
 	echo "Usage: $progname <options> --cache=/path/to/objects.cache\n";
 	echo "\n";
-	echo "--db-name   name of database to import to\n";
-	echo "--db-user   database username\n";
-	echo "--db-host   database host\n";
-	echo "--db-pass   database password\n";
-	echo "--db-type   database type (mysql is the only supported for now)\n";
-	echo "--cache     path to the objects.cache file to import\n";
+	echo "--db-name    name of database to import to\n";
+	echo "--db-user    database username\n";
+	echo "--db-host    database host\n";
+	echo "--db-pass    database password\n";
+	echo "--db-type    database type (mysql is the only supported for now)\n";
+	echo "--cache      path to the objects.cache file to import\n";
+	echo "--status-log path to the status.log file to import\n";
+	echo "--nagios-cfg path to nagios' main configuration file\n";
 	exit(1);
 }
 
