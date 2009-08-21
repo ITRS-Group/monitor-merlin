@@ -429,6 +429,7 @@ int net_accept_one(void)
 	node = find_node(&sain, NULL);
 	if (!node) {
 		linfo("'%s' is not a registered node", inet_ntoa(sain.sin_addr));
+		close(sock);
 		return -1;
 	}
 
