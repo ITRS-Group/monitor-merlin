@@ -262,55 +262,6 @@ static int ipc_poll(int events, int msec)
 	return io_poll(ipc_sock, events, msec);
 }
 
-/* for debugging the ipc communication */
-static void binlog(const char *path, const void *buf, int len)
-{
-	int fd;
-
-	if (!path)
-		return;
-
-	fd = open(path, O_WRONLY | O_CREAT | O_APPEND, 0666);
-	if (fd == -1)
-		lerr("Failed to open/create '%s': %s\n", path, strerror(errno));
-	else {
-		write(fd, buf, len);
-		close(fd);
-	}
-}
-
-
-int ipc_read(void *buf, size_t len, unsigned msec)
-{
-	int result;
-
-	result = ipc_read_ok(msec);
-	if (result < 0)
-		ldebug("ipc_read_ok returned %d: %s", result, strerror(errno));
-
-	/* read max 4k in one go */
-	if (len > 4096)
-		return 0;
-
-	if (result < 1) {
-		return result;
-	}
-
-	result = recv(ipc_sock, buf, len, MSG_DONTWAIT | MSG_NOSIGNAL);
-	/* if there was inbound data, but none to read that usually means
-	 * the other end disconnected or died, so we close the socket and
-	 * set it to -1 so that ipc_is_connected() will work properly */
-	if (!result) {
-		close(ipc_sock);
-		ipc_sock = -1;
-	}
-
-	if (result > 0)
-		binlog(debug_read, buf, len);
-
-	return result;
-}
-
 int ipc_send_ctrl(int control_type, int selection)
 {
 	if (!ipc_is_connected(0))
@@ -378,62 +329,4 @@ int ipc_read_event(merlin_event *pkt)
 	}
 
 	return 0;
-}
-
-int ipc_write(const void *buf, size_t len, unsigned msec)
-{
-	int result = ipc_write_ok(msec);
-
-	ldebug("trying to write %zu bytes of data to ipc socket\n", len);
-	if (len > TOTAL_PKT_SIZE) {
-		printf("  packet is too big. aborting\n");
-		return 0;
-	}
-
-	if (result < 1) {
-		printf("  writing is not possible. aborting\n");
-		return result;
-	}
-
-	binlog(debug_write, buf, len);
-
-	result = send(ipc_sock, buf, len, MSG_DONTWAIT | MSG_NOSIGNAL);
-	ldebug("  send(%d, buf, %zu, MSG_DONTWAIT | MSG_NOSIGNAL); returned %d\n", ipc_sock, len, result);
-	if (result != len)
-		lwarn("ipc_write: send(%d, %p, %zu, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d: %s",
-			  ipc_sock, buf, len, result, strerror(errno));
-
-	if (result < 0) {
-		switch (errno) {
-		case ENOTCONN:
-			lerr("errno is ENOTCONN");
-			break;
-		case EFAULT:
-			lerr("errno is EFAULT");
-			break;
-		case EPIPE:
-			lerr("errno is EPIPE");
-			break;
-		case EIO:
-			lerr("A low-level IO error occurred. What's that all about?\n");
-			break;
-		case ENOSPC:
-			lerr("Not enough space on the device. Perhaps we need to beef up the receive buffers?\n");
-			break;
-		case EAGAIN:
-			lerr("This shouldn't happen, since the socket isn't non-blocking\n");
-			break;
-		default:
-			lerr("Default write() error fallthrough. Weird, that. trying re-initialization\n");
-			ipc_reinit();
-			break;
-		}
-	}
-
-	if (errno == ENOTCONN || errno == EFAULT || errno == EPIPE) {
-		lerr("Trying to re-initialize ipc socket. is_module is %d", is_module);
-		ipc_reinit();
-	}
-
-	return result;
 }
