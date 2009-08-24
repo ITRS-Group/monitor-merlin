@@ -310,7 +310,7 @@ int ipc_send_event(merlin_event *pkt)
 		merlin_event *temp_pkt;
 		size_t len;
 
-		while (ipc_write_ok(100) && !ipc_binlog_read(ipc_binlog, &temp_pkt, &len)) {
+		while (ipc_write_ok(100) && !binlog_read(ipc_binlog, (void **)&temp_pkt, &len)) {
 			result = proto_send_event(ipc_sock, temp_pkt);
 			if (result < 0 && errno == EPIPE) {
 				lerr("Dropped one from ipc backlog");
