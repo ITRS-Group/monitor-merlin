@@ -26,6 +26,14 @@ typedef struct binlog binlog;
  * @return A binlog object, or NULL on memory allocation errors.
  */
 extern binlog *binlog_create(const char *path, size_t msize, size_t fsize, int flags);
+
+/**
+ * Check if a binary log has unread entries
+ * @param bl The binary log to examine
+ * @returns 1 if entries are found. 0 otherwise.
+ */
+extern int binlog_has_entries(binlog *bl);
+
 /**
  * Destroys a binary log, freeing all memory associated with it and
  * optionally unlinking the on-disk log (if any).

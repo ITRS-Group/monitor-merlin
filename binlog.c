@@ -190,6 +190,19 @@ int binlog_read(binlog *bl, void **buf, size_t *len)
 	return BINLOG_EMPTY;
 }
 
+int binlog_has_entries(binlog *bl)
+{
+	if (!bl)
+		return 0;
+
+	if (bl->file_size && bl->file_read_pos < bl->file_size)
+		return 1;
+	if (bl->cache && bl->read_index < bl->write_index)
+		return 1;
+
+	return 0;
+}
+
 static int binlog_open(binlog *bl)
 {
 	int flags = O_APPEND | O_CREAT;
