@@ -7,6 +7,8 @@
 
 #define NSCORE
 
+#define _GNU_SOURCE
+
 /** common include files required practically everywhere **/
 #include <stdio.h>
 #include <string.h>
@@ -31,6 +33,7 @@
 #include "logging.h"
 #include "cfgfile.h"
 #include "protocol.h"
+#include "binlog.h"
 #include "nagios/nebstructs.h"
 #include "nagios/nebcallbacks.h"
 

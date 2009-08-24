@@ -3,6 +3,7 @@
 #define ipc_read_ok(msec) ipc_poll(POLLIN, msec)
 #define ipc_write_ok(msec) ipc_poll(POLLOUT, msec)
 
+static binlog *ipc_binlog;
 static char *debug_write, *debug_read;
 
 static int listen_sock = -1; /* for bind() and such */
@@ -98,6 +99,26 @@ int ipc_grok_var(char *var, char *val)
 		return 1;
 	}
 
+	return 0;
+}
+
+int ipc_binlog_add(merlin_event *pkt)
+{
+	if (!ipc_binlog) {
+		char *path;
+
+		asprintf(&path, "/opt/monitor/op5/merlin/binlogs/ipc.%s.binlog",
+				 is_module ? "module" : "daemon");
+
+		/* 128k in memory, 10MB on disk */
+		ipc_binlog = binlog_create(path, 1 << 17, 10 << 20, BINLOG_UNLINK);
+		free(path);
+
+		if (!ipc_binlog)
+			return -1;
+	}
+
+	binlog_add(ipc_binlog, pkt, packet_size(pkt));
 	return 0;
 }
 
@@ -281,7 +302,21 @@ int ipc_send_event(merlin_event *pkt)
 
 	if (!ipc_write_ok(100)) {
 		linfo("ipc socket isn't ready to accept data: %s", strerror(errno));
+		ipc_binlog_add(pkt);
 		return -1;
+	}
+
+	if (binlog_has_entries(ipc_binlog)) {
+		merlin_event *temp_pkt;
+		size_t len;
+
+		while (ipc_write_ok(100) && !ipc_binlog_read(ipc_binlog, &temp_pkt, &len)) {
+			result = proto_send_event(ipc_sock, temp_pkt);
+			if (result < 0 && errno == EPIPE) {
+				lerr("Dropped one from ipc backlog");
+				ipc_reinit();
+			}
+		}
 	}
 
 	result = proto_send_event(ipc_sock, pkt);
