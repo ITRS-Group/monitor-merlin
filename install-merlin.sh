@@ -145,13 +145,18 @@ install_files ()
 	test -d "$root_path/$dest_dir" || mkdir -p 755 "$root_path/$dest_dir"
 	test -d "$root_path/$dest_dir/logs" || mkdir -p 777 "$root_path/$dest_dir/logs"
 	test -d "$root_path/$dest_dir" || { echo "$root_path/$dest_dir is not a directory"; return 1; }
-	cp "$src_dir/"{merlind,merlin.so,install-merlin.sh} "$root_path/$dest_dir"
-	cp "$src_dir/"{init.sh,install-merlin.sh,db.sql,example.conf} "$root_path/$dest_dir"
+	for f in merlind merlin.so install-merlin.sh init.sh db.sql example.conf; do
+		cp "$src_dir/$f" "$root_path/$dest_dir"
+	done
 	macro_subst "$src_dir/example.conf" > "$root_path/$dest_dir/merlin.conf"
 	macro_subst "$src_dir/import.php" > "$root_path/$dest_dir/import.php"
 	macro_subst "$src_dir/object_importer.inc.php" > "$root_path/$dest_dir/object_importer.inc.php"
-	chmod 755 "$root_path/$dest_dir/"{merlind,import.php,install-merlin.sh,init.sh}
-	chmod 644 "$root_path/$dest_dir/"{merlin.conf,example.conf,merlin.so}
+	for f in merlind import.php install-merlin.sh init.sh; do
+		chmod 755 "$root_path/$dest_dir/$f"
+	done
+	for f in merlin.conf example.conf merlin.so; do
+		chmod 644 "$root_path/$dest_dir/$f"
+	done
 }
 
 install_init ()
