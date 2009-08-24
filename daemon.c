@@ -342,18 +342,28 @@ static int io_poll_sockets(void)
 	if (ipc_listen_sock > 0 && FD_ISSET(ipc_listen_sock, &rd)) {
 		ldebug("Accepting inbound connection on ipc socket");
 		ipc_accept();
-	}
-	if (ipc_sock > 0 && FD_ISSET(ipc_sock, &rd)) {
+	} else if (ipc_sock > 0 && FD_ISSET(ipc_sock, &rd)) {
+		/*
+		 * we expect to get the vast majority of events from the ipc
+		 * socket, so make sure we read a bunch of them in one go
+		 */
+		size_t ipc_events = 0;
 		merlin_event pkt;
 		sockets++;
 		linfo("inbound data available on ipc socket\n");
-		if (ipc_read_event(&pkt) > 0)
-			handle_ipc_data(&pkt);
-		else
-			ldebug("ipc_read_event() failed");
+		do {
+			if (ipc_read_event(&pkt) > 0) {
+				ipc_events++;
+				handle_ipc_data(&pkt);
+			} else {
+				ldebug("ipc_read_event() failed");
+				break;
+			}
+		} while (ipc_events < 20);
+		linfo("Read %zu ipc events", ipc_events);
 	}
 
-	/* check for inbound connections first */
+	/* check for inbound connections */
 	if (FD_ISSET(net_sock, &rd)) {
 		printf("inbound data available on network socket\n");
 		net_accept_one();
