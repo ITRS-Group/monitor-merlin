@@ -7,7 +7,9 @@
 
 #define NSCORE
 
-#define _GNU_SOURCE
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE 1
+#endif
 
 /** common include files required practically everywhere **/
 #include <stdio.h>
