@@ -325,18 +325,20 @@ static int ipc_reap_events(int ipc_sock)
 	linfo("inbound data available on ipc socket\n");
 	gettimeofday(&start, 0);
 
-	data_size = read(ipc_sock, buf, 128 << 10);
+	data_size = read(ipc_sock, buf + pos, (128 << 10) - pos);
 	if (data_size < 0) {
 		lerr("Error reading ipc events: %s", strerror(errno));
 		return -1;
 	}
+	data_size += pos;
+
 	linfo("Read %zu bytes of data from ipc socket", data_size);
-	pkt = (merlin_event *)buf;
 	/*
 	 * we've emptied the buffer so the module can send us more.
 	 * Now parse all the data, and time it so we know how long
 	 * the database insertion takes for any given amount of data
 	 */
+	pos = 0;
 	while (pos <= data_size) {
 		pkt = (merlin_event *)buf + pos;
 		/*
@@ -349,6 +351,10 @@ static int ipc_reap_events(int ipc_sock)
 				  pos + 8 <= data_size ? callback_name(pkt->hdr.type) : "unknown");
 
 			memmove(buf, pkt, data_size - pos);
+
+			/* reset 'pos' to the right spot so we read from the
+			 * right area next time */
+			pos = data_size - pos;
 			break;
 		}
 		ipc_events++;
