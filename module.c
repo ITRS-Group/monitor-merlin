@@ -364,9 +364,18 @@ static int post_config_init(int cb, void *ds)
 	linfo("Object configuration parsed.");
 	setup_host_hash_tables();
 	create_object_lists();
+
 	mrm_ipc_connect(NULL);
 	mrm_ipc_reap(NULL);
 	send_paths();
+
+	/*
+	 * now we register the hooks we're interested in, avoiding
+	 * the huge initial burst of events Nagios otherwise spews
+	 * at us when it's reading its status back in from the
+	 * status.sav file (assuming state retention is enabled)
+	 */
+	register_merlin_hooks();
 
 	return 0;
 }
@@ -399,8 +408,6 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	linfo("Coredumps in %s", home);
 	signal(SIGSEGV, SIG_DFL);
 	chdir(home);
-
-	register_merlin_hooks();
 
 	/* this gets de-registered immediately, so we need to add it manually */
 	neb_register_callback(NEBCALLBACK_PROCESS_DATA, neb_handle, 0, post_config_init);
