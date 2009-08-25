@@ -69,6 +69,17 @@ static inline void *xfree(void *ptr)
 	return NULL;
 }
 
+static inline float tv_delta(struct timeval *start, struct timeval *stop)
+{
+	float result = 0;
+
+	result = ((stop->tv_sec - start->tv_sec) * 1000000);
+	result += stop->tv_usec - start->tv_usec;
+	result /= 1000000;
+
+	return result;
+}
+
 #define xstrdup(str) str ? strdup(str) : NULL
 #define prefixcmp(a, b) strncmp(a, b, strlen(b))
 

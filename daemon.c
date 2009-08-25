@@ -282,7 +282,7 @@ static int read_nagios_paths(merlin_event *pkt)
 	return 0;
 }
 
-static int handle_ipc_data(merlin_event *pkt)
+static int handle_ipc_event(merlin_event *pkt)
 {
 	int result = 0;
 
@@ -303,6 +303,63 @@ static int handle_ipc_data(merlin_event *pkt)
 static int max(int a, int b)
 {
 	return a > b ? a : b;
+}
+
+static int ipc_reap_events(int ipc_sock)
+{
+	static char *buf = NULL;
+	static size_t pos = 0;
+	int ipc_events = 0, data_size;
+	merlin_event *pkt;
+	struct timeval start, stop;
+
+	if (!buf && !(buf = malloc(128 << 10))) {
+		lerr("Failed to malloc(128KB) for ipc receive buffer");
+		return -1;
+	}
+
+	/*
+	 * we expect to get the vast majority of events from the ipc
+	 * socket, so make sure we read a bunch of them in one go
+	 */
+	linfo("inbound data available on ipc socket\n");
+	gettimeofday(&start, 0);
+
+	data_size = read(ipc_sock, buf, 128 << 10);
+	if (data_size < 0) {
+		lerr("Error reading ipc events: %s", strerror(errno));
+		return -1;
+	}
+	linfo("Read %zu bytes of data from ipc socket", data_size);
+	pkt = (merlin_event *)buf;
+	/*
+	 * we've emptied the buffer so the module can send us more.
+	 * Now parse all the data, and time it so we know how long
+	 * the database insertion takes for any given amount of data
+	 */
+	while (pos <= data_size) {
+		pkt = (merlin_event *)buf + pos;
+		/*
+		 * if we got an incomplete event, we 'unread' it by moving it
+		 * to the top of the buffer and just return so we can parse it
+		 * completed the next time we read data from the socket
+		 */
+		if (packet_size(pkt) + pos > data_size) {
+			linfo("Incomplete %s event read from ipc socket.",
+				  pos + 8 <= data_size ? callback_name(pkt->hdr.type) : "unknown");
+
+			memmove(buf, pkt, data_size - pos);
+			break;
+		}
+		ipc_events++;
+		pos += packet_size(pkt);
+		handle_ipc_event(pkt);
+	}
+	gettimeofday(&stop, NULL);
+
+	linfo("Handled %zu ipc events in %0.3f seconds", ipc_events,
+		  tv_delta(&start, &stop));
+	return ipc_events;
 }
 
 static int io_poll_sockets(void)
@@ -343,24 +400,8 @@ static int io_poll_sockets(void)
 		ldebug("Accepting inbound connection on ipc socket");
 		ipc_accept();
 	} else if (ipc_sock > 0 && FD_ISSET(ipc_sock, &rd)) {
-		/*
-		 * we expect to get the vast majority of events from the ipc
-		 * socket, so make sure we read a bunch of them in one go
-		 */
-		size_t ipc_events = 0;
-		merlin_event pkt;
 		sockets++;
-		linfo("inbound data available on ipc socket\n");
-		do {
-			if (ipc_read_event(&pkt) > 0) {
-				ipc_events++;
-				handle_ipc_data(&pkt);
-			} else {
-				ldebug("ipc_read_event() failed");
-				break;
-			}
-		} while (ipc_events < 20);
-		linfo("Read %zu ipc events", ipc_events);
+		ipc_reap_events(ipc_sock);
 	}
 
 	/* check for inbound connections */
