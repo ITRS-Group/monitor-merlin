@@ -297,6 +297,7 @@ int ipc_send_event(merlin_event *pkt)
 
 	if (!ipc_is_connected(0)) {
 		linfo("ipc is not connected\n");
+		ipc_binlog_add(pkt);
 		return -1;
 	}
 
