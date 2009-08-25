@@ -310,14 +310,13 @@ static int ipc_reap_events(int ipc_sock)
 	static char *buf = NULL;
 	static size_t pos = 0;
 	int ipc_events = 0, data_size;
-	merlin_event *pkt;
+	merlin_event *pkt, p;
 	struct timeval start, stop;
 
-	if (!buf && !(buf = malloc(128 << 10))) {
-		lerr("Failed to malloc(128KB) for ipc receive buffer");
-		return -1;
+	while (ipc_read_event(&p) > 0) {
+		ipc_events++;
+		handle_ipc_event(&p);
 	}
-
 	/*
 	 * we expect to get the vast majority of events from the ipc
 	 * socket, so make sure we read a bunch of them in one go
@@ -325,7 +324,13 @@ static int ipc_reap_events(int ipc_sock)
 	linfo("inbound data available on ipc socket\n");
 	gettimeofday(&start, 0);
 
-	data_size = read(ipc_sock, buf + pos, (128 << 10) - pos);
+	goto summarize;
+	if (!buf && !(buf = malloc(128 << 10))) {
+		lerr("Failed to malloc(128KB) for ipc receive buffer");
+		return -1;
+	}
+
+	data_size = read(ipc_sock, buf, (128 << 10) - pos);
 	if (data_size < 0) {
 		lerr("Error reading ipc events: %s", strerror(errno));
 		return -1;
@@ -333,14 +338,16 @@ static int ipc_reap_events(int ipc_sock)
 	data_size += pos;
 
 	linfo("Read %zu bytes of data from ipc socket", data_size);
+	pkt = (merlin_event *)buf;
+	ldebug("First packet size: %zu", packet_size(pkt));
 	/*
 	 * we've emptied the buffer so the module can send us more.
 	 * Now parse all the data, and time it so we know how long
 	 * the database insertion takes for any given amount of data
 	 */
 	pos = 0;
-	while (pos <= data_size) {
-		pkt = (merlin_event *)buf + pos;
+	while (pos < data_size) {
+		pkt = (merlin_event *)((char *)buf + pos);
 		/*
 		 * if we got an incomplete event, we 'unread' it by moving it
 		 * to the top of the buffer and just return so we can parse it
@@ -349,6 +356,8 @@ static int ipc_reap_events(int ipc_sock)
 		if (packet_size(pkt) + pos > data_size) {
 			linfo("Incomplete %s event read from ipc socket.",
 				  pos + 8 <= data_size ? callback_name(pkt->hdr.type) : "unknown");
+			ldebug("pos: %zu; packet_size(%p): %zu; data_size: %zu; buf: %p\n",
+				   pos, pkt, packet_size(pkt), data_size, buf);
 
 			memmove(buf, pkt, data_size - pos);
 
@@ -361,6 +370,7 @@ static int ipc_reap_events(int ipc_sock)
 		pos += packet_size(pkt);
 		handle_ipc_event(pkt);
 	}
+	summarize:
 	gettimeofday(&stop, NULL);
 
 	linfo("Handled %zu ipc events in %0.3f seconds", ipc_events,
