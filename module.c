@@ -4,7 +4,7 @@
 #include "nagios/macros.h"
 
 int cb_handler(int, void *);
-int merlin_should_send_paths = 1;
+time_t merlin_should_send_paths = 1;
 
 /** code start **/
 extern hostgroup *hostgroup_list;
@@ -270,7 +270,7 @@ extern int event_broker_options;
 extern char *macro_x[MACRO_X_COUNT];
 extern char *config_file;
 
-static int send_paths(void)
+int send_paths(void)
 {
 	size_t config_path_len, cache_path_len;
 	char *cache_file, *status_log;

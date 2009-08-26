@@ -176,6 +176,33 @@ static int hook_notification(merlin_event *pkt, void *data)
 int merlin_mod_hook(int cb, void *data)
 {
 	merlin_event pkt;
+	int result = 0;
+
+	if (merlin_should_send_paths) {
+		if (merlin_should_send_paths >= time(NULL)) {
+			linfo("Daemon should have caught up. Trying to force a re-import");
+			send_paths();
+			/*
+			 * send_paths() resets merlin_should_send_paths
+			 * when paths are sent successfully. This should
+			 * never happen, but if it does it means we'll
+			 * trigger an import in the daemon, letting it
+			 * update the database completely.
+			 */
+			if (merlin_should_send_paths) {
+				lwarn("Force-triggering re-import failed. Backing off another 15 seconds");
+				merlin_should_send_paths += 15;
+			}
+		} else {
+			/*
+			 * if the daemon isn't ready to read it might be
+			 * because we're flooding the socket, so back off
+			 * a little and wait for the daemon to catch up
+			 * with us
+			 */
+			return 0;
+		}
+	}
 
 	if (!data) {
 		lerr("eventbroker module called with NULL data");
@@ -191,32 +218,37 @@ int merlin_mod_hook(int cb, void *data)
 	pkt.hdr.selection = 0xffff;
 	switch (cb) {
 	case NEBCALLBACK_NOTIFICATION_DATA:
-		return hook_notification(&pkt, data);
+		result = hook_notification(&pkt, data);
 
 	case NEBCALLBACK_HOST_CHECK_DATA:
-		return hook_host_result(&pkt, data);
+		result = hook_host_result(&pkt, data);
 
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
-		return hook_service_result(&pkt, data);
+		result = hook_service_result(&pkt, data);
 
 	case NEBCALLBACK_COMMENT_DATA:
 	case NEBCALLBACK_DOWNTIME_DATA:
 	case NEBCALLBACK_FLAPPING_DATA:
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
-		return send_generic(&pkt, data);
+		result = send_generic(&pkt, data);
 
 	case NEBCALLBACK_HOST_STATUS_DATA:
-		return hook_host_status(&pkt, data);
+		result = hook_host_status(&pkt, data);
 
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
-		return hook_service_status(&pkt, data);
+		result = hook_service_status(&pkt, data);
 
 	default:
 		lerr("Unhandled callback '%s' in merlin_hook()", callback_name(cb));
 	}
 
-	return -1;
+	if (result <= 0) {
+		lwarn("Daemon is flooded. Staying dormant for 15 seconds");
+		merlin_should_send_paths = time(NULL) + 15;
+	}
+
+	return result;
 }
 
 #define CB_ENTRY(pollers_only, type, hook) \

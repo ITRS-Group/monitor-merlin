@@ -40,7 +40,7 @@ extern hash_table *host_hash_table;
 #define hash_find_val(key) (int)hash_find(host_hash_table, key)
 
 /* global variables in the module only */
-extern int merlin_should_send_paths;
+extern time_t merlin_should_send_paths;
 extern void *neb_handle;
 
 /** global variables exported by Nagios **/
@@ -48,6 +48,7 @@ extern char *config_file;
 extern int event_broker_options;
 
 /** prototypes **/
+extern int send_paths(void);
 extern int handle_ipc_event(merlin_event *pkt);
 extern int cb_handler(int cmd, void *data); /* the callback handler */
 extern void file_list_free(struct file_list *list);
