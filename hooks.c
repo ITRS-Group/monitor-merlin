@@ -219,12 +219,15 @@ int merlin_mod_hook(int cb, void *data)
 	switch (cb) {
 	case NEBCALLBACK_NOTIFICATION_DATA:
 		result = hook_notification(&pkt, data);
+		break;
 
 	case NEBCALLBACK_HOST_CHECK_DATA:
 		result = hook_host_result(&pkt, data);
+		break;
 
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 		result = hook_service_result(&pkt, data);
+		break;
 
 	case NEBCALLBACK_COMMENT_DATA:
 	case NEBCALLBACK_DOWNTIME_DATA:
@@ -232,12 +235,15 @@ int merlin_mod_hook(int cb, void *data)
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
 		result = send_generic(&pkt, data);
+		break;
 
 	case NEBCALLBACK_HOST_STATUS_DATA:
 		result = hook_host_status(&pkt, data);
+		break;
 
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
 		result = hook_service_status(&pkt, data);
+		break;
 
 	default:
 		lerr("Unhandled callback '%s' in merlin_hook()", callback_name(cb));
