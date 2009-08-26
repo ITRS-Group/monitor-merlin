@@ -58,7 +58,7 @@
 	p->state.scheduled_downtime_depth, p->state.pending_flex_downtime, \
 	p->state.is_flapping, p->state.flapping_comment_id, \
 	p->state.percent_state_change, \
-	output, long_output, perf_data
+	safe_str(output), safe_str(long_output), safe_str(perf_data)
 
 
 static int handle_host_status(const merlin_host_status *p)
