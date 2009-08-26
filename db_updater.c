@@ -29,7 +29,7 @@
 	"check_flapping_recovery_notification = %d, " \
 	"scheduled_downtime_depth = %d, pending_flex_downtime = %d, " \
 	"is_flapping = %d, flapping_comment_id = %lu, " /* 41 - 42 */ \
-	"percent_state_change = %f " \
+	"percent_state_change = %f, " \
 	"output = %s, long_output = %s, perf_data = %s"
 
 #define STATUS_ARGS(output, long_output, perf_data) \
