@@ -313,16 +313,17 @@ static int ipc_reap_events(int ipc_sock)
 	merlin_event *pkt, p;
 	struct timeval start, stop;
 
-	while (ipc_read_event(&p) > 0) {
-		ipc_events++;
-		handle_ipc_event(&p);
-	}
 	/*
 	 * we expect to get the vast majority of events from the ipc
 	 * socket, so make sure we read a bunch of them in one go
 	 */
 	linfo("inbound data available on ipc socket\n");
 	gettimeofday(&start, 0);
+
+	while (ipc_read_event(&p) > 0) {
+		ipc_events++;
+		handle_ipc_event(&p);
+	}
 
 	goto summarize;
 	if (!buf && !(buf = malloc(128 << 10))) {
