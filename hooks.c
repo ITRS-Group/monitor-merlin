@@ -179,7 +179,7 @@ int merlin_mod_hook(int cb, void *data)
 	int result = 0;
 
 	if (merlin_should_send_paths) {
-		if (merlin_should_send_paths >= time(NULL)) {
+		if (merlin_should_send_paths <= time(NULL)) {
 			linfo("Daemon should have caught up. Trying to force a re-import");
 			send_paths();
 			/*
