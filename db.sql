@@ -321,16 +321,7 @@ CREATE TABLE host(
 	start_time int(10),
 	end_time int(10),
 	early_timeout smallint(1),
-	return_code smallint(8),
-	KEY host_status_1_idx (next_check, host_name),
-	KEY host_status_2_idx (last_check, host_name),
-	KEY host_status_3_idx (last_state_change, host_name),
-	KEY host_status_4_idx (last_hard_state_change, host_name),
-	KEY host_status_5_idx (last_time_up, host_name),
-	KEY host_status_6_idx (last_time_down, host_name),
-	KEY host_status_7_idx (last_time_unreachable, host_name),
-	KEY host_status_8_idx (latency, host_name),
-	KEY host_status_9_idx (execution_time, host_name)
+	return_code smallint(8)
 ) ;
 CREATE UNIQUE INDEX host_name ON host(host_name);
 
@@ -469,17 +460,7 @@ CREATE TABLE service(
 	end_time int(10),
 	early_timeout smallint(1),
 	return_code smallint(8),
-	UNIQUE KEY service_name(host_name, service_description),
-	KEY service_status_1_idx (next_check, host_name, service_description),
-	KEY service_status_2_idx (last_check, host_name, service_description),
-	KEY service_status_3_idx (last_state_change, host_name, service_description),
-	KEY service_status_4_idx (last_hard_state_change, host_name, service_description),
-	KEY service_status_5_idx (last_time_ok, host_name, service_description),
-	KEY service_status_6_idx (last_time_warning, host_name, service_description),
-	KEY service_status_7_idx (last_time_unknown, host_name, service_description),
-	KEY service_status_8_idx (last_time_critical, host_name, service_description),
-	KEY service_status_9_idx (latency, host_name, service_description),
-	KEY service_status_10_idx (execution_time, host_name, service_description)
+	UNIQUE KEY service_name(host_name, service_description)
 ) ;
 
 -- junctions for service objects
