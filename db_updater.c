@@ -29,9 +29,10 @@
 	"check_flapping_recovery_notification = %d, " \
 	"scheduled_downtime_depth = %d, pending_flex_downtime = %d, " \
 	"is_flapping = %d, flapping_comment_id = %lu, " /* 41 - 42 */ \
-	"percent_state_change = %f "
+	"percent_state_change = %f " \
+	"output = %s, long_output = %s, perf_data = %s"
 
-#define STATUS_ARGS \
+#define STATUS_ARGS(output, long_output, perf_data) \
 	sql_db_name(), \
 	p->state.initial_state, p->state.flap_detection_enabled, \
 	p->state.low_flap_threshold, p->state.high_flap_threshold, \
@@ -56,26 +57,36 @@
 	p->state.check_flapping_recovery_notification, \
 	p->state.scheduled_downtime_depth, p->state.pending_flex_downtime, \
 	p->state.is_flapping, p->state.flapping_comment_id, \
-	p->state.percent_state_change
+	p->state.percent_state_change, \
+	output, long_output, perf_data
 
 
 static int handle_host_status(const merlin_host_status *p)
 {
 	char *host_name;
+	char *output, *long_output, *perf_data;
 	int result;
 
 	ldebug("Updating status for host '%s'", p->name);
 
 	sql_quote(p->name, &host_name);
+	sql_quote(p->state.plugin_output, &output);
+	sql_quote(p->state.long_plugin_output, &long_output);
+	sql_quote(p->state.perf_data, &perf_data);
 	result = sql_query(STATUS_QUERY("host") " WHERE host_name = %s",
-					   STATUS_ARGS, host_name);
+					   STATUS_ARGS(output, long_output, perf_data),
+					   host_name);
 	free(host_name);
+	safe_free(output);
+	safe_free(long_output);
+	safe_free(perf_data);
 	return result;
 }
 
 static int handle_service_status(const merlin_service_status *p)
 {
 	char *host_name, *service_description;
+	char *output, *long_output, *perf_data;
 	int result;
 
 	ldebug("Updating status for service '%s' on host '%s'",
@@ -83,11 +94,18 @@ static int handle_service_status(const merlin_service_status *p)
 
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->service_description, &service_description);
+	sql_quote(p->state.plugin_output, &output);
+	sql_quote(p->state.long_plugin_output, &long_output);
+	sql_quote(p->state.perf_data, &perf_data);
 	result = sql_query(STATUS_QUERY("service")
 					   " WHERE host_name = %s AND service_description = %s",
-					   STATUS_ARGS, host_name, service_description);
+					   STATUS_ARGS(output, long_output, perf_data),
+					   host_name, service_description);
 	free(host_name);
 	free(service_description);
+	safe_free(output);
+	safe_free(long_output);
+	safe_free(perf_data);
 	return result;
 }
 
