@@ -71,7 +71,7 @@ fi
 
 %post
 sh /etc/init.d/monitor start || :
-%mod_path/install-merlin.sh --batch --intall=config \
+%mod_path/install-merlin.sh --batch --install=config \
 	--nagios-cfg=%nagios_cfg
 
 %post -n merlin
