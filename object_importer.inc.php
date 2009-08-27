@@ -251,17 +251,15 @@ class nagios_object_importer
 		$this->idx_table[$obj_type] = array();
 		$this->rev_idx_table[$obj_type] = array();
 		$result = $this->sql_exec_query($query);
+		$idx_max = 1;
 		while ($row = $this->sql_fetch_row($result)) {
 			$this->idx_table[$obj_type][$row[0]] = $row[1];
 			$this->rev_idx_table[$obj_type][$row[1]] = $row[0];
+			if ($row[0] >= $idx_max)
+				$idx_max = $row[0] + 1;
 		}
-		$result = $this->sql_exec_query("SELECT MAX(id) FROM $obj_type");
-		$row = $this->sql_fetch_row($result);
-		if ($row) {
-			$this->base_oid[$obj_type] = $row[0] + 1;
-		} else {
-			$this->base_oid[$obj_type] = 1;
-		}
+		$this->base_oid[$obj_type] = $idx_max;
+		echo "\$idx_max for $obj_type: $idx_max\n";
 	}
 
 	private function purge_old_objects()
