@@ -329,7 +329,6 @@ class nagios_object_importer
 	{
 		$last_obj_type = false;
 		$obj_type = false;
-		$obj_key = 1;
 
 		if (!$object_cache)
 			$object_cache = '/opt/monitor/var/objects.cache';
@@ -397,9 +396,6 @@ class nagios_object_importer
 
 					$this->done_parsing_obj_type_objects($last_obj_type, $obj_array);
 					$last_obj_type = $obj_type;
-					$obj_key = 1;
-					if (isset($this->base_oid[$obj_type]))
-						$obj_key = $this->base_oid[$obj_type]++;
 				}
 				$obj = array();
 				continue;
@@ -410,20 +406,21 @@ class nagios_object_importer
 
 			// end of object? check type and populate index table
 			if ($str[0] === '}') {
-				$obj_name = false;
-				if (isset($obj[$obj_type . '_name']))
-					$obj_name = $obj[$obj_type . '_name'];
-				elseif($obj_type === 'service')
-					$obj_name = "$obj[host_name];$obj[service_description]";
-
-				if ($obj_name) {
-					# use pre-loaded object id if available
-					if (isset($this->rev_idx_table[$obj_type][$obj_name])) {
-						$obj_key = $this->rev_idx_table[$obj_type][$obj_name];
+				$obj_key = false;
+				$obj_name = $this->obj_name($obj_type, $obj);
+				# use pre-loaded object id if available
+				if ($obj_name && isset($this->rev_idx_table[$obj_type][$obj_name])) {
+					$obj_key = $this->rev_idx_table[$obj_type][$obj_name];
+				}
+				if (!$obj_key) {
+					$obj_key = 1;
+					if (!isset($this->base_oid[$obj_type])) {
+						$this->base_oid[$obj_type] = 1;
 					}
-					else {
+					$obj_key = $this->base_oid[$obj_type]++;
+					$obj['is a fresh one'] = true;
+					if ($obj_name) {
 						$this->rev_idx_table[$obj_type][$obj_name] = $obj_key;
-						$obj['is a fresh one'] = true;
 					}
 				}
 
@@ -574,6 +571,17 @@ class nagios_object_importer
 		return $ret;
 	}
 
+	private function obj_name($obj_type, $obj)
+	{
+		if (isset($obj[$obj_type . '_name']))
+			return $obj[$obj_type . '_name'];
+
+		if ($obj_type === 'service')
+			return "$obj[host_name];$obj[service_description]";
+
+		return false;
+	}
+
 	/**
 	 * Inserts a single object into the database
 	 */
@@ -604,7 +612,7 @@ class nagios_object_importer
 		}
 
 		if ($obj_type === 'host' || $obj_type === 'service') {
-			$this->imported[$obj_type][$obj_key] = true;
+			$this->imported[$obj_type][$obj_key] = $this->obj_name($obj_type, $obj);
 		}
 		if (isset($this->obj_rel[$obj_type]))
 			$spec = $this->obj_rel[$obj_type];
