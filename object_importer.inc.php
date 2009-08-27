@@ -234,6 +234,18 @@ class nagios_object_importer
 		return true;
 	}
 
+	public function prepare_import()
+	{
+		# preload object indexes only once per import run
+		$this->preload_object_index('host', 'SELECT id, host_name FROM host');
+		$this->preload_object_index('service', "SELECT id, CONCAT(host_name, ';', service_description) FROM service");
+	}
+
+	public function finalize_import()
+	{
+		$this->purge_old_objects();
+	}
+
 	private function preload_object_index($obj_type, $query)
 	{
 		$this->idx_table[$obj_type] = array();
@@ -332,9 +344,6 @@ class nagios_object_importer
 				$this->sql_exec_query("TRUNCATE $table");
 			$this->tables_truncated = true;
 		}
-
-		$this->preload_object_index('host', 'SELECT id, host_name FROM host');
-		$this->preload_object_index('service', "SELECT id, CONCAT(host_name, ';', service_description) FROM service");
 
 		# service slave objects are handled separately
 		$service_slaves =
@@ -486,9 +495,6 @@ class nagios_object_importer
 
 		# mop up any leftovers
 		$this->done_parsing_obj_type_objects($last_obj_type, $obj_array);
-
-		# and remove 'dead' objects from the database
-		$this->purge_old_objects();
 
 		if (!empty($obj_array)) {
 			echo "obj_array is not empty\n";

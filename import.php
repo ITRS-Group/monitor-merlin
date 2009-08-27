@@ -100,13 +100,6 @@ for ($i = 1; $i < $argc; $i++) {
 	}
 }
 
-echo "Importing objects to database $imp->db_database\n";
-if ($cache)
-	echo "importing objects from $cache\n";
-
-if (!$dry_run)
-	$imp->import_objects_from_cache($cache);
-
 if ($nagios_cfg && !$status_log) {
 	$config = read_nagios_cfg($nagios_cfg);
 	if (isset($config['status_file']))
@@ -115,8 +108,25 @@ if ($nagios_cfg && !$status_log) {
 		$status_log = $config['xsddefault_status_file'];
 }
 
+$imp->prepare_import();
+
+if (!$cache && !$status_log) {
+	echo "neither --cache nor --status-log given. Importing nothing";
+	exit(1);
+}
+
+echo "Importing objects to database $imp->db_database\n";
+if ($cache) {
+	echo "importing objects from $cache\n";
+	if (!$dry_run)
+		$imp->import_objects_from_cache($cache);
+}
+
 if ($status_log) {
 	echo "importing status from $status_log\n";
 	if (!$dry_run)
 		$imp->import_objects_from_cache($status_log);
 }
+
+if (!$dry_run)
+	$imp->finalize_import();
