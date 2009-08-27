@@ -161,7 +161,7 @@ class nagios_object_importer
 			}
 			else foreach ($ary as $mname) {
 				if (is_array($this->rev_idx_table[$ref_type][$mname])) {
-					echo "Rev_Index_Table[$ref_type][$mname] is an array!\n";
+					echo "\$this->rev_idx_table[$ref_type][$mname] is an array!\n";
 					exit(1);
 				}
 				$v_ary[] = $this->rev_idx_table[$ref_type][$mname];
