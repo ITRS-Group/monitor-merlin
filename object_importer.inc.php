@@ -640,9 +640,12 @@ class nagios_object_importer
 		}
 
 		if ($obj_type === 'host' || $obj_type === 'service') {
-			if (isset($this->imported[$obj_type][$obj_key])) {
+			$obj_name = $this->obj_name($obj_type, $obj);
+			if (isset($this->imported[$obj_type][$obj_key]) &&
+				$this->imported[$obj_type][$obj_key] !== $obj_name)
+			{
 				echo "overwriting $obj_type id $obj_key in \$this->imported\n";
-				printf("%s -> %s\n", $this->imported[$obj_type][$obj_key], $this->obj_name($obj_type, $obj));
+				printf("%s -> %s\n", $this->imported[$obj_type][$obj_key], $obj_name);
 				print_r($obj);
 				exit(0);
 			}
