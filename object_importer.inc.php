@@ -127,7 +127,7 @@ class nagios_object_importer
 		$this->convert['contact'] = $this->convert['host'];
 	}
 
-	function get_junction_table_name($obj_type, $v_name)
+	private function get_junction_table_name($obj_type, $v_name)
 	{
 		$ref_obj_type = $this->obj_rel[$obj_type][$v_name];
 		$ret = $obj_type . '_' . $ref_obj_type;
@@ -140,7 +140,7 @@ class nagios_object_importer
 		return $ret;
 	}
 
-	function post_mangle_groups($group, &$obj_list)
+	private function post_mangle_groups($group, &$obj_list)
 	{
 		if (empty($obj_list))
 			return;
@@ -171,7 +171,7 @@ class nagios_object_importer
 		}
 	}
 
-	function post_mangle_self_ref($obj_type, &$obj_list)
+	private function post_mangle_self_ref($obj_type, &$obj_list)
 	{
 		if (empty($obj_list))
 			return false;
@@ -191,7 +191,7 @@ class nagios_object_importer
 		}
 	}
 
-	function post_mangle_service_slave($obj_type, &$obj)
+	private function post_mangle_service_slave($obj_type, &$obj)
 	{
 		$srv = $obj['host_name'] . ';' . $obj['service_description'];
 		$obj['service'] = $this->rev_idx_table['service'][$srv];
@@ -211,7 +211,7 @@ class nagios_object_importer
 	 * Since objects are grouped by type in that file, this means we're
 	 * done entirely parsing the type of objects passed in $obj_type
 	 */
-	function done_parsing_obj_type_objects($obj_type, &$obj_array)
+	private function done_parsing_obj_type_objects($obj_type, &$obj_array)
 	{
 		if ($obj_type === false || empty($obj_array))
 			return true;
