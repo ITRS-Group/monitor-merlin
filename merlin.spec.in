@@ -71,10 +71,11 @@ fi
 
 %post
 sh /etc/init.d/monitor start || :
+%mod_path/install-merlin.sh --batch --intall=config \
+	--nagios-cfg=%nagios_cfg
 
 %post -n merlin
-%mod_path/install-merlin.sh --batch --install=db,config \
-	--nagios-cfg=%nagios_cfg
+%mod_path/install-merlin.sh --batch --install=db
 /sbin/chkconfig --add merlind
 /etc/init.d/merlind restart
 
