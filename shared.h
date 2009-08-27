@@ -10,6 +10,9 @@
 #ifndef _GNU_SOURCE
 # define _GNU_SOURCE 1
 #endif
+#ifndef __USE_FILE_OFFSET64
+# define __USE_FILE_OFFSET64
+#endif
 
 /** common include files required practically everywhere **/
 #include <stdio.h>
