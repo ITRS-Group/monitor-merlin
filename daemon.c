@@ -241,7 +241,7 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 			 "--db-name=%s --db-user=%s --db-pass=%s --db-host=%s",
 			 import_program, cfg, cache,
 			 sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host());
-	if (status) {
+	if (status && *status) {
 		asprintf(&cmd, "%s --status-log=%s", cmd, status);
 	}
 
@@ -269,6 +269,14 @@ static int read_nagios_paths(merlin_event *pkt)
 	if (!nagios_paths_arena)
 		return -1;
 	memcpy(nagios_paths_arena, pkt->body, pkt->hdr.len);
+
+	/*
+	 * reset the path pointers first so we don't ship an
+	 * invalid one to the importer function
+	 */
+	for (i = 0; i < ARRAY_SIZE(nagios_paths); i++) {
+		nagios_paths[i] = NULL;
+	}
 
 	for (i = 0; i < ARRAY_SIZE(nagios_paths) && offset < pkt->hdr.len; i++) {
 		nagios_paths[i] = nagios_paths_arena + offset;
