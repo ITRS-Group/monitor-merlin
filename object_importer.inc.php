@@ -1,5 +1,46 @@
 <?php
 
+class object_indexer
+{
+	private $idx = array();
+	private $ridx = array();
+
+	public function set($type, $name, $id)
+	{
+		if (!is_numeric($id)) {
+			die("\$id not numeric in object_indexer::set\n");
+		}
+		$id = intval($id);
+
+		if (!isset($this->idx[$type])) {
+			$this->idx[$type] = array();
+			$this->ridx[$type] = array();
+		}
+
+		if (isset($this->ridx[$type][$id]) && $this->ridx[$type][$id] !== $name)
+			die("Duplicate \$id in object_indexer::set\n");
+
+		if (isset($this->idx[$type][$name]) && $this->idx[$type][$name] !== $id)
+			die("Attempted to change id of $type object '$name'\n");
+
+		$this->ridx[$type][$id] = $name;
+		$this->idx[$type][$name] = $id;
+		return true;
+	}
+
+	public function get($type, $name, $must_exist = false)
+	{
+		if (!isset($this->idx[$type]) || !isset($this->idx[$type][$name])) {
+			if ($must_exist)
+				die("Failed to locate a $type object named '$name'\n");
+
+			return false;
+		}
+
+		return $this->idx[$type][$name];
+	}
+}
+
 class nagios_object_importer
 {
 	public $instance_id = 0;
@@ -16,8 +57,7 @@ class nagios_object_importer
 	public $DEBUG = true;
 
 	# internal object indexing cache
-	private $idx_table = array();
-	private $rev_idx_table = array();
+	private $idx; # object_indexer object
 	private $base_oid = array();
 	private $imported = array();
 
@@ -156,15 +196,11 @@ class nagios_object_importer
 			if ($group === 'servicegroup') {
 				while ($srv = array_pop($ary)) {
 					$host = array_pop($ary);
-					$v_ary[] = $this->rev_idx_table['service']["$host;$srv"];
+					$v_ary[] = $this->idx->get('service', "$host;$srv");
 				}
 			}
 			else foreach ($ary as $mname) {
-				if (is_array($this->rev_idx_table[$ref_type][$mname])) {
-					echo "\$this->rev_idx_table[$ref_type][$mname] is an array!\n";
-					exit(1);
-				}
-				$v_ary[] = $this->rev_idx_table[$ref_type][$mname];
+				$v_ary[] = $this->idx->get($ref_type, $mname);
 			}
 			$obj['members'] = $v_ary;
 			$this->glue_object($obj_key, $group, $obj);
@@ -187,20 +223,20 @@ class nagios_object_importer
 			$ary = split("[\t ]*,[\t ]*", $obj[$k]);
 			$obj[$k] = array();
 			foreach ($ary as $v)
-				$obj[$k][] = $this->rev_idx_table[$obj_type][$v];
+				$obj[$k][] = $this->idx->get($obj_type, $v);
 		}
 	}
 
 	private function post_mangle_service_slave($obj_type, &$obj)
 	{
 		$srv = $obj['host_name'] . ';' . $obj['service_description'];
-		$obj['service'] = $this->rev_idx_table['service'][$srv];
+		$obj['service'] = $this->idx->get('service', $srv);
 		unset($obj['host_name']);
 		unset($obj['service_description']);
 
 		if ($obj_type === 'servicedependency') {
 			$srv = $obj['dependent_host_name'] . ';' . $obj['dependent_service_description'];
-			$obj['dependent_service'] = $this->rev_idx_table['service'][$srv];
+			$obj['dependent_service'] = $this->idx->get('service', $srv);
 			unset($obj['dependent_host_name']);
 			unset($obj['dependent_service_description']);
 		}
@@ -248,18 +284,15 @@ class nagios_object_importer
 
 	private function preload_object_index($obj_type, $query)
 	{
-		$this->idx_table[$obj_type] = array();
-		$this->rev_idx_table[$obj_type] = array();
+		$this->idx = new object_indexer;
 		$result = $this->sql_exec_query($query);
 		$idx_max = 1;
 		while ($row = $this->sql_fetch_row($result)) {
-			$this->idx_table[$obj_type][$row[0]] = $row[1];
-			$this->rev_idx_table[$obj_type][$row[1]] = $row[0];
+			$this->idx->set($obj_type, $row[1], $row[0]);
 			if ($row[0] >= $idx_max)
 				$idx_max = $row[0] + 1;
 		}
 		$this->base_oid[$obj_type] = $idx_max;
-		echo "\$idx_max for $obj_type: $idx_max\n";
 	}
 
 	private function purge_old_objects()
@@ -406,12 +439,8 @@ class nagios_object_importer
 
 			// end of object? check type and populate index table
 			if ($str[0] === '}') {
-				$obj_key = false;
 				$obj_name = $this->obj_name($obj_type, $obj);
-				# use pre-loaded object id if available
-				if ($obj_name && isset($this->rev_idx_table[$obj_type][$obj_name])) {
-					$obj_key = $this->rev_idx_table[$obj_type][$obj_name];
-				}
+				$obj_key = $this->idx->get($obj_type, $obj_name);
 				if (!$obj_key) {
 					$obj_key = 1;
 					if (!isset($this->base_oid[$obj_type])) {
@@ -419,9 +448,8 @@ class nagios_object_importer
 					}
 					$obj_key = $this->base_oid[$obj_type]++;
 					$obj['is a fresh one'] = true;
-					if ($obj_name) {
-						$this->rev_idx_table[$obj_type][$obj_name] = $obj_key;
-					}
+					if ($obj_name)
+						$this->idx->set($obj_type, $obj_name, $obj_key);
 				}
 
 				switch ($obj_type) {
@@ -461,7 +489,7 @@ class nagios_object_importer
 			 case 'contacts': case 'contact_groups':
 				$ary = split("[\t ]*,[\t ]*", $v);
 				foreach ($ary as $v) {
-					$target_id = $this->rev_idx_table[$relation[$k]][$v];
+					$target_id = $this->idx->get($relation[$k], $v);
 					$v_ary[$target_id] = $target_id;
 				}
 				$obj[$k] = $v_ary;
@@ -481,7 +509,7 @@ class nagios_object_importer
 						$v = $ary[0];
 						$obj[$k . '_args'] = $ary[1];
 					}
-					$v = $this->rev_idx_table[$relation[$k]][$v];
+					$v = $this->idx->get($relation[$k], $v);
 				}
 
 				$obj[$k] = $v;
@@ -612,6 +640,12 @@ class nagios_object_importer
 		}
 
 		if ($obj_type === 'host' || $obj_type === 'service') {
+			if (isset($this->imported[$obj_type][$obj_key])) {
+				echo "overwriting $obj_type id $obj_key in \$this->imported\n";
+				printf("%s -> %s\n", $this->imported[$obj_type][$obj_key], $this->obj_name($obj_type, $obj));
+				print_r($obj);
+				exit(0);
+			}
 			$this->imported[$obj_type][$obj_key] = $this->obj_name($obj_type, $obj);
 		}
 		if (isset($this->obj_rel[$obj_type]))
