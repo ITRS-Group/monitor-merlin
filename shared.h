@@ -161,6 +161,7 @@ struct merlin_service_status {
 typedef struct merlin_service_status merlin_service_status;
 
 /** prototypes **/
+extern int set_socket_buffers(int sd);
 extern char *next_word(char *str);
 extern int grok_common_var(struct cfg_comp *config, struct cfg_var *v);
 extern void index_selections(void);

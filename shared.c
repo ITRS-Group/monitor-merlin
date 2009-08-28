@@ -157,3 +157,23 @@ int add_selection(char *name)
 
 	return nsel++;
 }
+
+/*
+ * Beef up the send and receive buffers of the sockets we work on
+ */
+int set_socket_buffers(int sd)
+{
+	int optval = 128 << 10; /* 128KB */
+
+	setsockopt(sd, SOL_SOCKET, SO_SNDBUF, &optval, sizeof(int));
+	setsockopt(sd, SOL_SOCKET, SO_RCVBUF, &optval, sizeof(int));
+
+	/*
+	 * we also set it to non-blocking mode, although that's not
+	 * strictly speaking necessary
+	 */
+	if (fcntl(sd, F_SETFL, O_NONBLOCK) < 0)
+		lwarn("ipc: fcntl(sock, F_SEFTL, O_NONBLOCKING) failed");
+
+	return 0;
+}
