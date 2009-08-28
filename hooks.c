@@ -249,7 +249,7 @@ int merlin_mod_hook(int cb, void *data)
 		lerr("Unhandled callback '%s' in merlin_hook()", callback_name(cb));
 	}
 
-	if (result <= 0) {
+	if (result < 0) {
 		lwarn("Daemon is flooded. Staying dormant for 15 seconds");
 		merlin_should_send_paths = time(NULL) + 15;
 	}
