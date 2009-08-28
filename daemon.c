@@ -226,7 +226,7 @@ static int grok_config(char *path)
 static int import_objects_and_status(char *cfg, char *cache, char *status)
 {
 	char *cmd;
-	int result;
+	int result, pid;
 
 	/* don't bother if we're not using a datbase */
 	if (!use_database)
@@ -246,7 +246,16 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 	}
 
 	ldebug("Executing import command '%s'", cmd);
-	result = system(cmd);
+	pid = fork();
+	if (pid < 0) {
+		lerr("Skipping import due to failed fork(): %s", strerror(errno));
+	} else if (!pid) {
+		/* child runs import program */
+		result = system(cmd);
+		free(cmd);
+		exit(0);
+	}
+
 	free(cmd);
 
 	return result;
@@ -285,7 +294,11 @@ static int read_nagios_paths(merlin_event *pkt)
 	}
 
 	import_objects_and_status(nagios_paths[0], nagios_paths[1], nagios_paths[2]);
-	prime_object_states(&hosts, &services);
+	/*
+	 * we don't need to do this until we're merging the reports-module
+	 * into merlin
+	 */
+	 /* prime_object_states(&hosts, &services); */
 
 	return 0;
 }
