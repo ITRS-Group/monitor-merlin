@@ -277,7 +277,7 @@ static int ipc_poll(int events, int msec)
 {
 	errno = 0;
 
-	if (ipc_is_connected(msec) != 1)
+	if (ipc_is_connected(0) != 1)
 		return 0;
 
 	return io_poll(ipc_sock, events, msec);
@@ -339,7 +339,8 @@ int ipc_read_event(merlin_event *pkt)
 		ldebug("Asked to read from ipc socket with negative value");
 		return -1;
 	}
-	poll_result = ipc_read_ok(100);
+
+	poll_result = ipc_read_ok(0);
 	if (!poll_result)
 		return 0;
 
