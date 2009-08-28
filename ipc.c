@@ -42,6 +42,7 @@ int ipc_accept(void)
 
 	if (ipc_sock != -1) {
 		lwarn("New connection inbound when one already exists. Dropping old");
+		close(ipc_sock);
 	}
 
 	ipc_sock = accept(listen_sock, (struct sockaddr *)&saun, &slen);
