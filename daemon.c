@@ -456,8 +456,13 @@ static int io_poll_sockets(void)
 
 static void polling_loop(void)
 {
-	for (;;)
+	for (;;) {
+		int status;
+
+		/* reap any stray child processes */
+		waitpid(-1, &status, WNOHANG);
 		io_poll_sockets();
+	}
 }
 
 
