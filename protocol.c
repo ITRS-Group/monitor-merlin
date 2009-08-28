@@ -35,10 +35,6 @@ int proto_read_event(int sock, merlin_event *pkt)
 		lwarn("Bogus read in proto_read_event(). got %d, expected %d",
 			  result, pkt->hdr.len);
 	}
-	else {
-		ldebug("Successfully read 1 %s event (%zu bytes; %u bytes body) from socket %d\n",
-			   callback_name(pkt->hdr.type), HDR_SIZE + result, pkt->hdr.len, sock);
-	}
 
 	return result;
 }

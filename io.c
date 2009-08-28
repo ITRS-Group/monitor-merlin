@@ -22,8 +22,8 @@ int io_send_all(int fd, const void *buf, size_t len)
 		return 0;
 
 	poll_ret = io_poll(fd, POLLOUT, 0);
-	if (poll_ret < 1)
-		ldebug("io_poll(%d, POLLOUT, 0) returned %d: %s", fd, poll_ret, strerror(errno));
+	if (poll_ret < 0)
+		lerr("io_poll(%d, POLLOUT, 0) returned %d: %s", fd, poll_ret, strerror(errno));
 
 	do {
 		sent = send(fd, buf + total, len - total, MSG_DONTWAIT | MSG_NOSIGNAL);
@@ -55,7 +55,7 @@ int io_recv_all(int fd, void *buf, size_t len)
 
 	poll_ret = io_poll(fd, POLLIN, 0);
 	if (poll_ret < 1)
-		ldebug("io_poll(%d, POLLIN, 0) returned %d: %s", fd, poll_ret, strerror(errno));
+		lerr("io_poll(%d, POLLIN, 0) returned %d: %s", fd, poll_ret, strerror(errno));
 
 	do {
 		rd = recv(fd, buf + total, len - total, MSG_DONTWAIT | MSG_NOSIGNAL);
@@ -65,8 +65,8 @@ int io_recv_all(int fd, void *buf, size_t len)
 		}
 
 		if (rd < 0) {
-			ldebug("recv(%d, (buf + total), %zu, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d (%s)",
-				   fd, len - total, rd, strerror(errno));
+			lerr("recv(%d, (buf + total), %zu, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d (%s)",
+				 fd, len - total, rd, strerror(errno));
 			if (errno != EAGAIN)
 				return rd;
 

@@ -67,8 +67,6 @@ static int handle_host_status(const merlin_host_status *p)
 	char *output, *long_output, *perf_data;
 	int result;
 
-	ldebug("Updating status for host '%s'", p->name);
-
 	sql_quote(p->name, &host_name);
 	sql_quote(p->state.plugin_output, &output);
 	sql_quote(p->state.long_plugin_output, &long_output);
@@ -88,9 +86,6 @@ static int handle_service_status(const merlin_service_status *p)
 	char *host_name, *service_description;
 	char *output, *long_output, *perf_data;
 	int result;
-
-	ldebug("Updating status for service '%s' on host '%s'",
-		   p->service_description, p->host_name);
 
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->service_description, &service_description);
@@ -117,7 +112,6 @@ static int handle_host_result(object_state *st, const nebstruct_host_check_data 
 	if (p->type != NEBTYPE_HOSTCHECK_PROCESSED)
 		return 0;
 
-	ldebug("Inserting check result for host '%s' to database", p->host_name);
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->output, &output);
 	sql_quote(p->perf_data, &perf_data);
@@ -165,8 +159,6 @@ static int handle_service_result(object_state *st, const nebstruct_service_check
 	if (p->type != NEBTYPE_SERVICECHECK_PROCESSED)
 		return 0;
 
-	ldebug("Inserting check result for service '%s' on host '%s'",
-		   p->service_description, p->host_name);
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->output, &output);
 	sql_quote(p->output, &long_output);
@@ -484,7 +476,7 @@ int mrm_db_update(merlin_event *pkt)
 		return 0;
 
 	default:
-		ldebug("Unknown callback type. Weird, to say the least...");
+		lerr("Unknown callback type. Weird, to say the least...");
 		return -1;
 		break;
 	}

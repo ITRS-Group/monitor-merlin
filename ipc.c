@@ -332,7 +332,7 @@ int ipc_read_event(merlin_event *pkt)
 	int poll_result;
 
 	if (ipc_sock < 0) {
-		ldebug("Asked to read from ipc socket with negative value");
+		lerr("Asked to read from ipc socket with negative value");
 		return -1;
 	}
 

@@ -97,9 +97,8 @@ int deblockify(void *ds, off_t len, int cb_type)
 
 		/* make sure we don't overshoot the buffer */
 		if ((off_t)ptr > len) {
-			ldebug("Nulling OOB pointer %u for type %d", i, *(int *)ds);
-			ldebug("offset: %p; len: %lu; overshot with %lu bytes",
-			       ptr, len, (off_t)ptr - len);
+			lerr("Nulling OOB ptr %u. type: %d; offset: %p; len: %lu; overshot with %lu bytes",
+				 i, *(int *)ds, ptr, len, (off_t)ptr - len);
 
 			ptr = NULL;
 		}

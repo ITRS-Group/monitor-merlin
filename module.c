@@ -35,8 +35,8 @@ static int handle_service_result(merlin_header *hdr, void *buf)
 	srv->last_check = ds->end_time.tv_sec;
 	srv->has_been_checked = 1;
 
-	ldebug("Updating status for service '%s' on host '%s'",
-		   srv->description, srv->host_name);
+	linfo("Updating status for service '%s' on host '%s'",
+		  srv->description, srv->host_name);
 
 	return 1;
 }
@@ -67,7 +67,7 @@ static int handle_host_result(merlin_header *hdr, void *buf)
 	hst->last_check = ds->end_time.tv_sec;
 	hst->has_been_checked = 1;
 
-	ldebug("Updating status for host '%s'", hst->name);
+	linfo("Updating status for host '%s'", hst->name);
 
 	return 1;
 }
@@ -101,11 +101,11 @@ static int mrm_ipc_reap(void *discard)
 	merlin_event pkt;
 
 	if (!ipc_is_connected(0)) {
-		ldebug("ipc is not connected. Reaping aborted");
+		linfo("ipc is not connected. ipc event reaping aborted");
 		return 0;
 	}
 	else
-		ldebug("reaping ipc events");
+		linfo("Reaping ipc events");
 
 	while ((len = ipc_read_event(&pkt)) > 0) {
 		/* control packets are handled separately */
@@ -122,7 +122,7 @@ static int mrm_ipc_reap(void *discard)
 		update_all_status_data();
 	}
 
-	ldebug("**** SCHEDULING NEW REAPING AT %lu", time(NULL) + mrm_reap_interval);
+	linfo("Scheduling next ipc reaping at %lu", time(NULL) + mrm_reap_interval);
 	schedule_new_event(EVENT_USER_FUNCTION, TRUE,
 	                   time(NULL) + mrm_reap_interval, FALSE,
 	                   0, NULL, FALSE, mrm_ipc_reap, NULL, 0);
@@ -191,8 +191,6 @@ static void setup_host_hash_tables(void)
 		if (!num_ents[i])
 			lwarn("'%s' is a selection without hosts. Are you sure you want this?",
 				  get_sel_name(i));
-		else
-			ldebug("Hostgroup '%s' has %d hosts", get_sel_name(i), num_ents[i]);
 	}
 
 	free(num_ents);
@@ -283,7 +281,7 @@ int send_paths(void)
 	cache_file = macro_x[MACRO_OBJECTCACHEFILE];
 	status_log = macro_x[MACRO_STATUSDATAFILE];
 	if (!config_file || !cache_file) {
-		ldebug("config_file or xodtemplate_cache_file not set");
+		lerr("config_file or xodtemplate_cache_file not set");
 		return -1;
 	}
 
@@ -332,7 +330,7 @@ static int mrm_ipc_connect(void *discard)
 {
 	int result;
 
-	ldebug("Attempting ipc connect");
+	linfo("Attempting ipc connect");
 	result = ipc_connect();
 	if (result < 0) {
 		lerr("IPC connection failed. Re-scheduling to try again in 10 seconds");
@@ -340,7 +338,7 @@ static int mrm_ipc_connect(void *discard)
 						   0, NULL, FALSE, mrm_ipc_connect, NULL, 0);
 	}
 	else {
-		ldebug("IPC successfully connected");
+		linfo("ipc successfully connected");
 	}
 
 	return result;

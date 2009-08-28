@@ -245,7 +245,7 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 		asprintf(&cmd, "%s --status-log=%s", cmd, status);
 	}
 
-	ldebug("Executing import command '%s'", cmd);
+	linfo("Executing import command '%s'", cmd);
 	pid = fork();
 	if (pid < 0) {
 		lerr("Skipping import due to failed fork(): %s", strerror(errno));
@@ -289,7 +289,6 @@ static int read_nagios_paths(merlin_event *pkt)
 
 	for (i = 0; i < ARRAY_SIZE(nagios_paths) && offset < pkt->hdr.len; i++) {
 		nagios_paths[i] = nagios_paths_arena + offset;
-		ldebug("nagios_paths[%d]: %s", i, nagios_paths[i]);
 		offset += strlen(nagios_paths[i]) + 1;
 	}
 
@@ -421,10 +420,9 @@ static int io_poll_sockets(void)
 
 	net_sel_val = net_polling_helper(&rd, &wr, sel_val);
 	sel_val = max(sel_val, net_sel_val);
-	ldebug("sel_val: %d; ipc_listen_sock: %d; ipc_sock: %d; net_sock: %d", sel_val, ipc_listen_sock, ipc_sock, net_sock);
 	nfound = select(sel_val + 1, &rd, &wr, NULL, NULL);
-	ldebug("select() returned %d (errno = %d: %s)\n", nfound, errno, strerror(errno));
 	if (nfound < 0) {
+		lerr("select() returned %d (errno = %d): %s", nfound, errno, strerror(errno));
 		sleep(1);
 		return -1;
 	}
@@ -435,7 +433,7 @@ static int io_poll_sockets(void)
 	}
 
 	if (ipc_listen_sock > 0 && FD_ISSET(ipc_listen_sock, &rd)) {
-		ldebug("Accepting inbound connection on ipc socket");
+		linfo("Accepting inbound connection on ipc socket");
 		ipc_accept();
 	} else if (ipc_sock > 0 && FD_ISSET(ipc_sock, &rd)) {
 		sockets++;
@@ -444,7 +442,6 @@ static int io_poll_sockets(void)
 
 	/* check for inbound connections */
 	if (FD_ISSET(net_sock, &rd)) {
-		printf("inbound data available on network socket\n");
 		net_accept_one();
 		sockets++;
 	}

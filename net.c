@@ -212,8 +212,8 @@ static int net_try_connect(merlin_node *node)
 	/* don't try to connect to a node if an attempt is already pending */
 	if (node->status != STATE_PENDING) {
 		sa->sa_family = AF_INET;
-		ldebug("Connecting to %s:%d", inet_ntoa(node->sain.sin_addr),
-		       ntohs(node->sain.sin_port));
+		linfo("Connecting to %s:%d", inet_ntoa(node->sain.sin_addr),
+			  ntohs(node->sain.sin_port));
 
 		if (connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
 			lerr("connect() failed to node '%s' (%s:%d): %s",
@@ -525,7 +525,7 @@ static int net_sendto(merlin_node *node, merlin_event *pkt)
 	int result;
 
 	if (!pkt || !node) {
-		ldebug("net_sendto() called with neither node nor pkt");
+		lerr("net_sendto() called with neither node nor pkt");
 		return -1;
 	}
 
@@ -634,8 +634,8 @@ static void net_input(merlin_node *node)
 	}
 
 	/* We read something the size of an mrm packet header */
-	ldebug("Read %d bytes from %s", len, inet_ntoa(node->sain.sin_addr));
-	ldebug("message; protocol: %u, type: %u, len: %d",
+	ldebug("Read %d bytes from %s. protocol: %u, type: %u, len: %d",
+		   len, inet_ntoa(node->sain.sin_addr),
 		   pkt.hdr.protocol, pkt.hdr.type, pkt.hdr.len);
 
 	if (!node->last_recv)
@@ -666,7 +666,6 @@ int net_send_ipc_data(merlin_event *pkt)
 	if (num_pollers && pkt->hdr.selection != 0xffff) {
 		merlin_node *node = nodelist_by_selection(pkt->hdr.selection);
 
-		ldebug("Sending to nodes by selection '%s'", get_sel_name(pkt->hdr.selection));
 		if (!node) {
 			lerr("No matching selection for id %d", pkt->hdr.selection);
 			return -1;
