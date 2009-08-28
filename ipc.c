@@ -46,9 +46,13 @@ int ipc_accept(void)
 	}
 
 	ipc_sock = accept(listen_sock, (struct sockaddr *)&saun, &slen);
-	if (ipc_sock < 0)
+	if (ipc_sock < 0) {
 		lerr("Failed to accept() from listen_sock (%d): %s",
 			 listen_sock, strerror(errno));
+		return -1;
+	}
+
+	set_socket_buffers(ipc_sock);
 
 	return ipc_sock;
 }
@@ -148,18 +152,11 @@ int ipc_init(void)
 	slen += sizeof(struct sockaddr);
 
 	if (listen_sock == -1 || (is_module && ipc_sock == -1)) {
-		int optval = 128 << 10; /* set socket buffers to 128KB */
-
 		listen_sock = socket(AF_UNIX, SOCK_STREAM, 0);
 		if (listen_sock < 0) {
 			lerr("Failed to obtain ipc socket: %s", strerror(errno));
 			return -1;
 		}
-
-		setsockopt(listen_sock, SOL_SOCKET, SO_SNDBUF, &optval, sizeof(int));
-		setsockopt(listen_sock, SOL_SOCKET, SO_RCVBUF, &optval, sizeof(int));
-		if (fcntl(listen_sock, F_SETFL, O_NONBLOCK) < 0)
-			lwarn("ipc: fcntl(sock, F_SEFTL, O_NONBLOCKING) failed");
 	}
 
 	if (!is_module) {
@@ -201,9 +198,10 @@ int ipc_init(void)
 		}
 		close(listen_sock);
 		ipc_sock = listen_sock = -1;
-	}
-	else {
+	} else {
 		ipc_sock = listen_sock;
+
+		set_socket_buffers(ipc_sock);
 
 		/* let everybody know we're alive and active */
 		linfo("Shoutcasting active status through IPC socket");
@@ -240,9 +238,6 @@ int ipc_deinit(void)
 
 int ipc_is_connected(int msec)
 {
-	struct sockaddr_un saun;
-	socklen_t slen = sizeof(struct sockaddr_un);
-
 	if (is_module) {
 		if (ipc_sock < 0)
 			return ipc_reinit();
@@ -251,7 +246,7 @@ int ipc_is_connected(int msec)
 	}
 
 	if (io_poll(listen_sock, POLLIN, msec) > 0) {
-		ipc_sock = accept(listen_sock, (struct sockaddr *)&saun, &slen);
+		ipc_sock = ipc_accept();
 		if (ipc_sock < 0) {
 			lerr("ipc: accept() failed: %s", strerror(errno));
 			return 0;
