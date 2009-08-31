@@ -1,7 +1,7 @@
 #!/bin/sh
 
 DEF_VER=v0.6.1
-revision= patches= version= ver= beta=
+revision= patches= version= ver= beta= dirty=
 
 # First see if there is a version file (included in release tarballs),
 # then try git-describe, then default.
@@ -18,16 +18,16 @@ elif test -d .git -o -f .git; then
 	esac
 	if ! test "$ver" = "$tag"; then
 		beta=$(expr "$ver" : .*[0-9]-'\(beta[0-9]*\)')
-		revision=$(expr "$ver" : '.*-g\([a-f0-9]*\)')
+		revision=$(expr "$ver" : '.*\(-g[a-f0-9]*\)$')
 		version=$(expr "$ver" : '\(.*\)-g[a-f0-9*]')
-		patches=p$(expr "$ver" : $tag-'\(.*\)'-g$revision)
+		patches=p$(expr "$ver" : $tag-'\(.*\)'$revision)
 		ver=$(expr "$ver" : v*'\(.*\)')$dirty
 	fi
+	version="$tag$patches$revision$dirty"
 else
 	version="$DEF_VER"
 fi
 
-version="$tag$patches"
 echo "#include \"shared.h\""
 echo "const char *merlin_version = \"$version\";";
 exit 0
