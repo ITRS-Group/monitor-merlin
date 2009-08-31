@@ -185,6 +185,7 @@ int sql_close(void)
 		dbi_conn_close(db.conn);
 
 	dbi_shutdown();
+	db.conn = NULL;
 	return 0;
 }
 
