@@ -82,6 +82,19 @@ dbi_result sql_get_result(void)
 	return db.result;
 }
 
+static int run_query(const char *query, int len)
+{
+	db.result = dbi_conn_query_null(db.conn, (unsigned char *)query, len);
+	if (!db.result) {
+		const char *error_msg;
+		int db_error = sql_error(&error_msg);
+		linfo("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is %d",
+			  query, error_msg, db_error);
+		return db_error;
+	}
+
+	return 0;
+}
 
 int sql_query(const char *fmt, ...)
 {
@@ -102,20 +115,28 @@ int sql_query(const char *fmt, ...)
 		linfo("sql_query: Failed to build query from format-string '%s'", fmt);
 		return -1;
 	}
-	db.result = dbi_conn_query_null(db.conn, (unsigned char *)query, len);
-	if (!db.result) {
-		const char *error_msg;
-		db_error = sql_error(&error_msg);
-		linfo("dbi_conn_query_null(): Failed to run [%s]: %s",
-			  query, error_msg);
 
+	if ((db_error = run_query(query, len))) {
 		/*
 		 * if we failed because the connection has gone away, we try
 		 * reconnecting once and rerunning the query before giving up.
 		 */
-		if (db_error == DBI_ERROR_NOCONN && !sql_reinit()) {
-			db.result = dbi_conn_query_null(db.conn, (unsigned char *)query, len);
-			/* database backlog code goes here */
+		switch (db_error) {
+		case DBI_ERROR_USER:
+		case DBI_ERROR_BADTYPE:
+		case DBI_ERROR_BADIDX:
+		case DBI_ERROR_BADNAME:
+		case DBI_ERROR_UNSUPPORTED:
+		case DBI_ERROR_NONE:
+			break;
+
+		default:
+			lerr("Attempting to reconnect to database");
+			if (!sql_reinit()) {
+				if (!run_query(query, len))
+					linfo("Successfully ran the previously failed query");
+				/* database backlog code goes here */
+			}
 		}
 	}
 
