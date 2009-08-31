@@ -181,6 +181,9 @@ int sql_init(void)
 
 int sql_close(void)
 {
+	if (!use_database)
+		return 0;
+
 	if (db.conn)
 		dbi_conn_close(db.conn);
 
