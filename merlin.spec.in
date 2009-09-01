@@ -49,7 +49,7 @@ sh install-merlin.sh --batch --root=%buildroot --install=files,init \
 	--dest-dir %mod_path
 chmod 777 %buildroot/%mod_path/logs
 mkdir -p %buildroot%_sysconfdir/logrotate.d
-cp %_sourcedir/logrotate.merlin %buildroot%_sysconfdir/logrotate.d/merlin
+cp %_sourcedir/merlin.logrotate %buildroot%_sysconfdir/logrotate.d/merlin
 
 
 %pre
