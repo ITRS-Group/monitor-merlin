@@ -72,9 +72,9 @@ if [ $1 -eq 0 ]; then
 fi
 
 %post
-sh /etc/init.d/monitor start || :
 %mod_path/install-merlin.sh --batch --install=config \
 	--nagios-cfg=%nagios_cfg
+sh /etc/init.d/monitor start || :
 
 %post -n merlin
 %mod_path/install-merlin.sh --batch --install=db
