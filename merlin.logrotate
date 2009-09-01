@@ -5,8 +5,10 @@
 	sharedscripts
 	missingok
 	postrotate
-		/sbin/service merlind restart
-		/bin/sleep 2
-		/sbin/service monitor restart
+		/etc/init.d/monitor stop
+		/etc/init.d/merlind stop
+		sleep 1
+		/etc/init.d/merlind start
+		/etc/init.d/monitor start
 	endscript
 }
