@@ -1,0 +1,12 @@
+/opt/monitor/op5/merlin/logs/*log {
+	create 644 monitor apache
+	weekly
+	rotate 4
+	sharedscripts
+	missingok
+	postrotate
+		/sbin/service merlind restart
+		/bin/sleep 2
+		/sbin/service monitor restart
+	endscript
+}
