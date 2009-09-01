@@ -48,6 +48,8 @@ rm -rf %buildroot
 sh install-merlin.sh --batch --root=%buildroot --install=files,init \
 	--dest-dir %mod_path
 chmod 777 %buildroot/%mod_path/logs
+mkdir -p %buildroot%_sysconfdir/logrotate.d
+cp logrotate.merlin %buildroot%_sysconfdir/logrotate.d/merlin
 
 
 %pre
@@ -94,6 +96,7 @@ sh /etc/init.d/monitor start || :
 %mod_path/object_importer.inc.php
 %mod_path/example.conf
 %mod_path/init.sh
+%_sysconfdir/logrotate.d/merlin
 /etc/init.d/merlind
 %dir %mod_path/logs
 
