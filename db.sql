@@ -31,6 +31,7 @@ CREATE TABLE notification(
 	notification_type		int,
 	start_time				int(11),
 	end_time				int(11),
+	contact_name			varchar(255),
 	host_name				varchar(255),
 	service_description		varchar(255),
 	reason_type				int,
@@ -41,7 +42,8 @@ CREATE TABLE notification(
 	escalated				int,
 	contacts_notified		int,
 	KEY host_name(host_name),
-	KEY service_name(host_name, service_description)
+	KEY service_name(host_name, service_description),
+	KEY contact_name(contact_name)
 );
 
 DROP TABLE IF EXISTS program_status;
