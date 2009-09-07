@@ -22,7 +22,7 @@ CREATE TABLE downtime(
 	KEY service(host_name, service_description),
 	KEY end_time(end_time),
 	KEY downtime_id(downtime_id)
-);
+) COLLATE latin1_general_cs;
 
 DROP TABLE IF EXISTS notification;
 CREATE TABLE notification(
@@ -44,7 +44,7 @@ CREATE TABLE notification(
 	KEY host_name(host_name),
 	KEY service_name(host_name, service_description),
 	KEY contact_name(contact_name)
-);
+) COLLATE latin1_general_cs;
 
 DROP TABLE IF EXISTS program_status;
 CREATE TABLE program_status(
@@ -74,7 +74,7 @@ CREATE TABLE program_status(
 	modified_service_attributes		int,
 	global_host_event_handler		text,
 	global_service_event_handler	text
-);
+) COLLATE latin1_general_cs;
 INSERT INTO program_status(instance_id, instance_name) VALUES(0, "Local Nagios/Merlin Instance");
 
 DROP TABLE IF EXISTS scheduled_downtime;
@@ -96,7 +96,7 @@ CREATE TABLE scheduled_downtime(
 	KEY host_downtime(host_name),
 	KEY service_downtime(service_description),
 	UNIQUE KEY downtime_id(downtime_id)
-);
+) COLLATE latin1_general_cs;
 
 DROP TABLE IF EXISTS comment;
 CREATE TABLE comment(
@@ -117,7 +117,7 @@ CREATE TABLE comment(
 	KEY host_comment(host_name),
 	KEY service_comment(host_name, service_description),
 	UNIQUE KEY comment_id(comment_id)
-);
+) COLLATE latin1_general_cs;
 
 
 DROP TABLE IF EXISTS gui_action_log;
@@ -125,7 +125,7 @@ CREATE TABLE gui_action_log(
 	user			VARCHAR(30) NOT NULL,
 	action			VARCHAR(50) NOT NULL,
 	time			TIMESTAMP
-) ;
+) COLLATE latin1_general_cs;
 
 DROP TABLE IF EXISTS gui_access;
 CREATE TABLE gui_access(
@@ -139,7 +139,7 @@ CREATE TABLE gui_access(
 	import			BOOL,
 	probe			BOOL,
 	admin			BOOL
-) ;
+) COLLATE latin1_general_cs;
 INSERT INTO gui_access VALUES('monitor', 1, 1, 1, 1, 1, 1, 1, 1, 1);
 
 
@@ -170,7 +170,7 @@ CREATE TABLE contact(
 	address6						    VARCHAR(100),
 	last_host_notification				INT(10),
 	last_service_notification			INT(10)
-) ;
+) COLLATE latin1_general_cs;
 CREATE UNIQUE INDEX contact_name ON contact(contact_name);
 
 -- contact, contactgroup:
@@ -178,7 +178,7 @@ DROP TABLE IF EXISTS contact_contactgroup;
 CREATE TABLE contact_contactgroup(
 	contact			INT NOT NULL,
 	contactgroup	INT NOT NULL
-) ;
+);
 
 
 DROP TABLE IF EXISTS contactgroup;
@@ -187,7 +187,7 @@ CREATE TABLE contactgroup(
 	id					INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	contactgroup_name	VARCHAR(75) NOT NULL,
 	alias				VARCHAR(160) NOT NULL
-) ;
+) COLLATE latin1_general_cs;
 CREATE UNIQUE INDEX contactgroup_name ON contactgroup(contactgroup_name);
 
 DROP TABLE IF EXISTS timeperiod;
@@ -203,7 +203,7 @@ CREATE TABLE timeperiod(
 	thursday				VARCHAR(50),
 	friday					VARCHAR(50),
 	saturday				VARCHAR(50)
-) ;
+) COLLATE latin1_general_cs;
 CREATE UNIQUE INDEX timeperiod_name ON timeperiod(timeperiod_name);
 
 -- junction table for timeperiod<->exclude
@@ -211,7 +211,7 @@ DROP TABLE IF EXISTS timeperiod_exclude;
 CREATE TABLE timeperiod_exclude(
 	timeperiod	INT NOT NULL,
 	exclude		INT NOT NULL
-) ;
+) COLLATE latin1_general_cs;
 
 
 DROP TABLE IF EXISTS command;
@@ -220,7 +220,7 @@ CREATE TABLE command(
 	id				INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	command_name	VARCHAR(75) NOT NULL,
 	command_line	BLOB NOT NULL
-) ;
+) COLLATE latin1_general_cs;
 CREATE UNIQUE INDEX command_name ON command(command_name);
 
 
@@ -324,7 +324,7 @@ CREATE TABLE host(
 	end_time int(10),
 	early_timeout smallint(1),
 	return_code smallint(8)
-) ;
+) COLLATE latin1_general_cs;
 CREATE UNIQUE INDEX host_name ON host(host_name);
 
 -- junctions for host objects
@@ -362,7 +362,7 @@ CREATE TABLE hostgroup(
 	notes				VARCHAR(160),
 	notes_url			VARCHAR(160),
 	action_url			VARCHAR(160)
-) ;
+) COLLATE latin1_general_cs;
 CREATE UNIQUE INDEX hostgroup_name ON hostgroup(hostgroup_name);
 
 
@@ -463,7 +463,7 @@ CREATE TABLE service(
 	early_timeout smallint(1),
 	return_code smallint(8),
 	UNIQUE KEY service_name(host_name, service_description)
-) ;
+) COLLATE latin1_general_cs;
 
 -- junctions for service objects
 DROP TABLE IF EXISTS service_contact;
@@ -494,7 +494,7 @@ CREATE TABLE servicegroup(
 	notes				VARCHAR(160),
 	notes_url			VARCHAR(160),
 	action_url			VARCHAR(160)
-) ;
+) COLLATE latin1_general_cs;
 CREATE UNIQUE INDEX servicegroup_name ON servicegroup(servicegroup_name);
 
 
@@ -507,7 +507,7 @@ CREATE TABLE servicedependency(
 	inherits_parent					BOOL,
 	execution_failure_options		VARCHAR(15),
 	notification_failure_options	VARCHAR(15)
-) ;
+) COLLATE latin1_general_cs;
 
 
 DROP TABLE IF EXISTS serviceescalation;
@@ -520,7 +520,7 @@ CREATE TABLE serviceescalation(
 	notification_interval			MEDIUMINT,
 	escalation_period				VARCHAR(75),
 	escalation_options				VARCHAR(15)
-) ;
+) COLLATE latin1_general_cs;
 
 -- junctions for serviceescalation objects
 DROP TABLE IF EXISTS serviceescalation_contact;
@@ -546,7 +546,7 @@ CREATE TABLE hostdependency(
 	inherits_parent					BOOL,
 	execution_failure_options		VARCHAR(15),
 	notification_failure_options	VARCHAR(15)
-) ;
+) COLLATE latin1_general_cs;
 
 DROP TABLE IF EXISTS hostescalation;
 CREATE TABLE hostescalation(
@@ -559,7 +559,7 @@ CREATE TABLE hostescalation(
 	notification_interval			INT,
 	escalation_period				VARCHAR(75),
 	escalation_options				VARCHAR(15)
-) ;
+) COLLATE latin1_general_cs;
 
 
 DROP TABLE IF EXISTS hostescalation_contact;
@@ -582,7 +582,7 @@ CREATE TABLE custom_vars(
 	obj_id		INT NOT NULL,
 	variable	VARCHAR(100),
 	value		VARCHAR(255)
-) ;
+)  COLLATE latin1_general_cs;
 -- No single object can have multiple variables named the same
 CREATE UNIQUE INDEX objvar ON custom_vars(obj_type, obj_id, variable);
 
@@ -618,4 +618,4 @@ CREATE TABLE `report_data` (
   KEY host_name (host_name),
   KEY host_name_2 (host_name,service_description),
   KEY state (state)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE latin1_general_cs;
