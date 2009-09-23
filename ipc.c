@@ -185,31 +185,26 @@ int ipc_init(void)
 		return 0;
 	}
 
+	/* working with the module here */
 	if (connect(listen_sock, sa, slen) < 0) {
 		lerr("Failed to connect to ipc socket (%d): %s", errno, strerror(errno));
-		switch (errno) {
-		case EBADF:
-		case ENOTSOCK:
-			break;
-		case EISCONN:
+		if (errno == EISCONN)
 			return 0;
-		default:
-			return -1;
-		}
-		close(listen_sock);
-		ipc_sock = listen_sock = -1;
-	} else {
-		ipc_sock = listen_sock;
+		ipc_deinit();
+		return -1;
+	}
 
-		set_socket_buffers(ipc_sock);
+	/* module connected successfully */
+	ipc_sock = listen_sock;
+	set_socket_buffers(ipc_sock);
 
-		/* let everybody know we're alive and active */
-		linfo("Shoutcasting active status through IPC socket");
-		ipc_send_ctrl(CTRL_ACTIVE, -1);
-		if (on_connect) {
-			linfo("Running on_connect hook for module");
-			on_connect();
-		}
+	/* let everybody know we're alive and active */
+	linfo("Shoutcasting active status through IPC socket");
+	ipc_send_ctrl(CTRL_ACTIVE, -1);
+
+	if (on_connect) {
+		linfo("Running on_connect hook for module");
+		on_connect();
 	}
 
 	return 0;
