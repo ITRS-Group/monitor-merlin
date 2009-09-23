@@ -13,7 +13,7 @@ extern int ipc_init(void);
 #define ipc_bind() ipc_init()
 #define ipc_connect() ipc_init()
 
-extern int ipc_deinit(void);
+extern void ipc_deinit(void);
 #define ipc_unlink() ipc_deinit()
 #define ipc_disconnect() ipc_init()
 

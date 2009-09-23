@@ -216,23 +216,21 @@ int ipc_init(void)
 }
 
 
-int ipc_deinit(void)
+void ipc_deinit(void)
 {
-	int result;
+	/* avoid spurious close() errors while strace/valgrind debugging */
+	if (ipc_sock >= 0)
+		close(ipc_sock);
+	if (listen_sock >= 0)
+		close(listen_sock);
 
-	result = close(ipc_sock);
-	close(listen_sock);
+	ipc_sock = listen_sock = -1;
 
 	if (!is_module)
-		result |= unlink(ipc_sock_path);
-
-	ipc_sock = -1;
-	listen_sock = -1;
+		unlink(ipc_sock_path);
 
 	if (on_disconnect)
 		on_disconnect();
-
-	return result;
 }
 
 
