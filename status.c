@@ -26,6 +26,11 @@ static struct object_state *store_object_states(dbi_result result, size_t *count
 	int i = 0;
 	struct object_state *state_ary = NULL;
 
+	if (!result) {
+		lwarn("store_object_states() called with NULL result pointer (non-fatal)");
+		return NULL;
+	}
+
 	*count = dbi_result_get_numrows(result);
 	if (!*count)
 		goto out;
