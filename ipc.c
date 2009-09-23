@@ -233,7 +233,7 @@ int ipc_is_connected(int msec)
 {
 	if (is_module) {
 		if (ipc_sock < 0)
-			return ipc_reinit();
+			return ipc_reinit() == 0;
 
 		return 1;
 	}
