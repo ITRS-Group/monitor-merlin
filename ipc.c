@@ -182,7 +182,7 @@ int ipc_init(void)
 		if (listen(listen_sock, 1) < 0)
 			lerr("listen(%d, 1) failed: %s", listen_sock, strerror(errno));
 
-		return listen_sock;
+		return 0;
 	}
 
 	if (connect(listen_sock, sa, slen) < 0) {
@@ -212,7 +212,7 @@ int ipc_init(void)
 		}
 	}
 
-	return listen_sock;
+	return 0;
 }
 
 
