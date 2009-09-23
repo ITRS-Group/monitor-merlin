@@ -331,7 +331,7 @@ static int mrm_ipc_connect(void *discard)
 	int result;
 
 	linfo("Attempting ipc connect");
-	result = ipc_connect();
+	result = ipc_init();
 	if (result < 0) {
 		lerr("IPC connection failed. Re-scheduling to try again in 10 seconds");
 		schedule_new_event(EVENT_USER_FUNCTION, TRUE, time(NULL) + 10, FALSE,

@@ -10,13 +10,7 @@
 #endif
 
 extern int ipc_init(void);
-#define ipc_bind() ipc_init()
-#define ipc_connect() ipc_init()
-
 extern void ipc_deinit(void);
-#define ipc_unlink() ipc_deinit()
-#define ipc_disconnect() ipc_init()
-
 extern void mrm_ipc_set_connect_handler(int (*handler)(void));
 extern void mrm_ipc_set_disconnect_handler(int (*handler)(void));
 extern int ipc_grok_var(char *var, char *val);

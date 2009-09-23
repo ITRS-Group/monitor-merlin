@@ -433,7 +433,7 @@ static void polling_loop(void)
 
 static void clean_exit(int sig)
 {
-	ipc_unlink();
+	ipc_deinit();
 	net_deinit();
 
 	_exit(!!sig);
@@ -509,7 +509,7 @@ int main(int argc, char **argv)
 	if (use_database)
 		mrm_ipc_set_connect_handler(sql_reinit);
 
-	result = ipc_bind();
+	result = ipc_init();
 	if (result < 0) {
 		printf("Failed to initalize ipc socket: %s\n", strerror(errno));
 		return 1;
