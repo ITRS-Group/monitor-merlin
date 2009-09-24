@@ -63,7 +63,7 @@ static const char *callback_names[NEBCALLBACK_NUMITEMS] = {
 const char *callback_name(int id)
 {
 	if (id < 0 || id > NEBCALLBACK_NUMITEMS - 1)
-		return NULL;
+		return "(invalid/unknown)";
 
 	return callback_names[id];
 }
