@@ -188,6 +188,11 @@ int merlin_mod_hook(int cb, void *data)
 	merlin_event pkt;
 	int result = 0;
 
+	if (!ipc_is_connected(0)) {
+		/* use backlog here */
+		return 0;
+	}
+
 	if (merlin_should_send_paths) {
 		if (merlin_should_send_paths <= time(NULL)) {
 			linfo("Daemon should have caught up. Trying to force a re-import");
