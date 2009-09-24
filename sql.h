@@ -8,6 +8,7 @@
 typedef dbi_result SQL_RESULT;
 
 extern int sql_config(const char *key, const char *value);
+extern int sql_is_connected(void);
 extern int sql_init(void);
 extern int sql_close(void);
 extern int sql_reinit(void);

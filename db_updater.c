@@ -444,7 +444,7 @@ int mrm_db_update(merlin_event *pkt)
 	nebstruct_host_check_data *hst;
 	nebstruct_service_check_data *srv;
 
-	if (!use_database)
+	if (!sql_is_connected())
 		return 0;
 
 	if (!pkt) {

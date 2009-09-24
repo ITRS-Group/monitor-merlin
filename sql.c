@@ -34,6 +34,7 @@ size_t sql_quote(const char *src, char **dst)
 		*dst = NULL;
 		return 0;
 	}
+
 	return dbi_conn_quote_string_copy(db.conn, src, dst);
 }
 
@@ -145,6 +146,16 @@ int sql_query(const char *fmt, ...)
 	return !!db.result;
 }
 
+int sql_is_connected()
+{
+	if (!use_database)
+		return 0;
+
+	if (db.conn)
+		return 1;
+
+	return sql_init() == 0;
+}
 
 int sql_init(void)
 {
