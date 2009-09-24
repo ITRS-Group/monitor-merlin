@@ -451,7 +451,15 @@ int mrm_db_update(merlin_event *pkt)
 		lerr("pkt is NULL in mrm_db_update");
 		return 0;
 	}
+	if (!pkt->body) {
+		lerr("pkt->body is NULL in mrm_db_update");
+		return 0;
+	}
 	deblockify(pkt->body, pkt->hdr.len, pkt->hdr.type);
+	if (!pkt->body) {
+		lerr("deblockify made pkt->body NULL in mrm_db_update");
+		return 0;
+	}
 	switch (pkt->hdr.type) {
 	case NEBCALLBACK_HOST_CHECK_DATA:
 		hst = (nebstruct_host_check_data *)pkt->body;
