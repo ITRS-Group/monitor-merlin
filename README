@@ -7,7 +7,13 @@ libdbi-drivers, libdbi and mysql-libs) installed.
 You will ofcourse also need an sql database supported by libdbi
 (refer to the libdbi documentation for further information about
 supported databases), as well as a Nagios installation that the
-merlin module can plug in to.
+merlin module can plug in to. The import script is currently
+limited to MySQL only, so that's currently the only database
+supported.
+
+For the import script to work, you need to have php-cli and
+php-mysql installed. They may be named differently in your
+distribution, but I'm sure you get the idea.
 
 The install script requires administration privileges to create
 its installation directories and copy files there, as well as
