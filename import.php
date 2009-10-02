@@ -21,6 +21,10 @@ function usage($msg = false)
 {
 	global $progname;
 
+	if ($msg) {
+		echo $msg . "\n";
+	}
+
 	echo "Usage: $progname <options> --cache=/path/to/objects.cache\n";
 	echo "\n";
 	echo "--db-name    name of database to import to\n";
@@ -110,10 +114,8 @@ if ($nagios_cfg && !$status_log) {
 
 $imp->prepare_import();
 
-if (!$cache && !$status_log) {
-	echo "neither --cache nor --status-log given. Importing nothing";
-	exit(1);
-}
+if (!$cache && !$status_log)
+	usage("Neither --cache nor --status-log given.\nImporting nothing\n");
 
 echo "Importing objects to database $imp->db_database\n";
 if ($cache) {
