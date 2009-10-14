@@ -44,8 +44,8 @@ int blockify(void *data, int cb_type, char *buf, int buflen)
 		len = strlen(sp);
 
 		if (len > buflen - off) {
-			linfo("String '%s' too long (%d bytes, %lu remaining). Truncating",
-				  sp, len, buflen - off);
+			linfo("String is too long (%d bytes, %lu remaining). Truncating",
+				  len, buflen - off);
 			len = buflen - off;
 		}
 
