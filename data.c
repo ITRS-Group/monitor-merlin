@@ -15,16 +15,16 @@
 int blockify(void *data, int cb_type, char *buf, int buflen)
 {
 	int i, len, strings;
-	off_t off, offset, *ptrs;
+	off_t off, *ptrs;
 
 	if (!data || cb_type < 0 || cb_type >= NEBCALLBACK_NUMITEMS)
 		return 0;
 
-	offset = off = hook_info[cb_type].offset;
+	off = hook_info[cb_type].offset;
 	strings = hook_info[cb_type].strings;
 	ptrs = hook_info[cb_type].ptrs;
 
-	memcpy(buf, data, offset);
+	memcpy(buf, data, off);
 
 	for(i = 0; i < strings; i++) {
 		char *sp;
@@ -64,7 +64,7 @@ int blockify(void *data, int cb_type, char *buf, int buflen)
 		off += len + 1;
 	}
 
-	return offset + off;
+	return off;
 }
 
 
