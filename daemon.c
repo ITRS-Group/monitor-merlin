@@ -338,21 +338,16 @@ static int ipc_reap_events(int ipc_sock)
 {
 	int ipc_events = 0;
 	merlin_event p;
-	struct timeval start, stop;
 
 	/*
 	 * we expect to get the vast majority of events from the ipc
 	 * socket, so make sure we read a bunch of them in one go
 	 */
-	gettimeofday(&start, 0);
 	while (ipc_read_event(&p) > 0) {
 		ipc_events++;
 		handle_ipc_event(&p);
 	}
-	gettimeofday(&stop, NULL);
 
-	linfo("Handled %zu ipc events in %0.3f seconds", ipc_events,
-		  tv_delta(&start, &stop));
 	return ipc_events;
 }
 
@@ -410,8 +405,18 @@ static int io_poll_sockets(void)
 
 static void polling_loop(void)
 {
+	time_t start, stop;
+
+	start = time(NULL);
+
 	for (;;) {
 		int status;
+
+		stop = time(NULL);
+		if (start + 15 >= stop) {
+			ipc_log_event_count();
+			start = stop;
+		}
 
 		/*
 		 * reap any stray child processes.
