@@ -18,6 +18,8 @@ static struct {
 	dbi_result result;
 } db;
 
+static time_t last_connect_attempt = 0;
+
 #undef ESC_BUFSIZE
 #define ESC_BUFSIZE (8192 * 2)
 #undef ESC_BUFS
@@ -107,6 +109,13 @@ int sql_query(const char *fmt, ...)
 		lerr("Not using a database, but daemon still issued a query");
 		return -1;
 	}
+
+	/*
+	 * don't even bother trying to run the query if the database
+	 * isn't online and we recently tried to connect to it
+	 */
+	if (last_connect_attempt + 30 > time(NULL) && !sql_is_connected())
+		return -1;
 
 	va_start(ap, fmt);
 	len = vasprintf(&query, fmt, ap);
@@ -202,12 +211,17 @@ int sql_init(void)
 	if (dbi_conn_connect(db.conn) < 0) {
 		const char *error_msg;
 		sql_error(&error_msg);
-		lerr("Failed to connect to '%s' at '%s':'%d' using %s:%s as credentials: %s",
-		     db.name, db.host, db.port, db.user, db.pass, error_msg);
+		if (last_connect_attempt + 30 <= time(NULL)) {
+			lerr("Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
+			     db.name, db.host, db.port, db.user, db.pass, error_msg);
+			last_connect_attempt = time(NULL);
+		}
 
 		db.conn = NULL;
 		return -1;
 	}
+
+	last_connect_attempt = 0;
 
 	return 0;
 }
