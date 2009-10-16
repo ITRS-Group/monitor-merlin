@@ -115,8 +115,8 @@ int ipc_binlog_add(merlin_event *pkt)
 		asprintf(&path, "/opt/monitor/op5/merlin/binlogs/ipc.%s.binlog",
 				 is_module ? "module" : "daemon");
 
-		/* 128k in memory, 10MB on disk */
-		ipc_binlog = binlog_create(path, 1 << 17, 10 << 20, BINLOG_UNLINK);
+		/* 1MB in memory, 100MB on disk */
+		ipc_binlog = binlog_create(path, 1 << 20, 100 << 20, BINLOG_UNLINK);
 		free(path);
 
 		if (!ipc_binlog)
