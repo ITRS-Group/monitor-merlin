@@ -160,24 +160,26 @@ int sql_is_connected()
 int sql_init(void)
 {
 	int result;
-	dbi_driver driver;
+	dbi_driver driver = NULL;
 
 	if (!use_database)
 		return 0;
 
-	result = dbi_initialize(NULL);
-	if (result < 1) {
-		lerr("Failed to initialize any libdbi drivers");
-		return -1;
-	}
-
-	if (!db.type)
-		db.type = "mysql";
-
-	driver = dbi_driver_open(db.type);
 	if (!driver) {
-		lerr("Failed to open libdbi driver '%s'", db.type);
-		return -1;
+		result = dbi_initialize(NULL);
+		if (result < 1) {
+			lerr("Failed to initialize any libdbi drivers");
+			return -1;
+		}
+
+		if (!db.type)
+			db.type = "mysql";
+
+		driver = dbi_driver_open(db.type);
+		if (!driver) {
+			lerr("Failed to open libdbi driver '%s'", db.type);
+			return -1;
+		}
 	}
 
 	db.conn = dbi_conn_open(driver);
