@@ -11,6 +11,8 @@ static int ipc_sock = -1; /* once connected, we operate on this */
 static char *ipc_sock_path;
 static merlin_event_counter ipc_events;
 
+static time_t last_connect_attempt;
+
 /*
  * these are, if set, run when completing or losing the ipc
  * connection, respectively
@@ -155,8 +157,10 @@ int ipc_init(void)
 	if (!ipc_sock_path)
 		ipc_sock_path = strdup("/opt/monitor/op5/mrd/socket.mrd");
 
-	linfo("Initializing IPC socket '%s' for %s", ipc_sock_path,
-	      is_module ? "module" : "daemon");
+	if (last_connect_attempt + 30 >= time(NULL)) {
+		linfo("Initializing IPC socket '%s' for %s", ipc_sock_path,
+		      is_module ? "module" : "daemon");
+	}
 
 	memset(&saun, 0, sizeof(saun));
 	saun.sun_family = AF_UNIX;
@@ -199,12 +203,16 @@ int ipc_init(void)
 
 	/* working with the module here */
 	if (connect(listen_sock, sa, slen) < 0) {
-		lerr("Failed to connect to ipc socket (%d): %s", errno, strerror(errno));
 		if (errno == EISCONN)
 			return 0;
+		if (last_connect_attempt + 30 <= time(NULL)) {
+			lerr("Failed to connect to ipc socket (%d): %s", errno, strerror(errno));
+			last_connect_attempt = time(NULL);
+		}
 		ipc_deinit();
 		return -1;
 	}
+	last_connect_attempt = 0;
 
 	/* reset event counter */
 	memset(&ipc_events, 0, sizeof(ipc_events));
