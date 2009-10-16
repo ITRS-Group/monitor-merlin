@@ -22,5 +22,6 @@ extern int ipc_listen_sock_desc(void);
 extern int ipc_is_connected(int msec);
 extern int ipc_reinit(void);
 extern int ipc_accept(void);
+extern void ipc_log_event_count(void);
 
 #endif /* INCLUDE_ipc_h__ */

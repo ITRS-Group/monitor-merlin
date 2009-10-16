@@ -28,6 +28,14 @@ void mrm_ipc_set_disconnect_handler(int (*handler)(void))
 	on_disconnect = handler;
 }
 
+void ipc_log_event_count(void)
+{
+	struct timeval stop;
+
+	gettimeofday(&stop, NULL);
+	log_event_count("ipc", &ipc_events, tv_delta(&ipc_events.start, &stop));
+}
+
 int ipc_reinit(void)
 {
 	ipc_deinit();
