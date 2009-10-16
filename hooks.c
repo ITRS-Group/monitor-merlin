@@ -228,7 +228,7 @@ int merlin_mod_hook(int cb, void *data)
 		return -1;
 	}
 
-	linfo("Processing callback %s", callback_name(cb));
+	ldebug("Processing callback %s", callback_name(cb));
 
 	pkt.hdr.type = cb;
 	pkt.hdr.selection = 0xffff;
