@@ -116,3 +116,14 @@ void log_msg(int severity, const char *fmt, ...)
 	fflush(log_fp);
 	fsync(fileno(log_fp));
 }
+
+void log_event_count(const char *prefix, merlin_event_counter *cnt, float t)
+{
+	log_msg(LOGINFO, "Handled %lld '%s' events in %.3f seconds in: %lld, out: %lld",
+	        cnt->read + cnt->sent + cnt->dropped + cnt->logged, prefix, t,
+	        cnt->read, cnt->sent + cnt->dropped + cnt->logged);
+	if (!(cnt->sent + cnt->dropped + cnt->logged))
+		return;
+	log_msg(LOGINFO, "'%s' event details: read %lld, sent %lld, dropped %lld, logged %lld",
+	        prefix, cnt->read, cnt->sent, cnt->dropped, cnt->logged);
+}

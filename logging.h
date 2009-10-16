@@ -38,5 +38,5 @@ extern void log_deinit(void);
 extern int log_grok_var(char *var, char *val);
 extern void log_msg(int severity, const char *fmt, ...)
 	__attribute__((__format__(__printf__, 2, 3)));
-
+extern void log_event_count(const char *prefix, merlin_event_counter *cnt, float t);
 #endif
