@@ -41,6 +41,7 @@ typedef struct merlin_event merlin_event;
 
 struct merlin_event_counter {
 	unsigned long long sent, read, logged, dropped;
+	struct timeval start;
 };
 typedef struct merlin_event_counter merlin_event_counter;
 
