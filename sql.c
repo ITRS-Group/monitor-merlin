@@ -132,7 +132,7 @@ int sql_query(const char *fmt, ...)
 			break;
 
 		default:
-			lerr("Attempting to reconnect to database");
+			linfo("Attempting to reconnect to database and re-run the query");
 			if (!sql_reinit()) {
 				if (!run_query(query, len))
 					linfo("Successfully ran the previously failed query");
