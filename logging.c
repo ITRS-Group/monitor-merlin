@@ -14,7 +14,7 @@ int log_grok_var(char *var, char *val)
 	if (!val)
 		return 0;
 
-	if (!strcmp(var, "log_levels")) {
+	if (!strcmp(var, "log_levels") || !strcmp(var, "log_level")) {
 		struct opt_code {
 			char *name;
 			int val;
@@ -24,9 +24,10 @@ int log_grok_var(char *var, char *val)
 			{ "warn", LOGWARN },
 			{ "info", LOGINFO },
 			{ "debug", LOGDEBUG },
-			{ NULL, 0 },
 		};
 		char *p = val;
+
+		log_opts = 0;
 
 		for (p = val; p && *p; p = next_word(p)) {
 			int i, mod = 0;
