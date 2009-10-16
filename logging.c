@@ -7,7 +7,7 @@
 
 static FILE *log_fp;
 static char *log_file;
-static int log_opts = LOGERR | LOGWARN | LOGINFO | LOGDEBUG;
+static int log_opts = LOGERR | LOGWARN | LOGINFO;
 
 int log_grok_var(char *var, char *val)
 {
