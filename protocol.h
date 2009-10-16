@@ -39,6 +39,11 @@ struct merlin_event {
 } __attribute__((packed));
 typedef struct merlin_event merlin_event;
 
+struct merlin_event_counter {
+	unsigned long long sent, read, logged, dropped;
+};
+typedef struct merlin_event_counter merlin_event_counter;
+
 extern int proto_send_event(int sock, merlin_event *pkt);
 extern int proto_read_event(int sock, merlin_event *pkt);
 extern int proto_ctrl(int sock, int control_type, int selection);
