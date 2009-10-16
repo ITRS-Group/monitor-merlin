@@ -9,7 +9,7 @@ static char *debug_write, *debug_read;
 static int listen_sock = -1; /* for bind() and such */
 static int ipc_sock = -1; /* once connected, we operate on this */
 static char *ipc_sock_path;
-static size_t ipc_events;
+static merlin_event_counter ipc_events;
 
 /*
  * these are, if set, run when completing or losing the ipc
@@ -51,6 +51,10 @@ int ipc_accept(void)
 			 listen_sock, strerror(errno));
 		return -1;
 	}
+
+	/* reset the ipc event counter for each session */
+	memset(&ipc_events, 0, sizeof(ipc_events));
+	gettimeofday(&ipc_events.start, NULL);
 
 	set_socket_buffers(ipc_sock);
 
@@ -194,6 +198,10 @@ int ipc_init(void)
 		return -1;
 	}
 
+	/* reset event counter */
+	memset(&ipc_events, 0, sizeof(ipc_events));
+	gettimeofday(&ipc_events.start, NULL);
+
 	/* module connected successfully */
 	ipc_sock = listen_sock;
 	set_socket_buffers(ipc_sock);
@@ -286,7 +294,12 @@ int ipc_send_event(merlin_event *pkt)
 
 	if (!ipc_is_connected(0)) {
 		linfo("ipc is not connected");
-		ipc_binlog_add(pkt);
+		if (ipc_binlog_add(pkt) < 0) {
+			lwarn("Failed to add packet to binlog. Event dropped");
+			ipc_events.dropped++;
+		} else {
+			ipc_events.logged++;
+		}
 		return -1;
 	}
 
@@ -349,7 +362,7 @@ int ipc_read_event(merlin_event *pkt)
 			ipc_reinit();
 		}
 		else {
-			ipc_events++;
+			ipc_events.read++;
 		}
 		return result;
 	}
