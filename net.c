@@ -529,10 +529,10 @@ static int net_sendto(merlin_node *node, merlin_event *pkt)
 		return -1;
 	}
 
-	linfo("sending %zu bytes to %s node '%s' (%s:%d). sock is %d",
-		  packet_size(pkt), node_type(node), node->name,
-		  inet_ntoa(node->sain.sin_addr),
-		  ntohs(node->sain.sin_port), node->sock);
+	ldebug("sending %zu bytes to %s node '%s' (%s:%d). sock is %d",
+	       packet_size(pkt), node_type(node), node->name,
+	       inet_ntoa(node->sain.sin_addr),
+	       ntohs(node->sain.sin_port), node->sock);
 
 	if (!node_is_connected(node)) {
 		linfo("node '%s' is not connected, so not sending", node->name);
