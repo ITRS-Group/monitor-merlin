@@ -10,6 +10,48 @@ time_t merlin_should_send_paths = 1;
 extern hostgroup *hostgroup_list;
 #define mrm_reap_interval 5
 
+static int handle_host_status(merlin_header *hdr, void *buf)
+{
+	struct host_struct *obj;
+	merlin_host_status *st_obj = (merlin_host_status *)buf;
+
+	obj = find_host(st_obj->name);
+	if (!obj) {
+		lerr("Host '%s' not found. Ignoring status update event", st_obj->name);
+		return -1;
+	}
+
+	NET2MOD_STATE_VARS(obj, st_obj->state);
+	obj->last_host_notification = st_obj->state.last_notification;
+	obj->next_host_notification = st_obj->state.next_notification;
+	obj->accept_passive_host_checks = st_obj->state.accept_passive_checks;
+	obj->obsess_over_host = st_obj->state.obsess;
+
+	return 0;
+}
+
+static int handle_service_status(merlin_header *hdr, void *buf)
+{
+	service *obj;
+	merlin_service_status *st_obj = (merlin_service_status *)buf;
+
+	obj = find_service(st_obj->host_name, st_obj->service_description);
+	if (!obj) {
+		lerr("Service '%s' on host '%s' not found. Ignoring status update event",
+		     st_obj->host_name, st_obj->service_description);
+
+		return -1;
+	}
+
+	NET2MOD_STATE_VARS(obj, st_obj->state);
+	obj->last_notification = st_obj->state.last_notification;
+	obj->next_notification = st_obj->state.next_notification;
+	obj->accept_passive_service_checks = st_obj->state.accept_passive_checks;
+	obj->obsess_over_service = st_obj->state.obsess;
+
+	return 0;
+}
+
 static int handle_service_result(merlin_header *hdr, void *buf)
 {
 	service *srv;
@@ -86,6 +128,10 @@ int handle_ipc_event(merlin_event *pkt)
 		return handle_host_result(&pkt->hdr, pkt->body);
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 		return handle_service_result(&pkt->hdr, pkt->body);
+	case NEBCALLBACK_HOST_STATUS_DATA:
+		return handle_host_status(&pkt->hdr, pkt->body);
+	case NEBCALLBACK_SERVICE_STATUS_DATA:
+		return handle_service_status(&pkt->hdr, pkt->body);
 	default:
 		lwarn("Ignoring unrecognized/unhandled callback type: %d (%s)",
 		      pkt->hdr.type, callback_name(pkt->hdr.type));

@@ -117,4 +117,50 @@ extern int merlin_mod_hook(int cb, void *data);
 	mrln.long_plugin_output = nag->long_plugin_output; \
 	mrln.perf_data = nag->perf_data;
 
+#define NET2MOD_STATE_VARS(nag, mrln) \
+	nag->plugin_output = xfree(nag->plugin_output); \
+	nag->long_plugin_output = xfree(nag->long_plugin_output); \
+	nag->perf_data = xfree(nag->perf_data); \
+	nag->initial_state = mrln.initial_state; \
+	nag->flap_detection_enabled = mrln.flap_detection_enabled; \
+	nag->low_flap_threshold = mrln.low_flap_threshold; \
+	nag->high_flap_threshold = mrln.high_flap_threshold; \
+	nag->check_freshness = mrln.check_freshness; \
+	nag->freshness_threshold = mrln.freshness_threshold; \
+	nag->process_performance_data = mrln.process_performance_data; \
+	nag->checks_enabled = mrln.checks_enabled; \
+	nag->event_handler_enabled = mrln.event_handler_enabled; \
+	nag->problem_has_been_acknowledged = mrln.problem_has_been_acknowledged; \
+	nag->acknowledgement_type = mrln.acknowledgement_type; \
+	nag->check_type = mrln.check_type; \
+	nag->current_state = mrln.current_state; \
+	nag->last_state = mrln.last_state; \
+	nag->last_hard_state = mrln.last_hard_state; \
+	nag->state_type = mrln.state_type; \
+	nag->current_attempt = mrln.current_attempt; \
+	nag->current_event_id = mrln.current_event_id; \
+	nag->last_event_id = mrln.last_event_id; \
+	nag->current_problem_id = mrln.current_problem_id; \
+	nag->last_problem_id = mrln.last_problem_id; \
+	nag->latency = mrln.latency; \
+	nag->execution_time = mrln.execution_time; \
+	nag->notifications_enabled = mrln.notifications_enabled; \
+	nag->next_check = mrln.next_check; \
+	nag->should_be_scheduled = mrln.should_be_scheduled; \
+	nag->last_check = mrln.last_check; \
+	nag->last_state_change = mrln.last_state_change; \
+	nag->last_hard_state_change = mrln.last_hard_state_change; \
+	nag->has_been_checked = mrln.has_been_checked; \
+	nag->current_notification_number = mrln.current_notification_number; \
+	nag->current_notification_id = mrln.current_notification_id; \
+	nag->check_flapping_recovery_notification = mrln.check_flapping_recovery_notification; \
+	nag->scheduled_downtime_depth = mrln.scheduled_downtime_depth; \
+	nag->pending_flex_downtime = mrln.pending_flex_downtime; \
+	nag->is_flapping = mrln.is_flapping; \
+	nag->flapping_comment_id = mrln.flapping_comment_id; \
+	nag->percent_state_change = mrln.percent_state_change; \
+	nag->plugin_output = strdup(mrln.plugin_output); \
+	nag->long_plugin_output = strdup(mrln.long_plugin_output); \
+	nag->perf_data = strdup(mrln.perf_data);
+
 #endif /* MRM_MOD_H */
