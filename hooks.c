@@ -75,54 +75,6 @@ static int hook_host_result(merlin_event *pkt, void *data)
 }
 
 
-/**
- * host and service status structures share a *lot* of data,
- * so we can get away with a lot less code by having this
- * rather simple macro here
- */
-#define COPY_STATE_VARS(dest, src) \
-	dest.initial_state = src->initial_state; \
-	dest.flap_detection_enabled = src->flap_detection_enabled; \
-	dest.low_flap_threshold = src->low_flap_threshold;  \
-	dest.high_flap_threshold = src->high_flap_threshold; \
-	dest.check_freshness = src->check_freshness; \
-	dest.freshness_threshold = src->freshness_threshold; \
-	dest.process_performance_data = src->process_performance_data; \
-	dest.checks_enabled = src->checks_enabled; \
-	dest.event_handler_enabled = src->event_handler_enabled; \
-	dest.problem_has_been_acknowledged = src->problem_has_been_acknowledged; \
-	dest.acknowledgement_type = src->acknowledgement_type; \
-	dest.check_type = src->check_type; \
-	dest.current_state = src->current_state; \
-	dest.last_state = src->last_state; \
-	dest.last_hard_state = src->last_hard_state; \
-	dest.state_type = src->state_type; \
-	dest.current_attempt = src->current_attempt; \
-	dest.current_event_id = src->current_event_id; \
-	dest.last_event_id = src->last_event_id; \
-	dest.current_problem_id = src->current_problem_id; \
-	dest.last_problem_id = src->last_problem_id; \
-	dest.latency = src->latency; \
-	dest.execution_time = src->execution_time; \
-	dest.notifications_enabled = src->notifications_enabled; \
-	dest.next_check = src->next_check; \
-	dest.should_be_scheduled = src->should_be_scheduled; \
-	dest.last_check = src->last_check; \
-	dest.last_state_change = src->last_state_change; \
-	dest.last_hard_state_change = src->last_hard_state_change; \
-	dest.has_been_checked = src->has_been_checked; \
-	dest.current_notification_number = src->current_notification_number; \
-	dest.current_notification_id = src->current_notification_id; \
-	dest.check_flapping_recovery_notification = src->check_flapping_recovery_notification; \
-	dest.scheduled_downtime_depth = src->scheduled_downtime_depth; \
-	dest.pending_flex_downtime = src->pending_flex_downtime; \
-	dest.is_flapping = src->is_flapping; \
-	dest.flapping_comment_id = src->flapping_comment_id; \
-	dest.percent_state_change = src->percent_state_change; \
-	dest.plugin_output = src->plugin_output; \
-	dest.long_plugin_output = src->long_plugin_output; \
-	dest.perf_data = src->perf_data;
-
 static int hook_host_status(merlin_event *pkt, void *data)
 {
 	nebstruct_host_status_data *ds = (nebstruct_host_status_data *)data;
@@ -131,7 +83,7 @@ static int hook_host_status(merlin_event *pkt, void *data)
 
 	obj = (struct host_struct *)ds->object_ptr;
 
-	COPY_STATE_VARS(st_obj.state, obj);
+	MOD2NET_STATE_VARS(st_obj.state, obj);
 	st_obj.state.last_notification = obj->last_host_notification;
 	st_obj.state.next_notification = obj->next_host_notification;
 	st_obj.state.accept_passive_checks = obj->accept_passive_host_checks;
@@ -151,7 +103,7 @@ static int hook_service_status(merlin_event *pkt, void *data)
 
 	obj = (struct service_struct *)ds->object_ptr;
 
-	COPY_STATE_VARS(st_obj.state, obj);
+	MOD2NET_STATE_VARS(st_obj.state, obj);
 	st_obj.state.last_notification = obj->last_notification;
 	st_obj.state.next_notification = obj->next_notification;
 	st_obj.state.accept_passive_checks = obj->accept_passive_service_checks;
