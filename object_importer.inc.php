@@ -353,6 +353,9 @@ class nagios_object_importer
 				return false;
 				break;
 			}
+		} elseif ($obj_type === 'comment') {
+			if ($k === 'author')
+				return 'author_name';
 		}
 		return $k;
 	}
