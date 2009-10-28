@@ -110,7 +110,7 @@ static int mrm_ipc_reap(void *discard)
 	while ((len = ipc_read_event(&pkt)) > 0) {
 		/* control packets are handled separately */
 		if (pkt.hdr.type == CTRL_PACKET) {
-			handle_control(pkt.hdr.len, pkt.hdr.selection);
+			handle_control(&pkt);
 			continue;
 		}
 
