@@ -11,7 +11,7 @@ static int net_sock = -1; /* listening sock descriptor */
 #define node_table noc_table
 static unsigned num_nocs, num_pollers, num_peers;
 static merlin_node *base, **noc_table, **poller_table, **peer_table;
-static merlin_node **selection_table;
+static merlin_node **selected_nodes;
 
 int net_sock_desc(void)
 {
@@ -62,7 +62,7 @@ static merlin_node *nodelist_by_selection(int sel)
 	if (sel < 0 || sel > get_num_selections())
 		return NULL;
 
-	return selection_table[sel];
+	return selected_nodes[sel];
 }
 
 
@@ -76,7 +76,7 @@ void create_node_tree(merlin_node *table, unsigned n)
 {
 	int i, xnoc, xpeer, xpoll;
 
-	selection_table = calloc(get_num_selections() + 1, sizeof(merlin_node *));
+	selected_nodes = calloc(get_num_selections() + 1, sizeof(merlin_node *));
 
 	for (i = 0; i < n; i++) {
 		merlin_node *node = &table[i];
@@ -87,7 +87,7 @@ void create_node_tree(merlin_node *table, unsigned n)
 			break;
 		case MODE_POLLER:
 			num_pollers++;
-			selection_table[id] = add_node_to_list(node, selection_table[id]);
+			selected_nodes[id] = add_node_to_list(node, selected_nodes[id]);
 			break;
 		case MODE_PEER:
 			num_peers++;

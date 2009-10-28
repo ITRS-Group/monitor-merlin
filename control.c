@@ -117,28 +117,33 @@ void enable_disable_checks(int selection, int enable)
  * Handles merlin control events inside the module. Control events
  * that relate to cross-host communication only never reaches this.
  */
-void handle_control(int code, int selection)
+void handle_control(merlin_event *pkt)
 {
-	char *sel_name = NULL;
+	char *sel_name;
 
-	sel_name = get_sel_name(selection);
-	if (selection == -1)
-		linfo("Received general control packet, code %d", code);
+	if (!pkt) {
+		lerr("handle_control() called with NULL packet");
+		return;
+	}
+
+	sel_name = get_sel_name(pkt->hdr.selection);
+	if (pkt->hdr.selection == -1)
+		linfo("Received general control packet, code %d", pkt->hdr.code);
 	else {
 		if (!sel_name) {
-			lwarn("Received control packet code %d for invalid selection", code);
+			lwarn("Received control packet code %d for invalid selection", pkt->hdr.code);
 		} else {
 			linfo("Received control packet code %d for selection '%s'",
-				  code, sel_name);
+				  pkt->hdr.code, sel_name);
 		}
 	}
 
-	switch (code) {
+	switch (pkt->hdr.code) {
 	case CTRL_INACTIVE:
 	case CTRL_ACTIVE:
-		enable_disable_checks(selection, code == CTRL_INACTIVE);
+		enable_disable_checks(pkt->hdr.selection, pkt->hdr.code == CTRL_INACTIVE);
 		break;
 	default:
-		lwarn("Unknown control code: %d", code);
+		lwarn("Unknown control code: %d", pkt->hdr.code);
 	}
 }

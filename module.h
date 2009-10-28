@@ -63,7 +63,7 @@ int print_blockified_service_check_data(nebstruct_service_check_data *ds, off_t 
 void enable_disable_checks(int selection, int status);
 void control_all_distributed_checks(void);
 void create_object_lists(void);
-void handle_control(int code, int selection);
+void handle_control(merlin_event *pkt);
 
 extern int register_merlin_hooks(void);
 extern int deregister_merlin_hooks(void);
