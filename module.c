@@ -295,10 +295,10 @@ int send_paths(void)
 		return -1;
 	}
 
+	memset(&pkt, 0, sizeof(pkt));
 	pkt.hdr.type = CTRL_PACKET;
 	pkt.hdr.code = CTRL_PATHS;
 	pkt.hdr.protocol = MERLIN_PROTOCOL_VERSION;
-	memset(pkt.body, 0, sizeof(pkt.body));
 
 	/*
 	 * Add the paths to pkt.body as nul-terminated strings.
