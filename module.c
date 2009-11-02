@@ -367,7 +367,9 @@ static int post_config_init(int cb, void *ds)
 		return 0;
 
 	/* only call this function once */
-	neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);
+	/* We can't deregister our own call back at this time, due to a bug
+           in Nagios.  Removing the deregister until such time as it is safe: */
+	/* neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init); */
 
 	linfo("Object configuration parsed.");
 	setup_host_hash_tables();
