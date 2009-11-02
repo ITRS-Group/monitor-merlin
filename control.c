@@ -28,7 +28,7 @@ static void create_host_lists(void)
 
 	linfo("Creating host object tree");
 
-	mrm_host_list = calloc(get_num_selections(), sizeof(linked_item));
+	mrm_host_list = calloc(get_num_selections(), sizeof(linked_item *));
 
 	for (hst = host_list; hst; hst = hst->next) {
 		int sel = hash_find_val(hst->name);
