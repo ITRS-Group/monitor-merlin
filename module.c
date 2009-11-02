@@ -207,7 +207,7 @@ static int slurp_selection(struct cfg_comp *c)
 		if (!v->key || strcmp(v->key, "hostgroup"))
 			continue;
 
-		add_selection(v->value);
+		add_selection(strdup(v->value));
 		return 1;
 	}
 
@@ -255,6 +255,7 @@ static void read_config(char *cfg_file)
 				cfg_error(c, NULL, "Poller without 'hostgroup' statement");
 		}
 	}
+	cfg_destroy_compound(config);
 }
 
 
