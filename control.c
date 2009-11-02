@@ -31,12 +31,12 @@ static void create_host_lists(void)
 	mrm_host_list = calloc(get_num_selections(), sizeof(linked_item *));
 
 	for (hst = host_list; hst; hst = hst->next) {
-		int sel = hash_find_val(hst->name);
+		int *sel = hash_find_val(hst->name);
 
-		if (sel < 0) /* not a host we care about */
+		if (!sel) /* not a host we care about */
 			continue;
 
-		add_linked_item(mrm_host_list, sel, hst);
+		add_linked_item(mrm_host_list, *sel, hst);
 	}
 }
 
@@ -49,12 +49,12 @@ static void create_service_lists(void)
 
 	mrm_service_list = calloc(get_num_selections(), sizeof(linked_item *));
 	for (srv = service_list; srv; srv = srv->next) {
-		int sel = hash_find_val(srv->host_name);
+		int *sel = hash_find_val(srv->host_name);
 
-		if (sel < 0) /* not a service on a host we care about */
+		if (!sel) /* not a service on a host we care about */
 			continue;
 
-		add_linked_item(mrm_service_list, sel, srv);
+		add_linked_item(mrm_service_list, *sel, srv);
 	}
 }
 

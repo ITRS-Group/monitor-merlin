@@ -25,14 +25,14 @@ static int send_generic(merlin_event *pkt, void *data)
 
 static int get_selection(const char *key)
 {
-	int selection = hash_find_val(key);
+	int *selection = hash_find_val(key);
 
-	if (selection < 0) {
+	if (!selection) {
 		lwarn("key '%s' doesn't match any possible selection", key);
 		return 0;
 	}
 
-	return selection & 0xffff;
+	return *selection & 0xffff;
 }
 
 /*

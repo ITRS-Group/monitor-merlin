@@ -136,14 +136,14 @@ static int mrm_ipc_reap(void *discard)
 /* abstract out sending headers and such fluff */
 int mrm_ipc_write(const char *key, merlin_event *pkt)
 {
-	int selection = hash_find_val(key);
+	int *selection = hash_find_val(key);
 
-	if (selection < 0) {
+	if (!selection) {
 		lwarn("key '%s' doesn't match any possible selection\n", key);
 		return -1;
 	}
 
-	pkt->hdr.selection = selection & 0xffff;
+	pkt->hdr.selection = *selection & 0xffff;
 	return ipc_send_event(pkt);
 }
 
@@ -176,15 +176,23 @@ static void setup_host_hash_tables(void)
 		}
 
 		for (m = hg->members; m; m = m->next) {
-			unsigned int sel = hash_find_val(m->host_name);
+			int *sel = hash_find_val(m->host_name);
 
-			if (sel != -1) {
+			if (sel) {
 				lwarn("'%s' is a member of '%s', so can't add to poller for '%s'",
-					  m->host_name, get_sel_name(sel), hg->group_name);
+					  m->host_name, get_sel_name(*sel), hg->group_name);
 				continue;
 			}
 			num_ents[id]++;
-			hash_add(host_hash_table, m->host_name, (void *)id);
+
+			int *selection_number = malloc(sizeof(int));
+			if(selection_number) {
+				*selection_number = id;
+			} else {
+				lerr("Unable to allocate memory for selection number");
+			}
+
+			hash_add(host_hash_table, m->host_name, selection_number);
 		}
 	}
 
