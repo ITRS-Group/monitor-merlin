@@ -284,6 +284,8 @@ static void grok_module_compound(struct cfg_comp *comp)
 			continue;
 		if (log_grok_var(v->key, v->value))
 			continue;
+		if (ipc_grok_var(v->key, v->value))
+			continue;
 
 		cfg_error(comp, comp->vlist[i], "Unknown variable");
 	}

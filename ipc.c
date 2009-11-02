@@ -9,6 +9,7 @@ static char *debug_write, *debug_read;
 static int listen_sock = -1; /* for bind() and such */
 static int ipc_sock = -1; /* once connected, we operate on this */
 static char *ipc_sock_path;
+static char *ipc_binlog_path;
 static merlin_event_counter ipc_events;
 
 static time_t last_connect_attempt;
@@ -100,6 +101,46 @@ static int ipc_set_sock_path(const char *path)
 	return 0;
 }
 
+static int ipc_set_binlog_path(const char *path)
+{
+	int result;
+
+	/* the binlog-path will be set both from module and daemon,
+	   so path must be absolute */
+	if (*path != '/') {
+		lerr("ipc_binlog path must be absolute");
+		return -1;
+	}
+
+	if (strlen(path) > UNIX_PATH_MAX)
+		return -1;
+
+	if (path[strlen(path)-1] == '/') {
+		lerr("ipc_binlog must not end in trailing slash");
+		return -1;
+	}
+
+	xfree(ipc_binlog_path);
+
+	ipc_binlog_path = strdup(path);
+	if (!ipc_binlog_path) {
+		lerr("ipc_binlog_set_path: could not strdup path, out of memory?");
+		return -1;
+	}
+
+	/* Test to make sure that the path will be usable when we need it. */
+	result = open(path, O_CREAT|O_APPEND, S_IRUSR|S_IWUSR);
+	if (result < 0) {
+		lerr("Error opening '%s' for writing, failed with error: %s",
+		     path, strerror(errno));
+		return -1;
+	}
+	close(result);
+	unlink(path);
+
+	return 0;
+}
+
 int ipc_grok_var(char *var, char *val)
 {
 	if (!val)
@@ -107,6 +148,9 @@ int ipc_grok_var(char *var, char *val)
 
 	if (!strcmp(var, "ipc_socket"))
 		return !ipc_set_sock_path(val);
+
+	if (!strcmp(var, "ipc_binlog"))
+		return !ipc_set_binlog_path(val);
 
 	if (!strcmp(var, "ipc_debug_write")) {
 		debug_write = strdup(val);
@@ -126,8 +170,12 @@ int ipc_binlog_add(merlin_event *pkt)
 	if (!ipc_binlog) {
 		char *path;
 
-		asprintf(&path, "/opt/monitor/op5/merlin/binlogs/ipc.%s.binlog",
-				 is_module ? "module" : "daemon");
+		if (!ipc_binlog_path) {
+			asprintf(&path, "/opt/monitor/op5/merlin/binlogs/ipc.%s.binlog",
+					 is_module ? "module" : "daemon");
+		} else {
+			path = strdup(ipc_binlog_path);
+		}
 
 		/* 1MB in memory, 100MB on disk */
 		ipc_binlog = binlog_create(path, 1 << 20, 100 << 20, BINLOG_UNLINK);
