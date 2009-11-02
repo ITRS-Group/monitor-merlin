@@ -65,7 +65,7 @@ size_t sql_escape(const char *src, char **dst)
 int sql_error(const char **msg)
 {
 	if (!db.conn) {
-		*msg = strdup("no database connection");
+		*msg = "no database connection";
 		return DBI_ERROR_NOCONN;
 	}
 
