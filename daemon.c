@@ -226,7 +226,7 @@ static int grok_config(char *path)
 /** FIXME: this is fugly and lacks error checking */
 static int import_objects_and_status(char *cfg, char *cache, char *status)
 {
-	char *cmd;
+	char *cmd = NULL, *cmd2 = NULL;
 	int result, pid;
 
 	/* don't bother if we're not using a datbase */
@@ -249,7 +249,9 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 			 import_program, cfg, cache,
 			 sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host());
 	if (status && *status) {
-		asprintf(&cmd, "%s --status-log=%s", cmd, status);
+		asprintf(&cmd2, "%s --status-log=%s", cmd, status);
+		free(cmd);
+		cmd=cmd2;
 	}
 
 	linfo("Executing import command '%s'", cmd);
