@@ -6,6 +6,8 @@
 int cb_handler(int, void *);
 time_t merlin_should_send_paths = 1;
 
+static int mrm_ipc_connect(void *discard);
+
 /** code start **/
 extern hostgroup *hostgroup_list;
 #define mrm_reap_interval 5
@@ -102,6 +104,9 @@ static int mrm_ipc_reap(void *discard)
 
 	if (!ipc_is_connected(0)) {
 		linfo("ipc is not connected. ipc event reaping aborted");
+		ldebug("Scheduling mrm_ipc_connect to reattempt to connect to ipc");
+		schedule_new_event(EVENT_USER_FUNCTION, TRUE, time(NULL) + 10, FALSE,
+						   0, NULL, FALSE, mrm_ipc_connect, NULL, 0);
 		return 0;
 	}
 	else
@@ -349,6 +354,7 @@ static int mrm_ipc_connect(void *discard)
 	}
 	else {
 		linfo("ipc successfully connected");
+		mrm_ipc_reap(NULL);
 	}
 
 	return result;
@@ -376,7 +382,6 @@ static int post_config_init(int cb, void *ds)
 	create_object_lists();
 
 	mrm_ipc_connect(NULL);
-	mrm_ipc_reap(NULL);
 	send_paths();
 
 	/*
