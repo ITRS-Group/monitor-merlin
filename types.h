@@ -24,6 +24,7 @@ struct merlin_node {
 	time_t last_recv;       /* last time node sent something to us */
 	time_t last_sent;       /* when we sent something last */
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
+	int poller_active;	/* Is the poller active? */
 	int (*action)(struct merlin_node *, int); /* (daemon) action handler */
 	struct merlin_node *next; /* linked list (and tabulated) */
 };
