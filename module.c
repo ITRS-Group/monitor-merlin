@@ -6,6 +6,8 @@
 int cb_handler(int, void *);
 time_t merlin_should_send_paths = 1;
 
+static int mrm_ipc_connect(void *discard);
+
 /** code start **/
 extern hostgroup *hostgroup_list;
 #define mrm_reap_interval 5
@@ -148,6 +150,9 @@ static int mrm_ipc_reap(void *discard)
 
 	if (!ipc_is_connected(0)) {
 		linfo("ipc is not connected. ipc event reaping aborted");
+		ldebug("Scheduling mrm_ipc_connect to reattempt to connect to ipc");
+		schedule_new_event(EVENT_USER_FUNCTION, TRUE, time(NULL) + 10, FALSE,
+						   0, NULL, FALSE, mrm_ipc_connect, NULL, 0);
 		return 0;
 	}
 	else
@@ -182,14 +187,14 @@ static int mrm_ipc_reap(void *discard)
 /* abstract out sending headers and such fluff */
 int mrm_ipc_write(const char *key, merlin_event *pkt)
 {
-	int selection = hash_find_val(key);
+	int *selection = hash_find_val(key);
 
-	if (selection < 0) {
+	if (!selection) {
 		lwarn("key '%s' doesn't match any possible selection\n", key);
 		return -1;
 	}
 
-	pkt->hdr.selection = selection & 0xffff;
+	pkt->hdr.selection = *selection & 0xffff;
 	return ipc_send_event(pkt);
 }
 
@@ -222,15 +227,23 @@ static void setup_host_hash_tables(void)
 		}
 
 		for (m = hg->members; m; m = m->next) {
-			unsigned int sel = hash_find_val(m->host_name);
+			int *sel = hash_find_val(m->host_name);
 
-			if (sel != -1) {
+			if (sel) {
 				lwarn("'%s' is a member of '%s', so can't add to poller for '%s'",
-					  m->host_name, get_sel_name(sel), hg->group_name);
+					  m->host_name, get_sel_name(*sel), hg->group_name);
 				continue;
 			}
 			num_ents[id]++;
-			hash_add(host_hash_table, m->host_name, (void *)id);
+
+			int *selection_number = malloc(sizeof(int));
+			if(selection_number) {
+				*selection_number = id;
+			} else {
+				lerr("Unable to allocate memory for selection number");
+			}
+
+			hash_add(host_hash_table, m->host_name, selection_number);
 		}
 	}
 
@@ -253,7 +266,7 @@ static int slurp_selection(struct cfg_comp *c)
 		if (!v->key || strcmp(v->key, "hostgroup"))
 			continue;
 
-		add_selection(v->value);
+		add_selection(strdup(v->value));
 		return 1;
 	}
 
@@ -301,6 +314,7 @@ static void read_config(char *cfg_file)
 				cfg_error(c, NULL, "Poller without 'hostgroup' statement");
 		}
 	}
+	cfg_destroy_compound(config);
 }
 
 
@@ -332,10 +346,10 @@ int send_paths(void)
 		return -1;
 	}
 
+	memset(&pkt, 0, sizeof(pkt));
 	pkt.hdr.type = CTRL_PACKET;
 	pkt.hdr.code = CTRL_PATHS;
 	pkt.hdr.protocol = MERLIN_PROTOCOL_VERSION;
-	memset(pkt.body, 0, sizeof(pkt.body));
 
 	/*
 	 * Add the paths to pkt.body as nul-terminated strings.
@@ -386,6 +400,7 @@ static int mrm_ipc_connect(void *discard)
 	}
 	else {
 		linfo("ipc successfully connected");
+		mrm_ipc_reap(NULL);
 	}
 
 	return result;
@@ -404,14 +419,15 @@ static int post_config_init(int cb, void *ds)
 		return 0;
 
 	/* only call this function once */
-	neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);
+	/* We can't deregister our own call back at this time, due to a bug
+           in Nagios.  Removing the deregister until such time as it is safe: */
+	/* neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init); */
 
 	linfo("Object configuration parsed.");
 	setup_host_hash_tables();
 	create_object_lists();
 
 	mrm_ipc_connect(NULL);
-	mrm_ipc_reap(NULL);
 	send_paths();
 
 	/*

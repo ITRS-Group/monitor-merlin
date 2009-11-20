@@ -162,6 +162,7 @@ static int net_complete_connection(merlin_node *node)
 		linfo("Successfully completed connection to %s node '%s' (%s:%d)",
 		      node_type(node), node->name, inet_ntoa(node->sain.sin_addr),
 		      ntohs(node->sain.sin_port));
+		node->action(node, node->status);
 	}
 
 	return !fail;
@@ -173,6 +174,8 @@ static void net_disconnect(merlin_node *node)
 {
 	close(node->sock);
 	node->status = STATE_NONE;
+	node->action(node, node->status);
+	node->last_recv = 0;
 	node->sock = -1;
 	node->zread = 0;
 }
@@ -327,6 +330,7 @@ static int node_is_connected(merlin_node *node)
 	if (result)
 		node->status = STATE_CONNECTED;
 
+	node->action(node, node->status);
 	return result;
 }
 
@@ -368,6 +372,7 @@ static int net_negotiate_socket(merlin_node *node, int lis)
 		close(lis);
 		close(con);
 		node->status = STATE_NONE;
+		node->action(node, node->status);
 		return -1;
 	}
 
@@ -402,6 +407,7 @@ static int net_negotiate_socket(merlin_node *node, int lis)
 		net_disconnect(node);
 		node->status = STATE_CONNECTED;
 		node->sock = lis;
+		node->action(node, node->status);
 		return lis;
 	}
 
@@ -462,6 +468,7 @@ int net_accept_one(void)
 	}
 
 	node->status = STATE_CONNECTED;
+	node->action(node, node->status);
 	node->last_sent = node->last_recv = time(NULL);
 
 	return sock;
@@ -566,7 +573,7 @@ static void check_node_activity(merlin_node *node)
 		return;
 
 	if (node->last_recv && node->last_recv < now - (pulse_interval * 2))
-		set_inactive(node);
+		node->action(node, STATE_NONE);
 }
 
 
@@ -637,9 +644,6 @@ static void net_input(merlin_node *node)
 	ldebug("Read %d bytes from %s. protocol: %u, type: %u, len: %d",
 		   len, inet_ntoa(node->sain.sin_addr),
 		   pkt.hdr.protocol, pkt.hdr.type, pkt.hdr.len);
-
-	if (!node->last_recv)
-		set_active(node);
 
 	node->last_recv = time(NULL);
 
@@ -777,6 +781,20 @@ void check_all_node_activity(void)
 	/* make sure we always check activity level among the nodes */
 	for (i = 0; i < num_nodes; i++)
 		check_node_activity(node_table[i]);
+}
+
+/* Force sending control packets to ensure proper state in Nagios after
+ * reconnection of an ipc socket */
+void force_node_ipc_update(void)
+{
+	int i;
+	merlin_node *node;
+
+	for (i = 0; i < num_nodes; i++) {
+		node = node_table[i];
+		if(node->type == MODE_POLLER)
+			node->poller_active ? set_active(node) : set_inactive(node);
+	}
 }
 
 /* poll for INBOUND socket events and completion of pending connections */

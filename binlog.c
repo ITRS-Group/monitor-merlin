@@ -149,7 +149,9 @@ int binlog_destroy(binlog *bl, int keep_file)
 		}
 		free(bl->cache);
 	}
+	free(bl->path);
 	memset(bl, 0, sizeof(*bl));
+	free(bl);
 
 	return 0;
 }

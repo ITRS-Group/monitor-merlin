@@ -46,12 +46,20 @@ static int node_action_handler(merlin_node *node, int action)
 	if (node->type != MODE_POLLER)
 		return 0;
 
-	ldebug("Handling action %d for node '%s'", action, node->name);
-
 	switch (action) {
 	case STATE_CONNECTED:
+		if (node->poller_active)
+			break;
+		node->poller_active = 1;
+		ldebug("Sending IPC control ACTIVE for '%s'", node->name);
 		return ipc_send_ctrl(CTRL_ACTIVE, node->id);
+	case STATE_PENDING:
+	case STATE_NEGOTIATING:
 	case STATE_NONE:
+		if (!node->poller_active)
+			break;
+		node->poller_active = 0;
+		ldebug("Sending IPC control INACTIVE for '%s'", node->name);
 		return ipc_send_ctrl(CTRL_INACTIVE, node->id);
 	}
 
@@ -90,6 +98,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 	}
 	node->action = node_action_handler;
 	node->last_action = -1;
+	node->poller_active = 0;
 }
 
 static void grok_daemon_compound(struct cfg_comp *comp)
@@ -226,7 +235,7 @@ static int grok_config(char *path)
 /** FIXME: this is fugly and lacks error checking */
 static int import_objects_and_status(char *cfg, char *cache, char *status)
 {
-	char *cmd;
+	char *cmd = NULL, *cmd2 = NULL;
 	int result, pid;
 
 	/* don't bother if we're not using a datbase */
@@ -249,7 +258,9 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 			 import_program, cfg, cache,
 			 sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host());
 	if (status && *status) {
-		asprintf(&cmd, "%s --status-log=%s", cmd, status);
+		asprintf(&cmd2, "%s --status-log=%s", cmd, status);
+		free(cmd);
+		cmd=cmd2;
 	}
 
 	linfo("Executing import command '%s'", cmd);
@@ -387,6 +398,7 @@ static int io_poll_sockets(void)
 	if (ipc_listen_sock > 0 && FD_ISSET(ipc_listen_sock, &rd)) {
 		linfo("Accepting inbound connection on ipc socket");
 		ipc_accept();
+		force_node_ipc_update();
 	} else if (ipc_sock > 0 && FD_ISSET(ipc_sock, &rd)) {
 		sockets++;
 		ipc_reap_events(ipc_sock);

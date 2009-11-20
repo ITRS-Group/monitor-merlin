@@ -25,14 +25,14 @@ static int send_generic(merlin_event *pkt, void *data)
 
 static int get_selection(const char *key)
 {
-	int selection = hash_find_val(key);
+	int *selection = hash_find_val(key);
 
-	if (selection < 0) {
+	if (!selection) {
 		lwarn("key '%s' doesn't match any possible selection", key);
 		return 0;
 	}
 
-	return selection & 0xffff;
+	return *selection & 0xffff;
 }
 
 /*
@@ -81,6 +81,7 @@ static int hook_host_status(merlin_event *pkt, void *data)
 	merlin_host_status st_obj;
 	struct host_struct *obj;
 
+	memset(&st_obj, 0, sizeof(st_obj));
 	obj = (struct host_struct *)ds->object_ptr;
 
 	MOD2NET_STATE_VARS(st_obj.state, obj);
@@ -101,6 +102,7 @@ static int hook_service_status(merlin_event *pkt, void *data)
 	merlin_service_status st_obj;
 	struct service_struct *obj;
 
+	memset(&st_obj, 0, sizeof(st_obj));
 	obj = (struct service_struct *)ds->object_ptr;
 
 	MOD2NET_STATE_VARS(st_obj.state, obj);
@@ -140,6 +142,8 @@ int merlin_mod_hook(int cb, void *data)
 {
 	merlin_event pkt;
 	int result = 0;
+
+	memset(&pkt, 0, sizeof(pkt));
 
 	if (!ipc_is_connected(0)) {
 		/* use backlog here */

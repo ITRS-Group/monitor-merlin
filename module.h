@@ -37,7 +37,7 @@ typedef struct linked_item {
 
 
 extern hash_table *host_hash_table;
-#define hash_find_val(key) (int)hash_find(host_hash_table, key)
+#define hash_find_val(key) (int *)hash_find(host_hash_table, key)
 
 /* global variables in the module only */
 extern time_t merlin_should_send_paths;
