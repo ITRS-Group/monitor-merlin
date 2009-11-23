@@ -280,6 +280,68 @@ class nagios_object_importer
 	public function finalize_import()
 	{
 		$this->purge_old_objects();
+		$this->cache_access_rights();
+	}
+
+	private function get_contactgroup_members()
+	{
+		$result = $this->sql_exec_query
+			("SELECT contact, contactgroup from contact_contactgroup");
+
+		$cg_members = array();
+		while ($row = $this->sql_fetch_row($result)) {
+			$cg_members[$row[1]][$row[0]] = $row[0];
+		}
+
+		return $cg_members;
+	}
+
+	private function cache_cg_object_access_rights($cg_members, $otype)
+	{
+		$query = "SELECT $otype, contactgroup FROM {$otype}_contactgroup";
+		$result = $this->sql_exec_query($query);
+		$ret = array();
+		while ($row = $this->sql_fetch_row($result)) {
+			if (empty($cg_members[$row[1]])) {
+				echo "Un-cached contactgroup $row[1] assigned to $otype $row[0]\n";
+				exit(1);
+			}
+			$ret[$row[0]] = $cg_members[$row[1]];
+		}
+		return $ret;
+	}
+
+	private function cache_contact_object_access_rights($otype, &$ret)
+	{
+		$query = "SELECT $otype, contact FROM {$otype}_contact";
+		$result = $this->sql_exec_query($query);
+		while ($row = $this->sql_fetch_row($result)) {
+			$ret[$row[0]][$row[1]] = $row[1];
+		}
+		return $ret;
+	}
+
+	private function write_access_cache($obj_list, $otype)
+	{
+		foreach ($obj_list as $id => $ary) {
+			foreach ($ary as $cid) {
+				$query = "INSERT INTO contact_access(contact, $otype) " .
+					"VALUES($cid, $id)";
+				$this->sql_exec_query($query);
+			}
+		}
+	}
+
+	public function cache_access_rights()
+	{
+		$this->sql_exec_query("TRUNCATE contact_access");
+		$cg_members = $this->get_contactgroup_members();
+		$ary['host'] = $this->cache_cg_object_access_rights($cg_members, 'host');
+		$ary['service'] = $this->cache_cg_object_access_rights($cg_members, 'service');
+		$this->cache_contact_object_access_rights('host', &$ary['host']);
+		$this->cache_contact_object_access_rights('service', &$ary['service']);
+		$this->write_access_cache($ary['host'], 'host');
+		$this->write_access_cache($ary['service'], 'service');
 	}
 
 	private function preload_object_index($obj_type, $query)

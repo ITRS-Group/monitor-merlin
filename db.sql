@@ -3,6 +3,14 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 -- Database design for the merlin database
 --
 
+DROP TABLE IF EXISTS contact_access;
+CREATE TABLE contact_access(
+	contact			int,
+	host			int,
+	service			int,
+	KEY contact(contact)
+);
+
 DROP TABLE IF EXISTS downtime;
 CREATE TABLE downtime(
 	id						int NOT NULL PRIMARY KEY AUTO_INCREMENT,
