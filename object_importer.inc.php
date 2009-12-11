@@ -338,8 +338,8 @@ class nagios_object_importer
 		$cg_members = $this->get_contactgroup_members();
 		$ary['host'] = $this->cache_cg_object_access_rights($cg_members, 'host');
 		$ary['service'] = $this->cache_cg_object_access_rights($cg_members, 'service');
-		$this->cache_contact_object_access_rights('host', &$ary['host']);
-		$this->cache_contact_object_access_rights('service', &$ary['service']);
+		$this->cache_contact_object_access_rights('host', $ary['host']);
+		$this->cache_contact_object_access_rights('service', $ary['service']);
 		$this->write_access_cache($ary['host'], 'host');
 		$this->write_access_cache($ary['service'], 'service');
 	}
