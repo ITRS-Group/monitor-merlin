@@ -6,7 +6,6 @@
 
 extern const char *__progname;
 
-int use_database;
 static const char *pidfile, *merlin_user;
 static char *import_program;
 int default_port = 15551;
