@@ -94,7 +94,6 @@ static int run_query(const char *query, int len)
 		int db_error = sql_error(&error_msg);
 		linfo("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is %d",
 			  query, error_msg, db_error);
-		free(error_msg);
 		return db_error;
 	}
 
@@ -218,7 +217,6 @@ int sql_init(void)
 			     db.name, db.host, db.port, db.user, db.pass, error_msg);
 			last_connect_attempt = time(NULL);
 		}
-		free(error_msg);
 
 		db.conn = NULL;
 		return -1;
