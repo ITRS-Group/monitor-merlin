@@ -177,6 +177,10 @@ int sql_init(void)
 	if (!use_database)
 		return 0;
 
+	if (last_connect_attempt + 30 >= time(NULL))
+		return -1;
+	last_connect_attempt = time(NULL);
+
 	/* free any remaining result set */
 	sql_free_result();
 
@@ -217,13 +221,10 @@ int sql_init(void)
 	if (dbi_conn_connect(db.conn) < 0) {
 		const char *error_msg;
 		sql_error(&error_msg);
-		if (last_connect_attempt + 30 <= time(NULL)) {
-			lerr("Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
-			     db.name, db.host, db.port, db.user, db.pass, error_msg);
-			last_connect_attempt = time(NULL);
-		}
+		lerr("Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
+			 db.name, db.host, db.port, db.user, db.pass, error_msg);
 
-		db.conn = NULL;
+		sql_close();
 		return -1;
 	}
 
