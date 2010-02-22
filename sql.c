@@ -128,6 +128,8 @@ int sql_query(const char *fmt, ...)
 		return -1;
 	}
 
+	/* free any leftover result and run the new query */
+	sql_free_result();
 	if ((db_error = run_query(query, len))) {
 		/*
 		 * if we failed because the connection has gone away, we try
@@ -174,6 +176,9 @@ int sql_init(void)
 
 	if (!use_database)
 		return 0;
+
+	/* free any remaining result set */
+	sql_free_result();
 
 	if (!db.driver) {
 		result = dbi_initialize(NULL);
@@ -232,6 +237,8 @@ int sql_close(void)
 {
 	if (!use_database)
 		return 0;
+
+	sql_free_result();
 
 	if (db.conn)
 		dbi_conn_close(db.conn);
