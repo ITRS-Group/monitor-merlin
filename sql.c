@@ -16,6 +16,7 @@ static struct {
 	unsigned int port;
 	dbi_conn conn;
 	dbi_result result;
+	dbi_driver driver;
 } db;
 
 int use_database = 0;
@@ -170,12 +171,11 @@ int sql_is_connected()
 int sql_init(void)
 {
 	int result;
-	dbi_driver driver = NULL;
 
 	if (!use_database)
 		return 0;
 
-	if (!driver) {
+	if (!db.driver) {
 		result = dbi_initialize(NULL);
 		if (result < 1) {
 			lerr("Failed to initialize any libdbi drivers");
@@ -185,14 +185,14 @@ int sql_init(void)
 		if (!db.type)
 			db.type = "mysql";
 
-		driver = dbi_driver_open(db.type);
-		if (!driver) {
+		db.driver = dbi_driver_open(db.type);
+		if (!db.driver) {
 			lerr("Failed to open libdbi driver '%s'", db.type);
 			return -1;
 		}
 	}
 
-	db.conn = dbi_conn_open(driver);
+	db.conn = dbi_conn_open(db.driver);
 	if (!db.conn) {
 		lerr("Failed to create a database connection instance");
 		return -1;
@@ -236,7 +236,6 @@ int sql_close(void)
 	if (db.conn)
 		dbi_conn_close(db.conn);
 
-	dbi_shutdown();
 	db.conn = NULL;
 	return 0;
 }
