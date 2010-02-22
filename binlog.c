@@ -68,14 +68,6 @@ static int binlog_set_base_path(const char *path)
 
 /*** private helpers ***/
 
-/**
- * Writes one item to a file, rewinding the file to its original
- * position in case of partial or failed writes
- * @param fd The filedescriptor
- * @param buf The data to write
- * @param len Size of the data to write
- * Returns 0 on success. < 0 on failure
- */
 static void binlog_invalidate(binlog *bl)
 {
 	close(bl->fd);
