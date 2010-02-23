@@ -272,7 +272,7 @@ static int binlog_file_add(binlog *bl, void *buf, uint len)
 
 int binlog_add(binlog *bl, void *buf, uint len)
 {
-	if (bl->size < bl->max_size) {
+	if (bl->fd == -1 && bl->mem_size < bl->max_mem_size) {
 		return binlog_mem_add(bl, buf, len);
 	}
 
