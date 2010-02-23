@@ -619,7 +619,6 @@ static int test_binlog(binlog *bl)
 		free(str);
 	}
 
-	binlog_destroy(bl, BINLOG_UNLINK);
 	if (ok == ARRAY_SIZE(msg_list))
 		return 0;
 
@@ -691,10 +690,12 @@ int main(int argc, char **argv)
 		} else {
 			fail(t->name, t);
 		}
-		binlog_destroy(bl, 0);
+		binlog_destroy(bl, 1);
 
 		if (stat(t->path, &st) < 0) {
-			fail("binlog_destroy(bl, 0) removes the file", t);
+			pass("binlog_destroy(bl, 1) removes the fully read file", t);
+		} else {
+			fail("binlog_destroy(bl, 1) fails to remove the fully read file", t);
 		}
 		unlink(t->path);
 	}
