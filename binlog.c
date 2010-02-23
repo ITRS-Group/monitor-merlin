@@ -294,15 +294,17 @@ int binlog_close(binlog *bl)
 
 int binlog_flush(binlog *bl)
 {
-	while (bl->read_index < bl->write_index) {
-		binlog_entry *entry = bl->cache[bl->read_index++];
-		binlog_file_add(bl, entry->data, entry->size);
-		free(entry->data);
-		free(entry);
+	if (bl->cache) {
+		while (bl->read_index < bl->write_index) {
+			binlog_entry *entry = bl->cache[bl->read_index++];
+			binlog_file_add(bl, entry->data, entry->size);
+			free(entry->data);
+			free(entry);
+		}
+		free(bl->cache);
+		bl->cache = NULL;
 	}
-	free(bl->cache);
-	bl->cache = NULL;
-	bl->size = bl->write_index = bl->read_index = bl->alloc = 0;
+	bl->mem_size = bl->write_index = bl->read_index = bl->alloc = 0;
 
 	return 0;
 }
