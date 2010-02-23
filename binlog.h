@@ -9,7 +9,7 @@
  * @{
  */
 
-typedef struct git_odb git_odb;
+typedef unsigned int uint;
 
 /** A binary log. */
 typedef struct binlog binlog;
@@ -25,7 +25,7 @@ typedef struct binlog binlog;
  * @param flags Decide what to do with an already existing file at path
  * @return A binlog object, or NULL on memory allocation errors.
  */
-extern binlog *binlog_create(const char *path, size_t msize, size_t fsize, int flags);
+extern binlog *binlog_create(const char *path, uint msize, uint fsize, int flags);
 
 /**
  * Check if a binary log has unread entries
@@ -51,7 +51,7 @@ extern int binlog_destroy(binlog *bl, int flags);
  * @param len A pointer to where the size of the logged event will be stored.
  * @return 0 on success. < 0 on failure.
  */
-extern int binlog_read(binlog *bl, void **buf, size_t *len);
+extern int binlog_read(binlog *bl, void **buf, uint *len);
 
 /**
  * Add an event to the binary log.
@@ -63,7 +63,7 @@ extern int binlog_read(binlog *bl, void **buf, size_t *len);
  * @param len The size of the data to store.
  * @return 0 on success. < 0 on failure.
  */
-extern int binlog_add(binlog *bl, void *buf, size_t len);
+extern int binlog_add(binlog *bl, void *buf, uint len);
 
 /**
  * Close a file associated to a binary log. In normal circum-

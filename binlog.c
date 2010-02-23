@@ -21,11 +21,11 @@ typedef struct binlog_entry binlog_entry;
 
 struct binlog {
 	struct binlog_entry **cache;
-	size_t size, max_size;
-	size_t write_index, read_index;
-	size_t max_slots, alloc;
-	size_t max_mem_usage;
-	size_t file_size, max_file_size;
+	uint write_index, read_index;
+	uint max_slots, alloc;
+	uint max_mem_usage;
+	uint mem_size, max_mem_size;
+	uint file_size, max_file_size;
 	off_t file_read_pos, file_write_pos;
 	int is_valid;
 	char *path;
@@ -37,7 +37,7 @@ static char *base_path;
 
 static int binlog_set_base_path(const char *path)
 {
-	size_t len;
+	uint len;
 	struct stat st;
 	int result = 0;
 
@@ -76,7 +76,7 @@ static void binlog_invalidate(binlog *bl)
 	unlink(bl->path);
 }
 
-static int safe_write(binlog *bl, void *buf, size_t len)
+static int safe_write(binlog *bl, void *buf, uint len)
 {
 	int result;
 	off_t pos;
@@ -106,7 +106,7 @@ static inline int binlog_is_valid(binlog *bl)
 	return bl->is_valid;
 }
 
-binlog *binlog_create(const char *path, size_t msize, size_t fsize, int flags)
+binlog *binlog_create(const char *path, uint msize, uint fsize, int flags)
 {
 	binlog *bl;
 
@@ -115,7 +115,7 @@ binlog *binlog_create(const char *path, size_t msize, size_t fsize, int flags)
 		return NULL;
 	bl->fd = -1;
 	bl->path = strdup(path);
-	bl->max_size = msize;
+	bl->max_mem_size = msize;
 	bl->max_file_size = fsize;
 
 	if (flags & BINLOG_UNLINK)
@@ -133,7 +133,7 @@ int binlog_destroy(binlog *bl, int keep_file)
 	}
 
 	if (bl->cache) {
-		size_t i;
+		uint i;
 
 		for (i = 0; i < bl->write_index; i++) {
 			if (bl->cache[i])
@@ -146,7 +146,7 @@ int binlog_destroy(binlog *bl, int keep_file)
 	return 0;
 }
 
-static int binlog_file_read(binlog *bl, void **buf, size_t *len)
+static int binlog_file_read(binlog *bl, void **buf, uint *len)
 {
 	int result;
 
@@ -162,7 +162,7 @@ static int binlog_file_read(binlog *bl, void **buf, size_t *len)
 	return 0;
 }
 
-int binlog_read(binlog *bl, void **buf, size_t *len)
+int binlog_read(binlog *bl, void **buf, uint *len)
 {
 	/*
 	 * reading from file must come first in order to
@@ -225,7 +225,7 @@ static int binlog_grow(binlog *bl)
 	return 0;
 }
 
-static int binlog_mem_add(binlog *bl, void *buf, size_t len)
+static int binlog_mem_add(binlog *bl, void *buf, uint len)
 {
 	binlog_entry *entry;
 	entry = malloc(sizeof(*entry));
@@ -238,12 +238,12 @@ static int binlog_mem_add(binlog *bl, void *buf, size_t len)
 		binlog_grow(bl);
 
 	bl->cache[bl->write_index++] = entry;
-	bl->size += entry_size(entry);
+	bl->mem_size += entry_size(entry);
 
 	return 0;
 }
 
-static int binlog_file_add(binlog *bl, void *buf, size_t len)
+static int binlog_file_add(binlog *bl, void *buf, uint len)
 {
 	int ret;
 
@@ -261,7 +261,7 @@ static int binlog_file_add(binlog *bl, void *buf, size_t len)
 	return ret;
 }
 
-int binlog_add(binlog *bl, void *buf, size_t len)
+int binlog_add(binlog *bl, void *buf, uint len)
 {
 	if (bl->size < bl->max_size) {
 		return binlog_mem_add(bl, buf, len);
