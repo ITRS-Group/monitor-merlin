@@ -87,6 +87,7 @@ static int safe_write(binlog *bl, void *buf, uint len)
 	result = write(bl->fd, buf, len);
 
 	if (result == len) {
+		bl->file_write_pos = lseek(bl->fd, 0, SEEK_CUR);
 		return 0;
 	}
 	if (result < 0)
@@ -126,10 +127,17 @@ binlog *binlog_create(const char *path, uint msize, uint fsize, int flags)
 
 int binlog_destroy(binlog *bl, int keep_file)
 {
+	if (keep_file) {
+		binlog_flush(bl);
+	}
+
 	if (bl->fd != -1) {
 		close(bl->fd);
-		unlink(bl->path);
 		bl->fd = -1;
+	}
+
+	if (!keep_file || bl->file_read_pos == bl->file_write_pos) {
+		unlink(bl->path);
 	}
 
 	if (bl->cache) {
