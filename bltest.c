@@ -679,7 +679,7 @@ int main(int argc, char **argv)
 		struct binlog *bl;
 		struct stat st;
 
-		bl = binlog_create(t->path, 1000000, 10000, BINLOG_UNLINK);
+		bl = binlog_create(t->path, t->msize, t->fsize, BINLOG_UNLINK);
 		if (!bl) {
 			fail("Failed to create binlog", t);
 			continue;
