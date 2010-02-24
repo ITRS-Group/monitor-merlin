@@ -660,12 +660,12 @@ static void pass(const char *msg, struct test_binlog *t)
 {
 	printf("%sPASS%s %s\n", green, reset, msg);
 	passed++;
-	print_test_params(t);
 }
 
 int main(int argc, char **argv)
 {
 	int i;
+
 	if (isatty(fileno(stdout))) {
 		green = CLR_GREEN;
 		red = CLR_RED;
