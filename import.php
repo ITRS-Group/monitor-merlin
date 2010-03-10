@@ -117,6 +117,10 @@ $imp->prepare_import();
 if (!$cache && !$status_log)
 	usage("Neither --cache nor --status-log given.\nImporting nothing\n");
 
+if (!$dry_run) {
+	echo "Disabling indexes\n";
+	$imp->disable_indexes();
+}
 echo "Importing objects to database $imp->db_database\n";
 if ($cache) {
 	echo "importing objects from $cache\n";
@@ -128,6 +132,10 @@ if ($status_log) {
 	echo "importing status from $status_log\n";
 	if (!$dry_run)
 		$imp->import_objects_from_cache($status_log);
+}
+if (!$dry_run) {
+	echo "Enabling indexes\n";
+	$imp->enable_indexes();
 }
 
 if (!$dry_run)

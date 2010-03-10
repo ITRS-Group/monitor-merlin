@@ -167,6 +167,20 @@ class nagios_object_importer
 		$this->convert['contact'] = $this->convert['host'];
 	}
 
+	public function disable_indexes()
+	{
+		foreach ($this->tables_to_truncate as $t) {
+			$this->sql_exec_query('ALTER TABLE ' . $t . ' DISABLE KEYS');
+		}
+	}
+
+	public function enable_indexes()
+	{
+		foreach ($this->tables_to_truncate as $table) {
+			$this->sql_exec_query('ALTER TABLE ' . $t . ' ENABLE KEYS');
+		}
+	}
+
 	private function get_junction_table_name($obj_type, $v_name)
 	{
 		$ref_obj_type = $this->obj_rel[$obj_type][$v_name];
