@@ -177,7 +177,7 @@ class nagios_object_importer
 	public function enable_indexes()
 	{
 		foreach ($this->tables_to_truncate as $table) {
-			$this->sql_exec_query('ALTER TABLE ' . $t . ' ENABLE KEYS');
+			$this->sql_exec_query('ALTER TABLE ' . $table . ' ENABLE KEYS');
 		}
 	}
 
