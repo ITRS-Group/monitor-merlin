@@ -120,6 +120,19 @@ void log_msg(int severity, const char *fmt, ...)
 
 void log_event_count(const char *prefix, merlin_event_counter *cnt, float t)
 {
+	static time_t last_logged = 0;
+	time_t now;
+
+	/*
+	 * This works like a 'mark' that syslogd produces. We log once
+	 * every 60 seconds
+	 */
+	now = time(NULL);
+	if (last_logged + 60 > now)
+		return;
+
+	last_logged = now;
+
 	log_msg(LOGINFO, "Handled %lld '%s' events in %.3f seconds in: %lld, out: %lld",
 	        cnt->read + cnt->sent + cnt->dropped + cnt->logged, prefix, t,
 	        cnt->read, cnt->sent + cnt->dropped + cnt->logged);
