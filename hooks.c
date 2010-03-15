@@ -290,7 +290,8 @@ static struct callback_struct {
 	CB_ENTRY(0, NEBCALLBACK_LOG_DATA, hook_generic),
 	CB_ENTRY(1, NEBCALLBACK_SYSTEM_COMMAND_DATA, hook_generic),
 	CB_ENTRY(1, NEBCALLBACK_EVENT_HANDLER_DATA, hook_generic),
-*/	CB_ENTRY(0, NEBCALLBACK_NOTIFICATION_DATA, hook_notification),
+	CB_ENTRY(0, NEBCALLBACK_NOTIFICATION_DATA, hook_notification),
+*/
 	CB_ENTRY(0, NEBCALLBACK_CONTACT_NOTIFICATION_DATA, hook_contact_notification),
 
 /*	CB_ENTRY(1, NEBCALLBACK_SERVICE_CHECK_DATA, hook_service_result),
