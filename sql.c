@@ -34,12 +34,21 @@ static time_t last_connect_attempt = 0;
  */
 size_t sql_quote(const char *src, char **dst)
 {
-	if (!src) {
+	int ret;
+
+	if (!src || !*src) {
 		*dst = NULL;
 		return 0;
 	}
 
-	return dbi_conn_quote_string_copy(db.conn, src, dst);
+	ret = dbi_conn_quote_string_copy(db.conn, src, dst);
+	if (!ret) {
+		lerr("Failed to quote and copy string at %p to %p",
+			 src, dst);
+		lerr("Source string: '%s'", src);
+		*dst = NULL;
+	}
+	return ret;
 }
 
 
