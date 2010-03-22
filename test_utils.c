@@ -17,3 +17,8 @@ int log_grok_var(char *var, char *val)
 {
 	return 0;
 }
+
+void log_event_count(const char *prefix, merlin_event_counter *cnt, float t)
+{
+	return;
+}
