@@ -387,6 +387,7 @@ static int handle_comment(const nebstruct_comment_data *p)
 
 static int handle_contact_notification(const nebstruct_contact_notification_data *p)
 {
+	int result;
 	char *contact_name, *host_name, *service_description;
 	char *output, *ack_author, *ack_data;
 
@@ -397,7 +398,7 @@ static int handle_contact_notification(const nebstruct_contact_notification_data
 	sql_quote(p->ack_author, &ack_author);
 	sql_quote(p->ack_data, &ack_data);
 
-	return sql_query
+	result = sql_query
 		("INSERT INTO %s.notification "
 		 "(notification_type, start_time, end_time, "
 		 "contact_name, host_name, service_description, "
@@ -410,10 +411,20 @@ static int handle_contact_notification(const nebstruct_contact_notification_data
 		 contact_name, host_name,  safe_str(service_description),
 		 p->reason_type, p->state, safe_str(output),
 		 safe_str(ack_author), safe_str(ack_data), p->escalated);
+
+	free(host_name);
+	free(contact_name);
+	safe_free(service_description);
+	safe_free(output);
+	safe_free(ack_author);
+	safe_free(ack_data);
+
+	return result;
 }
 
 static int handle_notification(const nebstruct_notification_data *p)
 {
+	int result;
 	char *host_name, *service_description;
 	char *output, *ack_author, *ack_data;
 
@@ -423,7 +434,7 @@ static int handle_notification(const nebstruct_notification_data *p)
 	sql_quote(p->ack_author, &ack_author);
 	sql_quote(p->ack_data, &ack_data);
 
-	return sql_query
+	result = sql_query
 		("INSERT INTO %s.notification "
 		 "(notification_type, start_time, end_time, host_name,"
 		 "service_description, reason_type, state, output,"
@@ -435,6 +446,14 @@ static int handle_notification(const nebstruct_notification_data *p)
 		 host_name,  safe_str(service_description), p->reason_type, p->state,
 		 safe_str(output), safe_str(ack_author), safe_str(ack_data),
 		 p->escalated, p->contacts_notified);
+
+	safe_free(host_name);
+	safe_free(service_description);
+	safe_free(output);
+	safe_free(ack_author);
+	safe_free(ack_data);
+
+	return result;
 }
 
 int mrm_db_update(merlin_event *pkt)
