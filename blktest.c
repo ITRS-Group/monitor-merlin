@@ -10,6 +10,7 @@
 #define SERVICE_DESCRIPTION "PING"
 #define OUTPUT "The plugin output"
 #define PERF_DATA "random_value='5;5;5'"
+#define CONTACT_NAME "contact-name"
 
 #define test_compare(str) _compare_ptr_strings(#str, mod->str, orig->str, errors)
 
@@ -83,6 +84,47 @@ static int test_host_check_data(int *errors)
 
 #define AUTHOR_NAME "Pelle plutt"
 #define COMMENT_DATA "comment data"
+#define COMMAND_NAME "notify-by-squirting"
+static int test_contact_notification_method(int *errors, char *service_description)
+{
+	nebstruct_contact_notification_method_data *orig, *mod;
+	merlin_event pkt;
+	int len;
+
+	orig = calloc(1, sizeof(*orig));
+
+	orig->host_name = HOST_NAME;
+	orig->service_description = SERVICE_DESCRIPTION;
+	orig->output = OUTPUT;
+	orig->contact_name = CONTACT_NAME;
+	orig->reason_type = 1;
+	orig->state = 0;
+	orig->escalated = 0;
+	orig->ack_author = AUTHOR_NAME;
+	orig->ack_data = COMMENT_DATA;
+	orig->command_name = COMMAND_NAME;
+	gettimeofday(&orig->start_time, NULL);
+	gettimeofday(&orig->end_time, NULL);
+
+	len = blockify(orig, NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, pkt.body, sizeof(pkt.body));
+	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA);
+	mod = (nebstruct_contact_notification_method_data *)pkt.body;
+	test_compare(host_name);
+	test_compare(service_description);
+	test_compare(output);
+	test_compare(contact_name);
+	test_compare(ack_author);
+	test_compare(ack_data);
+	test_compare(command_name);
+	len = blockify(orig, NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, pkt.body, sizeof(pkt.body));
+	mod->type = NEBTYPE_CONTACTNOTIFICATIONMETHOD_END;
+	pkt.hdr.len = len;
+	pkt.hdr.type = NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA;
+	pkt.hdr.selection = 0;
+
+	return ipc_send_event(&pkt);
+}
+
 static int test_adding_comment(int *errors, char *service_description)
 {
 	nebstruct_comment_data *orig, *mod;
@@ -191,11 +233,12 @@ int main(int argc, char **argv)
 		test_service_check_data(&errors);
 		test_adding_comment(&errors, NULL);
 		test_deleting_comment(&errors);
+		test_contact_notification_method(&errors, NULL);
+		test_contact_notification_method(&errors, SERVICE_DESCRIPTION);
 		test_adding_comment(&errors, SERVICE_DESCRIPTION);
 		test_deleting_comment(&errors);
 		printf("## Total errrors: %d\n", errors);
 	}
-
 
 	return 0;
 }
