@@ -223,7 +223,7 @@ int ipc_init(void)
 	set_socket_buffers(ipc_sock);
 
 	/* let everybody know we're alive and active */
-	linfo("Shoutcasting active status through IPC socket");
+	linfo("Shoutcasting active status through IPC socket %s", ipc_sock_path);
 	ipc_send_ctrl(CTRL_ACTIVE, -1);
 
 	if (on_connect) {
