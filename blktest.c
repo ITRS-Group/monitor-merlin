@@ -11,9 +11,9 @@
 #define OUTPUT "The plugin output"
 #define PERF_DATA "random_value='5;5;5'"
 
-#define test_compare(str) _compare_ptr_strings(mod->str, orig->str, errors)
+#define test_compare(str) _compare_ptr_strings(#str, mod->str, orig->str, errors)
 
-static inline void _compare_ptr_strings(char *a, char *b, int *errors)
+static inline void _compare_ptr_strings(char *name, char *a, char *b, int *errors)
 {
 	*errors += a == b;
 	*errors += !!strcmp(a, b);
