@@ -100,7 +100,6 @@ static int test_adding_comment(int *errors, char *service_description)
 	if (service_description)
 		orig->service_description = service_description;
 	len = blockify(orig, NEBCALLBACK_COMMENT_DATA, pkt.body, sizeof(pkt.body));
-	printf("blockify returned %d\n", len);
 	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_COMMENT_DATA);
 	mod = (nebstruct_comment_data *)pkt.body;
 	test_compare(host_name);
