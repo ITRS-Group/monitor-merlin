@@ -226,7 +226,7 @@ static int grok_config(char *path)
 static int import_objects_and_status(char *cfg, char *cache, char *status)
 {
 	char *cmd;
-	int result, pid;
+	int result = 0, pid;
 
 	/* don't bother if we're not using a datbase */
 	if (!use_database)
