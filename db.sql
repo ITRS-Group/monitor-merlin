@@ -42,6 +42,7 @@ CREATE TABLE notification(
 	contact_name			varchar(255),
 	host_name				varchar(255),
 	service_description		varchar(255),
+	command_name			varchar(255),
 	reason_type				int,
 	state					int,
 	output					text,
@@ -604,7 +605,7 @@ DROP TABLE IF EXISTS `db_version`;
 CREATE TABLE `db_version` (
   `version` int(11)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-INSERT INTO db_version(version) VALUES(1);
+INSERT INTO db_version(version) VALUES(2);
 
 DROP TABLE IF EXISTS `report_data`;
 CREATE TABLE `report_data` (
