@@ -25,8 +25,7 @@ static int test_service_check_data(int *errors)
 	merlin_event pkt;
 	int len;
 
-	orig = malloc(sizeof(*orig));
-	mod = malloc(sizeof(*mod));
+	orig = calloc(1, sizeof(*orig));
 
 	orig->service_description = strdup(SERVICE_DESCRIPTION);
 	orig->host_name = strdup(HOST_NAME);
@@ -58,7 +57,7 @@ static int test_host_check_data(int *errors)
 	merlin_event pkt;
 	int len;
 
-	orig = malloc(sizeof(*orig));
+	orig = calloc(1, sizeof(*orig));
 
 	orig->host_name = HOST_NAME;
 	orig->output = OUTPUT;
