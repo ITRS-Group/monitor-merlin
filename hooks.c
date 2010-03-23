@@ -174,6 +174,17 @@ static int hook_contact_notification(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
+static int hook_contact_notification_method(merlin_event *pkt, void *data)
+{
+	nebstruct_contact_notification_method_data *ds =
+		(nebstruct_contact_notification_method_data *)data;
+
+	if (ds->type != NEBTYPE_CONTACTNOTIFICATIONMETHOD_END)
+		return 0;
+
+	return send_generic(pkt, data);
+}
+
 static int hook_notification(merlin_event *pkt, void *data)
 {
 	nebstruct_notification_data *ds = (nebstruct_notification_data *)data;
@@ -241,6 +252,10 @@ int merlin_mod_hook(int cb, void *data)
 		result = hook_contact_notification(&pkt, data);
 		break;
 
+	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
+		result = hook_contact_notification_method(&pkt, data);
+		break;
+
 	case NEBCALLBACK_HOST_CHECK_DATA:
 		result = hook_host_result(&pkt, data);
 		break;
@@ -291,8 +306,9 @@ static struct callback_struct {
 	CB_ENTRY(1, NEBCALLBACK_SYSTEM_COMMAND_DATA, hook_generic),
 	CB_ENTRY(1, NEBCALLBACK_EVENT_HANDLER_DATA, hook_generic),
 	CB_ENTRY(0, NEBCALLBACK_NOTIFICATION_DATA, hook_notification),
-*/
 	CB_ENTRY(0, NEBCALLBACK_CONTACT_NOTIFICATION_DATA, hook_contact_notification),
+ */
+	CB_ENTRY(0, NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, hook_contact_notification_method),
 
 /*	CB_ENTRY(1, NEBCALLBACK_SERVICE_CHECK_DATA, hook_service_result),
 	CB_ENTRY(1, NEBCALLBACK_HOST_CHECK_DATA, hook_host_result),

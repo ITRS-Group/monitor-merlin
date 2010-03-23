@@ -456,6 +456,47 @@ static int handle_notification(const nebstruct_notification_data *p)
 	return result;
 }
 
+static int handle_contact_notification_method(const nebstruct_contact_notification_method_data *p)
+{
+	int result;
+	char *contact_name, *host_name, *service_description;
+	char *output, *ack_author, *ack_data, *command_name;
+
+	sql_quote(p->contact_name, &contact_name);
+	sql_quote(p->host_name, &host_name);
+	sql_quote(p->service_description, &service_description);
+	sql_quote(p->output, &output);
+	sql_quote(p->ack_author, &ack_author);
+	sql_quote(p->ack_data, &ack_data);
+	sql_quote(p->command_name, &command_name);
+
+	result = sql_query
+		("INSERT INTO %s.notification "
+		 "(notification_type, start_time, end_time, "
+		 "contact_name, host_name, service_description, "
+		 "command_name, reason_type, state, output,"
+		 "ack_author, ack_data, escalated) "
+		 "VALUES(%d, %lu, %lu, "
+		 "%s, %s, %s, "
+		 "%s, %d, %d, %s, "
+		 "%s, %s, %d)",
+		 sql_db_name(),
+		 p->notification_type, p->start_time.tv_sec, p->end_time.tv_sec,
+		 contact_name, host_name,  safe_str(service_description),
+		 command_name, p->reason_type, p->state, safe_str(output),
+		 safe_str(ack_author), safe_str(ack_data), p->escalated);
+
+	free(host_name);
+	free(contact_name);
+	safe_free(service_description);
+	safe_free(output);
+	safe_free(ack_author);
+	safe_free(ack_data);
+	free(command_name);
+
+	return result;
+}
+
 int mrm_db_update(merlin_event *pkt)
 {
 	int errors = 0;
@@ -520,6 +561,9 @@ int mrm_db_update(merlin_event *pkt)
 		break;
 	case NEBCALLBACK_CONTACT_NOTIFICATION_DATA:
 		errors = handle_contact_notification((void *)pkt->body);
+		break;
+	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
+		errors = handle_contact_notification_method((void *)pkt->body);
 		break;
 	case NEBCALLBACK_HOST_STATUS_DATA:
 		errors = handle_host_status((void *)pkt->body);
