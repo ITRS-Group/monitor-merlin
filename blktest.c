@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 		test_service_check_data(&errors);
 		test_adding_comment(&errors, NULL);
 		test_deleting_comment(&errors);
-		test_adding_comment(&errors, "PING");
+		test_adding_comment(&errors, SERVICE_DESCRIPTION);
 		test_deleting_comment(&errors);
 		printf("## Total errrors: %d\n", errors);
 	}
