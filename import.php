@@ -104,6 +104,11 @@ for ($i = 1; $i < $argc; $i++) {
 	}
 }
 
+# sensible defaults for op5 systems
+if (!$nagios_cfg && !$cache && !$status_log) {
+	$nagios_cfg = "/opt/monitor/etc/nagios.cfg";
+}
+
 $config = false;
 if ($nagios_cfg) {
 	$config = read_nagios_cfg($nagios_cfg);
