@@ -111,6 +111,11 @@ static void add_var(struct cfg_comp *comp, struct cfg_var *v)
 		comp->vlist_len += 5;
 		comp->vlist = realloc(comp->vlist, sizeof(struct cfg_var *) * comp->vlist_len);
 	}
+	if (v->value) {
+		int vlen = strlen(v->value) - 1;
+		while (ISSPACE(v->value[vlen]))
+			v->value[vlen--] = 0;
+	}
 
 	comp->vlist[comp->vars] = malloc(sizeof(struct cfg_var));
 	memcpy(comp->vlist[comp->vars++], v, sizeof(struct cfg_var));
