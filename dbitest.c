@@ -5,7 +5,6 @@
 
 #define die(fmt, args...) do { fprintf(stderr, fmt, ##args); exit(1); } while(0)
 
-int use_database = 1;
 static size_t ok, id;
 static int try_states(object_state *orig)
 {
