@@ -31,8 +31,8 @@ install: all
 check:
 	@for i in *.c; do sparse $(CFLAGS) $(SPARSE_FLAGS) $$i 2>&1; done | grep -v /usr/include
 
-mtest: mtest.o $(TEST_OBJS) $(TEST_DEPS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) $^ -o $@
+mtest: mtest.o $(TEST_OBJS) $(TEST_DEPS) sql.o
+	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $(LIBS) $^ -o $@
 
 $(PROG): $(DAEMON_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $(LIBS) $^ -o $@
