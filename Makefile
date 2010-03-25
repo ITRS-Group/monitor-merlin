@@ -22,7 +22,7 @@ ifndef V
 	QUIET_LINK  = @echo '   ' LINK $@;
 endif
 
-all: $(NEB) $(PROG)
+all: $(NEB) $(PROG) mtest
 
 install: all
 	@echo "Installing to $(DESTDIR)"
@@ -31,7 +31,7 @@ install: all
 check:
 	@for i in *.c; do sparse $(CFLAGS) $(SPARSE_FLAGS) $$i 2>&1; done | grep -v /usr/include
 
-blktest: blktest.o $(TEST_OBJS) $(TEST_DEPS)
+mtest: mtest.o $(TEST_OBJS) $(TEST_DEPS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $^ -o $@
 
 $(PROG): $(DAEMON_OBJS)
