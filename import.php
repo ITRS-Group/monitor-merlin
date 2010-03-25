@@ -104,12 +104,21 @@ for ($i = 1; $i < $argc; $i++) {
 	}
 }
 
-if ($nagios_cfg && !$status_log) {
+$config = false;
+if ($nagios_cfg) {
 	$config = read_nagios_cfg($nagios_cfg);
-	if (isset($config['status_file']))
-		$status_log = $config['status_file'];
-	elseif (isset($config['xsddefault_status_file']))
-		$status_log = $config['xsddefault_status_file'];
+}
+
+if (!empty($config)) {
+	if (!$cache && isset($config['object_cache_file'])) {
+		$cache = $config['object_cache_file'];
+	}
+	if (!$status_log) {
+		if (isset($config['status_file']))
+			$status_log = $config['status_file'];
+		elseif (isset($config['xsddefault_status_file']))
+			$status_log = $config['xsddefault_status_file'];
+	}
 }
 
 $imp->prepare_import();
