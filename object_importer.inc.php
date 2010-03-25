@@ -559,6 +559,16 @@ class nagios_object_importer
 			$k = $this->mangle_var_name($obj_type, $str[0]);
 			if (!$k || !$this->is_allowed_var($obj_type, $k))
 				continue;
+
+			# if the variable is set without a value, it means
+			# "remove whatever is set in the template", so we
+			# do just that. Nagios really shouldn't write these
+			# parameters to the objects.cache file, but we need
+			# to handle it just the same.
+			if (!isset($str[1])) {
+				unset($obj[$k]);
+				continue;
+			}
 			$v = $str[1];
 
 			switch ($k) {
