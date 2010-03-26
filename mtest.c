@@ -70,10 +70,31 @@ int send_paths(void)
 	return result;
 }
 
+static uint count_rows(dbi_result result)
+{
+	uint rows = 0;
+
+	if (result) {
+		while (dbi_result_next_row(result))
+			rows++;
+	}
+
+	return rows;
+}
+
+static uint count_table_rows(const char *table_name)
+{
+	sql_query("SELECT * FROM %s", table_name);
+	return count_rows(sql_get_result());
+}
+
 static void t_setup(void)
 {
 	sql_init();
 	printf("Using database '%s'\n", sql_db_name());
+	printf("%u comments\n", count_table_rows("comment"));
+	printf("%u hosts\n", count_table_rows("host"));
+	printf("%u services\n", count_table_rows("service"));
 
 	if (ipc_init() < 0) {
 		t_fail("ipc_init()");
