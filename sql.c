@@ -110,11 +110,13 @@ static int run_query(const char *query, int len)
 	return 0;
 }
 
-int sql_query(const char *fmt, ...)
+int sql_vquery(const char *fmt, va_list ap)
 {
-	char *query;
 	int len, db_error;
-	va_list ap;
+	char *query;
+
+	if (!fmt)
+		return 0;
 
 	if (!use_database) {
 		lerr("Not using a database, but daemon still issued a query");
@@ -128,17 +130,15 @@ int sql_query(const char *fmt, ...)
 	if (last_connect_attempt + 30 > time(NULL) && !sql_is_connected())
 		return -1;
 
-	va_start(ap, fmt);
-	len = vasprintf(&query, fmt, ap);
-	va_end(ap);
+	/* free any leftover result and run the new query */
+	sql_free_result();
 
+	len = vasprintf(&query, fmt, ap);
 	if (len == -1 || !query) {
-		linfo("sql_query: Failed to build query from format-string '%s'", fmt);
+		lerr("sql_query: Failed to build query from format-string '%s'", fmt);
 		return -1;
 	}
 
-	/* free any leftover result and run the new query */
-	sql_free_result();
 	if ((db_error = run_query(query, len))) {
 		/*
 		 * if we failed because the connection has gone away, we try
@@ -166,6 +166,18 @@ int sql_query(const char *fmt, ...)
 	free(query);
 
 	return !!db.result;
+}
+
+int sql_query(const char *fmt, ...)
+{
+	int ret;
+	va_list ap;
+
+	va_start(ap, fmt);
+	ret = sql_vquery(fmt, ap);
+	va_end(ap);
+
+	return ret;
 }
 
 int sql_is_connected()
