@@ -69,6 +69,16 @@ void ok_uint(uint a, uint b, const char *name)
 	}
 }
 
+void ok_str(const char *a, const char *b, const char *name)
+{
+	if (a && b && !strcmp(a, b)) {
+		t_pass(name);
+	} else {
+		t_fail(name);
+		t_diag("'%s' != '%s'", a, b);
+	}
+}
+
 void __attribute__((__noreturn__)) crash(const char *fmt, ...)
 {
 	va_list ap;
