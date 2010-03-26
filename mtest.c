@@ -5,23 +5,18 @@
 #include "nagios/broker.h"
 #include "shared.h"
 #include "hookinfo.h"
+#include "test_utils.h"
 
 #define HOST_NAME "devel"
 #define SERVICE_DESCRIPTION "PING"
 #define OUTPUT "The plugin output"
 #define PERF_DATA "random_value='5;5;5'"
 #define CONTACT_NAME "contact-name"
+#define test_compare(str) ok_str(mod->str, orig->str, #str)
 
 static char *cache_file = "/opt/monitor/var/objects.cache";
 static char *status_log = "/opt/monitor/var/status.log";
 char *config_file;
-#define test_compare(str) _compare_ptr_strings(#str, mod->str, orig->str, errors)
-
-static inline void _compare_ptr_strings(char *name, char *a, char *b, int *errors)
-{
-	*errors += a == b;
-	*errors += !!strcmp(a, b);
-}
 
 static int test_service_check_data(int *errors)
 {
@@ -225,6 +220,8 @@ int main(int argc, char **argv)
 {
 	char silly_buf[1024];
 	int i, errors = 0;
+
+	t_set_colors(0);
 
 	if (argc < 2) {
 		ipc_grok_var("ipc_socket", "/opt/monitor/op5/merlin/ipc.sock");
