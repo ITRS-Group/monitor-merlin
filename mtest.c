@@ -37,6 +37,7 @@ static struct mtest_service {
 	char *service_description;
 } **services;
 
+static nebmodule *neb;
 static char *cache_file = "/opt/monitor/var/objects.cache";
 static char *status_log = "/opt/monitor/var/status.log";
 static int (*hooks[NEBCALLBACK_NUMITEMS])(int, void *);
@@ -404,6 +405,79 @@ static void grok_config(char *path)
 	grok_cfg_compound(config, 0);
 }
 
+static void check_callbacks(void)
+{
+	int i;
+
+	for (i = 0; i < NEBCALLBACK_NUMITEMS; i++) {
+		if (hooks[i]) {
+			t_fail("callback %s not unregistered by module unload",
+				   callback_name(i));
+		}
+	}
+}
+
+static int check_symbols(void *dso)
+{
+	int i, ret = 0;
+	const char *syms[] = {
+		"__neb_api_version", "nebmodule_init", "nebmodule_deinit", NULL,
+	};
+
+	for (i = 0; syms[i]; i++) {
+		const char *sym = syms[i];
+		if (dlsym(dso, sym))
+			t_pass("symbol %s exists", sym);
+		else {
+			t_fail("symbol %s is missing", sym);
+			ret = -1;
+		}
+	}
+	return ret;
+}
+
+static int test_one_module(char *arg)
+{
+	static void *dso = NULL;
+	char *path;
+	int result = 0, retval;
+	static int (*init_func)(int, const char *, nebmodule *);
+	static int (*deinit_func)(int, int);
+
+	if (dso)
+		dlclose(dso);
+
+	if (strchr(arg, '/'))
+		path = arg;
+	else {
+		int len = strlen(arg);
+		path = calloc(len + 3, 1);
+		path[0] = '.';
+		path[1] = '/';
+		memcpy(path + 2, arg, len);
+	}
+
+	dso = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
+	if (!dso) {
+		printf("dlopen() failed: %s\n", dlerror());
+		return -1;
+	}
+	check_symbols(dso);
+
+	init_func = dlsym(dso, "nebmodule_init");
+	retval = init_func(-1, neb->args, neb);
+	if (retval) {
+		printf("Failed to run init function from %s\n", arg);
+		return -1;
+	}
+
+	deinit_func = dlsym(dso, "nebmodule_deinit");
+	result |= deinit_func(0, 0);
+	check_callbacks();
+
+	return result;
+}
+
 int main(int argc, char **argv)
 {
 	char silly_buf[1024];
@@ -414,10 +488,23 @@ int main(int argc, char **argv)
 	t_set_colors(0);
 
 	if (argc < 2) {
-		ipc_grok_var("ipc_socket", "/opt/monitor/op5/merlin/ipc.sock");
-	} else {
-		printf("Reading config from '%s'\n", argv[1]);
-		grok_config(argv[1]);
+		crash("No arguments. Wtf??");
+	}
+	for (i = 1; i < argc; i++) {
+		char *opt, *arg = argv[i];
+		int eq_opt = 0;
+
+		if ((opt = strchr(arg, '='))) {
+			*opt++ = '\0';
+			eq_opt = 1;
+		} else if (i < argc - 1) {
+			opt = argv[i + 1];
+		}
+
+		if (!strcmp(arg, "--module")) {
+			return test_one_module(opt);
+		}
+		grok_config(arg);
 	}
 
 	t_setup();
