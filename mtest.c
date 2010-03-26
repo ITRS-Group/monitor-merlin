@@ -70,6 +70,23 @@ int send_paths(void)
 	return result;
 }
 
+static void t_setup(void)
+{
+	sql_init();
+	printf("Using database '%s'\n", sql_db_name());
+
+	if (ipc_init() < 0) {
+		t_fail("ipc_init()");
+		crash("Failed to initialize ipc socket");
+	} else {
+		t_pass("ipc_init()");
+	}
+	ok_int(send_paths(), 0, "Sending paths");
+	sleep(2);
+}
+
+}
+
 static int test_host_check(void)
 {
 	nebstruct_host_check_data *orig, *mod;
@@ -263,6 +280,8 @@ int main(int argc, char **argv)
 	char silly_buf[1024];
 	int i, errors = 0;
 
+	use_database = 1;
+
 	t_set_colors(0);
 
 	if (argc < 2) {
@@ -271,6 +290,8 @@ int main(int argc, char **argv)
 		printf("Reading config from '%s'\n", argv[1]);
 		grok_config(argv[1]);
 	}
+
+	t_setup();
 
 	for (i = 0; i < NEBCALLBACK_NUMITEMS; i++) {
 		struct hook_info_struct *hi = &hook_info[i];
@@ -288,7 +309,6 @@ int main(int argc, char **argv)
 		printf("No errors in hookinfo struct ordering\n");
 	}
 
-	ipc_init();
 	while ((fgets(silly_buf, sizeof(silly_buf), stdin))) {
 
 		if (!ipc_is_connected(0)) {
