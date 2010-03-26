@@ -14,6 +14,7 @@ PROG = $(DSO)d
 NEB = $(DSO).so
 MOD_LDFLAGS = -shared -ggdb3 -fPIC
 DAEMON_LDFLAGS = -ldbi -ggdb3
+MTEST_LDFLAGS = -ldbi -ggdb3 -ldl -rdynamic -Wl,-export-dynamic
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
 
@@ -32,7 +33,7 @@ check:
 	@for i in *.c; do sparse $(CFLAGS) $(SPARSE_FLAGS) $$i 2>&1; done | grep -v /usr/include
 
 mtest: mtest.o $(TEST_OBJS) $(TEST_DEPS) sql.o
-	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $(LIBS) $^ -o $@
+	$(QUIET_LINK)$(CC) $^ -o $@ $(MTEST_LDFLAGS)
 
 $(PROG): $(DAEMON_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $(LIBS) $^ -o $@
