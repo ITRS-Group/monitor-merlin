@@ -24,34 +24,6 @@ static char *cache_file = "/opt/monitor/var/objects.cache";
 static char *status_log = "/opt/monitor/var/status.log";
 char *config_file;
 
-static int test_service_check(void)
-{
-	nebstruct_service_check_data *orig, *mod;
-	merlin_event pkt;
-	int len;
-
-	orig = calloc(1, sizeof(*orig));
-	orig->service_description = SERVICE_DESCRIPTION;
-	orig->host_name = HOST_NAME;
-	orig->output = OUTPUT;
-	orig->perf_data = PERF_DATA;
-	gettimeofday(&orig->start_time, NULL);
-	gettimeofday(&orig->end_time, NULL);
-	len = blockify(orig, NEBCALLBACK_SERVICE_CHECK_DATA, pkt.body, sizeof(pkt.body));
-	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_SERVICE_CHECK_DATA);
-	mod = (nebstruct_service_check_data *)pkt.body;
-	test_compare(host_name);
-	test_compare(output);
-	test_compare(perf_data);
-	test_compare(service_description);
-	len = blockify(orig, NEBCALLBACK_SERVICE_CHECK_DATA, pkt.body, sizeof(pkt.body));
-	mod->type = NEBTYPE_SERVICECHECK_PROCESSED;
-	pkt.hdr.len = len;
-	pkt.hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
-	pkt.hdr.selection = 0;
-	return ipc_send_event(&pkt);
-}
-
 int send_paths(void)
 {
 	size_t config_path_len, cache_path_len;
@@ -120,6 +92,34 @@ static int test_host_check(void)
 	mod->type = NEBTYPE_HOSTCHECK_PROCESSED;
 	pkt.hdr.len = len;
 	pkt.hdr.type = NEBCALLBACK_HOST_CHECK_DATA;
+	pkt.hdr.selection = 0;
+	return ipc_send_event(&pkt);
+}
+
+static int test_service_check(void)
+{
+	nebstruct_service_check_data *orig, *mod;
+	merlin_event pkt;
+	int len;
+
+	orig = calloc(1, sizeof(*orig));
+	orig->service_description = SERVICE_DESCRIPTION;
+	orig->host_name = HOST_NAME;
+	orig->output = OUTPUT;
+	orig->perf_data = PERF_DATA;
+	gettimeofday(&orig->start_time, NULL);
+	gettimeofday(&orig->end_time, NULL);
+	len = blockify(orig, NEBCALLBACK_SERVICE_CHECK_DATA, pkt.body, sizeof(pkt.body));
+	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_SERVICE_CHECK_DATA);
+	mod = (nebstruct_service_check_data *)pkt.body;
+	test_compare(host_name);
+	test_compare(output);
+	test_compare(perf_data);
+	test_compare(service_description);
+	len = blockify(orig, NEBCALLBACK_SERVICE_CHECK_DATA, pkt.body, sizeof(pkt.body));
+	mod->type = NEBTYPE_SERVICECHECK_PROCESSED;
+	pkt.hdr.len = len;
+	pkt.hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
 	pkt.hdr.selection = 0;
 	return ipc_send_event(&pkt);
 }
