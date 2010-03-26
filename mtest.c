@@ -12,6 +12,9 @@
 #define PERF_DATA "random_value='5;5;5'"
 #define CONTACT_NAME "contact-name"
 
+static char *cache_file = "/opt/monitor/var/objects.cache";
+static char *status_log = "/opt/monitor/var/status.log";
+char *config_file;
 #define test_compare(str) _compare_ptr_strings(#str, mod->str, orig->str, errors)
 
 static inline void _compare_ptr_strings(char *name, char *a, char *b, int *errors)
@@ -173,24 +176,49 @@ static int test_deleting_comment(int *errors)
 	return ipc_send_event(&pkt);
 }
 
-static int grok_config(char *path)
+static void grok_cfg_compound(struct cfg_comp *config, int level)
 {
-	struct cfg_comp *config;
 	int i;
-
-	config = cfg_parse_file(path);
-	if (!config)
-		return -1;
 
 	for (i = 0; i < config->vars; i++) {
 		struct cfg_var *v = config->vlist[i];
 
-		if (grok_common_var(config, v))
+		if (level == 1 && prefixcmp(config->name, "test"))
+			break;
+		if (!prefixcmp(config->name, "test")) {
+			if (!strcmp(v->key, "objects.cache")) {
+				cache_file = strdup(v->value);
+				continue;
+			}
+			if (!strcmp(v->key, "status.log") || !strcmp(v->key, "status.sav")) {
+				status_log = strdup(v->value);
+				continue;
+			}
+			if (!strcmp(v->key, "nagios.cfg")) {
+				config_file = strdup(v->value);
+				continue;
+			}
+		}
+
+		if (!level && grok_common_var(config, v))
 			continue;
 		printf("'%s' = '%s' is not grok'ed as a common variable\n", v->key, v->value);
 	}
 
-	return 0;
+	for (i = 0; i < config->nested; i++) {
+		grok_cfg_compound(config->nest[i], level + 1);
+	}
+}
+
+static void grok_config(char *path)
+{
+	struct cfg_comp *config;
+
+	config = cfg_parse_file(path);
+	if (!config)
+		crash("Failed to parse config from '%s'\n", path);
+
+	grok_cfg_compound(config, 0);
 }
 
 int main(int argc, char **argv)
