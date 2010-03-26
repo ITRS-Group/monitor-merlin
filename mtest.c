@@ -23,7 +23,7 @@ static char *cache_file = "/opt/monitor/var/objects.cache";
 static char *status_log = "/opt/monitor/var/status.log";
 char *config_file;
 
-static int test_service_check_data(int *errors)
+static int test_service_check(void)
 {
 	nebstruct_service_check_data *orig, *mod;
 	merlin_event pkt;
@@ -51,14 +51,13 @@ static int test_service_check_data(int *errors)
 	return ipc_send_event(&pkt);
 }
 
-static int test_host_check_data(int *errors)
+static int test_host_check(void)
 {
 	nebstruct_host_check_data *orig, *mod;
 	merlin_event pkt;
 	int len;
 
 	orig = calloc(1, sizeof(*orig));
-
 	orig->host_name = HOST_NAME;
 	orig->output = OUTPUT;
 	orig->perf_data = PERF_DATA;
@@ -78,14 +77,13 @@ static int test_host_check_data(int *errors)
 	return ipc_send_event(&pkt);
 }
 
-static int test_contact_notification_method(int *errors, char *service_description)
+static int test_contact_notification_method(char *service_description)
 {
 	nebstruct_contact_notification_method_data *orig, *mod;
 	merlin_event pkt;
 	int len;
 
 	orig = calloc(1, sizeof(*orig));
-
 	orig->host_name = HOST_NAME;
 	orig->service_description = SERVICE_DESCRIPTION;
 	orig->output = OUTPUT;
@@ -118,7 +116,7 @@ static int test_contact_notification_method(int *errors, char *service_descripti
 	return ipc_send_event(&pkt);
 }
 
-static int test_adding_comment(int *errors, char *service_description)
+static int test_adding_comment(char *service_description)
 {
 	nebstruct_comment_data *orig, *mod;
 	merlin_event pkt;
@@ -140,9 +138,7 @@ static int test_adding_comment(int *errors, char *service_description)
 	test_compare(host_name);
 	test_compare(author_name);
 	test_compare(comment_data);
-	if (service_description) {
-		test_compare(service_description);
-	}
+	test_compare(service_description);
 	len = blockify(orig, NEBCALLBACK_COMMENT_DATA, pkt.body, sizeof(pkt.body));
 	mod->type = NEBTYPE_COMMENT_ADD;
 	pkt.hdr.len = len;
@@ -151,7 +147,7 @@ static int test_adding_comment(int *errors, char *service_description)
 	return ipc_send_event(&pkt);
 }
 
-static int test_deleting_comment(int *errors)
+static int test_deleting_comment(void)
 {
 	nebstruct_comment_data *orig;
 	merlin_event pkt;
@@ -253,14 +249,14 @@ int main(int argc, char **argv)
 			ipc_reinit();
 			continue;
 		}
-		test_host_check_data(&errors);
-		test_service_check_data(&errors);
-		test_adding_comment(&errors, NULL);
-		test_deleting_comment(&errors);
-		test_contact_notification_method(&errors, NULL);
-		test_contact_notification_method(&errors, SERVICE_DESCRIPTION);
-		test_adding_comment(&errors, SERVICE_DESCRIPTION);
-		test_deleting_comment(&errors);
+		test_host_check();
+		test_service_check();
+		test_adding_comment(NULL);
+		test_deleting_comment();
+		test_adding_comment(SERVICE_DESCRIPTION);
+		test_deleting_comment();
+		test_contact_notification_method(NULL);
+		test_contact_notification_method(SERVICE_DESCRIPTION);
 		printf("## Total errrors: %d\n", errors);
 	}
 
