@@ -179,7 +179,7 @@ static int grok_config(char *path)
 		struct cfg_comp *c = config->nest[i];
 		merlin_node *node;
 
-		if (!prefixcmp(c->name, "module"))
+		if (!prefixcmp(c->name, "module") || !prefixcmp(c->name, "test"))
 			continue;
 
 		if (!prefixcmp(c->name, "daemon")) {
