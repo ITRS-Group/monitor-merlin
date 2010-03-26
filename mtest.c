@@ -5,6 +5,7 @@
 #include "nagios/broker.h"
 #include "shared.h"
 #include "hookinfo.h"
+#include "sql.h"
 #include "test_utils.h"
 
 #define HOST_NAME "devel"
@@ -197,6 +198,10 @@ static void grok_cfg_compound(struct cfg_comp *config, int level)
 
 		if (!level && grok_common_var(config, v))
 			continue;
+		if (level == 2 && !prefixcmp(config->name, "database")) {
+			sql_config(v->key, v->value);
+			continue;
+		}
 		printf("'%s' = '%s' is not grok'ed as a common variable\n", v->key, v->value);
 	}
 
