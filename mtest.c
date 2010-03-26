@@ -70,6 +70,14 @@ int send_paths(void)
 	return result;
 }
 
+static char **hosts;
+static uint num_hosts;
+static uint num_services;
+static struct mtest_service {
+	char *host_name;
+	char *service_description;
+} **services;
+
 static uint count_rows(dbi_result result)
 {
 	uint rows = 0;
@@ -88,6 +96,43 @@ static uint count_table_rows(const char *table_name)
 	return count_rows(sql_get_result());
 }
 
+static void load_hosts_and_services(void)
+{
+	int i = 0;
+	dbi_result result;
+
+	num_hosts = count_table_rows("host");
+	num_services = count_table_rows("service");
+	if (!num_hosts || !num_services) {
+		crash("hosts: %u; services: %u;\nCan't run tests with a db like that\n",
+			  num_hosts, num_services);
+	}
+
+	hosts = calloc(num_hosts, sizeof(*hosts));
+	sql_query("SELECT host_name FROM host");
+	result = sql_get_result();
+	ok_uint(num_hosts, dbi_result_get_numrows(result), "libdbi host count");
+	i = 0;
+	while (i < num_hosts && dbi_result_next_row(result)) {
+		hosts[i] = dbi_result_get_string_copy_idx(result, 1);
+		i++;
+	}
+	ok_uint(i, num_hosts, "number of hosts loaded");
+
+	services = calloc(num_services, sizeof(*services));
+	sql_query("SELECT host_name, service_description FROM service");
+	result = sql_get_result();
+	ok_uint(num_services, dbi_result_get_numrows(result), "libdbi service count");
+	i = 0;
+	while (i < num_services && dbi_result_next_row(result)) {
+		services[i] = malloc(sizeof(*services));
+		services[i]->host_name = dbi_result_get_string_copy_idx(result, 1);
+		services[i]->service_description = dbi_result_get_string_copy_idx(result, 2);
+		i++;
+	}
+	ok_uint(i, num_services, "number of services loaded");
+}
+
 static void t_setup(void)
 {
 	sql_init();
@@ -104,6 +149,7 @@ static void t_setup(void)
 	}
 	ok_int(send_paths(), 0, "Sending paths");
 	sleep(2);
+	load_hosts_and_services();
 }
 
 static int test_flapping(char *service, int type)
