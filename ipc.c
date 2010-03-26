@@ -206,7 +206,7 @@ int ipc_init(void)
 		if (errno == EISCONN)
 			return 0;
 		if (last_connect_attempt + 30 <= time(NULL)) {
-			lerr("Failed to connect to ipc socket (%d): %s", errno, strerror(errno));
+			lerr("Failed to connect to ipc socket '%s': %s", ipc_sock_path, strerror(errno));
 			last_connect_attempt = time(NULL);
 		}
 		ipc_deinit();
