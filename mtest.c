@@ -3,6 +3,7 @@
  * function, ensuring we don't garble data before we send it off
  */
 #include "nagios/broker.h"
+#include "nagios/macros.h"
 #include "shared.h"
 #include "hookinfo.h"
 #include "sql.h"
@@ -49,6 +50,52 @@ static int test_service_check(void)
 	pkt.hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
 	pkt.hdr.selection = 0;
 	return ipc_send_event(&pkt);
+}
+
+int send_paths(void)
+{
+	size_t config_path_len, cache_path_len;
+	merlin_event pkt;
+	int result;
+
+	if (!config_file || !cache_file) {
+		lerr("config_file or xodtemplate_cache_file not set");
+		return -1;
+	}
+
+	pkt.hdr.type = CTRL_PACKET;
+	pkt.hdr.code = CTRL_PATHS;
+	pkt.hdr.protocol = MERLIN_PROTOCOL_VERSION;
+	memset(pkt.body, 0, sizeof(pkt.body));
+
+	/*
+	 * Add the paths to pkt.body as nul-terminated strings.
+	 * We simply rely on 32K bytes to be enough to hold the
+	 * three paths we're interested in (and they are if we're
+	 * on a unixy system, where PATH_MAX is normally 4096).
+	 * We cheat a little and use pkt.hdr.len as an offset
+	 * to the bytestream.
+	 */
+	config_path_len = strlen(config_file);
+	cache_path_len = strlen(cache_file);
+	memcpy(pkt.body, config_file, config_path_len);
+	pkt.hdr.len = config_path_len;
+	memcpy(pkt.body + pkt.hdr.len + 1, cache_file, cache_path_len);
+	pkt.hdr.len += cache_path_len + 1;
+	if (status_log && *status_log) {
+		memcpy(pkt.body + pkt.hdr.len + 1, status_log, strlen(status_log));
+		pkt.hdr.len += strlen(status_log) + 1;
+	}
+
+	/* nul-terminate and include the nul-char */
+	pkt.body[pkt.hdr.len++] = 0;
+	pkt.hdr.selection = 0;
+
+	result = ipc_send_event(&pkt);
+	if (result == packet_size(&pkt))
+		return 0;
+
+	return result;
 }
 
 static int test_host_check(void)
