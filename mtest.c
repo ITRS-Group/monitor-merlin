@@ -106,6 +106,38 @@ static void t_setup(void)
 	sleep(2);
 }
 
+static int test_flapping(char *service, int type)
+{
+	const char *typestr;
+	nebstruct_flapping_data *orig, *mod;
+	merlin_event pkt;
+	if (type == NEBTYPE_FLAPPING_START)
+		typestr = "start";
+	else
+		typestr = "stop";
+
+	orig = calloc(1, sizeof(*orig));
+	orig->host_name = HOST_NAME;
+	orig->percent_change = 78.5;
+	orig->high_threshold = 53.9;
+	orig->low_threshold = 20.1;
+	orig->comment_id = 1;
+	if (service) {
+		orig->service_description = service;
+		orig->flapping_type = SERVICE_FLAPPING;
+	} else {
+		orig->flapping_type = HOST_FLAPPING;
+	}
+	blockify(orig, NEBCALLBACK_FLAPPING_DATA, pkt.body, sizeof(pkt.body));
+	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_FLAPPING_DATA);
+	mod = (nebstruct_flapping_data *)pkt.body;
+	test_compare(host_name);
+	test_compare(service_description);
+	pkt.hdr.len = blockify(orig, NEBCALLBACK_FLAPPING_DATA, pkt.body, sizeof(pkt.body));
+	pkt.hdr.type = NEBCALLBACK_FLAPPING_DATA;
+	pkt.hdr.selection = 0;
+	mod->type = type;
+	return ipc_send_event(&pkt);
 }
 
 static int test_host_check(void)
@@ -337,6 +369,7 @@ int main(int argc, char **argv)
 			ipc_reinit();
 			continue;
 		}
+
 		test_host_check();
 		test_service_check();
 		test_adding_comment(NULL);
@@ -345,6 +378,10 @@ int main(int argc, char **argv)
 		test_deleting_comment();
 		test_contact_notification_method(NULL);
 		test_contact_notification_method(SERVICE_DESCRIPTION);
+		test_flapping(NULL, NEBTYPE_FLAPPING_START);
+		test_flapping(NULL, NEBTYPE_FLAPPING_STOP);
+		test_flapping(SERVICE_DESCRIPTION, NEBTYPE_FLAPPING_START);
+		test_flapping(SERVICE_DESCRIPTION, NEBTYPE_FLAPPING_STOP);
 		printf("## Total errrors: %d\n", errors);
 	}
 
