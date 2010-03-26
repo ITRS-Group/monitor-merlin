@@ -200,6 +200,14 @@ int merlin_mod_hook(int cb, void *data)
 	merlin_event pkt;
 	int result = 0;
 
+	if (!data) {
+		lerr("eventbroker module called with NULL data");
+		return -1;
+	} else if (cb < 0 || cb > NEBCALLBACK_NUMITEMS) {
+		lerr("merlin_mod_hook() called with invalid callback id");
+		return -1;
+	}
+
 	if (!ipc_is_connected(0)) {
 		/* use backlog here */
 		return 0;
@@ -229,14 +237,6 @@ int merlin_mod_hook(int cb, void *data)
 			 */
 			return 0;
 		}
-	}
-
-	if (!data) {
-		lerr("eventbroker module called with NULL data");
-		return -1;
-	} else if (cb < 0 || cb > NEBCALLBACK_NUMITEMS) {
-		lerr("merlin_mod_hook() called with invalid callback id");
-		return -1;
 	}
 
 	ldebug("Processing callback %s", callback_name(cb));
