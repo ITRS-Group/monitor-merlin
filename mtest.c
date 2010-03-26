@@ -34,15 +34,12 @@ static int test_service_check_data(int *errors)
 	gettimeofday(&orig->start_time, NULL);
 	gettimeofday(&orig->end_time, NULL);
 	len = blockify(orig, NEBCALLBACK_SERVICE_CHECK_DATA, pkt.body, sizeof(pkt.body));
-	printf("blockify() returned %d\n", len);
 	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_SERVICE_CHECK_DATA);
 	mod = (nebstruct_service_check_data *)pkt.body;
 	test_compare(host_name);
 	test_compare(output);
 	test_compare(perf_data);
 	test_compare(service_description);
-	printf("Sending ipc_event for service '%s' on host '%s'\n  output: '%s'\n  perfdata: %s'\n",
-		   mod->service_description, mod->host_name, mod->output, mod->perf_data);
 	len = blockify(orig, NEBCALLBACK_SERVICE_CHECK_DATA, pkt.body, sizeof(pkt.body));
 	mod->type = NEBTYPE_SERVICECHECK_PROCESSED;
 	pkt.hdr.len = len;
@@ -65,14 +62,11 @@ static int test_host_check_data(int *errors)
 	gettimeofday(&orig->start_time, NULL);
 	gettimeofday(&orig->end_time, NULL);
 	len = blockify(orig, NEBCALLBACK_HOST_CHECK_DATA, pkt.body, sizeof(pkt.body));
-	printf("blockify() returned %d\n", len);
 	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_HOST_CHECK_DATA);
 	mod = (nebstruct_host_check_data *)pkt.body;
 	test_compare(host_name);
 	test_compare(output);
 	test_compare(perf_data);
-	printf("Sending ipc_event for host '%s'\n  output: '%s'\n  perfdata: %s'\n",
-		   mod->host_name, mod->output, mod->perf_data);
 	len = blockify(orig, NEBCALLBACK_HOST_CHECK_DATA, pkt.body, sizeof(pkt.body));
 	mod->type = NEBTYPE_HOSTCHECK_PROCESSED;
 	pkt.hdr.len = len;
