@@ -2,8 +2,15 @@
  * This file contains tests for the "blockify()/deblockify()"
  * function, ensuring we don't garble data before we send it off
  */
+#include <dlfcn.h>
+#include "nagios/nebstructs.h"
+#include "nagios/nebmodules.h"
+#include "nagios/nebmods.h"
 #include "nagios/broker.h"
 #include "nagios/macros.h"
+#include "nagios/statusdata.h"
+#include "nagios/objects.h"
+#include "nagios/nagios.h"
 #include "shared.h"
 #include "hookinfo.h"
 #include "sql.h"
@@ -22,56 +29,6 @@
 
 #define test_compare(str) ok_str(mod->str, orig->str, #str)
 
-static char *cache_file = "/opt/monitor/var/objects.cache";
-static char *status_log = "/opt/monitor/var/status.log";
-char *config_file;
-
-int send_paths(void)
-{
-	size_t config_path_len, cache_path_len;
-	merlin_event pkt;
-	int result;
-
-	if (!config_file || !cache_file) {
-		lerr("config_file or xodtemplate_cache_file not set");
-		return -1;
-	}
-
-	pkt.hdr.type = CTRL_PACKET;
-	pkt.hdr.code = CTRL_PATHS;
-	pkt.hdr.protocol = MERLIN_PROTOCOL_VERSION;
-	memset(pkt.body, 0, sizeof(pkt.body));
-
-	/*
-	 * Add the paths to pkt.body as nul-terminated strings.
-	 * We simply rely on 32K bytes to be enough to hold the
-	 * three paths we're interested in (and they are if we're
-	 * on a unixy system, where PATH_MAX is normally 4096).
-	 * We cheat a little and use pkt.hdr.len as an offset
-	 * to the bytestream.
-	 */
-	config_path_len = strlen(config_file);
-	cache_path_len = strlen(cache_file);
-	memcpy(pkt.body, config_file, config_path_len);
-	pkt.hdr.len = config_path_len;
-	memcpy(pkt.body + pkt.hdr.len + 1, cache_file, cache_path_len);
-	pkt.hdr.len += cache_path_len + 1;
-	if (status_log && *status_log) {
-		memcpy(pkt.body + pkt.hdr.len + 1, status_log, strlen(status_log));
-		pkt.hdr.len += strlen(status_log) + 1;
-	}
-
-	/* nul-terminate and include the nul-char */
-	pkt.body[pkt.hdr.len++] = 0;
-	pkt.hdr.selection = 0;
-
-	result = ipc_send_event(&pkt);
-	if (result == packet_size(&pkt))
-		return 0;
-
-	return result;
-}
-
 static char **hosts;
 static uint num_hosts;
 static uint num_services;
@@ -79,6 +36,75 @@ static struct mtest_service {
 	char *host_name;
 	char *service_description;
 } **services;
+
+static char *cache_file = "/opt/monitor/var/objects.cache";
+static char *status_log = "/opt/monitor/var/status.log";
+static int (*hooks[NEBCALLBACK_NUMITEMS])(int, void *);
+
+/* variables provided by Nagios and required by module */
+char *config_file = "/opt/monitor/etc/nagios.cfg";
+service *service_list = NULL;
+hostgroup *hostgroup_list = NULL;
+host *host_list = NULL;
+char *macro_x[MACRO_X_COUNT];
+int event_broker_options = 0;
+int daemon_dumps_core = 0;
+
+/* nagios functions we must have for dlopen() to work properly */
+int schedule_new_event(int a, int b, time_t c, int d, unsigned long e,
+					   void *f, int g, void *h, void *i, int j)
+{
+	return 0;
+}
+host *find_host(char *host_name)
+{
+	return 0;
+}
+service *find_service(char *host_name, char *service_description)
+{
+	return NULL;
+}
+int update_all_status_data(void)
+{
+	return 0;
+}
+
+static int callback_is_tested(int callback_type, const char *caller_func)
+{
+	switch (callback_type) {
+	case NEBCALLBACK_SERVICE_CHECK_DATA:
+	case NEBCALLBACK_HOST_CHECK_DATA:
+	case NEBCALLBACK_DOWNTIME_DATA:
+	case NEBCALLBACK_PROCESS_DATA:
+		return 1;
+	}
+
+	t_fail("%s: Callback %s is not tested", caller_func, callback_name(callback_type));
+	return 0;
+}
+
+int neb_register_callback(int callback_type, void *mod_handle,
+						  int priority, int (*callback_func)(int,void *))
+{
+	callback_is_tested(callback_type, __func__);
+	hooks[callback_type] = callback_func;
+
+	return 0;
+}
+
+int neb_deregister_callback(int callback_type, int (*callback_func)(int, void *))
+{
+	callback_is_tested(callback_type, __func__);
+
+	if (!hooks[callback_type]) {
+		t_fail("%s unregistered from NULL",
+			   callback_name(callback_type));
+	}
+
+	hooks[callback_type] = NULL;
+
+	return 0;
+}
 
 static uint count_rows(dbi_result result)
 {
@@ -143,6 +169,8 @@ static void t_setup(void)
 	printf("%u hosts\n", count_table_rows("host"));
 	printf("%u services\n", count_table_rows("service"));
 
+	macro_x[MACRO_OBJECTCACHEFILE] = cache_file;
+	macro_x[MACRO_STATUSDATAFILE] = status_log;
 	if (ipc_init() < 0) {
 		t_fail("ipc_init()");
 		crash("Failed to initialize ipc socket");
