@@ -7,7 +7,9 @@
 #include "shared.h"
 #include "hookinfo.h"
 #include "sql.h"
+#include "daemon.h"
 #include "test_utils.h"
+#include "module.h"
 
 #define HOST_NAME "webex"
 #define SERVICE_DESCRIPTION "http"
