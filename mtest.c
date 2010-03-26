@@ -30,11 +30,10 @@ static int test_service_check_data(int *errors)
 	int len;
 
 	orig = calloc(1, sizeof(*orig));
-
-	orig->service_description = strdup(SERVICE_DESCRIPTION);
-	orig->host_name = strdup(HOST_NAME);
-	orig->output = strdup(OUTPUT);
-	orig->perf_data = strdup(PERF_DATA);
+	orig->service_description = SERVICE_DESCRIPTION;
+	orig->host_name = HOST_NAME;
+	orig->output = OUTPUT;
+	orig->perf_data = PERF_DATA;
 	gettimeofday(&orig->start_time, NULL);
 	gettimeofday(&orig->end_time, NULL);
 	len = blockify(orig, NEBCALLBACK_SERVICE_CHECK_DATA, pkt.body, sizeof(pkt.body));
