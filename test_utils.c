@@ -144,3 +144,8 @@ void log_event_count(const char *prefix, merlin_event_counter *cnt, float t)
 {
 	return;
 }
+
+void log_deinit(void)
+{
+	return;
+}
