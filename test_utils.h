@@ -1,5 +1,6 @@
 #ifndef INCLUDE_test_utils_h__
 #define INCLUDE_test_utils_h__
+typedef unsigned int uint;
 extern const char *red, *green, *yellow, *reset;
 extern uint passed, failed;
 extern void t_set_colors(int force);
