@@ -2,6 +2,8 @@
 #include "colors.h"
 const char *red = "", *green = "", *yellow = "", *reset = "";
 uint passed, failed;
+static uint t_depth;
+static const char *indent_str = "  ";
 
 void t_set_colors(int force)
 {
@@ -13,23 +15,33 @@ void t_set_colors(int force)
 	}
 }
 
+static void t_indent(int depth)
+{
+	uint i;
+	for (i = 0; i < depth; i++) {
+		printf("%s", indent_str);
+	}
+}
+
 void t_pass(const char *name)
 {
 	passed++;
+	t_indent(t_depth);
 	printf("%sPASS%s %s\n", green, reset, name);
 }
 
 void t_fail(const char *name)
 {
 	failed++;
+	t_indent(t_depth);
 	printf("%sFAIL%s %s\n", red, reset, name);
 }
 
 void t_diag(const char *fmt, ...)
 {
-	if (!fmt) {
+	if (fmt) {
 		va_list ap;
-		putchar('\t');
+		t_indent(t_depth + 1);
 		va_start(ap, fmt);
 		vfprintf(stdout, fmt, ap);
 		va_end(ap);
