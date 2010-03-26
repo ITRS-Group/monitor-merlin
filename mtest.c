@@ -8,11 +8,15 @@
 #include "sql.h"
 #include "test_utils.h"
 
-#define HOST_NAME "devel"
-#define SERVICE_DESCRIPTION "PING"
+#define HOST_NAME "webex"
+#define SERVICE_DESCRIPTION "http"
 #define OUTPUT "The plugin output"
 #define PERF_DATA "random_value='5;5;5'"
-#define CONTACT_NAME "contact-name"
+#define CONTACT_NAME "ae"
+#define AUTHOR_NAME "Pelle plutt"
+#define COMMENT_DATA "comment data"
+#define COMMAND_NAME "notify-by-squirting"
+
 #define test_compare(str) ok_str(mod->str, orig->str, #str)
 
 static char *cache_file = "/opt/monitor/var/objects.cache";
@@ -75,9 +79,6 @@ static int test_host_check_data(int *errors)
 	return ipc_send_event(&pkt);
 }
 
-#define AUTHOR_NAME "Pelle plutt"
-#define COMMENT_DATA "comment data"
-#define COMMAND_NAME "notify-by-squirting"
 static int test_contact_notification_method(int *errors, char *service_description)
 {
 	nebstruct_contact_notification_method_data *orig, *mod;
