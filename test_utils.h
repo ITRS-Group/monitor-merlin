@@ -4,8 +4,10 @@ typedef unsigned int uint;
 extern const char *red, *green, *yellow, *reset;
 extern uint passed, failed;
 extern void t_set_colors(int force);
-extern void t_pass(const char *name);
-extern void t_fail(const char *name);
+extern void t_pass(const char *fmt, ...)
+	__attribute__((__format__(__printf__, 1, 2)));
+extern void t_fail(const char *fmt, ...)
+	__attribute__((__format__(__printf__, 1, 2)));
 extern void t_diag(const char *fmt, ...)
 	__attribute__((__format__(__printf__, 1, 2)));
 extern void ok_int(int a, int b, const char *name);

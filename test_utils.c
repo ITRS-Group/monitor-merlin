@@ -15,6 +15,25 @@ void t_set_colors(int force)
 	}
 }
 
+void t_start(const char *fmt, ...)
+{
+	va_list ap;
+
+	t_depth++;
+
+	va_start(ap, fmt);
+	printf("%s", yellow);
+	vfprintf(stdout, fmt, ap);
+	printf("%s", reset);
+	va_end(ap);
+}
+
+void t_end(void)
+{
+	if (t_depth)
+		t_depth--;
+}
+
 static void t_indent(int depth)
 {
 	uint i;
@@ -23,18 +42,30 @@ static void t_indent(int depth)
 	}
 }
 
-void t_pass(const char *name)
+void t_pass(const char *fmt, ...)
 {
+	va_list ap;
+
 	passed++;
 	t_indent(t_depth);
-	printf("%sPASS%s %s\n", green, reset, name);
+	printf("%sPASS%s ", green, reset);
+	va_start(ap, fmt);
+	vfprintf(stdout, fmt, ap);
+	va_end(ap);
+	putchar('\n');
 }
 
-void t_fail(const char *name)
+void t_fail(const char *fmt, ...)
 {
+	va_list ap;
+
 	failed++;
 	t_indent(t_depth);
-	printf("%sFAIL%s %s\n", red, reset, name);
+	printf("%sFAIL%s ", red, reset);
+	va_start(ap, fmt);
+	vfprintf(stdout, fmt, ap);
+	va_end(ap);
+	putchar('\n');
 }
 
 void t_diag(const char *fmt, ...)
