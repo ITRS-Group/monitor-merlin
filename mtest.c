@@ -609,6 +609,10 @@ int main(int argc, char **argv)
 		if (!strcmp(arg, "--module")) {
 			return test_one_module(opt);
 		}
+		if (!strcmp(arg, "--verbose") || !strcmp(arg, "-v")) {
+			t_verbose++;
+			continue;
+		}
 		grok_config(arg);
 	}
 
