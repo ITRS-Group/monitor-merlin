@@ -10,8 +10,6 @@
 
 #include "cfgfile.h"
 
-static struct cfg_comp *parse_file(const char *path, struct cfg_comp *parent, unsigned line);
-
 /* read a file and return it in a buffer. Size is stored in *len.
  * If there are errors, return NULL and set *len to -errno */
 static char *cfg_read_file(const char *path, unsigned *len)
