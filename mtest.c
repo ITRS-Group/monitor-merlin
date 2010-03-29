@@ -37,6 +37,7 @@ static host *hosts;
 static uint num_hosts;
 static uint num_services;
 static service *services;
+static merlin_event pkt;
 
 static nebmodule *neb;
 static char *cache_file = "/opt/monitor/var/objects.cache";
@@ -100,6 +101,14 @@ int neb_deregister_callback(int callback_type, int (*callback_func)(int, void *)
 	hooks[callback_type] = NULL;
 
 	return 0;
+}
+
+/* various testing helpers */
+static void *blk_prep(void *data)
+{
+	blockify_event(&pkt, data);
+	deblockify_event(&pkt);
+	return pkt.body;
 }
 
 static uint count_rows(dbi_result result)
@@ -190,7 +199,6 @@ static void t_setup(void)
 static void test_flapping(void)
 {
 	nebstruct_flapping_data *orig, *mod;
-	merlin_event pkt;
 	int i;
 
 	orig = calloc(1, sizeof(*orig));
@@ -204,9 +212,7 @@ static void test_flapping(void)
 	pkt.hdr.type = NEBCALLBACK_FLAPPING_DATA;
 	for (i = 0; i < num_hosts; i++) {
 		orig->host_name = hosts[i].name;
-		blockify_event(&pkt, orig);
-		deblockify_event(&pkt);
-		mod = (nebstruct_flapping_data *)pkt.body;
+		mod = blk_prep(orig);
 		test_compare(host_name);
 		test_compare(service_description);
 		merlin_mod_hook(pkt.hdr.type, orig);
@@ -230,9 +236,7 @@ static void test_flapping(void)
 	for (i = 0; i < num_services; i++) {
 		orig->host_name = services[i].host_name;
 		orig->service_description = services[i].description;
-		blockify_event(&pkt, orig);
-		deblockify_event(&pkt);
-		mod = (nebstruct_flapping_data *)pkt.body;
+		mod = blk_prep(orig);
 		test_compare(host_name);
 		test_compare(service_description);
 		merlin_mod_hook(pkt.hdr.type, orig);
@@ -255,7 +259,6 @@ static void test_flapping(void)
 static void test_host_check(void)
 {
 	nebstruct_host_check_data *orig, *mod;
-	merlin_event pkt;
 	int i;
 
 	return;
@@ -275,9 +278,7 @@ static void test_host_check(void)
 		orig->host_name = h->name;
 		orig->output = h->plugin_output;
 		orig->perf_data = h->perf_data;
-		blockify_event(&pkt, orig);
-		deblockify_event(&pkt);
-		mod = (nebstruct_host_check_data *)pkt.body;
+		mod = blk_prep(orig);
 		test_compare(host_name);
 		test_compare(output);
 		test_compare(perf_data);
@@ -289,7 +290,6 @@ static void test_host_check(void)
 static void test_service_check(void)
 {
 	nebstruct_service_check_data *orig, *mod;
-	merlin_event pkt;
 	int i;
 
 	orig = calloc(1, sizeof(*orig));
@@ -304,14 +304,11 @@ static void test_service_check(void)
 		orig->service_description = s->description;
 		orig->output = s->plugin_output;
 		orig->perf_data = s->perf_data;
-		blockify_event(&pkt, orig);
-		deblockify_event(&pkt);
-		mod = (nebstruct_service_check_data *)pkt.body;
+		mod = blk_prep(orig);
 		test_compare(host_name);
 		test_compare(output);
 		test_compare(perf_data);
 		test_compare(service_description);
-		mod = (nebstruct_service_check_data *)pkt.body;
 		merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, orig);
 	}
 	free(orig);
@@ -321,7 +318,6 @@ static void test_host_status(void)
 {
 	merlin_host_status *orig, *mod;
 	nebstruct_host_status_data *ds;
-	merlin_event pkt;
 	int i;
 
 	orig = calloc(1, sizeof(*orig));
@@ -340,9 +336,7 @@ static void test_host_status(void)
 		orig->state.plugin_output = h->plugin_output;
 		orig->state.perf_data = h->perf_data;
 		orig->state.long_plugin_output = h->long_plugin_output;
-		blockify_event(&pkt, orig);
-		deblockify_event(&pkt);
-		mod = (merlin_host_status *)pkt.body;
+		mod = blk_prep(orig);
 		ok_str(mod->name, h->name, "host name transfers properly");
 		ok_str(mod->state.plugin_output, h->plugin_output, "host output transfers properly");
 		ok_str(mod->state.perf_data, h->perf_data, "performance data transfers properly");
@@ -362,7 +356,6 @@ static void test_service_status(void)
 {
 	merlin_service_status *orig, *mod;
 	nebstruct_service_status_data *ds;
-	merlin_event pkt;
 	int i;
 
 	orig = calloc(1, sizeof(*orig));
@@ -376,9 +369,7 @@ static void test_service_status(void)
 		orig->state.plugin_output = s->plugin_output;
 		orig->state.perf_data = s->perf_data;
 		orig->state.long_plugin_output = s->long_plugin_output;
-		blockify_event(&pkt, orig);
-		deblockify_event(&pkt);
-		mod = (merlin_service_status *)pkt.body;
+		mod = blk_prep(orig);
 		test_compare(host_name);
 		test_compare(service_description);
 		ok_str(orig->state.plugin_output, mod->state.plugin_output, "plugin_output must match");
@@ -398,7 +389,6 @@ static void test_service_status(void)
 static void test_contact_notification_method(void)
 {
 	nebstruct_contact_notification_method_data *orig, *mod;
-	merlin_event pkt;
 	int i;
 
 	orig = calloc(1, sizeof(*orig));
@@ -420,9 +410,7 @@ static void test_contact_notification_method(void)
 	/* test setting all hosts to flapping state */
 	for (i = 0; i < num_hosts; i++) {
 		orig->host_name = hosts[i].name;
-		blockify_event(&pkt, orig);
-		deblockify_event(&pkt);
-		mod = (nebstruct_contact_notification_method_data *)pkt.body;
+		mod = blk_prep(orig);
 		test_compare(host_name);
 		test_compare(service_description);
 		test_compare(output);
@@ -439,9 +427,7 @@ static void test_contact_notification_method(void)
 	for (i = 0; i < num_services; i++) {
 		orig->host_name = services[i].host_name;
 		orig->service_description = services[i].host_name;
-		blockify_event(&pkt, orig);
-		deblockify_event(&pkt);
-		mod = (nebstruct_contact_notification_method_data *)pkt.body;
+		mod = blk_prep(orig);
 		test_compare(host_name);
 		test_compare(service_description);
 		test_compare(output);
@@ -459,7 +445,6 @@ static void test_contact_notification_method(void)
 static void test_comment(void)
 {
 	nebstruct_comment_data *orig, *mod;
-	merlin_event pkt;
 	int i;
 
 	orig = calloc(1, sizeof(*orig));
@@ -480,9 +465,7 @@ static void test_comment(void)
 
 		orig->host_name = h->name;
 		orig->comment_id = i + 1;
-		blockify_event(&pkt, orig);
-		deblockify_event(&pkt);
-		mod = (nebstruct_comment_data *)pkt.body;
+		mod = blk_prep(orig);
 		test_compare(host_name);
 		test_compare(author_name);
 		test_compare(comment_data);
@@ -512,9 +495,7 @@ static void test_comment(void)
 		orig->host_name = s->host_name;
 		orig->service_description = s->description;
 		orig->comment_id = i + 1;
-		blockify_event(&pkt, orig);
-		deblockify_event(&pkt);
-		mod = (nebstruct_comment_data *)pkt.body;
+		mod = blk_prep(orig);
 		test_compare(host_name);
 		test_compare(author_name);
 		test_compare(comment_data);
@@ -541,7 +522,6 @@ static void test_comment(void)
 static void test_downtime(void)
 {
 	nebstruct_downtime_data *orig, *mod;
-	merlin_event pkt;
 	int i;
 
 	orig = calloc(1, sizeof(*orig));
@@ -555,9 +535,7 @@ static void test_downtime(void)
 	for (i = 0; i < num_hosts; i++) {
 		orig->host_name = hosts[i].name;
 		orig->downtime_id = i + 1;
-		blockify_event(&pkt, orig);
-		deblockify_event(&pkt);
-		mod = (nebstruct_downtime_data *)pkt.body;
+		mod = blk_prep(orig);
 		test_compare(host_name);
 		test_compare(service_description);
 		test_compare(author_name);
@@ -584,9 +562,7 @@ static void test_downtime(void)
 		orig->downtime_id = i + 1;
 		orig->host_name = services[i].host_name;
 		orig->service_description = services[i].description;
-		blockify_event(&pkt, orig);
-		deblockify_event(&pkt);
-		mod = (nebstruct_downtime_data *)pkt.body;
+		mod = blk_prep(orig);
 		test_compare(host_name);
 		test_compare(service_description);
 		test_compare(author_name);
@@ -859,6 +835,7 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < ARRAY_SIZE(mtest); i++) {
 		struct merlin_test *t = &mtest[i];
+		pkt.hdr.type = t->callback;
 
 		zzz();
 		printf("Running %s to test %s\n", t->funcname, t->cb_name);
