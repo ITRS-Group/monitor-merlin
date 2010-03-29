@@ -27,6 +27,8 @@
 #define AUTHOR_NAME "Pelle plutt"
 #define COMMENT_DATA "comment data"
 #define COMMAND_NAME "notify-by-squirting"
+#define COMMAND_STRING "SCHEDULE_FORCED_HOST_SVC_CHECKS"
+#define COMMAND_ARGS "w2k3std.op5.se;1193930749"
 
 #define test_compare(str) ok_str(mod->str, orig->str, #str)
 
@@ -194,6 +196,20 @@ static void t_setup(void)
 	ok_int(send_paths(), 0, "Sending paths");
 	sleep(4);
 	load_hosts_and_services();
+}
+
+static void test_external_command(void)
+{
+	nebstruct_external_command_data *orig, *mod;
+
+	orig = calloc(1, sizeof(*orig));
+	orig->command_string = COMMAND_STRING;
+	orig->command_args = COMMAND_ARGS;
+	mod = blk_prep(orig);
+	test_compare(command_string);
+	test_compare(command_args);
+	merlin_mod_hook(pkt.hdr.type, orig);
+	free(orig);
 }
 
 static void test_flapping(void)
@@ -757,6 +773,7 @@ static struct merlin_test {
 	const char *cb_name, *funcname;
 	void (*test)(void);
 } mtest[] = {
+	T_ENTRY(EXTERNAL_COMMAND, external_command),
 	T_ENTRY(CONTACT_NOTIFICATION_METHOD, contact_notification_method),
 	T_ENTRY(HOST_STATUS, host_status),
 	T_ENTRY(SERVICE_STATUS, service_status),
