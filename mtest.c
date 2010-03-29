@@ -374,15 +374,13 @@ static int test_service_status(void)
 	return 0;
 }
 
-static int test_contact_notification_method(char *service_description)
+static int test_contact_notification_method(void)
 {
 	nebstruct_contact_notification_method_data *orig, *mod;
 	merlin_event pkt;
-	int len;
+	int i;
 
 	orig = calloc(1, sizeof(*orig));
-	orig->host_name = HOST_NAME;
-	orig->service_description = SERVICE_DESCRIPTION;
 	orig->output = OUTPUT;
 	orig->contact_name = CONTACT_NAME;
 	orig->reason_type = 1;
@@ -393,24 +391,49 @@ static int test_contact_notification_method(char *service_description)
 	orig->command_name = COMMAND_NAME;
 	gettimeofday(&orig->start_time, NULL);
 	gettimeofday(&orig->end_time, NULL);
+	orig->type = NEBTYPE_CONTACTNOTIFICATIONMETHOD_END;
 
-	len = blockify(orig, NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, pkt.body, sizeof(pkt.body));
-	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA);
-	mod = (nebstruct_contact_notification_method_data *)pkt.body;
-	test_compare(host_name);
-	test_compare(service_description);
-	test_compare(output);
-	test_compare(contact_name);
-	test_compare(ack_author);
-	test_compare(ack_data);
-	test_compare(command_name);
-	len = blockify(orig, NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, pkt.body, sizeof(pkt.body));
-	mod->type = NEBTYPE_CONTACTNOTIFICATIONMETHOD_END;
-	pkt.hdr.len = len;
 	pkt.hdr.type = NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA;
-	pkt.hdr.selection = 0;
 
-	return ipc_send_event(&pkt);
+	sql_query("TRUNCATE notification");
+	/* test setting all hosts to flapping state */
+	for (i = 0; i < num_hosts; i++) {
+		orig->host_name = hosts[i].name;
+		blockify_event(&pkt, orig);
+		deblockify_event(&pkt);
+		mod = (nebstruct_contact_notification_method_data *)pkt.body;
+		test_compare(host_name);
+		test_compare(service_description);
+		test_compare(output);
+		test_compare(contact_name);
+		test_compare(ack_author);
+		test_compare(ack_data);
+		test_compare(command_name);
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz();
+	verify_count("Adding host notifications", num_hosts,
+				 "SELECT * FROM notification");
+
+	for (i = 0; i < num_services; i++) {
+		orig->host_name = services[i].host_name;
+		orig->service_description = services[i].host_name;
+		blockify_event(&pkt, orig);
+		deblockify_event(&pkt);
+		mod = (nebstruct_contact_notification_method_data *)pkt.body;
+		test_compare(host_name);
+		test_compare(service_description);
+		test_compare(output);
+		test_compare(contact_name);
+		test_compare(ack_author);
+		test_compare(ack_data);
+		test_compare(command_name);
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz();
+	verify_count("Adding service notifications", num_hosts + num_services,
+				 "SELECT * FROM notification");
+	return 0;
 }
 
 static int test_comment(void)
@@ -682,8 +705,6 @@ int main(int argc, char **argv)
 
 		test_host_check();
 		test_service_check();
-		test_contact_notification_method(NULL);
-		test_contact_notification_method(SERVICE_DESCRIPTION);
 		test_flapping(NULL, NEBTYPE_FLAPPING_START);
 		test_flapping(NULL, NEBTYPE_FLAPPING_STOP);
 		test_flapping(SERVICE_DESCRIPTION, NEBTYPE_FLAPPING_START);
