@@ -605,6 +605,51 @@ static void test_downtime(void)
 	zzz();
 	verify_count("deleting service downtimes", 0,
 				 "SELECT * FROM scheduled_downtime");
+
+	/* set up for testing starting and stopping of host/service downtimes */
+	sql_query("UPDATE host SET scheduled_downtime_depth = 0");
+	sql_query("UPDATE service SET scheduled_downtime_depth = 0");
+	/* test starting host downtimes */
+	orig->type = NEBTYPE_DOWNTIME_START;
+	orig->service_description = NULL;
+	for (i = 0; i < num_hosts; i++) {
+		orig->host_name = hosts[i].name;
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz();
+	verify_count("starting host downtimes", num_hosts,
+				 "SELECT * FROM host WHERE scheduled_downtime_depth > 0");
+
+	/* test starting host downtimes */
+	orig->type = NEBTYPE_DOWNTIME_STOP;
+	for (i = 0; i < num_hosts; i++) {
+		orig->host_name = hosts[i].name;
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz();
+	verify_count("stopping host downtimes", num_hosts,
+				 "SELECT * FROM host WHERE scheduled_downtime_depth = 0");
+
+	/* test starting service downtime */
+	orig->type = NEBTYPE_DOWNTIME_START;
+	for (i = 0; i < num_services; i++) {
+		orig->host_name = services[i].host_name;
+		orig->service_description = services[i].description;
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz(); verify_count("starting service downtimes", num_services,
+						"SELECT * FROM service WHERE scheduled_downtime_depth > 0");
+
+	/* test stopping service downtime */
+	orig->type = NEBTYPE_DOWNTIME_STOP;
+	for (i = 0; i < num_services; i++) {
+		orig->host_name = services[i].host_name;
+		orig->service_description = services[i].description;
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz(); verify_count("stopping service downtimes", num_services,
+						"SELECT * FROM service WHERE scheduled_downtime_depth = 0");
+
 	free(orig);
 }
 
