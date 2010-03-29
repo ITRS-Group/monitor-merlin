@@ -198,6 +198,36 @@ static void t_setup(void)
 	load_hosts_and_services();
 }
 
+#define GLOBAL_HOST_EVENT_HANDLER "/path/to/global-host-event-handler"
+#define GLOBAL_SVC_EVENT_HANDLER "/path/to/global-svc-event-handler"
+static void test_program_status(void)
+{
+	nebstruct_program_status_data *orig, *mod;
+
+	orig = calloc(1, sizeof(*orig));
+	orig->global_host_event_handler = GLOBAL_HOST_EVENT_HANDLER;
+	orig->global_service_event_handler = GLOBAL_SVC_EVENT_HANDLER;
+	mod = blk_prep(orig);
+	test_compare(global_host_event_handler);
+	test_compare(global_service_event_handler);
+
+	/* both set */
+	merlin_mod_hook(pkt.hdr.type, orig);
+
+	/* only service event handler set */
+	orig->global_host_event_handler = NULL;
+	merlin_mod_hook(pkt.hdr.type, orig);
+
+	/* neither set */
+	orig->global_service_event_handler = NULL;
+	merlin_mod_hook(pkt.hdr.type, orig);
+
+	/* only host event handler set */
+	orig->global_host_event_handler = GLOBAL_HOST_EVENT_HANDLER;
+	merlin_mod_hook(pkt.hdr.type, orig);
+	free(orig);
+}
+
 static void test_external_command(void)
 {
 	nebstruct_external_command_data *orig, *mod;
@@ -773,6 +803,7 @@ static struct merlin_test {
 	const char *cb_name, *funcname;
 	void (*test)(void);
 } mtest[] = {
+	T_ENTRY(PROGRAM_STATUS, program_status),
 	T_ENTRY(EXTERNAL_COMMAND, external_command),
 	T_ENTRY(CONTACT_NOTIFICATION_METHOD, contact_notification_method),
 	T_ENTRY(HOST_STATUS, host_status),
