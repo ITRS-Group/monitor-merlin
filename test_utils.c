@@ -15,6 +15,14 @@ void t_set_colors(int force)
 	}
 }
 
+static void t_indent(int depth)
+{
+	uint i;
+	for (i = 0; i < depth; i++) {
+		printf("%s", indent_str);
+	}
+}
+
 void t_start(const char *fmt, ...)
 {
 	va_list ap;
@@ -28,18 +36,16 @@ void t_start(const char *fmt, ...)
 	va_end(ap);
 }
 
-void t_end(void)
+int t_end(void)
 {
 	if (t_depth)
 		t_depth--;
-}
-
-static void t_indent(int depth)
-{
-	uint i;
-	for (i = 0; i < depth; i++) {
-		printf("%s", indent_str);
+	if (!t_depth || failed) {
+		t_indent(t_depth);
+		printf("Test results: %s%u passed%s, %s%u failed%s\n",
+			   green, passed, reset, failed ? red : "", failed, failed ? reset : "");
 	}
+	return failed ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 void t_pass(const char *fmt, ...)

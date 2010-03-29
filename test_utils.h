@@ -13,6 +13,7 @@ extern void t_diag(const char *fmt, ...)
 extern void ok_int(int a, int b, const char *name);
 extern void ok_uint(uint a, uint b, const char *name);
 extern void ok_str(const char *a, const char *b, const char *name);
+extern int t_end(void);
 extern void crash(const char *fmt, ...)
 	__attribute__((__format__(__printf__, 1, 2), __noreturn__));
 #endif
