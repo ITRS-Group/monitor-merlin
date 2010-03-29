@@ -538,6 +538,76 @@ static void test_comment(void)
 	verify_count("removing service comments", 0, "SELECT * FROM comment");
 }
 
+static void test_downtime(void)
+{
+	nebstruct_downtime_data *orig, *mod;
+	merlin_event pkt;
+	int i;
+
+	orig = calloc(1, sizeof(*orig));
+	orig->author_name = AUTHOR_NAME;
+	orig->comment_data = COMMENT_DATA;
+	pkt.hdr.type = NEBCALLBACK_DOWNTIME_DATA;
+
+	sql_query("TRUNCATE scheduled_downtime");
+	/* test adding downtime for all hosts */
+	orig->type = NEBTYPE_DOWNTIME_ADD;
+	for (i = 0; i < num_hosts; i++) {
+		orig->host_name = hosts[i].name;
+		orig->downtime_id = i + 1;
+		blockify_event(&pkt, orig);
+		deblockify_event(&pkt);
+		mod = (nebstruct_downtime_data *)pkt.body;
+		test_compare(host_name);
+		test_compare(service_description);
+		test_compare(author_name);
+		test_compare(comment_data);
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz();
+	verify_count("adding host downtimes", num_hosts,
+				 "SELECT * FROM scheduled_downtime");
+
+	/* test removing all the added downtime */
+	orig->type = NEBTYPE_DOWNTIME_DELETE;
+	for (i = 0; i < num_hosts; i++) {
+		orig->host_name = hosts[i].name;
+		orig->downtime_id = i + 1;
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz();
+	verify_count("removing host downtimes", 0,
+				 "SELECT * FROM scheduled_downtime");
+
+	orig->type = NEBTYPE_DOWNTIME_ADD;
+	for (i = 0; i < num_services; i++) {
+		orig->downtime_id = i + 1;
+		orig->host_name = services[i].host_name;
+		orig->service_description = services[i].description;
+		blockify_event(&pkt, orig);
+		deblockify_event(&pkt);
+		mod = (nebstruct_downtime_data *)pkt.body;
+		test_compare(host_name);
+		test_compare(service_description);
+		test_compare(author_name);
+		test_compare(comment_data);
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz();
+	verify_count("adding service downtimes", num_services,
+				 "SELECT * FROM scheduled_downtime");
+
+	orig->type = NEBTYPE_DOWNTIME_DELETE;
+	for (i = 0; i < num_services; i++) {
+		orig->downtime_id = i + 1;
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz();
+	verify_count("deleting service downtimes", 0,
+				 "SELECT * FROM scheduled_downtime");
+	free(orig);
+}
+
 static void grok_cfg_compound(struct cfg_comp *config, int level)
 {
 	int i;
@@ -671,6 +741,7 @@ static struct merlin_test {
 	T_ENTRY(SERVICE_STATUS, service_status),
 	T_ENTRY(COMMENT, comment),
 	T_ENTRY(FLAPPING, flapping),
+	T_ENTRY(DOWNTIME, downtime),
 };
 
 static int callback_is_tested(int id, const char *caller)
