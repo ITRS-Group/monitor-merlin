@@ -193,38 +193,71 @@ static void t_setup(void)
 	load_hosts_and_services();
 }
 
-static int test_flapping(char *service, int type)
+static int test_flapping(void)
 {
-	const char *typestr;
 	nebstruct_flapping_data *orig, *mod;
 	merlin_event pkt;
-	if (type == NEBTYPE_FLAPPING_START)
-		typestr = "start";
-	else
-		typestr = "stop";
+	int i;
 
 	orig = calloc(1, sizeof(*orig));
-	orig->host_name = HOST_NAME;
 	orig->percent_change = 78.5;
 	orig->high_threshold = 53.9;
 	orig->low_threshold = 20.1;
 	orig->comment_id = 1;
-	if (service) {
-		orig->service_description = service;
-		orig->flapping_type = SERVICE_FLAPPING;
-	} else {
-		orig->flapping_type = HOST_FLAPPING;
-	}
-	blockify(orig, NEBCALLBACK_FLAPPING_DATA, pkt.body, sizeof(pkt.body));
-	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_FLAPPING_DATA);
-	mod = (nebstruct_flapping_data *)pkt.body;
-	test_compare(host_name);
-	test_compare(service_description);
-	pkt.hdr.len = blockify(orig, NEBCALLBACK_FLAPPING_DATA, pkt.body, sizeof(pkt.body));
+
+	orig->flapping_type = HOST_FLAPPING;
+	orig->type = NEBTYPE_FLAPPING_START;
 	pkt.hdr.type = NEBCALLBACK_FLAPPING_DATA;
-	pkt.hdr.selection = 0;
-	mod->type = type;
-	return ipc_send_event(&pkt);
+	for (i = 0; i < num_hosts; i++) {
+		orig->host_name = hosts[i].name;
+		blockify_event(&pkt, orig);
+		deblockify_event(&pkt);
+		mod = (nebstruct_flapping_data *)pkt.body;
+		test_compare(host_name);
+		test_compare(service_description);
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz();
+	verify_count("set hosts to flapping", num_hosts,
+				 "SELECT * FROM host WHERE is_flapping = 1");
+
+	orig->type = NEBTYPE_FLAPPING_STOP;
+	for (i = 0; i < num_hosts; i++) {
+		orig->host_name = hosts[i].name;
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz();
+	verify_count("set hosts to not flapping", 0,
+				 "SELECT * FROM host WHERE is_flapping = 1");
+
+
+	orig->flapping_type = SERVICE_FLAPPING;
+	orig->type = NEBTYPE_FLAPPING_START;
+	for (i = 0; i < num_services; i++) {
+		orig->host_name = services[i].host_name;
+		orig->service_description = services[i].description;
+		blockify_event(&pkt, orig);
+		deblockify_event(&pkt);
+		mod = (nebstruct_flapping_data *)pkt.body;
+		test_compare(host_name);
+		test_compare(service_description);
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz();
+	verify_count("set services to flapping", num_services,
+				 "SELECT * FROM service WHERE is_flapping = 1");
+
+	orig->type = NEBTYPE_FLAPPING_STOP;
+	for (i = 0; i < num_services; i++) {
+		orig->host_name = services[i].host_name;
+		orig->service_description = services[i].description;
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz();
+	verify_count("set services to not flapping", 0,
+				 "SELECT * FROM service WHERE is_flapping = 1");
+
+	return 0;
 }
 
 static int test_host_check(void)
@@ -654,6 +687,7 @@ static struct merlin_test {
 	T_ENTRY(HOST_STATUS, host_status),
 	T_ENTRY(SERVICE_STATUS, service_status),
 	T_ENTRY(COMMENT, comment),
+	T_ENTRY(FLAPPING, flapping),
 };
 
 int main(int argc, char **argv)
