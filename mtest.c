@@ -30,13 +30,10 @@
 
 #define test_compare(str) ok_str(mod->str, orig->str, #str)
 
-static char **hosts;
+static host *hosts;
 static uint num_hosts;
 static uint num_services;
-static struct mtest_service {
-	char *host_name;
-	char *service_description;
-} **services;
+static service *services;
 
 static nebmodule *neb;
 static char *cache_file = "/opt/monitor/var/objects.cache";
@@ -144,7 +141,10 @@ static void load_hosts_and_services(void)
 	ok_uint(num_hosts, dbi_result_get_numrows(result), "libdbi host count");
 	i = 0;
 	while (i < num_hosts && dbi_result_next_row(result)) {
-		hosts[i] = dbi_result_get_string_copy_idx(result, 1);
+		hosts[i].name = dbi_result_get_string_copy_idx(result, 1);
+		hosts[i].plugin_output = OUTPUT;
+		hosts[i].perf_data = PERF_DATA;
+		hosts[i].long_plugin_output = NULL;
 		i++;
 	}
 	ok_uint(i, num_hosts, "number of hosts loaded");
@@ -155,9 +155,8 @@ static void load_hosts_and_services(void)
 	ok_uint(num_services, dbi_result_get_numrows(result), "libdbi service count");
 	i = 0;
 	while (i < num_services && dbi_result_next_row(result)) {
-		services[i] = malloc(sizeof(*services));
-		services[i]->host_name = dbi_result_get_string_copy_idx(result, 1);
-		services[i]->service_description = dbi_result_get_string_copy_idx(result, 2);
+		services[i].host_name = dbi_result_get_string_copy_idx(result, 1);
+		services[i].description = dbi_result_get_string_copy_idx(result, 2);
 		i++;
 	}
 	ok_uint(i, num_services, "number of services loaded");
