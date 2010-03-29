@@ -315,10 +315,12 @@ int send_paths(void)
 	pkt.hdr.selection = 0;
 
 	result = ipc_send_event(&pkt);
-	if (result == packet_size(&pkt))
+	if (result == packet_size(&pkt)) {
 		merlin_should_send_paths = 0;
+		return 0;
+	}
 
-	return result;
+	return -1;
 }
 
 static int mark_paths_unsent(void)
