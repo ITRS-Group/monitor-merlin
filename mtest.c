@@ -176,7 +176,7 @@ static void t_setup(void)
 		t_pass("ipc_init()");
 	}
 	ok_int(send_paths(), 0, "Sending paths");
-	sleep(2);
+	sleep(4);
 	load_hosts_and_services();
 }
 
