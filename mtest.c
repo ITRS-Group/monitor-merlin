@@ -679,6 +679,9 @@ static struct merlin_test {
 static int callback_is_tested(int id, const char *caller)
 {
 	int i;
+	if (id == NEBCALLBACK_PROCESS_DATA)
+		return 1;
+
 	for (i = 0; i < ARRAY_SIZE(mtest); i++) {
 		if (mtest[i].callback == id) {
 			t_pass("%s: callback %s is tested", caller, callback_name(id));
