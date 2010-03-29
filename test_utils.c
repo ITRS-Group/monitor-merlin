@@ -102,7 +102,7 @@ void ok_uint(uint a, uint b, const char *name)
 
 void ok_str(const char *a, const char *b, const char *name)
 {
-	if (a && b && !strcmp(a, b)) {
+	if ((!a && !b) || (a && b && !strcmp(a, b))) {
 		t_pass(name);
 	} else {
 		t_fail(name);
