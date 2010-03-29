@@ -243,7 +243,8 @@ static int handle_program_status(const nebstruct_program_status_data *p)
 static int handle_downtime(const nebstruct_downtime_data *p)
 {
 	int result = 0;
-	char *host_name, *service_description, *comment_data, *author_name;
+	char *host_name = NULL, *service_description = NULL;
+	char *comment_data = NULL, *author_name = NULL;
 
 	if (p->type == NEBTYPE_DOWNTIME_DELETE) {
 		result = sql_query("DELETE FROM %s.scheduled_downtime "
