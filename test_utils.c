@@ -127,31 +127,3 @@ void __attribute__((__noreturn__)) crash(const char *fmt, ...)
 
 	exit(1);
 }
-
-void log_msg(int severity, const char *fmt, ...)
-{
-	va_list ap;
-	int len;
-
-	printf("[%lu] %d: ", time(NULL), severity);
-	va_start(ap, fmt);
-	len = vprintf(fmt, ap);
-	va_end(ap);
-	if (fmt[len] != '\n')
-		putchar('\n');
-}
-
-int log_grok_var(char *var, char *val)
-{
-	return 0;
-}
-
-void log_event_count(const char *prefix, merlin_event_counter *cnt, float t)
-{
-	return;
-}
-
-void log_deinit(void)
-{
-	return;
-}
