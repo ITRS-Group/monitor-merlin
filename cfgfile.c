@@ -77,8 +77,12 @@ static struct cfg_comp *start_compound(const char *name, struct cfg_comp *cur, u
 	struct cfg_comp *comp = calloc(1, sizeof(struct cfg_comp));
 
 	if (comp) {
+		int namelen = strlen(name);
 		comp->start = line;
-		comp->name = name;
+		comp->name = strdup(name);
+		while (ISSPACE(comp->name[namelen - 1])) {
+			comp->name[--namelen] = 0;
+		}
 		comp->parent = cur;
 	}
 
@@ -323,6 +327,9 @@ void cfg_destroy_compound(struct cfg_comp *comp)
 
 	if (comp->nest)
 		free(comp->nest);
+
+	if (comp->name)
+		free(comp->name);
 
 	if (!comp->parent)
 		free(comp);

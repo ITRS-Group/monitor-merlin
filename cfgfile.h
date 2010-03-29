@@ -17,7 +17,7 @@ struct cfg_var {
 #define next_var(c) (c->cur_var >= c->vars ? NULL : c->vlist[c->cur_var++])
 
 struct cfg_comp {
-	const char *name;         /* filename, or everything leading up to '{' */
+	char *name;               /* compound name */
 	char *buf;                /* file contents, if this is a file */
 	char *template_name;      /* 'name' entry from compound */
 	char *use;                /* the value of any "use" variables */
