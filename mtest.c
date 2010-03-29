@@ -44,6 +44,8 @@ static char *status_log = "/opt/monitor/var/status.log";
 static int (*hooks[NEBCALLBACK_NUMITEMS])(int, void *);
 static int callback_is_tested(int id, const char *caller);
 
+static int (*post_config_init)(int, void *);
+
 /* variables provided by Nagios and required by module */
 char *config_file = "/opt/monitor/etc/nagios.cfg";
 service *service_list = NULL;
@@ -75,6 +77,10 @@ int update_all_status_data(void)
 int neb_register_callback(int callback_type, void *mod_handle,
 						  int priority, int (*callback_func)(int,void *))
 {
+	if (callback_type == NEBCALLBACK_PROCESS_DATA) {
+		post_config_init = callback_func;
+	}
+
 	callback_is_tested(callback_type, __func__);
 	if (!callback_func)
 		t_fail("%s registered with NULL callback_func",
@@ -694,6 +700,8 @@ static int callback_is_tested(int id, const char *caller)
 	return 0;
 }
 
+int nebmodule_init(int, char *, void *);
+int nebmodule_deinit(int, int);
 int main(int argc, char **argv)
 {
 	int i;
@@ -730,6 +738,13 @@ int main(int argc, char **argv)
 
 	t_setup();
 
+	nebmodule_init(-1, NULL, NULL);
+	if (post_config_init) {
+		nebstruct_process_data ds;
+		ds.type = NEBTYPE_PROCESS_EVENTLOOPSTART;
+		post_config_init(NEBCALLBACK_PROCESS_DATA, &ds);
+	}
+
 	for (i = 0; i < NEBCALLBACK_NUMITEMS; i++) {
 		struct hook_info_struct *hi = &hook_info[i];
 
@@ -745,5 +760,6 @@ int main(int argc, char **argv)
 		t->test();
 	}
 
+	nebmodule_deinit(-1, -1);
 	return t_end();
 }
