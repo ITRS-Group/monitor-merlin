@@ -31,7 +31,7 @@
 #define test_compare(str) ok_str(mod->str, orig->str, #str)
 
 #define CP() printf("ALIVE @ %s->%s:%d\n", __FILE__, __func__, __LINE__)
-#define zzz() usleep(50000)
+#define zzz() usleep(80000)
 
 static host *hosts;
 static uint num_hosts;
@@ -316,7 +316,6 @@ static int test_host_status(void)
 	pkt.hdr.type = NEBCALLBACK_HOST_STATUS_DATA;
 	for (i = 0; i < num_hosts; i++) {
 		host *h = &hosts[i];
-		printf("Testing host status for host '%s'\n", h->name);
 
 		orig->name = h->name;
 		orig->state.plugin_output = h->plugin_output;
@@ -333,8 +332,9 @@ static int test_host_status(void)
 		ds->object_ptr = h;
 		merlin_mod_hook(NEBCALLBACK_HOST_STATUS_DATA, ds);
 	}
-	sleep(1);
-	verify_count("host check", i, "SELECT * FROM host WHERE current_state = 4");
+	zzz();
+	verify_count("host status updates db properly", num_hosts,
+				 "SELECT * FROM host WHERE current_state = 4");
 	free(ds);
 	free(orig);
 	return 0;
@@ -371,6 +371,9 @@ static int test_service_status(void)
 		s->current_state = 15;
 		merlin_mod_hook(NEBCALLBACK_SERVICE_STATUS_DATA, ds);
 	}
+	zzz();
+	verify_count("service status updates db properly", num_services,
+				 "SELECT * FROM service WHERE current_state = 15");
 	free(orig);
 	return 0;
 }
