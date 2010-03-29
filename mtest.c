@@ -2,6 +2,7 @@
  * This file contains tests for the "blockify()/deblockify()"
  * function, ensuring we don't garble data before we send it off
  */
+#define NSCORE
 #include <dlfcn.h>
 #include "nagios/nebstructs.h"
 #include "nagios/nebmodules.h"
