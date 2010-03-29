@@ -110,14 +110,10 @@ int neb_deregister_callback(int callback_type, int (*callback_func)(int, void *)
 
 static uint count_rows(dbi_result result)
 {
-	uint rows = 0;
-
 	if (result) {
-		while (dbi_result_next_row(result))
-			rows++;
+		return dbi_result_get_numrows(result);
 	}
-
-	return rows;
+	return 0;
 }
 
 static uint count_table_rows(const char *table_name)
