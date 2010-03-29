@@ -76,6 +76,9 @@ int neb_register_callback(int callback_type, void *mod_handle,
 						  int priority, int (*callback_func)(int,void *))
 {
 	callback_is_tested(callback_type, __func__);
+	if (!callback_func)
+		t_fail("%s registered with NULL callback_func",
+			   callback_name(callback_type));
 	hooks[callback_type] = callback_func;
 
 	return 0;
