@@ -125,6 +125,17 @@ static uint count_table_rows(const char *table_name)
 	return count_rows(sql_get_result());
 }
 
+static void verify_count(const char *name, uint expected, const char *fmt, ...)
+{
+	uint count;
+	va_list ap;
+	va_start(ap, fmt);
+	sql_vquery(fmt, ap);
+	va_end(ap);
+	count = count_rows(sql_get_result());
+	ok_uint(count, expected, name);
+}
+
 static void load_hosts_and_services(void)
 {
 	int i = 0;
@@ -223,54 +234,142 @@ static int test_host_check(void)
 {
 	nebstruct_host_check_data *orig, *mod;
 	merlin_event pkt;
-	int len;
+	int i;
 
+	return 0;
 	orig = calloc(1, sizeof(*orig));
-	orig->host_name = HOST_NAME;
-	orig->output = OUTPUT;
-	orig->perf_data = PERF_DATA;
-	gettimeofday(&orig->start_time, NULL);
-	gettimeofday(&orig->end_time, NULL);
-	len = blockify(orig, NEBCALLBACK_HOST_CHECK_DATA, pkt.body, sizeof(pkt.body));
-	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_HOST_CHECK_DATA);
-	mod = (nebstruct_host_check_data *)pkt.body;
-	test_compare(host_name);
-	test_compare(output);
-	test_compare(perf_data);
-	len = blockify(orig, NEBCALLBACK_HOST_CHECK_DATA, pkt.body, sizeof(pkt.body));
-	mod->type = NEBTYPE_HOSTCHECK_PROCESSED;
-	pkt.hdr.len = len;
+
+	/*
+	 * run the tests for all hosts
+	 * first we set an arbitrary state, and then we check how many
+	 * rows have the state we've set
+	 */
 	pkt.hdr.type = NEBCALLBACK_HOST_CHECK_DATA;
-	pkt.hdr.selection = 0;
-	return ipc_send_event(&pkt);
+	sql_query("UPDATE host SET current_state = 155");
+	orig->type = NEBTYPE_HOSTCHECK_PROCESSED;
+	for (i = 0; i < num_hosts; i++) {
+		host *h = &hosts[i];
+
+		orig->host_name = h->name;
+		orig->output = h->plugin_output;
+		orig->perf_data = h->perf_data;
+		blockify_event(&pkt, orig);
+		deblockify_event(&pkt);
+		mod = (nebstruct_host_check_data *)pkt.body;
+		test_compare(host_name);
+		test_compare(output);
+		test_compare(perf_data);
+		merlin_mod_hook(NEBCALLBACK_HOST_STATUS_DATA, orig);
+	}
+	free(orig);
+	return 0;
 }
 
 static int test_service_check(void)
 {
 	nebstruct_service_check_data *orig, *mod;
 	merlin_event pkt;
-	int len;
+	int i;
 
 	orig = calloc(1, sizeof(*orig));
-	orig->service_description = SERVICE_DESCRIPTION;
-	orig->host_name = HOST_NAME;
-	orig->output = OUTPUT;
-	orig->perf_data = PERF_DATA;
 	gettimeofday(&orig->start_time, NULL);
 	gettimeofday(&orig->end_time, NULL);
-	len = blockify(orig, NEBCALLBACK_SERVICE_CHECK_DATA, pkt.body, sizeof(pkt.body));
-	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_SERVICE_CHECK_DATA);
-	mod = (nebstruct_service_check_data *)pkt.body;
-	test_compare(host_name);
-	test_compare(output);
-	test_compare(perf_data);
-	test_compare(service_description);
-	len = blockify(orig, NEBCALLBACK_SERVICE_CHECK_DATA, pkt.body, sizeof(pkt.body));
+
 	mod->type = NEBTYPE_SERVICECHECK_PROCESSED;
-	pkt.hdr.len = len;
 	pkt.hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
-	pkt.hdr.selection = 0;
-	return ipc_send_event(&pkt);
+	for (i = 0; i < num_services; i++) {
+		service *s = &services[i];
+		orig->host_name = s->host_name;
+		orig->service_description = s->description;
+		orig->output = s->plugin_output;
+		orig->perf_data = s->perf_data;
+		blockify_event(&pkt, orig);
+		deblockify_event(&pkt);
+		mod = (nebstruct_service_check_data *)pkt.body;
+		test_compare(host_name);
+		test_compare(output);
+		test_compare(perf_data);
+		test_compare(service_description);
+		mod = (nebstruct_service_check_data *)pkt.body;
+		merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, orig);
+	}
+	free(orig);
+	return 0;
+}
+
+static int test_host_status(void)
+{
+	merlin_host_status *orig, *mod;
+	nebstruct_host_status_data *ds;
+	merlin_event pkt;
+	int i;
+
+	orig = calloc(1, sizeof(*orig));
+	ds = calloc(1, sizeof(*ds));
+
+	/*
+	 * run the tests for all hosts
+	 * first we set an arbitrary state, and then we check how many
+	 * rows have the state we've set
+	 */
+	pkt.hdr.type = NEBCALLBACK_HOST_STATUS_DATA;
+	for (i = 0; i < num_hosts; i++) {
+		host *h = &hosts[i];
+		printf("Testing host status for host '%s'\n", h->name);
+
+		orig->name = h->name;
+		orig->state.plugin_output = h->plugin_output;
+		orig->state.perf_data = h->perf_data;
+		orig->state.long_plugin_output = h->long_plugin_output;
+		blockify_event(&pkt, orig);
+		deblockify_event(&pkt);
+		mod = (merlin_host_status *)pkt.body;
+		ok_str(mod->name, h->name, "host name transfers properly");
+		ok_str(mod->state.plugin_output, h->plugin_output, "host output transfers properly");
+		ok_str(mod->state.perf_data, h->perf_data, "performance data transfers properly");
+
+		h->current_state = 4;
+		ds->object_ptr = h;
+		merlin_mod_hook(NEBCALLBACK_HOST_STATUS_DATA, ds);
+	}
+	sleep(1);
+	verify_count("host check", i, "SELECT * FROM host WHERE current_state = 4");
+	free(ds);
+	free(orig);
+	return 0;
+}
+
+static int test_service_status(void)
+{
+	merlin_service_status *orig, *mod;
+	nebstruct_service_status_data *ds;
+	merlin_event pkt;
+	int i;
+
+	orig = calloc(1, sizeof(*orig));
+	ds = calloc(1, sizeof(*ds));
+	pkt.hdr.type = NEBCALLBACK_SERVICE_STATUS_DATA;
+	for (i = 0; i < num_services; i++) {
+		service *s = &services[i];
+		orig->host_name = s->host_name;
+		orig->service_description = s->description;
+		orig->state.plugin_output = s->plugin_output;
+		orig->state.perf_data = s->perf_data;
+		orig->state.long_plugin_output = s->long_plugin_output;
+
+		blockify_event(&pkt, orig);
+		deblockify_event(&pkt);
+		mod = (merlin_service_status *)pkt.body;
+		test_compare(host_name);
+		test_compare(service_description);
+		ok_str(orig->state.plugin_output, mod->state.plugin_output, "plugin_output must match");
+		ok_str(orig->state.perf_data, mod->state.perf_data, "perf_data must match");
+		ok_str(orig->state.long_plugin_output, mod->state.long_plugin_output, "long plugin output must match");
+		ds->object_ptr = s;
+		merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, orig);
+	}
+	free(orig);
+	return 0;
 }
 
 static int test_contact_notification_method(char *service_description)
