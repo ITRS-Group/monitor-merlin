@@ -31,7 +31,7 @@
 #define test_compare(str) ok_str(mod->str, orig->str, #str)
 
 #define CP() printf("ALIVE @ %s->%s:%d\n", __FILE__, __func__, __LINE__)
-#define zzz() usleep(80000)
+#define zzz() usleep(50000)
 
 static host *hosts;
 static uint num_hosts;
@@ -352,12 +352,12 @@ static int test_service_status(void)
 	pkt.hdr.type = NEBCALLBACK_SERVICE_STATUS_DATA;
 	for (i = 0; i < num_services; i++) {
 		service *s = &services[i];
+
 		orig->host_name = s->host_name;
 		orig->service_description = s->description;
 		orig->state.plugin_output = s->plugin_output;
 		orig->state.perf_data = s->perf_data;
 		orig->state.long_plugin_output = s->long_plugin_output;
-
 		blockify_event(&pkt, orig);
 		deblockify_event(&pkt);
 		mod = (merlin_service_status *)pkt.body;
@@ -366,8 +366,10 @@ static int test_service_status(void)
 		ok_str(orig->state.plugin_output, mod->state.plugin_output, "plugin_output must match");
 		ok_str(orig->state.perf_data, mod->state.perf_data, "perf_data must match");
 		ok_str(orig->state.long_plugin_output, mod->state.long_plugin_output, "long plugin output must match");
+
 		ds->object_ptr = s;
-		merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, orig);
+		s->current_state = 15;
+		merlin_mod_hook(NEBCALLBACK_SERVICE_STATUS_DATA, ds);
 	}
 	free(orig);
 	return 0;
