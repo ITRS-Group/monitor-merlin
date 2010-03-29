@@ -413,50 +413,88 @@ static int test_contact_notification_method(char *service_description)
 	return ipc_send_event(&pkt);
 }
 
-static int test_adding_comment(char *service_description)
+static int test_comment(void)
 {
 	nebstruct_comment_data *orig, *mod;
 	merlin_event pkt;
-	int len;
+	int i;
 
 	orig = calloc(1, sizeof(*orig));
-	orig->host_name = HOST_NAME;
 	orig->author_name = AUTHOR_NAME;
 	orig->comment_data = COMMENT_DATA;
 	orig->entry_time = time(NULL);
 	orig->expires = 1;
 	orig->expire_time = time(NULL) + 300;
-	orig->comment_id = 1;
-	if (service_description)
-		orig->service_description = service_description;
-	len = blockify(orig, NEBCALLBACK_COMMENT_DATA, pkt.body, sizeof(pkt.body));
-	deblockify(pkt.body, sizeof(pkt.body), NEBCALLBACK_COMMENT_DATA);
-	mod = (nebstruct_comment_data *)pkt.body;
-	test_compare(host_name);
-	test_compare(author_name);
-	test_compare(comment_data);
-	test_compare(service_description);
-	len = blockify(orig, NEBCALLBACK_COMMENT_DATA, pkt.body, sizeof(pkt.body));
-	mod->type = NEBTYPE_COMMENT_ADD;
-	pkt.hdr.len = len;
+
+	/* set up for testing comments for all hosts and services */
+	sql_query("TRUNCATE comment");
 	pkt.hdr.type = NEBCALLBACK_COMMENT_DATA;
-	pkt.hdr.selection = 0;
-	return ipc_send_event(&pkt);
-}
 
-static int test_deleting_comment(void)
-{
-	nebstruct_comment_data *orig;
-	merlin_event pkt;
+	/* test adding comments for all hosts */
+	orig->type = NEBTYPE_COMMENT_ADD;
+	for (i = 0; i < num_hosts; i++) {
+		host *h = &hosts[i];
 
-	orig = (void *)pkt.body;
-	memset(orig, 0, sizeof(*orig));
+		orig->host_name = h->name;
+		orig->comment_id = i + 1;
+		blockify_event(&pkt, orig);
+		deblockify_event(&pkt);
+		mod = (nebstruct_comment_data *)pkt.body;
+		test_compare(host_name);
+		test_compare(author_name);
+		test_compare(comment_data);
+		test_compare(service_description);
+		merlin_mod_hook(NEBCALLBACK_COMMENT_DATA, orig);
+	}
+	zzz();
+	verify_count("adding host comments", num_hosts, "SELECT * FROM comment");
+
+	/* test deleting host comments */
 	orig->type = NEBTYPE_COMMENT_DELETE;
-	orig->comment_id = 1;
-	pkt.hdr.len = sizeof(*orig);
-	pkt.hdr.type = NEBCALLBACK_COMMENT_DATA;
-	pkt.hdr.selection = 0;
-	return ipc_send_event(&pkt);
+	for (i = 0; i < num_hosts; i++) {
+		host *h = &hosts[i];
+
+		orig->host_name = h->name;
+		orig->comment_id = i + 1;
+		merlin_mod_hook(NEBCALLBACK_COMMENT_DATA, orig);
+	}
+	zzz();
+	verify_count("removing host comments", 0, "SELECT * FROM comment");
+
+	/* test adding comments for all services */
+	orig->type = NEBTYPE_COMMENT_ADD;
+	for (i = 0; i < num_services; i++) {
+		service *s = &services[i];
+
+		orig->host_name = s->host_name;
+		orig->service_description = s->description;
+		orig->comment_id = i + 1;
+		blockify_event(&pkt, orig);
+		deblockify_event(&pkt);
+		mod = (nebstruct_comment_data *)pkt.body;
+		test_compare(host_name);
+		test_compare(author_name);
+		test_compare(comment_data);
+		test_compare(service_description);
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz();
+	verify_count("adding service comments", num_services, "SELECT * FROM comment");
+
+	/* test removing comments for all services */
+	orig->type = NEBTYPE_COMMENT_DELETE;
+	for (i = 0; i < num_services; i++) {
+		service *s = &services[i];
+
+		orig->host_name = s->host_name;
+		orig->service_description = s->description;
+		orig->comment_id = i + 1;
+		merlin_mod_hook(pkt.hdr.type, orig);
+	}
+	zzz();
+	verify_count("removing service comments", 0, "SELECT * FROM comment");
+
+	return 0;
 }
 
 static void grok_cfg_compound(struct cfg_comp *config, int level)
@@ -644,10 +682,6 @@ int main(int argc, char **argv)
 
 		test_host_check();
 		test_service_check();
-		test_adding_comment(NULL);
-		test_deleting_comment();
-		test_adding_comment(SERVICE_DESCRIPTION);
-		test_deleting_comment();
 		test_contact_notification_method(NULL);
 		test_contact_notification_method(SERVICE_DESCRIPTION);
 		test_flapping(NULL, NEBTYPE_FLAPPING_START);
