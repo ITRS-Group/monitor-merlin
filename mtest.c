@@ -642,10 +642,23 @@ static int test_one_module(char *arg)
 	return result;
 }
 
+#define T_ENTRY(cb, func) \
+	{ NEBCALLBACK_##cb##_DATA, #cb, "test_"#func, test_##func }
+
+static struct merlin_test {
+	int callback;
+	const char *cb_name, *funcname;
+	int (*test)(void);
+} mtest[] = {
+	T_ENTRY(CONTACT_NOTIFICATION_METHOD, contact_notification_method),
+	T_ENTRY(HOST_STATUS, host_status),
+	T_ENTRY(SERVICE_STATUS, service_status),
+	T_ENTRY(COMMENT, comment),
+};
+
 int main(int argc, char **argv)
 {
-	char silly_buf[1024];
-	int i, errors = 0;
+	int i;
 
 	use_database = 1;
 
@@ -684,24 +697,15 @@ int main(int argc, char **argv)
 
 		ok_int(hi->cb_type, i, "hook is properly ordered");
 	}
+
+	for (i = 0; i < ARRAY_SIZE(mtest); i++) {
+		struct merlin_test *t = &mtest[i];
+
+		zzz();
+		printf("Running %s to test %s\n", t->funcname, t->cb_name);
+
+		t->test();
 	}
 
-	while ((fgets(silly_buf, sizeof(silly_buf), stdin))) {
-
-		if (!ipc_is_connected(0)) {
-			printf("ipc socket is not connected\n");
-			ipc_reinit();
-			continue;
-		}
-
-		test_host_check();
-		test_service_check();
-		test_flapping(NULL, NEBTYPE_FLAPPING_START);
-		test_flapping(NULL, NEBTYPE_FLAPPING_STOP);
-		test_flapping(SERVICE_DESCRIPTION, NEBTYPE_FLAPPING_START);
-		test_flapping(SERVICE_DESCRIPTION, NEBTYPE_FLAPPING_STOP);
-		printf("## Total errrors: %d\n", errors);
-	}
-
-	return 0;
+	return t_end();
 }
