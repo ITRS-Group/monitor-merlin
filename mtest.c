@@ -187,7 +187,7 @@ static void t_setup(void)
 	load_hosts_and_services();
 }
 
-static int test_flapping(void)
+static void test_flapping(void)
 {
 	nebstruct_flapping_data *orig, *mod;
 	merlin_event pkt;
@@ -250,17 +250,15 @@ static int test_flapping(void)
 	zzz();
 	verify_count("set services to not flapping", 0,
 				 "SELECT * FROM service WHERE is_flapping = 1");
-
-	return 0;
 }
 
-static int test_host_check(void)
+static void test_host_check(void)
 {
 	nebstruct_host_check_data *orig, *mod;
 	merlin_event pkt;
 	int i;
 
-	return 0;
+	return;
 	orig = calloc(1, sizeof(*orig));
 
 	/*
@@ -286,10 +284,9 @@ static int test_host_check(void)
 		merlin_mod_hook(NEBCALLBACK_HOST_STATUS_DATA, orig);
 	}
 	free(orig);
-	return 0;
 }
 
-static int test_service_check(void)
+static void test_service_check(void)
 {
 	nebstruct_service_check_data *orig, *mod;
 	merlin_event pkt;
@@ -318,10 +315,9 @@ static int test_service_check(void)
 		merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, orig);
 	}
 	free(orig);
-	return 0;
 }
 
-static int test_host_status(void)
+static void test_host_status(void)
 {
 	merlin_host_status *orig, *mod;
 	nebstruct_host_status_data *ds;
@@ -360,10 +356,9 @@ static int test_host_status(void)
 				 "SELECT * FROM host WHERE current_state = 4");
 	free(ds);
 	free(orig);
-	return 0;
 }
 
-static int test_service_status(void)
+static void test_service_status(void)
 {
 	merlin_service_status *orig, *mod;
 	nebstruct_service_status_data *ds;
@@ -398,10 +393,9 @@ static int test_service_status(void)
 	verify_count("service status updates db properly", num_services,
 				 "SELECT * FROM service WHERE current_state = 15");
 	free(orig);
-	return 0;
 }
 
-static int test_contact_notification_method(void)
+static void test_contact_notification_method(void)
 {
 	nebstruct_contact_notification_method_data *orig, *mod;
 	merlin_event pkt;
@@ -460,10 +454,9 @@ static int test_contact_notification_method(void)
 	zzz();
 	verify_count("Adding service notifications", num_hosts + num_services,
 				 "SELECT * FROM notification");
-	return 0;
 }
 
-static int test_comment(void)
+static void test_comment(void)
 {
 	nebstruct_comment_data *orig, *mod;
 	merlin_event pkt;
@@ -543,8 +536,6 @@ static int test_comment(void)
 	}
 	zzz();
 	verify_count("removing service comments", 0, "SELECT * FROM comment");
-
-	return 0;
 }
 
 static void grok_cfg_compound(struct cfg_comp *config, int level)
@@ -665,7 +656,6 @@ static int test_one_module(char *arg)
 	deinit_func = dlsym(dso, "nebmodule_deinit");
 	result |= deinit_func(0, 0);
 	check_callbacks();
-
 	return result;
 }
 
@@ -674,7 +664,7 @@ static int test_one_module(char *arg)
 static struct merlin_test {
 	int callback;
 	const char *cb_name, *funcname;
-	int (*test)(void);
+	void (*test)(void);
 } mtest[] = {
 	T_ENTRY(CONTACT_NOTIFICATION_METHOD, contact_notification_method),
 	T_ENTRY(HOST_STATUS, host_status),
