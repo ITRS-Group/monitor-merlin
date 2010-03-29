@@ -42,6 +42,7 @@ static nebmodule *neb;
 static char *cache_file = "/opt/monitor/var/objects.cache";
 static char *status_log = "/opt/monitor/var/status.log";
 static int (*hooks[NEBCALLBACK_NUMITEMS])(int, void *);
+static int callback_is_tested(int id, const char *caller);
 
 /* variables provided by Nagios and required by module */
 char *config_file = "/opt/monitor/etc/nagios.cfg";
@@ -68,20 +69,6 @@ service *find_service(char *host_name, char *service_description)
 }
 int update_all_status_data(void)
 {
-	return 0;
-}
-
-static int callback_is_tested(int callback_type, const char *caller_func)
-{
-	switch (callback_type) {
-	case NEBCALLBACK_SERVICE_CHECK_DATA:
-	case NEBCALLBACK_HOST_CHECK_DATA:
-	case NEBCALLBACK_DOWNTIME_DATA:
-	case NEBCALLBACK_PROCESS_DATA:
-		return 1;
-	}
-
-	t_fail("%s: Callback %s is not tested", caller_func, callback_name(callback_type));
 	return 0;
 }
 
@@ -677,7 +664,6 @@ static int test_one_module(char *arg)
 
 #define T_ENTRY(cb, func) \
 	{ NEBCALLBACK_##cb##_DATA, #cb, "test_"#func, test_##func }
-
 static struct merlin_test {
 	int callback;
 	const char *cb_name, *funcname;
@@ -689,6 +675,20 @@ static struct merlin_test {
 	T_ENTRY(COMMENT, comment),
 	T_ENTRY(FLAPPING, flapping),
 };
+
+static int callback_is_tested(int id, const char *caller)
+{
+	int i;
+	for (i = 0; i < ARRAY_SIZE(mtest); i++) {
+		if (mtest[i].callback == id) {
+			t_pass("%s: callback %s is tested", caller, callback_name(id));
+			return 1;
+		}
+	}
+
+	t_fail("%s: Callback %s is not tested", caller, callback_name(id));
+	return 0;
+}
 
 int main(int argc, char **argv)
 {
