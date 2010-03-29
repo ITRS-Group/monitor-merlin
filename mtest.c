@@ -86,8 +86,6 @@ int neb_register_callback(int callback_type, void *mod_handle,
 
 int neb_deregister_callback(int callback_type, int (*callback_func)(int, void *))
 {
-	callback_is_tested(callback_type, __func__);
-
 	if (!hooks[callback_type]) {
 		t_fail("%s unregistered from NULL",
 			   callback_name(callback_type));
