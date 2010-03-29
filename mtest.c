@@ -590,6 +590,8 @@ int main(int argc, char **argv)
 
 	t_set_colors(0);
 
+	log_grok_var("log_file", "stdout");
+	log_grok_var("log_level", "warn");
 	if (argc < 2) {
 		crash("No arguments. Wtf??");
 	}
