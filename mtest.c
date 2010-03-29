@@ -682,17 +682,8 @@ int main(int argc, char **argv)
 	for (i = 0; i < NEBCALLBACK_NUMITEMS; i++) {
 		struct hook_info_struct *hi = &hook_info[i];
 
-		if (hi->cb_type != i) {
-			errors++;
-			printf("hook_info for callback %d claims it's for callback %d\n",
-					i, hi->cb_type);
-		}
+		ok_int(hi->cb_type, i, "hook is properly ordered");
 	}
-	if (errors) {
-		printf("%d error(s) in hookinfo struct. Expect coredumps\n", errors);
-		errors = 0;
-	} else {
-		printf("No errors in hookinfo struct ordering\n");
 	}
 
 	while ((fgets(silly_buf, sizeof(silly_buf), stdin))) {
