@@ -1,7 +1,7 @@
 #include "shared.h"
 #include "colors.h"
 const char *red = "", *green = "", *yellow = "", *reset = "";
-uint passed, failed;
+uint passed, failed, t_verbose = 0;
 static uint t_depth;
 static const char *indent_str = "  ";
 
@@ -53,6 +53,8 @@ void t_pass(const char *fmt, ...)
 	va_list ap;
 
 	passed++;
+	if (!t_verbose)
+		return;
 	t_indent(t_depth);
 	printf("%sPASS%s ", green, reset);
 	va_start(ap, fmt);

@@ -2,7 +2,7 @@
 #define INCLUDE_test_utils_h__
 typedef unsigned int uint;
 extern const char *red, *green, *yellow, *reset;
-extern uint passed, failed;
+extern uint passed, failed, t_verbose;
 extern void t_set_colors(int force);
 extern void t_pass(const char *fmt, ...)
 	__attribute__((__format__(__printf__, 1, 2)));
