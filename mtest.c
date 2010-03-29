@@ -680,7 +680,7 @@ int main(int argc, char **argv)
 			opt = argv[i + 1];
 		}
 
-		if (!strcmp(arg, "--module")) {
+		if (!strcmp(arg, "--module") || !strcmp(arg, "-m")) {
 			return test_one_module(opt);
 		}
 		if (!strcmp(arg, "--verbose") || !strcmp(arg, "-v")) {
