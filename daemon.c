@@ -248,7 +248,9 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 			 import_program, cfg, cache,
 			 sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host());
 	if (status && *status) {
-		asprintf(&cmd, "%s --status-log=%s", cmd, status);
+		char *cmd2 = cmd;
+		asprintf(&cmd, "%s --status-log=%s", cmd2, status);
+		free(cmd2);
 	}
 
 	linfo("Executing import command '%s'", cmd);
