@@ -890,6 +890,9 @@ int main(int argc, char **argv)
 		ok_int(hi->cb_type, i, "hook is properly ordered");
 	}
 
+	/* shut valgrind up */
+	memset(&pkt, 0, sizeof(pkt));
+
 	for (i = 0; i < ARRAY_SIZE(mtest); i++) {
 		struct merlin_test *t = &mtest[i];
 		pkt.hdr.type = t->callback;
