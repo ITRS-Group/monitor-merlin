@@ -300,6 +300,8 @@ static void test_flapping(void)
 	zzz();
 	verify_count("set services to not flapping", 0,
 				 "SELECT * FROM service WHERE is_flapping = 1");
+
+	free(orig);
 }
 
 static void test_host_check(void)
@@ -429,6 +431,8 @@ static void test_service_status(void)
 	zzz();
 	verify_count("service status updates db properly", num_services,
 				 "SELECT * FROM service WHERE current_state = 15");
+
+	free(ds);
 	free(orig);
 }
 
@@ -486,6 +490,8 @@ static void test_contact_notification_method(void)
 	zzz();
 	verify_count("Adding service notifications", num_hosts + num_services,
 				 "SELECT * FROM notification");
+
+	free(orig);
 }
 
 static void test_comment(void)
@@ -563,6 +569,8 @@ static void test_comment(void)
 	}
 	zzz();
 	verify_count("removing service comments", 0, "SELECT * FROM comment");
+
+	free(orig);
 }
 
 static void test_downtime(void)
@@ -722,6 +730,7 @@ static void grok_config(char *path)
 		crash("Failed to parse config from '%s'\n", path);
 
 	grok_cfg_compound(config, 0);
+	cfg_destroy_compound(config);
 }
 
 static void check_callbacks(void)
