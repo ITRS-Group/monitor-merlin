@@ -9,7 +9,6 @@ extern const char *__progname;
 static const char *pidfile, *merlin_user;
 static char *import_program;
 int default_port = 15551;
-static size_t hosts, services;
 static int import_running = 0;
 
 static void usage(char *fmt, ...)
@@ -545,9 +544,6 @@ int main(int argc, char **argv)
 	signal(SIGINT, clean_exit);
 	signal(SIGTERM, clean_exit);
 	signal(SIGPIPE, dump_core);
-	prime_object_states(&hosts, &services);
-	linfo("Primed object states for %zu hosts and %zu services",
-		  hosts, services);
 	linfo("Merlin daemon %s successfully initialized", merlin_version);
 	polling_loop();
 
