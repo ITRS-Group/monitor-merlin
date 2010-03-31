@@ -544,6 +544,7 @@ int main(int argc, char **argv)
 	signal(SIGINT, clean_exit);
 	signal(SIGTERM, clean_exit);
 	signal(SIGPIPE, dump_core);
+	sql_init();
 	linfo("Merlin daemon %s successfully initialized", merlin_version);
 	polling_loop();
 
