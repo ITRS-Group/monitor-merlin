@@ -250,14 +250,11 @@ static int handle_downtime(const nebstruct_downtime_data *p)
 		result = sql_query("DELETE FROM %s.scheduled_downtime "
 						   "WHERE downtime_id = %lu",
 						   sql_db_name(), p->downtime_id);
-		if (p->start_time > time(NULL))
-			return result;
+		return result;
 	}
 
-	if (p->type != NEBTYPE_DOWNTIME_DELETE) {
-		sql_quote(p->host_name, &host_name);
-		sql_quote(p->service_description, &service_description);
-	}
+	sql_quote(p->host_name, &host_name);
+	sql_quote(p->service_description, &service_description);
 
 	switch (p->type) {
 	case NEBTYPE_DOWNTIME_START:
@@ -302,17 +299,12 @@ static int handle_downtime(const nebstruct_downtime_data *p)
 		free(author_name);
 		free(comment_data);
 		break;
-	case NEBTYPE_DOWNTIME_DELETE:
-		result = sql_query
-			("DELETE FROM %s.scheduled_downtime WHERE downtime_id = %lu",
-			 sql_db_name(), p->downtime_id);
-		break;
 	default:
 		linfo("Unknown downtime type %d", p->type);
 		break;
 	}
 
-	safe_free(host_name);
+	free(host_name);
 	safe_free(service_description);
 
 	return result;
