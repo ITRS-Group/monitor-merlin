@@ -100,7 +100,8 @@ class nagios_object_importer
 		 'hoststatus' => 'host', 'servicestatus' => 'service',
 		 'contactstatus' => 'contact',
 		 'hostcomment' => 'comment', 'servicecomment' => 'comment',
-		 'hostdowntime' => 'downtime', 'servicedowntime' => 'downtime');
+		 'hostdowntime' => 'scheduled_downtime',
+		 'servicedowntime' => 'scheduled_downtime');
 
 	# allowed variables for each object
 	private $allowed_vars = array();
