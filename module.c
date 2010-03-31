@@ -430,7 +430,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
  */
 int nebmodule_deinit(int flags, int reason)
 {
-	linfo("Unloading Monitor Redundancy Module");
+	linfo("Unloading Merlin module");
 
 	log_deinit();
 	ipc_deinit();
