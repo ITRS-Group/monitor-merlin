@@ -90,6 +90,8 @@ class nagios_object_importer
 		 'timeperiod',
 		 'timeperiod_exclude',
 		 'custom_vars',
+		 'scheduled_downtime',
+		 'comment',
 		 );
 
 	# conversion table for variable names
