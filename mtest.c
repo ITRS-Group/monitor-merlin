@@ -255,7 +255,6 @@ static void test_flapping(void)
 
 	orig->flapping_type = HOST_FLAPPING;
 	orig->type = NEBTYPE_FLAPPING_START;
-	pkt.hdr.type = NEBCALLBACK_FLAPPING_DATA;
 	for (i = 0; i < num_hosts; i++) {
 		orig->host_name = hosts[i].name;
 		mod = blk_prep(orig);
@@ -317,7 +316,6 @@ static void test_host_check(void)
 	 * first we set an arbitrary state, and then we check how many
 	 * rows have the state we've set
 	 */
-	pkt.hdr.type = NEBCALLBACK_HOST_CHECK_DATA;
 	sql_query("UPDATE host SET current_state = 155");
 	orig->type = NEBTYPE_HOSTCHECK_PROCESSED;
 	for (i = 0; i < num_hosts; i++) {
@@ -345,7 +343,6 @@ static void test_service_check(void)
 	gettimeofday(&orig->end_time, NULL);
 
 	mod->type = NEBTYPE_SERVICECHECK_PROCESSED;
-	pkt.hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
 	for (i = 0; i < num_services; i++) {
 		service *s = &services[i];
 		orig->host_name = s->host_name;
@@ -376,7 +373,6 @@ static void test_host_status(void)
 	 * first we set an arbitrary state, and then we check how many
 	 * rows have the state we've set
 	 */
-	pkt.hdr.type = NEBCALLBACK_HOST_STATUS_DATA;
 	for (i = 0; i < num_hosts; i++) {
 		host *h = &hosts[i];
 
@@ -408,7 +404,6 @@ static void test_service_status(void)
 
 	orig = calloc(1, sizeof(*orig));
 	ds = calloc(1, sizeof(*ds));
-	pkt.hdr.type = NEBCALLBACK_SERVICE_STATUS_DATA;
 	for (i = 0; i < num_services; i++) {
 		service *s = &services[i];
 
@@ -453,8 +448,6 @@ static void test_contact_notification_method(void)
 	gettimeofday(&orig->start_time, NULL);
 	gettimeofday(&orig->end_time, NULL);
 	orig->type = NEBTYPE_CONTACTNOTIFICATIONMETHOD_END;
-
-	pkt.hdr.type = NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA;
 
 	sql_query("TRUNCATE notification");
 	/* test setting all hosts to flapping state */
@@ -508,7 +501,6 @@ static void test_comment(void)
 
 	/* set up for testing comments for all hosts and services */
 	sql_query("TRUNCATE comment");
-	pkt.hdr.type = NEBCALLBACK_COMMENT_DATA;
 
 	/* test adding comments for all hosts */
 	orig->type = NEBTYPE_COMMENT_ADD;
@@ -581,7 +573,6 @@ static void test_downtime(void)
 	orig = calloc(1, sizeof(*orig));
 	orig->author_name = AUTHOR_NAME;
 	orig->comment_data = COMMENT_DATA;
-	pkt.hdr.type = NEBCALLBACK_DOWNTIME_DATA;
 
 	sql_query("TRUNCATE scheduled_downtime");
 	/* test adding downtime for all hosts */
@@ -895,6 +886,7 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < ARRAY_SIZE(mtest); i++) {
 		struct merlin_test *t = &mtest[i];
+
 		pkt.hdr.type = t->callback;
 
 		zzz();
