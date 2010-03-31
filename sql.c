@@ -153,6 +153,10 @@ int sql_vquery(const char *fmt, va_list ap)
 		case DBI_ERROR_NONE:
 			break;
 
+		case 1062:
+			if (!strcmp(db.type, "mysql"))
+				break;
+
 		default:
 			linfo("Attempting to reconnect to database and re-run the query");
 			if (!sql_reinit()) {
