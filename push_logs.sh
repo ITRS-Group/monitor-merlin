@@ -54,7 +54,5 @@ trap "rm -f $tmpfile $tmpfile.gz" 0 1 2 3 15
 tmpfile="$tmpfile.gz"
 
 dest_name="/opt/monitor/pushed_logs/$(hostname).$last_sent-$cur_sent.log.gz"
-chown monitor $tmpfile
-su - monitor -c \
-	"scp -i $ssh_key $tmpfile monitor@$master:$dest_name" && \
+	scp -i $ssh_key $tmpfile monitor@$master:$dest_name && \
 		echo "$cur_sent" > "$last_sent_file"

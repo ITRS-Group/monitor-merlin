@@ -60,6 +60,21 @@ Configuring merlin is pretty straight-forward. Check the example.conf
 file that accompanies this release and you'll see most of the common
 examples available.
 
+The syntax is fairly standard, being made up of a key without
+spaces and a value containing arbitrary characters (although no
+semi-colons). A configuration statement is terminated either by a
+newline or a semi-colon. A configuration statement starting with a
+hash-character (#) is considered a comment. Thus,
+
+  key = value; # comment
+
+makes "key" the key, "value" the value, terminated by the semi-colon,
+and "# comment" all of the comment.
+Leading and trailing whitespace is ignored. You can create key+value
+pairs without the equality sign if you want, but I wouldn't recommend
+it (it just happened to be how I wrote the config parsing library) as
+it looks a tad unfinished that way.
+
 The thing it doesn't really cover very well is how to configure nocs,
 peers and pollers, which is described more in-depth here.
 
@@ -74,7 +89,7 @@ port 15551 (the default).
 On nagios1, add the following section to your merlin.conf file:
   --------------
   peer nagios2 {
-    address = 192.168.1.2
+    address = 192.168.1.2;
     port = 15551; # optional, since 15551 is the default
   }
   --------------
@@ -82,7 +97,7 @@ On nagios1, add the following section to your merlin.conf file:
 On nagios2, add the following section to your merlin.conf file:
   --------------
   peer nagios1 {
-    address = 192.168.1.1
+    address = 192.168.1.1;
     port = 15551; # optional, since 15551 is the default
   }
   --------------
@@ -96,8 +111,8 @@ following sections to your merlin.conf files.
 On nagios1 (the "master" server), add the following section:
   --------------
   poller nagios2 {
-    address = 192.168.1.2
-	port = 15551
+    address = 192.168.1.2;
+	port = 15551;
 	hostgroup = germany-hosts; # name of the hostgroup containing all
 	                           # the hosts you want this poller to check
   }
@@ -106,8 +121,8 @@ On nagios1 (the "master" server), add the following section:
 On nagios2 (the slave server), add the following section:
   --------------
   noc nagios1 {
-    address = 192.168.1.1
-	port = 15551
+    address = 192.168.1.1;
+	port = 15551;
   }
   --------------
 

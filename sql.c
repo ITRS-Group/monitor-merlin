@@ -16,8 +16,10 @@ static struct {
 	unsigned int port;
 	dbi_conn conn;
 	dbi_result result;
+	dbi_driver driver;
 } db;
 
+int use_database = 0;
 static time_t last_connect_attempt = 0;
 
 #undef ESC_BUFSIZE
@@ -32,12 +34,21 @@ static time_t last_connect_attempt = 0;
  */
 size_t sql_quote(const char *src, char **dst)
 {
-	if (!src) {
+	int ret;
+
+	if (!src || !*src) {
 		*dst = NULL;
 		return 0;
 	}
 
-	return dbi_conn_quote_string_copy(db.conn, src, dst);
+	ret = dbi_conn_quote_string_copy(db.conn, src, dst);
+	if (!ret) {
+		lerr("Failed to quote and copy string at %p to %p",
+			 src, dst);
+		lerr("Source string: '%s'", src);
+		*dst = NULL;
+	}
+	return ret;
 }
 
 
@@ -99,11 +110,13 @@ static int run_query(const char *query, int len)
 	return 0;
 }
 
-int sql_query(const char *fmt, ...)
+int sql_vquery(const char *fmt, va_list ap)
 {
-	char *query;
 	int len, db_error;
-	va_list ap;
+	char *query;
+
+	if (!fmt)
+		return 0;
 
 	if (!use_database) {
 		lerr("Not using a database, but daemon still issued a query");
@@ -117,12 +130,12 @@ int sql_query(const char *fmt, ...)
 	if (last_connect_attempt + 30 > time(NULL) && !sql_is_connected())
 		return -1;
 
-	va_start(ap, fmt);
-	len = vasprintf(&query, fmt, ap);
-	va_end(ap);
+	/* free any leftover result and run the new query */
+	sql_free_result();
 
+	len = vasprintf(&query, fmt, ap);
 	if (len == -1 || !query) {
-		linfo("sql_query: Failed to build query from format-string '%s'", fmt);
+		lerr("sql_query: Failed to build query from format-string '%s'", fmt);
 		return -1;
 	}
 
@@ -140,6 +153,10 @@ int sql_query(const char *fmt, ...)
 		case DBI_ERROR_NONE:
 			break;
 
+		case 1062:
+			if (!strcmp(db.type, "mysql"))
+				break;
+
 		default:
 			linfo("Attempting to reconnect to database and re-run the query");
 			if (!sql_reinit()) {
@@ -153,6 +170,18 @@ int sql_query(const char *fmt, ...)
 	free(query);
 
 	return !!db.result;
+}
+
+int sql_query(const char *fmt, ...)
+{
+	int ret;
+	va_list ap;
+
+	va_start(ap, fmt);
+	ret = sql_vquery(fmt, ap);
+	va_end(ap);
+
+	return ret;
 }
 
 int sql_is_connected()
@@ -169,12 +198,18 @@ int sql_is_connected()
 int sql_init(void)
 {
 	int result;
-	dbi_driver driver = NULL;
 
 	if (!use_database)
 		return 0;
 
-	if (!driver) {
+	if (last_connect_attempt + 30 >= time(NULL))
+		return -1;
+	last_connect_attempt = time(NULL);
+
+	/* free any remaining result set */
+	sql_free_result();
+
+	if (!db.driver) {
 		result = dbi_initialize(NULL);
 		if (result < 1) {
 			lerr("Failed to initialize any libdbi drivers");
@@ -184,14 +219,14 @@ int sql_init(void)
 		if (!db.type)
 			db.type = "mysql";
 
-		driver = dbi_driver_open(db.type);
-		if (!driver) {
+		db.driver = dbi_driver_open(db.type);
+		if (!db.driver) {
 			lerr("Failed to open libdbi driver '%s'", db.type);
 			return -1;
 		}
 	}
 
-	db.conn = dbi_conn_open(driver);
+	db.conn = dbi_conn_open(db.driver);
 	if (!db.conn) {
 		lerr("Failed to create a database connection instance");
 		return -1;
@@ -211,13 +246,10 @@ int sql_init(void)
 	if (dbi_conn_connect(db.conn) < 0) {
 		const char *error_msg;
 		sql_error(&error_msg);
-		if (last_connect_attempt + 30 <= time(NULL)) {
-			lerr("Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
-			     db.name, db.host, db.port, db.user, db.pass, error_msg);
-			last_connect_attempt = time(NULL);
-		}
+		lerr("Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
+			 db.name, db.host, db.port, db.user, db.pass, error_msg);
 
-		db.conn = NULL;
+		sql_close();
 		return -1;
 	}
 
@@ -232,10 +264,11 @@ int sql_close(void)
 	if (!use_database)
 		return 0;
 
+	sql_free_result();
+
 	if (db.conn)
 		dbi_conn_close(db.conn);
 
-	dbi_shutdown();
 	db.conn = NULL;
 	return 0;
 }

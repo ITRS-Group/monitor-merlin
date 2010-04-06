@@ -104,12 +104,26 @@ for ($i = 1; $i < $argc; $i++) {
 	}
 }
 
-if ($nagios_cfg && !$status_log) {
+# sensible defaults for op5 systems
+if (!$nagios_cfg && !$cache && !$status_log) {
+	$nagios_cfg = "/opt/monitor/etc/nagios.cfg";
+}
+
+$config = false;
+if ($nagios_cfg) {
 	$config = read_nagios_cfg($nagios_cfg);
-	if (isset($config['status_file']))
-		$status_log = $config['status_file'];
-	elseif (isset($config['xsddefault_status_file']))
-		$status_log = $config['xsddefault_status_file'];
+}
+
+if (!empty($config)) {
+	if (!$cache && isset($config['object_cache_file'])) {
+		$cache = $config['object_cache_file'];
+	}
+	if (!$status_log) {
+		if (isset($config['status_file']))
+			$status_log = $config['status_file'];
+		elseif (isset($config['xsddefault_status_file']))
+			$status_log = $config['xsddefault_status_file'];
+	}
 }
 
 $imp->prepare_import();
@@ -117,6 +131,10 @@ $imp->prepare_import();
 if (!$cache && !$status_log)
 	usage("Neither --cache nor --status-log given.\nImporting nothing\n");
 
+if (!$dry_run) {
+	echo "Disabling indexes\n";
+	$imp->disable_indexes();
+}
 echo "Importing objects to database $imp->db_database\n";
 if ($cache) {
 	echo "importing objects from $cache\n";
@@ -128,6 +146,10 @@ if ($status_log) {
 	echo "importing status from $status_log\n";
 	if (!$dry_run)
 		$imp->import_objects_from_cache($status_log);
+}
+if (!$dry_run) {
+	echo "Enabling indexes\n";
+	$imp->enable_indexes();
 }
 
 if (!$dry_run)

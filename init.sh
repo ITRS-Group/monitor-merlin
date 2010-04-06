@@ -15,6 +15,7 @@
 ### END INIT INFO
 
 
+ulimit -c unlimited
 prog=merlind
 BINDIR=@@DESTDIR@@
 CONFIG_FILE=@@DESTDIR@@/merlin.conf

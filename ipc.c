@@ -254,7 +254,7 @@ int ipc_init(void)
 		if (errno == EISCONN)
 			return 0;
 		if (last_connect_attempt + 30 <= time(NULL)) {
-			lerr("Failed to connect to ipc socket (%d): %s", errno, strerror(errno));
+			lerr("Failed to connect to ipc socket '%s': %s", ipc_sock_path, strerror(errno));
 			last_connect_attempt = time(NULL);
 		}
 		ipc_deinit();
@@ -271,7 +271,7 @@ int ipc_init(void)
 	set_socket_buffers(ipc_sock);
 
 	/* let everybody know we're alive and active */
-	linfo("Shoutcasting active status through IPC socket");
+	linfo("Shoutcasting active status through IPC socket %s", ipc_sock_path);
 	ipc_send_ctrl(CTRL_ACTIVE, -1);
 
 	if (on_connect) {

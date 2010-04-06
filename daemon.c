@@ -6,11 +6,9 @@
 
 extern const char *__progname;
 
-int use_database;
 static const char *pidfile, *merlin_user;
 static char *import_program;
 int default_port = 15551;
-static size_t hosts, services;
 static int import_running = 0;
 
 static void usage(char *fmt, ...)
@@ -189,7 +187,7 @@ static int grok_config(char *path)
 		struct cfg_comp *c = config->nest[i];
 		merlin_node *node;
 
-		if (!prefixcmp(c->name, "module"))
+		if (!prefixcmp(c->name, "module") || !prefixcmp(c->name, "test"))
 			continue;
 
 		if (!prefixcmp(c->name, "daemon")) {
@@ -235,8 +233,8 @@ static int grok_config(char *path)
 /** FIXME: this is fugly and lacks error checking */
 static int import_objects_and_status(char *cfg, char *cache, char *status)
 {
-	char *cmd = NULL, *cmd2 = NULL;
-	int result, pid;
+	char *cmd;
+	int result = 0, pid;
 
 	/* don't bother if we're not using a datbase */
 	if (!use_database)
@@ -258,9 +256,9 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 			 import_program, cfg, cache,
 			 sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host());
 	if (status && *status) {
-		asprintf(&cmd2, "%s --status-log=%s", cmd, status);
-		free(cmd);
-		cmd=cmd2;
+		char *cmd2 = cmd;
+		asprintf(&cmd, "%s --status-log=%s", cmd2, status);
+		free(cmd2);
 	}
 
 	linfo("Executing import command '%s'", cmd);
@@ -556,9 +554,7 @@ int main(int argc, char **argv)
 	signal(SIGINT, clean_exit);
 	signal(SIGTERM, clean_exit);
 	signal(SIGPIPE, dump_core);
-	prime_object_states(&hosts, &services);
-	linfo("Primed object states for %zu hosts and %zu services",
-		  hosts, services);
+	sql_init();
 	linfo("Merlin daemon %s successfully initialized", merlin_version);
 	polling_loop();
 

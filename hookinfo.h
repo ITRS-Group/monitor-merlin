@@ -19,7 +19,7 @@
 static struct hook_info_struct {
 	int cb_type;
 	int strings;
-	off_t offset, ptrs[6];
+	off_t offset, ptrs[7];
 } hook_info[NEBCALLBACK_NUMITEMS] = {
 	{ NEBCALLBACK_RESERVED0, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_RESERVED1, 0, 0, { 0, 0, 0, 0, 0 }, },
@@ -154,7 +154,17 @@ static struct hook_info_struct {
 			offsetof(nebstruct_contact_notification_data, ack_data),
 		},
 	},
-	{ NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
+	{ NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, 7, sizeof(nebstruct_contact_notification_method_data),
+		{
+			offsetof(nebstruct_contact_notification_method_data, host_name),
+			offsetof(nebstruct_contact_notification_method_data, service_description),
+			offsetof(nebstruct_contact_notification_method_data, contact_name),
+			offsetof(nebstruct_contact_notification_method_data, command_name),
+			offsetof(nebstruct_contact_notification_method_data, output),
+			offsetof(nebstruct_contact_notification_method_data, ack_author),
+			offsetof(nebstruct_contact_notification_method_data, ack_data),
+		},
+	},
 	{ NEBCALLBACK_ACKNOWLEDGEMENT_DATA, 4, sizeof(nebstruct_acknowledgement_data),
 		{
 			offsetof(nebstruct_acknowledgement_data, host_name),

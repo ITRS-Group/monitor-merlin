@@ -2,7 +2,7 @@
 #define INCLUDE_sql_h__
 
 #include <dbi/dbi.h>
-
+#include <stdarg.h>
 #define prefixcmp(a, b) strncmp(a, b, strlen(b))
 
 typedef dbi_result SQL_RESULT;
@@ -19,6 +19,7 @@ extern int sql_errno(void);
 extern void sql_free_result(void);
 extern int sql_query(const char *fmt, ...)
 	__attribute__((__format__(__printf__, 1, 2)));
+extern int sql_vquery(const char *fmt, va_list ap);
 extern dbi_result sql_get_result(void);
 extern const char *sql_table_name(void);
 extern const char *sql_db_name(void);

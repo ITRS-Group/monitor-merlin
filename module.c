@@ -377,10 +377,12 @@ int send_paths(void)
 	pkt.hdr.selection = 0;
 
 	result = ipc_send_event(&pkt);
-	if (result == packet_size(&pkt))
+	if (result == packet_size(&pkt)) {
 		merlin_should_send_paths = 0;
+		return 0;
+	}
 
-	return result;
+	return -1;
 }
 
 static int mark_paths_unsent(void)
@@ -453,7 +455,9 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 
 	neb_handle = (void *)handle;
 
-	read_config(arg);
+	/* if we're linked with mtest we needn't parse the configuration */
+	if (flags != -1 && arg != NULL)
+		read_config(arg);
 
 	linfo("Merlin Module Loaded");
 
@@ -470,7 +474,8 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 
 	linfo("Coredumps in %s", home);
 	signal(SIGSEGV, SIG_DFL);
-	chdir(home);
+	if (flags != -1 || arg != NULL || handle != NULL)
+		chdir(home);
 
 	/* this gets de-registered immediately, so we need to add it manually */
 	neb_register_callback(NEBCALLBACK_PROCESS_DATA, neb_handle, 0, post_config_init);
@@ -489,7 +494,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
  */
 int nebmodule_deinit(int flags, int reason)
 {
-	linfo("Unloading Monitor Redundancy Module");
+	linfo("Unloading Merlin module");
 
 	log_deinit();
 	ipc_deinit();

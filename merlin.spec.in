@@ -100,6 +100,9 @@ sh /etc/init.d/monitor start || :
 /etc/init.d/merlind
 %dir %mod_path/logs
 
+%clean
+rm -rf %buildroot
+
 %changelog
 * Tue Mar 17 2009 Andreas Ericsson <ae@op5.se>
 - Initial specfile creation.

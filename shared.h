@@ -178,4 +178,8 @@ static inline int blockify_event(merlin_event *pkt, void *data)
 {
 	return blockify(data, pkt->hdr.type, pkt->body, sizeof(pkt->body));
 }
+static inline int deblockify_event(merlin_event *pkt)
+{
+	return deblockify(pkt->body, sizeof(pkt->body), pkt->hdr.type);
+}
 #endif

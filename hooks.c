@@ -128,6 +128,17 @@ static int hook_contact_notification(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
+static int hook_contact_notification_method(merlin_event *pkt, void *data)
+{
+	nebstruct_contact_notification_method_data *ds =
+		(nebstruct_contact_notification_method_data *)data;
+
+	if (ds->type != NEBTYPE_CONTACTNOTIFICATIONMETHOD_END)
+		return 0;
+
+	return send_generic(pkt, data);
+}
+
 static int hook_notification(merlin_event *pkt, void *data)
 {
 	nebstruct_notification_data *ds = (nebstruct_notification_data *)data;
@@ -143,7 +154,13 @@ int merlin_mod_hook(int cb, void *data)
 	merlin_event pkt;
 	int result = 0;
 
-	memset(&pkt, 0, sizeof(pkt));
+	if (!data) {
+		lerr("eventbroker module called with NULL data");
+		return -1;
+	} else if (cb < 0 || cb > NEBCALLBACK_NUMITEMS) {
+		lerr("merlin_mod_hook() called with invalid callback id");
+		return -1;
+	}
 
 	if (!ipc_is_connected(0)) {
 		/* use backlog here */
@@ -176,16 +193,9 @@ int merlin_mod_hook(int cb, void *data)
 		}
 	}
 
-	if (!data) {
-		lerr("eventbroker module called with NULL data");
-		return -1;
-	} else if (cb < 0 || cb > NEBCALLBACK_NUMITEMS) {
-		lerr("merlin_mod_hook() called with invalid callback id");
-		return -1;
-	}
-
 	ldebug("Processing callback %s", callback_name(cb));
 
+	memset(&pkt, 0, sizeof(pkt));
 	pkt.hdr.type = cb;
 	pkt.hdr.selection = 0xffff;
 	switch (cb) {
@@ -195,6 +205,10 @@ int merlin_mod_hook(int cb, void *data)
 
 	case NEBCALLBACK_CONTACT_NOTIFICATION_DATA:
 		result = hook_contact_notification(&pkt, data);
+		break;
+
+	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
+		result = hook_contact_notification_method(&pkt, data);
 		break;
 
 	case NEBCALLBACK_HOST_CHECK_DATA:
@@ -246,8 +260,10 @@ static struct callback_struct {
 	CB_ENTRY(0, NEBCALLBACK_LOG_DATA, hook_generic),
 	CB_ENTRY(1, NEBCALLBACK_SYSTEM_COMMAND_DATA, hook_generic),
 	CB_ENTRY(1, NEBCALLBACK_EVENT_HANDLER_DATA, hook_generic),
-*/	CB_ENTRY(0, NEBCALLBACK_NOTIFICATION_DATA, hook_notification),
+	CB_ENTRY(0, NEBCALLBACK_NOTIFICATION_DATA, hook_notification),
 	CB_ENTRY(0, NEBCALLBACK_CONTACT_NOTIFICATION_DATA, hook_contact_notification),
+ */
+	CB_ENTRY(0, NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, hook_contact_notification_method),
 
 /*	CB_ENTRY(1, NEBCALLBACK_SERVICE_CHECK_DATA, hook_service_result),
 	CB_ENTRY(1, NEBCALLBACK_HOST_CHECK_DATA, hook_host_result),

@@ -1,13 +1,8 @@
 #include "shared.h"
 
-#define LOGERR 1
-#define LOGWARN 2
-#define LOGINFO 4
-#define LOGDEBUG 8
-
 static FILE *log_fp;
 static char *log_file;
-static int log_opts = LOGERR | LOGWARN | LOGINFO;
+static int log_levels = (1 << LOG_ERR) | (1 << LOG_WARNING) | (1 << LOG_INFO);
 
 int log_grok_var(char *var, char *val)
 {
@@ -20,14 +15,14 @@ int log_grok_var(char *var, char *val)
 			int val;
 		} opt_codes[] = {
 			{ "all", -1 },
-			{ "err", LOGERR },
-			{ "warn", LOGWARN },
-			{ "info", LOGINFO },
-			{ "debug", LOGDEBUG },
+			{ "err", 1 << LOG_ERR },
+			{ "warn", 1 << LOG_WARNING },
+			{ "info", 1 << LOG_INFO },
+			{ "debug", 1 << LOG_DEBUG },
 		};
 		char *p = val;
 
-		log_opts = 0;
+		log_levels = 0;
 
 		for (p = val; p && *p; p = next_word(p)) {
 			int i, mod = 0;
@@ -42,12 +37,12 @@ int log_grok_var(char *var, char *val)
 					return 0;
 
 				if (!prefixcmp(p, opt)) {
-					log_opts |= opt_codes[i].val;
+					log_levels |= opt_codes[i].val;
 					if (!mod) /* not '+' or '-', so add all levels below it */
-						log_opts |= opt_codes[i].val - 1;
+						log_levels |= opt_codes[i].val - 1;
 
 					if (mod == '-') /* remove one level */
-						log_opts = log_opts & ~opt_codes[i].val;
+						log_levels = log_levels & ~opt_codes[i].val;
 				}
 			}
 		}
@@ -102,6 +97,11 @@ void log_msg(int severity, const char *fmt, ...)
 	va_list ap;
 	int len;
 
+	/* return early if we shouldn't log stuff of this severity */
+	if (!((1 << severity) & log_levels)) {
+		return;
+	}
+
 	if (!log_fp)
 		log_init();
 	if (!log_fp)
@@ -120,11 +120,24 @@ void log_msg(int severity, const char *fmt, ...)
 
 void log_event_count(const char *prefix, merlin_event_counter *cnt, float t)
 {
-	log_msg(LOGINFO, "Handled %lld '%s' events in %.3f seconds in: %lld, out: %lld",
-	        cnt->read + cnt->sent + cnt->dropped + cnt->logged, prefix, t,
-	        cnt->read, cnt->sent + cnt->dropped + cnt->logged);
+	static time_t last_logged = 0;
+	time_t now;
+
+	/*
+	 * This works like a 'mark' that syslogd produces. We log once
+	 * every 60 seconds
+	 */
+	now = time(NULL);
+	if (last_logged + 60 > now)
+		return;
+
+	last_logged = now;
+
+	linfo("Handled %lld '%s' events in %.3f seconds in: %lld, out: %lld",
+	      cnt->read + cnt->sent + cnt->dropped + cnt->logged, prefix, t,
+	      cnt->read, cnt->sent + cnt->dropped + cnt->logged);
 	if (!(cnt->sent + cnt->dropped + cnt->logged))
 		return;
-	log_msg(LOGINFO, "'%s' event details: read %lld, sent %lld, dropped %lld, logged %lld",
-	        prefix, cnt->read, cnt->sent, cnt->dropped, cnt->logged);
+	linfo("'%s' event details: read %lld, sent %lld, dropped %lld, logged %lld",
+	      prefix, cnt->read, cnt->sent, cnt->dropped, cnt->logged);
 }

@@ -3,26 +3,13 @@ SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 -- Database design for the merlin database
 --
 
-DROP TABLE IF EXISTS downtime;
-CREATE TABLE downtime(
-	id						int NOT NULL PRIMARY KEY AUTO_INCREMENT,
-	downtime_id				int NOT NULL,
-	instance_id				int NOT NULL DEFAULT 0,
-	host_name				varchar(255),
-	service_description		varchar(255),
-	entry_time				int(11),
-	start_time				int(11),
-	end_time				int(11),
-	triggered_by			int,
-	fixed					int,
-	duration				int(11),
-	author					varchar(255) NOT NULL DEFAULT '',
-	comment					text,
-	KEY host_name(host_name),
-	KEY service(host_name, service_description),
-	KEY end_time(end_time),
-	KEY downtime_id(downtime_id)
-) COLLATE latin1_general_cs;
+DROP TABLE IF EXISTS contact_access;
+CREATE TABLE contact_access(
+	contact			int,
+	host			int,
+	service			int,
+	KEY contact(contact)
+);
 
 DROP TABLE IF EXISTS notification;
 CREATE TABLE notification(
@@ -34,6 +21,7 @@ CREATE TABLE notification(
 	contact_name			varchar(255),
 	host_name				varchar(255),
 	service_description		varchar(255),
+	command_name			varchar(255),
 	reason_type				int,
 	state					int,
 	output					text,
@@ -76,6 +64,9 @@ CREATE TABLE program_status(
 	global_service_event_handler	text
 ) COLLATE latin1_general_cs;
 INSERT INTO program_status(instance_id, instance_name) VALUES(0, "Local Nagios/Merlin Instance");
+
+-- removed. scheduled_downtime is the one we use
+DROP TABLE IF EXISTS downtime;
 
 DROP TABLE IF EXISTS scheduled_downtime;
 CREATE TABLE scheduled_downtime(
@@ -596,7 +587,7 @@ DROP TABLE IF EXISTS `db_version`;
 CREATE TABLE `db_version` (
   `version` int(11)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-INSERT INTO db_version(version) VALUES(1);
+INSERT INTO db_version(version) VALUES(2);
 
 DROP TABLE IF EXISTS `report_data`;
 CREATE TABLE `report_data` (

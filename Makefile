@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -O2 -pipe -Wall -ggdb3 -fPIC
+CFLAGS = -O2 -pipe -Wall -ggdb3 -fPIC -fno-strict-aliasing
 SHARED_OBJS = cfgfile.o ipc.o shared.o io.o protocol.o data.o binlog.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
 COMMON_OBJS = version.o logging.o $(SHARED_OBJS)
@@ -14,6 +14,7 @@ PROG = $(DSO)d
 NEB = $(DSO).so
 MOD_LDFLAGS = -shared -ggdb3 -fPIC
 DAEMON_LDFLAGS = -ldbi -ggdb3
+MTEST_LDFLAGS = -ldbi -ggdb3 -ldl -rdynamic -Wl,-export-dynamic
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
 
@@ -22,7 +23,7 @@ ifndef V
 	QUIET_LINK  = @echo '   ' LINK $@;
 endif
 
-all: $(NEB) $(PROG)
+all: $(NEB) $(PROG) mtest
 
 install: all
 	@echo "Installing to $(DESTDIR)"
@@ -31,8 +32,8 @@ install: all
 check:
 	@for i in *.c; do sparse $(CFLAGS) $(SPARSE_FLAGS) $$i 2>&1; done | grep -v /usr/include
 
-blktest: blktest.o $(TEST_OBJS) $(TEST_DEPS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) $^ -o $@
+mtest: mtest.o $(TEST_OBJS) $(TEST_DEPS) sql.o hooks.o hash.o module.o control.o version.o logging.o
+	$(QUIET_LINK)$(CC) $^ -o $@ $(MTEST_LDFLAGS)
 
 $(PROG): $(DAEMON_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $(LIBS) $^ -o $@

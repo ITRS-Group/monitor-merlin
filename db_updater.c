@@ -243,20 +243,18 @@ static int handle_program_status(const nebstruct_program_status_data *p)
 static int handle_downtime(const nebstruct_downtime_data *p)
 {
 	int result = 0;
-	char *host_name, *service_description, *comment_data, *author_name;
+	char *host_name = NULL, *service_description = NULL;
+	char *comment_data = NULL, *author_name = NULL;
 
 	if (p->type == NEBTYPE_DOWNTIME_DELETE) {
 		result = sql_query("DELETE FROM %s.scheduled_downtime "
 						   "WHERE downtime_id = %lu",
 						   sql_db_name(), p->downtime_id);
-		if (p->start_time > time(NULL))
-			return result;
+		return result;
 	}
 
-	if (p->type != NEBTYPE_DOWNTIME_DELETE) {
-		sql_quote(p->host_name, &host_name);
-		sql_quote(p->service_description, &service_description);
-	}
+	sql_quote(p->host_name, &host_name);
+	sql_quote(p->service_description, &service_description);
 
 	switch (p->type) {
 	case NEBTYPE_DOWNTIME_START:
@@ -301,17 +299,12 @@ static int handle_downtime(const nebstruct_downtime_data *p)
 		free(author_name);
 		free(comment_data);
 		break;
-	case NEBTYPE_DOWNTIME_DELETE:
-		result = sql_query
-			("DELETE FROM %s.scheduled_downtime WHERE downtime_id = %lu",
-			 sql_db_name(), p->downtime_id);
-		break;
 	default:
 		linfo("Unknown downtime type %d", p->type);
 		break;
 	}
 
-	safe_free(host_name);
+	free(host_name);
 	safe_free(service_description);
 
 	return result;
@@ -321,9 +314,18 @@ static int handle_flapping(const nebstruct_flapping_data *p)
 {
 	int result;
 	char *host_name, *service_description = NULL;
+	unsigned long comment_id;
 
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->service_description, &service_description);
+
+	if (p->type == NEBTYPE_FLAPPING_STOP) {
+		sql_query("DELETE FROM comment WHERE comment_id = '%lu'",
+				  p->comment_id);
+		comment_id = 0;
+	} else {
+		comment_id = p->comment_id;
+	}
 
 	if (service_description) {
 		result = sql_query
@@ -332,8 +334,8 @@ static int handle_flapping(const nebstruct_flapping_data *p)
 			 "WHERE host_name = %s AND service_description = %s",
 			 sql_db_name(),
 			 p->type == NEBTYPE_FLAPPING_START,
-			 p->comment_id, p->percent_change,
-			 host_name, safe_str(service_description));
+			 comment_id, p->percent_change,
+			 host_name, service_description);
 		free(service_description);
 	} else {
 		result = sql_query
@@ -341,7 +343,7 @@ static int handle_flapping(const nebstruct_flapping_data *p)
 			 "flapping_comment_id = %lu, percent_state_change = %f "
 			 "WHERE host_name = %s",
 			 sql_db_name(), p->type == NEBTYPE_FLAPPING_START,
-			 p->comment_id, p->percent_change, host_name);
+			 comment_id, p->percent_change, host_name);
 	}
 
 	free(host_name);
@@ -387,6 +389,7 @@ static int handle_comment(const nebstruct_comment_data *p)
 
 static int handle_contact_notification(const nebstruct_contact_notification_data *p)
 {
+	int result;
 	char *contact_name, *host_name, *service_description;
 	char *output, *ack_author, *ack_data;
 
@@ -397,7 +400,7 @@ static int handle_contact_notification(const nebstruct_contact_notification_data
 	sql_quote(p->ack_author, &ack_author);
 	sql_quote(p->ack_data, &ack_data);
 
-	return sql_query
+	result = sql_query
 		("INSERT INTO %s.notification "
 		 "(notification_type, start_time, end_time, "
 		 "contact_name, host_name, service_description, "
@@ -410,10 +413,20 @@ static int handle_contact_notification(const nebstruct_contact_notification_data
 		 contact_name, host_name,  safe_str(service_description),
 		 p->reason_type, p->state, safe_str(output),
 		 safe_str(ack_author), safe_str(ack_data), p->escalated);
+
+	free(host_name);
+	free(contact_name);
+	safe_free(service_description);
+	safe_free(output);
+	safe_free(ack_author);
+	safe_free(ack_data);
+
+	return result;
 }
 
 static int handle_notification(const nebstruct_notification_data *p)
 {
+	int result;
 	char *host_name, *service_description;
 	char *output, *ack_author, *ack_data;
 
@@ -423,7 +436,7 @@ static int handle_notification(const nebstruct_notification_data *p)
 	sql_quote(p->ack_author, &ack_author);
 	sql_quote(p->ack_data, &ack_data);
 
-	return sql_query
+	result = sql_query
 		("INSERT INTO %s.notification "
 		 "(notification_type, start_time, end_time, host_name,"
 		 "service_description, reason_type, state, output,"
@@ -435,6 +448,55 @@ static int handle_notification(const nebstruct_notification_data *p)
 		 host_name,  safe_str(service_description), p->reason_type, p->state,
 		 safe_str(output), safe_str(ack_author), safe_str(ack_data),
 		 p->escalated, p->contacts_notified);
+
+	safe_free(host_name);
+	safe_free(service_description);
+	safe_free(output);
+	safe_free(ack_author);
+	safe_free(ack_data);
+
+	return result;
+}
+
+static int handle_contact_notification_method(const nebstruct_contact_notification_method_data *p)
+{
+	int result;
+	char *contact_name, *host_name, *service_description;
+	char *output, *ack_author, *ack_data, *command_name;
+
+	sql_quote(p->contact_name, &contact_name);
+	sql_quote(p->host_name, &host_name);
+	sql_quote(p->service_description, &service_description);
+	sql_quote(p->output, &output);
+	sql_quote(p->ack_author, &ack_author);
+	sql_quote(p->ack_data, &ack_data);
+	sql_quote(p->command_name, &command_name);
+
+	result = sql_query
+		("INSERT INTO %s.notification "
+		 "(notification_type, start_time, end_time, "
+		 "contact_name, host_name, service_description, "
+		 "command_name, reason_type, state, output,"
+		 "ack_author, ack_data, escalated) "
+		 "VALUES(%d, %lu, %lu, "
+		 "%s, %s, %s, "
+		 "%s, %d, %d, %s, "
+		 "%s, %s, %d)",
+		 sql_db_name(),
+		 p->notification_type, p->start_time.tv_sec, p->end_time.tv_sec,
+		 contact_name, host_name,  safe_str(service_description),
+		 command_name, p->reason_type, p->state, safe_str(output),
+		 safe_str(ack_author), safe_str(ack_data), p->escalated);
+
+	free(host_name);
+	free(contact_name);
+	safe_free(service_description);
+	safe_free(output);
+	safe_free(ack_author);
+	safe_free(ack_data);
+	free(command_name);
+
+	return result;
 }
 
 int mrm_db_update(merlin_event *pkt)
@@ -501,6 +563,9 @@ int mrm_db_update(merlin_event *pkt)
 		break;
 	case NEBCALLBACK_CONTACT_NOTIFICATION_DATA:
 		errors = handle_contact_notification((void *)pkt->body);
+		break;
+	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
+		errors = handle_contact_notification_method((void *)pkt->body);
 		break;
 	case NEBCALLBACK_HOST_STATUS_DATA:
 		errors = handle_host_status((void *)pkt->body);
