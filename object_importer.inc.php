@@ -208,7 +208,7 @@ class nagios_object_importer
 			if (!isset($obj['members']))
 				continue;
 
-			$ary = split("[\t ]*,[\t ]*", $obj['members']);
+			$ary = preg_split("/[\t ]*,[\t ]*/", $obj['members']);
 			$v_ary = array(); # reset between each loop
 			if ($group === 'servicegroup') {
 				while ($srv = array_pop($ary)) {
@@ -237,7 +237,7 @@ class nagios_object_importer
 		foreach ($obj_list as $id => &$obj) {
 			if (!isset($obj[$k]))
 				continue;
-			$ary = split("[\t ]*,[\t ]*", $obj[$k]);
+			$ary = preg_split("/[\t ]*,[\t ]*/", $obj[$k]);
 			$obj[$k] = array();
 			foreach ($ary as $v)
 				$obj[$k][] = $this->idx->get($obj_type, $v);
@@ -579,7 +579,7 @@ class nagios_object_importer
 				$obj[$k] = $v;
 				continue;
 			 case 'contacts': case 'contact_groups':
-				$ary = split("[\t ]*,[\t ]*", $v);
+				$ary = preg_split("/[\t ]*,[\t ]*/", $v);
 				foreach ($ary as $v) {
 					$target_id = $this->idx->get($relation[$k], $v);
 					$v_ary[$target_id] = $target_id;
