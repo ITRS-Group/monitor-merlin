@@ -30,7 +30,7 @@ Summary: The merlin daemon is a multiplexing event-transport program
 Group: op5/Monitor
 Requires: libdbi
 Requires: libdbi-dbd-mysql
-PostReq: monitor-reports-module >= 2.0.7
+Requires: monitor-reports-module >= 2.0.7
 
 %description -n merlin
 The merlin daemon is a multiplexing event-transport program designed to
