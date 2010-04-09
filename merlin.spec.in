@@ -81,7 +81,7 @@ sh /etc/init.d/monitor start || :
 %mod_path/install-merlin.sh --batch --install=db
 /sbin/chkconfig --add merlind
 echo "Importing notifications from logfiles to database"
-/opt/monitor/op5/reports/module/import --only-notifications --truncate-db
+/opt/monitor/op5/reports/module/import --only-notifications --incremental
 /etc/init.d/merlind restart
 
 
