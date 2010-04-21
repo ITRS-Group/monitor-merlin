@@ -104,6 +104,7 @@ static int handle_service_status(const merlin_service_status *p)
 	return result;
 }
 
+#ifdef INSERT_CHECK_RESULTS
 static int handle_host_result(object_state *st, const nebstruct_host_check_data *p)
 {
 	char *host_name, *output, *long_output, *perf_data = NULL;
@@ -200,6 +201,7 @@ static int handle_service_result(object_state *st, const nebstruct_service_check
 
 	return result;
 }
+#endif /* INSERT_CHECK_RESULTS */
 
 static int handle_program_status(const nebstruct_program_status_data *p)
 {
@@ -502,9 +504,18 @@ static int handle_contact_notification_method(const nebstruct_contact_notificati
 int mrm_db_update(merlin_event *pkt)
 {
 	int errors = 0;
-	object_state *st;
-	nebstruct_host_check_data *hst;
-	nebstruct_service_check_data *srv;
+
+	/*
+	 * we don't insert host and service check data events,
+	 * since we get the state of them from the host/service
+	 * status events instead, but if there are network
+	 * nodes we'll get them passed to us anyway
+	 */
+	if (pkt->hdr.type == NEBCALLBACK_HOST_CHECK_DATA ||
+		pkt->hdr.type == NEBCALLBACK_SERVICE_CHECK_DATA)
+	{
+		return 0;
+	}
 
 	if (!sql_is_connected())
 		return 0;
@@ -523,29 +534,6 @@ int mrm_db_update(merlin_event *pkt)
 		return 0;
 	}
 	switch (pkt->hdr.type) {
-	case NEBCALLBACK_HOST_CHECK_DATA:
-		hst = (nebstruct_host_check_data *)pkt->body;
-		st = get_host_state(hst->host_name);
-		errors = handle_host_result(st, (void *)pkt->body);
-		/*
-		 * additional queries can be run here, being
-		 * passed the state struct if necessary
-		 */
-		if (st)
-			st->state = concat_state(hst->state_type, hst->state);
-		break;
-
-	case NEBCALLBACK_SERVICE_CHECK_DATA:
-		srv = (nebstruct_service_check_data *)pkt->body;
-		st = get_service_state(srv->host_name, srv->service_description);
-		errors = handle_service_result(st, (void *)pkt->body);
-		/*
-		 * additional queries can be run here, being
-		 * passed the state struct if necessary
-		 */
-		if (st)
-			st->state = concat_state(srv->state, srv->state);
-		break;
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 		errors = handle_program_status((void *)pkt->body);
 		break;
