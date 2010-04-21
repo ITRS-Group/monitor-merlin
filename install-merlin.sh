@@ -5,13 +5,15 @@ pushd "$src_dir" >/dev/null 2>&1
 src_dir=$(pwd)
 popd >/dev/null 2>&1
 
-nagios_cfg=/opt/monitor/etc/nagios.cfg
-dest_dir=/opt/monitor/op5/merlin
+nagios_cfg=/usr/local/nagios/etc/nagios.cfg
+dest_dir=/usr/local/nagios/addons/merlin
 root_path=
 db_type=mysql
 db_name=merlin
 db_user=merlin
 db_pass=merlin
+db_root_user=root
+db_root_pass=
 batch=
 install=db,files,config,init
 
@@ -57,28 +59,34 @@ get_arg ()
 
 db_setup ()
 {
+	mysql="mysql"
+	if [ -n "$db_root_user" ]; then
+		mysql="$mysql -u'$db_root_user'"
+		test -n "$db_root_pass" && mysql="$mysql -p'$db_root_pass'"
+	fi
+
 	case "$db_type" in
 		mysql)
 			# Create database if it do not exist
-			if [[ ! $(mysql -e "SHOW DATABASES LIKE '$db_name'") ]]; then
+			if [ ! $($mysql -e "SHOW DATABASES LIKE '$db_name'") ]; then
 				echo "Creating database $db_name"
-				mysql -e "CREATE DATABASE IF NOT EXISTS $db_name"
+				$mysql -e "CREATE DATABASE IF NOT EXISTS $db_name"
 			fi
 			# Always set privileges (to be on the extra safe side)
-			mysql -e \
+			$mysql -e \
 			  "GRANT ALL ON $db_name.* TO $db_user@localhost IDENTIFIED BY '$db_pass'"
-			mysql -e 'FLUSH PRIVILEGES'
+			$mysql -e 'FLUSH PRIVILEGES'
 			# Fetch db_version and do upgrade stuff if/when needed
 			query="SELECT version FROM db_version"
-			db_version=$(mysql $db_name -BNe "$query" 2>/dev/null)
+			db_version=$($mysql $db_name -BNe "$query" 2>/dev/null)
 			case "$db_version" in
 				"")
 					# No db installed
-					mysql $db_name < $src_dir/db.sql
+					$mysql $db_name < $src_dir/db.sql
 					;;
 				"1")
 					# DB Version is 1 and db should be re-installed (According to AE)
-					mysql $db_name < $src_dir/db.sql
+					$mysql $db_name < $src_dir/db.sql
 					;;
 				*)
 					# Unknown version, should we handle this?
@@ -216,6 +224,20 @@ while test "$1"; do
 			shift
 			db_pass="$1"
 			;;
+		--db-root-user=*)
+			db_root_user=$(get_arg "$1")
+			;;
+		--db-root-user)
+			db_root_user="$1"
+			shift
+			;;
+		--db-root-pass=*)
+			db_root_pass=$(get_arg "$1")
+			;;
+		--db-root-pass)
+			shift
+			db_root_pass="$1"
+			;;
 		--batch)
 			batch=y
 			;;
@@ -263,6 +285,7 @@ cat << EOF
     Name     (--db-name): $db_name
     Username (--db-user): $db_user
     Password (--db-pass): $db_pass
+    Root Password (--db-root-pass): $db_root_pass
 
   Path settings:
     Nagios config file  (--nagios-cfg): $nagios_cfg
@@ -307,5 +330,5 @@ fi
 say 
 say "Installation successfully completed"
 say
-say "You will need to restart Nagios for changes to take effect"
+say "You will need to restart Nagios and start Merlind for changes to take effect"
 say
