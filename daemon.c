@@ -198,7 +198,7 @@ static int grok_config(char *path)
 		node = &table[node_i++];
 		node->name = next_word((char *)c->name);
 
-		if (!prefixcmp(c->name, "poller")) {
+		if (!prefixcmp(c->name, "poller") || !prefixcmp(c->name, "slave")) {
 			node->type = MODE_POLLER;
 			grok_node(c, node);
 			if (!node->hostgroup)
@@ -208,7 +208,7 @@ static int grok_config(char *path)
 			node->type = MODE_PEER;
 			grok_node(c, node);
 		}
-		else if (!prefixcmp(c->name, "noc")) {
+		else if (!prefixcmp(c->name, "noc") || !prefixcmp(c->name, "master")) {
 			node->type = MODE_NOC;
 			grok_node(c, node);
 		}
