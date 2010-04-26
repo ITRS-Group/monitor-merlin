@@ -47,7 +47,7 @@ static char *read_strip_split(char *fname, int *size)
 		return NULL;
 	}
 
-	for (i = 0; i < st.st_size; i++)
+	for (i = 0; i < st.st_size; i++) {
 		if (buf[i] == '\n') {
 			p = &buf[i];
 			while (isspace(*p)) {
@@ -56,6 +56,7 @@ static char *read_strip_split(char *fname, int *size)
 			}
 			buf[i] = '\0';
 		}
+	}
 
 	return buf;
 }
