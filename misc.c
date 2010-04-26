@@ -27,17 +27,25 @@ static char *read_strip_split(char *fname, int *size)
 	int i;
 	struct stat st;
 
-	foo = stat(fname, &st);
+	if (stat(fname, &st) < 0)
+		return NULL;
+
 	fd = open(fname, O_RDONLY);
-	if (foo == -1 || fd == -1)
+	if (fd < 0)
 		return NULL;
-	if (!(buf = malloc(st.st_size)))
+
+	if (!(buf = malloc(st.st_size))) {
+		close(fd);
 		return NULL;
+	}
 	*size = st.st_size;
 
 	foo = read(fd, buf, st.st_size);
-	if (foo == -1)
+	close(fd);
+	if (foo == -1) {
+		free(buf);
 		return NULL;
+	}
 
 	for (i = 0; i < st.st_size; i++)
 		if (buf[i] == '\n') {
@@ -121,6 +129,7 @@ static struct file_list *recurse_cfg_dir(char *path, struct file_list *list,
 		sprintf(list->name, "%s/%s", wd, df->d_name);
 	}
 
+	closedir(dp);
 	chdir(cwd);
 
 	return list;
