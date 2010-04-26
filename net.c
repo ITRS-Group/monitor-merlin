@@ -18,6 +18,26 @@ int net_sock_desc(void)
 	return net_sock;
 }
 
+unsigned net_num_pollers(void)
+{
+	return num_pollers;
+}
+
+unsigned net_num_peers(void)
+{
+	return num_peers;
+}
+
+unsigned net_num_nocs(void)
+{
+	return num_nocs;
+}
+
+unsigned net_num_nodes(void)
+{
+	return num_nodes;
+}
+
 static inline const char *node_state(merlin_node *node)
 {
 	switch (node->status) {
