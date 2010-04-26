@@ -87,7 +87,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 				cfg_error(c, v, "Unable to resolve '%s'\n", v->value);
 		}
 		else if (!strcmp(v->key, "port")) {
-			node->sain.sin_port = ntohs((unsigned short)atoi(v->value));
+			node->sain.sin_port = htons((unsigned short)atoi(v->value));
 			if (!node->sain.sin_port)
 				cfg_error(c, v, "Illegal value for port: %s\n", v->value);
 		}
