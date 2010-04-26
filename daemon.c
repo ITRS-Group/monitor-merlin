@@ -8,7 +8,7 @@ extern const char *__progname;
 
 static const char *pidfile, *merlin_user;
 static char *import_program;
-int default_port = 15551;
+unsigned short default_port = 15551;
 static int import_running = 0;
 
 static void usage(char *fmt, ...)
@@ -109,8 +109,8 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 		if (!strcmp(v->key, "port")) {
 			char *endp;
 
-			default_port = strtoul(v->value, &endp, 0);
-			if (default_port < 1 || default_port > 65535 || *endp)
+			default_port = (unsigned short)strtoul(v->value, &endp, 0);
+			if (default_port < 1 || *endp)
 				cfg_error(comp, v, "Illegal value for port: %s", v->value);
 			continue;
 		}
@@ -219,6 +219,9 @@ static int grok_config(char *path)
 			node->name = strdup(node->name);
 		else
 			node->name = strdup(inet_ntoa(node->sain.sin_addr));
+
+		if (!node->sain.sin_port)
+			node->sain.sin_port = htons(default_port);
 
 		node->sock = -1;
 	}

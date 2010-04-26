@@ -5,7 +5,7 @@
 #include "protocol.h"
 #include "types.h"
 
-extern int default_port;
+extern unsigned short default_port;
 
 extern void create_node_tree(merlin_node *table, unsigned n);
 extern int net_resolve(const char *cp, struct in_addr *inp);
