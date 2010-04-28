@@ -302,6 +302,18 @@ static void grok_module_compound(struct cfg_comp *comp)
 	}
 }
 
+static void grok_daemon_compound(struct cfg_comp *comp)
+{
+	uint i;
+
+	for (i = 0; i < comp->nested; i++) {
+		if (!prefixcmp(comp->nest[i]->name, "database")) {
+			use_database = 1;
+			return;
+		}
+	}
+}
+
 static void read_config(char *cfg_file)
 {
 	uint i;
@@ -320,6 +332,14 @@ static void read_config(char *cfg_file)
 
 		if (!prefixcmp(c->name, "module")) {
 			grok_module_compound(c);
+			continue;
+		}
+		/*
+		 * we sneak a peak in here only to see if we're using a
+		 * database or not, as it's an important heuristic to
+		 */
+		if (!prefixcmp(c->name, "daemon")) {
+			grok_daemon_compound(c);
 			continue;
 		}
 		if (!prefixcmp(c->name, "poller")) {
