@@ -194,21 +194,6 @@ static int mrm_ipc_reap(void *discard)
 }
 
 
-
-/* abstract out sending headers and such fluff */
-int mrm_ipc_write(const char *key, merlin_event *pkt)
-{
-	int *selection = hash_find_val(key);
-
-	if (!selection) {
-		lwarn("key '%s' doesn't match any possible selection\n", key);
-		return -1;
-	}
-
-	pkt->hdr.selection = *selection & 0xffff;
-	return ipc_send_event(pkt);
-}
-
 hash_table *host_hash_table;
 static void setup_host_hash_tables(void)
 {
