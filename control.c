@@ -128,6 +128,21 @@ int is_stalling(void)
 }
 
 /*
+ * we use setter functions for these, so we can start stalling
+ * after having sent the paths without having to implement the
+ * way we mark and unmark stalling in multiple places
+ */
+void ctrl_stall_start(void)
+{
+	stall_start = time(NULL);
+}
+
+void ctrl_stall_stop(void)
+{
+	stall_start = 0;
+}
+
+/*
  * Handles merlin control events inside the module. Control events
  * that relate to cross-host communication only never reaches this.
  */
@@ -158,10 +173,10 @@ void handle_control(merlin_event *pkt)
 		enable_disable_checks(pkt->hdr.selection, pkt->hdr.code == CTRL_INACTIVE);
 		break;
 	case CTRL_STALL:
-		stall_start = time(NULL);
+		ctrl_stall_start();
 		break;
 	case CTRL_RESUME:
-		stall_start = 0;
+		ctrl_stall_stop();
 		break;
 	case CTRL_STOP:
 		linfo("Received (and ignoring) CTRL_STOP event. What voodoo is this?");
