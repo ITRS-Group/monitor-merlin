@@ -12,7 +12,7 @@ elif test -d .git -o -f .git; then
 	tag=$(git describe --abbrev=0 HEAD 2>/dev/null)
 	case "$ver" in
 	v[0-9]*)
-		git update-index -q --refresh
+		git update-index -q --refresh >/dev/null 2>&1
 		test -z "$(git diff-index --name-only HEAD --)" ||
 		dirty="-dirty"
 	esac
