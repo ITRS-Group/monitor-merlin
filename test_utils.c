@@ -1,5 +1,7 @@
 #include "shared.h"
 #include "colors.h"
+#include "test_utils.h"
+
 const char *red = "", *green = "", *yellow = "", *reset = "";
 uint passed, failed, t_verbose = 0;
 static uint t_depth;

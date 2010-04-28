@@ -631,7 +631,7 @@ struct test_binlog {
 	size_t msize;
 	size_t fsize;
 };
-struct test_binlog test[] = {
+static struct test_binlog test[] = {
 	{ "/tmp/binlog-test", "All in memory", 10000000, 1000000 },
 	{ "/tmp/binlog-test", "All on disk", 0, 1000000 },
 	{ "/tmp/binlog-test", "Some on disk", 4096, 1000000 },
