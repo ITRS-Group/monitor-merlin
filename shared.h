@@ -95,6 +95,8 @@ extern int debug;
 /* both module and daemon need to know these */
 #define num_nodes (num_nocs + num_pollers + num_peers)
 extern uint num_nocs, num_peers, num_pollers;
+extern int use_database;
+
 extern const char *merlin_version;
 
 /** event structures where Nagios' doesn't provide good ones */

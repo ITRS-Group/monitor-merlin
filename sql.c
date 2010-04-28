@@ -19,7 +19,6 @@ static struct {
 	dbi_driver driver;
 } db;
 
-int use_database = 0;
 static time_t last_connect_attempt = 0;
 
 #undef ESC_BUFSIZE
