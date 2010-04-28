@@ -94,41 +94,55 @@ int handle_ipc_event(merlin_event *pkt)
 	return 0;
 }
 
-
-static int mrm_ipc_reap(void *discard)
+static int real_ipc_reap(void)
 {
-	int len, events = 0;
-	merlin_event pkt;
+	int events = 0;
 
-	if (!ipc_is_connected(0)) {
-		linfo("ipc is not connected. ipc event reaping aborted");
-		return 0;
-	}
-	else
-		linfo("Reaping ipc events");
+	do {
+		merlin_event pkt;
 
-	while ((len = ipc_read_event(&pkt, 0)) > 0) {
-		/* control packets are handled separately */
-		if (pkt.hdr.type == CTRL_PACKET) {
-			handle_control(&pkt);
-			continue;
+		if (!ipc_is_connected(0)) {
+			linfo("ipc is not connected. ipc event reaping aborted");
+			return 0;
 		}
+		else
+			linfo("Reaping ipc events");
 
-		events += handle_ipc_event(&pkt);
-	}
+		while (ipc_read_event(&pkt, 1000 * is_stalling()) > 0) {
+			/* control packets are handled separately */
+			if (pkt.hdr.type == CTRL_PACKET) {
+				handle_control(&pkt);
+				continue;
+			}
+
+			events += handle_ipc_event(&pkt);
+		}
+		/*
+		 * use is_stalling() > 0 here to guard
+		 * against bugs in is_stalling()
+		 */
+	} while (is_stalling() > 0);
 
 	if (events) {
 		linfo("Updating status data with info from %d events", events);
+		ipc_log_event_count();
 		update_all_status_data();
 	}
 
-	ipc_log_event_count();
+	return events;
+}
+
+/* this is called from inside Nagios as a scheduled event */
+static int mrm_ipc_reap(void *discard)
+{
+	real_ipc_reap();
+
 	linfo("Scheduling next ipc reaping at %lu", time(NULL) + mrm_reap_interval);
 	schedule_new_event(EVENT_USER_FUNCTION, TRUE,
 	                   time(NULL) + mrm_reap_interval, FALSE,
 	                   0, NULL, FALSE, mrm_ipc_reap, NULL, 0);
 
-	return len;
+	return 0;
 }
 
 
