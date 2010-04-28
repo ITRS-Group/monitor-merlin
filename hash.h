@@ -22,8 +22,6 @@ extern void *hash_update(TABLE, const char *key, void *data);
 extern void *hash_update2(TABLE, const char *k1, const char *k2, void *data);
 extern void *hash_remove(TABLE, const char *key);
 extern void *hash_remove2(TABLE, const char *k1, const char *k2);
-extern void hash_remove_data(TABLE, const char *k1, const void *data);
-extern void hash_remove_data2(TABLE, const char *k1, const char *k2, const void *data);
 extern void hash_walk_data(TABLE, int (*walker)(void *data));
 extern int hash_check_table(TABLE);
 extern size_t hash_count_entries(TABLE);

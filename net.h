@@ -12,8 +12,6 @@ extern int net_resolve(const char *cp, struct in_addr *inp);
 extern merlin_node *find_node(struct sockaddr_in *sain, const char *name);
 extern int net_deinit(void);
 extern int net_init(void);
-extern int shoutcast(int type, void *buf, size_t len);
-extern int read_all(int fd, void *buf, size_t len);
 extern int net_poll(void);
 extern int net_send_ipc_data(merlin_event *pkt);
 extern int net_sock_desc();

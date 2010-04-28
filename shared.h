@@ -169,7 +169,6 @@ typedef struct merlin_service_status merlin_service_status;
 extern int set_socket_buffers(int sd);
 extern char *next_word(char *str);
 extern int grok_common_var(struct cfg_comp *config, struct cfg_var *v);
-extern void index_selections(void);
 extern int add_selection(char *name);
 extern char *get_sel_name(int index);
 extern int get_sel_id(const char *name);
