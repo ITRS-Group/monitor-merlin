@@ -117,7 +117,7 @@ void enable_disable_checks(int selection, int enable)
 
 /* return number of stalling seconds remaining */
 #define STALL_TIMER 20
-unsigned is_stalling(void)
+int is_stalling(void)
 {
 	/* stall_start is set to 0 when we stop stalling */
 	if (stall_start && stall_start + STALL_TIMER < time(NULL))

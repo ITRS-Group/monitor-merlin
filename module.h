@@ -64,6 +64,7 @@ void enable_disable_checks(int selection, int status);
 void control_all_distributed_checks(void);
 void create_object_lists(void);
 void handle_control(merlin_event *pkt);
+extern int is_stalling(void);
 
 extern int register_merlin_hooks(void);
 extern int deregister_merlin_hooks(void);
