@@ -51,22 +51,6 @@ size_t sql_quote(const char *src, char **dst)
 	return ret;
 }
 
-
-/*
- * Escapes a string to make it suitable for use in sql-queries.
- * It's up to the caller to put quotation marks around the string
- * in the query. Use "sql_quote()" instead, since that has fewer
- * operations and causes the sql queries to be shorter.
- */
-size_t sql_escape(const char *src, char **dst)
-{
-	size_t len;
-	len = dbi_conn_quote_string_copy(db.conn, src, dst);
-	*dst[len] = 0;
-	(*dst)++;
-	return len - 2;
-}
-
 /*
  * these two functions are only here to allow callers
  * access to error reporting without having to expose

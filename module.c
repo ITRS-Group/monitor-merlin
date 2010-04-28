@@ -3,7 +3,6 @@
 #include "nagios/statusdata.h"
 #include "nagios/macros.h"
 
-int cb_handler(int, void *);
 time_t merlin_should_send_paths = 1;
 
 /** code start **/
