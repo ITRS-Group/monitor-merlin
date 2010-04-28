@@ -25,7 +25,7 @@ int log_grok_var(char *var, char *val)
 		log_levels = 0;
 
 		for (p = val; p && *p; p = next_word(p)) {
-			int i, mod = 0;
+			uint i, mod = 0;
 
 			if (*p == '+' || *p == '-')
 				mod = *p++;

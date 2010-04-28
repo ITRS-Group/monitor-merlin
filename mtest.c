@@ -140,7 +140,7 @@ static void verify_count(const char *name, uint expected, const char *fmt, ...)
 
 static void load_hosts_and_services(void)
 {
-	int i = 0;
+	uint i = 0;
 	dbi_result result;
 
 	num_hosts = count_table_rows("host");
@@ -245,7 +245,7 @@ static void test_external_command(void)
 static void test_flapping(void)
 {
 	nebstruct_flapping_data *orig, *mod;
-	int i;
+	uint i;
 
 	orig = calloc(1, sizeof(*orig));
 	orig->percent_change = 78.5;
@@ -306,7 +306,7 @@ static void test_flapping(void)
 static void test_host_check(void)
 {
 	nebstruct_host_check_data *orig, *mod;
-	int i;
+	uint i;
 
 	return;
 	orig = calloc(1, sizeof(*orig));
@@ -336,7 +336,7 @@ static void test_host_check(void)
 static void test_service_check(void)
 {
 	nebstruct_service_check_data *orig, *mod;
-	int i;
+	uint i;
 
 	orig = calloc(1, sizeof(*orig));
 	gettimeofday(&orig->start_time, NULL);
@@ -363,7 +363,7 @@ static void test_host_status(void)
 {
 	merlin_host_status *orig, *mod;
 	nebstruct_host_status_data *ds;
-	int i;
+	uint i;
 
 	orig = calloc(1, sizeof(*orig));
 	ds = calloc(1, sizeof(*ds));
@@ -400,7 +400,7 @@ static void test_service_status(void)
 {
 	merlin_service_status *orig, *mod;
 	nebstruct_service_status_data *ds;
-	int i;
+	uint i;
 
 	orig = calloc(1, sizeof(*orig));
 	ds = calloc(1, sizeof(*ds));
@@ -434,7 +434,7 @@ static void test_service_status(void)
 static void test_contact_notification_method(void)
 {
 	nebstruct_contact_notification_method_data *orig, *mod;
-	int i;
+	uint i;
 
 	orig = calloc(1, sizeof(*orig));
 	orig->output = OUTPUT;
@@ -490,7 +490,7 @@ static void test_contact_notification_method(void)
 static void test_comment(void)
 {
 	nebstruct_comment_data *orig, *mod;
-	int i;
+	uint i;
 
 	orig = calloc(1, sizeof(*orig));
 	orig->author_name = AUTHOR_NAME;
@@ -568,7 +568,7 @@ static void test_comment(void)
 static void test_downtime(void)
 {
 	nebstruct_downtime_data *orig, *mod;
-	int i;
+	uint i;
 
 	orig = calloc(1, sizeof(*orig));
 	orig->author_name = AUTHOR_NAME;
@@ -676,7 +676,7 @@ static void test_downtime(void)
 
 static void grok_cfg_compound(struct cfg_comp *config, int level)
 {
-	int i;
+	uint i;
 
 	for (i = 0; i < config->vars; i++) {
 		struct cfg_var *v = config->vlist[i];
@@ -815,7 +815,7 @@ static struct merlin_test {
 
 static int callback_is_tested(int id, const char *caller)
 {
-	int i;
+	uint i;
 	if (id == NEBCALLBACK_PROCESS_DATA)
 		return 1;
 

@@ -9,7 +9,7 @@ extern const char *__progname;
 static const char *pidfile, *merlin_user;
 static char *import_program;
 unsigned short default_port = 15551;
-static int import_running = 0;
+static int importer_pid;
 
 static void usage(char *fmt, ...)
 	__attribute__((format(printf,1,2)));
@@ -101,7 +101,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 
 static void grok_daemon_compound(struct cfg_comp *comp)
 {
-	int i;
+	uint i;
 
 	for (i = 0; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
@@ -137,7 +137,7 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 
 	for (i = 0; i < comp->nested; i++) {
 		struct cfg_comp *c = comp->nest[i];
-		int vi;
+		uint vi;
 
 		if (!prefixcmp(c->name, "database")) {
 			use_database = 1;
@@ -151,7 +151,8 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 
 static int grok_config(char *path)
 {
-	int i, node_i = 0;
+	uint i;
+	int node_i = 0;
 	struct cfg_comp *config;
 	merlin_node *table;
 
@@ -244,7 +245,7 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 		return 0;
 
 	/* ... or if an import is already in progress */
-	if (import_running) {
+	if (importer_pid) {
 		lwarn("Import already in progress. Ignoring import event");
 		return 0;
 	}
@@ -276,8 +277,11 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 	}
 
 	/* mark import as running in parent */
-	import_running = pid;
+	importer_pid = pid;
 	free(cmd);
+
+	/* ask the module to stall events for us until we're done */
+	ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
 
 	return result;
 }
@@ -287,7 +291,7 @@ static char *nagios_paths[3] = { NULL, NULL, NULL };
 static char *nagios_paths_arena;
 static int read_nagios_paths(merlin_event *pkt)
 {
-	int i;
+	uint i;
 	size_t offset = 0;
 
 	if (!use_database)
@@ -346,7 +350,7 @@ static int max(int a, int b)
 	return a > b ? a : b;
 }
 
-static int ipc_reap_events(int ipc_sock)
+static int ipc_reap_events(void)
 {
 	int ipc_events = 0;
 	merlin_event p;
@@ -355,7 +359,7 @@ static int ipc_reap_events(int ipc_sock)
 	 * we expect to get the vast majority of events from the ipc
 	 * socket, so make sure we read a bunch of them in one go
 	 */
-	while (ipc_read_event(&p) > 0) {
+	while (ipc_read_event(&p, 0) > 0) {
 		ipc_events++;
 		handle_ipc_event(&p);
 	}
@@ -402,7 +406,7 @@ static int io_poll_sockets(void)
 		force_node_ipc_update();
 	} else if (ipc_sock > 0 && FD_ISSET(ipc_sock, &rd)) {
 		sockets++;
-		ipc_reap_events(ipc_sock);
+		ipc_reap_events();
 	}
 
 	/* check for inbound connections */
@@ -428,6 +432,9 @@ static void polling_loop(void)
 		stop = time(NULL);
 		if (start + 15 >= stop) {
 			ipc_log_event_count();
+			if (importer_pid) {
+				ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
+			}
 			start = stop;
 		}
 
@@ -436,13 +443,16 @@ static void polling_loop(void)
 		 * if the import isn't done yet waitpid() will return 0
 		 * and we won't touch import_running at all.
 		 */
-		if (import_running) {
+		if (importer_pid) {
 			int pid = waitpid(-1, &status, WNOHANG);
 
 			if (pid < 0)
 				lerr("waitpid() failed: %s", strerror(errno));
-			else if (pid == import_running)
-				import_running = 0;
+			else if (pid == importer_pid) {
+				/* resume normal operations */
+				importer_pid = 0;
+				ipc_send_ctrl(CTRL_RESUME, CTRL_GENERIC);
+			}
 		}
 		io_poll_sockets();
 	}

@@ -42,7 +42,7 @@ size_t hash_table_size(hash_table *table)
  * Ozan Yigit's original sdbm algorithm, but without Duff's device
  * so we can use it without knowing the length of the string
  */
-static inline unsigned int sdbm(const unsigned register char *k)
+static inline unsigned int sdbm(register const unsigned char *k)
 {
 	register unsigned int h = 0;
 
@@ -247,7 +247,7 @@ void *hash_remove2(hash_table *table, const char *k1, const char *k2)
 
 size_t hash_count_entries(hash_table *table)
 {
-	int i;
+	uint i;
 	size_t count = 0;
 
 	for (i = 0; i < table->num_buckets; i++) {
@@ -267,7 +267,7 @@ int hash_check_table(hash_table *table)
 void hash_walk_data(hash_table *table, int (*walker)(void *))
 {
 	hash_bucket *bkt;
-	int i;
+	uint i;
 
 	for (i = 0; i < table->num_buckets; i++) {
 		hash_bucket *next;

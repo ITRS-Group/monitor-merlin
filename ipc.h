@@ -16,7 +16,7 @@ extern void mrm_ipc_set_disconnect_handler(int (*handler)(void));
 extern int ipc_grok_var(char *var, char *val);
 extern int ipc_send_ctrl(int control_type, int selection);
 extern int ipc_send_event(merlin_event *pkt);
-extern int ipc_read_event(merlin_event *pkt);
+extern int ipc_read_event(merlin_event *pkt, int msec);
 extern int ipc_sock_desc(void);
 extern int ipc_listen_sock_desc(void);
 extern int ipc_is_connected(int msec);

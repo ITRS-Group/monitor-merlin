@@ -7,6 +7,8 @@
 static linked_item **mrm_host_list = NULL;
 static linked_item **mrm_service_list = NULL;
 
+static time_t stall_start;
+
 static inline int add_linked_item(linked_item **list, int slot, void *item)
 {
 	struct linked_item *entry = malloc(sizeof(linked_item));
@@ -113,6 +115,33 @@ void enable_disable_checks(int selection, int enable)
 }
 
 
+/* return number of stalling seconds remaining */
+#define STALL_TIMER 20
+int is_stalling(void)
+{
+	/* stall_start is set to 0 when we stop stalling */
+	if (stall_start && stall_start + STALL_TIMER < time(NULL))
+		return time(NULL) - (stall_start + STALL_TIMER);
+
+	stall_start = 0;
+	return 0;
+}
+
+/*
+ * we use setter functions for these, so we can start stalling
+ * after having sent the paths without having to implement the
+ * way we mark and unmark stalling in multiple places
+ */
+void ctrl_stall_start(void)
+{
+	stall_start = time(NULL);
+}
+
+void ctrl_stall_stop(void)
+{
+	stall_start = 0;
+}
+
 /*
  * Handles merlin control events inside the module. Control events
  * that relate to cross-host communication only never reaches this.
@@ -127,7 +156,7 @@ void handle_control(merlin_event *pkt)
 	}
 
 	sel_name = get_sel_name(pkt->hdr.selection);
-	if (pkt->hdr.selection == -1)
+	if (pkt->hdr.selection == CTRL_GENERIC)
 		linfo("Received general control packet, code %d", pkt->hdr.code);
 	else {
 		if (!sel_name) {
@@ -142,6 +171,15 @@ void handle_control(merlin_event *pkt)
 	case CTRL_INACTIVE:
 	case CTRL_ACTIVE:
 		enable_disable_checks(pkt->hdr.selection, pkt->hdr.code == CTRL_INACTIVE);
+		break;
+	case CTRL_STALL:
+		ctrl_stall_start();
+		break;
+	case CTRL_RESUME:
+		ctrl_stall_stop();
+		break;
+	case CTRL_STOP:
+		linfo("Received (and ignoring) CTRL_STOP event. What voodoo is this?");
 		break;
 	default:
 		lwarn("Unknown control code: %d", pkt->hdr.code);

@@ -184,7 +184,7 @@ int sql_query(const char *fmt, ...)
 	return ret;
 }
 
-int sql_is_connected()
+int sql_is_connected(void)
 {
 	if (!use_database)
 		return 0;

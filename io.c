@@ -16,7 +16,8 @@ int io_poll(int fd, int events, int msec)
 
 int io_send_all(int fd, const void *buf, size_t len)
 {
-	int poll_ret, sent, total = 0;
+	int poll_ret, sent;
+	size_t total = 0;
 
 	if (!buf || !len)
 		return 0;
@@ -51,7 +52,8 @@ int io_send_all(int fd, const void *buf, size_t len)
 
 int io_recv_all(int fd, void *buf, size_t len)
 {
-	int poll_ret, rd, total = 0;
+	int poll_ret, rd;
+	size_t total = 0;
 
 	poll_ret = io_poll(fd, POLLIN, 0);
 	if (poll_ret < 1)

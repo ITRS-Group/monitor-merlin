@@ -1,5 +1,7 @@
 #include "shared.h"
 #include "colors.h"
+#include "test_utils.h"
+
 const char *red = "", *green = "", *yellow = "", *reset = "";
 uint passed, failed, t_verbose = 0;
 static uint t_depth;
@@ -15,7 +17,7 @@ void t_set_colors(int force)
 	}
 }
 
-static void t_indent(int depth)
+static void t_indent(uint depth)
 {
 	uint i;
 	for (i = 0; i < depth; i++) {
