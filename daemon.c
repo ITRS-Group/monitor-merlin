@@ -92,7 +92,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 
 static void grok_daemon_compound(struct cfg_comp *comp)
 {
-	int i;
+	uint i;
 
 	for (i = 0; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
@@ -128,7 +128,7 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 
 	for (i = 0; i < comp->nested; i++) {
 		struct cfg_comp *c = comp->nest[i];
-		int vi;
+		uint vi;
 
 		if (!prefixcmp(c->name, "database")) {
 			use_database = 1;
@@ -142,7 +142,8 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 
 static int grok_config(char *path)
 {
-	int i, node_i = 0;
+	uint i;
+	int node_i = 0;
 	struct cfg_comp *config;
 	merlin_node *table;
 
@@ -278,7 +279,7 @@ static char *nagios_paths[3] = { NULL, NULL, NULL };
 static char *nagios_paths_arena;
 static int read_nagios_paths(merlin_event *pkt)
 {
-	int i;
+	uint i;
 	size_t offset = 0;
 
 	if (!use_database)
@@ -337,7 +338,7 @@ static int max(int a, int b)
 	return a > b ? a : b;
 }
 
-static int ipc_reap_events(int ipc_sock)
+static int ipc_reap_events(void)
 {
 	int ipc_events = 0;
 	merlin_event p;
@@ -392,7 +393,7 @@ static int io_poll_sockets(void)
 		ipc_accept();
 	} else if (ipc_sock > 0 && FD_ISSET(ipc_sock, &rd)) {
 		sockets++;
-		ipc_reap_events(ipc_sock);
+		ipc_reap_events();
 	}
 
 	/* check for inbound connections */

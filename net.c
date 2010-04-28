@@ -74,7 +74,7 @@ static merlin_node *nodelist_by_selection(int sel)
  */
 void create_node_tree(merlin_node *table, unsigned n)
 {
-	int i, xnoc, xpeer, xpoll;
+	uint i, xnoc, xpeer, xpoll;
 
 	if (!num_nodes)
 		return;
@@ -138,7 +138,7 @@ int net_resolve(const char *cp, struct in_addr *inp)
 /* do a node lookup based on name *or* ip-address + port */
 merlin_node *find_node(struct sockaddr_in *sain, const char *name)
 {
-	int i;
+	uint i;
 
 	if (sain) for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
@@ -475,7 +475,7 @@ int net_accept_one(void)
  * static global vars for networking purposes */
 int net_deinit(void)
 {
-	int i;
+	uint i;
 
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
@@ -580,7 +580,7 @@ static void check_node_activity(merlin_node *node)
 static int handle_network_event(merlin_node *node, merlin_event *pkt)
 {
 	if (node->type == MODE_POLLER && num_nocs) {
-		int i;
+		uint i;
 
 		linfo("Passing on event from poller %s to %d nocs",
 			  node->name, num_nocs);
@@ -661,7 +661,7 @@ static void net_input(merlin_node *node)
  */
 int net_send_ipc_data(merlin_event *pkt)
 {
-	int i;
+	uint i;
 
 	if (!num_nodes)
 		return 0;
@@ -699,7 +699,7 @@ int net_send_ipc_data(merlin_event *pkt)
  */
 int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 {
-	int i;
+	uint i;
 
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
@@ -730,7 +730,7 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 int net_handle_polling_results(fd_set *rd, fd_set *wr)
 {
 	int sockets = 0;
-	int i;
+	uint i;
 
 	/* loop the nodes and see which ones have sent something */
 	for (i = 0; i < num_nodes; i++) {
@@ -775,7 +775,7 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 
 void check_all_node_activity(void)
 {
-	int i;
+	uint i;
 
 	/* make sure we always check activity level among the nodes */
 	for (i = 0; i < num_nodes; i++)
@@ -787,7 +787,8 @@ int net_poll(void)
 {
 	fd_set rd, wr;
 	struct timeval to = { 1, 0 }, start, end;
-	int i, sel_val = 0, nfound = 0;
+	uint i;
+	int sel_val = 0, nfound = 0;
 	int socks = 0;
 
 	printf("net_sock = %d\n", net_sock);

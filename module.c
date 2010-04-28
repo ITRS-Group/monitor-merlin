@@ -214,7 +214,7 @@ static void setup_host_hash_tables(void)
 
 static int slurp_selection(struct cfg_comp *c)
 {
-	int i;
+	uint i;
 
 	for (i = 0; i < c->vars; i++) {
 		struct cfg_var *v = c->vlist[i];
@@ -230,7 +230,7 @@ static int slurp_selection(struct cfg_comp *c)
 
 static void grok_module_compound(struct cfg_comp *comp)
 {
-	int i;
+	uint i;
 
 	for (i = 0; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
@@ -246,7 +246,7 @@ static void grok_module_compound(struct cfg_comp *comp)
 
 static void read_config(char *cfg_file)
 {
-	int i;
+	uint i;
 	struct cfg_comp *config = cfg_parse_file(cfg_file);
 
 	if (!config) {

@@ -324,7 +324,7 @@ static struct callback_struct {
 extern void *neb_handle;
 int register_merlin_hooks(void)
 {
-	int i;
+	uint i;
 
 	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
 		struct callback_struct *cb = &callback_table[i];
@@ -337,7 +337,7 @@ int register_merlin_hooks(void)
 
 int deregister_merlin_hooks(void)
 {
-	int i;
+	uint i;
 
 	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
 		struct callback_struct *cb = &callback_table[i];

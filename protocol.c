@@ -7,7 +7,8 @@
  */
 int proto_read_event(int sock, merlin_event *pkt)
 {
-	int len, result;
+	int len;
+	uint result;
 
 	len = io_recv_all(sock, &pkt->hdr, HDR_SIZE);
 	if (len != HDR_SIZE) {
@@ -47,7 +48,7 @@ int proto_send_event(int sock, merlin_event *pkt)
 {
 	pkt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
 
-	if (pkt->hdr.len < 0 || packet_size(pkt) > TOTAL_PKT_SIZE) {
+	if (packet_size(pkt) > TOTAL_PKT_SIZE) {
 		ldebug("header is invalid, or packet is too large. aborting\n");
 		return -1;
 	}
