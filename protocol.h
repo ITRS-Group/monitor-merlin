@@ -18,6 +18,7 @@
 #define CTRL_STALL    5 /* signal that we can't accept events for a while */
 #define CTRL_RESUME   6 /* now we can accept events again */
 #define CTRL_STOP     7 /* exit() immediately (only accepted via ipc) */
+#define CTRL_GENERIC  0xffff  /* generic control packet */
 
 #define HDR_SIZE (sizeof(merlin_header))
 #define PKT_SIZE (sizeof(merlin_event))

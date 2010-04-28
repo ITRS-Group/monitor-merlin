@@ -156,7 +156,7 @@ void handle_control(merlin_event *pkt)
 	}
 
 	sel_name = get_sel_name(pkt->hdr.selection);
-	if (pkt->hdr.selection == -1)
+	if (pkt->hdr.selection == CTRL_GENERIC)
 		linfo("Received general control packet, code %d", pkt->hdr.code);
 	else {
 		if (!sel_name) {

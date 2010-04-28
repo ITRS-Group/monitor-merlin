@@ -268,7 +268,7 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 	free(cmd);
 
 	/* ask the module to stall events for us until we're done */
-	ipc_send_ctrl(CTRL_STALL, -1);
+	ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
 
 	return result;
 }
@@ -419,7 +419,7 @@ static void polling_loop(void)
 		if (start + 15 >= stop) {
 			ipc_log_event_count();
 			if (importer_pid) {
-				ipc_send_ctrl(CTRL_STALL, -1);
+				ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
 			}
 			start = stop;
 		}
@@ -437,7 +437,7 @@ static void polling_loop(void)
 			else if (pid == importer_pid) {
 				/* resume normal operations */
 				importer_pid = 0;
-				ipc_send_ctrl(CTRL_RESUME, -1);
+				ipc_send_ctrl(CTRL_RESUME, CTRL_GENERIC);
 			}
 		}
 		io_poll_sockets();
