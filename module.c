@@ -331,6 +331,12 @@ int send_paths(void)
 	result = ipc_send_event(&pkt);
 	if (result == packet_size(&pkt)) {
 		merlin_should_send_paths = 0;
+		/*
+		 * start stalling immediately and then reap so we wait
+		 * a bit while the import is running
+		 */
+		ctrl_stall_start();
+		real_ipc_reap();
 		return 0;
 	}
 
