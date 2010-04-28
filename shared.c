@@ -5,7 +5,7 @@ int debug = 0;  /* doesn't actually do anything right now */
 int is_module = 1; /* the daemon sets this to 0 immediately */
 int pulse_interval = 15;
 int use_database = 0;
-uint num_nocs, num_peers, num_pollers;
+uint num_nocs = 0, num_peers = 0, num_pollers = 0;
 
 #ifndef ISSPACE
 # define ISSPACE(c) (c == ' ' || c == '\t')
