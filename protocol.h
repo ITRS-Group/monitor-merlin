@@ -5,8 +5,12 @@
 
 #define MERLIN_PROTOCOL_VERSION 0
 
+/* various magic options for the "type" field */
+#define CTRL_PACKET   0xffff  /* control packet. "code" described below */
+#define ACK_PACKET    0xfffe  /* ACK ("I understood") (not used) */
+#define NAK_PACKET    0xfffd  /* NAK ("I don't understand") (not used) */
+
 /* If "type" is CTRL_PACKET, then "code" is one of the following */
-#define CTRL_PACKET   0xffff
 #define CTRL_PULSE    1 /* keep-alive signal */
 #define CTRL_INACTIVE 2 /* signals that a slave went offline */
 #define CTRL_ACTIVE   3 /* signals that a slave went online */
