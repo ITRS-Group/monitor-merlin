@@ -7,35 +7,13 @@
 
 static int net_sock = -1; /* listening sock descriptor */
 
-#define num_nodes (num_nocs + num_pollers + num_peers)
 #define node_table noc_table
-static unsigned num_nocs, num_pollers, num_peers;
 static merlin_node *base, **noc_table, **poller_table, **peer_table;
 static merlin_node **selected_nodes;
 
 int net_sock_desc(void)
 {
 	return net_sock;
-}
-
-unsigned net_num_pollers(void)
-{
-	return num_pollers;
-}
-
-unsigned net_num_peers(void)
-{
-	return num_peers;
-}
-
-unsigned net_num_nocs(void)
-{
-	return num_nocs;
-}
-
-unsigned net_num_nodes(void)
-{
-	return num_nodes;
 }
 
 static inline const char *node_state(merlin_node *node)

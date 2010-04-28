@@ -7,10 +7,6 @@
 
 extern unsigned short default_port;
 
-extern unsigned net_num_pollers(void);
-extern unsigned net_num_peers(void);
-extern unsigned net_num_nocs(void);
-extern unsigned net_num_nodes(void);
 extern void create_node_tree(merlin_node *table, unsigned n);
 extern int net_resolve(const char *cp, struct in_addr *inp);
 extern merlin_node *find_node(struct sockaddr_in *sain, const char *name);
