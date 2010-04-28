@@ -343,7 +343,7 @@ static int ipc_reap_events(int ipc_sock)
 	 * we expect to get the vast majority of events from the ipc
 	 * socket, so make sure we read a bunch of them in one go
 	 */
-	while (ipc_read_event(&p) > 0) {
+	while (ipc_read_event(&p, 0) > 0) {
 		ipc_events++;
 		handle_ipc_event(&p);
 	}

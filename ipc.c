@@ -349,7 +349,7 @@ int ipc_send_event(merlin_event *pkt)
 	return result;
 }
 
-int ipc_read_event(merlin_event *pkt)
+int ipc_read_event(merlin_event *pkt, int msec)
 {
 	int poll_result;
 
@@ -358,7 +358,7 @@ int ipc_read_event(merlin_event *pkt)
 		return -1;
 	}
 
-	poll_result = ipc_read_ok(0);
+	poll_result = ipc_read_ok(msec);
 	if (!poll_result)
 		return 0;
 

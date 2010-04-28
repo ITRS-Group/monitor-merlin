@@ -107,7 +107,7 @@ static int mrm_ipc_reap(void *discard)
 	else
 		linfo("Reaping ipc events");
 
-	while ((len = ipc_read_event(&pkt)) > 0) {
+	while ((len = ipc_read_event(&pkt, 0)) > 0) {
 		/* control packets are handled separately */
 		if (pkt.hdr.type == CTRL_PACKET) {
 			handle_control(&pkt);
