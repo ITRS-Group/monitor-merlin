@@ -7,10 +7,10 @@
 
 /* If "type" is CTRL_PACKET, then "code" is one of the following */
 #define CTRL_PACKET   0xffff
-#define CTRL_PULSE    1
-#define CTRL_INACTIVE 2
-#define CTRL_ACTIVE   3
-#define CTRL_PATHS    4
+#define CTRL_PULSE    1 /* keep-alive signal */
+#define CTRL_INACTIVE 2 /* signals that a slave went offline */
+#define CTRL_ACTIVE   3 /* signals that a slave went online */
+#define CTRL_PATHS    4 /* body contains paths to import */
 
 #define HDR_SIZE (sizeof(merlin_header))
 #define PKT_SIZE (sizeof(merlin_event))
