@@ -342,9 +342,19 @@ static void read_config(char *cfg_file)
 			grok_daemon_compound(c);
 			continue;
 		}
-		if (!prefixcmp(c->name, "poller")) {
+		if (!prefixcmp(c->name, "poller") || !prefixcmp(c->name, "slave")) {
+			num_pollers++;
 			if (!slurp_selection(c))
 				cfg_error(c, NULL, "Poller without 'hostgroup' statement");
+			continue;
+		}
+		if (!prefixcmp(c->name, "peer")) {
+			num_peers++;
+			continue;
+		}
+		if (!prefixcmp(c->name, "noc") || !prefixcmp(c->name, "master")) {
+			num_nocs++;
+			continue;
 		}
 	}
 	cfg_destroy_compound(config);
