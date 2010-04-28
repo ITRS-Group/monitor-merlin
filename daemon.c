@@ -9,7 +9,7 @@ extern const char *__progname;
 static const char *pidfile, *merlin_user;
 static char *import_program;
 int default_port = 15551;
-static int import_running = 0;
+static int importer_pid;
 
 static void usage(char *fmt, ...)
 	__attribute__((format(printf,1,2)));
@@ -232,7 +232,7 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 		return 0;
 
 	/* ... or if an import is already in progress */
-	if (import_running) {
+	if (importer_pid) {
 		lwarn("Import already in progress. Ignoring import event");
 		return 0;
 	}
@@ -264,7 +264,7 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 	}
 
 	/* mark import as running in parent */
-	import_running = pid;
+	importer_pid = pid;
 	free(cmd);
 
 	return result;
@@ -423,13 +423,13 @@ static void polling_loop(void)
 		 * if the import isn't done yet waitpid() will return 0
 		 * and we won't touch import_running at all.
 		 */
-		if (import_running) {
+		if (importer_pid) {
 			int pid = waitpid(-1, &status, WNOHANG);
 
 			if (pid < 0)
 				lerr("waitpid() failed: %s", strerror(errno));
-			else if (pid == import_running)
-				import_running = 0;
+			else if (pid == importer_pid)
+				importer_pid = 0;
 		}
 		io_poll_sockets();
 	}
