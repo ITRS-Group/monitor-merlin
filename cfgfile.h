@@ -32,12 +32,12 @@ struct cfg_comp {
 };
 
 /* prototypes */
-struct cfg_comp *cfg_parse_file(const char *path);
-void cfg_destroy_compound(struct cfg_comp *comp);
-void cfg_warn(struct cfg_comp *comp, struct cfg_var *v, const char *fmt, ...)
+extern struct cfg_comp *cfg_parse_file(const char *path);
+extern void cfg_destroy_compound(struct cfg_comp *comp);
+extern void cfg_warn(struct cfg_comp *comp, struct cfg_var *v, const char *fmt, ...)
 	__attribute__((__format__(__printf__, 3, 4)));
-void cfg_error(struct cfg_comp *comp, struct cfg_var *v, const char *fmt, ...)
+extern void cfg_error(struct cfg_comp *comp, struct cfg_var *v, const char *fmt, ...)
 	__attribute__((__format__(__printf__, 3, 4), __noreturn__));
-char *cfg_copy_value(struct cfg_var *v);
+extern char *cfg_copy_value(struct cfg_var *v);
 
 #endif /* _CONFIG_H */

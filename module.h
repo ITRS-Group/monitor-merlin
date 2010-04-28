@@ -52,17 +52,17 @@ extern int send_paths(void);
 extern int handle_ipc_event(merlin_event *pkt);
 extern int cb_handler(int cmd, void *data); /* the callback handler */
 extern void file_list_free(struct file_list *list);
-time_t get_last_cfg_change(void);
+extern time_t get_last_cfg_change(void);
 
-int print_service_check_data(nebstruct_service_check_data *ds);
-int print_blockified_service_check_data(nebstruct_service_check_data *ds, off_t len);
+extern int print_service_check_data(nebstruct_service_check_data *ds);
+extern int print_blockified_service_check_data(nebstruct_service_check_data *ds, off_t len);
 
 #define disable_checks(sel) enable_disable_checks(sel, 0)
 #define enable_checks(sel) enable_disable_checks(sel, 1)
-void enable_disable_checks(int selection, int status);
-void control_all_distributed_checks(void);
-void create_object_lists(void);
-void handle_control(merlin_event *pkt);
+extern void enable_disable_checks(int selection, int status);
+extern void control_all_distributed_checks(void);
+extern void create_object_lists(void);
+extern void handle_control(merlin_event *pkt);
 extern int is_stalling(void);
 extern void ctrl_stall_start(void);
 extern void ctrl_stall_stop(void);
