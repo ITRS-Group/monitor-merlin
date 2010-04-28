@@ -267,6 +267,9 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 	importer_pid = pid;
 	free(cmd);
 
+	/* ask the module to stall events for us until we're done */
+	ipc_send_ctrl(CTRL_STALL, -1);
+
 	return result;
 }
 
@@ -428,8 +431,11 @@ static void polling_loop(void)
 
 			if (pid < 0)
 				lerr("waitpid() failed: %s", strerror(errno));
-			else if (pid == importer_pid)
+			else if (pid == importer_pid) {
+				/* resume normal operations */
 				importer_pid = 0;
+				ipc_send_ctrl(CTRL_RESUME, -1);
+			}
 		}
 		io_poll_sockets();
 	}
