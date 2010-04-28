@@ -418,6 +418,9 @@ static void polling_loop(void)
 		stop = time(NULL);
 		if (start + 15 >= stop) {
 			ipc_log_event_count();
+			if (importer_pid) {
+				ipc_send_ctrl(CTRL_STALL, -1);
+			}
 			start = stop;
 		}
 
