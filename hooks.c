@@ -27,12 +27,7 @@ static int get_selection(const char *key)
 {
 	int *selection = hash_find_val(key);
 
-	if (!selection) {
-		lwarn("key '%s' doesn't match any possible selection", key);
-		return 0;
-	}
-
-	return *selection & 0xffff;
+	return selection ? *selection & 0xffff : CTRL_GENERIC;
 }
 
 /*
