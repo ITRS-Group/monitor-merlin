@@ -256,6 +256,22 @@ static void reap_child_process(void)
 	}
 }
 
+/*
+ * this should only be executed by the child process
+ * created in import_objects_and_status()
+ */
+static void run_import_program(char *cmd)
+{
+	char *args[4] = { "sh", "-c", cmd, NULL };
+
+	execvp("/bin/sh", args);
+	lerr("execvp failed: %s", strerror(errno));
+}
+
+/*
+ * import objects and status from objects.cache and status.log,
+ * respecively
+ */
 static int import_objects_and_status(char *cfg, char *cache, char *status)
 {
 	char *cmd;
@@ -291,10 +307,12 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 	if (pid < 0) {
 		lerr("Skipping import due to failed fork(): %s", strerror(errno));
 	} else if (!pid) {
-		/* child runs import program */
-		result = system(cmd);
-		free(cmd);
-		exit(0);
+		/*
+		 * child runs the actual import. if run_import_program()
+		 * returns, execvp() failed and we're basically screwed.
+		 */
+		run_import_program(cmd);
+		exit(1);
 	}
 
 	/* mark import as running in parent */
