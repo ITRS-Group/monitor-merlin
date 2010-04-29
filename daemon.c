@@ -460,30 +460,29 @@ static int io_poll_sockets(void)
 
 static void polling_loop(void)
 {
-	time_t start, stop;
-
-	start = time(NULL);
-
 	for (;;) {
-		int status;
+		time_t now = time(NULL);
 
-		stop = time(NULL);
-		if (start + 15 >= stop) {
+		/* log the event count on every 60 second mark */
+		if (!(now % 60)) {
 			ipc_log_event_count();
-			if (importer_pid) {
-				ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
-			}
-			start = stop;
 		}
 
-		/*
-		 * reap any stray child processes.
-		 * if the import isn't done yet waitpid() will return 0
-		 * and we won't touch import_running at all.
-		 */
+		/* check if an import in progress is done yet */
 		if (importer_pid) {
 			reap_child_process();
+
+			/*
+			 * reap_child_process() resets importer_pid if
+			 * the import is completed.
+			 * if it's not and at tops 15 seconds have passed,
+			 * ask for some more time.
+			 */
+			if (importer_pid && !(now % 15)) {
+				ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
+			}
 		}
+
 		io_poll_sockets();
 	}
 }
