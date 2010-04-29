@@ -411,6 +411,7 @@ static int io_poll_sockets(void)
 	fd_set rd, wr;
 	int sel_val, ipc_sock, ipc_listen_sock, net_sock, nfound;
 	int net_sel_val, sockets = 0;
+	struct timeval tv = { 2, 0 };
 
 	sel_val = net_sock = net_sock_desc();
 	ipc_listen_sock = ipc_listen_sock_desc();
@@ -427,7 +428,7 @@ static int io_poll_sockets(void)
 
 	net_sel_val = net_polling_helper(&rd, &wr, sel_val);
 	sel_val = max(sel_val, net_sel_val);
-	nfound = select(sel_val + 1, &rd, &wr, NULL, NULL);
+	nfound = select(sel_val + 1, &rd, &wr, NULL, &tv);
 	if (nfound < 0) {
 		lerr("select() returned %d (errno = %d): %s", nfound, errno, strerror(errno));
 		sleep(1);
