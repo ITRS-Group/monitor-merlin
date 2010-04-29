@@ -120,8 +120,8 @@ void enable_disable_checks(int selection, int enable)
 int is_stalling(void)
 {
 	/* stall_start is set to 0 when we stop stalling */
-	if (stall_start && stall_start + STALL_TIMER < time(NULL))
-		return time(NULL) - (stall_start + STALL_TIMER);
+	if (stall_start && stall_start + STALL_TIMER > time(NULL))
+		return (stall_start + STALL_TIMER) - time(NULL);
 
 	stall_start = 0;
 	return 0;

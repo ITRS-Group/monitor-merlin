@@ -179,6 +179,8 @@ static void load_hosts_and_services(void)
 
 static void t_setup(void)
 {
+	time_t start;
+
 	sql_init();
 	printf("Using database '%s'\n", sql_db_name());
 	printf("%u comments\n", count_table_rows("comment"));
@@ -193,8 +195,13 @@ static void t_setup(void)
 	} else {
 		t_pass("ipc_init()");
 	}
+	start = time(NULL);
 	ok_int(send_paths(), 0, "Sending paths");
-	sleep(4);
+	if (start + 1 < time(NULL)) {
+		t_pass("import causes module to stall");
+	} else {
+		t_fail("import doesn't cause module to stall");
+	}
 	load_hosts_and_services();
 }
 
