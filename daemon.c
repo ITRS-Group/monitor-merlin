@@ -222,7 +222,40 @@ static int grok_config(char *path)
 	return 1;
 }
 
-/** FIXME: this is fugly and lacks error checking */
+/*
+ * if the import isn't done yet waitpid() will return 0
+ * and we won't touch importer_pid at all.
+ */
+static void reap_child_process(void)
+{
+	int status, pid;
+
+	if (!importer_pid)
+		return;
+
+	pid = waitpid(-1, &status, WNOHANG);
+	if (pid == importer_pid) {
+		if (WIFEXITED(status)) {
+			if (!WEXITSTATUS(status)) {
+				linfo("import program finished. Resuming normal operations");
+			} else {
+				lwarn("import program exited with return code %d", WEXITSTATUS(status));
+			}
+		} else {
+			lerr("import program stopped or killed");
+		}
+		/* successfully reaped, so reset and resume */
+		importer_pid = 0;
+		ipc_send_ctrl(CTRL_RESUME, CTRL_GENERIC);
+	} else if (pid < 0 && errno == ECHILD) {
+		/* no child running. Just reset */
+		importer_pid = 0;
+	} else if (pid < 0) {
+		/* some random error. log it */
+		lerr("waitpid(-1...) failed: %s", strerror(errno));
+	}
+}
+
 static int import_objects_and_status(char *cfg, char *cache, char *status)
 {
 	char *cmd;
@@ -431,15 +464,7 @@ static void polling_loop(void)
 		 * and we won't touch import_running at all.
 		 */
 		if (importer_pid) {
-			int pid = waitpid(-1, &status, WNOHANG);
-
-			if (pid < 0)
-				lerr("waitpid() failed: %s", strerror(errno));
-			else if (pid == importer_pid) {
-				/* resume normal operations */
-				importer_pid = 0;
-				ipc_send_ctrl(CTRL_RESUME, CTRL_GENERIC);
-			}
+			reap_child_process();
 		}
 		io_poll_sockets();
 	}
