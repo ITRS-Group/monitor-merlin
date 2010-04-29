@@ -315,7 +315,6 @@ static void test_host_check(void)
 	nebstruct_host_check_data *orig, *mod;
 	uint i;
 
-	return;
 	orig = calloc(1, sizeof(*orig));
 
 	/*
@@ -335,7 +334,7 @@ static void test_host_check(void)
 		test_compare(host_name);
 		test_compare(output);
 		test_compare(perf_data);
-		merlin_mod_hook(NEBCALLBACK_HOST_STATUS_DATA, orig);
+		merlin_mod_hook(NEBCALLBACK_HOST_CHECK_DATA, orig);
 	}
 	free(orig);
 }
@@ -346,10 +345,9 @@ static void test_service_check(void)
 	uint i;
 
 	orig = calloc(1, sizeof(*orig));
+	orig->type = NEBTYPE_SERVICECHECK_PROCESSED;
 	gettimeofday(&orig->start_time, NULL);
 	gettimeofday(&orig->end_time, NULL);
-
-	mod->type = NEBTYPE_SERVICECHECK_PROCESSED;
 	for (i = 0; i < num_services; i++) {
 		service *s = &services[i];
 		orig->host_name = s->host_name;
@@ -818,6 +816,8 @@ static struct merlin_test {
 	T_ENTRY(COMMENT, comment),
 	T_ENTRY(FLAPPING, flapping),
 	T_ENTRY(DOWNTIME, downtime),
+	T_ENTRY(HOST_CHECK, host_check),
+	T_ENTRY(SERVICE_CHECK, service_check),
 };
 
 static int callback_is_tested(int id, const char *caller)
