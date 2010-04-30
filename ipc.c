@@ -309,10 +309,19 @@ static int ipc_poll(int events, int msec)
 
 int ipc_send_ctrl(int control_type, int selection)
 {
-	if (!ipc_is_connected(0))
-		return 0;
+	merlin_event pkt;
+	int result;
 
-	return proto_ctrl(ipc_sock, control_type, selection);
+	memset(&pkt.hdr, 0, HDR_SIZE);
+	pkt.hdr.type = CTRL_PACKET;
+	pkt.hdr.code = control_type;
+	pkt.hdr.selection = selection;
+
+	result = proto_send_event(ipc_sock, &pkt);
+	if (result < 0)
+		return ipc_binlog_add(&pkt);
+
+	return result;
 }
 
 int ipc_send_event(merlin_event *pkt)
