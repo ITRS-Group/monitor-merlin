@@ -457,7 +457,6 @@ static void test_contact_notification_method(void)
 	orig->type = NEBTYPE_CONTACTNOTIFICATIONMETHOD_END;
 
 	sql_query("TRUNCATE notification");
-	/* test setting all hosts to flapping state */
 	for (i = 0; i < num_hosts; i++) {
 		orig->host_name = hosts[i].name;
 		mod = blk_prep(orig);
