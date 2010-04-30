@@ -326,15 +326,23 @@ int ipc_send_event(merlin_event *pkt)
 		return ipc_binlog_add(pkt);
 	}
 
+	/* if the binlog has entries, we must send those first */
 	if (binlog_has_entries(ipc_binlog)) {
 		merlin_event *temp_pkt;
 		size_t len;
 
-		while (ipc_write_ok(100) && !binlog_read(ipc_binlog, (void **)&temp_pkt, &len)) {
+		/*
+		 * we use a slightly higher timeout here, as we'll be
+		 * spraying the daemon pretty hard
+		 */
+		linfo("binary backlog has entries. Emptying those first");
+		while (ipc_write_ok(500) && !binlog_read(ipc_binlog, (void **)&temp_pkt, &len)) {
 			result = proto_send_event(ipc_sock, temp_pkt);
 			if (result < 0 && errno == EPIPE) {
-				lerr("Dropped one from ipc backlog");
+				binlog_destroy(ipc_binlog, BINLOG_UNLINK);
+				lerr("Backlog dropped. re-import required");
 				ipc_reinit();
+				return -1;
 			}
 		}
 	}
