@@ -129,15 +129,23 @@ int ipc_binlog_add(merlin_event *pkt)
 		asprintf(&path, "/opt/monitor/op5/merlin/binlogs/ipc.%s.binlog",
 				 is_module ? "module" : "daemon");
 
-		/* 1MB in memory, 100MB on disk */
-		ipc_binlog = binlog_create(path, 1 << 20, 100 << 20, BINLOG_UNLINK);
+		linfo("Creating binary ipc backlog at. On-disk location: %s", path);
+		/* 10MB in memory, 100MB on disk */
+		ipc_binlog = binlog_create(path, 10 << 20, 100 << 20, BINLOG_UNLINK);
 		free(path);
 
-		if (!ipc_binlog)
+		if (!ipc_binlog) {
+			lerr("Failed to create binary ipc backlog: %s", strerror(errno));
 			return -1;
+		}
 	}
 
-	binlog_add(ipc_binlog, pkt, packet_size(pkt));
+	if (binlog_add(ipc_binlog, pkt, packet_size(pkt)) < 0) {
+		lerr("Failed to add %u bytes to binlog: %s",
+			 packet_size(pkt), strerror(errno));
+		return -1;
+	}
+
 	return 0;
 }
 
