@@ -166,6 +166,8 @@ int ipc_init(void)
 	if (!ipc_sock_path)
 		ipc_sock_path = strdup("/opt/monitor/op5/mrd/socket.mrd");
 
+	memset(&ipc_events, 0, sizeof(ipc_events));
+	gettimeofday(&ipc_events.start, NULL);
 	if (last_connect_attempt + 30 >= time(NULL)) {
 		linfo("Initializing IPC socket '%s' for %s", ipc_sock_path,
 		      is_module ? "module" : "daemon");
