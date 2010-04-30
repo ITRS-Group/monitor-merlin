@@ -221,7 +221,7 @@ int merlin_mod_hook(int cb, void *data)
 		return -1;
 	}
 
-	if (merlin_should_send_paths) {
+	if (!is_stalling() && merlin_should_send_paths) {
 		if (merlin_should_send_paths <= time(NULL)) {
 			linfo("Daemon should have caught up. Trying to force a re-import");
 			send_paths();
@@ -293,7 +293,7 @@ int merlin_mod_hook(int cb, void *data)
 	}
 
 	if (result < 0) {
-		lwarn("Daemon is flooded. Staying dormant for 15 seconds");
+		lwarn("Daemon is flooded and backlogging failed. Staying dormant for 15 seconds");
 		merlin_should_send_paths = time(NULL) + 15;
 	}
 
