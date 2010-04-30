@@ -461,12 +461,15 @@ static int io_poll_sockets(void)
 
 static void polling_loop(void)
 {
+	time_t last_log = 0;
+
 	for (;;) {
 		time_t now = time(NULL);
 
 		/* log the event count on every 60 second mark */
-		if (!(now % 60)) {
+		if (now > last_log) {
 			ipc_log_event_count();
+			last_log = time(NULL) + 15;
 		}
 
 		/* check if an import in progress is done yet */
