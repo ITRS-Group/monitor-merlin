@@ -121,7 +121,7 @@ int ipc_grok_var(char *var, char *val)
 	return 0;
 }
 
-int ipc_binlog_add(merlin_event *pkt)
+static int ipc_binlog_add(merlin_event *pkt)
 {
 	if (!ipc_binlog) {
 		char *path;
