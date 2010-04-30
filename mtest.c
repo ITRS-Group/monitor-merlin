@@ -475,7 +475,7 @@ static void test_contact_notification_method(void)
 
 	for (i = 0; i < num_services; i++) {
 		orig->host_name = services[i].host_name;
-		orig->service_description = services[i].host_name;
+		orig->service_description = services[i].description;
 		mod = blk_prep(orig);
 		test_compare(host_name);
 		test_compare(service_description);
