@@ -165,7 +165,7 @@ int ipc_grok_var(char *var, char *val)
 	return 0;
 }
 
-int ipc_binlog_add(merlin_event *pkt)
+static int ipc_binlog_add(merlin_event *pkt)
 {
 	if (!ipc_binlog) {
 		char *path;
@@ -177,15 +177,24 @@ int ipc_binlog_add(merlin_event *pkt)
 			path = strdup(ipc_binlog_path);
 		}
 
-		/* 1MB in memory, 100MB on disk */
-		ipc_binlog = binlog_create(path, 1 << 20, 100 << 20, BINLOG_UNLINK);
+		linfo("Creating binary ipc backlog at. On-disk location: %s", path);
+		/* 10MB in memory, 100MB on disk */
+		ipc_binlog = binlog_create(path, 10 << 20, 100 << 20, BINLOG_UNLINK);
 		free(path);
 
-		if (!ipc_binlog)
+		if (!ipc_binlog) {
+			lerr("Failed to create binary ipc backlog: %s", strerror(errno));
 			return -1;
+		}
 	}
 
-	binlog_add(ipc_binlog, pkt, packet_size(pkt));
+	if (binlog_add(ipc_binlog, pkt, packet_size(pkt)) < 0) {
+		lerr("Failed to add %u bytes to binlog: %s",
+			 packet_size(pkt), strerror(errno));
+		return -1;
+	}
+	ipc_events.logged++;
+
 	return 0;
 }
 
@@ -205,6 +214,8 @@ int ipc_init(void)
 	if (!ipc_sock_path)
 		ipc_sock_path = strdup("/opt/monitor/op5/mrd/socket.mrd");
 
+	memset(&ipc_events, 0, sizeof(ipc_events));
+	gettimeofday(&ipc_events.start, NULL);
 	if (last_connect_attempt + 30 >= time(NULL)) {
 		linfo("Initializing IPC socket '%s' for %s", ipc_sock_path,
 		      is_module ? "module" : "daemon");
@@ -346,42 +357,51 @@ static int ipc_poll(int events, int msec)
 
 int ipc_send_ctrl(int control_type, int selection)
 {
-	if (!ipc_is_connected(0))
-		return 0;
+	merlin_event pkt;
+	int result;
 
-	return proto_ctrl(ipc_sock, control_type, selection);
+	memset(&pkt.hdr, 0, HDR_SIZE);
+	pkt.hdr.type = CTRL_PACKET;
+	pkt.hdr.code = control_type;
+	pkt.hdr.selection = selection;
+
+	result = proto_send_event(ipc_sock, &pkt);
+	if (result < 0)
+		return ipc_binlog_add(&pkt);
+
+	return result;
 }
 
 int ipc_send_event(merlin_event *pkt)
 {
 	int result;
 
-	if (!ipc_is_connected(0)) {
-		linfo("ipc is not connected");
-		if (ipc_binlog_add(pkt) < 0) {
-			lwarn("Failed to add packet to binlog. Event dropped");
-			ipc_events.dropped++;
-		} else {
-			ipc_events.logged++;
-		}
-		return -1;
+	/*
+	 * we might be ok with not being able to send if we can
+	 * add stuff to the binlog properly, since that one gets
+	 * emptied by us too
+	 */
+	if (!ipc_is_connected(0) || !ipc_write_ok(100)) {
+		return ipc_binlog_add(pkt);
 	}
 
-	if (!ipc_write_ok(100)) {
-		linfo("ipc socket isn't ready to accept data: %s", strerror(errno));
-		ipc_binlog_add(pkt);
-		return -1;
-	}
-
+	/* if the binlog has entries, we must send those first */
 	if (binlog_has_entries(ipc_binlog)) {
 		merlin_event *temp_pkt;
 		size_t len;
 
-		while (ipc_write_ok(100) && !binlog_read(ipc_binlog, (void **)&temp_pkt, &len)) {
+		/*
+		 * we use a slightly higher timeout here, as we'll be
+		 * spraying the daemon pretty hard
+		 */
+		linfo("binary backlog has entries. Emptying those first");
+		while (ipc_write_ok(500) && !binlog_read(ipc_binlog, (void **)&temp_pkt, &len)) {
 			result = proto_send_event(ipc_sock, temp_pkt);
 			if (result < 0 && errno == EPIPE) {
-				lerr("Dropped one from ipc backlog");
+				binlog_destroy(ipc_binlog, BINLOG_UNLINK);
+				lerr("Backlog dropped. re-import required");
 				ipc_reinit();
+				return -1;
 			}
 		}
 	}

@@ -49,6 +49,7 @@ rm -rf %buildroot
 sh install-merlin.sh --batch --root=%buildroot --install=files,init \
 	--dest-dir %mod_path
 chmod 777 %buildroot/%mod_path/logs
+mkdir -p %buildroot/%mod_path/binlogs
 mkdir -p %buildroot%_sysconfdir/logrotate.d
 cp %_sourcedir/merlin.logrotate %buildroot%_sysconfdir/logrotate.d/merlin
 
@@ -88,6 +89,7 @@ echo "Importing notifications from logfiles to database"
 %files
 %defattr(-,root,root)
 %mod_path/merlin.so
+%mod_path/binlogs
 
 %files -n merlin
 %defattr(-,root,root)

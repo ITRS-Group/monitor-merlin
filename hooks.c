@@ -14,11 +14,24 @@
 
 static int send_generic(merlin_event *pkt, void *data)
 {
+	static merlin_event last_pkt;
+
 	pkt->hdr.len = blockify_event(pkt, data);
 	if (!pkt->hdr.len) {
 		lerr("Header len is 0 for callback %d. Update offset in hookinfo.h", pkt->hdr.type);
 		return -1;
 	}
+
+	/*
+	 * memcmp() works nicely after blockify, since all strings
+	 * will have the same offset, so long as we don't compare
+	 * beyond the real length of pkt
+	 */
+	if (!memcmp(pkt, &last_pkt, packet_size(pkt))) {
+		lwarn("%s type event sent more than once. bugfix nagios", callback_name(pkt->hdr.type));
+		return 0;
+	}
+	memcpy(&last_pkt, pkt, packet_size(&last_pkt));
 
 	return ipc_send_event(pkt);
 }
@@ -157,12 +170,7 @@ int merlin_mod_hook(int cb, void *data)
 		return -1;
 	}
 
-	if (!ipc_is_connected(0)) {
-		/* use backlog here */
-		return 0;
-	}
-
-	if (merlin_should_send_paths) {
+	if (!is_stalling() && merlin_should_send_paths) {
 		if (merlin_should_send_paths <= time(NULL)) {
 			linfo("Daemon should have caught up. Trying to force a re-import");
 			send_paths();
@@ -235,7 +243,7 @@ int merlin_mod_hook(int cb, void *data)
 	}
 
 	if (result < 0) {
-		lwarn("Daemon is flooded. Staying dormant for 15 seconds");
+		lwarn("Daemon is flooded and backlogging failed. Staying dormant for 15 seconds");
 		merlin_should_send_paths = time(NULL) + 15;
 	}
 

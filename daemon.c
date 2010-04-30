@@ -477,10 +477,11 @@ static void polling_loop(void)
 	for (;;) {
 		time_t now = time(NULL);
 
-		/* log the event count on every 60 second mark */
-		if (!(now % 60)) {
-			ipc_log_event_count();
-		}
+		/*
+		 * log the event count. The marker to prevent us from
+		 * spamming the logs is in log_event_count() in logging.c
+		 */
+		ipc_log_event_count();
 
 		/* check if an import in progress is done yet */
 		if (importer_pid) {

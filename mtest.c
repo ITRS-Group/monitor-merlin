@@ -455,7 +455,6 @@ static void test_contact_notification_method(void)
 	orig->type = NEBTYPE_CONTACTNOTIFICATIONMETHOD_END;
 
 	sql_query("TRUNCATE notification");
-	/* test setting all hosts to flapping state */
 	for (i = 0; i < num_hosts; i++) {
 		orig->host_name = hosts[i].name;
 		mod = blk_prep(orig);
@@ -474,7 +473,7 @@ static void test_contact_notification_method(void)
 
 	for (i = 0; i < num_services; i++) {
 		orig->host_name = services[i].host_name;
-		orig->service_description = services[i].host_name;
+		orig->service_description = services[i].description;
 		mod = blk_prep(orig);
 		test_compare(host_name);
 		test_compare(service_description);
@@ -848,7 +847,7 @@ int main(int argc, char **argv)
 	t_set_colors(0);
 
 	log_grok_var("log_file", "stdout");
-	log_grok_var("log_level", "warn");
+	log_grok_var("log_level", "info");
 	if (argc < 2) {
 		crash("No arguments. Wtf??");
 	}
