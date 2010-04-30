@@ -205,8 +205,12 @@ class nagios_object_importer
 		$ref_type = str_replace('group', '', $group);
 
 		foreach ($obj_list as $obj_key => &$obj) {
-			if (!isset($obj['members']))
+			# empty groups are ok. Just insert them early
+			# and ignore them
+			if (empty($obj['members'])) {
+				$this->glue_object($obj_key, $group, $obj);
 				continue;
+			}
 
 			$ary = split("[\t ]*,[\t ]*", $obj['members']);
 			$v_ary = array(); # reset between each loop
@@ -321,7 +325,7 @@ class nagios_object_importer
 		while ($row = $this->sql_fetch_row($result)) {
 			if (empty($cg_members[$row[1]])) {
 				echo "Un-cached contactgroup $row[1] assigned to $otype $row[0]\n";
-				exit(1);
+				continue;
 			}
 			$ret[$row[0]] = $cg_members[$row[1]];
 		}
