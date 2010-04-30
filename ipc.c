@@ -145,6 +145,7 @@ static int ipc_binlog_add(merlin_event *pkt)
 			 packet_size(pkt), strerror(errno));
 		return -1;
 	}
+	ipc_events.logged++;
 
 	return 0;
 }
@@ -316,21 +317,13 @@ int ipc_send_event(merlin_event *pkt)
 {
 	int result;
 
-	if (!ipc_is_connected(0)) {
-		linfo("ipc is not connected");
-		if (ipc_binlog_add(pkt) < 0) {
-			lwarn("Failed to add packet to binlog. Event dropped");
-			ipc_events.dropped++;
-		} else {
-			ipc_events.logged++;
-		}
-		return -1;
-	}
-
-	if (!ipc_write_ok(100)) {
-		linfo("ipc socket isn't ready to accept data: %s", strerror(errno));
-		ipc_binlog_add(pkt);
-		return -1;
+	/*
+	 * we might be ok with not being able to send if we can
+	 * add stuff to the binlog properly, since that one gets
+	 * emptied by us too
+	 */
+	if (!ipc_is_connected(0) || !ipc_write_ok(100)) {
+		return ipc_binlog_add(pkt);
 	}
 
 	if (binlog_has_entries(ipc_binlog)) {
