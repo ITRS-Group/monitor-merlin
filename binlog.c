@@ -144,8 +144,14 @@ int binlog_destroy(binlog *bl, int keep_file)
 		uint i;
 
 		for (i = 0; i < bl->write_index; i++) {
-			if (bl->cache[i])
-				free(bl->cache[i]);
+			struct binlog_entry *entry = bl->cache[i];
+
+			if (!entry)
+				continue;
+
+			if (entry->data)
+				free(entry->data);
+			free(entry);
 		}
 		free(bl->cache);
 	}
@@ -237,15 +243,20 @@ static int binlog_grow(binlog *bl)
 static int binlog_mem_add(binlog *bl, void *buf, uint len)
 {
 	binlog_entry *entry;
+
+	if (bl->write_index >= bl->alloc && binlog_grow(bl) < 0)
+		return BINLOG_EDROPPED;
+
 	entry = malloc(sizeof(*entry));
-	entry->size = len;
+	if (!entry)
+		return BINLOG_EDROPPED;
 
 	entry->data = malloc(len);
+	if (!entry->data)
+		return BINLOG_EDROPPED;
+
+	entry->size = len;
 	memcpy(entry->data, buf, len);
-
-	if (bl->write_index >= bl->alloc)
-		binlog_grow(bl);
-
 	bl->cache[bl->write_index++] = entry;
 	bl->mem_size += entry_size(entry);
 
