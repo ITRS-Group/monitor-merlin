@@ -594,7 +594,7 @@ static struct test_binlog test[] = {
 	{ "/tmp/binlog-test", "All in memory", 10000000, 1000000 },
 	{ "/tmp/binlog-test", "All on disk", 0, 1000000 },
 	{ "/tmp/binlog-test", "Some on disk", 4096, 1000000 },
-	{ "/tmp/binlog-test", "not enough space", 10, 10 },
+	{ "/tmp/binlog-test", "not enough space", 3, 3 },
 };
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
@@ -604,9 +604,8 @@ static int test_binlog(struct test_binlog *t, binlog *bl)
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(msg_list); i++) {
-		char *str = NULL;
 		int result;
-		size_t len, msg_len;
+		uint msg_len;
 
 		msg_len = strlen(msg_list[i]) + 1;
 
@@ -615,6 +614,18 @@ static int test_binlog(struct test_binlog *t, binlog *bl)
 			ok++;
 			continue;
 		}
+	}
+
+	if (!binlog_has_entries(bl))
+		return ok - ARRAY_SIZE(msg_list);
+
+	ok = 0;
+	for (i = 0; i < ARRAY_SIZE(msg_list); i++) {
+		char *str = NULL;
+		int result;
+		uint len, msg_len;
+
+		msg_len = strlen(msg_list[i]) + 1;
 		result = binlog_read(bl, (void **)&str, &len);
 		if (result == BINLOG_EMPTY) {
 			printf("binlog claims it's empty when just added to\n");
