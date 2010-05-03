@@ -195,6 +195,14 @@ static int binlog_mem_read(binlog *bl, void **buf, uint *len)
 		*buf = bl->cache[bl->read_index]->data;
 		*len = bl->cache[bl->read_index]->size;
 		free(bl->cache[bl->read_index++]);
+		/*
+		 * reset the read and write index in case we've read
+		 * all entries. This lets us re-use the entry slot
+		 * later and not just steadily increase the array
+		 * size
+		 */
+		if (bl->read_index >= bl->write_index)
+			bl->read_index = bl->write_index = 0;
 		return 0;
 	}
 
