@@ -355,7 +355,7 @@ int ipc_send_event(merlin_event *pkt)
 	/* if the binlog has entries, we must send those first */
 	if (binlog_has_entries(ipc_binlog)) {
 		merlin_event *temp_pkt;
-		size_t len;
+		uint len;
 
 		/*
 		 * we use a slightly higher timeout here, as we'll be
@@ -364,6 +364,12 @@ int ipc_send_event(merlin_event *pkt)
 		linfo("binary backlog has entries. Emptying those first");
 		while (ipc_write_ok(500) && !binlog_read(ipc_binlog, (void **)&temp_pkt, &len)) {
 			result = proto_send_event(ipc_sock, temp_pkt);
+
+			/*
+			 * the binlog duplicates the memory, so we must
+			 * free it here or it will be leaked
+			 */
+			free(temp_pkt);
 
 			/*
 			 * an error when sending the backlogged entries
