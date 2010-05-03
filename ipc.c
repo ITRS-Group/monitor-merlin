@@ -155,6 +155,13 @@ int ipc_init(void)
 	struct sockaddr_un saun;
 	struct sockaddr *sa = (struct sockaddr *)&saun;
 	socklen_t slen;
+	int quiet = 0;
+
+	/* don't spam the logs */
+	if (last_connect_attempt + 30 >= time(NULL)) {
+		quiet = 1;
+	}
+	last_connect_attempt = time(NULL);
 
 	if (!ipc_sock_path) {
 		lerr("Attempting to initialize ipc socket, but no socket path has been set\n");
@@ -168,7 +175,7 @@ int ipc_init(void)
 
 	memset(&ipc_events, 0, sizeof(ipc_events));
 	gettimeofday(&ipc_events.start, NULL);
-	if (last_connect_attempt + 30 >= time(NULL)) {
+	if (!quiet) {
 		linfo("Initializing IPC socket '%s' for %s", ipc_sock_path,
 		      is_module ? "module" : "daemon");
 	}
@@ -199,8 +206,10 @@ int ipc_init(void)
 		result = bind(listen_sock, sa, slen);
 		umask(old_umask);
 		if (result < 0) {
-			lerr("Failed to bind ipc socket %d to path '%s' with len %d: %s",
-				 listen_sock, ipc_sock_path, slen, strerror(errno));
+			if (!quiet) {
+				lerr("Failed to bind ipc socket %d to path '%s' with len %d: %s",
+					 listen_sock, ipc_sock_path, slen, strerror(errno));
+			}
 			close(listen_sock);
 			listen_sock = -1;
 			return -1;
@@ -216,9 +225,8 @@ int ipc_init(void)
 	if (connect(listen_sock, sa, slen) < 0) {
 		if (errno == EISCONN)
 			return 0;
-		if (last_connect_attempt + 30 <= time(NULL)) {
+		if (!quiet) {
 			lerr("Failed to connect to ipc socket '%s': %s", ipc_sock_path, strerror(errno));
-			last_connect_attempt = time(NULL);
 		}
 		ipc_deinit();
 		return -1;
