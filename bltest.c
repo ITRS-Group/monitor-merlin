@@ -584,8 +584,21 @@ static char *msg_list[] = {
 	"This is a job for BOB VIOLENCE and SCUM, the INCREDIBLY STUPID MUTANT DOG.",
 };
 
+struct test_binlog {
+	char *path;
+	char *name;
+	size_t msize;
+	size_t fsize;
+};
+static struct test_binlog test[] = {
+	{ "/tmp/binlog-test", "All in memory", 10000000, 1000000 },
+	{ "/tmp/binlog-test", "All on disk", 0, 1000000 },
+	{ "/tmp/binlog-test", "Some on disk", 4096, 1000000 },
+	{ "/tmp/binlog-test", "not enough space", 10, 10 },
+};
+
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
-static int test_binlog(binlog *bl)
+static int test_binlog(struct test_binlog *t, binlog *bl)
 {
 	size_t ok = 0;
 	int i;
@@ -597,7 +610,11 @@ static int test_binlog(binlog *bl)
 
 		msg_len = strlen(msg_list[i]) + 1;
 
-		binlog_add(bl, msg_list[i], msg_len);
+		result = binlog_add(bl, msg_list[i], msg_len);
+		if (msg_len > t->msize && msg_len > t->fsize && result == BINLOG_ENOSPC) {
+			ok++;
+			continue;
+		}
 		result = binlog_read(bl, (void **)&str, &len);
 		if (result == BINLOG_EMPTY) {
 			printf("binlog claims it's empty when just added to\n");
@@ -624,18 +641,6 @@ static int test_binlog(binlog *bl)
 
 	return 1;
 }
-
-struct test_binlog {
-	char *path;
-	char *name;
-	size_t msize;
-	size_t fsize;
-};
-static struct test_binlog test[] = {
-	{ "/tmp/binlog-test", "All in memory", 10000000, 1000000 },
-	{ "/tmp/binlog-test", "All on disk", 0, 1000000 },
-	{ "/tmp/binlog-test", "Some on disk", 4096, 1000000 },
-};
 
 #define BLPATH "/tmp/binlog-test"
 static const char *green, *red, *reset;
@@ -685,7 +690,7 @@ int main(int argc, char **argv)
 			continue;
 		}
 
-		if (!test_binlog(bl)) {
+		if (!test_binlog(t, bl)) {
 			pass(t->name, NULL);
 		} else {
 			fail(t->name, t);
