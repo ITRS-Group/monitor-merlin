@@ -256,6 +256,10 @@ static int binlog_file_add(binlog *bl, void *buf, uint len)
 {
 	int ret;
 
+	/* bail out early if there's no room */
+	if (bl->file_size + len > bl->max_file_size)
+		return BINLOG_ENOSPC;
+
 	ret = binlog_open(bl);
 	if (ret < 0)
 		return ret;
