@@ -140,6 +140,9 @@ int binlog_destroy(binlog *bl, int keep_file)
 		unlink(bl->path);
 	}
 
+	if (bl->path)
+		free(bl->path);
+
 	if (bl->cache) {
 		uint i;
 
