@@ -9,6 +9,7 @@ static char *debug_write, *debug_read;
 static int listen_sock = -1; /* for bind() and such */
 static int ipc_sock = -1; /* once connected, we operate on this */
 static char *ipc_sock_path;
+static char *ipc_binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 static merlin_event_counter ipc_events;
 
 static time_t last_connect_attempt;
@@ -118,6 +119,11 @@ int ipc_grok_var(char *var, char *val)
 		return 1;
 	}
 
+	if (!strcmp(var, "ipc_binlog_dir") || !strcmp(var, "ipc_backlog_dir")) {
+		ipc_binlog_dir = strdup(val);
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -126,10 +132,10 @@ static int ipc_binlog_add(merlin_event *pkt)
 	if (!ipc_binlog) {
 		char *path;
 
-		asprintf(&path, "/opt/monitor/op5/merlin/binlogs/ipc.%s.binlog",
+		asprintf(&path, "%s/ipc.%s.binlog", ipc_binlog_dir,
 				 is_module ? "module" : "daemon");
 
-		linfo("Creating binary ipc backlog at. On-disk location: %s", path);
+		linfo("Creating binary ipc backlog. On-disk location: %s", path);
 		/* 10MB in memory, 100MB on disk */
 		ipc_binlog = binlog_create(path, 10 << 20, 100 << 20, BINLOG_UNLINK);
 		free(path);
