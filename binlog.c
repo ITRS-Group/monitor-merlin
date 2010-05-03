@@ -13,7 +13,7 @@
 #include "binlog.h"
 
 struct binlog_entry {
-	size_t size;
+	uint size;
 	void *data;
 };
 typedef struct binlog_entry binlog_entry;
