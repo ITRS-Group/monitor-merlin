@@ -189,16 +189,8 @@ static int binlog_file_read(binlog *bl, void **buf, uint *len)
 	return 0;
 }
 
-int binlog_read(binlog *bl, void **buf, uint *len)
+static int binlog_mem_read(binlog *bl, void **buf, uint *len)
 {
-	/*
-	 * reading from file must come first in order to
-	 * maintain sequential ordering
-	 */
-	if (bl->file_size && bl->file_read_pos < bl->file_size) {
-		return binlog_file_read(bl, buf, len);
-	}
-
 	if (bl->cache && bl->read_index < bl->write_index) {
 		*buf = bl->cache[bl->read_index]->data;
 		*len = bl->cache[bl->read_index]->size;
@@ -207,6 +199,20 @@ int binlog_read(binlog *bl, void **buf, uint *len)
 	}
 
 	return BINLOG_EMPTY;
+}
+
+int binlog_read(binlog *bl, void **buf, uint *len)
+{
+	/*
+	 * reading from memory must come first in order to
+	 * maintain sequential ordering. Otherwise we'd
+	 * have to flush memory-based entries before
+	 * starting to write to file
+	 */
+	if (!binlog_mem_read(bl, buf, len))
+		return 0;
+
+	return binlog_file_read(bl, buf, len);
 }
 
 int binlog_has_entries(binlog *bl)
@@ -301,11 +307,15 @@ static int binlog_file_add(binlog *bl, void *buf, uint len)
 
 int binlog_add(binlog *bl, void *buf, uint len)
 {
+	/*
+	 * if we've started adding to the file, we must continue
+	 * doing so in order to preserve the parsing order when
+	 * reading the events
+	 */
 	if (bl->fd == -1 && bl->mem_size + len < bl->max_mem_size) {
 		return binlog_mem_add(bl, buf, len);
 	}
 
-	binlog_flush(bl);
 	return binlog_file_add(bl, buf, len);
 }
 
