@@ -165,8 +165,17 @@ static int binlog_file_read(binlog *bl, void **buf, uint *len)
 {
 	int result;
 
-	if (bl->file_read_pos >= bl->file_size)
+	/*
+	 * if we're done reading the file fully, close and
+	 * unlink it so we go back to using memory-based
+	 * binlog when we're added to next
+	 */
+	if (bl->file_read_pos >= bl->file_size) {
+		binlog_close(bl);
+		bl->file_read_pos = bl->file_write_pos = bl->file_size = 0;
+		unlink(bl->path);
 		return BINLOG_EMPTY;
+	}
 
 	lseek(bl->fd, bl->file_read_pos, SEEK_SET);
 	result = read(bl->fd, len, sizeof(*len));
