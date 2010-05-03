@@ -13,11 +13,11 @@
 #include "binlog.h"
 
 struct binlog_entry {
-	size_t size;
+	uint size;
 	void *data;
 };
 typedef struct binlog_entry binlog_entry;
-#define entry_size(entry) (entry->size + sizeof(entry->size))
+#define entry_size(entry) (entry->size + sizeof(struct binlog_entry))
 
 struct binlog {
 	struct binlog_entry **cache;
@@ -140,12 +140,21 @@ int binlog_destroy(binlog *bl, int keep_file)
 		unlink(bl->path);
 	}
 
+	if (bl->path)
+		free(bl->path);
+
 	if (bl->cache) {
 		uint i;
 
 		for (i = 0; i < bl->write_index; i++) {
-			if (bl->cache[i])
-				free(bl->cache[i]);
+			struct binlog_entry *entry = bl->cache[i];
+
+			if (!entry)
+				continue;
+
+			if (entry->data)
+				free(entry->data);
+			free(entry);
 		}
 		free(bl->cache);
 	}
@@ -160,8 +169,17 @@ static int binlog_file_read(binlog *bl, void **buf, uint *len)
 {
 	int result;
 
-	if (bl->file_read_pos >= bl->file_size)
+	/*
+	 * if we're done reading the file fully, close and
+	 * unlink it so we go back to using memory-based
+	 * binlog when we're added to next
+	 */
+	if (bl->file_read_pos >= bl->file_size) {
+		binlog_close(bl);
+		bl->file_read_pos = bl->file_write_pos = bl->file_size = 0;
+		unlink(bl->path);
 		return BINLOG_EMPTY;
+	}
 
 	lseek(bl->fd, bl->file_read_pos, SEEK_SET);
 	result = read(bl->fd, len, sizeof(*len));
@@ -172,24 +190,38 @@ static int binlog_file_read(binlog *bl, void **buf, uint *len)
 	return 0;
 }
 
-int binlog_read(binlog *bl, void **buf, uint *len)
+static int binlog_mem_read(binlog *bl, void **buf, uint *len)
 {
-	/*
-	 * reading from file must come first in order to
-	 * maintain sequential ordering
-	 */
-	if (bl->file_size && bl->file_read_pos < bl->file_size) {
-		return binlog_file_read(bl, buf, len);
-	}
-
 	if (bl->cache && bl->read_index < bl->write_index) {
 		*buf = bl->cache[bl->read_index]->data;
 		*len = bl->cache[bl->read_index]->size;
-		bl->read_index++;
+		free(bl->cache[bl->read_index++]);
+		/*
+		 * reset the read and write index in case we've read
+		 * all entries. This lets us re-use the entry slot
+		 * later and not just steadily increase the array
+		 * size
+		 */
+		if (bl->read_index >= bl->write_index)
+			bl->read_index = bl->write_index = 0;
 		return 0;
 	}
 
 	return BINLOG_EMPTY;
+}
+
+int binlog_read(binlog *bl, void **buf, uint *len)
+{
+	/*
+	 * reading from memory must come first in order to
+	 * maintain sequential ordering. Otherwise we'd
+	 * have to flush memory-based entries before
+	 * starting to write to file
+	 */
+	if (!binlog_mem_read(bl, buf, len))
+		return 0;
+
+	return binlog_file_read(bl, buf, len);
 }
 
 int binlog_has_entries(binlog *bl)
@@ -207,18 +239,20 @@ int binlog_has_entries(binlog *bl)
 
 static int binlog_open(binlog *bl)
 {
-	int flags = O_APPEND | O_CREAT;
+	int flags = O_RDWR | O_APPEND | O_CREAT;
 
 	if (bl->fd != -1)
 		return bl->fd;
 
-	if (!binlog_is_valid(bl))
-		flags = O_CREAT | O_TRUNC | O_WRONLY;
-
 	if (!bl->path)
 		return BINLOG_ENOPATH;
 
-	bl->fd = open(bl->path, O_RDWR | O_APPEND | O_CREAT, 0600);
+	if (!binlog_is_valid(bl)) {
+		bl->file_read_pos = bl->file_write_pos = bl->file_size = 0;
+		flags = O_RDWR | O_CREAT | O_TRUNC;
+	}
+
+	bl->fd = open(bl->path, flags, 0600);
 	if (bl->fd < 0)
 		return -1;
 
@@ -238,15 +272,20 @@ static int binlog_grow(binlog *bl)
 static int binlog_mem_add(binlog *bl, void *buf, uint len)
 {
 	binlog_entry *entry;
+
+	if (bl->write_index >= bl->alloc && binlog_grow(bl) < 0)
+		return BINLOG_EDROPPED;
+
 	entry = malloc(sizeof(*entry));
-	entry->size = len;
+	if (!entry)
+		return BINLOG_EDROPPED;
 
 	entry->data = malloc(len);
+	if (!entry->data)
+		return BINLOG_EDROPPED;
+
+	entry->size = len;
 	memcpy(entry->data, buf, len);
-
-	if (bl->write_index >= bl->alloc)
-		binlog_grow(bl);
-
 	bl->cache[bl->write_index++] = entry;
 	bl->mem_size += entry_size(entry);
 
@@ -256,6 +295,10 @@ static int binlog_mem_add(binlog *bl, void *buf, uint len)
 static int binlog_file_add(binlog *bl, void *buf, uint len)
 {
 	int ret;
+
+	/* bail out early if there's no room */
+	if (bl->file_size + len > bl->max_file_size)
+		return BINLOG_ENOSPC;
 
 	ret = binlog_open(bl);
 	if (ret < 0)
@@ -273,11 +316,15 @@ static int binlog_file_add(binlog *bl, void *buf, uint len)
 
 int binlog_add(binlog *bl, void *buf, uint len)
 {
-	if (bl->fd == -1 && bl->mem_size < bl->max_mem_size) {
+	/*
+	 * if we've started adding to the file, we must continue
+	 * doing so in order to preserve the parsing order when
+	 * reading the events
+	 */
+	if (bl->fd == -1 && bl->mem_size + len < bl->max_mem_size) {
 		return binlog_mem_add(bl, buf, len);
 	}
 
-	binlog_flush(bl);
 	return binlog_file_add(bl, buf, len);
 }
 

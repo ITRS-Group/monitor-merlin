@@ -170,30 +170,10 @@ int merlin_mod_hook(int cb, void *data)
 		return -1;
 	}
 
-	if (!is_stalling() && merlin_should_send_paths) {
-		if (merlin_should_send_paths <= time(NULL)) {
-			linfo("Daemon should have caught up. Trying to force a re-import");
-			send_paths();
-			/*
-			 * send_paths() resets merlin_should_send_paths
-			 * when paths are sent successfully. This should
-			 * never happen, but if it does it means we'll
-			 * trigger an import in the daemon, letting it
-			 * update the database completely.
-			 */
-			if (merlin_should_send_paths) {
-				lwarn("Force-triggering re-import failed. Backing off another 15 seconds");
-				merlin_should_send_paths += 15;
-			}
-		} else {
-			/*
-			 * if the daemon isn't ready to read it might be
-			 * because we're flooding the socket, so back off
-			 * a little and wait for the daemon to catch up
-			 * with us
-			 */
-			return 0;
-		}
+	/* If we've lost sync, we must make sure we send the paths again */
+	if (merlin_should_send_paths && merlin_should_send_paths < time(NULL)) {
+		/* send_paths resets merlin_should_send_paths if successful */
+		send_paths();
 	}
 
 	ldebug("Processing callback %s", callback_name(cb));

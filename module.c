@@ -11,6 +11,17 @@ static int mrm_ipc_connect(void *discard);
 extern hostgroup *hostgroup_list;
 #define mrm_reap_interval 5
 
+/*
+ * This gets called when we don't have the ipc connection and the
+ * binary backlog is full. We *will* be losing messages, so we're
+ * forced to run a re-import
+ */
+void ipc_sync_lost(void)
+{
+	lerr("ipc sync lost. Messages may be lost. Re-import will be triggered.");
+	merlin_should_send_paths = 1;
+}
+
 static int handle_host_status(merlin_header *hdr, void *buf)
 {
 	struct host_struct *obj;

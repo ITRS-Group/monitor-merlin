@@ -9,7 +9,7 @@ static char *debug_write, *debug_read;
 static int listen_sock = -1; /* for bind() and such */
 static int ipc_sock = -1; /* once connected, we operate on this */
 static char *ipc_sock_path;
-static char *ipc_binlog_path;
+static char *ipc_binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 static merlin_event_counter ipc_events;
 
 static time_t last_connect_attempt;
@@ -162,6 +162,11 @@ int ipc_grok_var(char *var, char *val)
 		return 1;
 	}
 
+	if (!strcmp(var, "ipc_binlog_dir") || !strcmp(var, "ipc_backlog_dir")) {
+		ipc_binlog_dir = strdup(val);
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -170,14 +175,10 @@ static int ipc_binlog_add(merlin_event *pkt)
 	if (!ipc_binlog) {
 		char *path;
 
-		if (!ipc_binlog_path) {
-			asprintf(&path, "/opt/monitor/op5/merlin/binlogs/ipc.%s.binlog",
-					 is_module ? "module" : "daemon");
-		} else {
-			path = strdup(ipc_binlog_path);
-		}
+		asprintf(&path, "%s/ipc.%s.binlog", ipc_binlog_dir,
+				 is_module ? "module" : "daemon");
 
-		linfo("Creating binary ipc backlog at. On-disk location: %s", path);
+		linfo("Creating binary ipc backlog. On-disk location: %s", path);
 		/* 10MB in memory, 100MB on disk */
 		ipc_binlog = binlog_create(path, 10 << 20, 100 << 20, BINLOG_UNLINK);
 		free(path);
@@ -191,6 +192,7 @@ static int ipc_binlog_add(merlin_event *pkt)
 	if (binlog_add(ipc_binlog, pkt, packet_size(pkt)) < 0) {
 		lerr("Failed to add %u bytes to binlog: %s",
 			 packet_size(pkt), strerror(errno));
+		ipc_sync_lost();
 		return -1;
 	}
 	ipc_events.logged++;
@@ -203,6 +205,13 @@ int ipc_init(void)
 	struct sockaddr_un saun;
 	struct sockaddr *sa = (struct sockaddr *)&saun;
 	socklen_t slen;
+	int quiet = 0;
+
+	/* don't spam the logs */
+	if (last_connect_attempt + 30 >= time(NULL)) {
+		quiet = 1;
+	}
+	last_connect_attempt = time(NULL);
 
 	if (!ipc_sock_path) {
 		lerr("Attempting to initialize ipc socket, but no socket path has been set\n");
@@ -216,7 +225,7 @@ int ipc_init(void)
 
 	memset(&ipc_events, 0, sizeof(ipc_events));
 	gettimeofday(&ipc_events.start, NULL);
-	if (last_connect_attempt + 30 >= time(NULL)) {
+	if (!quiet) {
 		linfo("Initializing IPC socket '%s' for %s", ipc_sock_path,
 		      is_module ? "module" : "daemon");
 	}
@@ -247,8 +256,10 @@ int ipc_init(void)
 		result = bind(listen_sock, sa, slen);
 		umask(old_umask);
 		if (result < 0) {
-			lerr("Failed to bind ipc socket %d to path '%s' with len %d: %s",
-				 listen_sock, ipc_sock_path, slen, strerror(errno));
+			if (!quiet) {
+				lerr("Failed to bind ipc socket %d to path '%s' with len %d: %s",
+					 listen_sock, ipc_sock_path, slen, strerror(errno));
+			}
 			close(listen_sock);
 			listen_sock = -1;
 			return -1;
@@ -264,9 +275,8 @@ int ipc_init(void)
 	if (connect(listen_sock, sa, slen) < 0) {
 		if (errno == EISCONN)
 			return 0;
-		if (last_connect_attempt + 30 <= time(NULL)) {
+		if (!quiet) {
 			lerr("Failed to connect to ipc socket '%s': %s", ipc_sock_path, strerror(errno));
-			last_connect_attempt = time(NULL);
 		}
 		ipc_deinit();
 		return -1;
@@ -397,9 +407,14 @@ int ipc_send_event(merlin_event *pkt)
 		linfo("binary backlog has entries. Emptying those first");
 		while (ipc_write_ok(500) && !binlog_read(ipc_binlog, (void **)&temp_pkt, &len)) {
 			result = proto_send_event(ipc_sock, temp_pkt);
+
+			/*
+			 * an error when sending the backlogged entries
+			 * means we've lost sync
+			 */
 			if (result < 0 && errno == EPIPE) {
 				binlog_destroy(ipc_binlog, BINLOG_UNLINK);
-				lerr("Backlog dropped. re-import required");
+				ipc_sync_lost();
 				ipc_reinit();
 				return -1;
 			}

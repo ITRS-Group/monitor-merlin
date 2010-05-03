@@ -107,10 +107,13 @@ extern int binlog_flush(binlog *bl);
  * backlog was invalidated due to incomplete write followed by
  * failed lseek(2) to original position
  */
-#define BINLOG_EINVALID (-5)
+#define BINLOG_EINVALID (-6)
 
-/** An event was dropped for some reason (out of space, most likely) */
-#define BINLOG_DROPPED (-6)
+/** Binlog is full but attempted to write to it anyway */
+#define BINLOG_ENOSPC (-7)
+
+/** An event was dropped for some reason (not out-of-space) */
+#define BINLOG_EDROPPED (-8)
 
 /** @} */
 #endif
