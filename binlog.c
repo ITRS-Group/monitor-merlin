@@ -221,18 +221,20 @@ int binlog_has_entries(binlog *bl)
 
 static int binlog_open(binlog *bl)
 {
-	int flags = O_APPEND | O_CREAT;
+	int flags = O_RDWR | O_APPEND | O_CREAT;
 
 	if (bl->fd != -1)
 		return bl->fd;
 
-	if (!binlog_is_valid(bl))
-		flags = O_CREAT | O_TRUNC | O_WRONLY;
-
 	if (!bl->path)
 		return BINLOG_ENOPATH;
 
-	bl->fd = open(bl->path, O_RDWR | O_APPEND | O_CREAT, 0600);
+	if (!binlog_is_valid(bl)) {
+		bl->file_read_pos = bl->file_write_pos = bl->file_size = 0;
+		flags = O_RDWR | O_CREAT | O_TRUNC;
+	}
+
+	bl->fd = open(bl->path, flags, 0600);
 	if (bl->fd < 0)
 		return -1;
 
