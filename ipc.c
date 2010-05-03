@@ -9,7 +9,7 @@ static char *debug_write, *debug_read;
 static int listen_sock = -1; /* for bind() and such */
 static int ipc_sock = -1; /* once connected, we operate on this */
 static char *ipc_sock_path;
-static char *ipc_binlog_dir = "/opt/monitor/op5/merlin/binlogs";
+static char *ipc_binlog_path, *ipc_binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 static merlin_event_counter ipc_events;
 
 static time_t last_connect_attempt;
@@ -175,13 +175,17 @@ static int ipc_binlog_add(merlin_event *pkt)
 	if (!ipc_binlog) {
 		char *path;
 
-		asprintf(&path, "%s/ipc.%s.binlog", ipc_binlog_dir,
-				 is_module ? "module" : "daemon");
+		if (ipc_binlog_path)
+			path = ipc_binlog_path;
+		else 
+			asprintf(&path, "%s/ipc.%s.binlog", ipc_binlog_dir,
+					 is_module ? "module" : "daemon");
 
 		linfo("Creating binary ipc backlog. On-disk location: %s", path);
 		/* 10MB in memory, 100MB on disk */
 		ipc_binlog = binlog_create(path, 10 << 20, 100 << 20, BINLOG_UNLINK);
-		free(path);
+		if (path != ipc_binlog_path)
+			free(path);
 
 		if (!ipc_binlog) {
 			lerr("Failed to create binary ipc backlog: %s", strerror(errno));
