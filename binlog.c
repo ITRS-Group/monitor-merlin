@@ -17,7 +17,7 @@ struct binlog_entry {
 	void *data;
 };
 typedef struct binlog_entry binlog_entry;
-#define entry_size(entry) (entry->size + sizeof(entry->size))
+#define entry_size(entry) (entry->size + sizeof(struct binlog_entry))
 
 struct binlog {
 	struct binlog_entry **cache;
