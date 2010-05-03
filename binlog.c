@@ -199,7 +199,7 @@ int binlog_read(binlog *bl, void **buf, uint *len)
 	if (bl->cache && bl->read_index < bl->write_index) {
 		*buf = bl->cache[bl->read_index]->data;
 		*len = bl->cache[bl->read_index]->size;
-		bl->read_index++;
+		free(bl->cache[bl->read_index++]);
 		return 0;
 	}
 
