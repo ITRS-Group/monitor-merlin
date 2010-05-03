@@ -149,6 +149,7 @@ static int ipc_binlog_add(merlin_event *pkt)
 	if (binlog_add(ipc_binlog, pkt, packet_size(pkt)) < 0) {
 		lerr("Failed to add %u bytes to binlog: %s",
 			 packet_size(pkt), strerror(errno));
+		ipc_sync_lost();
 		return -1;
 	}
 	ipc_events.logged++;
@@ -363,9 +364,14 @@ int ipc_send_event(merlin_event *pkt)
 		linfo("binary backlog has entries. Emptying those first");
 		while (ipc_write_ok(500) && !binlog_read(ipc_binlog, (void **)&temp_pkt, &len)) {
 			result = proto_send_event(ipc_sock, temp_pkt);
+
+			/*
+			 * an error when sending the backlogged entries
+			 * means we've lost sync
+			 */
 			if (result < 0 && errno == EPIPE) {
 				binlog_destroy(ipc_binlog, BINLOG_UNLINK);
-				lerr("Backlog dropped. re-import required");
+				ipc_sync_lost();
 				ipc_reinit();
 				return -1;
 			}

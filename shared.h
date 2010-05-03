@@ -170,6 +170,13 @@ extern int get_sel_id(const char *name);
 extern int get_num_selections(void);
 extern const char *callback_name(int id);
 
+/*
+ * This function is different between module and daemon. It gets
+ * called when we've lost the ipc connection long enough to fill
+ * the binary backlog completely
+ */
+extern void ipc_sync_lost(void);
+
 /* data blockification routines */
 extern int blockify(void *data, int cb_type, char *buf, int buflen);
 extern int deblockify(void *ds, off_t len, int cb_type);
