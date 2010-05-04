@@ -110,30 +110,6 @@ CREATE TABLE comment(
 	UNIQUE KEY comment_id(comment_id)
 ) COLLATE latin1_general_cs;
 
-
-DROP TABLE IF EXISTS gui_action_log;
-CREATE TABLE gui_action_log(
-	user			VARCHAR(30) NOT NULL,
-	action			VARCHAR(50) NOT NULL,
-	time			TIMESTAMP
-) COLLATE latin1_general_cs;
-
-DROP TABLE IF EXISTS gui_access;
-CREATE TABLE gui_access(
-	user			VARCHAR(30) NOT NULL PRIMARY KEY,
-	view			BOOL,
-	view_all		BOOL,
-	modify_obj		BOOL,
-	modify_any		BOOL,
-	delete_obj		BOOL,
-	delete_all		BOOL,
-	import			BOOL,
-	probe			BOOL,
-	admin			BOOL
-) COLLATE latin1_general_cs;
-INSERT INTO gui_access VALUES('monitor', 1, 1, 1, 1, 1, 1, 1, 1, 1);
-
-
 DROP TABLE IF EXISTS contact;
 CREATE TABLE contact(
 	instance_id							INT NOT NULL DEFAULT 0,
@@ -582,6 +558,8 @@ CREATE UNIQUE INDEX objvar ON custom_vars(obj_type, obj_id, variable);
 -- Obsoleted tables
 DROP TABLE IF EXISTS hostextinfo;
 DROP TABLE IF EXISTS serviceextinfo;
+DROP TABLE IF EXISTS gui_action_log;
+DROP TABLE IF EXISTS gui_access;
 
 DROP TABLE IF EXISTS `db_version`;
 CREATE TABLE `db_version` (
