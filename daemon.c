@@ -424,10 +424,10 @@ static int io_poll_sockets(void)
 
 	FD_ZERO(&rd);
 	FD_ZERO(&wr);
-	if (ipc_sock > 0)
+	if (ipc_sock >= 0)
 		FD_SET(ipc_sock, &rd);
 	FD_SET(ipc_listen_sock, &rd);
-	if (net_sock > 0)
+	if (net_sock >= 0)
 		FD_SET(net_sock, &rd);
 
 	sel_val = net_polling_helper(&rd, &wr, sel_val);
