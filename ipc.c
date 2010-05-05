@@ -403,7 +403,7 @@ int ipc_send_event(merlin_event *pkt)
 			 * means we've lost sync
 			 */
 			if (result < 0 && errno == EPIPE) {
-				binlog_destroy(ipc_binlog, BINLOG_UNLINK);
+				binlog_wipe(ipc_binlog, BINLOG_UNLINK);
 				ipc_sync_lost();
 				ipc_reinit();
 				return -1;
