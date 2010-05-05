@@ -11,7 +11,7 @@ static int ipc_sock = -1; /* once connected, we operate on this */
 static char *ipc_sock_path;
 static char *ipc_binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 static merlin_event_counter ipc_events;
-
+static int sync_lost;
 static time_t last_connect_attempt;
 
 /*
@@ -62,6 +62,9 @@ int ipc_accept(void)
 			 listen_sock, strerror(errno));
 		return -1;
 	}
+
+	/* reset sync state */
+	sync_lost = 0;
 
 	/* reset the ipc event counter for each session */
 	memset(&ipc_events, 0, sizeof(ipc_events));
@@ -147,8 +150,25 @@ static int ipc_binlog_add(merlin_event *pkt)
 	}
 
 	if (binlog_add(ipc_binlog, pkt, packet_size(pkt)) < 0) {
-		lerr("Failed to add %u bytes to binlog: %s",
-			 packet_size(pkt), strerror(errno));
+		if (sync_lost) {
+			ipc_events.dropped++;
+			return -1;
+		}
+
+		sync_lost = 1;
+
+		/*
+		 * first message we couldn't deliver, so wipe the binary
+		 * log and take whatever action is appropriate
+		 */
+		binlog_wipe(ipc_binlog, BINLOG_UNLINK);
+
+		/* update counters now that we'll be dropping the binlog */
+		ipc_events.dropped += ipc_events.logged;
+		ipc_events.logged = 0;
+
+		lerr("Failed to add %u bytes to binlog with path '%s': %s",
+			 packet_size(pkt), binlog_path(ipc_binlog), strerror(errno));
 		ipc_sync_lost();
 		return -1;
 	}
@@ -254,6 +274,7 @@ int ipc_init(void)
 
 	if (on_connect) {
 		linfo("Running on_connect hook for module");
+		sync_lost = 0;
 		on_connect();
 	}
 
