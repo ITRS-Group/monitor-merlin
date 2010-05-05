@@ -298,9 +298,8 @@ int send_paths(void)
 	size_t config_path_len, cache_path_len;
 	char *cache_file, *status_log;
 	merlin_event pkt;
-	int result;
 
-	if (!merlin_should_send_paths)
+	if (!merlin_should_send_paths || merlin_should_send_paths > time(NULL))
 		return 0;
 
 	cache_file = macro_x[MACRO_OBJECTCACHEFILE];
@@ -338,19 +337,23 @@ int send_paths(void)
 	pkt.body[pkt.hdr.len++] = 0;
 	pkt.hdr.selection = 0;
 
-	result = ipc_send_event(&pkt);
-	if (result == packet_size(&pkt)) {
-		merlin_should_send_paths = 0;
-		/*
-		 * start stalling immediately and then reap so we wait
-		 * a bit while the import is running
-		 */
-		ctrl_stall_start();
-		real_ipc_reap();
-		return 0;
-	}
+	/*
+	 * if the event was successfully added to the binlog,
+	 * we'll get 0 back, which means we can just let the
+	 * event in the binlog be valid until the binlog gets
+	 * full.
+	 */
+	if (ipc_send_event(&pkt) < 0)
+		return -1;
 
-	return -1;
+	merlin_should_send_paths = 0;
+	/*
+	 * start stalling immediately and then reap so we wait
+	 * a bit while the import is running
+	 */
+	ctrl_stall_start();
+	real_ipc_reap();
+	return 0;
 }
 
 static int mark_paths_unsent(void)
