@@ -273,7 +273,7 @@ int ipc_init(void)
 	ipc_send_ctrl(CTRL_ACTIVE, -1);
 
 	if (on_connect) {
-		linfo("Running on_connect hook for module");
+		linfo("Running on_connect hook");
 		sync_lost = 0;
 		on_connect();
 	}
