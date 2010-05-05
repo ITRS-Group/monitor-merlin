@@ -1,6 +1,8 @@
 #ifndef INCLUDE_cfgfile_h__
 #define INCLUDE_cfgfile_h__
 
+#include <stdlib.h>
+
 /* have a care with this one. It can't be used when (c) has side-effects */
 #undef ISSPACE
 #define ISSPACE(c) ((c) == ' ' || (c) == '\t')
