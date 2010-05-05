@@ -107,6 +107,11 @@ static inline int binlog_is_valid(binlog *bl)
 	return bl->is_valid;
 }
 
+const char *binlog_path(binlog *bl)
+{
+	return bl->path;
+}
+
 binlog *binlog_create(const char *path, uint msize, uint fsize, int flags)
 {
 	binlog *bl;

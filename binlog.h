@@ -17,6 +17,13 @@ typedef struct binlog binlog;
 #define BINLOG_APPEND 1
 #define BINLOG_UNLINK 2
 /**
+ * Get the on-disk binlog storage path
+ * @param bl The binary log whose path we should return
+ * @return The on-disk binlog storage path
+ */
+extern const char *binlog_path(binlog *bl);
+
+/**
  * Create a binary logging object
  * @param path The path to store on-disk logs.
  * @param msize The maximum amount of memory used for storing
