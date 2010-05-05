@@ -393,11 +393,6 @@ static int handle_ipc_event(merlin_event *pkt)
 	return result;
 }
 
-static int max(int a, int b)
-{
-	return a > b ? a : b;
-}
-
 static int ipc_reap_events(void)
 {
 	int ipc_events = 0;

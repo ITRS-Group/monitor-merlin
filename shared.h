@@ -83,6 +83,11 @@ static inline float tv_delta(struct timeval *start, struct timeval *stop)
 	return result;
 }
 
+static inline int max(int a, int b)
+{
+	return a > b ? a : b;
+}
+
 #define xstrdup(str) str ? strdup(str) : NULL
 #define prefixcmp(a, b) strncmp(a, b, strlen(b))
 
