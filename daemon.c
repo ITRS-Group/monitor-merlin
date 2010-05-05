@@ -508,6 +508,15 @@ static void clean_exit(int sig)
 }
 
 
+static int on_ipc_connect(void)
+{
+	sql_reinit();
+	sql_query("UPDATE %s.program_status SET "
+			  "is_running = 1, last_alive = %lu "
+			  "WHERE instance_id = 0", sql_db_name(), time(NULL));
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	int i, result, stop = 0;
@@ -575,7 +584,7 @@ int main(int argc, char **argv)
 		return kill_daemon(pidfile);
 
 	if (use_database)
-		mrm_ipc_set_connect_handler(sql_reinit);
+		mrm_ipc_set_connect_handler(on_ipc_connect);
 
 	result = ipc_init();
 	if (result < 0) {
