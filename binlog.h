@@ -16,6 +16,23 @@ typedef struct binlog binlog;
 
 #define BINLOG_APPEND 1
 #define BINLOG_UNLINK 2
+
+/**
+ * Check if binlog is valid.
+ * "valid" in this case means "has it escaped being invalidated"?
+ * @param bl The binary log to check for validity
+ * @return 1 if the binlog is valid, 0 otherwise
+ */
+extern int binlog_is_valid(binlog *bl);
+
+/**
+ * Invalidate the binlog
+ * This is useful for applications that requires their binlogs to
+ * be sequential.
+ * @param bl The binary log to operate on
+ */
+extern void binlog_invalidate(binlog *bl);
+
 /**
  * Get the on-disk binlog storage path
  * @param bl The binary log whose path we should return

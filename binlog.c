@@ -67,15 +67,6 @@ static int binlog_set_base_path(const char *path)
 #endif
 
 /*** private helpers ***/
-
-static void binlog_invalidate(binlog *bl)
-{
-	close(bl->fd);
-	bl->fd = -1;
-	bl->is_valid = 0;
-	unlink(bl->path);
-}
-
 static int safe_write(binlog *bl, void *buf, uint len)
 {
 	int result;
@@ -102,9 +93,18 @@ static int safe_write(binlog *bl, void *buf, uint len)
 	return BINLOG_EINCOMPLETE;
 }
 
-static inline int binlog_is_valid(binlog *bl)
+/*** public api ***/
+int binlog_is_valid(binlog *bl)
 {
 	return bl->is_valid;
+}
+
+void binlog_invalidate(binlog *bl)
+{
+	close(bl->fd);
+	bl->fd = -1;
+	bl->is_valid = 0;
+	unlink(bl->path);
 }
 
 const char *binlog_path(binlog *bl)
