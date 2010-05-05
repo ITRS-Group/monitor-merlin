@@ -720,7 +720,7 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 			sel_val = node->sock;
 	}
 
-	return sel_val;
+	return max(sel_val, net_sock);
 }
 
 
