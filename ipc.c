@@ -364,6 +364,8 @@ int ipc_send_event(merlin_event *pkt)
 {
 	int result;
 
+	ipc_log_event_count();
+
 	/*
 	 * we might be ok with not being able to send if we can
 	 * add stuff to the binlog properly, since that one gets
