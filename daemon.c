@@ -452,7 +452,7 @@ static int io_poll_sockets(void)
 	}
 
 	/* check for inbound connections */
-	if (FD_ISSET(net_sock, &rd)) {
+	if (net_sock >= 0 && FD_ISSET(net_sock, &rd)) {
 		net_accept_one();
 		sockets++;
 	}
