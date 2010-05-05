@@ -483,7 +483,8 @@ int net_deinit(void)
 		free(node);
 	}
 
-	free(node_table);
+	if (node_table)
+		free(node_table);
 
 	return 0;
 }
