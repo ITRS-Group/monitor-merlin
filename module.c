@@ -433,9 +433,6 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	/* make sure we can catch whatever we want */
 	event_broker_options = BROKER_EVERYTHING;
 
-	linfo("setting connect and disconnect handlers");
-	mrm_ipc_set_connect_handler(send_paths);
-	mrm_ipc_set_disconnect_handler(mark_paths_unsent);
 	daemon_dumps_core = 1;
 	home = getenv("HOME");
 	if (!home)
