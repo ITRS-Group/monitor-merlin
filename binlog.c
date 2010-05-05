@@ -148,9 +148,6 @@ void binlog_wipe(binlog *bl, int flags)
 		unlink(bl->path);
 	}
 
-	if (bl->path)
-		free(bl->path);
-
 	if (bl->cache) {
 		uint i;
 
@@ -178,6 +175,12 @@ void binlog_wipe(binlog *bl, int flags)
 void binlog_destroy(binlog *bl, int flags)
 {
 	binlog_wipe(bl, flags);
+
+	if (bl->path) {
+		free(bl->path);
+		bl->path = NULL;
+	}
+
 	free(bl);
 }
 
