@@ -356,12 +356,6 @@ int send_paths(void)
 	return 0;
 }
 
-static int mark_paths_unsent(void)
-{
-	merlin_should_send_paths = 1;
-	return 0;
-}
-
 static int mrm_ipc_connect(void *discard)
 {
 	int result;
