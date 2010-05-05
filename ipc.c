@@ -419,6 +419,8 @@ int ipc_send_event(merlin_event *pkt)
 		return ipc_send_event(pkt);
 	}
 
+	ipc_events.sent++;
+
 	return result;
 }
 
