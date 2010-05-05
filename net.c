@@ -499,6 +499,9 @@ int net_init(void)
 	struct sockaddr *sa = (struct sockaddr *)&sain;
 	socklen_t addrlen = sizeof(inbound);
 
+	if (!num_nodes)
+		return 0;
+
 	sain.sin_addr.s_addr = 0;
 	sain.sin_port = ntohs(default_port);
 	sain.sin_family = AF_INET;
