@@ -22,8 +22,7 @@ typedef struct binlog_entry binlog_entry;
 struct binlog {
 	struct binlog_entry **cache;
 	uint write_index, read_index;
-	uint max_slots, alloc;
-	uint max_mem_usage;
+	uint alloc, max_mem_usage;
 	uint mem_size, max_mem_size;
 	uint file_size, max_file_size;
 	off_t file_read_pos, file_write_pos;
@@ -130,18 +129,22 @@ binlog *binlog_create(const char *path, uint msize, uint fsize, int flags)
 	return bl;
 }
 
-int binlog_destroy(binlog *bl, int keep_file)
+void binlog_wipe(binlog *bl, int flags)
 {
-	if (keep_file) {
+	uint max_mem_size, max_file_size;
+	char *path;
+
+	max_mem_size = bl->max_mem_size;
+	max_file_size = bl->max_file_size;
+	path = bl->path;
+
+	if (!(flags & BINLOG_UNLINK)) {
 		binlog_flush(bl);
 	}
 
-	if (bl->fd != -1) {
-		close(bl->fd);
-		bl->fd = -1;
-	}
+	binlog_close(bl);
 
-	if (!keep_file || bl->file_read_pos == bl->file_write_pos) {
+	if (!(flags & BINLOG_UNLINK) || bl->file_read_pos == bl->file_write_pos) {
 		unlink(bl->path);
 	}
 
@@ -163,10 +166,19 @@ int binlog_destroy(binlog *bl, int keep_file)
 		}
 		free(bl->cache);
 	}
-	memset(bl, 0, sizeof(*bl));
-	free(bl);
 
-	return 0;
+	memset(bl, 0, sizeof(*bl));
+	bl->max_mem_size = max_mem_size;
+	bl->max_file_size = max_file_size;
+	bl->path = path;
+	bl->is_valid = 1;
+	bl->fd = -1;
+}
+
+void binlog_destroy(binlog *bl, int flags)
+{
+	binlog_wipe(bl, flags);
+	free(bl);
 }
 
 static int binlog_file_read(binlog *bl, void **buf, uint *len)

@@ -59,14 +59,22 @@ extern binlog *binlog_create(const char *path, uint msize, uint fsize, int flags
 extern int binlog_has_entries(binlog *bl);
 
 /**
+ * Wipes a binary log, freeing all memory associated with it and
+ * restoring the old defaults. Also validates the binlog again,
+ * making it re-usable.
+ * @param bl The binlog to wipe
+ * @param flags takes BINLOG_UNLINK to remove the file from disk
+ */
+extern void binlog_wipe(binlog *bl, int flags);
+
+/**
  * Destroys a binary log, freeing all memory associated with it and
  * optionally unlinking the on-disk log (if any).
- *
  * @param bl The binary log object.
- * @param flags Decides what to do with existing log entries
+ * @param flags Takes BINLOG_UNLINK to remove the file from disk
  * @return 0 on success. < 0 on failure.
  */
-extern int binlog_destroy(binlog *bl, int flags);
+extern void binlog_destroy(binlog *bl, int flags);
 
 /**
  * Read the first (sequential) event from the binary log.
