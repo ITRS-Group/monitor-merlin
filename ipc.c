@@ -72,6 +72,10 @@ int ipc_accept(void)
 
 	set_socket_buffers(ipc_sock);
 
+	/* run daemon's on-connect handlers */
+	if (on_connect)
+		on_connect();
+
 	return ipc_sock;
 }
 
