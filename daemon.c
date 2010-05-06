@@ -91,7 +91,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			node->hostgroup = strdup(v->value);
 			node->selection = add_selection(node->hostgroup);
 		}
-		else if (!strcmp(v->key, "address")) {
+		else if (!strcmp(v->key, "address") || !strcmp(v->key, "host")) {
 			if (!net_resolve(v->value, &node->sain.sin_addr))
 				cfg_error(c, v, "Unable to resolve '%s'\n", v->value);
 		}
