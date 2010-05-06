@@ -74,9 +74,6 @@ void create_node_tree(merlin_node *table, unsigned n)
 {
 	uint i, xnoc, xpeer, xpoll;
 
-	if (!num_nodes)
-		return;
-
 	selected_nodes = calloc(get_num_selections() + 1, sizeof(merlin_node *));
 
 	for (i = 0; i < n; i++) {
