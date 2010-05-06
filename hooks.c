@@ -14,24 +14,11 @@
 
 static int send_generic(merlin_event *pkt, void *data)
 {
-	static merlin_event last_pkt;
-
 	pkt->hdr.len = blockify_event(pkt, data);
 	if (!pkt->hdr.len) {
 		lerr("Header len is 0 for callback %d. Update offset in hookinfo.h", pkt->hdr.type);
 		return -1;
 	}
-
-	/*
-	 * memcmp() works nicely after blockify, since all strings
-	 * will have the same offset, so long as we don't compare
-	 * beyond the real length of pkt
-	 */
-	if (!memcmp(pkt, &last_pkt, packet_size(pkt))) {
-		lwarn("%s type event sent more than once. bugfix nagios", callback_name(pkt->hdr.type));
-		return 0;
-	}
-	memcpy(&last_pkt, pkt, packet_size(&last_pkt));
 
 	return ipc_send_event(pkt);
 }

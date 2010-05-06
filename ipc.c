@@ -11,7 +11,7 @@ static int ipc_sock = -1; /* once connected, we operate on this */
 static char *ipc_sock_path;
 static char *ipc_binlog_path, *ipc_binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 static merlin_event_counter ipc_events;
-
+static int sync_lost;
 static time_t last_connect_attempt;
 
 /*
@@ -63,11 +63,18 @@ int ipc_accept(void)
 		return -1;
 	}
 
+	/* reset sync state */
+	sync_lost = 0;
+
 	/* reset the ipc event counter for each session */
 	memset(&ipc_events, 0, sizeof(ipc_events));
 	gettimeofday(&ipc_events.start, NULL);
 
 	set_socket_buffers(ipc_sock);
+
+	/* run daemon's on-connect handlers */
+	if (on_connect)
+		on_connect();
 
 	return ipc_sock;
 }
@@ -194,8 +201,25 @@ static int ipc_binlog_add(merlin_event *pkt)
 	}
 
 	if (binlog_add(ipc_binlog, pkt, packet_size(pkt)) < 0) {
-		lerr("Failed to add %u bytes to binlog: %s",
-			 packet_size(pkt), strerror(errno));
+		if (sync_lost) {
+			ipc_events.dropped++;
+			return -1;
+		}
+
+		sync_lost = 1;
+
+		/*
+		 * first message we couldn't deliver, so wipe the binary
+		 * log and take whatever action is appropriate
+		 */
+		binlog_wipe(ipc_binlog, BINLOG_UNLINK);
+
+		/* update counters now that we'll be dropping the binlog */
+		ipc_events.dropped += ipc_events.logged;
+		ipc_events.logged = 0;
+
+		lerr("Failed to add %u bytes to binlog with path '%s': %s",
+			 packet_size(pkt), binlog_path(ipc_binlog), strerror(errno));
 		ipc_sync_lost();
 		return -1;
 	}
@@ -300,7 +324,8 @@ int ipc_init(void)
 	ipc_send_ctrl(CTRL_ACTIVE, -1);
 
 	if (on_connect) {
-		linfo("Running on_connect hook for module");
+		linfo("Running on_connect hook");
+		sync_lost = 0;
 		on_connect();
 	}
 
@@ -390,6 +415,8 @@ int ipc_send_event(merlin_event *pkt)
 {
 	int result;
 
+	ipc_log_event_count();
+
 	/*
 	 * we might be ok with not being able to send if we can
 	 * add stuff to the binlog properly, since that one gets
@@ -402,7 +429,7 @@ int ipc_send_event(merlin_event *pkt)
 	/* if the binlog has entries, we must send those first */
 	if (binlog_has_entries(ipc_binlog)) {
 		merlin_event *temp_pkt;
-		size_t len;
+		uint len;
 
 		/*
 		 * we use a slightly higher timeout here, as we'll be
@@ -413,11 +440,17 @@ int ipc_send_event(merlin_event *pkt)
 			result = proto_send_event(ipc_sock, temp_pkt);
 
 			/*
+			 * the binlog duplicates the memory, so we must
+			 * free it here or it will be leaked
+			 */
+			free(temp_pkt);
+
+			/*
 			 * an error when sending the backlogged entries
 			 * means we've lost sync
 			 */
 			if (result < 0 && errno == EPIPE) {
-				binlog_destroy(ipc_binlog, BINLOG_UNLINK);
+				binlog_wipe(ipc_binlog, BINLOG_UNLINK);
 				ipc_sync_lost();
 				ipc_reinit();
 				return -1;
@@ -432,6 +465,8 @@ int ipc_send_event(merlin_event *pkt)
 		ldebug("loop much, do you?");
 		return ipc_send_event(pkt);
 	}
+
+	ipc_events.sent++;
 
 	return result;
 }

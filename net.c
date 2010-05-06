@@ -488,7 +488,8 @@ int net_deinit(void)
 		free(node);
 	}
 
-	free(node_table);
+	if (node_table)
+		free(node_table);
 
 	return 0;
 }
@@ -503,6 +504,9 @@ int net_init(void)
 	struct sockaddr_in sain, inbound;
 	struct sockaddr *sa = (struct sockaddr *)&sain;
 	socklen_t addrlen = sizeof(inbound);
+
+	if (!num_nodes)
+		return 0;
 
 	sain.sin_addr.s_addr = 0;
 	sain.sin_port = htons(default_port);
@@ -718,7 +722,7 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 			sel_val = node->sock;
 	}
 
-	return sel_val;
+	return max(sel_val, net_sock);
 }
 
 

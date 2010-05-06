@@ -619,43 +619,8 @@ class nagios_object_importer
 			echo "obj_array is not empty\n";
 			print_r(array_keys($obj_array));
 		}
-		assert('empty($obj_array)');
 
-		if(!isset($_SERVER['REMOTE_USER'])) $user = 'local';
-		else $user = $_SERVER['REMOTE_USER'];
-
-		if (!$this->errors) {
-			$this->sql_exec_query("REPLACE INTO gui_action_log (user, action) " .
-						   "VALUES('" .
-						   mysql_escape_string($user) . "', 'import')");
-			return true;
-		}
-
-		return false;
-	}
-
-	function import_objects_if_new_cache($object_cache = false)
-	{
-		$import_time = 0;
-
-		if (!$object_cache)
-			$object_cache = '/opt/monitor/var/objects.cache';
-
-		$result = $this->sql_exec_query
-			('SELECT UNIX_TIMESTAMP(time) AS time ' .
-			 'FROM gui_action_log ' .
-			 'WHERE action="import" ' .
-			 'ORDER BY time DESC LIMIT 1');
-
-		$row = sql_fetch_row($result);
-		if(!empty($row[0])) $import_time = $row[0];
-
-		$cache_time = filemtime($object_cache);
-		if($cache_time > $import_time) {
-			return($this->import_objects_from_cache($object_cache));
-		}
-
-		return(0);
+		return !$this->errors;
 	}
 
 	/**

@@ -405,11 +405,6 @@ static int handle_ipc_event(merlin_event *pkt)
 	return result;
 }
 
-static int max(int a, int b)
-{
-	return a > b ? a : b;
-}
-
 static int ipc_reap_events(void)
 {
 	int ipc_events = 0;
@@ -431,7 +426,7 @@ static int io_poll_sockets(void)
 {
 	fd_set rd, wr;
 	int sel_val, ipc_sock, ipc_listen_sock, net_sock, nfound;
-	int net_sel_val, sockets = 0;
+	int sockets = 0;
 	struct timeval tv = { 2, 0 };
 
 	sel_val = net_sock = net_sock_desc();
@@ -441,14 +436,13 @@ static int io_poll_sockets(void)
 
 	FD_ZERO(&rd);
 	FD_ZERO(&wr);
-	if (ipc_sock > 0)
+	if (ipc_sock >= 0)
 		FD_SET(ipc_sock, &rd);
 	FD_SET(ipc_listen_sock, &rd);
-	if (net_sock > 0)
+	if (net_sock >= 0)
 		FD_SET(net_sock, &rd);
 
-	net_sel_val = net_polling_helper(&rd, &wr, sel_val);
-	sel_val = max(sel_val, net_sel_val);
+	sel_val = net_polling_helper(&rd, &wr, sel_val);
 	nfound = select(sel_val + 1, &rd, &wr, NULL, &tv);
 	if (nfound < 0) {
 		lerr("select() returned %d (errno = %d): %s", nfound, errno, strerror(errno));
@@ -471,7 +465,7 @@ static int io_poll_sockets(void)
 	}
 
 	/* check for inbound connections */
-	if (FD_ISSET(net_sock, &rd)) {
+	if (net_sock >= 0 && FD_ISSET(net_sock, &rd)) {
 		net_accept_one();
 		sockets++;
 	}
@@ -520,6 +514,23 @@ static void clean_exit(int sig)
 	_exit(!!sig);
 }
 
+
+static int on_ipc_connect(void)
+{
+	sql_reinit();
+	sql_query("UPDATE %s.program_status SET "
+			  "is_running = 1, last_alive = %lu "
+			  "WHERE instance_id = 0", sql_db_name(), time(NULL));
+	return 0;
+}
+
+static int on_ipc_disconnect(void)
+{
+	/* make sure the gui knows the module isn't running any more */
+	sql_query("UPDATE %s.program_status SET is_running = 0"
+			  "WHERE instance_id = 0", sql_db_name());
+	return 0;
+}
 
 int main(int argc, char **argv)
 {
@@ -587,8 +598,10 @@ int main(int argc, char **argv)
 	if (stop)
 		return kill_daemon(pidfile);
 
-	if (use_database)
-		mrm_ipc_set_connect_handler(sql_reinit);
+	if (use_database) {
+		mrm_ipc_set_connect_handler(on_ipc_connect);
+		mrm_ipc_set_disconnect_handler(on_ipc_disconnect);
+	}
 
 	result = ipc_init();
 	if (result < 0) {

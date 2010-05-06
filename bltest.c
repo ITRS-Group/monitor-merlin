@@ -584,6 +584,10 @@ static char *msg_list[] = {
 	"This is a job for BOB VIOLENCE and SCUM, the INCREDIBLY STUPID MUTANT DOG.",
 };
 
+#define BLPATH "/tmp/binlog-test"
+static const char *green, *red, *reset;
+static unsigned int passed = 0, failed = 0;
+
 struct test_binlog {
 	char *path;
 	char *name;
@@ -596,6 +600,27 @@ static struct test_binlog test[] = {
 	{ "/tmp/binlog-test", "Some on disk", 4096, 1000000 },
 	{ "/tmp/binlog-test", "not enough space", 3, 3 },
 };
+
+static void print_test_params(struct test_binlog *t)
+{
+	if (!t)
+		return;
+	printf("  path: %s\n  name: %s\n  msize: %u\n  fsize: %u\n\n",
+		   t->path, t->name, t->msize, t->fsize);
+}
+
+static void fail(const char *msg, struct test_binlog *t)
+{
+	printf("%sFAIL%s %s\n", red, reset, msg);
+	failed++;
+	print_test_params(t);
+}
+
+static void pass(const char *msg, struct test_binlog *t)
+{
+	printf("%sPASS%s %s\n", green, reset, msg);
+	passed++;
+}
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 static int test_binlog(struct test_binlog *t, binlog *bl)
@@ -647,35 +672,25 @@ static int test_binlog(struct test_binlog *t, binlog *bl)
 		free(str);
 	}
 
+	for (i = 0; i < ARRAY_SIZE(msg_list); i++) {
+		binlog_add(bl, msg_list[i], strlen(msg_list[i]) + 1);
+	}
+
+	binlog_wipe(bl, BINLOG_UNLINK);
+	if (binlog_has_entries(bl))
+		fail("Wiped binlog claims to have entries", NULL);
+	else
+		pass("Wiped binlog has no entries", NULL);
+	binlog_invalidate(bl);
+	if (binlog_is_valid(bl))
+		fail("invalidated binlog claims to be valid", NULL);
+	else
+		pass("invalidated binlog is invalid", NULL);
+
 	if (ok == ARRAY_SIZE(msg_list))
 		return 0;
 
 	return 1;
-}
-
-#define BLPATH "/tmp/binlog-test"
-static const char *green, *red, *reset;
-static unsigned int passed = 0, failed = 0;
-
-static void print_test_params(struct test_binlog *t)
-{
-	if (!t)
-		return;
-	printf("  path: %s\n  name: %s\n  msize: %u\n  fsize: %u\n\n",
-		   t->path, t->name, t->msize, t->fsize);
-}
-
-static void fail(const char *msg, struct test_binlog *t)
-{
-	printf("%sFAIL%s %s\n", red, reset, msg);
-	failed++;
-	print_test_params(t);
-}
-
-static void pass(const char *msg, struct test_binlog *t)
-{
-	printf("%sPASS%s %s\n", green, reset, msg);
-	passed++;
 }
 
 int main(int argc, char **argv)

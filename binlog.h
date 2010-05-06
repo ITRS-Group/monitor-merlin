@@ -16,6 +16,30 @@ typedef struct binlog binlog;
 
 #define BINLOG_APPEND 1
 #define BINLOG_UNLINK 2
+
+/**
+ * Check if binlog is valid.
+ * "valid" in this case means "has it escaped being invalidated"?
+ * @param bl The binary log to check for validity
+ * @return 1 if the binlog is valid, 0 otherwise
+ */
+extern int binlog_is_valid(binlog *bl);
+
+/**
+ * Invalidate the binlog
+ * This is useful for applications that requires their binlogs to
+ * be sequential.
+ * @param bl The binary log to operate on
+ */
+extern void binlog_invalidate(binlog *bl);
+
+/**
+ * Get the on-disk binlog storage path
+ * @param bl The binary log whose path we should return
+ * @return The on-disk binlog storage path
+ */
+extern const char *binlog_path(binlog *bl);
+
 /**
  * Create a binary logging object
  * @param path The path to store on-disk logs.
@@ -35,14 +59,22 @@ extern binlog *binlog_create(const char *path, uint msize, uint fsize, int flags
 extern int binlog_has_entries(binlog *bl);
 
 /**
+ * Wipes a binary log, freeing all memory associated with it and
+ * restoring the old defaults. Also validates the binlog again,
+ * making it re-usable.
+ * @param bl The binlog to wipe
+ * @param flags takes BINLOG_UNLINK to remove the file from disk
+ */
+extern void binlog_wipe(binlog *bl, int flags);
+
+/**
  * Destroys a binary log, freeing all memory associated with it and
  * optionally unlinking the on-disk log (if any).
- *
  * @param bl The binary log object.
- * @param flags Decides what to do with existing log entries
+ * @param flags Takes BINLOG_UNLINK to remove the file from disk
  * @return 0 on success. < 0 on failure.
  */
-extern int binlog_destroy(binlog *bl, int flags);
+extern void binlog_destroy(binlog *bl, int flags);
 
 /**
  * Read the first (sequential) event from the binary log.
