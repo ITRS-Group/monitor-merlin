@@ -527,7 +527,7 @@ static int on_ipc_connect(void)
 static int on_ipc_disconnect(void)
 {
 	/* make sure the gui knows the module isn't running any more */
-	sql_query("UPDATE %s.program_status SET is_running = 0"
+	sql_query("UPDATE %s.program_status SET is_running = 0 "
 			  "WHERE instance_id = 0", sql_db_name());
 	return 0;
 }
