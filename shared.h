@@ -64,9 +64,9 @@
 #define MODE_PEER      (1 << 1)
 #define MODE_POLLER    (1 << 2)
 
-static inline void *xfree(void *ptr)
+static inline void *safe_free(void *ptr)
 {
-	if(ptr)
+	if (ptr)
 		free(ptr);
 
 	return NULL;
