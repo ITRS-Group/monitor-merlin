@@ -221,7 +221,7 @@ static int handle_program_status(const nebstruct_program_status_data *p)
 		 "failure_prediction_enabled = %d, process_performance_data = %d, "
 		 "obsess_over_hosts = %d, obsess_over_services = %d, "
 		 "modified_host_attributes = %lu, modified_service_attributes = %lu, "
-		 "global_host_event_handler = %s, global_service_event_handler = %s"
+		 "global_host_event_handler = %s, global_service_event_handler = %s "
 		 "WHERE instance_id = 0",
 		 sql_db_name(),
 		 time(NULL), p->program_start, p->pid, p->daemon_mode,
