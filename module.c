@@ -81,6 +81,9 @@ static int handle_service_result(merlin_header *hdr, void *buf)
 	safe_free(srv->plugin_output);
 	srv->plugin_output = safe_strdup(ds->output);
 
+	safe_free(srv->long_plugin_output);
+	srv->long_plugin_output = safe_strdup(ds->long_output);
+
 	safe_free(srv->perf_data);
 	srv->perf_data = safe_strdup(ds->perf_data);
 
@@ -112,6 +115,9 @@ static int handle_host_result(merlin_header *hdr, void *buf)
 
 	safe_free(hst->plugin_output);
 	hst->plugin_output = safe_strdup(ds->output);
+
+	safe_free(hst->long_plugin_output);
+	hst->long_plugin_output = safe_strdup(ds->long_output);
 
 	safe_free(hst->perf_data);
 	hst->perf_data = safe_strdup(ds->perf_data);
