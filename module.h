@@ -156,8 +156,8 @@ extern int merlin_mod_hook(int cb, void *data);
 	nag->is_flapping = mrln.is_flapping; \
 	nag->flapping_comment_id = mrln.flapping_comment_id; \
 	nag->percent_state_change = mrln.percent_state_change; \
-	nag->plugin_output = strdup(mrln.plugin_output); \
-	nag->long_plugin_output = strdup(mrln.long_plugin_output); \
-	nag->perf_data = strdup(mrln.perf_data);
+	nag->plugin_output = safe_strdup(mrln.plugin_output); \
+	nag->long_plugin_output = safe_strdup(mrln.long_plugin_output); \
+	nag->perf_data = safe_strdup(mrln.perf_data);
 
 #endif /* MRM_MOD_H */
