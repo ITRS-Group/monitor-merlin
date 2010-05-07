@@ -92,7 +92,7 @@ static int ipc_set_sock_path(const char *path)
 	if (strlen(path) > UNIX_PATH_MAX)
 		return -1;
 
-	xfree(ipc_sock_path);
+	safe_free(ipc_sock_path);
 
 	ipc_sock_path = strdup(path);
 	if (!ipc_sock_path)
@@ -127,7 +127,7 @@ static int ipc_set_binlog_path(const char *path)
 		return -1;
 	}
 
-	xfree(ipc_binlog_path);
+	safe_free(ipc_binlog_path);
 
 	ipc_binlog_path = strdup(path);
 	if (!ipc_binlog_path) {

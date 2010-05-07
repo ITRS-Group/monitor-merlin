@@ -78,11 +78,11 @@ static int handle_service_result(merlin_header *hdr, void *buf)
 		return 0;
 	}
 
-	xfree(srv->plugin_output);
+	safe_free(srv->plugin_output);
 	srv->plugin_output = strdup(ds->output);
 
-	xfree(srv->perf_data);
-	srv->perf_data = xstrdup(ds->perf_data);
+	safe_free(srv->perf_data);
+	srv->perf_data = safe_strdup(ds->perf_data);
 
 	srv->last_state = srv->current_state;
 	srv->current_state = ds->state;
@@ -110,11 +110,11 @@ static int handle_host_result(merlin_header *hdr, void *buf)
 		return 0;
 	}
 
-	xfree(hst->plugin_output);
+	safe_free(hst->plugin_output);
 	hst->plugin_output = strdup(ds->output);
 
-	xfree(hst->perf_data);
-	hst->perf_data = xstrdup(ds->perf_data);
+	safe_free(hst->perf_data);
+	hst->perf_data = safe_strdup(ds->perf_data);
 
 	hst->last_state = hst->current_state;
 	hst->current_state = ds->state;

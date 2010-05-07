@@ -115,9 +115,9 @@ extern int merlin_mod_hook(int cb, void *data);
 	mrln.perf_data = nag->perf_data;
 
 #define NET2MOD_STATE_VARS(nag, mrln) \
-	nag->plugin_output = xfree(nag->plugin_output); \
-	nag->long_plugin_output = xfree(nag->long_plugin_output); \
-	nag->perf_data = xfree(nag->perf_data); \
+	nag->plugin_output = safe_free(nag->plugin_output); \
+	nag->long_plugin_output = safe_free(nag->long_plugin_output); \
+	nag->perf_data = safe_free(nag->perf_data); \
 	nag->initial_state = mrln.initial_state; \
 	nag->flap_detection_enabled = mrln.flap_detection_enabled; \
 	nag->low_flap_threshold = mrln.low_flap_threshold; \

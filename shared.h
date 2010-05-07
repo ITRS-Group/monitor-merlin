@@ -64,9 +64,9 @@
 #define MODE_PEER      (1 << 1)
 #define MODE_POLLER    (1 << 2)
 
-static inline void *xfree(void *ptr)
+static inline void *safe_free(void *ptr)
 {
-	if(ptr)
+	if (ptr)
 		free(ptr);
 
 	return NULL;
@@ -88,7 +88,7 @@ static inline int max(int a, int b)
 	return a > b ? a : b;
 }
 
-#define xstrdup(str) str ? strdup(str) : NULL
+#define safe_strdup(str) str ? strdup(str) : NULL
 #define prefixcmp(a, b) strncmp(a, b, strlen(b))
 
 /** global variables present in both module and daemon **/
