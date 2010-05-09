@@ -32,6 +32,9 @@ install: all
 check:
 	@for i in *.c; do sparse $(CFLAGS) $(SPARSE_FLAGS) $$i 2>&1; done | grep -v /usr/include
 
+check_latency: check_latency.o cfgfile.o
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS)
+
 mtest: mtest.o $(TEST_OBJS) $(TEST_DEPS) sql.o hooks.o hash.o module.o control.o version.o logging.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(MTEST_LDFLAGS)
 
