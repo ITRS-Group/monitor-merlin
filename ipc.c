@@ -6,12 +6,12 @@
 static binlog *ipc_binlog;
 
 static int listen_sock = -1; /* for bind() and such */
-static int ipc_sock = -1; /* once connected, we operate on this */
 static char *ipc_sock_path;
 static char *ipc_binlog_path, *ipc_binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 static merlin_event_counter ipc_events;
 static int sync_lost;
 static time_t last_connect_attempt;
+static merlin_node ipc = { "ipc", -1, -1, 0, 0 }; /* the ipc node */
 
 /*
  * these are, if set, run when completing or losing the ipc
@@ -50,13 +50,13 @@ int ipc_accept(void)
 	struct sockaddr_un saun;
 	socklen_t slen = sizeof(struct sockaddr_un);
 
-	if (ipc_sock != -1) {
+	if (ipc.sock != -1) {
 		lwarn("New connection inbound when one already exists. Dropping old");
-		close(ipc_sock);
+		close(ipc.sock);
 	}
 
-	ipc_sock = accept(listen_sock, (struct sockaddr *)&saun, &slen);
-	if (ipc_sock < 0) {
+	ipc.sock = accept(listen_sock, (struct sockaddr *)&saun, &slen);
+	if (ipc.sock < 0) {
 		lerr("Failed to accept() from listen_sock (%d): %s",
 			 listen_sock, strerror(errno));
 		return -1;
@@ -69,13 +69,13 @@ int ipc_accept(void)
 	memset(&ipc_events, 0, sizeof(ipc_events));
 	gettimeofday(&ipc_events.start, NULL);
 
-	set_socket_buffers(ipc_sock);
+	set_socket_buffers(ipc.sock);
 
 	/* run daemon's on-connect handlers */
 	if (on_connect)
 		on_connect();
 
-	return ipc_sock;
+	return ipc.sock;
 }
 
 static int ipc_set_sock_path(const char *path)
@@ -252,7 +252,7 @@ int ipc_init(void)
 	memcpy(saun.sun_path, ipc_sock_path, slen);
 	slen += sizeof(struct sockaddr);
 
-	if (listen_sock == -1 || (is_module && ipc_sock == -1)) {
+	if (listen_sock == -1 || (is_module && ipc.sock == -1)) {
 		listen_sock = socket(AF_UNIX, SOCK_STREAM, 0);
 		if (listen_sock < 0) {
 			lerr("Failed to obtain ipc socket: %s", strerror(errno));
@@ -305,8 +305,8 @@ int ipc_init(void)
 	gettimeofday(&ipc_events.start, NULL);
 
 	/* module connected successfully */
-	ipc_sock = listen_sock;
-	set_socket_buffers(ipc_sock);
+	ipc.sock = listen_sock;
+	set_socket_buffers(ipc.sock);
 
 	/* let everybody know we're alive and active */
 	linfo("Shoutcasting active status through IPC socket %s", ipc_sock_path);
@@ -325,12 +325,12 @@ int ipc_init(void)
 void ipc_deinit(void)
 {
 	/* avoid spurious close() errors while strace/valgrind debugging */
-	if (ipc_sock >= 0)
-		close(ipc_sock);
+	if (ipc.sock >= 0)
+		close(ipc.sock);
 	if (listen_sock >= 0)
 		close(listen_sock);
 
-	ipc_sock = listen_sock = -1;
+	ipc.sock = listen_sock = -1;
 
 	if (!is_module)
 		unlink(ipc_sock_path);
@@ -343,15 +343,15 @@ void ipc_deinit(void)
 int ipc_is_connected(int msec)
 {
 	if (is_module) {
-		if (ipc_sock < 0)
+		if (ipc.sock < 0)
 			return ipc_reinit() == 0;
 
 		return 1;
 	}
 
 	if (io_poll(listen_sock, POLLIN, msec) > 0) {
-		ipc_sock = ipc_accept();
-		if (ipc_sock < 0) {
+		ipc.sock = ipc_accept();
+		if (ipc.sock < 0) {
 			lerr("ipc: accept() failed: %s", strerror(errno));
 			return 0;
 		} else if (on_connect) {
@@ -359,7 +359,7 @@ int ipc_is_connected(int msec)
 		}
 	}
 
-	return ipc_sock != -1;
+	return ipc.sock != -1;
 }
 
 int ipc_listen_sock_desc(void)
@@ -369,7 +369,7 @@ int ipc_listen_sock_desc(void)
 
 int ipc_sock_desc(void)
 {
-	return ipc_sock;
+	return ipc.sock;
 }
 
 
@@ -380,7 +380,7 @@ static int ipc_poll(int events, int msec)
 	if (ipc_is_connected(0) != 1)
 		return 0;
 
-	return io_poll(ipc_sock, events, msec);
+	return io_poll(ipc.sock, events, msec);
 }
 
 int ipc_send_ctrl(int control_type, int selection)
@@ -393,7 +393,7 @@ int ipc_send_ctrl(int control_type, int selection)
 	pkt.hdr.code = control_type;
 	pkt.hdr.selection = selection;
 
-	result = proto_send_event(ipc_sock, &pkt);
+	result = proto_send_event(ipc.sock, &pkt);
 	if (result < 0)
 		return ipc_binlog_add(&pkt);
 
@@ -426,7 +426,7 @@ int ipc_send_event(merlin_event *pkt)
 		 */
 		linfo("binary backlog has entries. Emptying those first");
 		while (ipc_write_ok(500) && !binlog_read(ipc_binlog, (void **)&temp_pkt, &len)) {
-			result = proto_send_event(ipc_sock, temp_pkt);
+			result = proto_send_event(ipc.sock, temp_pkt);
 
 			/*
 			 * the binlog duplicates the memory, so we must
@@ -447,7 +447,7 @@ int ipc_send_event(merlin_event *pkt)
 		}
 	}
 
-	result = proto_send_event(ipc_sock, pkt);
+	result = proto_send_event(ipc.sock, pkt);
 	if (result < 0 && errno == EPIPE) {
 		ipc_reinit();
 		/* XXX: possible infinite loop */
@@ -464,7 +464,7 @@ int ipc_read_event(merlin_event *pkt, int msec)
 {
 	int poll_result;
 
-	if (ipc_sock < 0) {
+	if (ipc.sock < 0) {
 		lerr("Asked to read from ipc socket with negative value");
 		return -1;
 	}
@@ -480,10 +480,10 @@ int ipc_read_event(merlin_event *pkt, int msec)
 
 	if (poll_result > 0) {
 		int result;
-		result = proto_read_event(ipc_sock, pkt);
+		result = proto_read_event(ipc.sock, pkt);
 		if (result < 1) {
 			if (result < 0)
-				linfo("proto_read_event(%d, ...) failed: %s", ipc_sock, strerror(errno));
+				linfo("proto_read_event(%d, ...) failed: %s", ipc.sock, strerror(errno));
 			else
 				linfo("ipc socket peer disconnected");
 			ipc_reinit();
