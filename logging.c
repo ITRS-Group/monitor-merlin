@@ -114,6 +114,10 @@ void log_msg(int severity, const char *fmt, ...)
 	len = vsnprintf(msg, sizeof(msg), fmt, ap);
 	va_end(ap);
 
+	/* if vsnprinft fails we can't really do anything */
+	if (len < 0)
+		return;
+
 	if (msg[len] == '\n')
 		msg[len] = 0;
 
