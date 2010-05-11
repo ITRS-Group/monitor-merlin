@@ -2,6 +2,8 @@
 #define INCLUDE_protocol_h__
 
 #include <sys/types.h>
+#include <sys/time.h>
+#include "binlog.h"
 
 #define MERLIN_PROTOCOL_VERSION 0
 
@@ -52,6 +54,32 @@ struct merlin_event_counter {
 	struct timeval start;
 };
 typedef struct merlin_event_counter merlin_event_counter;
+
+/* for node->status */
+#define STATE_NONE 0
+#define STATE_PENDING 1
+#define STATE_NEGOTIATING 2
+#define STATE_CONNECTED 3
+
+struct merlin_node {
+	char *name;             /* name of this node */
+	int id;                 /* internal index lookup number */
+	int sock;               /* the socket */
+	int type;               /* server type (master, slave, peer) */
+	int status;             /* status of this node (down, pending, active) */
+	unsigned zread;         /* zero reads. 5 of those indicates closed con */
+	unsigned selection;     /* numeric index for hostgroup */
+	char *hostgroup;        /* only set for pollers on the noc-side */
+	struct sockaddr *sa;    /* should always point to sain */
+	struct sockaddr_in sain;
+	time_t last_recv;       /* last time node sent something to us */
+	time_t last_sent;       /* when we sent something last */
+	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
+	int poller_active;	/* Is the poller active? */
+	int (*action)(struct merlin_node *, int); /* (daemon) action handler */
+	struct merlin_node *next; /* linked list (and tabulated) */
+};
+typedef struct merlin_node merlin_node;
 
 extern int proto_send_event(int sock, merlin_event *pkt);
 extern int proto_read_event(int sock, merlin_event *pkt);

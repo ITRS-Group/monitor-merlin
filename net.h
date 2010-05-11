@@ -3,7 +3,6 @@
 
 #include <netdb.h>
 #include "protocol.h"
-#include "types.h"
 
 extern unsigned short default_port;
 

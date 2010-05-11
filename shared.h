@@ -32,7 +32,6 @@
 #include <sys/param.h>
 #include <ctype.h>
 
-#include "types.h"
 #include "io.h"
 #include "ipc.h"
 #include "logging.h"
