@@ -81,8 +81,8 @@ struct merlin_node {
 };
 typedef struct merlin_node merlin_node;
 
-extern int proto_send_event(int sock, merlin_event *pkt);
-extern int proto_read_event(int sock, merlin_event *pkt);
-extern int proto_ctrl(int sock, int control_type, int selection);
+extern int proto_send_event(merlin_node *node, merlin_event *pkt);
+extern int proto_read_event(merlin_node *node, merlin_event *pkt);
+extern int proto_ctrl(merlin_node *node, int control_type, int selection);
 
 #endif

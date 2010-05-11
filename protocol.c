@@ -5,15 +5,16 @@
  * structure. Returns < 0 on errors, the length of the message on ok
  * and 0 on a zero-size read
  */
-int proto_read_event(int sock, merlin_event *pkt)
+int proto_read_event(merlin_node *node, merlin_event *pkt)
 {
 	int len;
 	uint result;
 
-	len = io_recv_all(sock, &pkt->hdr, HDR_SIZE);
+	len = io_recv_all(node->sock, &pkt->hdr, HDR_SIZE);
 	if (len != HDR_SIZE) {
 		lerr("In read_event: Incomplete header read(). Expected %zu, got %d",
 			 HDR_SIZE, len);
+		lerr("Sync lost with %s?", node->name);
 		return -1;
 	}
 
@@ -31,10 +32,11 @@ int proto_read_event(int sock, merlin_event *pkt)
 	if (!pkt->hdr.len)
 		return HDR_SIZE;
 
-	result = io_recv_all(sock, pkt->body, pkt->hdr.len);
+	result = io_recv_all(node->sock, pkt->body, pkt->hdr.len);
 	if (result != pkt->hdr.len) {
 		lwarn("Bogus read in proto_read_event(). got %d, expected %d",
 			  result, pkt->hdr.len);
+		lwarn("Sync lost with %s?", node->name);
 	}
 
 	return result;
@@ -44,7 +46,7 @@ int proto_read_event(int sock, merlin_event *pkt)
  * Wrapper for io_send_all(), making sure we always send properly
  * formatted merlin_events
  */
-int proto_send_event(int sock, merlin_event *pkt)
+int proto_send_event(merlin_node *node, merlin_event *pkt)
 {
 	pkt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
 
@@ -53,14 +55,14 @@ int proto_send_event(int sock, merlin_event *pkt)
 		return -1;
 	}
 
-	return io_send_all(sock, pkt, packet_size(pkt));
+	return io_send_all(node->sock, pkt, packet_size(pkt));
 }
 
 /*
  * Sends a control event of type "control_type" with selection "selection"
  * to socket "sock"
  */
-int proto_ctrl(int sock, int control_type, int selection)
+int proto_ctrl(merlin_node *node, int control_type, int selection)
 {
 	merlin_header hdr;
 
@@ -71,5 +73,5 @@ int proto_ctrl(int sock, int control_type, int selection)
 	hdr.code = control_type;
 	hdr.selection = selection;
 
-	return io_send_all(sock, &hdr, HDR_SIZE);
+	return io_send_all(node->sock, &hdr, HDR_SIZE);
 }

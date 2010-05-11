@@ -393,7 +393,7 @@ int ipc_send_ctrl(int control_type, int selection)
 	pkt.hdr.code = control_type;
 	pkt.hdr.selection = selection;
 
-	result = proto_send_event(ipc.sock, &pkt);
+	result = proto_send_event(&ipc, &pkt);
 	if (result < 0)
 		return ipc_binlog_add(&pkt);
 
@@ -426,7 +426,7 @@ int ipc_send_event(merlin_event *pkt)
 		 */
 		linfo("binary backlog has entries. Emptying those first");
 		while (ipc_write_ok(500) && !binlog_read(ipc_binlog, (void **)&temp_pkt, &len)) {
-			result = proto_send_event(ipc.sock, temp_pkt);
+			result = proto_send_event(&ipc, temp_pkt);
 
 			/*
 			 * the binlog duplicates the memory, so we must
@@ -447,7 +447,7 @@ int ipc_send_event(merlin_event *pkt)
 		}
 	}
 
-	result = proto_send_event(ipc.sock, pkt);
+	result = proto_send_event(&ipc, pkt);
 	if (result < 0 && errno == EPIPE) {
 		ipc_reinit();
 		/* XXX: possible infinite loop */
@@ -480,7 +480,7 @@ int ipc_read_event(merlin_event *pkt, int msec)
 
 	if (poll_result > 0) {
 		int result;
-		result = proto_read_event(ipc.sock, pkt);
+		result = proto_read_event(&ipc, pkt);
 		if (result < 1) {
 			if (result < 0)
 				linfo("proto_read_event(%d, ...) failed: %s", ipc.sock, strerror(errno));

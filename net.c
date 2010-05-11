@@ -616,7 +616,7 @@ static void net_input(merlin_node *node)
 		  node->name, inet_ntoa(node->sain.sin_addr));
 
 	errno = 0;
-	len = proto_read_event(node->sock, &pkt);
+	len = proto_read_event(node, &pkt);
 	if (len < 0) {
 		lerr("read() from %s node %s failed: %s",
 			 node_type(node), node->name, strerror(errno));
