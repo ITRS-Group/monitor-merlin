@@ -64,14 +64,14 @@ int proto_send_event(merlin_node *node, merlin_event *pkt)
  */
 int proto_ctrl(merlin_node *node, int control_type, int selection)
 {
-	merlin_header hdr;
+	merlin_event pkt;
 
-	memset(&hdr, 0, HDR_SIZE);
+	memset(&pkt.hdr, 0, HDR_SIZE);
 
-	hdr.type = CTRL_PACKET;
-	hdr.len = 0;
-	hdr.code = control_type;
-	hdr.selection = selection;
+	pkt.hdr.type = CTRL_PACKET;
+	pkt.hdr.len = 0;
+	pkt.hdr.code = control_type;
+	pkt.hdr.selection = selection;
 
-	return io_send_all(node->sock, &hdr, HDR_SIZE);
+	return proto_send_event(node, &pkt);
 }
