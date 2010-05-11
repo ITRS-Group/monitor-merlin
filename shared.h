@@ -59,10 +59,6 @@
 # define ARRAY_SIZE(ary) (sizeof(ary)/sizeof(ary[0]))
 #endif
 
-#define MODE_NOC       1
-#define MODE_PEER      (1 << 1)
-#define MODE_POLLER    (1 << 2)
-
 static inline void *safe_free(void *ptr)
 {
 	if (ptr)

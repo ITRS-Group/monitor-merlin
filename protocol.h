@@ -55,6 +55,11 @@ struct merlin_event_counter {
 };
 typedef struct merlin_event_counter merlin_event_counter;
 
+/* for node->type */
+#define MODE_NOC       1
+#define MODE_PEER      (1 << 1)
+#define MODE_POLLER    (1 << 2)
+
 /* for node->status */
 #define STATE_NONE 0
 #define STATE_PENDING 1
