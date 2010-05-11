@@ -96,6 +96,7 @@ void log_msg(int severity, const char *fmt, ...)
 {
 	va_list ap;
 	int len;
+	char msg[4096];
 
 	/* return early if we shouldn't log stuff of this severity */
 	if (!((1 << severity) & log_levels)) {
@@ -104,18 +105,29 @@ void log_msg(int severity, const char *fmt, ...)
 
 	if (!log_fp)
 		log_init();
-	if (!log_fp)
-		log_fp = stdout;
 
-	fprintf(log_fp, "[%lu] %d: ", time(NULL), severity);
+	/* if we can't log anywhere, return early */
+	if (!log_fp && !isatty(fileno(stdout)))
+		return;
 
 	va_start(ap, fmt);
-	len = vfprintf(log_fp, fmt, ap);
+	len = vsnprintf(msg, sizeof(msg), fmt, ap);
 	va_end(ap);
-	if (fmt[len] != '\n')
-		fputc('\n', log_fp);
-	fflush(log_fp);
-	fsync(fileno(log_fp));
+
+	if (msg[len] == '\n')
+		msg[len] = 0;
+
+	/* always print log messages to stdout when we're debugging */
+	if (isatty(fileno(stdout))) {
+		printf("[%lu] %d: %s\n", time(NULL), severity, msg);
+	}
+
+	/* only print to log if it's something else than 'stdout' */
+	if (log_fp && log_fp != stdout) {
+		fprintf(log_fp, "[%lu] %d: %s\n", time(NULL), severity, msg);
+		fflush(log_fp);
+		fsync(fileno(log_fp));
+	}
 }
 
 void log_event_count(const char *prefix, merlin_event_counter *cnt, float t)
