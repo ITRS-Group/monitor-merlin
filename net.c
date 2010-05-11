@@ -37,7 +37,7 @@ static const char *node_type(merlin_node *node)
 {
 	switch (node->type) {
 	case MODE_NOC:
-		return "NOC";
+		return "master";
 	case MODE_PEER:
 		return "peer";
 	case MODE_POLLER:
