@@ -3,8 +3,6 @@
 #define ipc_read_ok(msec) ipc_poll(POLLIN, msec)
 #define ipc_write_ok(msec) ipc_poll(POLLOUT, msec)
 
-static binlog *ipc_binlog;
-
 static int listen_sock = -1; /* for bind() and such */
 static char *ipc_sock_path;
 static char *ipc_binlog_path, *ipc_binlog_dir = "/opt/monitor/op5/merlin/binlogs";
@@ -168,7 +166,7 @@ int ipc_grok_var(char *var, char *val)
 
 static int ipc_binlog_add(merlin_event *pkt)
 {
-	if (!ipc_binlog) {
+	if (!ipc.binlog) {
 		char *path;
 
 		if (ipc_binlog_path)
@@ -179,17 +177,17 @@ static int ipc_binlog_add(merlin_event *pkt)
 
 		linfo("Creating binary ipc backlog. On-disk location: %s", path);
 		/* 10MB in memory, 100MB on disk */
-		ipc_binlog = binlog_create(path, 10 << 20, 100 << 20, BINLOG_UNLINK);
+		ipc.binlog = binlog_create(path, 10 << 20, 100 << 20, BINLOG_UNLINK);
 		if (path != ipc_binlog_path)
 			free(path);
 
-		if (!ipc_binlog) {
+		if (!ipc.binlog) {
 			lerr("Failed to create binary ipc backlog: %s", strerror(errno));
 			return -1;
 		}
 	}
 
-	if (binlog_add(ipc_binlog, pkt, packet_size(pkt)) < 0) {
+	if (binlog_add(ipc.binlog, pkt, packet_size(pkt)) < 0) {
 		if (sync_lost) {
 			ipc_events.dropped++;
 			return -1;
@@ -201,14 +199,14 @@ static int ipc_binlog_add(merlin_event *pkt)
 		 * first message we couldn't deliver, so wipe the binary
 		 * log and take whatever action is appropriate
 		 */
-		binlog_wipe(ipc_binlog, BINLOG_UNLINK);
+		binlog_wipe(ipc.binlog, BINLOG_UNLINK);
 
 		/* update counters now that we'll be dropping the binlog */
 		ipc_events.dropped += ipc_events.logged;
 		ipc_events.logged = 0;
 
 		lerr("Failed to add %u bytes to binlog with path '%s': %s",
-			 packet_size(pkt), binlog_path(ipc_binlog), strerror(errno));
+			 packet_size(pkt), binlog_path(ipc.binlog), strerror(errno));
 		ipc_sync_lost();
 		return -1;
 	}
@@ -416,7 +414,7 @@ int ipc_send_event(merlin_event *pkt)
 	}
 
 	/* if the binlog has entries, we must send those first */
-	if (binlog_has_entries(ipc_binlog)) {
+	if (binlog_has_entries(ipc.binlog)) {
 		merlin_event *temp_pkt;
 		uint len;
 
@@ -425,7 +423,7 @@ int ipc_send_event(merlin_event *pkt)
 		 * spraying the daemon pretty hard
 		 */
 		linfo("binary backlog has entries. Emptying those first");
-		while (ipc_write_ok(500) && !binlog_read(ipc_binlog, (void **)&temp_pkt, &len)) {
+		while (ipc_write_ok(500) && !binlog_read(ipc.binlog, (void **)&temp_pkt, &len)) {
 			result = proto_send_event(&ipc, temp_pkt);
 
 			/*
@@ -439,7 +437,7 @@ int ipc_send_event(merlin_event *pkt)
 			 * means we've lost sync
 			 */
 			if (result < 0 && errno == EPIPE) {
-				binlog_wipe(ipc_binlog, BINLOG_UNLINK);
+				binlog_wipe(ipc.binlog, BINLOG_UNLINK);
 				ipc_sync_lost();
 				ipc_reinit();
 				return -1;
