@@ -728,8 +728,6 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
  * This is where new connections are handled and network input is
  * scheduled for reading
  */
-#define READ_OK 1
-#define WRITE_OK 2
 int net_handle_polling_results(fd_set *rd, fd_set *wr)
 {
 	int sockets = 0;
