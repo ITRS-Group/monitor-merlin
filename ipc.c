@@ -4,7 +4,6 @@
 #define ipc_write_ok(msec) ipc_poll(POLLOUT, msec)
 
 static binlog *ipc_binlog;
-static char *debug_write, *debug_read;
 
 static int listen_sock = -1; /* for bind() and such */
 static int ipc_sock = -1; /* once connected, we operate on this */
@@ -158,16 +157,6 @@ int ipc_grok_var(char *var, char *val)
 
 	if (!strcmp(var, "ipc_binlog"))
 		return !ipc_set_binlog_path(val);
-
-	if (!strcmp(var, "ipc_debug_write")) {
-		debug_write = strdup(val);
-		return 1;
-	}
-
-	if (!strcmp(var, "ipc_debug_read")) {
-		debug_read = strdup(val);
-		return 1;
-	}
 
 	if (!strcmp(var, "ipc_binlog_dir") || !strcmp(var, "ipc_backlog_dir")) {
 		ipc_binlog_dir = strdup(val);
