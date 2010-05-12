@@ -1,5 +1,40 @@
 #include "shared.h"
 
+static char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
+
+static int node_binlog_add(merlin_node *node, merlin_event *pkt)
+{
+	int result;
+
+	if (!node->binlog) {
+		char *path;
+
+		asprintf(&path, "%s/%s.%s.binlog",
+				 binlog_dir, is_module ? "module" : "daemon", node->name);
+		linfo("Creating binary backlog for %s. On-disk location: %s",
+			  node->name, path);
+
+		/* 10MB in memory, 100MB on disk */
+		node->binlog = binlog_create(path, 10 << 20, 100 << 20, BINLOG_UNLINK);
+		if (!node->binlog) {
+			lerr("Failed to create binary backlog for %s: %s",
+				 node->name, strerror(errno));
+			return -1;
+		}
+		free(path);
+	}
+
+	result = binlog_add(node->binlog, pkt, packet_size(pkt));
+	if (result < 0) {
+		binlog_wipe(node->binlog, BINLOG_UNLINK);
+		/* XXX should mark node as unsynced here */
+		node->events.dropped += node->events.logged + 1;
+		node->events.logged = 0;
+	}
+
+	return result;
+}
+
 /*
  * Reads one event from the given socket into the given merlin_event
  * structure. Returns 0 on success and < 0 on errors
