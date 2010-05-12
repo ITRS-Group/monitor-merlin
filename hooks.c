@@ -44,9 +44,6 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		return 0;
 	}
 
-	linfo("Active check result processed for service '%s' on host '%s'",
-		  ds->service_description, ds->host_name);
-
 	pkt->hdr.selection = get_selection(ds->host_name);
 
 	return send_generic(pkt, ds);
@@ -63,8 +60,6 @@ static int hook_host_result(merlin_event *pkt, void *data)
 	{
 		return 0;
 	}
-
-	linfo("Active check result processed for host '%s'", ds->host_name);
 
 	return send_generic(pkt, ds);
 }
