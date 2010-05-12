@@ -56,6 +56,7 @@ struct merlin_event_counter {
 typedef struct merlin_event_counter merlin_event_counter;
 
 /* for node->type */
+#define MODE_LOCAL     0
 #define MODE_NOC       1
 #define MODE_PEER      (1 << 1)
 #define MODE_POLLER    (1 << 2)
@@ -92,4 +93,6 @@ extern int node_send_event(merlin_node *node, merlin_event *pkt);
 extern int node_read_event(merlin_node *node, merlin_event *pkt);
 extern int node_send_ctrl(merlin_node *node, int type, int selection);
 
+extern const char *node_state(merlin_node *node);
+extern const char *node_type(merlin_node *node);
 #endif

@@ -14,37 +14,6 @@ int net_sock_desc(void)
 	return net_sock;
 }
 
-static inline const char *node_state(merlin_node *node)
-{
-	switch (node->status) {
-	case STATE_NONE:
-		return "not connected";
-	case STATE_PENDING:
-		return "awaiting response";
-	case STATE_NEGOTIATING:
-		return "negotiating precedence";
-	case STATE_CONNECTED:
-		return "connected";
-	}
-
-	return "Unknown state (decidedly odd)";
-}
-
-static const char *node_type(merlin_node *node)
-{
-	switch (node->type) {
-	case MODE_NOC:
-		return "master";
-	case MODE_PEER:
-		return "peer";
-	case MODE_POLLER:
-		return "poller";
-	}
-
-	return "Unknown node-type";
-}
-
-
 static merlin_node *add_node_to_list(merlin_node *node, merlin_node *list)
 {
 	node->next = list;

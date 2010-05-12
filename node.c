@@ -2,6 +2,38 @@
 
 static char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 
+const char *node_state(merlin_node *node)
+{
+	switch (node->status) {
+	case STATE_NONE:
+		return "not connected";
+	case STATE_PENDING:
+		return "awaiting response";
+	case STATE_NEGOTIATING:
+		return "negotiating precedence";
+	case STATE_CONNECTED:
+		return "connected";
+	}
+
+	return "Unknown state (decidedly odd)";
+}
+
+const char *node_type(merlin_node *node)
+{
+	switch (node->type) {
+	case MODE_LOCAL:
+		return "local ipc";
+	case MODE_NOC:
+		return "master";
+	case MODE_PEER:
+		return "peer";
+	case MODE_POLLER:
+		return "poller";
+	}
+
+	return "Unknown node-type";
+}
+
 static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 {
 	int result;
