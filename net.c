@@ -3,12 +3,10 @@
 #include <fcntl.h>
 #include "daemon.h"
 
-#define DEF_SOCK_TIMEOUT 50000
-
 static int net_sock = -1; /* listening sock descriptor */
 
 #define node_table noc_table
-static merlin_node *base, **noc_table, **poller_table, **peer_table;
+static merlin_node **noc_table, **poller_table, **peer_table;
 static merlin_node **selected_nodes;
 
 int net_sock_desc(void)
@@ -30,7 +28,6 @@ static inline const char *node_state(merlin_node *node)
 	}
 
 	return "Unknown state (decidedly odd)";
-
 }
 
 static const char *node_type(merlin_node *node)
@@ -116,8 +113,6 @@ void create_node_tree(merlin_node *table, unsigned n)
 			break;
 		}
 	}
-
-	base = *node_table;
 }
 
 
@@ -279,31 +274,6 @@ static int net_is_connected(int sock, struct sockaddr_in *sain)
 
 	return 0;
 }
-
-
-#ifdef NET_DEBUG
-static void print_node_status(merlin_node *node)
-{
-	printf("%s node '%s' (%s : %d) is %s. socket is %d",
-		   node_type(node), node->name, inet_ntoa(node->sain.sin_addr),
-		   ntohs(node->sain.sin_port), node_state(node), node->sock);
-}
-#endif
-
-
-static void print_node_status_list(void)
-{
-#ifdef NET_DEBUG
-	int i;
-	putchar('\n');
-	putchar('\n');
-	for (i = 0; i < num_nodes; i++)
-		print_node_status(node_table[i]);
-	putchar('\n');
-	putchar('\n');
-#endif
-}
-
 
 /* check if a node is connected.
  * Return 1 if yes and 0 if not */
@@ -832,10 +802,8 @@ int net_poll(void)
 	gettimeofday(&start, NULL);
 	nfound = select(sel_val + 1, &rd, &wr, NULL, &to);
 	gettimeofday(&end, NULL);
-	print_node_status_list();
 
 	if (!nfound) {
-
 		return 0;
 	}
 
