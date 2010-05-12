@@ -2,10 +2,9 @@
 
 /*
  * Reads one event from the given socket into the given merlin_event
- * structure. Returns < 0 on errors, the length of the message on ok
- * and 0 on a zero-size read
+ * structure. Returns 0 on success and < 0 on errors
  */
-int proto_read_event(merlin_node *node, merlin_event *pkt)
+int node_read_event(merlin_node *node, merlin_event *pkt)
 {
 	int len;
 	uint result;
@@ -43,10 +42,11 @@ int proto_read_event(merlin_node *node, merlin_event *pkt)
 }
 
 /*
- * Wrapper for io_send_all(), making sure we always send properly
- * formatted merlin_events
+ * Send the given event "pkt" to the node "node", or take appropriate
+ * actions on the node itself in case sending fails.
+ * Returns 0 on success, and < 0 otherwise.
  */
-int proto_send_event(merlin_node *node, merlin_event *pkt)
+int node_send_event(merlin_node *node, merlin_event *pkt)
 {
 	pkt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
 
@@ -59,10 +59,10 @@ int proto_send_event(merlin_node *node, merlin_event *pkt)
 }
 
 /*
- * Sends a control event of type "control_type" with selection "selection"
- * to socket "sock"
+ * Sends a control event of type "type" with selection "selection"
+ * to node "node"
  */
-int proto_ctrl(merlin_node *node, int control_type, int selection)
+int node_send_ctrl(merlin_node *node, int type, int selection)
 {
 	merlin_event pkt;
 
