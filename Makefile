@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -O2 -pipe -Wall -ggdb3 -fPIC -fno-strict-aliasing
-SHARED_OBJS = cfgfile.o ipc.o shared.o io.o protocol.o data.o binlog.o
+SHARED_OBJS = cfgfile.o ipc.o shared.o io.o node.o data.o binlog.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
 COMMON_OBJS = version.o logging.o $(SHARED_OBJS)
 DAEMON_OBJS = status.o daemonize.o daemon.o net.o sql.o db_updater.o
@@ -67,7 +67,7 @@ endpoint: endpoint.o data.o $(COMMON_OBJS)
 endpoint.o: test/endpoint.c $(DEPS)
 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
-ipc.o net.o: protocol.h
+ipc.o net.o: node.h
 
 $(COMMON_OBJS): $(DEPS)
 module.o: module.c $(MODULE_DEPS) $(DEPS) hash.h

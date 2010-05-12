@@ -1,5 +1,5 @@
-#ifndef INCLUDE_protocol_h__
-#define INCLUDE_protocol_h__
+#ifndef INCLUDE_node_h__
+#define INCLUDE_node_h__
 
 #include <sys/types.h>
 #include <sys/time.h>

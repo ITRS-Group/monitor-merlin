@@ -2,7 +2,7 @@
 #define INCLUDE_net_h__
 
 #include <netdb.h>
-#include "protocol.h"
+#include "shared.h"
 
 extern unsigned short default_port;
 
