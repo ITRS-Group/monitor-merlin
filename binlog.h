@@ -52,11 +52,12 @@ extern const char *binlog_path(binlog *bl);
 extern binlog *binlog_create(const char *path, uint msize, uint fsize, int flags);
 
 /**
- * Check if a binary log has unread entries
+ * Get the number of unread entries in the binlog
  * @param bl The binary log to examine
- * @returns 1 if entries are found. 0 otherwise.
+ * @returns Number of entries in binlog
  */
-extern int binlog_has_entries(binlog *bl);
+extern uint binlog_num_entries(binlog *bl);
+#define binlog_has_entries(bl) binlog_num_entries(bl)
 
 /**
  * Wipes a binary log, freeing all memory associated with it and

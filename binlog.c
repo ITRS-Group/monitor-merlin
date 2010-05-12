@@ -21,7 +21,7 @@ typedef struct binlog_entry binlog_entry;
 
 struct binlog {
 	struct binlog_entry **cache;
-	uint write_index, read_index;
+	uint write_index, read_index, file_entries;
 	uint alloc, max_mem_usage;
 	uint mem_size, max_mem_size;
 	uint file_size, max_file_size;
@@ -196,6 +196,7 @@ static int binlog_file_read(binlog *bl, void **buf, uint *len)
 	if (bl->file_read_pos >= bl->file_size) {
 		binlog_close(bl);
 		bl->file_read_pos = bl->file_write_pos = bl->file_size = 0;
+		bl->file_entries = 0;
 		unlink(bl->path);
 		return BINLOG_EMPTY;
 	}
@@ -205,6 +206,7 @@ static int binlog_file_read(binlog *bl, void **buf, uint *len)
 	*buf = malloc(*len);
 	result = read(bl->fd, *buf, *len);
 	bl->file_read_pos = lseek(bl->fd, 0, SEEK_CUR);
+	bl->file_entries--;
 
 	return 0;
 }
@@ -243,17 +245,20 @@ int binlog_read(binlog *bl, void **buf, uint *len)
 	return binlog_file_read(bl, buf, len);
 }
 
-int binlog_has_entries(binlog *bl)
 {
+uint binlog_num_entries(binlog *bl)
+{
+	uint entries = 0;
+
 	if (!bl)
 		return 0;
 
 	if (bl->file_size && bl->file_read_pos < bl->file_size)
-		return 1;
+		entries = bl->file_entries;
 	if (bl->cache && bl->read_index < bl->write_index)
-		return 1;
+		entries += bl->write_index - bl->read_index;
 
-	return 0;
+	return entries;
 }
 
 static int binlog_open(binlog *bl)
@@ -329,6 +334,7 @@ static int binlog_file_add(binlog *bl, void *buf, uint len)
 	ret = safe_write(bl, buf, len);
 	fsync(bl->fd);
 	bl->file_size += len + sizeof(len);
+	bl->file_entries++;
 
 	return ret;
 }
