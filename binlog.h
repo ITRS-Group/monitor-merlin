@@ -86,6 +86,20 @@ extern void binlog_destroy(binlog *bl, int flags);
  */
 extern int binlog_read(binlog *bl, void **buf, uint *len);
 
+/*
+ * "unread" one entry from the binlog. This lets one maintain
+ * sequential reading from the binlog even when event processing
+ * fails. Note that the data isn't duplicated again here, since
+ * the most common case is that the recently read data is pushed
+ * back immediately after whatever action was supposed to be
+ * taken on it has failed.
+ * @param bl The binlog to unread() from/to
+ * @param buf The data to unread
+ * @param len The length of the data to read
+ * @return 0 on success. < 0 on failure.
+ */
+extern int binlog_unread(binlog *bl, void *buf, uint len);
+
 /**
  * Add an event to the binary log.
  * If maximum memory size for the in-memory cache has been, or

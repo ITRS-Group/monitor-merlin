@@ -245,7 +245,85 @@ int binlog_read(binlog *bl, void **buf, uint *len)
 	return binlog_file_read(bl, buf, len);
 }
 
+/*
+ * This is easy. We just reset file_read_pos to point to the start
+ * of the old entry and increment the file_entries counter.
+ */
+static int binlog_file_unread(binlog *bl, uint len)
 {
+	bl->file_read_pos -= len;
+	bl->file_entries++;
+	return 0;
+}
+
+/*
+ * This is also fairly straightforward. We basically just add the
+ * pointer to the previous entry in the memory list
+ */
+static int binlog_mem_unread(binlog *bl, void *buf, uint len)
+{
+	binlog_entry *entry;
+
+	/* we can't restore items to an invalid binlog */
+	if (!bl || !bl->cache || !binlog_is_valid(bl))
+		return BINLOG_EDROPPED;
+
+	/*
+	 * In case the entire filebased backlog gets unread(),
+	 * we can stash one and only one entry on memory stack,
+	 * so return BINLOG_EDROPPED in case bl->read_index is
+	 * already 0 and we've pushed bl->write_index to 1.
+	 * This is because we have no way of finding out which
+	 * slot the entry should have had, so further undo's
+	 * will not be in sequential ordering.
+	 */
+	if (bl->read_index == 0 && bl->write_index == 1)
+		return BINLOG_EDROPPED;
+
+	entry = malloc(sizeof(*entry));
+	if (!entry)
+		return BINLOG_EDROPPED;
+
+	entry->size = len;
+	entry->data = buf;
+	if (!bl->read_index) {
+		/*
+		 * first entry to be pushed back to memory after
+		 * filebased binlog was emptied. Sequential messages
+		 * can be added later, but we can't handle further
+		 * undo's
+		 */
+		bl->cache[bl->read_index] = entry;
+		bl->write_index = 1;
+	}
+	else {
+		bl->cache[--bl->read_index] = entry;
+	}
+	return 0;
+}
+
+int binlog_unread(binlog *bl, void *buf, uint len)
+{
+	if (!bl || !buf || !len)
+		return -1;
+
+	/*
+	 * if the binlog is empty, adding the entry normally has the
+	 * same effect as fiddling around with pointer manipulation
+	 */
+	if (!binlog_num_entries(bl))
+		return binlog_add(bl, buf, len);
+
+	/*
+	 * if we've started reading from the file, the entry belongs
+	 * there. If we haven't, it belongs on the memory stack
+	 */
+	if (bl->file_read_pos >= len)
+		binlog_file_unread(bl, len);
+
+	return binlog_mem_unread(bl, buf, len);
+}
+
 uint binlog_num_entries(binlog *bl)
 {
 	uint entries = 0;
