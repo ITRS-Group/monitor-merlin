@@ -82,6 +82,7 @@ struct merlin_node {
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
 	int poller_active;	/* Is the poller active? */
 	binlog *binlog;         /* binary backlog for this node */
+	merlin_event_counter events; /* event count */
 	int (*action)(struct merlin_node *, int); /* (daemon) action handler */
 	struct merlin_node *next; /* linked list (and tabulated) */
 };

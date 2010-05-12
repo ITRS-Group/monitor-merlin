@@ -6,7 +6,6 @@
 static int listen_sock = -1; /* for bind() and such */
 static char *ipc_sock_path;
 static char *ipc_binlog_path, *ipc_binlog_dir = "/opt/monitor/op5/merlin/binlogs";
-static merlin_event_counter ipc_events;
 static int sync_lost;
 static time_t last_connect_attempt;
 static merlin_node ipc = { "ipc", -1, -1, 0, 0 }; /* the ipc node */
@@ -33,7 +32,7 @@ void ipc_log_event_count(void)
 	struct timeval stop;
 
 	gettimeofday(&stop, NULL);
-	log_event_count("ipc", &ipc_events, tv_delta(&ipc_events.start, &stop));
+	log_event_count("ipc", &ipc.events, tv_delta(&ipc.events.start, &stop));
 }
 
 int ipc_reinit(void)
@@ -64,8 +63,8 @@ int ipc_accept(void)
 	sync_lost = 0;
 
 	/* reset the ipc event counter for each session */
-	memset(&ipc_events, 0, sizeof(ipc_events));
-	gettimeofday(&ipc_events.start, NULL);
+	memset(&ipc.events, 0, sizeof(ipc.events));
+	gettimeofday(&ipc.events.start, NULL);
 
 	set_socket_buffers(ipc.sock);
 
@@ -189,7 +188,7 @@ static int ipc_binlog_add(merlin_event *pkt)
 
 	if (binlog_add(ipc.binlog, pkt, packet_size(pkt)) < 0) {
 		if (sync_lost) {
-			ipc_events.dropped++;
+			ipc.events.dropped++;
 			return -1;
 		}
 
@@ -202,15 +201,15 @@ static int ipc_binlog_add(merlin_event *pkt)
 		binlog_wipe(ipc.binlog, BINLOG_UNLINK);
 
 		/* update counters now that we'll be dropping the binlog */
-		ipc_events.dropped += ipc_events.logged;
-		ipc_events.logged = 0;
+		ipc.events.dropped += ipc.events.logged;
+		ipc.events.logged = 0;
 
 		lerr("Failed to add %u bytes to binlog with path '%s': %s",
 			 packet_size(pkt), binlog_path(ipc.binlog), strerror(errno));
 		ipc_sync_lost();
 		return -1;
 	}
-	ipc_events.logged++;
+	ipc.events.logged++;
 
 	return 0;
 }
@@ -238,8 +237,8 @@ int ipc_init(void)
 	if (!ipc_sock_path)
 		ipc_sock_path = strdup("/opt/monitor/op5/mrd/socket.mrd");
 
-	memset(&ipc_events, 0, sizeof(ipc_events));
-	gettimeofday(&ipc_events.start, NULL);
+	memset(&ipc.events, 0, sizeof(ipc.events));
+	gettimeofday(&ipc.events.start, NULL);
 	if (!quiet) {
 		linfo("Initializing IPC socket '%s' for %s", ipc_sock_path,
 		      is_module ? "module" : "daemon");
@@ -299,8 +298,8 @@ int ipc_init(void)
 	last_connect_attempt = 0;
 
 	/* reset event counter */
-	memset(&ipc_events, 0, sizeof(ipc_events));
-	gettimeofday(&ipc_events.start, NULL);
+	memset(&ipc.events, 0, sizeof(ipc.events));
+	gettimeofday(&ipc.events.start, NULL);
 
 	/* module connected successfully */
 	ipc.sock = listen_sock;
@@ -453,7 +452,7 @@ int ipc_send_event(merlin_event *pkt)
 		return ipc_send_event(pkt);
 	}
 
-	ipc_events.sent++;
+	ipc.events.sent++;
 
 	return result;
 }
@@ -487,7 +486,7 @@ int ipc_read_event(merlin_event *pkt, int msec)
 			ipc_reinit();
 		}
 		else {
-			ipc_events.read++;
+			ipc.events.read++;
 		}
 		return result;
 	}
