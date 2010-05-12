@@ -732,7 +732,7 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 			do {
 				/* read all available events */
 				net_input(node);
-				result = io_poll_read(node->sock, 50);
+				result = io_read_ok(node->sock, 50);
 			} while (result > 0);
 
 			continue;
