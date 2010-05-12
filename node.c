@@ -137,7 +137,7 @@ int node_send_ctrl(merlin_node *node, int type, int selection)
 
 	pkt.hdr.type = CTRL_PACKET;
 	pkt.hdr.len = 0;
-	pkt.hdr.code = control_type;
+	pkt.hdr.code = type;
 	pkt.hdr.selection = selection;
 
 	return proto_send_event(node, &pkt);
