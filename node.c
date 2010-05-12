@@ -140,5 +140,5 @@ int node_send_ctrl(merlin_node *node, int type, int selection)
 	pkt.hdr.code = type;
 	pkt.hdr.selection = selection;
 
-	return proto_send_event(node, &pkt);
+	return node_send_event(node, &pkt);
 }
