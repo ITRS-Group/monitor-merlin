@@ -17,7 +17,7 @@ void node_log_event_count(merlin_node *node, int force)
 
 	cnt->last_logged = now.tv_sec;
 
-	linfo("Handled %lld events from/to %s in %s seconds in: %lld, out: %lld",
+	linfo("Handled %lld events from/to %s in %s. in: %lld, out: %lld",
 	      cnt->read + cnt->sent + cnt->dropped + cnt->logged, node->name,
 		  tv_delta(&cnt->start, &now),
 	      cnt->read, cnt->sent + cnt->dropped + cnt->logged);
