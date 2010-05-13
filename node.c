@@ -59,6 +59,21 @@ const char *node_type(merlin_node *node)
 	return "Unknown node-type";
 }
 
+/* close down the connection to a node and mark it as down */
+void node_disconnect(merlin_node *node)
+{
+	node_log_event_count(node, 1);
+	/* avoid spurious close() errors while strace/valgrind debugging */
+	if (node->sock >= 0)
+		close(node->sock);
+	node->status = STATE_NONE;
+	if (node->action)
+		node->action(node, node->status);
+	node->last_recv = 0;
+	node->sock = -1;
+	node->zread = 0;
+}
+
 static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 {
 	int result;

@@ -91,6 +91,7 @@ struct merlin_node {
 typedef struct merlin_node merlin_node;
 
 extern void node_log_event_count(merlin_node *node, int force);
+extern void node_disconnect(merlin_node *node);
 extern int node_send_event(merlin_node *node, merlin_event *pkt);
 extern int node_read_event(merlin_node *node, merlin_event *pkt);
 extern int node_send_ctrl(merlin_node *node, int type, int selection);

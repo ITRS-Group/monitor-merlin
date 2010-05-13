@@ -318,13 +318,13 @@ int ipc_init(void)
 
 void ipc_deinit(void)
 {
-	/* avoid spurious close() errors while strace/valgrind debugging */
-	if (ipc.sock >= 0)
-		close(ipc.sock);
+	node_disconnect(&ipc);
+
+	/* avoid spurious valgrind/strace warnings */
 	if (listen_sock >= 0)
 		close(listen_sock);
 
-	ipc.sock = listen_sock = -1;
+	listen_sock = -1;
 
 	if (!is_module)
 		unlink(ipc_sock_path);

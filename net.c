@@ -131,18 +131,6 @@ static int net_complete_connection(merlin_node *node)
 }
 
 
-/* close down the connection to a node and mark it as down */
-static void net_disconnect(merlin_node *node)
-{
-	close(node->sock);
-	node->status = STATE_NONE;
-	node->action(node, node->status);
-	node->last_recv = 0;
-	node->sock = -1;
-	node->zread = 0;
-}
-
-
 /*
  * Initiate a connection attempt to a node and mark it as PENDING.
  * Note that since we're using sockets in non-blocking mode (in order
@@ -186,7 +174,7 @@ static int net_try_connect(merlin_node *node)
 				 ntohs(node->sain.sin_port), strerror(errno));
 
 			if (errno == EISCONN) { /* already connected? That's fishy.. */
-				net_disconnect(node);
+				node_disconnect(node);
 				return -1;
 			}
 			if (errno != EINPROGRESS && errno != EALREADY)
@@ -340,7 +328,7 @@ static int net_negotiate_socket(merlin_node *node, int lis)
 	}
 
 	if (net_is_connected(con) && net_is_connected(lis)) {
-		net_disconnect(node);
+		node_disconnect(node);
 		node->status = STATE_CONNECTED;
 		node->sock = lis;
 		node->action(node, node->status);
@@ -394,7 +382,7 @@ int net_accept_one(void)
 	case STATE_NONE:
 		/* we must close it unconditionally or we'll leak fd's
 		 * for reconnecting nodes that were previously connected */
-		net_disconnect(node);
+		node_disconnect(node);
 		node->sock = sock;
 		break;
 
@@ -419,7 +407,7 @@ int net_deinit(void)
 
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
-		net_disconnect(node);
+		node_disconnect(node);
 		free(node);
 	}
 
@@ -567,7 +555,7 @@ static void net_input(merlin_node *node)
 		case EBADF: /* Bad file-descriptor */
 		case ECONNRESET: /* Connection reset by peer */
 		default:
-			net_disconnect(node);
+			node_disconnect(node);
 			break;
 		}
 		return;
@@ -576,7 +564,7 @@ static void net_input(merlin_node *node)
 	if (!len) {
 		node->zread++;
 		if (node->zread > 5)
-			net_disconnect(node);
+			node_disconnect(node);
 		return;
 	}
 
@@ -684,7 +672,7 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 			printf("node socket %d is ready for writing\n", node->sock);
 			sockets++;
 			if (net_complete_connection(node)) {
-				net_disconnect(node);
+				node_disconnect(node);
 			}
 			continue;
 		}
