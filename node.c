@@ -12,7 +12,7 @@ void node_log_event_count(merlin_node *node)
 	 * every 60 seconds
 	 */
 	gettimeofday(&now, NULL);
-	if (cnt->last_logged + 60 > now.tv_sec)
+	if (cnt->last_logged && cnt->last_logged + 60 > now.tv_sec)
 		return;
 
 	cnt->last_logged = now.tv_sec;
