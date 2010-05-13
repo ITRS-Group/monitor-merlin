@@ -29,7 +29,7 @@ void mrm_ipc_set_disconnect_handler(int (*handler)(void))
 
 void ipc_log_event_count(void)
 {
-	node_log_event_count(&ipc);
+	node_log_event_count(&ipc, 0);
 }
 
 int ipc_reinit(void)
