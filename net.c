@@ -457,8 +457,6 @@ int net_init(void)
 /* send a specific packet to a specific host */
 static int net_sendto(merlin_node *node, merlin_event *pkt)
 {
-	int result;
-
 	if (!pkt || !node) {
 		lerr("net_sendto() called with neither node nor pkt");
 		return -1;
@@ -469,15 +467,9 @@ static int net_sendto(merlin_node *node, merlin_event *pkt)
 	       inet_ntoa(node->sain.sin_addr),
 	       ntohs(node->sain.sin_port), node->sock);
 
-	if (!node_is_connected(node)) {
-		linfo("node '%s' is not connected, so not sending", node->name);
-		return -1;
-	}
+	node_is_connected(node);
 
-	node->last_sent = time(NULL);
-	result = io_send_all(node->sock, pkt, packet_size(pkt));
-
-	return result;
+	return node_send_event(node, pkt, 100);
 }
 
 
@@ -542,24 +534,10 @@ static void net_input(merlin_node *node)
 		  node->name, inet_ntoa(node->sain.sin_addr));
 
 	errno = 0;
-	len = node_read_event(node, &pkt);
-	if (len < 0) {
-		lerr("read() from %s node %s failed: %s",
-			 node_type(node), node->name, strerror(errno));
-		switch (errno) {
-		case EAGAIN:
-		case EINTR:
-			return;
-
-		case ENOTCONN: /* Not connected */
-		case EBADF: /* Bad file-descriptor */
-		case ECONNRESET: /* Connection reset by peer */
-		default:
-			node_disconnect(node);
-			break;
-		}
+	len = node_read_event(node, &pkt, 0);
+	/* errors are handled in node_read_event() */
+	if (len <= 0)
 		return;
-	}
 
 	if (!len) {
 		node->zread++;
@@ -572,8 +550,6 @@ static void net_input(merlin_node *node)
 	ldebug("Read %d bytes from %s. protocol: %u, type: %u, len: %d",
 		   len, inet_ntoa(node->sain.sin_addr),
 		   pkt.hdr.protocol, pkt.hdr.type, pkt.hdr.len);
-
-	node->last_recv = time(NULL);
 
 	if (pkt.hdr.type == CTRL_PACKET && pkt.hdr.code == CTRL_PULSE) {
 		/* noop. we've already updated the last_recv time */
