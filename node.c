@@ -143,7 +143,7 @@ int node_send_event(merlin_node *node, merlin_event *pkt)
 	pkt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
 
 	if (packet_size(pkt) > TOTAL_PKT_SIZE) {
-		ldebug("header is invalid, or packet is too large. aborting\n");
+		lerr("header is invalid, or packet is too large. aborting");
 		return -1;
 	}
 
