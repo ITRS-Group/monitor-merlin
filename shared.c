@@ -125,6 +125,14 @@ int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 		return 1;
 	}
 
+	expires = config_key_expires(v->key);
+	if (expires) {
+		cfg_warn(config, v, "'%s' is a deprecated variable, scheduled for "
+			 "removal at the first release after %s", v->key, expires);
+		/* it's understood, in a way */
+		return 1;
+	}
+
 	if (!prefixcmp(v->key, "ipc_")) {
 		if (!ipc_grok_var(v->key, v->value))
 			cfg_error(config, v, "Failed to grok IPC option");
@@ -137,12 +145,6 @@ int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 			cfg_error(config, v, "Failed to grok logging option");
 
 		return 1;
-	}
-
-	expires = config_key_expires(v->key);
-	if (expires) {
-		cfg_warn(config, v, "'%s' is a deprecated variable, scheduled for "
-			 "removal at the first release after %s", v->key, expires);
 	}
 
 	return 0;
