@@ -208,13 +208,14 @@ static int net_try_connect(merlin_node *node)
  * of the remote host.
  * Returns 1 if connected and 0 if not.
  */
-static int net_is_connected(int sock, struct sockaddr_in *sain)
+static int net_is_connected(int sock)
 {
+	struct sockaddr_in sain;
 	socklen_t slen = sizeof(struct sockaddr_in);
 	int optval;
 
 	errno = 0;
-	if (getpeername(sock, (struct sockaddr *)sain, &slen) < 0) {
+	if (getpeername(sock, (struct sockaddr *)&sain, &slen) < 0) {
 		switch (errno) {
 		case EBADF:
 		case ENOBUFS:
@@ -248,7 +249,6 @@ static int net_is_connected(int sock, struct sockaddr_in *sain)
  * Return 1 if yes and 0 if not */
 static int node_is_connected(merlin_node *node)
 {
-	struct sockaddr_in sain;
 	int result;
 
 	if (!node)
@@ -260,7 +260,7 @@ static int node_is_connected(merlin_node *node)
 			return 0;
 	}
 
-	result = net_is_connected(node->sock, &sain);
+	result = net_is_connected(node->sock);
 	if (!result && errno == ENOTCONN)
 		node->status = STATE_NONE;
 
@@ -285,7 +285,6 @@ static int net_negotiate_socket(merlin_node *node, int lis)
 	fd_set rd, wr;
 	int result, con = node->sock, sel = con;
 	struct timeval tv = { 0, 50 };
-	struct sockaddr_in csain, lsain;
 
 	if (con == -1)
 		return lis;
@@ -340,7 +339,7 @@ static int net_negotiate_socket(merlin_node *node, int lis)
 		}
 	}
 
-	if (net_is_connected(con, &csain) && net_is_connected(lis, &lsain)) {
+	if (net_is_connected(con) && net_is_connected(lis)) {
 		net_disconnect(node);
 		node->status = STATE_CONNECTED;
 		node->sock = lis;
