@@ -2,6 +2,31 @@
 
 static char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 
+void node_log_event_count(merlin_node *node)
+{
+	struct timeval now;
+	merlin_event_counter *cnt = &node->events;
+
+	/*
+	 * This works like a 'mark' that syslogd produces. We log once
+	 * every 60 seconds
+	 */
+	gettimeofday(&now, NULL);
+	if (cnt->last_logged + 60 > now.tv_sec)
+		return;
+
+	cnt->last_logged = now.tv_sec;
+
+	linfo("Handled %lld events from/to %s in %s seconds in: %lld, out: %lld",
+	      cnt->read + cnt->sent + cnt->dropped + cnt->logged, node->name,
+		  tv_delta(&cnt->start, &now),
+	      cnt->read, cnt->sent + cnt->dropped + cnt->logged);
+	if (!(cnt->sent + cnt->dropped + cnt->logged))
+		return;
+	linfo("'%s' event details: read %lld, sent %lld, dropped %lld, logged %lld",
+	      node->name, cnt->read, cnt->sent, cnt->dropped, cnt->logged);
+}
+
 const char *node_state(merlin_node *node)
 {
 	switch (node->status) {

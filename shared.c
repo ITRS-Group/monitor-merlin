@@ -82,6 +82,36 @@ static const char *config_key_expires(const char *var)
 	return NULL;
 }
 
+const char *tv_delta(struct timeval *start, struct timeval *stop)
+{
+	static char buf[30];
+	double secs;
+	unsigned int days, hours, mins;
+
+	secs = stop->tv_sec - start->tv_sec;
+	days = secs / 86400;
+	secs -= days * 86400;
+	hours = secs / 3600;
+	secs -= hours * 3600;
+	mins = secs / 60;
+	secs -= mins * 60;
+
+	/* add the micro-seconds */
+	secs = ((secs * 1000000) + (stop->tv_usec - start->tv_usec)) / 1000000;
+
+	if (!mins && !hours && !days) {
+		sprintf(buf, "%.3lfs", secs);
+	} else if (!hours && !days) {
+		sprintf(buf, "%um %.3lfs", mins, secs);
+	} else if (!days) {
+		sprintf(buf, "%uh %um %.3lfs", hours, mins, secs);
+	} else {
+		sprintf(buf, "%ud %uh %um %.3lfs", days, hours, mins, secs);
+	}
+
+	return buf;
+}
+
 int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 {
 	const char *expires;

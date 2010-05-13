@@ -67,17 +67,6 @@ static inline void *safe_free(void *ptr)
 	return NULL;
 }
 
-static inline float tv_delta(struct timeval *start, struct timeval *stop)
-{
-	float result = 0;
-
-	result = ((stop->tv_sec - start->tv_sec) * 1000000);
-	result += stop->tv_usec - start->tv_usec;
-	result /= 1000000;
-
-	return result;
-}
-
 static inline int max(int a, int b)
 {
 	return a > b ? a : b;
@@ -174,6 +163,7 @@ extern char *get_sel_name(int index);
 extern int get_sel_id(const char *name);
 extern int get_num_selections(void);
 extern const char *callback_name(int id);
+extern const char *tv_delta(struct timeval *start, struct timeval *stop);
 
 /*
  * This function is different between module and daemon. It gets

@@ -29,10 +29,7 @@ void mrm_ipc_set_disconnect_handler(int (*handler)(void))
 
 void ipc_log_event_count(void)
 {
-	struct timeval stop;
-
-	gettimeofday(&stop, NULL);
-	log_event_count("ipc", &ipc.events, tv_delta(&ipc.events.start, &stop));
+	node_log_event_count(&ipc);
 }
 
 int ipc_reinit(void)

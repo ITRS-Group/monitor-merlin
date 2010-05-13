@@ -133,27 +133,3 @@ void log_msg(int severity, const char *fmt, ...)
 		fsync(fileno(log_fp));
 	}
 }
-
-void log_event_count(const char *prefix, merlin_event_counter *cnt, float t)
-{
-	static time_t last_logged = 0;
-	time_t now;
-
-	/*
-	 * This works like a 'mark' that syslogd produces. We log once
-	 * every 60 seconds
-	 */
-	now = time(NULL);
-	if (last_logged + 60 > now)
-		return;
-
-	last_logged = now;
-
-	linfo("Handled %lld '%s' events in %.3f seconds in: %lld, out: %lld",
-	      cnt->read + cnt->sent + cnt->dropped + cnt->logged, prefix, t,
-	      cnt->read, cnt->sent + cnt->dropped + cnt->logged);
-	if (!(cnt->sent + cnt->dropped + cnt->logged))
-		return;
-	linfo("'%s' event details: read %lld, sent %lld, dropped %lld, logged %lld",
-	      prefix, cnt->read, cnt->sent, cnt->dropped, cnt->logged);
-}
