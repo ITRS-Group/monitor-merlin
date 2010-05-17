@@ -66,7 +66,7 @@ int schedule_new_event(int a, int b, time_t c, int d, unsigned long e,
 }
 host *find_host(char *host_name)
 {
-	return 0;
+	return NULL;
 }
 service *find_service(char *host_name, char *service_description)
 {
