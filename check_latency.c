@@ -18,8 +18,8 @@ typedef struct {
 	float host_maxavg, service_maxavg;
 } threshold;
 
-threshold warning = { 5, 5, 30.0, 30.0 };
-threshold critical = { 8, 8, 60.0, 60.0 };
+static threshold warning = { 5, 5, 30.0, 30.0 };
+static threshold critical = { 8, 8, 60.0, 60.0 };
 
 #define hmin current.host.min
 #define hmax current.host.max
@@ -178,7 +178,7 @@ static int get_latency(const char *path)
 	return 0;
 }
 
-void usage(const char *fmt, ...)
+static void usage(const char *fmt, ...)
 {
 	if (fmt) {
 		va_list ap;
