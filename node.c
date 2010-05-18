@@ -144,6 +144,9 @@ int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
 		return len;
 	}
 
+	node->last_recv = time(NULL);
+	node->events.read++;
+
 	if (!pkt->hdr.len)
 		return HDR_SIZE;
 
@@ -155,9 +158,6 @@ int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
 		node_disconnect(node);
 		return -1;
 	}
-
-	node->events.read++;
-	node->last_recv = time(NULL);
 
 	return result;
 }
