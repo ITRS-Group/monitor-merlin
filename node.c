@@ -1,6 +1,168 @@
 #include "shared.h"
 
+merlin_node **noc_table, **poller_table, **peer_table;
+merlin_node **selected_nodes;
+
 static char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
+
+static merlin_node *add_node_to_list(merlin_node *node, merlin_node *list)
+{
+	node->next = list;
+	return node;
+}
+
+/*
+ * FIXME: should also handle hostnames
+ */
+static int resolve(const char *cp, struct in_addr *inp)
+{
+	return inet_aton(cp, inp);
+}
+
+
+/*
+ * creates the node-table, with fanout indices at the various
+ * different types of nodes. This allows us to iterate over
+ * all the nodes or a particular subset of them using the same
+ * table, which is quite handy.
+ */
+static void create_node_tree(merlin_node *table, unsigned n)
+{
+	uint i, xnoc, xpeer, xpoll;
+
+	selected_nodes = calloc(get_num_selections() + 1, sizeof(merlin_node *));
+
+	for (i = 0; i < n; i++) {
+		merlin_node *node = &table[i];
+		int id = get_sel_id(node->hostgroup);
+		switch (node->type) {
+		case MODE_NOC:
+			num_nocs++;
+			break;
+		case MODE_POLLER:
+			num_pollers++;
+			selected_nodes[id] = add_node_to_list(node, selected_nodes[id]);
+			break;
+		case MODE_PEER:
+			num_peers++;
+			break;
+		}
+	}
+
+	/* this way, we can keep them all linear while each has its own
+	 * table and still not waste much memory. pretty nifty, really */
+	node_table = calloc(num_nodes, sizeof(merlin_node *));
+	noc_table = node_table;
+	peer_table = &node_table[num_nocs];
+	poller_table = &node_table[num_nocs + num_peers];
+
+	xnoc = xpeer = xpoll = 0;
+	for (i = 0; i < n; i++) {
+		merlin_node *node = &table[i];
+
+		switch (node->type) {
+		case MODE_NOC:
+			noc_table[xnoc++] = node;
+			break;
+		case MODE_PEER:
+			peer_table[xpeer++] = node;
+			break;
+		case MODE_POLLER:
+			poller_table[xpoll++] = node;
+			break;
+		}
+	}
+}
+
+static void grok_node(struct cfg_comp *c, merlin_node *node)
+{
+	unsigned int i;
+
+	if (!node)
+		return;
+
+	for (i = 0; i < c->vars; i++) {
+		struct cfg_var *v = c->vlist[i];
+
+		if (!v->value)
+			cfg_error(c, v, "Variable must have a value\n");
+
+		if (node->type != MODE_NOC && !strcmp(v->key, "hostgroup")) {
+			node->hostgroup = strdup(v->value);
+			node->selection = add_selection(node->hostgroup);
+		}
+		else if (!strcmp(v->key, "address") || !strcmp(v->key, "host")) {
+			if (!resolve(v->value, &node->sain.sin_addr))
+				cfg_error(c, v, "Unable to resolve '%s'\n", v->value);
+		}
+		else if (!strcmp(v->key, "port")) {
+			node->sain.sin_port = htons((unsigned short)atoi(v->value));
+			if (!node->sain.sin_port)
+				cfg_error(c, v, "Illegal value for port: %s\n", v->value);
+		}
+		else
+			cfg_error(c, v, "Unknown variable\n");
+	}
+	node->last_action = -1;
+	node->poller_active = 0;
+}
+
+void node_grok_config(struct cfg_comp *config)
+{
+	uint i;
+	int node_i = 0;
+	merlin_node *table;
+
+	if (!config)
+		return;
+
+	/*
+	 * We won't have more nodes than there are compounds, so we
+	 * happily waste a bit to make up for the other valid compounds
+	 * so we can keep nodes linear in memory
+	 */
+	table = calloc(config->nested, sizeof(merlin_node));
+
+	for (i = 0; i < config->nested; i++) {
+		struct cfg_comp *c = config->nest[i];
+		merlin_node *node;
+
+		if (!prefixcmp(c->name, "module") || !prefixcmp(c->name, "test"))
+			continue;
+
+		if (!prefixcmp(c->name, "daemon"))
+			continue;
+
+		node = &table[node_i++];
+		node->name = next_word((char *)c->name);
+
+		if (!prefixcmp(c->name, "poller") || !prefixcmp(c->name, "slave")) {
+			num_pollers++;
+			node->type = MODE_POLLER;
+			grok_node(c, node);
+			if (!node->hostgroup)
+				cfg_error(c, NULL, "Missing 'hostgroup' variable\n");
+		} else if (!prefixcmp(c->name, "peer")) {
+			num_peers++;
+			node->type = MODE_PEER;
+			grok_node(c, node);
+		} else if (!prefixcmp(c->name, "noc") || !prefixcmp(c->name, "master")) {
+			num_nocs++;
+			node->type = MODE_NOC;
+			grok_node(c, node);
+		} else
+			cfg_error(c, NULL, "Unknown compound type\n");
+
+		if (node->name)
+			node->name = strdup(node->name);
+		else
+			node->name = strdup(inet_ntoa(node->sain.sin_addr));
+
+		node->sock = -1;
+	}
+
+	create_node_tree(table, node_i);
+}
 
 void node_log_event_count(merlin_node *node, int force)
 {

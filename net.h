@@ -6,8 +6,6 @@
 
 extern unsigned short default_port;
 
-extern void create_node_tree(merlin_node *table, unsigned n);
-extern int net_resolve(const char *cp, struct in_addr *inp);
 extern merlin_node *find_node(struct sockaddr_in *sain, const char *name);
 extern int net_deinit(void);
 extern int net_init(void);

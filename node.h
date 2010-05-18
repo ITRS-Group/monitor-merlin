@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+#include "cfgfile.h"
 #include "binlog.h"
 
 #define MERLIN_PROTOCOL_VERSION 0
@@ -90,6 +91,11 @@ struct merlin_node {
 };
 typedef struct merlin_node merlin_node;
 
+#define node_table noc_table
+extern merlin_node **noc_table, **peer_table, **poller_table;
+extern merlin_node **selected_nodes;
+
+extern void node_grok_config(struct cfg_comp *config);
 extern void node_log_event_count(merlin_node *node, int force);
 extern void node_disconnect(merlin_node *node);
 extern int node_send_event(merlin_node *node, merlin_event *pkt, int msec);

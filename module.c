@@ -269,22 +269,6 @@ static void setup_host_hash_tables(void)
 }
 
 
-static int slurp_selection(struct cfg_comp *c)
-{
-	uint i;
-
-	for (i = 0; i < c->vars; i++) {
-		struct cfg_var *v = c->vlist[i];
-		if (!v->key || strcmp(v->key, "hostgroup"))
-			continue;
-
-		add_selection(strdup(v->value));
-		return 1;
-	}
-
-	return 0;
-}
-
 static void grok_module_compound(struct cfg_comp *comp)
 {
 	uint i;
@@ -343,21 +327,13 @@ static void read_config(char *cfg_file)
 			grok_daemon_compound(c);
 			continue;
 		}
-		if (!prefixcmp(c->name, "poller") || !prefixcmp(c->name, "slave")) {
-			num_pollers++;
-			if (!slurp_selection(c))
-				cfg_error(c, NULL, "Poller without 'hostgroup' statement");
-			continue;
-		}
-		if (!prefixcmp(c->name, "peer")) {
-			num_peers++;
-			continue;
-		}
-		if (!prefixcmp(c->name, "noc") || !prefixcmp(c->name, "master")) {
-			num_nocs++;
-			continue;
-		}
 	}
+
+	/*
+	 * parse all the nodes. This warns or errors out on
+	 * config errors with illegal compounds as well
+	 */
+	node_grok_config(config);
 	cfg_destroy_compound(config);
 }
 

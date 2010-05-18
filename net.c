@@ -5,21 +5,10 @@
 
 static int net_sock = -1; /* listening sock descriptor */
 
-#define node_table noc_table
-static merlin_node **noc_table, **poller_table, **peer_table;
-static merlin_node **selected_nodes;
-
 int net_sock_desc(void)
 {
 	return net_sock;
 }
-
-static merlin_node *add_node_to_list(merlin_node *node, merlin_node *list)
-{
-	node->next = list;
-	return node;
-}
-
 
 static merlin_node *nodelist_by_selection(int sel)
 {
@@ -27,70 +16,6 @@ static merlin_node *nodelist_by_selection(int sel)
 		return NULL;
 
 	return selected_nodes[sel];
-}
-
-
-/*
- * creates the node-table, with fanout indices at the various
- * different types of nodes. This allows us to iterate over
- * all the nodes or a particular subset of them using the same
- * table, which is quite handy.
- */
-void create_node_tree(merlin_node *table, unsigned n)
-{
-	uint i, xnoc, xpeer, xpoll;
-
-	selected_nodes = calloc(get_num_selections() + 1, sizeof(merlin_node *));
-
-	for (i = 0; i < n; i++) {
-		merlin_node *node = &table[i];
-		int id = get_sel_id(node->hostgroup);
-		switch (node->type) {
-		case MODE_NOC:
-			num_nocs++;
-			break;
-		case MODE_POLLER:
-			num_pollers++;
-			selected_nodes[id] = add_node_to_list(node, selected_nodes[id]);
-			break;
-		case MODE_PEER:
-			num_peers++;
-			break;
-		}
-	}
-
-	/* this way, we can keep them all linear while each has its own
-	 * table and still not waste much memory. pretty nifty, really */
-	node_table = calloc(num_nodes, sizeof(merlin_node *));
-	noc_table = node_table;
-	peer_table = &node_table[num_nocs];
-	poller_table = &node_table[num_nocs + num_peers];
-
-	xnoc = xpeer = xpoll = 0;
-	for (i = 0; i < n; i++) {
-		merlin_node *node = &table[i];
-
-		switch (node->type) {
-		case MODE_NOC:
-			noc_table[xnoc++] = node;
-			break;
-		case MODE_PEER:
-			peer_table[xpeer++] = node;
-			break;
-		case MODE_POLLER:
-			poller_table[xpoll++] = node;
-			break;
-		}
-	}
-}
-
-
-/*
- * FIXME: should also handle hostnames
- */
-int net_resolve(const char *cp, struct in_addr *inp)
-{
-	return inet_aton(cp, inp);
 }
 
 

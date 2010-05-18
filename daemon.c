@@ -74,40 +74,6 @@ static int node_action_handler(merlin_node *node, int action)
 }
 
 
-static void grok_node(struct cfg_comp *c, merlin_node *node)
-{
-	unsigned int i;
-
-	if (!node)
-		return;
-
-	for (i = 0; i < c->vars; i++) {
-		struct cfg_var *v = c->vlist[i];
-
-		if (!v->value)
-			cfg_error(c, v, "Variable must have a value\n");
-
-		if (node->type != MODE_NOC && !strcmp(v->key, "hostgroup")) {
-			node->hostgroup = strdup(v->value);
-			node->selection = add_selection(node->hostgroup);
-		}
-		else if (!strcmp(v->key, "address") || !strcmp(v->key, "host")) {
-			if (!net_resolve(v->value, &node->sain.sin_addr))
-				cfg_error(c, v, "Unable to resolve '%s'\n", v->value);
-		}
-		else if (!strcmp(v->key, "port")) {
-			node->sain.sin_port = htons((unsigned short)atoi(v->value));
-			if (!node->sain.sin_port)
-				cfg_error(c, v, "Illegal value for port: %s\n", v->value);
-		}
-		else
-			cfg_error(c, v, "Unknown variable\n");
-	}
-	node->action = node_action_handler;
-	node->last_action = -1;
-	node->poller_active = 0;
-}
-
 static void grok_daemon_compound(struct cfg_comp *comp)
 {
 	uint i;
@@ -158,12 +124,25 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 	}
 }
 
+/* daemon-specific node manipulation */
+static void post_process_nodes(void)
+{
+	int i;
+
+	for (i = 0; i < num_nodes; i++) {
+		merlin_node *node = node_table[i];
+
+		if (!node->sain.sin_port)
+			node->sain.sin_port = htons(default_port);
+
+		node->action = node_action_handler;
+	}
+}
+
 static int grok_config(char *path)
 {
 	uint i;
-	int node_i = 0;
 	struct cfg_comp *config;
-	merlin_node *table;
 
 	if (!path)
 		return 0;
@@ -189,56 +168,18 @@ static int grok_config(char *path)
 		cfg_warn(config, v, "Unrecognized variable\n");
 	}
 
-	/* each compound represents either a node or an error. we'll bail
-	 * on errors, but it's nice to keep nodes in continuous memory */
-	table = calloc(config->nested, sizeof(merlin_node));
-
 	for (i = 0; i < config->nested; i++) {
 		struct cfg_comp *c = config->nest[i];
-		merlin_node *node;
-
-		if (!prefixcmp(c->name, "module") || !prefixcmp(c->name, "test"))
-			continue;
 
 		if (!prefixcmp(c->name, "daemon")) {
 			grok_daemon_compound(c);
 			continue;
 		}
-
-		node = &table[node_i++];
-		node->name = next_word((char *)c->name);
-
-		if (!prefixcmp(c->name, "poller") || !prefixcmp(c->name, "slave")) {
-			node->type = MODE_POLLER;
-			grok_node(c, node);
-			if (!node->hostgroup)
-				cfg_error(c, NULL, "Missing 'hostgroup' variable\n");
-		}
-		else if (!prefixcmp(c->name, "peer")) {
-			node->type = MODE_PEER;
-			grok_node(c, node);
-		}
-		else if (!prefixcmp(c->name, "noc") || !prefixcmp(c->name, "master")) {
-			node->type = MODE_NOC;
-			grok_node(c, node);
-		}
-		else
-			cfg_error(c, NULL, "Unknown compound type\n");
-
-		if (node->name)
-			node->name = strdup(node->name);
-		else
-			node->name = strdup(inet_ntoa(node->sain.sin_addr));
-
-		if (!node->sain.sin_port)
-			node->sain.sin_port = htons(default_port);
-
-		node->sock = -1;
 	}
 
+	node_grok_config(config);
 	cfg_destroy_compound(config);
-
-	create_node_tree(table, node_i);
+	post_process_nodes();
 
 	return 1;
 }
