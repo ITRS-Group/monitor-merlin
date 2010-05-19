@@ -6,6 +6,8 @@ int is_module = 1; /* the daemon sets this to 0 immediately */
 int pulse_interval = 15;
 int use_database = 0;
 uint num_nocs = 0, num_peers = 0, num_pollers = 0;
+static int num_selections;
+static char **selection_table = NULL;
 
 #ifndef ISSPACE
 # define ISSPACE(c) (c == ' ' || c == '\t')
@@ -150,12 +152,9 @@ int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 	return 0;
 }
 
-static int nsel;
-static char **selection_table = NULL;
-
 char *get_sel_name(int index)
 {
-	if (index < 0 || index >= nsel)
+	if (index < 0 || index >= num_selections)
 		return NULL;
 
 	return selection_table[index];
@@ -165,10 +164,10 @@ int get_sel_id(const char *name)
 {
 	int i;
 
-	if (!nsel || !name)
+	if (!num_selections || !name)
 		return -1;
 
-	for (i = 0; i < nsel; i++) {
+	for (i = 0; i < num_selections; i++) {
 		if (!strcmp(name, selection_table[i]))
 			return i;
 	}
@@ -178,7 +177,7 @@ int get_sel_id(const char *name)
 
 int get_num_selections(void)
 {
-	return nsel;
+	return num_selections;
 }
 
 int add_selection(char *name)
@@ -186,14 +185,14 @@ int add_selection(char *name)
 	int i;
 
 	/* don't add the same selection twice */
-	for (i = 0; i < nsel; i++)
+	for (i = 0; i < num_selections; i++)
 		if (!strcmp(name, selection_table[i]))
 			return i;
 
-	selection_table = realloc(selection_table, sizeof(char *) * (nsel + 1));
-	selection_table[nsel] = name;
+	selection_table = realloc(selection_table, sizeof(char *) * (num_selections + 1));
+	selection_table[num_selections] = name;
 
-	return nsel++;
+	return num_selections++;
 }
 
 /*
