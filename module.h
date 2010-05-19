@@ -30,7 +30,7 @@ typedef struct file_list {
 
 
 extern hash_table *host_hash_table;
-#define hash_find_val(key) (int *)hash_find(host_hash_table, key)
+extern node_selection *node_selection_by_hostname(const char *name);
 
 /* global variables in the module only */
 extern time_t merlin_should_send_paths;

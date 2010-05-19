@@ -211,6 +211,11 @@ static int mrm_ipc_reap(void *discard)
 
 
 hash_table *host_hash_table;
+node_selection *node_selection_by_hostname(const char *name)
+{
+	return hash_find(host_hash_table, name);
+}
+
 static void setup_host_hash_tables(void)
 {
 	hostgroup *hg;
@@ -241,32 +246,27 @@ static void setup_host_hash_tables(void)
 	 * spurious warnings that aren't exactly accurate
 	 */
 	for (hg = hostgroup_list; hg; hg = hg->next) {
-		int id = get_sel_id(hg->group_name);
+		node_selection *sel = node_selection_by_name(hg->group_name);
 		struct hostsmember_struct *m;
 
-		/* not all hostgroups are selections */
-		if (id < 0) {
-			continue;
-		}
-
 		for (m = hg->members; m; m = m->next) {
-			int *sel = hash_find_val(m->host_name);
+			node_selection *cur = node_selection_by_hostname(m->host_name);
 
-			if (sel) {
-				lwarn("'%s' is a member of '%s', so can't add to poller for '%s'",
-					  m->host_name, get_sel_name(*sel), hg->group_name);
+			/*
+			 * this should never happen, but if it does
+			 * we just ignore it and move on
+			 */
+			if (cur == sel)
+				continue;
+
+			if (cur) {
+				lwarn("'%s' is checked by selection '%s', so can't add to selection '%s'",
+					  m->host_name, cur->name, sel->name);
 				continue;
 			}
-			num_ents[id]++;
+			num_ents[sel->id]++;
 
-			int *selection_number = malloc(sizeof(int));
-			if(selection_number) {
-				*selection_number = id;
-			} else {
-				lerr("Unable to allocate memory for selection number");
-			}
-
-			hash_add(host_hash_table, m->host_name, selection_number);
+			hash_add(host_hash_table, m->host_name, sel);
 		}
 	}
 

@@ -63,6 +63,12 @@ typedef struct linked_item {
 	struct linked_item *next_item;
 } linked_item;
 
+struct node_selection {
+	int id;
+	char *name;
+	linked_item *nodes;
+};
+typedef struct node_selection node_selection;
 
 /* for node->type */
 #define MODE_LOCAL     0
@@ -100,6 +106,7 @@ typedef struct merlin_node merlin_node;
 #define node_table noc_table
 extern merlin_node **noc_table, **peer_table, **poller_table;
 
+extern node_selection *node_selection_by_name(const char *name);
 extern char *get_sel_name(int index);
 extern int get_sel_id(const char *name);
 extern int get_num_selections(void);

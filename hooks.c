@@ -25,9 +25,9 @@ static int send_generic(merlin_event *pkt, void *data)
 
 static int get_selection(const char *key)
 {
-	int *selection = hash_find_val(key);
+	node_selection *sel = node_selection_by_hostname(key);
 
-	return selection ? *selection & 0xffff : CTRL_GENERIC;
+	return sel ? sel->id & 0xffff : CTRL_GENERIC;
 }
 
 /*

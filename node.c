@@ -2,11 +2,22 @@
 
 merlin_node **noc_table, **poller_table, **peer_table;
 
-static struct linked_item **selected_nodes;
 static int num_selections;
-static char **selection_table;
+static node_selection *selection_table;
 
 static char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
+
+node_selection *node_selection_by_name(const char *name)
+{
+	int i;
+
+	for (i = 0; i < num_selections; i++) {
+		if (!strcmp(name, selection_table[i].name))
+			return &selection_table[i];
+	}
+
+	return NULL;
+}
 
 /*
  * Returns the (list of) merlin node(s) associated
@@ -18,7 +29,7 @@ linked_item *nodes_by_sel_id(int sel)
 	if (sel < 0 || sel > get_num_selections())
 		return NULL;
 
-	return selected_nodes[sel];
+	return selection_table[sel].nodes;
 }
 
 char *get_sel_name(int index)
@@ -26,7 +37,7 @@ char *get_sel_name(int index)
 	if (index < 0 || index >= num_selections)
 		return NULL;
 
-	return selection_table[index];
+	return selection_table[index].name;
 }
 
 int get_sel_id(const char *name)
@@ -37,8 +48,8 @@ int get_sel_id(const char *name)
 		return -1;
 
 	for (i = 0; i < num_selections; i++) {
-		if (!strcmp(name, selection_table[i]))
-			return i;
+		if (!strcmp(name, selection_table[i].name))
+			return selection_table[i].id;
 	}
 
 	return -1;
@@ -55,11 +66,11 @@ static int add_selection(char *name)
 
 	/* don't add the same selection twice */
 	for (i = 0; i < num_selections; i++)
-		if (!strcmp(name, selection_table[i]))
+		if (!strcmp(name, selection_table[i].name))
 			return i;
 
 	selection_table = realloc(selection_table, sizeof(selection_table[0]) * (num_selections + 1));
-	selection_table[num_selections] = strdup(name);
+	selection_table[num_selections].name = strdup(name);
 
 	return num_selections++;
 }
@@ -94,18 +105,14 @@ static void create_node_tree(merlin_node *table, unsigned n)
 {
 	uint i, xnoc, xpeer, xpoll;
 
-	selected_nodes = calloc(get_num_selections() + 1, sizeof(merlin_node *));
-
 	for (i = 0; i < n; i++) {
 		merlin_node *node = &table[i];
-		int id = get_sel_id(node->hostgroup);
 		switch (node->type) {
 		case MODE_NOC:
 			num_nocs++;
 			break;
 		case MODE_POLLER:
 			num_pollers++;
-			selected_nodes[id] = add_linked_item(selected_nodes[id], node);
 			break;
 		case MODE_PEER:
 			num_peers++;
