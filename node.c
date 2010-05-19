@@ -5,6 +5,30 @@ merlin_node **selected_nodes;
 
 static char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 
+/*
+ * Returns the (list of) merlin node(s) associated
+ * with a particular selection id, or null if the
+ * id is invalid
+ */
+merlin_node *nodes_by_sel_id(int sel)
+{
+	if (sel < 0 || sel > get_num_selections())
+		return NULL;
+
+	return selected_nodes[sel];
+}
+
+/*
+ * Return a (list of) merlin node(s) associated
+ * with a particular selection name, or null if
+ * the selection name is invalid
+ */
+merlin_node *nodes_by_sel_name(const char *name)
+{
+	return nodes_by_sel_id(get_sel_id(name));
+}
+
+
 static merlin_node *add_node_to_list(merlin_node *node, merlin_node *list)
 {
 	node->next = list;

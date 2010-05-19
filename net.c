@@ -10,14 +10,6 @@ int net_sock_desc(void)
 	return net_sock;
 }
 
-static merlin_node *nodelist_by_selection(int sel)
-{
-	if (sel < 0 || sel > get_num_selections())
-		return NULL;
-
-	return selected_nodes[sel];
-}
-
 
 /* do a node lookup based on name *or* ip-address + port */
 merlin_node *find_node(struct sockaddr_in *sain, const char *name)
@@ -497,7 +489,7 @@ int net_send_ipc_data(merlin_event *pkt)
 		return 0;
 
 	if (num_pollers && pkt->hdr.selection != 0xffff) {
-		merlin_node *node = nodelist_by_selection(pkt->hdr.selection);
+		merlin_node *node = nodes_by_sel_id(pkt->hdr.selection);
 
 		if (!node) {
 			lerr("No matching selection for id %d", pkt->hdr.selection);
