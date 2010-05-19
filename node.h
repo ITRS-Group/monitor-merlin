@@ -94,19 +94,17 @@ struct merlin_node {
 	binlog *binlog;         /* binary backlog for this node */
 	merlin_event_counter events; /* event count */
 	int (*action)(struct merlin_node *, int); /* (daemon) action handler */
-	struct merlin_node *next; /* linked list (and tabulated) */
 };
 typedef struct merlin_node merlin_node;
 
 #define node_table noc_table
 extern merlin_node **noc_table, **peer_table, **poller_table;
-extern merlin_node **selected_nodes;
 
 extern char *get_sel_name(int index);
 extern int get_sel_id(const char *name);
 extern int get_num_selections(void);
-extern merlin_node *nodes_by_sel_id(int sel);
-extern merlin_node *nodes_by_sel_name(const char *name);
+extern linked_item *nodes_by_sel_id(int sel);
+extern linked_item *nodes_by_sel_name(const char *name);
 extern void node_grok_config(struct cfg_comp *config);
 extern void node_log_event_count(merlin_node *node, int force);
 extern void node_disconnect(merlin_node *node);

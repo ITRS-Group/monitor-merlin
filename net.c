@@ -489,14 +489,14 @@ int net_send_ipc_data(merlin_event *pkt)
 		return 0;
 
 	if (num_pollers && pkt->hdr.selection != 0xffff) {
-		merlin_node *node = nodes_by_sel_id(pkt->hdr.selection);
+		linked_item *li = nodes_by_sel_id(pkt->hdr.selection);
 
-		if (!node) {
+		if (!li) {
 			lerr("No matching selection for id %d", pkt->hdr.selection);
 			return -1;
 		}
-		for (; node; node = node->next)
-			net_sendto(node, pkt);
+		for (; li; li = li->next_item)
+			net_sendto((merlin_node *)li->item, pkt);
 	}
 
 	if (num_nocs + num_peers) {

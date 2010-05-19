@@ -1,7 +1,8 @@
 #include "shared.h"
 
 merlin_node **noc_table, **poller_table, **peer_table;
-merlin_node **selected_nodes;
+
+static struct linked_item **selected_nodes;
 static int num_selections;
 static char **selection_table;
 
@@ -12,7 +13,7 @@ static char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
  * with a particular selection id, or null if the
  * id is invalid
  */
-merlin_node *nodes_by_sel_id(int sel)
+linked_item *nodes_by_sel_id(int sel)
 {
 	if (sel < 0 || sel > get_num_selections())
 		return NULL;
@@ -68,17 +69,11 @@ static int add_selection(char *name)
  * with a particular selection name, or null if
  * the selection name is invalid
  */
-merlin_node *nodes_by_sel_name(const char *name)
+linked_item *nodes_by_sel_name(const char *name)
 {
 	return nodes_by_sel_id(get_sel_id(name));
 }
 
-
-static merlin_node *add_node_to_list(merlin_node *node, merlin_node *list)
-{
-	node->next = list;
-	return node;
-}
 
 /*
  * FIXME: should also handle hostnames
@@ -110,7 +105,7 @@ static void create_node_tree(merlin_node *table, unsigned n)
 			break;
 		case MODE_POLLER:
 			num_pollers++;
-			selected_nodes[id] = add_node_to_list(node, selected_nodes[id]);
+			selected_nodes[id] = add_linked_item(selected_nodes[id], node);
 			break;
 		case MODE_PEER:
 			num_peers++;
