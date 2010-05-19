@@ -217,6 +217,16 @@ static void setup_host_hash_tables(void)
 	int i, nsel;
 	int *num_ents = NULL;
 
+	nsel = get_num_selections();
+
+	/*
+	 * only bother if we've got hostgroups, pollers and selections.
+	 * Otherwise we'll just be wasting perfectly good memory
+	 * for no good reason
+	 */
+	if (!hostgroup_list || !num_pollers || !nsel)
+		return;
+
 	linfo("Creating hash tables");
 	host_hash_table = hash_init(2048);
 	if (!host_hash_table) {
@@ -224,16 +234,17 @@ static void setup_host_hash_tables(void)
 		exit(1);
 	}
 
-	nsel = get_num_selections();
-	if (!nsel)
-		return;
-
 	num_ents = calloc(nsel, sizeof(int));
 
+	/*
+	 * we must loop each hostgroup once, or we'll log a lot of
+	 * spurious warnings that aren't exactly accurate
+	 */
 	for (hg = hostgroup_list; hg; hg = hg->next) {
 		int id = get_sel_id(hg->group_name);
 		struct hostsmember_struct *m;
 
+		/* not all hostgroups are selections */
 		if (id < 0) {
 			continue;
 		}
