@@ -84,6 +84,20 @@ static const char *config_key_expires(const char *var)
 	return NULL;
 }
 
+linked_item *add_linked_item(linked_item *list, void *item)
+{
+	struct linked_item *entry = malloc(sizeof(linked_item));
+
+	if (!entry) {
+		lerr("Failed to malloc(%d): %s", sizeof(linked_item), strerror(errno));
+		return NULL;
+	}
+
+	entry->item = item;
+	entry->next_item = list;
+	return entry;
+}
+
 const char *tv_delta(struct timeval *start, struct timeval *stop)
 {
 	static char buf[30];

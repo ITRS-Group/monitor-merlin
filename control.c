@@ -9,20 +9,6 @@ static linked_item **mrm_service_list = NULL;
 
 static time_t stall_start;
 
-static inline int add_linked_item(linked_item **list, int slot, void *item)
-{
-	struct linked_item *entry = malloc(sizeof(linked_item));
-
-	if (!entry)
-		return 0;
-
-	entry->item = item;
-	entry->next_item = list[slot];
-	list[slot] = entry;
-
-	return 1;
-}
-
 extern host *host_list;
 static void create_host_lists(void)
 {
@@ -38,7 +24,7 @@ static void create_host_lists(void)
 		if (!sel) /* not a host we care about */
 			continue;
 
-		add_linked_item(mrm_host_list, *sel, hst);
+		mrm_host_list[*sel] = add_linked_item(mrm_host_list[*sel], hst);
 	}
 }
 
@@ -56,7 +42,7 @@ static void create_service_lists(void)
 		if (!sel) /* not a service on a host we care about */
 			continue;
 
-		add_linked_item(mrm_service_list, *sel, srv);
+		mrm_service_list[*sel] = add_linked_item(mrm_service_list[*sel], srv);
 	}
 }
 
