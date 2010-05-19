@@ -2,6 +2,8 @@
 
 merlin_node **noc_table, **poller_table, **peer_table;
 merlin_node **selected_nodes;
+static int num_selections;
+static char **selection_table;
 
 static char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 
@@ -16,6 +18,49 @@ merlin_node *nodes_by_sel_id(int sel)
 		return NULL;
 
 	return selected_nodes[sel];
+}
+
+char *get_sel_name(int index)
+{
+	if (index < 0 || index >= num_selections)
+		return NULL;
+
+	return selection_table[index];
+}
+
+int get_sel_id(const char *name)
+{
+	int i;
+
+	if (!num_selections || !name)
+		return -1;
+
+	for (i = 0; i < num_selections; i++) {
+		if (!strcmp(name, selection_table[i]))
+			return i;
+	}
+
+	return -1;
+}
+
+int get_num_selections(void)
+{
+	return num_selections;
+}
+
+static int add_selection(char *name)
+{
+	int i;
+
+	/* don't add the same selection twice */
+	for (i = 0; i < num_selections; i++)
+		if (!strcmp(name, selection_table[i]))
+			return i;
+
+	selection_table = realloc(selection_table, sizeof(selection_table[0]) * (num_selections + 1));
+	selection_table[num_selections] = strdup(name);
+
+	return num_selections++;
 }
 
 /*

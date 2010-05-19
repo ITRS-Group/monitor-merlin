@@ -159,10 +159,6 @@ extern linked_item *add_linked_item(linked_item *list, void *item);
 extern int set_socket_buffers(int sd);
 extern char *next_word(char *str);
 extern int grok_common_var(struct cfg_comp *config, struct cfg_var *v);
-extern int add_selection(char *name);
-extern char *get_sel_name(int index);
-extern int get_sel_id(const char *name);
-extern int get_num_selections(void);
 extern const char *callback_name(int id);
 extern const char *tv_delta(struct timeval *start, struct timeval *stop);
 
