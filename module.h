@@ -29,13 +29,6 @@ typedef struct file_list {
 } file_list;
 
 
-/* used for Nagios' objects which we build linked lists for */
-typedef struct linked_item {
-	void *item;
-	struct linked_item *next_item;
-} linked_item;
-
-
 extern hash_table *host_hash_table;
 #define hash_find_val(key) (int *)hash_find(host_hash_table, key)
 

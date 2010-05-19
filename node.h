@@ -57,6 +57,13 @@ struct merlin_event_counter {
 };
 typedef struct merlin_event_counter merlin_event_counter;
 
+/* used for various objects which we build linked lists for */
+typedef struct linked_item {
+	void *item;
+	struct linked_item *next_item;
+} linked_item;
+
+
 /* for node->type */
 #define MODE_LOCAL     0
 #define MODE_NOC       1
