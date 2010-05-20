@@ -218,17 +218,14 @@ void node_grok_config(struct cfg_comp *config)
 		node->name = next_word((char *)c->name);
 
 		if (!prefixcmp(c->name, "poller") || !prefixcmp(c->name, "slave")) {
-			num_pollers++;
 			node->type = MODE_POLLER;
 			grok_node(c, node);
 			if (!node->hostgroup)
 				cfg_error(c, NULL, "Missing 'hostgroup' variable\n");
 		} else if (!prefixcmp(c->name, "peer")) {
-			num_peers++;
 			node->type = MODE_PEER;
 			grok_node(c, node);
 		} else if (!prefixcmp(c->name, "noc") || !prefixcmp(c->name, "master")) {
-			num_nocs++;
 			node->type = MODE_NOC;
 			grok_node(c, node);
 		} else
