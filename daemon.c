@@ -123,8 +123,16 @@ static void post_process_nodes(void)
 {
 	int i;
 
+	ldebug("post processing %d masters, %d pollers, %d peers",
+	       num_nocs, num_pollers, num_peers);
+
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
+
+		if (!node) {
+			lerr("node is null. i is %d. num_nodes is %d. wtf?", i, num_nodes);
+			continue;
+		}
 
 		if (!node->sain.sin_port)
 			node->sain.sin_port = htons(default_port);
