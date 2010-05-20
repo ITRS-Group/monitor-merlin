@@ -186,7 +186,6 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			cfg_error(c, v, "Unknown variable\n");
 	}
 	node->last_action = -1;
-	node->poller_active = 0;
 }
 
 void node_grok_config(struct cfg_comp *config)

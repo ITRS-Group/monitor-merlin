@@ -55,17 +55,11 @@ static int node_action_handler(merlin_node *node, int action)
 
 	switch (action) {
 	case STATE_CONNECTED:
-		if (node->poller_active)
-			break;
-		node->poller_active = 1;
 		ldebug("Sending IPC control ACTIVE for '%s'", node->name);
 		return ipc_send_ctrl(CTRL_ACTIVE, node->id);
 	case STATE_PENDING:
 	case STATE_NEGOTIATING:
 	case STATE_NONE:
-		if (!node->poller_active)
-			break;
-		node->poller_active = 0;
 		ldebug("Sending IPC control INACTIVE for '%s'", node->name);
 		return ipc_send_ctrl(CTRL_INACTIVE, node->id);
 	}
@@ -399,7 +393,6 @@ static int io_poll_sockets(void)
 	if (ipc_listen_sock > 0 && FD_ISSET(ipc_listen_sock, &rd)) {
 		linfo("Accepting inbound connection on ipc socket");
 		ipc_accept();
-		force_node_ipc_update();
 	} else if (ipc_sock > 0 && FD_ISSET(ipc_sock, &rd)) {
 		sockets++;
 		ipc_reap_events();
@@ -458,10 +451,23 @@ static void clean_exit(int sig)
 
 static int on_ipc_connect(void)
 {
-	sql_reinit();
-	sql_query("UPDATE %s.program_status SET "
-			  "is_running = 1, last_alive = %lu "
-			  "WHERE instance_id = 0", sql_db_name(), time(NULL));
+	int i;
+
+	if (use_database) {
+		sql_reinit();
+		sql_query("UPDATE %s.program_status SET "
+		          "is_running = 1, last_alive = %lu "
+		          "WHERE instance_id = 0", sql_db_name(), time(NULL));
+	}
+
+	for (i = 0; i < num_nodes; i++) {
+		merlin_node *node = node_table[i];
+		if (node->status == STATE_CONNECTED)
+			ipc_send_ctrl(CTRL_ACTIVE, node->id);
+		else
+			ipc_send_ctrl(CTRL_INACTIVE, node->id);
+	}
+
 	return 0;
 }
 
