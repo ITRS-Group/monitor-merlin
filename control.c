@@ -129,6 +129,21 @@ void ctrl_stall_stop(void)
 }
 
 /*
+ * Marks a (poller) node as active or inactive
+ */
+static void node_set_state(int id, int state)
+{
+	/*
+	 * we only do this if we have pollers and the id we got
+	 * from the ipc socket is the id of a configured poller
+	 */
+	if (!num_pollers || id < 0 || id >= num_nodes)
+		return;
+
+	node_table[id]->status = state;
+}
+
+/*
  * Handles merlin control events inside the module. Control events
  * that relate to cross-host communication only never reaches this.
  */
@@ -155,8 +170,12 @@ void handle_control(merlin_event *pkt)
 
 	switch (pkt->hdr.code) {
 	case CTRL_INACTIVE:
+		disable_checks(pkt->hdr.selection);
+		node_set_state(pkt->hdr.selection, STATE_NONE);
+		break;
 	case CTRL_ACTIVE:
-		enable_disable_checks(pkt->hdr.selection, pkt->hdr.code == CTRL_INACTIVE);
+		enable_checks(pkt->hdr.selection);
+		node_set_state(pkt->hdr.selection, STATE_CONNECTED);
 		break;
 	case CTRL_STALL:
 		ctrl_stall_start();
