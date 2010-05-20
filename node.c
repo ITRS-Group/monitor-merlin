@@ -78,6 +78,7 @@ static int add_selection(char *name, merlin_node *node)
 		sel = &selection_table[num_selections];
 		sel->id = num_selections;
 		sel->name = strdup(name);
+		sel->nodes = NULL;
 		num_selections++;
 	}
 	sel->nodes = add_linked_item(sel->nodes, node);
