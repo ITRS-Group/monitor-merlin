@@ -46,10 +46,6 @@ extern int handle_ipc_event(merlin_event *pkt);
 extern void file_list_free(struct file_list *list);
 extern time_t get_last_cfg_change(void);
 
-#define disable_checks(sel) enable_disable_checks(sel, 0)
-#define enable_checks(sel) enable_disable_checks(sel, 1)
-extern void enable_disable_checks(int selection, int status);
-extern void create_object_lists(void);
 extern void handle_control(merlin_event *pkt);
 extern int is_stalling(void);
 extern void ctrl_stall_start(void);

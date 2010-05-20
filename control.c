@@ -4,102 +4,7 @@
 
 #include "module.h"
 
-static linked_item **mrm_host_list = NULL;
-static linked_item **mrm_service_list = NULL;
-
 static time_t stall_start;
-
-extern host *host_list;
-static void create_host_lists(void)
-{
-	host *hst;
-
-	linfo("Creating host object tree");
-
-	mrm_host_list = calloc(get_num_selections(), sizeof(linked_item *));
-
-	for (hst = host_list; hst; hst = hst->next) {
-		node_selection *sel = node_selection_by_hostname(hst->name);
-
-		if (!sel) /* not a host we care about */
-			continue;
-
-		mrm_host_list[sel->id] = add_linked_item(mrm_host_list[sel->id], hst);
-	}
-}
-
-extern service *service_list;
-static void create_service_lists(void)
-{
-	service *srv;
-
-	linfo("Creating service object tree");
-
-	mrm_service_list = calloc(get_num_selections(), sizeof(linked_item *));
-	for (srv = service_list; srv; srv = srv->next) {
-		node_selection *sel = node_selection_by_hostname(srv->host_name);
-
-		if (!sel) /* not a service on a host we care about */
-			continue;
-
-		mrm_service_list[sel->id] = add_linked_item(mrm_service_list[sel->id], srv);
-	}
-}
-
-
-void create_object_lists(void)
-{
-	/* if we're a poller we won't have any selections */
-	if (!get_num_selections())
-		return;
-
-	create_host_lists();
-	create_service_lists();
-}
-
-
-/* 
- * enables or disables active checks of all hosts and services
- * controlled by the node relating to selection id "selection"
- */
-void enable_disable_checks(int selection, int enable)
-{
-	linked_item *list;
-	int nsel;
-	char *sel_name = NULL;
-
-	nsel = get_num_selections();
-	if (!nsel)
-		return;
-
-	sel_name = get_sel_name(selection);
-	if (!sel_name)
-		return;
-
-	if (selection < 0 || selection >= get_num_selections()) {
-		lerr("Illegal selection passed to alter_checking(): %d; max is %d",
-			 selection, get_num_selections());
-
-		return;
-	}
-
-	linfo("%sabling active checks for hosts in hostgroup '%s'",
-	      enable ? "En" : "Dis", sel_name);
-	for (list = mrm_host_list[selection]; list; list = list->next_item) {
-		host *hst = (host *)list->item;
-		hst->checks_enabled = enable;
-		hst->should_be_scheduled = enable;
-	}
-
-	linfo("%sabling active checks for services of hosts in hostgroup '%s'",
-	      enable ? "En" : "Dis", sel_name);
-	for (list = mrm_service_list[selection]; list; list = list->next_item) {
-		service *srv = (service *)list->item;
-		srv->checks_enabled = enable;
-		srv->should_be_scheduled = enable;
-	}
-}
-
 
 /* return number of stalling seconds remaining */
 #define STALL_TIMER 20
@@ -170,11 +75,9 @@ void handle_control(merlin_event *pkt)
 
 	switch (pkt->hdr.code) {
 	case CTRL_INACTIVE:
-		disable_checks(pkt->hdr.selection);
 		node_set_state(pkt->hdr.selection, STATE_NONE);
 		break;
 	case CTRL_ACTIVE:
-		enable_checks(pkt->hdr.selection);
 		node_set_state(pkt->hdr.selection, STATE_CONNECTED);
 		break;
 	case CTRL_STALL:

@@ -461,7 +461,6 @@ static int post_config_init(int cb, void *ds)
 
 	linfo("Object configuration parsed.");
 	setup_host_hash_tables();
-	create_object_lists();
 
 	mrm_ipc_connect(NULL);
 	send_paths();
