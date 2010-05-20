@@ -130,6 +130,7 @@ static void create_node_tree(merlin_node *table, unsigned n)
 	xnoc = xpeer = xpoll = 0;
 	for (i = 0; i < n; i++) {
 		merlin_node *node = &table[i];
+		node->id = i;
 
 		switch (node->type) {
 		case MODE_NOC:
