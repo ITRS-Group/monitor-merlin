@@ -249,6 +249,9 @@ static void setup_host_hash_tables(void)
 		node_selection *sel = node_selection_by_name(hg->group_name);
 		struct hostsmember_struct *m;
 
+		if (!sel)
+			continue;
+
 		for (m = hg->members; m; m = m->next) {
 			node_selection *cur = node_selection_by_hostname(m->host_name);
 
