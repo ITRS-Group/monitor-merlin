@@ -67,8 +67,11 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		 * an override forcing Nagios to drop the check on
 		 * the floor
 		 */
-		if (has_active_poller(ds->host_name))
+		if (has_active_poller(ds->host_name)) {
+			ldebug("Overriding check for service '%s' on host '%s'",
+				   ds->host_name, ds->service_description);
 			return NEBERROR_CALLBACKOVERRIDE;
+		}
 		return 0;
 
 	case NEBTYPE_SERVICECHECK_PROCESSED:
@@ -91,8 +94,10 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		 * checking this host, we simply return an override,
 		 * forcing Nagios to drop the check on the floor.
 		 */
-		if (has_active_poller(ds->host_name))
+		if (has_active_poller(ds->host_name)) {
+			ldebug("Overriding check for host '%s'", ds->host_name);
 			return NEBERROR_CALLBACKOVERRIDE;
+		}
 
 		return 0;
 
