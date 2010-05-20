@@ -169,10 +169,13 @@ static int node_is_connected(merlin_node *node)
 	if (!result && errno == ENOTCONN)
 		node->status = STATE_NONE;
 
-	if (result)
-		node->status = STATE_CONNECTED;
+	if (result) {
+		if (node->status != STATE_CONNECTED)
+			node->action(node, STATE_CONNECTED);
 
-	node->action(node, node->status);
+		node->status = STATE_CONNECTED;
+	}
+
 	return result;
 }
 
