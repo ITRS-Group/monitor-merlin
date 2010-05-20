@@ -60,19 +60,29 @@ int get_num_selections(void)
 	return num_selections;
 }
 
-static int add_selection(char *name)
+static int add_selection(char *name, merlin_node *node)
 {
 	int i;
+	node_selection *sel = NULL;
 
-	/* don't add the same selection twice */
-	for (i = 0; i < num_selections; i++)
-		if (!strcmp(name, selection_table[i].name))
-			return i;
+	/* if this selection is already added, just add the node to it */
+	for (i = 0; i < num_selections; i++) {
+		if (!strcmp(name, selection_table[i].name)) {
+			sel = &selection_table[i];
+			break;
+		}
+	}
 
-	selection_table = realloc(selection_table, sizeof(selection_table[0]) * (num_selections + 1));
-	selection_table[num_selections].name = strdup(name);
+	if (!sel) {
+		selection_table = realloc(selection_table, sizeof(selection_table[0]) * (num_selections + 1));
+		sel = &selection_table[num_selections];
+		sel->id = num_selections;
+		sel->name = strdup(name);
+		num_selections++;
+	}
+	sel->nodes = add_linked_item(sel->nodes, node);
 
-	return num_selections++;
+	return sel->id;
 }
 
 /*
@@ -161,7 +171,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 
 		if (node->type != MODE_NOC && !strcmp(v->key, "hostgroup")) {
 			node->hostgroup = strdup(v->value);
-			node->selection = add_selection(node->hostgroup);
+			node->selection = add_selection(node->hostgroup, node);
 		}
 		else if (!strcmp(v->key, "address") || !strcmp(v->key, "host")) {
 			if (!resolve(v->value, &node->sain.sin_addr))
