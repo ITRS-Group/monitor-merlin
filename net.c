@@ -396,8 +396,6 @@ static int net_sendto(merlin_node *node, merlin_event *pkt)
  * to the module, signalling that our Nagios should, potentially,
  * take over checks for the awol poller
  */
-#define set_inactive(node) ipc_send_ctrl(CTRL_INACTIVE, node->selection)
-#define set_active(node) ipc_send_ctrl(CTRL_ACTIVE, node->selection)
 static void check_node_activity(merlin_node *node)
 {
 	time_t now = time(NULL);
@@ -600,20 +598,6 @@ void check_all_node_activity(void)
 	/* make sure we always check activity level among the nodes */
 	for (i = 0; i < num_nodes; i++)
 		check_node_activity(node_table[i]);
-}
-
-/* Force sending control packets to ensure proper state in Nagios after
- * reconnection of an ipc socket */
-void force_node_ipc_update(void)
-{
-	int i;
-	merlin_node *node;
-
-	for (i = 0; i < num_nodes; i++) {
-		node = node_table[i];
-		if(node->type == MODE_POLLER)
-			node->poller_active ? set_active(node) : set_inactive(node);
-	}
 }
 
 /* poll for INBOUND socket events and completion of pending connections */

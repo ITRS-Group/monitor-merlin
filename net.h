@@ -14,7 +14,6 @@ extern int net_send_ipc_data(merlin_event *pkt);
 extern int net_sock_desc();
 extern int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val);
 extern void check_all_node_activity(void);
-extern void force_node_ipc_update(void);
 extern int net_accept_one(void);
 extern int net_handle_polling_results(fd_set *rd, fd_set *wr);
 #endif /* INCLUDE_net_h__ */
