@@ -3,7 +3,6 @@
 static int listen_sock = -1; /* for bind() and such */
 static char *ipc_sock_path;
 static char *ipc_binlog_path, *ipc_binlog_dir = "/opt/monitor/op5/merlin/binlogs";
-static int sync_lost;
 static time_t last_connect_attempt;
 static merlin_node ipc = { "ipc", -1, -1, 0, 0 }; /* the ipc node */
 
@@ -52,9 +51,6 @@ int ipc_accept(void)
 			 listen_sock, strerror(errno));
 		return -1;
 	}
-
-	/* reset sync state */
-	sync_lost = 0;
 
 	/* reset the ipc event counter for each session */
 	memset(&ipc.events, 0, sizeof(ipc.events));
@@ -256,7 +252,6 @@ int ipc_init(void)
 
 	if (on_connect) {
 		linfo("Running on_connect hook");
-		sync_lost = 0;
 		on_connect();
 	}
 
