@@ -11,6 +11,7 @@
 
 #include "module.h"
 #include "nagios/objects.h"
+#include "nagios/neberrors.h"
 
 static int send_generic(merlin_event *pkt, void *data)
 {
@@ -31,37 +32,76 @@ static int get_selection(const char *key)
 }
 
 /*
+ * checks if a poller responsible for a particular
+ * hostname happens to be active and connected
+ */
+static int has_active_poller(const char *host_name)
+{
+	node_selection *sel = node_selection_by_hostname(host_name);
+	linked_item *li;
+
+	if (!sel || !sel->nodes)
+		return 0;
+
+	for (li = sel->nodes; li; li = li->next_item) {
+		merlin_node *node = (merlin_node *)li->item;
+		if (node->status == STATE_CONNECTED)
+			return 1;
+	}
+
+	return 0;
+}
+
+/*
  * The hooks are called from broker.c in Nagios.
  */
 static int hook_service_result(merlin_event *pkt, void *data)
 {
 	nebstruct_service_check_data *ds = (nebstruct_service_check_data *)data;
 
-	if (ds->type != NEBTYPE_SERVICECHECK_PROCESSED
-		|| ds->check_type != SERVICE_CHECK_ACTIVE
-		|| pkt->hdr.type != NEBCALLBACK_SERVICE_CHECK_DATA)
-	{
+	switch (ds->type) {
+	case NEBTYPE_SERVICECHECK_ASYNC_PRECHECK:
+		/*
+		 * if a connected poller is reponsible for checking
+		 * the host this service resides on, we simply return
+		 * an override forcing Nagios to drop the check on
+		 * the floor
+		 */
+		if (has_active_poller(ds->host_name))
+			return NEBERROR_CALLBACKOVERRIDE;
 		return 0;
+
+	case NEBTYPE_SERVICECHECK_PROCESSED:
+		pkt->hdr.selection = get_selection(ds->host_name);
+		return send_generic(pkt, ds);
 	}
 
-	pkt->hdr.selection = get_selection(ds->host_name);
-
-	return send_generic(pkt, ds);
+	return 0;
 }
 
 static int hook_host_result(merlin_event *pkt, void *data)
 {
 	nebstruct_host_check_data *ds = (nebstruct_host_check_data *)data;
 
-	/* ignore un-processed and passive checks */
-	if (ds->type != NEBTYPE_HOSTCHECK_PROCESSED
-		|| ds->check_type != HOST_CHECK_ACTIVE
-		|| pkt->hdr.type != NEBCALLBACK_HOST_CHECK_DATA)
-	{
+	switch (ds->type) {
+	case NEBTYPE_HOSTCHECK_ASYNC_PRECHECK:
+	case NEBTYPE_HOSTCHECK_SYNC_PRECHECK:
+		/*
+		 * if a poller that is connected is responsible for
+		 * checking this host, we simply return an override,
+		 * forcing Nagios to drop the check on the floor.
+		 */
+		if (has_active_poller(ds->host_name))
+			return NEBERROR_CALLBACKOVERRIDE;
+
 		return 0;
+
+	/* only send processed host checks */
+	case NEBTYPE_HOSTCHECK_PROCESSED:
+		return send_generic(pkt, ds);
 	}
 
-	return send_generic(pkt, ds);
+	return 0;
 }
 
 
