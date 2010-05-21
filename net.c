@@ -437,8 +437,16 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		return 0;
 
 	default:
-		mrm_db_update(pkt);
+		/*
+		 * IMPORTANT NOTE:
+		 * It's absolutely vital that we send the event to the
+		 * ipc socket *before* we ship it off to the db_update
+		 * function, since the db_updpate function deblockify()'s
+		 * the event, which makes unusable for sending to the
+		 * ipc (or, indeed, anywhere else) afterwards.
+		 */
 		ipc_send_event(pkt);
+		mrm_db_update(pkt);
 		return 0;
 	}
 	return 0;
