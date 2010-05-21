@@ -433,8 +433,19 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		}
 	}
 
-	ipc_send_event(pkt);
-	mrm_db_update(pkt);
+	/* not all packets get delivered to the merlin module */
+	switch (pkt->hdr.type) {
+	case NEBCALLBACK_HOST_CHECK_DATA:
+	case NEBCALLBACK_SERVICE_CHECK_DATA:
+	case NEBCALLBACK_PROGRAM_STATUS_DATA:
+		mrm_db_update(pkt);
+		return 0;
+
+	default:
+		mrm_db_update(pkt);
+		ipc_send_event(pkt);
+		return 0;
+	}
 	return 0;
 }
 
