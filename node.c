@@ -248,26 +248,26 @@ void node_grok_config(struct cfg_comp *config)
 void node_log_event_count(merlin_node *node, int force)
 {
 	struct timeval now;
-	merlin_event_counter *cnt = &node->events;
+	merlin_node_stats *s = &node->stats;
 
 	/*
 	 * This works like a 'mark' that syslogd produces. We log once
 	 * every 60 seconds
 	 */
 	gettimeofday(&now, NULL);
-	if (!force && cnt->last_logged && cnt->last_logged + 60 > now.tv_sec)
+	if (!force && s->last_logged && s->last_logged + 60 > now.tv_sec)
 		return;
 
-	cnt->last_logged = now.tv_sec;
+	s->last_logged = now.tv_sec;
 
 	linfo("Handled %lld events from/to %s in %s. in: %lld, out: %lld",
-	      cnt->read + cnt->sent + cnt->dropped + cnt->logged, node->name,
-		  tv_delta(&cnt->start, &now),
-	      cnt->read, cnt->sent + cnt->dropped + cnt->logged);
-	if (!(cnt->sent + cnt->dropped + cnt->logged))
+	      s->events.read + s->events.sent + s->events.dropped + s->events.logged, node->name,
+		  tv_delta(&s->start, &now),
+	      s->events.read, s->events.sent + s->events.dropped + s->events.logged);
+	if (!(s->events.sent + s->events.dropped + s->events.logged))
 		return;
 	linfo("'%s' event details: read %lld, sent %lld, dropped %lld, logged %lld",
-	      node->name, cnt->read, cnt->sent, cnt->dropped, cnt->logged);
+	      node->name, s->events.read, s->events.sent, s->events.dropped, s->events.logged);
 }
 
 const char *node_state(merlin_node *node)
@@ -342,8 +342,13 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 	if (result < 0) {
 		binlog_wipe(node->binlog, BINLOG_UNLINK);
 		/* XXX should mark node as unsynced here */
-		node->events.dropped += node->events.logged + 1;
-		node->events.logged = 0;
+		node->stats.events.dropped += node->stats.events.logged + 1;
+		node->stats.bytes.dropped += node->stats.bytes.logged + packet_size(pkt);
+		node->stats.events.logged = 0;
+		node->stats.bytes.logged = 0;
+	} else {
+		node->stats.events.logged++;
+		node->stats.bytes.logged += packet_size(pkt);
 	}
 
 	node_log_event_count(node, 0);
@@ -387,7 +392,8 @@ int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
 	}
 
 	node->last_recv = time(NULL);
-	node->events.read++;
+	node->stats.events.read++;
+	node->stats.bytes.read += HDR_SIZE;
 
 	if (!pkt->hdr.len)
 		return HDR_SIZE;
@@ -400,6 +406,7 @@ int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
 		node_disconnect(node);
 		return -1;
 	}
+	node->stats.bytes.read += pkt->hdr.len;
 
 	return result;
 }
@@ -473,7 +480,8 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 			 * and possibly mark this node as being out of sync.
 			 */
 			binlog_wipe(node->binlog, BINLOG_UNLINK);
-			node->events.dropped += node->events.logged + 1;
+			node->stats.events.dropped += node->stats.events.logged + 1;
+			node->stats.bytes.dropped += node->stats.events.logged + packet_size(pkt);
 			node_log_event_count(node, 0);
 			return -1;
 		}
@@ -487,7 +495,8 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 
 	/* successfully sent, so add it to the counter and return 0 */
 	if (result == packet_size(pkt)) {
-		node->events.sent++;
+		node->stats.events.sent++;
+		node->stats.bytes.sent += result;
 		node->last_sent = time(NULL);
 		return 0;
 	}

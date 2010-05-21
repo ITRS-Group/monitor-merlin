@@ -50,12 +50,15 @@ struct merlin_event {
 } __attribute__((packed));
 typedef struct merlin_event merlin_event;
 
-struct merlin_event_counter {
-	unsigned long long sent, read, logged, dropped;
+struct statistics_vars {
+	uint64_t sent, read, logged, dropped;
+};
+struct merlin_node_stats {
+	struct statistics_vars events, bytes;
 	time_t last_logged;     /* when we logged the event-count last */
 	struct timeval start;
 };
-typedef struct merlin_event_counter merlin_event_counter;
+typedef struct merlin_node_stats merlin_node_stats;
 
 /* used for various objects which we build linked lists for */
 typedef struct linked_item {
@@ -96,7 +99,7 @@ struct merlin_node {
 	time_t last_sent;       /* when we sent something last */
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
 	binlog *binlog;         /* binary backlog for this node */
-	merlin_event_counter events; /* event count */
+	merlin_node_stats stats; /* event/data statistics */
 	int (*action)(struct merlin_node *, int); /* (daemon) action handler */
 };
 typedef struct merlin_node merlin_node;

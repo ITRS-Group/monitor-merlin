@@ -53,8 +53,8 @@ int ipc_accept(void)
 	}
 
 	/* reset the ipc event counter for each session */
-	memset(&ipc.events, 0, sizeof(ipc.events));
-	gettimeofday(&ipc.events.start, NULL);
+	memset(&ipc.stats, 0, sizeof(ipc.stats));
+	gettimeofday(&ipc.stats.start, NULL);
 
 	set_socket_buffers(ipc.sock);
 	ipc.status = STATE_CONNECTED;
@@ -177,8 +177,8 @@ int ipc_init(void)
 	if (!ipc_sock_path)
 		ipc_sock_path = strdup("/opt/monitor/op5/mrd/socket.mrd");
 
-	memset(&ipc.events, 0, sizeof(ipc.events));
-	gettimeofday(&ipc.events.start, NULL);
+	memset(&ipc.stats, 0, sizeof(ipc.stats));
+	gettimeofday(&ipc.stats.start, NULL);
 	if (!quiet) {
 		linfo("Initializing IPC socket '%s' for %s", ipc_sock_path,
 		      is_module ? "module" : "daemon");
@@ -238,8 +238,8 @@ int ipc_init(void)
 	last_connect_attempt = 0;
 
 	/* reset event counter */
-	memset(&ipc.events, 0, sizeof(ipc.events));
-	gettimeofday(&ipc.events.start, NULL);
+	memset(&ipc.stats, 0, sizeof(ipc.stats));
+	gettimeofday(&ipc.stats.start, NULL);
 
 	/* module connected successfully */
 	ipc.sock = listen_sock;
