@@ -203,8 +203,6 @@ int merlin_mod_hook(int cb, void *data)
 		send_paths();
 	}
 
-	ldebug("Processing callback %s", callback_name(cb));
-
 	memset(&pkt, 0, sizeof(pkt));
 	pkt.hdr.type = cb;
 	pkt.hdr.selection = 0xffff;

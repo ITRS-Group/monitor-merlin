@@ -382,11 +382,6 @@ static int net_sendto(merlin_node *node, merlin_event *pkt)
 		return -1;
 	}
 
-	ldebug("sending %zu bytes to %s node '%s' (%s:%d). sock is %d",
-	       packet_size(pkt), node_type(node), node->name,
-	       inet_ntoa(node->sain.sin_addr),
-	       ntohs(node->sain.sin_port), node->sock);
-
 	node_is_connected(node);
 
 	return node_send_event(node, pkt, 100);
@@ -459,9 +454,6 @@ static void net_input(merlin_node *node)
 	merlin_event pkt;
 	int len;
 
-	linfo("Data available from %s '%s' (%s)", node_type(node),
-		  node->name, inet_ntoa(node->sain.sin_addr));
-
 	errno = 0;
 	len = node_read_event(node, &pkt, 0);
 	/* errors are handled in node_read_event() */
@@ -469,9 +461,6 @@ static void net_input(merlin_node *node)
 		return;
 
 	/* We read something the size of an mrm packet header */
-	ldebug("Read %d bytes from %s. protocol: %u, type: %u, len: %d",
-		   len, inet_ntoa(node->sain.sin_addr),
-		   pkt.hdr.protocol, pkt.hdr.type, pkt.hdr.len);
 
 	if (pkt.hdr.type == CTRL_PACKET && pkt.hdr.code == CTRL_PULSE) {
 		/* noop. we've already updated the last_recv time */
@@ -504,14 +493,8 @@ int net_send_ipc_data(merlin_event *pkt)
 			net_sendto((merlin_node *)li->item, pkt);
 	}
 
-	if (num_nocs + num_peers) {
-		ldebug("Sending to %u nocs and %u peers", num_nocs, num_peers);
-
-		for (i = 0; i < num_nocs + num_peers; i++) {
-			merlin_node *node = node_table[i];
-
-			net_sendto(node, pkt);
-		}
+	for (i = 0; i < num_nocs + num_peers; i++) {
+		net_sendto(node_table[i], pkt);
 	}
 
 	return 0;
@@ -567,7 +550,6 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 
 		/* new connections go first */
 		if (node->status == STATE_PENDING && FD_ISSET(node->sock, wr)) {
-			printf("node socket %d is ready for writing\n", node->sock);
 			sockets++;
 			if (net_complete_connection(node)) {
 				node_disconnect(node);
@@ -581,7 +563,6 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 		if (FD_ISSET(node->sock, rd)) {
 			int result;
 
-			printf("node socket %d is ready for reading\n", node->sock);
 			sockets++;
 			do {
 				/* read all available events */
