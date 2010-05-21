@@ -68,7 +68,8 @@ db_setup ()
 	case "$db_type" in
 		mysql)
 			# Create database if it do not exist
-			if [ ! $($mysql -e "SHOW DATABASES LIKE '$db_name'") ]; then
+			db_count=$($mysql -e "SHOW DATABASES LIKE '$db_name'" | wc -l)
+			if [ $db_count -eq 0 ]; then
 				echo "Creating database $db_name"
 				$mysql -e "CREATE DATABASE IF NOT EXISTS $db_name"
 			fi
