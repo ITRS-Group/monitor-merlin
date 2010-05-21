@@ -88,7 +88,6 @@ struct merlin_node {
 	int sock;               /* the socket */
 	int type;               /* server type (master, slave, peer) */
 	int status;             /* status of this node (down, pending, active) */
-	unsigned zread;         /* zero reads. 5 of those indicates closed con */
 	unsigned selection;     /* numeric index for hostgroup */
 	char *hostgroup;        /* only set for pollers on the noc-side */
 	struct sockaddr *sa;    /* should always point to sain */

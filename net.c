@@ -457,13 +457,6 @@ static void net_input(merlin_node *node)
 	if (len <= 0)
 		return;
 
-	if (!len) {
-		node->zread++;
-		if (node->zread > 5)
-			node_disconnect(node);
-		return;
-	}
-
 	/* We read something the size of an mrm packet header */
 	ldebug("Read %d bytes from %s. protocol: %u, type: %u, len: %d",
 		   len, inet_ntoa(node->sain.sin_addr),

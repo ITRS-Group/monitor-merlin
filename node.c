@@ -314,7 +314,6 @@ void node_disconnect(merlin_node *node)
 		node->action(node, node->status);
 	node->last_recv = 0;
 	node->sock = -1;
-	node->zread = 0;
 }
 
 static int node_binlog_add(merlin_node *node, merlin_event *pkt)
