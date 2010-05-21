@@ -216,6 +216,8 @@ void node_grok_config(struct cfg_comp *config)
 			continue;
 
 		node = &table[node_i++];
+		memset(node, 0, sizeof(*node));
+		node->sock = -1;
 		node->name = next_word((char *)c->name);
 
 		if (!prefixcmp(c->name, "poller") || !prefixcmp(c->name, "slave")) {
