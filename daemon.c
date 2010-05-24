@@ -343,7 +343,7 @@ static int handle_ipc_event(merlin_event *pkt)
 
 	result = net_send_ipc_data(pkt);
 	if (use_database)
-		result |= mrm_db_update(pkt);
+		result |= mrm_db_update(&ipc, pkt);
 
 	return result;
 }

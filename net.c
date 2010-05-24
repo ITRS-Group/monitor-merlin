@@ -440,7 +440,7 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 	case NEBCALLBACK_HOST_CHECK_DATA:
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
-		mrm_db_update(pkt);
+		mrm_db_update(node, pkt);
 		return 0;
 
 	default:
@@ -453,7 +453,7 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		 * ipc (or, indeed, anywhere else) afterwards.
 		 */
 		ipc_send_event(pkt);
-		mrm_db_update(pkt);
+		mrm_db_update(node, pkt);
 		return 0;
 	}
 	return 0;

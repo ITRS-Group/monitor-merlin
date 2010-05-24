@@ -11,6 +11,6 @@
 #include "sql.h"
 
 extern int use_database;
-extern int mrm_db_update(merlin_event *pkt);
+extern int mrm_db_update(merlin_node *node, merlin_event *pkt);
 
 #endif

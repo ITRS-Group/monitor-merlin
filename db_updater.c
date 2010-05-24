@@ -203,7 +203,7 @@ static int handle_service_result(object_state *st, const nebstruct_service_check
 }
 #endif /* INSERT_CHECK_RESULTS */
 
-static int handle_program_status(const nebstruct_program_status_data *p)
+static int handle_program_status(merlin_node *node, const nebstruct_program_status_data *p)
 {
 	char *global_host_event_handler;
 	char *global_service_event_handler;
@@ -224,7 +224,7 @@ static int handle_program_status(const nebstruct_program_status_data *p)
 		 "obsess_over_hosts = %d, obsess_over_services = %d, "
 		 "modified_host_attributes = %lu, modified_service_attributes = %lu, "
 		 "global_host_event_handler = %s, global_service_event_handler = %s "
-		 "WHERE instance_id = 0",
+		 "WHERE instance_id = %d",
 		 sql_db_name(),
 		 time(NULL), p->program_start, p->pid, p->daemon_mode,
 		 p->last_command_check, p->last_log_rotation,
@@ -235,7 +235,8 @@ static int handle_program_status(const nebstruct_program_status_data *p)
 		 p->failure_prediction_enabled, p->process_performance_data,
 		 p->obsess_over_hosts, p->obsess_over_services,
 		 p->modified_host_attributes, p->modified_service_attributes,
-		 safe_str(global_host_event_handler), safe_str(global_service_event_handler));
+		 safe_str(global_host_event_handler), safe_str(global_service_event_handler),
+		 node->id + 1);
 
 	free(global_host_event_handler);
 	free(global_service_event_handler);
@@ -501,7 +502,7 @@ static int handle_contact_notification_method(const nebstruct_contact_notificati
 	return result;
 }
 
-int mrm_db_update(merlin_event *pkt)
+int mrm_db_update(merlin_node *node, merlin_event *pkt)
 {
 	int errors = 0;
 
@@ -535,7 +536,7 @@ int mrm_db_update(merlin_event *pkt)
 	}
 	switch (pkt->hdr.type) {
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
-		errors = handle_program_status((void *)pkt->body);
+		errors = handle_program_status(node, (void *)pkt->body);
 		break;
 	case NEBCALLBACK_COMMENT_DATA:
 		errors = handle_comment((void *)pkt->body);
