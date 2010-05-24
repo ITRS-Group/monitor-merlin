@@ -8,6 +8,7 @@
 #ifndef UNIX_PATH_MAX
 # define UNIX_PATH_MAX 108
 #endif
+extern merlin_node ipc;
 
 extern int ipc_init(void);
 extern void ipc_deinit(void);

@@ -4,7 +4,7 @@ static int listen_sock = -1; /* for bind() and such */
 static char *ipc_sock_path;
 static char *ipc_binlog_path, *ipc_binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 static time_t last_connect_attempt;
-static merlin_node ipc = { "ipc", -1, -1, 0, 0 }; /* the ipc node */
+merlin_node ipc = { "ipc", -1, -1, 0, 0 }; /* the ipc node */
 
 /*
  * these are, if set, run when completing or losing the ipc
