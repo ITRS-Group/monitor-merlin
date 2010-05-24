@@ -162,6 +162,10 @@ static int node_is_connected(merlin_node *node)
 	if (!node)
 		return 0;
 
+	/* quick way out. The slow way out is far too slow */
+	if (node->sock >= 0 && node->status == STATE_CONNECTED)
+		return 1;
+
 	if (node->sock == -1 || node->status == STATE_NONE) {
 		result = net_try_connect(node);
 		if (result < 0)
