@@ -135,8 +135,8 @@ static int handle_host_result(merlin_header *hdr, void *buf)
 /* events that require status updates return 1, others return 0 */
 int handle_ipc_event(merlin_event *pkt)
 {
-	linfo("Inbound IPC event, callback %d, len %d, type %d",
-		   pkt->hdr.type, pkt->hdr.len, *pkt->body);
+	ldebug("Inbound IPC event, callback %s, len %d, type %d",
+	       callback_name(pkt->hdr.type), pkt->hdr.len, *pkt->body);
 
 	/* restore the pointers so the various handlers won't have to */
 	deblockify(pkt->body, pkt->hdr.len, pkt->hdr.type);
