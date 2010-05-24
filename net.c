@@ -59,6 +59,9 @@ static int net_try_connect(merlin_node *node)
 	struct sockaddr *sa = (struct sockaddr *)&node->sain;
 	int result;
 
+	if (node->sock >= 0 && node->status == STATE_PENDING)
+		return 0;
+
 	/* create the socket if necessary */
 	if (node->sock == -1) {
 		struct timeval sock_timeout = { 10, 0 };
