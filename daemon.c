@@ -36,16 +36,6 @@ static void usage(char *fmt, ...)
 	exit(1);
 }
 
-/*
- * This is a stub in the daemon, but not so in the module.
- * If we get out of sync with the module, it will send us
- * its paths so we can re-run the import again.
- */
-void ipc_sync_lost(void)
-{
-	lerr("ipc sync lost. Messages will be lost.");
-}
-
 /* node connect/disconnect handlers */
 static int node_action_handler(merlin_node *node, int action)
 {

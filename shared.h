@@ -162,13 +162,6 @@ extern int grok_common_var(struct cfg_comp *config, struct cfg_var *v);
 extern const char *callback_name(int id);
 extern const char *tv_delta(struct timeval *start, struct timeval *stop);
 
-/*
- * This function is different between module and daemon. It gets
- * called when we've lost the ipc connection long enough to fill
- * the binary backlog completely
- */
-extern void ipc_sync_lost(void);
-
 /* data blockification routines */
 extern int blockify(void *data, int cb_type, char *buf, int buflen);
 extern int deblockify(void *ds, off_t len, int cb_type);
