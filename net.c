@@ -42,6 +42,7 @@ static int net_complete_connection(merlin_node *node)
 		      node_type(node), node->name, inet_ntoa(node->sain.sin_addr),
 		      ntohs(node->sain.sin_port));
 		node->action(node, node->status);
+		gettimeofday(&node->stats.start, NULL);
 	}
 
 	return !fail;
@@ -321,6 +322,7 @@ int net_accept_one(void)
 	node->status = STATE_CONNECTED;
 	node->action(node, node->status);
 	node->last_sent = node->last_recv = time(NULL);
+	gettimeofday(&node->stats.start, NULL);
 
 	return sock;
 }
