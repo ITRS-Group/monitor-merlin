@@ -216,7 +216,12 @@ static int binlog_mem_read(binlog *bl, void **buf, uint *len)
 	if (bl->cache && bl->read_index < bl->write_index) {
 		*buf = bl->cache[bl->read_index]->data;
 		*len = bl->cache[bl->read_index]->size;
-		free(bl->cache[bl->read_index++]);
+
+		/* free the entry and mark it as empty */
+		free(bl->cache[bl->read_index]);
+		bl->cache[bl->read_index] = NULL;
+		bl->read_index++;
+
 		/*
 		 * reset the read and write index in case we've read
 		 * all entries. This lets us re-use the entry slot
