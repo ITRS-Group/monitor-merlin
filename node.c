@@ -450,9 +450,16 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 		while (io_write_ok(node->sock, 500) && !binlog_read(node->binlog, (void **)&temp_pkt, &len)) {
 			result = io_send_all(node->sock, temp_pkt, packet_size(temp_pkt));
 
+			/*
+			 * binlog duplicates the memory, so we must release it
+			 * when we've sent it
+			 */
+
 			/* keep going while we successfully send something */
-			if (result == packet_size(temp_pkt))
+			if (result == packet_size(temp_pkt)) {
+				free(temp_pkt);
 				continue;
+			}
 
 			/*
 			 * any other failure means we must kill the connection
@@ -471,6 +478,8 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 			if (result < 0) {
 				if (!binlog_unread(node->binlog, temp_pkt, len)) {
 					return node_binlog_add(node, pkt);
+				} else {
+					free(temp_pkt);
 				}
 			}
 
