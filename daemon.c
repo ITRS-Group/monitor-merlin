@@ -449,6 +449,7 @@ static void polling_loop(void)
 static void clean_exit(int sig)
 {
 	ipc_deinit();
+	sql_close();
 	net_deinit();
 
 	_exit(!!sig);
