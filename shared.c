@@ -82,6 +82,29 @@ static const char *config_key_expires(const char *var)
 	return NULL;
 }
 
+/* converts huge values to a more humanfriendly byte-representation */
+const char *human_bytes(uint64_t n)
+{
+	const char *suffix = "KMGTP";
+	static char tbuf[2][30];
+	static int t = 0;
+	int shift = 1;
+
+	t ^= 1;
+	if (n < 1024) {
+		sprintf(tbuf[t], "%llu bytes", n);
+		return tbuf[t];
+	}
+
+	while (n >> (shift * 10) > 1024 && shift < sizeof(suffix) - 1)
+		shift++;
+
+	sprintf(tbuf[t], "%0.2f %ciB",
+			(float)n / (float)(1 << (shift * 10)), suffix[shift - 1]);
+
+	return tbuf[t];
+}
+
 linked_item *add_linked_item(linked_item *list, void *item)
 {
 	struct linked_item *entry = malloc(sizeof(linked_item));
