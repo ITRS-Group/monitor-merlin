@@ -83,7 +83,7 @@ static int run_query(char *query, int len, int rerun)
 {
 	static char *last_query = NULL;
 
-	if (!rerun) {
+	if (!rerun && (!prefixcmp(query, "INSERT") || !prefixcmp(query, "UPDATE"))) {
 		if (last_query && !strcmp(query, last_query)) {
 			free(query);
 			return 0;
