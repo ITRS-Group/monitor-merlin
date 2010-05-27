@@ -86,11 +86,12 @@ static const char *config_key_expires(const char *var)
 const char *human_bytes(uint64_t n)
 {
 	const char *suffix = "KMGTP";
-	static char tbuf[2][30];
+	static char tbuf[4][30];
 	static int t = 0;
 	int shift = 1;
 
-	t ^= 1;
+	t++;
+	t &= 0x3;
 	if (n < 1024) {
 		sprintf(tbuf[t], "%llu bytes", n);
 		return tbuf[t];

@@ -249,6 +249,8 @@ void node_log_event_count(merlin_node *node, int force)
 {
 	struct timeval now;
 	merlin_node_stats *s = &node->stats;
+	uint64_t b_in, b_out, e_in, e_out;
+	const char *dura;
 
 	/*
 	 * This works like a 'mark' that syslogd produces. We log once
@@ -259,15 +261,24 @@ void node_log_event_count(merlin_node *node, int force)
 		return;
 
 	s->last_logged = now.tv_sec;
+	dura = tv_delta(&s->start, &now);
 
+	b_in = s->bytes.read;
+	b_out = s->bytes.sent + s->bytes.logged + s->bytes.dropped;
+	e_in = s->events.read;
+	e_out = s->events.sent + s->events.logged + s->events.dropped;
 	linfo("Handled %lld events from/to %s in %s. in: %lld, out: %lld",
-	      s->events.read + s->events.sent + s->events.dropped + s->events.logged, node->name,
-		  tv_delta(&s->start, &now),
-	      s->events.read, s->events.sent + s->events.dropped + s->events.logged);
-	if (!(s->events.sent + s->events.dropped + s->events.logged))
+		  e_in + e_out, node->name, dura, e_in, e_out);
+	linfo("Handled %s from/to %s in %s. in: %s, out: %s",
+		  human_bytes(b_in + b_out), node->name, dura,
+		  human_bytes(b_in), human_bytes(b_out));
+	if (!e_out)
 		return;
-	linfo("'%s' event details: read %lld, sent %lld, dropped %lld, logged %lld",
-	      node->name, s->events.read, s->events.sent, s->events.dropped, s->events.logged);
+	linfo("%s events/bytes: read %lld/%s, sent %lld/%s, dropped %lld/%s, logged %lld/%s",
+	      node->name, e_in, human_bytes(b_in),
+		  s->events.sent, human_bytes(s->bytes.sent),
+		  s->events.dropped, human_bytes(s->bytes.dropped),
+		  s->events.logged, human_bytes(s->bytes.logged));
 }
 
 const char *node_state(merlin_node *node)
