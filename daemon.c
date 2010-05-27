@@ -116,12 +116,8 @@ static void post_process_nodes(void)
 	ldebug("post processing %d masters, %d pollers, %d peers",
 	       num_nocs, num_pollers, num_peers);
 
-	sql_query("TRUNCATE program_status");
-	sql_query("INSERT INTO program_status(instance_id, instance_name, is_running) "
-			  "VALUES(0, 'Local Nagios daemon', 0)");
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
-		char *node_name;
 
 		if (!node) {
 			lerr("node is null. i is %d. num_nodes is %d. wtf?", i, num_nodes);
@@ -132,10 +128,6 @@ static void post_process_nodes(void)
 			node->sain.sin_port = htons(default_port);
 
 		node->action = node_action_handler;
-		sql_quote(node->name, &node_name);
-		sql_query("INSERT INTO program_status(instance_id, instance_name, is_running) "
-				  "VALUES(%d, %s, 0)", node->id + 1, node_name);
-		safe_free(node_name);
 	}
 }
 
@@ -587,7 +579,22 @@ int main(int argc, char **argv)
 	signal(SIGINT, clean_exit);
 	signal(SIGTERM, clean_exit);
 	signal(SIGPIPE, dump_core);
+
 	sql_init();
+	if (use_database) {
+		sql_query("TRUNCATE program_status");
+		sql_query("INSERT INTO program_status(instance_id, instance_name, is_running) "
+				  "VALUES(0, 'Local Nagios daemon', 0)");
+		for (i = 0; i < num_nodes; i++) {
+			char *node_name;
+			merlin_node *node = noc_table[i];
+
+			sql_quote(node->name, &node_name);
+			sql_query("INSERT INTO program_status(instance_id, instance_name, is_running) "
+					  "VALUES(%d, %s, 0)", node->id + 1, node_name);
+			safe_free(node_name);
+		}
+	}
 	linfo("Merlin daemon %s successfully initialized", merlin_version);
 	polling_loop();
 
