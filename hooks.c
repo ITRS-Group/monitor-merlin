@@ -9,18 +9,187 @@
  * thingie.
  */
 
+#include <execinfo.h>
 #include "module.h"
 #include "nagios/objects.h"
 
+static int check_dupes;
+static merlin_event last_pkt;
+
+#ifdef DEBUG_DUPES_CAREFULLY
+static uint dupes;
+#define mos_case(vname) \
+	if (offset >= offsetof(monitored_object_state, vname) && \
+	    offset < offsetof(monitored_object_state, vname) + sizeof(mss.vname)) \
+			return #vname
+static const char *mos_offset_name(int offset)
+{
+	monitored_object_state mss;
+
+	if (offset >= sizeof(monitored_object_state)) {
+		return "string area";
+	}
+
+	mos_case(initial_state);
+	mos_case(flap_detection_enabled);
+	mos_case(low_flap_threshold);
+	mos_case(high_flap_threshold);
+	mos_case(check_freshness);
+	mos_case(freshness_threshold);
+	mos_case(process_performance_data);
+	mos_case(checks_enabled);
+	mos_case(accept_passive_checks);
+	mos_case(event_handler_enabled);
+	mos_case(obsess);
+	mos_case(problem_has_been_acknowledged);
+	mos_case(acknowledgement_type);
+	mos_case(check_type);
+	mos_case(current_state);
+	mos_case(last_state);
+	mos_case(last_hard_state);
+	mos_case(state_type);
+	mos_case(current_attempt);
+	mos_case(current_event_id);
+	mos_case(last_event_id);
+	mos_case(current_problem_id);
+	mos_case(last_problem_id);
+	mos_case(latency);
+	mos_case(execution_time);
+	mos_case(notifications_enabled);
+	mos_case(last_notification);
+	mos_case(next_notification);
+	mos_case(next_check);
+	mos_case(should_be_scheduled);
+	mos_case(last_check);
+	mos_case(last_state_change);
+	mos_case(last_hard_state_change);
+	mos_case(last_time_up);
+	mos_case(last_time_down);
+	mos_case(last_time_unreachable);
+	mos_case(has_been_checked);
+	mos_case(current_notification_number);
+	mos_case(current_notification_id);
+	mos_case(check_flapping_recovery_notification);
+	mos_case(scheduled_downtime_depth);
+	mos_case(pending_flex_downtime);
+	mos_case(is_flapping);
+	mos_case(flapping_comment_id);
+	mos_case(percent_state_change);
+	mos_case(plugin_output);
+	mos_case(long_plugin_output);
+	mos_case(perf_data);
+
+	return NULL;
+}
+#endif
+
+static void bt_scan(const char *mark, int count)
+{
+#ifdef DEBUG_DUPES_CAREFULLY
+#define TRACE_SIZE 100
+	char **strings;
+	void *trace[TRACE_SIZE];
+	int i, bt_count, have_mark = 0;
+
+	bt_count = backtrace(trace, TRACE_SIZE);
+	strings = backtrace_symbols(trace, bt_count);
+	for (i = 0; i < bt_count; i++) {
+		char *paren;
+
+		if (mark && !have_mark) {
+			if (strstr(strings[i], mark))
+				have_mark = i;
+			continue;
+		}
+		if (mark && count && i >= have_mark + count)
+			break;
+		paren = strchr(strings[i], '(');
+		paren = paren ? paren : strings[i];
+		ldebug("%2d: %s", i, paren);
+	}
+	free(strings);
+#endif
+}
+
+static int is_dupe(merlin_event *pkt)
+{
+	if (!check_dupes) {
+		return 0;
+	}
+
+	if (last_pkt.hdr.type != pkt->hdr.type) {
+		return 0;
+	}
+
+	if (packet_size(&last_pkt) != packet_size(pkt)) {
+		return 0;
+	}
+
+	if (!memcmp(&last_pkt, pkt, packet_size(pkt))) {
+		return 1;
+	}
+
+#ifdef DEBUG_DUPES_CAREFULLY
+	/*
+	 * The "near-dupes" detection only works for host and
+	 * service status events for now, so return early if
+	 * the event type is neither of those
+	 */
+	if (pkt->hdr.type == NEBCALLBACK_SERVICE_STATUS_DATA ||
+		pkt->hdr.type == NEBCALLBACK_HOST_STATUS_DATA)
+	{
+		int i, diffbytes = 0, diffvars = 0;
+		const char *name, *last_name = NULL;
+		unsigned char *a, *b;
+
+		lwarn("Near-duplicate %s event created by Nagios",
+			  callback_name(pkt->hdr.type));
+
+		a = (unsigned char *)&last_pkt;
+		b = (unsigned char *)pkt;
+		for (i = 0; i < packet_size(pkt); i++) {
+			if (a[i] == b[i])
+				continue;
+			diffbytes++;
+			name = mos_offset_name(i);
+			if (name && name == last_name)
+				continue;
+			diffvars++;
+			ldebug("%s differs", name);
+			last_name = name;
+		}
+		ldebug("%d variables and %d bytes differ", diffvars, diffbytes);
+	}
+#endif
+
+	return 0;
+}
+
 static int send_generic(merlin_event *pkt, void *data)
 {
+	int result;
+
 	pkt->hdr.len = blockify_event(pkt, data);
 	if (!pkt->hdr.len) {
 		lerr("Header len is 0 for callback %d. Update offset in hookinfo.h", pkt->hdr.type);
 		return -1;
 	}
 
-	return ipc_send_event(pkt);
+	if (is_dupe(pkt)) {
+		return 0;
+	}
+
+	/*
+	 * preserve the event so we can check for dupes,
+	 * but only if we successfully sent it
+	 */
+	result = ipc_send_event(pkt);
+	if (result < 0)
+		memset(&last_pkt, 0, sizeof(last_pkt));
+	else
+		memcpy(&last_pkt, pkt, packet_size(pkt));
+
+	return result;
 }
 
 static int get_selection(const char *key)
@@ -128,8 +297,16 @@ static int hook_host_status(merlin_event *pkt, void *data)
 	nebstruct_host_status_data *ds = (nebstruct_host_status_data *)data;
 	merlin_host_status st_obj;
 	struct host_struct *obj;
+	static struct host_struct *last_obj = NULL;
 
 	obj = (struct host_struct *)ds->object_ptr;
+	if (obj == last_obj) {
+		check_dupes = 1;
+	} else {
+		check_dupes = 0;
+		last_obj = obj;
+	}
+	bt_scan("update_host_status", 3);
 
 	COPY_STATE_VARS(st_obj.state, obj);
 	st_obj.state.last_notification = obj->last_host_notification;
@@ -148,8 +325,16 @@ static int hook_service_status(merlin_event *pkt, void *data)
 	nebstruct_service_status_data *ds = (nebstruct_service_status_data *)data;
 	merlin_service_status st_obj;
 	struct service_struct *obj;
+	static struct service_struct *last_obj = NULL;
 
 	obj = (struct service_struct *)ds->object_ptr;
+	if (obj == last_obj) {
+		check_dupes = 1;
+	} else {
+		check_dupes = 0;
+		last_obj = obj;
+	}
+	bt_scan("update_service_status", 3);
 
 	COPY_STATE_VARS(st_obj.state, obj);
 	st_obj.state.last_notification = obj->last_notification;
@@ -207,6 +392,12 @@ int merlin_mod_hook(int cb, void *data)
 		lerr("merlin_mod_hook() called with invalid callback id");
 		return -1;
 	}
+
+	/*
+	 * must reset this here so events we don't check for
+	 * dupes are always sent properly
+	 */
+	check_dupes = 0;
 
 	/* If we've lost sync, we must make sure we send the paths again */
 	if (merlin_should_send_paths && merlin_should_send_paths < time(NULL)) {
