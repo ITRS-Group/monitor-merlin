@@ -17,7 +17,6 @@ static int check_dupes;
 static merlin_event last_pkt;
 
 #ifdef DEBUG_DUPES_CAREFULLY
-static uint dupes;
 #define mos_case(vname) \
 	if (offset >= offsetof(monitored_object_state, vname) && \
 	    offset < offsetof(monitored_object_state, vname) + sizeof(mss.vname)) \
