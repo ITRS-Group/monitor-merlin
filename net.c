@@ -278,6 +278,13 @@ int net_accept_one(void)
 	struct sockaddr_in sain;
 	socklen_t slen = sizeof(struct sockaddr_in);
 
+	/*
+	 * we get called from polling_loop(). If so, check for readability
+	 * to see if anyone has connected and, if not, return early
+	 */
+	if (!io_read_ok(net_sock, 0))
+		return -1;
+
 	sock = accept(net_sock, (struct sockaddr *)&sain, &slen);
 	if (sock < 0) {
 		lerr("accept() failed: %s", strerror(errno));

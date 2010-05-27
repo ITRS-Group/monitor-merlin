@@ -433,6 +433,9 @@ static void polling_loop(void)
 			}
 		}
 
+		while (net_accept_one() >= 0)
+			; /* nothing */
+
 		io_poll_sockets();
 	}
 }
