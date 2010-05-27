@@ -80,23 +80,28 @@ dbi_result sql_get_result(void)
 	return db.result;
 }
 
-static int run_query(const char *query, int len)
+static int run_query(char *query, int len, int rerun)
 {
-	db.result = dbi_conn_query_null(db.conn, (unsigned char *)query, len);
-	if (!db.result) {
-		const char *error_msg;
-		int db_error = sql_error(&error_msg);
-		linfo("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is %d",
-			  query, error_msg, db_error);
-		return db_error;
+	static char *last_query = NULL;
+
+	if (!rerun) {
+		if (last_query && !strcmp(query, last_query)) {
+			return 0;
+		}
+		safe_free(last_query);
+		last_query = query;
 	}
+
+	db.result = dbi_conn_query_null(db.conn, (unsigned char *)query, len);
+	if (!db.result)
+		return -1;
 
 	return 0;
 }
 
 int sql_vquery(const char *fmt, va_list ap)
 {
-	int len, db_error;
+	int len;
 	char *query;
 
 	if (!fmt)
@@ -123,7 +128,12 @@ int sql_vquery(const char *fmt, va_list ap)
 		return -1;
 	}
 
-	if ((db_error = run_query(query, len))) {
+	if (run_query(query, len, 0) < 0) {
+		const char *error_msg;
+		int db_error = sql_error(&error_msg);
+
+		linfo("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is %d",
+			  query, error_msg, db_error);
 		/*
 		 * if we failed because the connection has gone away, we try
 		 * reconnecting once and rerunning the query before giving up.
@@ -144,14 +154,14 @@ int sql_vquery(const char *fmt, va_list ap)
 		default:
 			linfo("Attempting to reconnect to database and re-run the query");
 			if (!sql_reinit()) {
-				if (!run_query(query, len))
+				if (!run_query(query, len, 1))
 					linfo("Successfully ran the previously failed query");
 				/* database backlog code goes here */
 			}
 		}
 	}
 
-	free(query);
+	/* "query" is stashed in run_query(), so we mustn't free it */
 
 	return !!db.result;
 }
