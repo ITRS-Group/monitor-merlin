@@ -85,6 +85,7 @@ static int run_query(char *query, int len, int rerun)
 
 	if (!rerun) {
 		if (last_query && !strcmp(query, last_query)) {
+			free(query);
 			return 0;
 		}
 		safe_free(last_query);
