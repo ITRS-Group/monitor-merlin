@@ -149,10 +149,6 @@ int handle_ipc_event(merlin_event *pkt)
 
 static int real_ipc_reap(void)
 {
-	int events = 0;
-
-	linfo("Reaping ipc events");
-
 	do {
 		merlin_event pkt;
 
@@ -168,7 +164,7 @@ static int real_ipc_reap(void)
 				continue;
 			}
 
-			events += handle_ipc_event(&pkt);
+			handle_ipc_event(&pkt);
 		}
 		/*
 		 * use is_stalling() > 0 here to guard
@@ -176,13 +172,9 @@ static int real_ipc_reap(void)
 		 */
 	} while (is_stalling() > 0);
 
-	if (events) {
-		linfo("Updating status data with info from %d events", events);
-		ipc_log_event_count();
-		update_all_status_data();
-	}
+	ipc_log_event_count();
 
-	return events;
+	return 0;
 }
 
 /* this is called from inside Nagios as a scheduled event */
