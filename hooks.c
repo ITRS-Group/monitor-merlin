@@ -16,6 +16,7 @@
 
 static int check_dupes;
 static merlin_event last_pkt;
+static uint64_t dupes, dupe_bytes;
 
 #ifdef DEBUG_DUPES_CAREFULLY
 #define mos_case(vname) \
@@ -125,7 +126,13 @@ static int is_dupe(merlin_event *pkt)
 		return 0;
 	}
 
+	/* if this is truly a dupe, return 1 and log every 100'th */
 	if (!memcmp(&last_pkt, pkt, packet_size(pkt))) {
+		dupe_bytes += packet_size(pkt);
+		if (!(++dupes % 100)) {
+			ldebug("%s in %llu duplicate packets dropped",
+				   human_bytes(dupe_bytes), dupes);
+		}
 		return 1;
 	}
 
