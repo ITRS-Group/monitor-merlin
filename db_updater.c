@@ -249,11 +249,23 @@ static int handle_downtime(const nebstruct_downtime_data *p)
 	char *host_name = NULL, *service_description = NULL;
 	char *comment_data = NULL, *author_name = NULL;
 
-	if (p->type == NEBTYPE_DOWNTIME_DELETE) {
+	/*
+	 * If we stop downtime that's already started, we'll get a
+	 * downtime stop event, but no downtime delete event (weird,
+	 * but true).
+	 * Since we can't retroactively upgrade all Nagios instances
+	 * in the world, we have to make sure STOP also means DELETE
+	 */
+	if (p->type == NEBTYPE_DOWNTIME_DELETE ||
+		p->type == NEBTYPE_DOWNTIME_STOP)
+	{
 		result = sql_query("DELETE FROM %s.scheduled_downtime "
 						   "WHERE downtime_id = %lu",
 						   sql_db_name(), p->downtime_id);
-		return result;
+
+		/* NEBTYPE_DOWNTIME_STOP has further actions to take */
+		if (p->type == NEBTYPE_DOWNTIME_DELETE)
+			return result;
 	}
 
 	sql_quote(p->host_name, &host_name);
