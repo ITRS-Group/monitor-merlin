@@ -693,6 +693,40 @@ static int test_binlog(struct test_binlog *t, binlog *bl)
 	return 1;
 }
 
+/*
+ * Test the binlog api for leaks. This requires valgrind
+ */
+void test_binlog_leakage(void)
+{
+	int i = 0, expect_end = 0;
+	struct binlog *bl;
+	uint len;
+	char *p;
+#define LARGE_MSIZE (5 << 20)
+#define LARGE_FSIZE (10 << 20)
+#define LARGE_PATH "/tmp/large-binlog"
+	bl = binlog_create(LARGE_PATH, LARGE_MSIZE, LARGE_FSIZE, BINLOG_UNLINK);
+	while (binlog_size(bl) < LARGE_MSIZE) {
+		i = (i + 1) % ARRAY_SIZE(msg_list);
+		if (binlog_add(bl, msg_list[i], strlen(msg_list[i])) < 0) {
+			printf("binlog_add() failed\n");
+			break;
+		}
+	}
+	binlog_add(bl, "LAST", sizeof("LAST"));
+	while (!binlog_read(bl, (void **)&p, &len)) {
+		if (expect_end || (len == sizeof("LAST") && !strcmp(p, "LAST")))
+			expect_end++;
+		free(p);
+	}
+	if (expect_end == 1)
+		pass("Transitioning from memory to file", NULL);
+	else
+		fail("Transitioning from memory to file", NULL);
+
+	binlog_destroy(bl, BINLOG_UNLINK);
+}
+
 int main(int argc, char **argv)
 {
 	int i;
@@ -731,5 +765,6 @@ int main(int argc, char **argv)
 		unlink(t->path);
 	}
 
+	test_binlog_leakage();
 	return 0;
 }
