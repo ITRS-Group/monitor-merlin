@@ -465,3 +465,18 @@ int binlog_flush(binlog *bl)
 
 	return 0;
 }
+
+uint binlog_msize(binlog *bl)
+{
+	return bl ? bl->mem_size : 0;
+}
+
+uint binlog_fsize(binlog *bl)
+{
+	return bl ? bl->file_size : 0;
+}
+
+uint binlog_size(binlog *bl)
+{
+	return binlog_fsize(bl) + binlog_msize(bl);
+}

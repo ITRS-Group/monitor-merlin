@@ -131,6 +131,26 @@ extern int binlog_close(binlog *bl);
  */
 extern int binlog_flush(binlog *bl);
 
+/**
+ * Get binlog memory consumption size
+ * @param bl The binary log object.
+ * @return memory consumption
+ */
+extern uint binlog_msize(binlog *bl);
+
+/**
+ * Get on-disk binlog size
+ * @param bl The binary log object.
+ * @return disk storage consumption
+ */
+extern uint binlog_fsize(binlog *bl);
+
+/**
+ * Get binlog size
+ * @param bl The binary log object.
+ * @return disk storage consumption and memory consumption
+ */
+extern uint binlog_size(binlog *bl);
 
 /** warning condition for backlog base path having insecure permissions */
 #define BINLOG_UNSAFE  1
