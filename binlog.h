@@ -126,7 +126,7 @@ extern int binlog_close(binlog *bl);
 /**
  * Flush in-memory events to disk, releasing all the memory
  * allocated to the events.
- * @param The binary log object.
+ * @param bl The binary log object.
  * @return 0 on success. < 0 on failure.
  */
 extern int binlog_flush(binlog *bl);
