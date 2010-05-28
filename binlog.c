@@ -387,8 +387,10 @@ static int binlog_mem_add(binlog *bl, void *buf, uint len)
 		return BINLOG_EDROPPED;
 
 	entry->data = malloc(len);
-	if (!entry->data)
+	if (!entry->data) {
+		free(entry);
 		return BINLOG_EDROPPED;
+	}
 
 	entry->size = len;
 	memcpy(entry->data, buf, len);
