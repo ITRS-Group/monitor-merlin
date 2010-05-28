@@ -469,6 +469,10 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 			/* keep going while we successfully send something */
 			if (result == packet_size(temp_pkt)) {
 				free(temp_pkt);
+				node->stats.events.sent++;
+				node->stats.events.logged--;
+				node->stats.bytes.sent += packet_size(temp_pkt);
+				node->stats.bytes.logged -= packet_size(temp_pkt);
 				continue;
 			}
 
