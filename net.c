@@ -86,7 +86,8 @@ static int net_try_connect(merlin_node *node)
 	/* don't try to connect to a node if an attempt is already pending */
 	if (node->status != STATE_PENDING) {
 		sa->sa_family = AF_INET;
-		linfo("Connecting to %s:%d", inet_ntoa(node->sain.sin_addr),
+		linfo("Connecting to %s %s@%s:%d", node_type(node), node->name,
+			  inet_ntoa(node->sain.sin_addr),
 			  ntohs(node->sain.sin_port));
 
 		if (connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
@@ -102,7 +103,8 @@ static int net_try_connect(merlin_node *node)
 				return -1;
 		}
 		else
-			linfo("Successfully connected to %s:%d",
+			linfo("Successfully connected to %s %s@%s:%d",
+				  node_type(node), node->name,
 			      inet_ntoa(node->sain.sin_addr), ntohs(node->sain.sin_port));
 
 		node->status = STATE_PENDING;
