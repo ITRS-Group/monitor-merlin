@@ -100,8 +100,7 @@ int binlog_is_valid(binlog *bl)
 
 void binlog_invalidate(binlog *bl)
 {
-	close(bl->fd);
-	bl->fd = -1;
+	binlog_close(bl);
 	bl->is_valid = 0;
 	unlink(bl->path);
 }
