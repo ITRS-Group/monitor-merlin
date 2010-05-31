@@ -84,34 +84,6 @@ static const char *mos_offset_name(int offset)
 }
 #endif
 
-static void bt_scan(const char *mark, int count)
-{
-#ifdef DEBUG_DUPES_CAREFULLY
-#define TRACE_SIZE 100
-	char **strings;
-	void *trace[TRACE_SIZE];
-	int i, bt_count, have_mark = 0;
-
-	bt_count = backtrace(trace, TRACE_SIZE);
-	strings = backtrace_symbols(trace, bt_count);
-	for (i = 0; i < bt_count; i++) {
-		char *paren;
-
-		if (mark && !have_mark) {
-			if (strstr(strings[i], mark))
-				have_mark = i;
-			continue;
-		}
-		if (mark && count && i >= have_mark + count)
-			break;
-		paren = strchr(strings[i], '(');
-		paren = paren ? paren : strings[i];
-		ldebug("%2d: %s", i, paren);
-	}
-	free(strings);
-#endif
-}
-
 static int is_dupe(merlin_event *pkt)
 {
 	if (!check_dupes) {
@@ -318,7 +290,6 @@ static int hook_host_status(merlin_event *pkt, void *data)
 		check_dupes = 0;
 		last_obj = obj;
 	}
-	bt_scan("update_host_status", 3);
 
 	MOD2NET_STATE_VARS(st_obj.state, obj);
 	st_obj.state.last_notification = obj->last_host_notification;
@@ -347,7 +318,6 @@ static int hook_service_status(merlin_event *pkt, void *data)
 		check_dupes = 0;
 		last_obj = obj;
 	}
-	bt_scan("update_service_status", 3);
 
 	MOD2NET_STATE_VARS(st_obj.state, obj);
 	st_obj.state.last_notification = obj->last_notification;

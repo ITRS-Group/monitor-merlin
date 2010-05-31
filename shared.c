@@ -70,6 +70,42 @@ const char *callback_name(int id)
 	return callback_names[id];
 }
 
+#if (defined(__GLIBC__) && (__GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1))
+#include <execinfo.h>
+void bt_scan(const char *mark, int count)
+{
+#define TRACE_SIZE 100
+	char **strings;
+	void *trace[TRACE_SIZE];
+	int i, bt_count, have_mark = 0;
+
+	bt_count = backtrace(trace, TRACE_SIZE);
+	if (!bt_count)
+		return;
+	strings = backtrace_symbols(trace, bt_count);
+	if (!strings)
+		return;
+
+	for (i = 0; i < bt_count; i++) {
+		char *paren;
+
+		if (mark && !have_mark) {
+			if (strstr(strings[i], mark))
+				have_mark = i;
+			continue;
+		}
+		if (mark && count && i >= have_mark + count)
+			break;
+		paren = strchr(strings[i], '(');
+		paren = paren ? paren : strings[i];
+		ldebug("%2d: %s", i, paren);
+	}
+	free(strings);
+}
+#else
+void bt_scan(const char *mark, int count) {}
+#endif
+
 static const char *config_key_expires(const char *var)
 {
 	if (!strcmp(var, "mode"))
