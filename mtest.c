@@ -36,8 +36,6 @@
 #define zzz() usleep(150000)
 
 static host *hosts;
-static uint num_hosts;
-static uint num_services;
 static service *services;
 static merlin_event pkt;
 
@@ -57,6 +55,9 @@ host *host_list = NULL;
 char *macro_x[MACRO_X_COUNT];
 int event_broker_options = 0;
 int daemon_dumps_core = 0;
+sched_info scheduling_info;
+#define num_hosts scheduling_info.total_hosts
+#define num_services scheduling_info.total_services
 
 /* nagios functions we must have for dlopen() to work properly */
 int schedule_new_event(int a, int b, time_t c, int d, unsigned long e,
