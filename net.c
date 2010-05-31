@@ -50,71 +50,6 @@ static int net_complete_connection(merlin_node *node)
 
 
 /*
- * Initiate a connection attempt to a node and mark it as PENDING.
- * Note that since we're using sockets in non-blocking mode (in order
- * to be able to effectively multiplex), the connection attempt will
- * never be completed in this function
- */
-static int net_try_connect(merlin_node *node)
-{
-	struct sockaddr *sa = (struct sockaddr *)&node->sain;
-	int result;
-
-	if (node->sock >= 0 && node->status == STATE_PENDING)
-		return 0;
-
-	/* create the socket if necessary */
-	if (node->sock == -1) {
-		struct timeval sock_timeout = { 10, 0 };
-
-		node->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		if (node->sock < 0)
-			return -1;
-
-		result = setsockopt(node->sock, SOL_SOCKET, SO_RCVTIMEO,
-							&sock_timeout, sizeof(sock_timeout));
-		result |= setsockopt(node->sock, SOL_SOCKET, SO_SNDTIMEO,
-							 &sock_timeout, sizeof(sock_timeout));
-
-		if (result) {
-			lerr("Failed to set send/receive timeouts: %s", strerror(errno));
-			close(node->sock);
-			return -1;
-		}
-	}
-
-	/* don't try to connect to a node if an attempt is already pending */
-	if (node->status != STATE_PENDING) {
-		sa->sa_family = AF_INET;
-		linfo("Connecting to %s %s@%s:%d", node_type(node), node->name,
-			  inet_ntoa(node->sain.sin_addr),
-			  ntohs(node->sain.sin_port));
-
-		if (connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
-			lerr("connect() failed to node '%s' (%s:%d): %s",
-				 node->name, inet_ntoa(node->sain.sin_addr),
-				 ntohs(node->sain.sin_port), strerror(errno));
-
-			if (errno == EISCONN) { /* already connected? That's fishy.. */
-				node_disconnect(node);
-				return -1;
-			}
-			if (errno != EINPROGRESS && errno != EALREADY)
-				return -1;
-		}
-		else
-			linfo("Successfully connected to %s %s@%s:%d",
-				  node_type(node), node->name,
-			      inet_ntoa(node->sain.sin_addr), ntohs(node->sain.sin_port));
-
-		node->status = STATE_PENDING;
-	}
-
-	return 0;
-}
-
-
-/*
  * checks if a socket is connected or not by looking up the ip and port
  * of the remote host.
  * Returns 1 if connected and 0 if not.
@@ -152,6 +87,73 @@ static int net_is_connected(int sock)
 
 	if (!optval)
 		return 1;
+
+	return 0;
+}
+
+
+/*
+ * Initiate a connection attempt to a node and mark it as PENDING.
+ * Note that since we're using sockets in non-blocking mode (in order
+ * to be able to effectively multiplex), the connection attempt will
+ * never be completed in this function
+ */
+static int net_try_connect(merlin_node *node)
+{
+	struct sockaddr *sa = (struct sockaddr *)&node->sain;
+	int result;
+
+	if (node->sock >= 0 && node->status == STATE_PENDING)
+		return 0;
+
+	/* create the socket if necessary */
+	if (node->sock == -1) {
+		struct timeval sock_timeout = { 10, 0 };
+
+		node->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		if (node->sock < 0)
+			return -1;
+
+		result = setsockopt(node->sock, SOL_SOCKET, SO_RCVTIMEO,
+							&sock_timeout, sizeof(sock_timeout));
+		result |= setsockopt(node->sock, SOL_SOCKET, SO_SNDTIMEO,
+							 &sock_timeout, sizeof(sock_timeout));
+
+		if (result) {
+			lerr("Failed to set send/receive timeouts: %s", strerror(errno));
+			close(node->sock);
+			return -1;
+		}
+	}
+
+	/* don't try to connect to a node if an attempt is already pending */
+	if (node->status == STATE_PENDING) {
+		if (net_is_connected(node->sock))
+			node->status = STATE_CONNECTED;
+		return 0;
+	}
+
+	sa->sa_family = AF_INET;
+	linfo("Connecting to %s %s@%s:%d", node_type(node), node->name,
+		  inet_ntoa(node->sain.sin_addr),
+		  ntohs(node->sain.sin_port));
+
+	if (!connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
+		lerr("connect() failed to node '%s' (%s:%d): %s",
+			 node->name, inet_ntoa(node->sain.sin_addr),
+			 ntohs(node->sain.sin_port), strerror(errno));
+		node_disconnect(node);
+		return -1;
+	}
+
+	if (net_is_connected(node->sock))
+		node->status = STATE_CONNECTED;
+	else {
+		linfo("Connection pending to %s %s@%s:%d",
+			  node_type(node), node->name,
+			  inet_ntoa(node->sain.sin_addr), ntohs(node->sain.sin_port));
+		node->status = STATE_PENDING;
+	}
 
 	return 0;
 }
