@@ -284,6 +284,24 @@ static int hook_host_result(merlin_event *pkt, void *data)
 	return 0;
 }
 
+/*
+ * Comments are buggy as hell from Nagios, so we must block
+ * some of them
+ */
+static int hook_comment(merlin_event *pkt, void *data)
+{
+	nebstruct_comment_data *ds = (nebstruct_comment_data *)data;
+
+	/*
+	 * comments always generate two events. One add and one load.
+	 * We must make sure to skip one of them, and so far, load
+	 * seems to be the sanest one to keep
+	 */
+	if (ds->type == NEBTYPE_COMMENT_ADD)
+		return 0;
+
+	return send_generic(pkt, data);
+}
 
 static int hook_host_status(merlin_event *pkt, void *data)
 {
@@ -425,6 +443,8 @@ int merlin_mod_hook(int cb, void *data)
 		break;
 
 	case NEBCALLBACK_COMMENT_DATA:
+		result = hook_comment(&pkt, data);
+		break;
 	case NEBCALLBACK_DOWNTIME_DATA:
 	case NEBCALLBACK_FLAPPING_DATA:
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
