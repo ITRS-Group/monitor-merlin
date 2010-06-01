@@ -2,14 +2,15 @@
 #include "colors.h"
 #include "test_utils.h"
 
-const char *red = "", *green = "", *yellow = "", *reset = "";
+const char *cyan = "", *red = "", *green = "", *yellow = "", *reset = "";
 uint passed, failed, t_verbose = 0;
 static uint t_depth;
 static const char *indent_str = "  ";
 
 void t_set_colors(int force)
 {
-	if (force == 1 || (!force && isatty(fileno(stdout)))) {
+	if (force == 1 || isatty(fileno(stdout))) {
+		cyan = CLR_CYAN;
 		red = CLR_RED;
 		yellow = CLR_YELLOW;
 		green = CLR_GREEN;
@@ -17,7 +18,7 @@ void t_set_colors(int force)
 	}
 }
 
-static void t_indent(uint depth)
+static void t_indent(int depth)
 {
 	uint i;
 	for (i = 0; i < depth; i++) {
@@ -29,12 +30,11 @@ void t_start(const char *fmt, ...)
 {
 	va_list ap;
 
-	t_depth++;
-
+	t_indent(t_depth++);
 	va_start(ap, fmt);
-	printf("%s", yellow);
+	printf("%s### ", cyan);
 	vfprintf(stdout, fmt, ap);
-	printf("%s", reset);
+	printf("%s\n", reset);
 	va_end(ap);
 }
 
@@ -47,6 +47,7 @@ int t_end(void)
 		printf("Test results: %s%u passed%s, %s%u failed%s\n",
 			   green, passed, reset, failed ? red : "", failed, failed ? reset : "");
 	}
+
 	return failed ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
@@ -90,34 +91,40 @@ void t_diag(const char *fmt, ...)
 	}
 }
 
-void ok_int(int a, int b, const char *name)
+int ok_int(int a, int b, const char *name)
 {
-	if (a == b)
+	if (a == b) {
 		t_pass(name);
-	else {
-		t_fail(name);
-		t_diag("%d != %d", a, b);
+		return TEST_PASS;
 	}
+
+	t_fail(name);
+	t_diag("%d != %d", a, b);
+	return TEST_FAIL;
 }
 
-void ok_uint(uint a, uint b, const char *name)
+int ok_uint(uint a, uint b, const char *name)
 {
-	if (a == b)
+	if (a == b) {
+		return TEST_PASS;
 		t_pass(name);
-	else {
-		t_fail(name);
-		t_diag("%u != %d", a, b);
 	}
+
+	t_fail(name);
+	t_diag("%u != %d", a, b);
+	return TEST_FAIL;
 }
 
-void ok_str(const char *a, const char *b, const char *name)
+int ok_str(const char *a, const char *b, const char *name)
 {
 	if ((!a && !b) || (a && b && !strcmp(a, b))) {
 		t_pass(name);
-	} else {
-		t_fail(name);
-		t_diag("'%s' != '%s'", a, b);
+		return TEST_PASS;
 	}
+
+	t_fail(name);
+	t_diag("'%s' != '%s'", a, b);
+	return TEST_FAIL;
 }
 
 void __attribute__((__noreturn__)) crash(const char *fmt, ...)
