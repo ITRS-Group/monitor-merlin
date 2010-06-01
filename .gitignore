@@ -13,3 +13,4 @@ merlind
 *test
 version.c
 mtest
+check_latency
