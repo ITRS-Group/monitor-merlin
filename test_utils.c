@@ -18,7 +18,7 @@ void t_set_colors(int force)
 	}
 }
 
-static void t_indent(int depth)
+static void t_indent(uint depth)
 {
 	uint i;
 	for (i = 0; i < depth; i++) {
