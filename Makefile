@@ -47,6 +47,14 @@ $(NEB): $(MODULE_OBJS)
 %.o: %.c
 	$(QUIET_CC)$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
+test: test-binlog test-slist
+
+test-slist: sltest
+	@./sltest
+
+test-binlog: bltest
+	@./bltest
+
 sltest: sltest.o test_utils.o slist.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
