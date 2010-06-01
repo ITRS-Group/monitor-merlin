@@ -115,6 +115,20 @@ slist *slist_init(uint hint, int (*cmp)(const void *, const void *))
 	return sl;
 }
 
+int slist_set_list(slist *sl, void **list, uint items, int sorted)
+{
+	if (!sl || !list || !items)
+		return -1;
+
+	sl->list = list;
+	sl->pos = items;
+	sl->alloc = 0;
+	if (!sorted) {
+		slist_sort(sl);
+	}
+	return 0;
+}
+
 void slist_release(slist *sl)
 {
 	if (!sl)
