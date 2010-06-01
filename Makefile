@@ -47,6 +47,8 @@ $(NEB): $(MODULE_OBJS)
 %.o: %.c
 	$(QUIET_CC)$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
+sltest: sltest.o test_utils.o slist.o
+	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
 bltest: binlog.o bltest.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $(DAEMON_LDFLAGS) $^ -o $@
