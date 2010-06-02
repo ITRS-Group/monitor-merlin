@@ -470,6 +470,8 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 
 	neb_handle = (void *)handle;
 
+	gettimeofday(&merlin_start, NULL);
+
 	/* if we're linked with mtest we needn't parse the configuration */
 	if (flags != -1 && arg != NULL)
 		read_config(arg);

@@ -487,6 +487,7 @@ int main(int argc, char **argv)
 	char *config_file = NULL;
 
 	is_module = 0;
+	gettimeofday(&merlin_start, NULL);
 
 	for (i = 1; i < argc; i++) {
 		char *opt, *arg = argv[i];
