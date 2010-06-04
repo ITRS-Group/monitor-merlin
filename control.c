@@ -54,7 +54,7 @@ static void node_set_state(int id, int state)
  */
 void handle_control(merlin_event *pkt)
 {
-	char *sel_name;
+	char *sel_name, *node_name = NULL;
 
 	if (!pkt) {
 		lerr("handle_control() called with NULL packet");
@@ -62,14 +62,22 @@ void handle_control(merlin_event *pkt)
 	}
 
 	sel_name = get_sel_name(pkt->hdr.selection);
-	if (pkt->hdr.selection == CTRL_GENERIC)
-		linfo("Received general control packet, code %d", pkt->hdr.code);
-	else {
-		if (!sel_name) {
-			lwarn("Received control packet code %d for invalid selection", pkt->hdr.code);
-		} else {
-			linfo("Received control packet code %d for selection '%s'",
-				  pkt->hdr.code, sel_name);
+	if (pkt->hdr.selection >= 0 && pkt->hdr.selection < num_nodes)
+		node_name = node_table[pkt->hdr.selection]->name;
+	if (node_name && (pkt->hdr.code == CTRL_INACTIVE || pkt->hdr.code == CTRL_ACTIVE)) {
+		linfo("Received control packet code %d for %s node %s",
+			  pkt->hdr.code,
+			  node_type(node_table[pkt->hdr.selection]), node_name);
+	} else {
+		if (pkt->hdr.selection == CTRL_GENERIC)
+			linfo("Received general control packet, code %d", pkt->hdr.code);
+		else {
+			if (!sel_name) {
+				lwarn("Received control packet code %d for invalid selection", pkt->hdr.code);
+			} else {
+				linfo("Received control packet code %d for selection '%s'",
+					  pkt->hdr.code, sel_name);
+			}
 		}
 	}
 
