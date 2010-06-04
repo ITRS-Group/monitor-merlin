@@ -48,6 +48,8 @@ extern time_t get_last_cfg_change(void);
 
 extern void handle_control(merlin_event *pkt);
 extern int is_stalling(void);
+extern int ctrl_should_run_host_check(char *host_name);
+extern int ctrl_should_run_service_check(char *host_name, char *desc);
 extern void ctrl_create_object_tables(void);
 extern void ctrl_stall_start(void);
 extern void ctrl_stall_stop(void);

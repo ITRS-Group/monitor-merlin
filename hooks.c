@@ -219,6 +219,13 @@ static int hook_service_result(merlin_event *pkt, void *data)
 				   ds->host_name, ds->service_description);
 			return NEBERROR_CALLBACKOVERRIDE;
 		}
+		/*
+		 * if a peer is supposed to handle this check, we must
+		 * take care not to run it
+		 */
+		if (!ctrl_should_run_service_check(ds->host_name, ds->service_description)) {
+			return NEBERROR_CALLBACKOVERRIDE;
+		}
 		return 0;
 
 	case NEBTYPE_SERVICECHECK_PROCESSED:
@@ -245,7 +252,9 @@ static int hook_host_result(merlin_event *pkt, void *data)
 			ldebug("Overriding check for host '%s'", ds->host_name);
 			return NEBERROR_CALLBACKOVERRIDE;
 		}
-
+		if (!ctrl_should_run_host_check(ds->host_name)) {
+			return NEBERROR_CALLBACKOVERRIDE;
+		}
 		return 0;
 
 	/* only send processed host checks */

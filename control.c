@@ -59,6 +59,37 @@ static int service_cmp(const void *a_, const void *b_)
 	return result ? result : strcmp(a->description, b->description);
 }
 
+static int should_run_check(slist *sl, const void *key)
+{
+	int pos;
+
+	if (!active_peers || !sl)
+		return 1;
+
+	pos = slist_find_pos(sl, key);
+
+	/* this should never happen */
+	if (pos < 0) {
+		return -1;
+	}
+
+	return (pos % (active_peers + 1)) == peer_id;
+}
+
+int ctrl_should_run_host_check(char *host_name)
+{
+	host h;
+	h.name = host_name;
+	return should_run_check(host_sl, &h);
+}
+
+int ctrl_should_run_service_check(char *host_name, char *desc)
+{
+	service s;
+	s.host_name = host_name;
+	s.description = desc;
+	return should_run_check(service_sl, &s);
+}
 
 static void create_host_table(void)
 {
