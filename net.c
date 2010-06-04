@@ -113,6 +113,12 @@ static int net_try_connect(merlin_node *node)
 		if (node->sock < 0)
 			return -1;
 
+		/*
+		 * make sure the import program doesn't write where
+		 * it shouldn't
+		 */
+		fcntl(node->sock, F_SETFD, FD_CLOEXEC);
+
 		result = setsockopt(node->sock, SOL_SOCKET, SO_RCVTIMEO,
 							&sock_timeout, sizeof(sock_timeout));
 		result |= setsockopt(node->sock, SOL_SOCKET, SO_SNDTIMEO,
@@ -376,6 +382,12 @@ int net_init(void)
 	net_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (net_sock < 0)
 		return -1;
+
+	/*
+	 * make sure random output from import programs and whatnot
+	 * doesn't carry over into the net_sock
+	 */
+	fcntl(net_sock, F_SETFD, FD_CLOEXEC);
 
 	/* if this fails we can do nothing but try anyway */
 	(void)setsockopt(net_sock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int));
