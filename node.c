@@ -261,7 +261,7 @@ void node_log_event_count(merlin_node *node, int force)
 		return;
 
 	s->last_logged = now.tv_sec;
-	dura = tv_delta(&s->start, &now);
+	dura = tv_delta(&merlin_start, &now);
 
 	b_in = s->bytes.read;
 	b_out = s->bytes.sent + s->bytes.logged + s->bytes.dropped;

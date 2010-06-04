@@ -56,7 +56,6 @@ struct statistics_vars {
 struct merlin_node_stats {
 	struct statistics_vars events, bytes;
 	time_t last_logged;     /* when we logged the event-count last */
-	struct timeval start;
 };
 typedef struct merlin_node_stats merlin_node_stats;
 
