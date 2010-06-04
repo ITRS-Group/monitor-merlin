@@ -96,6 +96,7 @@ struct merlin_node {
 	struct sockaddr_in sain;
 	time_t last_recv;       /* last time node sent something to us */
 	time_t last_sent;       /* when we sent something last */
+	struct timeval start;   /* when this node's module started */
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
 	binlog *binlog;         /* binary backlog for this node */
 	merlin_node_stats stats; /* event/data statistics */

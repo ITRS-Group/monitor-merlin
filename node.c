@@ -245,6 +245,7 @@ void node_grok_config(struct cfg_comp *config)
 			node->name = strdup(inet_ntoa(node->sain.sin_addr));
 
 		node->sock = -1;
+		node->start.tv_sec = node->start.tv_usec = 0;
 	}
 
 	create_node_tree(table, node_i);
