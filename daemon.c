@@ -39,8 +39,8 @@ static void usage(char *fmt, ...)
 /* node connect/disconnect handlers */
 static int node_action_handler(merlin_node *node, int action)
 {
-	/* only NOCs can take over checks */
-	if (node->type != MODE_POLLER)
+	/* only masters and peers need to know about state changes */
+	if (node->type == MODE_NOC)
 		return 0;
 
 	switch (action) {
