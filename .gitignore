@@ -14,3 +14,6 @@ merlind
 version.c
 mtest
 check_latency
+start.sh
+postgres.sh
+funused.sh
