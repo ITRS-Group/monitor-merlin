@@ -7,6 +7,8 @@
 #include "nagios/nagios.h"
 
 static time_t stall_start;
+static merlin_node **peerid_table;
+static int active_peers, peer_id;
 static slist *host_sl, *service_sl;
 extern sched_info scheduling_info;
 extern host *host_list;
@@ -94,19 +96,111 @@ void ctrl_create_object_tables(void)
 	create_service_table();
 }
 
+static int timeval_comp(const struct timeval *a, const struct timeval *b)
+{
+	if (a == b)
+		return 0;
+
+	if (a->tv_sec == b->tv_sec)
+		return a->tv_usec - b->tv_usec;
+
+	return a->tv_sec - b->tv_sec;
+}
+
+static int cmp_peer(const void *a_, const void *b_)
+{
+	const merlin_node *a = *(const merlin_node **)a_;
+	const merlin_node *b = *(const merlin_node **)b_;
+
+	if (a->status != b->status) {
+		if (a->status == STATE_CONNECTED)
+			return -1;
+		if (b->status == STATE_CONNECTED)
+			return 1;
+	}
+
+	return timeval_comp(&a->start, &b->start);
+}
+
+static void assign_peer_ids(void)
+{
+	int i, inc = 0;
+
+	if (!num_peers)
+		return;
+
+	if (!peerid_table) {
+		peerid_table = malloc(num_peers * sizeof(merlin_node *));
+		for (i = 0; i < num_peers; i++) {
+			peerid_table[i] = peer_table[i];
+		}
+	}
+
+	ldebug("Sorting peerid_table with %d entries", num_peers);
+	qsort(peerid_table, num_peers, sizeof(merlin_node *), cmp_peer);
+	active_peers = 0;
+	for (i = 0; i < num_peers; i++) {
+		int result;
+		merlin_node *node = peerid_table[i];
+
+		node->peer_id += inc;
+		if (node->status == STATE_CONNECTED)
+			active_peers++;
+
+		/* already adding +1, so move on */
+		if (inc)
+			continue;
+
+		result = timeval_comp(&merlin_start, &node->start);
+		if (result < 0) {
+			continue;
+		}
+
+		if (!result) {
+			lerr("%s started the same microsecond as us. Yea right...",
+				 node->name);
+			continue;
+		}
+
+		/*
+		 * The peers after this one in the list were started after us,
+		 * so we take over this peer's id and start adding 1 to the peer
+		 * ids
+		 */
+		peer_id = node->peer_id;
+		inc = 1;
+		node->peer_id += inc;
+	}
+
+	linfo("We're now peer #%d out of %d active ones", peer_id,
+		  active_peers + 1);
+	linfo("Handling roughly %d host and %d service checks",
+		  scheduling_info.total_hosts / (active_peers + 1),
+		  scheduling_info.total_services / (active_peers + 1));
+}
+
 /*
  * Marks a (poller) node as active or inactive
  */
 static void node_set_state(int id, int state)
 {
-	/*
-	 * we only do this if we have pollers and the id we got
-	 * from the ipc socket is the id of a configured poller
-	 */
-	if (!num_pollers || id < 0 || id >= num_nodes)
+	merlin_node *node;
+	int old_state;
+
+	/* make sure we don't access outside the node_table */
+	if (id < 0 || id >= num_nodes)
 		return;
 
-	node_table[id]->status = state;
+	node = node_table[id];
+	if (state == STATE_NONE) {
+		memset(&node->start, 0, sizeof(node->start));
+	}
+
+	old_state = node->status;
+	node->status = state;
+	if (node->type == MODE_PEER && state != old_state) {
+		assign_peer_ids();
+	}
 }
 
 /*

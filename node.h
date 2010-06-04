@@ -91,6 +91,7 @@ struct merlin_node {
 	int type;               /* server type (master, slave, peer) */
 	int status;             /* status of this node (down, pending, active) */
 	unsigned selection;     /* numeric index for hostgroup */
+	int peer_id;            /* peer id, used to distribute checks */
 	char *hostgroup;        /* only set for pollers on the noc-side */
 	struct sockaddr *sa;    /* should always point to sain */
 	struct sockaddr_in sain;
