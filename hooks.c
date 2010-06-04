@@ -18,6 +18,11 @@ static int check_dupes;
 static merlin_event last_pkt;
 static uint64_t dupes, dupe_bytes;
 
+struct check_stats {
+	uint64_t poller, peer, self;
+};
+struct check_stats service_checks, host_checks;
+
 #ifdef DEBUG_DUPES_CAREFULLY
 #define mos_case(vname) \
 	if (offset >= offsetof(monitored_object_state, vname) && \
@@ -215,8 +220,9 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		 * the floor
 		 */
 		if (has_active_poller(ds->host_name)) {
-			ldebug("Overriding check for service '%s' on host '%s'",
+			ldebug("Overriding check for service '%s;%s'",
 				   ds->host_name, ds->service_description);
+			service_checks.poller++;
 			return NEBERROR_CALLBACKOVERRIDE;
 		}
 		/*
@@ -224,8 +230,10 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		 * take care not to run it
 		 */
 		if (!ctrl_should_run_service_check(ds->host_name, ds->service_description)) {
+			service_checks.peer++;
 			return NEBERROR_CALLBACKOVERRIDE;
 		}
+		service_checks.self++;
 		return 0;
 
 	case NEBTYPE_SERVICECHECK_PROCESSED:
@@ -249,12 +257,14 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		 * forcing Nagios to drop the check on the floor.
 		 */
 		if (has_active_poller(ds->host_name)) {
-			ldebug("Overriding check for host '%s'", ds->host_name);
+			host_checks.poller++;
 			return NEBERROR_CALLBACKOVERRIDE;
 		}
 		if (!ctrl_should_run_host_check(ds->host_name)) {
+			host_checks.peer++;
 			return NEBERROR_CALLBACKOVERRIDE;
 		}
+		host_checks.self++;
 		return 0;
 
 	/* only send processed host checks */
