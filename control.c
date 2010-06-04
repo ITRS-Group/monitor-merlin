@@ -3,8 +3,14 @@
  */
 
 #include "module.h"
+#include "slist.h"
+#include "nagios/nagios.h"
 
 static time_t stall_start;
+static slist *host_sl, *service_sl;
+extern sched_info scheduling_info;
+extern host *host_list;
+extern service *service_list;
 
 /* return number of stalling seconds remaining */
 #define STALL_TIMER 20
@@ -31,6 +37,61 @@ void ctrl_stall_start(void)
 void ctrl_stall_stop(void)
 {
 	stall_start = 0;
+}
+
+static int host_cmp(const void *a_, const void *b_)
+{
+	const host *a = *(const host **)a_;
+	const host *b = *(const host **)b_;
+
+	return strcmp(a->name, b->name);
+}
+
+static int service_cmp(const void *a_, const void *b_)
+{
+	const service *a = *(const service **)a_;
+	const service *b = *(const service **)b_;
+	int result;
+
+	result = strcmp(a->host_name, b->host_name);
+	return result ? result : strcmp(a->description, b->description);
+}
+
+
+static void create_host_table(void)
+{
+	host *h;
+
+	if (!num_peers)
+		return;
+
+	linfo("Creating sorted host table for %d hosts",
+		  scheduling_info.total_hosts);
+	host_sl = slist_init(scheduling_info.total_hosts, host_cmp);
+	for (h = host_list; h; h = h->next)
+		slist_add(host_sl, h);
+	slist_sort(host_sl);
+}
+
+static void create_service_table(void)
+{
+	service *s;
+
+	if (!num_peers)
+		return;
+
+	linfo("Creating sorted service table for %d services",
+		  scheduling_info.total_services);
+	service_sl = slist_init(scheduling_info.total_services, service_cmp);
+	for (s = service_list; s; s = s->next)
+		slist_add(service_sl, s);
+	slist_sort(service_sl);
+}
+
+void ctrl_create_object_tables(void)
+{
+	create_host_table();
+	create_service_table();
 }
 
 /*

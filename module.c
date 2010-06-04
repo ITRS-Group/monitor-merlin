@@ -444,6 +444,7 @@ static int post_config_init(int cb, void *ds)
 	/* neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init); */
 
 	linfo("Object configuration parsed.");
+	ctrl_create_object_tables();
 	setup_host_hash_tables();
 
 	mrm_ipc_connect(NULL);
