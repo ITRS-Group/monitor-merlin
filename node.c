@@ -131,8 +131,11 @@ static void create_node_tree(merlin_node *table, unsigned n)
 		}
 	}
 
-	/* this way, we can keep them all linear while each has its own
-	 * table and still not waste much memory. pretty nifty, really */
+	/*
+	 * Sort nodes by type. This way, we can keep them all linear
+	 * while each has its own table base pointer and still not waste
+	 * much memory. Pretty nifty, really.
+	 */
 	node_table = calloc(num_nodes, sizeof(merlin_node *));
 	noc_table = node_table;
 	peer_table = &node_table[num_nocs];
@@ -141,16 +144,18 @@ static void create_node_tree(merlin_node *table, unsigned n)
 	xnoc = xpeer = xpoll = 0;
 	for (i = 0; i < n; i++) {
 		merlin_node *node = &table[i];
-		node->id = i;
 
 		switch (node->type) {
 		case MODE_NOC:
+			node->id = xnoc;
 			noc_table[xnoc++] = node;
 			break;
 		case MODE_PEER:
+			node->id = num_nocs + xpeer;
 			peer_table[xpeer++] = node;
 			break;
 		case MODE_POLLER:
+			node->id = num_nocs + num_peers + xpoll;
 			poller_table[xpoll++] = node;
 			break;
 		}
