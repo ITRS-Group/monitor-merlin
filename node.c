@@ -321,7 +321,9 @@ const char *node_type(merlin_node *node)
 /* close down the connection to a node and mark it as down */
 void node_disconnect(merlin_node *node)
 {
-	node_log_event_count(node, 1);
+	if (node->status == STATE_CONNECTED)
+		node_log_event_count(node, 1);
+
 	/* avoid spurious close() errors while strace/valgrind debugging */
 	if (node->sock >= 0)
 		close(node->sock);
