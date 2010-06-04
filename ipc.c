@@ -302,6 +302,18 @@ int ipc_sock_desc(void)
 
 int ipc_send_ctrl(int control_type, int selection)
 {
+	if (is_module && control_type == CTRL_ACTIVE) {
+		merlin_event pkt;
+		memset(&pkt.hdr, 0, HDR_SIZE);
+		pkt.hdr.type = CTRL_PACKET;
+		pkt.hdr.code = control_type;
+		pkt.hdr.selection = selection;
+		pkt.hdr.len = sizeof(struct timeval);
+		memcpy(&pkt.body, &merlin_start, sizeof(struct timeval));
+
+		return node_send_event(&ipc, &pkt, 50);
+	}
+
 	return node_send_ctrl(&ipc, control_type, selection, 50);
 }
 
