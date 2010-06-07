@@ -214,8 +214,7 @@ static int net_negotiate_socket(merlin_node *node, int lis)
 	struct sockaddr_in lissain, consain;
 	socklen_t slen = sizeof(struct sockaddr_in);
 
-	ldebug("Negotiating socket for %s node %s",
-		   node_type(node), node->name);
+	linfo("Negotiating socket for %s %s", node_type(node), node->name);
 	sel = con = node->sock;
 	if (con == -1)
 		return lis;
