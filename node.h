@@ -78,7 +78,7 @@ typedef struct node_selection node_selection;
 #define MODE_PEER      (1 << 1)
 #define MODE_POLLER    (1 << 2)
 
-/* for node->status */
+/* for node->state */
 #define STATE_NONE 0
 #define STATE_PENDING 1
 #define STATE_NEGOTIATING 2
@@ -89,7 +89,7 @@ struct merlin_node {
 	int id;                 /* internal index lookup number */
 	int sock;               /* the socket */
 	int type;               /* server type (master, slave, peer) */
-	int status;             /* status of this node (down, pending, active) */
+	int state;              /* state of this node (down, pending, active) */
 	unsigned selection;     /* numeric index for hostgroup */
 	int peer_id;            /* peer id, used to distribute checks */
 	char *hostgroup;        /* only set for pollers on the noc-side */
@@ -122,4 +122,5 @@ extern int node_read_event(merlin_node *node, merlin_event *pkt, int msec);
 extern int node_send_ctrl(merlin_node *node, int type, int selection, int msec);
 extern const char *node_state(merlin_node *node);
 extern const char *node_type(merlin_node *node);
+extern void node_set_state(merlin_node *node, int state);
 #endif

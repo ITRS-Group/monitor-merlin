@@ -53,7 +53,7 @@ int ipc_accept(void)
 	}
 
 	set_socket_buffers(ipc.sock);
-	ipc.status = STATE_CONNECTED;
+	ipc.state = STATE_CONNECTED;
 
 	/* run daemon's on-connect handlers */
 	if (on_connect)
@@ -234,7 +234,7 @@ int ipc_init(void)
 	/* module connected successfully */
 	ipc.sock = listen_sock;
 	set_socket_buffers(ipc.sock);
-	ipc.status = STATE_CONNECTED;
+	node_set_state(&ipc, STATE_CONNECTED);
 
 	/* let everybody know we're alive and active */
 	linfo("Shoutcasting active status through IPC socket %s", ipc_sock_path);
@@ -273,7 +273,7 @@ int ipc_is_connected(int msec)
 		if (ipc.sock < 0)
 			return ipc_reinit() == 0;
 
-		ipc.status = STATE_CONNECTED;
+		node_set_state(&ipc, STATE_CONNECTED);
 		return 1;
 	}
 
@@ -285,6 +285,7 @@ int ipc_is_connected(int msec)
 		} else if (on_connect) {
 			on_connect();
 		}
+		node_set_state(&ipc, STATE_CONNECTED);
 	}
 
 	return ipc.sock != -1;

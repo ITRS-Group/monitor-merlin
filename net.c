@@ -37,11 +37,10 @@ static int net_complete_connection(merlin_node *node)
 
 	if (!error && !fail) {
 		/* successful connection */
-		node->status = STATE_CONNECTED;
 		linfo("Successfully completed connection to %s node '%s' (%s:%d)",
 		      node_type(node), node->name, inet_ntoa(node->sain.sin_addr),
 		      ntohs(node->sain.sin_port));
-		node->action(node, node->status);
+		node_set_state(node, STATE_CONNECTED);
 	}
 
 	return error | fail;
@@ -102,7 +101,7 @@ static int net_try_connect(merlin_node *node)
 	struct sockaddr *sa = (struct sockaddr *)&node->sain;
 	int result;
 
-	if (node->sock >= 0 && node->status == STATE_PENDING)
+	if (node->sock >= 0 && node->state == STATE_PENDING)
 		return 0;
 
 	/* create the socket if necessary */
@@ -131,10 +130,13 @@ static int net_try_connect(merlin_node *node)
 		}
 	}
 
-	/* don't try to connect to a node if an attempt is already pending */
-	if (node->status == STATE_PENDING) {
+	/*
+	 * don't try to connect to a node if an attempt is already pending,
+	 * but do check if the connection has completed successfully
+	 */
+	if (node->state == STATE_PENDING) {
 		if (net_is_connected(node->sock))
-			node->status = STATE_CONNECTED;
+			node_set_state(node, STATE_CONNECTED);
 		return 0;
 	}
 
@@ -155,12 +157,12 @@ static int net_try_connect(merlin_node *node)
 		linfo("Successfully connected to %s %s@%s:%d",
 			  node_type(node), node->name, inet_ntoa(node->sain.sin_addr),
 			  ntohs(node->sain.sin_port));
-		node->status = STATE_CONNECTED;
+		node_set_state(node, STATE_CONNECTED);
 	} else {
 		linfo("Connection pending to %s %s@%s:%d",
 			  node_type(node), node->name,
 			  inet_ntoa(node->sain.sin_addr), ntohs(node->sain.sin_port));
-		node->status = STATE_PENDING;
+		node_set_state(node, STATE_PENDING);
 	}
 
 	return 0;
@@ -176,24 +178,22 @@ static int node_is_connected(merlin_node *node)
 		return 0;
 
 	/* quick way out. The slow way out is far too slow */
-	if (node->sock >= 0 && node->status == STATE_CONNECTED)
+	if (node->sock >= 0 && node->state == STATE_CONNECTED)
 		return 1;
 
-	if (node->sock == -1 || node->status == STATE_NONE) {
+	if (node->sock == -1 || node->state == STATE_NONE) {
 		result = net_try_connect(node);
 		if (result < 0)
 			return 0;
 	}
 
 	result = net_is_connected(node->sock);
-	if (!result && errno == ENOTCONN)
-		node->status = STATE_NONE;
+	if (!result && errno == ENOTCONN) {
+		node_set_state(node, STATE_NONE);
+	}
 
 	if (result) {
-		if (node->status != STATE_CONNECTED)
-			node->action(node, STATE_CONNECTED);
-
-		node->status = STATE_CONNECTED;
+		node_set_state(node, STATE_CONNECTED);
 	}
 
 	return result;
@@ -223,12 +223,12 @@ static int net_negotiate_socket(merlin_node *node, int lis)
 		return con;
 
 	/* we may have to complete a pending connection first */
-	if (node->status == STATE_PENDING && io_write_ok(con, 50)) {
+	if (node->state == STATE_PENDING && io_write_ok(con, 50)) {
 		net_complete_connection(node);
 	}
 
 	/* if that failed, we must use the inbound socket */
-	if (node->status != STATE_CONNECTED) {
+	if (node->state != STATE_CONNECTED) {
 		close(con);
 		return lis;
 	}
@@ -324,7 +324,7 @@ int net_accept_one(void)
 		  node_type(node), node->name,
 		  inet_ntoa(sain.sin_addr), ntohs(sain.sin_port));
 
-	switch (node->status) {
+	switch (node->state) {
 	case STATE_NEGOTIATING: /* this should *NEVER EVER* happen */
 		lerr("Aieee! Negotiating connection with one attempting inbound. Bad Thing(tm)");
 
@@ -348,8 +348,7 @@ int net_accept_one(void)
 		break;
 	}
 
-	node->status = STATE_CONNECTED;
-	node->action(node, node->status);
+	node_set_state(node, STATE_CONNECTED);
 	node->last_sent = node->last_recv = time(NULL);
 
 	return sock;
@@ -445,11 +444,11 @@ static void check_node_activity(merlin_node *node)
 	if (!num_pollers)
 		return;
 
-	if (node->sock == -1 || node->status != STATE_CONNECTED)
+	if (node->sock == -1 || node->state != STATE_CONNECTED)
 		return;
 
 	if (node->last_recv && node->last_recv < now - (pulse_interval * 2))
-		node->action(node, STATE_NONE);
+		node_set_state(node, STATE_NONE);
 }
 
 
@@ -565,10 +564,10 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
 
-		if (!node_is_connected(node) && node->status != STATE_PENDING)
+		if (!node_is_connected(node) && node->state != STATE_PENDING)
 			continue;
 
-		if (node->status == STATE_PENDING)
+		if (node->state == STATE_PENDING)
 			FD_SET(node->sock, wr);
 		else
 			FD_SET(node->sock, rd);
@@ -600,7 +599,7 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 			continue;
 
 		/* new connections go first */
-		if (node->status == STATE_PENDING && FD_ISSET(node->sock, wr)) {
+		if (node->state == STATE_PENDING && FD_ISSET(node->sock, wr)) {
 			sockets++;
 			if (net_complete_connection(node)) {
 				node_disconnect(node);
@@ -658,10 +657,10 @@ int net_poll(void)
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
 
-		if (!node_is_connected(node) && node->status != STATE_PENDING)
+		if (!node_is_connected(node) && node->state != STATE_PENDING)
 			continue;
 
-		if (node->status == STATE_PENDING)
+		if (node->state == STATE_PENDING)
 			FD_SET(node->sock, &wr);
 		else
 			FD_SET(node->sock, &rd);

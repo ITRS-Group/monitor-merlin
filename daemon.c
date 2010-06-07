@@ -464,7 +464,7 @@ static int on_ipc_connect(void)
 
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
-		if (node->status == STATE_CONNECTED)
+		if (node->state == STATE_CONNECTED)
 			ipc_send_ctrl(CTRL_ACTIVE, node->id);
 		else
 			ipc_send_ctrl(CTRL_INACTIVE, node->id);

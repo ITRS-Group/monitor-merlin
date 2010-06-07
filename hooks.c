@@ -197,7 +197,7 @@ static int has_active_poller(const char *host_name)
 
 	for (li = sel->nodes; li; li = li->next_item) {
 		merlin_node *node = (merlin_node *)li->item;
-		if (node->status == STATE_CONNECTED)
+		if (node->state == STATE_CONNECTED)
 			return 1;
 	}
 

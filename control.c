@@ -143,10 +143,10 @@ static int cmp_peer(const void *a_, const void *b_)
 	const merlin_node *a = *(const merlin_node **)a_;
 	const merlin_node *b = *(const merlin_node **)b_;
 
-	if (a->status != b->status) {
-		if (a->status == STATE_CONNECTED)
+	if (a->state != b->state) {
+		if (a->state == STATE_CONNECTED)
 			return -1;
-		if (b->status == STATE_CONNECTED)
+		if (b->state == STATE_CONNECTED)
 			return 1;
 	}
 
@@ -175,7 +175,7 @@ static void assign_peer_ids(void)
 		merlin_node *node = peerid_table[i];
 
 		node->peer_id += inc;
-		if (node->status == STATE_CONNECTED)
+		if (node->state == STATE_CONNECTED)
 			active_peers++;
 
 		/* already adding +1, so move on */
@@ -213,7 +213,7 @@ static void assign_peer_ids(void)
 /*
  * Marks a (poller) node as active or inactive
  */
-static void node_set_state(int id, int state)
+static void set_node_state(int id, int state)
 {
 	merlin_node *node;
 	int old_state;
@@ -227,8 +227,8 @@ static void node_set_state(int id, int state)
 		memset(&node->start, 0, sizeof(node->start));
 	}
 
-	old_state = node->status;
-	node->status = state;
+	old_state = node->state;
+	node->state = state;
 	if (node->type == MODE_PEER && state != old_state) {
 		assign_peer_ids();
 	}
@@ -269,10 +269,10 @@ void handle_control(merlin_event *pkt)
 
 	switch (pkt->hdr.code) {
 	case CTRL_INACTIVE:
-		node_set_state(pkt->hdr.selection, STATE_NONE);
+		set_node_state(pkt->hdr.selection, STATE_NONE);
 		break;
 	case CTRL_ACTIVE:
-		node_set_state(pkt->hdr.selection, STATE_CONNECTED);
+		set_node_state(pkt->hdr.selection, STATE_CONNECTED);
 		break;
 	case CTRL_STALL:
 		ctrl_stall_start();

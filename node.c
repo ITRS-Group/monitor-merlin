@@ -7,6 +7,20 @@ static node_selection *selection_table;
 
 static char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 
+void node_set_state(merlin_node *node, int state)
+{
+	if (!node)
+		return;
+
+	if (node->state == state)
+		return;
+
+	if (node->action)
+		node->action(node, state);
+
+	node->state = state;
+}
+
 node_selection *node_selection_by_name(const char *name)
 {
 	int i;
@@ -289,7 +303,7 @@ void node_log_event_count(merlin_node *node, int force)
 
 const char *node_state(merlin_node *node)
 {
-	switch (node->status) {
+	switch (node->state) {
 	case STATE_NONE:
 		return "not connected";
 	case STATE_PENDING:
@@ -322,15 +336,13 @@ const char *node_type(merlin_node *node)
 /* close down the connection to a node and mark it as down */
 void node_disconnect(merlin_node *node)
 {
-	if (node->status == STATE_CONNECTED)
+	if (node->state == STATE_CONNECTED)
 		node_log_event_count(node, 1);
 
 	/* avoid spurious close() errors while strace/valgrind debugging */
 	if (node->sock >= 0)
 		close(node->sock);
-	node->status = STATE_NONE;
-	if (node->action)
-		node->action(node, node->status);
+	node_set_state(node, STATE_NONE);
 	node->last_recv = 0;
 	node->sock = -1;
 }
@@ -448,7 +460,7 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 		return -1;
 	}
 
-	if (node->sock < 0 || node->status == STATE_NONE) {
+	if (node->sock < 0 || node->state == STATE_NONE) {
 		return node_binlog_add(node, pkt);
 	}
 
