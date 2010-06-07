@@ -210,70 +210,81 @@ static int node_is_connected(merlin_node *node)
  * lis is the one we found with accept. */
 static int net_negotiate_socket(merlin_node *node, int lis)
 {
-	fd_set rd, wr;
-	int result, con = node->sock, sel = con;
-	struct timeval tv = { 0, 50 };
+	int con, sel;
+	struct sockaddr_in lissain, consain;
+	socklen_t slen = sizeof(struct sockaddr_in);
 
+	ldebug("Negotiating socket for %s node %s",
+		   node_type(node), node->name);
+	sel = con = node->sock;
 	if (con == -1)
 		return lis;
 
 	if (lis == -1)
 		return con;
 
-	/* fds are real sockets. check if both are connected */
-	FD_ZERO(&rd);
-	FD_ZERO(&wr);
-	FD_SET(lis, &rd);
-	FD_SET(lis, &wr);
-	FD_SET(con, &rd);
-	FD_SET(con, &wr);
-
-	if (lis > con)
-		sel = lis;
-
-	result = select(sel + 1, &rd, &wr, NULL, &tv);
-	if (result < 0) {
-		close(lis);
-		close(con);
-		node->status = STATE_NONE;
-		node->action(node, node->status);
-		return -1;
-	}
-
-	if (!result || (!FD_ISSET(con, &rd) && !FD_ISSET(lis, &rd))) {
-		/* nothing to read on any socket, so pick one arbitrarily */
-		close(lis);
-		return con;
-	}
-
-	if (FD_ISSET(lis, &rd) && FD_ISSET(con, &rd)) {
-		lerr("negotiation: listening and connecting sockets are viable for reading, but status of node isn't \"connected\"");
-		close(lis);
-		return con;
-	}
-
-	/* we may have to complete the connection first */
-	if (FD_ISSET(con, &wr)) {
+	/* we may have to complete a pending connection first */
+	if (node->status == STATE_PENDING && io_write_ok(con, 50)) {
 		net_complete_connection(node);
 	}
-	else {
-		if (FD_ISSET(con, &rd) && !FD_ISSET(lis, &rd)) {
-			close(lis);
-			return con;
-		}
-		if (FD_ISSET(lis, &rd) && !FD_ISSET(con, &rd)) {
-			close(con);
-			return lis;
-		}
-	}
 
-	if (net_is_connected(con) && net_is_connected(lis)) {
-		node_disconnect(node);
-		node->status = STATE_CONNECTED;
-		node->sock = lis;
-		node->action(node, node->status);
+	/* if that failed, we must use the inbound socket */
+	if (node->status != STATE_CONNECTED) {
+		close(con);
 		return lis;
 	}
+
+	/* we prefer the socket with the lowest ip-address */
+	if (getsockname(lis, (struct sockaddr *)&lissain, &slen) < 0) {
+		lerr("negotiate: getsockname(%d, ...) failed: %s",
+			 lis, strerror(errno));
+		close(lis);
+		return con;
+	}
+
+	if (getpeername(con, (struct sockaddr *)&consain, &slen) < 0) {
+		lerr("negotiate: getpeername(%d, ...) failed: %s",
+			 con, strerror(errno));
+		close(con);
+		return lis;
+	}
+
+	ldebug("negotiate. lis(%d): %s:%d", lis,
+		   inet_ntoa(lissain.sin_addr), lissain.sin_port);
+	ldebug("negotiate. con(%d): %s:%d", con,
+		   inet_ntoa(consain.sin_addr), consain.sin_port);
+
+	if (lissain.sin_addr.s_addr > consain.sin_addr.s_addr) {
+		ldebug("negotiate: con has lowest ip. using that");
+		close(lis);
+		return con;
+	}
+	if (consain.sin_addr.s_addr > lissain.sin_addr.s_addr) {
+		ldebug("negotiate: lis has lowest ip. using that");
+		close(con);
+		return lis;
+	}
+
+	/*
+	 * this will happen if multiple merlin instances run
+	 * on the same server, such as when we're testing
+	 * things. In that case, let the portnumber decide
+	 * the tiebreak
+	 */
+	if (lissain.sin_port > consain.sin_port) {
+		ldebug("negotiate: con has lowest port. using that");
+		close(lis);
+		return con;
+	}
+	if (consain.sin_port > lissain.sin_port) {
+		ldebug("negotiate: lis has lowest port. using that");
+		close(con);
+		return lis;
+	}
+
+	ldebug("negotiate: con and lis are equal. killing both");
+	node_disconnect(node);
+	close(lis);
 
 	return -1;
 }
