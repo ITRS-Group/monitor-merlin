@@ -315,16 +315,14 @@ int net_accept_one(void)
 		  inet_ntoa(sain.sin_addr), ntohs(sain.sin_port));
 
 	switch (node->status) {
-	case STATE_PENDING:
-		node->sock = net_negotiate_socket(node, sock);
-		break;
-
 	case STATE_NEGOTIATING: /* this should *NEVER EVER* happen */
 		lerr("Aieee! Negotiating connection with one attempting inbound. Bad Thing(tm)");
+
 		/* fallthrough */
-	case STATE_CONNECTED:
-		close(sock);
-		return 0;
+	case STATE_CONNECTED: case STATE_PENDING:
+		/* if node->sock >= 0, we must negotiate which one to use */
+		node->sock = net_negotiate_socket(node, sock);
+		break;
 
 	case STATE_NONE:
 		/*
