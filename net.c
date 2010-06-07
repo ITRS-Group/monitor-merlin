@@ -327,8 +327,10 @@ int net_accept_one(void)
 		return 0;
 
 	case STATE_NONE:
-		/* we must close it unconditionally or we'll leak fd's
-		 * for reconnecting nodes that were previously connected */
+		/*
+		 * we must close it unconditionally or we'll leak fd's
+		 * for reconnecting nodes that were previously connected
+		 */
 		node_disconnect(node);
 		node->sock = sock;
 		break;
