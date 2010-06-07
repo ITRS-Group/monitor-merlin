@@ -151,9 +151,12 @@ static int net_try_connect(merlin_node *node)
 		return -1;
 	}
 
-	if (net_is_connected(node->sock))
+	if (net_is_connected(node->sock)) {
+		linfo("Successfully connected to %s %s@%s:%d",
+			  node_type(node), node->name, inet_ntoa(node->sain.sin_addr),
+			  ntohs(node->sain.sin_port));
 		node->status = STATE_CONNECTED;
-	else {
+	} else {
 		linfo("Connection pending to %s %s@%s:%d",
 			  node_type(node), node->name,
 			  inet_ntoa(node->sain.sin_addr), ntohs(node->sain.sin_port));
