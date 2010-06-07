@@ -248,7 +248,7 @@ void handle_control(merlin_event *pkt)
 	}
 
 	sel_name = get_sel_name(pkt->hdr.selection);
-	if (pkt->hdr.selection >= 0 && pkt->hdr.selection < num_nodes)
+	if (pkt->hdr.selection < num_nodes)
 		node_name = node_table[pkt->hdr.selection]->name;
 	if (node_name && (pkt->hdr.code == CTRL_INACTIVE || pkt->hdr.code == CTRL_ACTIVE)) {
 		linfo("Received control packet code %d for %s node %s",
