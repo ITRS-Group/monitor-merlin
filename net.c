@@ -44,7 +44,7 @@ static int net_complete_connection(merlin_node *node)
 		node->action(node, node->status);
 	}
 
-	return !fail;
+	return error | fail;
 }
 
 
