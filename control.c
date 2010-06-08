@@ -245,6 +245,7 @@ static void set_node_state(int id, int state)
 void handle_control(merlin_event *pkt)
 {
 	char *sel_name, *node_name = NULL;
+	merlin_node *node;
 
 	if (!pkt) {
 		lerr("handle_control() called with NULL packet");
@@ -276,6 +277,9 @@ void handle_control(merlin_event *pkt)
 		set_node_state(pkt->hdr.selection, STATE_NONE);
 		break;
 	case CTRL_ACTIVE:
+		node = node_table[pkt->hdr.selection];
+		memcpy(&node->start, &pkt->body, sizeof(struct timeval));
+		ldebug("node %s started %lu.%lu", node->name, node->start.tv_sec, node->start.tv_usec);
 		set_node_state(pkt->hdr.selection, STATE_CONNECTED);
 		break;
 	case CTRL_STALL:
