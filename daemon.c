@@ -331,8 +331,15 @@ static int handle_ipc_event(merlin_event *pkt)
 		return 0;
 	}
 
+	/*
+	 * we must send to the network before we run mrm_db_update(),
+	 * since the latter deblockifies the packet and makes it
+	 * unusable in network transfers without repacking
+	 */
 	result = net_send_ipc_data(pkt);
-	if (use_database)
+
+	/* skip sending control packets to database */
+	if (use_database && pkt->hdr.type != CTRL_PACKET)
 		result |= mrm_db_update(&ipc, pkt);
 
 	return result;
