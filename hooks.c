@@ -271,6 +271,7 @@ static int hook_host_result(merlin_event *pkt, void *data)
 	case NEBTYPE_HOSTCHECK_PROCESSED:
 		/* XXX: temporarily disabled */
 		return 0;
+		pkt->hdr.selection = get_selection(ds->host_name);
 		return send_generic(pkt, ds);
 	}
 
