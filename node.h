@@ -86,7 +86,7 @@ typedef struct node_selection node_selection;
 
 struct merlin_node {
 	char *name;             /* name of this node */
-	int id;                 /* internal index lookup number */
+	uint id;                 /* internal index lookup number */
 	int sock;               /* the socket */
 	int type;               /* server type (master, slave, peer) */
 	int state;              /* state of this node (down, pending, active) */
