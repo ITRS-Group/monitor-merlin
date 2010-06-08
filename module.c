@@ -436,6 +436,16 @@ static int post_config_init(int cb, void *ds)
 	return 0;
 }
 
+/*
+ * This gets run when we create an ipc connection.
+ * It should (always) be the first event to go through
+ * the ipc socket
+ */
+static int on_ipc_connect(void)
+{
+	return ipc_send_ctrl_active(CTRL_GENERIC, &merlin_start);
+}
+
 /**
  * Initialization routine for the eventbroker module. This
  * function gets called by Nagios when it's done loading us
@@ -469,6 +479,8 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 
 	/* this gets de-registered immediately, so we need to add it manually */
 	neb_register_callback(NEBCALLBACK_PROCESS_DATA, neb_handle, 0, post_config_init);
+
+	mrm_ipc_set_connect_handler(on_ipc_connect);
 
 	linfo("Merlin module %s initialized successfully", merlin_version);
 	mrm_ipc_reap(NULL);
