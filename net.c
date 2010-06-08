@@ -458,6 +458,19 @@ static void check_node_activity(merlin_node *node)
  */
 static int handle_network_event(merlin_node *node, merlin_event *pkt)
 {
+	if (pkt->hdr.type == CTRL_PACKET) {
+		/*
+		 * if this is a CTRL_ALIVE packet from a remote module, we
+		 * must take care to stash the start-time here so we can
+		 * forward it to our module later. It only matters for
+		 * peers, but we might as well set it for all modules
+		 */
+		if (pkt->hdr.code == CTRL_ACTIVE) {
+			memcpy(&node->start, pkt->body, pkt->hdr.len);
+			ldebug("%s started @ %lu.%lu", node->name,
+				   node->start.tv_sec, node->start.tv_usec);
+		}
+	}
 	if (node->type == MODE_POLLER && num_nocs) {
 		uint i;
 
