@@ -5,8 +5,6 @@
 
 time_t merlin_should_send_paths = 1;
 
-static int mrm_ipc_connect(void *discard);
-
 /** code start **/
 extern hostgroup *hostgroup_list;
 #define mrm_reap_interval 5
@@ -407,26 +405,6 @@ int send_paths(void)
 	return 0;
 }
 
-static int mrm_ipc_connect(void *discard)
-{
-	int result;
-
-	linfo("Attempting ipc connect");
-	result = ipc_init();
-	if (result < 0) {
-		lerr("IPC connection failed. Re-scheduling to try again in 10 seconds");
-		schedule_new_event(EVENT_USER_FUNCTION, TRUE, time(NULL) + 10, FALSE,
-						   0, NULL, FALSE, mrm_ipc_connect, NULL, 0);
-	}
-	else {
-		linfo("ipc successfully connected");
-		mrm_ipc_reap(NULL);
-	}
-
-	return result;
-}
-
-
 /*
  * This function gets called before and after Nagios has read its config
  * and written its objects.cache and status.log files.
@@ -446,9 +424,6 @@ static int post_config_init(int cb, void *ds)
 	linfo("Object configuration parsed.");
 	ctrl_create_object_tables();
 	setup_host_hash_tables();
-
-	mrm_ipc_connect(NULL);
-	send_paths();
 
 	/*
 	 * now we register the hooks we're interested in, avoiding
@@ -496,6 +471,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	neb_register_callback(NEBCALLBACK_PROCESS_DATA, neb_handle, 0, post_config_init);
 
 	linfo("Merlin module %s initialized successfully", merlin_version);
+	mrm_ipc_reap(NULL);
 
 	return 0;
 }
