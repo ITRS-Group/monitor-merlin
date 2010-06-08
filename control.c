@@ -170,6 +170,7 @@ static void assign_peer_ids(void)
 	ldebug("Sorting peerid_table with %d entries", num_peers);
 	qsort(peerid_table, num_peers, sizeof(merlin_node *), cmp_peer);
 	active_peers = 0;
+	peer_id = -1;
 	for (i = 0; i < num_peers; i++) {
 		int result;
 		merlin_node *node = peerid_table[i];
@@ -202,6 +203,9 @@ static void assign_peer_ids(void)
 		inc = 1;
 		node->peer_id += inc;
 	}
+
+	if (peer_id == -1)
+		peer_id = active_peers;
 
 	linfo("We're now peer #%d out of %d active ones", peer_id,
 		  active_peers + 1);
