@@ -696,7 +696,7 @@ static int test_binlog(struct test_binlog *t, binlog *bl)
 /*
  * Test the binlog api for leaks. This requires valgrind
  */
-void test_binlog_leakage(void)
+static void test_binlog_leakage(void)
 {
 	int i = 0, expect_end = 0;
 	struct binlog *bl;
