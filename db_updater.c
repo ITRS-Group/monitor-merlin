@@ -580,7 +580,8 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 		return 0;
 
 	default:
-		lerr("Unknown callback type. Weird, to say the least...");
+		lerr("Unknown callback type %d. Weird, to say the least...",
+			 pkt->hdr.type);
 		return -1;
 		break;
 	}
