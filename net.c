@@ -454,7 +454,9 @@ static void check_node_activity(merlin_node *node)
 
 /*
  * Passes an event from a remote node to the broker module,
- * any and all nocs and the database handling routines
+ * any and all nocs and the database handling routines. The
+ * exception to this rule is control packets from peers and
+ * pollers, which never get forwarded to our masters.
  */
 static int handle_network_event(merlin_node *node, merlin_event *pkt)
 {
@@ -470,8 +472,7 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 			ldebug("%s started @ %lu.%lu", node->name,
 				   node->start.tv_sec, node->start.tv_usec);
 		}
-	}
-	if (node->type == MODE_POLLER && num_nocs) {
+	} else if (node->type == MODE_POLLER && num_nocs) {
 		uint i;
 
 		linfo("Passing on event from poller %s to %d nocs",
