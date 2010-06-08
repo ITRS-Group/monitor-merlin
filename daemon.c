@@ -45,8 +45,16 @@ static int node_action_handler(merlin_node *node, int action)
 
 	switch (action) {
 	case STATE_CONNECTED:
-		ldebug("Sending IPC control ACTIVE for '%s'", node->name);
-		return ipc_send_ctrl(CTRL_ACTIVE, node->id);
+		/*
+		 * If we've received the timestamp marker from our module,
+		 * We  need to send our own timestamp to the other end so
+		 * they know how to sort us in case we're a peer to them.
+		 */
+		if (ipc.start.tv_sec && ipc_is_connected(0)) {
+			node_send_ctrl_active(node, CTRL_GENERIC, &ipc.start, 100);
+		}
+		break;
+
 	case STATE_PENDING:
 	case STATE_NEGOTIATING:
 	case STATE_NONE:
