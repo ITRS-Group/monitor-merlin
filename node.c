@@ -435,8 +435,8 @@ int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
 
 	result = io_recv_all(node->sock, pkt->body, pkt->hdr.len);
 	if (result != pkt->hdr.len) {
-		lwarn("Bogus read in proto_read_event(). got %d, expected %d",
-			  result, pkt->hdr.len);
+		lwarn("Bogus read in %s(). got %d, expected %d",
+			  __func__, result, pkt->hdr.len);
 		lwarn("Sync lost with %s?", node->name);
 		node_disconnect(node);
 		return -1;
