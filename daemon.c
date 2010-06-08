@@ -327,8 +327,8 @@ static int handle_ipc_event(merlin_event *pkt)
 	if (pkt->hdr.type == CTRL_PACKET) {
 		if (pkt->hdr.code == CTRL_PATHS) {
 			read_nagios_paths(pkt);
+			return 0;
 		}
-		return 0;
 	}
 
 	/*
