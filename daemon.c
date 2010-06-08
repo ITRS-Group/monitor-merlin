@@ -47,6 +47,9 @@ static int node_action_handler(merlin_node *node, int action)
 	if (node->state == action)
 		return 0;
 
+	ldebug("Running action handler for %s with action %d",
+		   node->name, action);
+
 	switch (action) {
 	case STATE_CONNECTED:
 		/*
