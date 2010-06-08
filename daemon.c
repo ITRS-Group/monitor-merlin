@@ -50,8 +50,11 @@ static int node_action_handler(merlin_node *node, int action)
 	case STATE_PENDING:
 	case STATE_NEGOTIATING:
 	case STATE_NONE:
-		ldebug("Sending IPC control INACTIVE for '%s'", node->name);
-		return ipc_send_ctrl(CTRL_INACTIVE, node->id);
+		/* only send INACTIVE if we haven't already */
+		if (node->state == STATE_CONNECTED) {
+			ldebug("Sending IPC control INACTIVE for '%s'", node->name);
+			return ipc_send_ctrl(CTRL_INACTIVE, node->id);
+		}
 	}
 
 	return 1;
