@@ -43,6 +43,10 @@ static int node_action_handler(merlin_node *node, int action)
 	if (node->type == MODE_NOC)
 		return 0;
 
+	/* don't send the same event twice */
+	if (node->state == action)
+		return 0;
+
 	switch (action) {
 	case STATE_CONNECTED:
 		/*
