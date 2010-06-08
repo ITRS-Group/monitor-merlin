@@ -21,7 +21,7 @@ static uint64_t dupes, dupe_bytes;
 struct check_stats {
 	uint64_t poller, peer, self;
 };
-struct check_stats service_checks, host_checks;
+static struct check_stats service_checks, host_checks;
 
 #ifdef DEBUG_DUPES_CAREFULLY
 #define mos_case(vname) \
