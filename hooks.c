@@ -220,8 +220,6 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		 * the floor
 		 */
 		if (has_active_poller(ds->host_name)) {
-			ldebug("Overriding check for service '%s;%s'",
-				   ds->host_name, ds->service_description);
 			service_checks.poller++;
 			return NEBERROR_CALLBACKOVERRIDE;
 		}
