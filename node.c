@@ -444,6 +444,12 @@ int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
 	}
 	node->stats.bytes.read += pkt->hdr.len;
 
+	if (pkt->hdr.type == CTRL_PACKET && pkt->hdr.code == CTRL_ACTIVE) {
+		struct timeval *tv = (struct timeval *)&pkt->body;
+		ldebug("Received CTRL_ACTIVE from %s with start time %lu.%lu",
+			   node->name, tv->tv_sec, tv->tv_usec);
+	}
+
 	return result;
 }
 
@@ -459,6 +465,12 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 	node_log_event_count(node, 0);
 
 	pkt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
+
+	if (pkt->hdr.type == CTRL_PACKET && pkt->hdr.code == CTRL_ACTIVE) {
+		struct timeval *tv = (struct timeval *)&pkt->body;
+		ldebug("Sending CTRL_ACTIVE to %s with start time %lu.%lu",
+			   node->name, tv->tv_sec, tv->tv_usec);
+	}
 
 	if (packet_size(pkt) > TOTAL_PKT_SIZE) {
 		lerr("header is invalid, or packet is too large. aborting");
