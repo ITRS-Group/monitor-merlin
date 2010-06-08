@@ -561,6 +561,24 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 }
 
 /*
+ * Sends a CTRL_ACTIVE event to the designated node, making
+ * the timeval argument the body of the packet
+ */
+int node_send_ctrl_active(merlin_node *node, uint id, struct timeval *tv, int msec)
+{
+	merlin_event pkt;
+
+	memset(&pkt.hdr, 0, HDR_SIZE);
+	pkt.hdr.type = CTRL_PACKET;
+	pkt.hdr.code = CTRL_ACTIVE;
+	pkt.hdr.selection = id & 0xffff;
+	pkt.hdr.len = sizeof(struct timeval);
+	memcpy(&pkt.body, tv, sizeof(struct timeval));
+
+	return node_send_event(node, &pkt, msec);
+}
+
+/*
  * Sends a control event of type "type" with selection "selection"
  * to node "node"
  */
