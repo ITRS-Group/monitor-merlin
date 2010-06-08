@@ -574,37 +574,30 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 }
 
 /*
- * Sends a CTRL_ACTIVE event to the designated node, making
- * the timeval argument the body of the packet
+ * Sends a control event with code "code" and selection "selection"
+ * to node "node", packing pkt->body with "data" which must be of
+ * size "len".
  */
-int node_send_ctrl_active(merlin_node *node, uint id, struct timeval *tv, int msec)
+int node_ctrl(merlin_node *node, int code, uint selection, void *data,
+			  uint32_t len, int msec)
 {
 	merlin_event pkt;
 
-	memset(&pkt.hdr, 0, HDR_SIZE);
-	pkt.hdr.type = CTRL_PACKET;
-	pkt.hdr.code = CTRL_ACTIVE;
-	pkt.hdr.selection = id & 0xffff;
-	pkt.hdr.len = sizeof(struct timeval);
-	memcpy(&pkt.body, tv, sizeof(struct timeval));
-
-	return node_send_event(node, &pkt, msec);
-}
-
-/*
- * Sends a control event of type "type" with selection "selection"
- * to node "node"
- */
-int node_send_ctrl(merlin_node *node, int type, int selection, int msec)
-{
-	merlin_event pkt;
+	if (len > sizeof(pkt.body)) {
+		lerr("Attempted to send %u bytes of data when max is %u",
+			 len, sizeof(pkt.body));
+		bt_scan(NULL, 0);
+		return -1;
+	}
 
 	memset(&pkt.hdr, 0, HDR_SIZE);
 
 	pkt.hdr.type = CTRL_PACKET;
-	pkt.hdr.len = 0;
-	pkt.hdr.code = type;
-	pkt.hdr.selection = selection;
+	pkt.hdr.len = len;
+	pkt.hdr.code = code;
+	pkt.hdr.selection = selection & 0xffff;
+	if (data)
+		memcpy(&pkt.body, data, len);
 
 	return node_send_event(node, &pkt, msec);
 }

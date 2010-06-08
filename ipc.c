@@ -297,21 +297,15 @@ int ipc_sock_desc(void)
 	return ipc.sock;
 }
 
-int ipc_send_ctrl(int control_type, int selection)
+/*
+ * Sends a control packet to ipc, making sure it's connected
+ * first. If data isn't null, len bytes is copied from it to
+ * pkt.body
+ */
+int ipc_ctrl(int code, uint sel, void *data, uint32_t len)
 {
-	if (is_module && control_type == CTRL_ACTIVE) {
-		merlin_event pkt;
-		memset(&pkt.hdr, 0, HDR_SIZE);
-		pkt.hdr.type = CTRL_PACKET;
-		pkt.hdr.code = control_type;
-		pkt.hdr.selection = selection;
-		pkt.hdr.len = sizeof(struct timeval);
-		memcpy(&pkt.body, &merlin_start, sizeof(struct timeval));
-
-		return node_send_event(&ipc, &pkt, 50);
-	}
-
-	return node_send_ctrl(&ipc, control_type, selection, 50);
+	ipc_is_connected(0);
+	return node_ctrl(&ipc, code, sel, data, len, 100);
 }
 
 int ipc_send_event(merlin_event *pkt)
