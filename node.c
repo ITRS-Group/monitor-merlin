@@ -438,6 +438,7 @@ int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
 		lwarn("Bogus read in %s(). got %d, expected %d",
 			  __func__, result, pkt->hdr.len);
 		lwarn("Sync lost with %s?", node->name);
+		lwarn("packet type is %d, code is %d", pkt->hdr.type, pkt->hdr.code);
 		node_disconnect(node);
 		return -1;
 	}
