@@ -332,6 +332,14 @@ static int handle_ipc_event(merlin_event *pkt)
 			read_nagios_paths(pkt);
 			return 0;
 		}
+		if (pkt->hdr.code == CTRL_ACTIVE) {
+			struct timeval *tv = (struct timeval *)&pkt->body;
+			memcpy(&ipc.start, tv, sizeof(*tv));
+		}
+		if (pkt->hdr.code == CTRL_INACTIVE) {
+			/* this should really never happen */
+			memset(&ipc.start, 0, sizeof(ipc.start));
+		}
 	}
 
 	/*
