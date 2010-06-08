@@ -487,6 +487,7 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		 * the event, which makes unusable for sending to the
 		 * ipc (or, indeed, anywhere else) afterwards.
 		 */
+		pkt->hdr.selection = node->id;
 		ipc_send_event(pkt);
 		mrm_db_update(node, pkt);
 		return 0;
