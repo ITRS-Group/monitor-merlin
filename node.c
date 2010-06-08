@@ -399,7 +399,11 @@ int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
 
 	node_log_event_count(node, 0);
 
-	if (msec && (result = io_read_ok(node->sock, msec)) <= 0)
+	result = io_read_ok(node->sock, msec);
+	if (result < 0)
+		lerr("io_read_ok(%d, %d) failed for node %s: %s",
+			 node->sock, msec, node->name, strerror(errno));
+	if (result <= 0)
 		return 0;
 
 	len = io_recv_all(node->sock, &pkt->hdr, HDR_SIZE);
