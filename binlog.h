@@ -41,13 +41,13 @@ extern void binlog_invalidate(binlog *bl);
 extern const char *binlog_path(binlog *bl);
 
 /**
- * Create a binary logging object
+ * Create a binary logging object. If fsize is 0, path may be NULL.
  * @param path The path to store on-disk logs.
  * @param msize The maximum amount of memory used for storing
  *              events in the mem-cache of this backlog.
  * @param fsize The max size files are allowed to grow to.
  * @param flags Decide what to do with an already existing file at path
- * @return A binlog object, or NULL on memory allocation errors.
+ * @return A binlog object on success, NULL on errors.
  */
 extern binlog *binlog_create(const char *path, uint msize, uint fsize, int flags);
 
