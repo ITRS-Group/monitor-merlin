@@ -236,10 +236,6 @@ int ipc_init(void)
 	set_socket_buffers(ipc.sock);
 	node_set_state(&ipc, STATE_CONNECTED);
 
-	/* let everybody know we're alive and active */
-	linfo("Shoutcasting active status through IPC socket %s", ipc_sock_path);
-	ipc_send_ctrl(CTRL_ACTIVE, -1);
-
 	if (on_connect) {
 		linfo("Running on_connect hook");
 		on_connect();
