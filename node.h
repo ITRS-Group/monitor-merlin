@@ -123,6 +123,8 @@ extern const char *node_state(merlin_node *node);
 extern const char *node_type(merlin_node *node);
 extern void node_set_state(merlin_node *node, int state);
 extern int node_ctrl(merlin_node *node, int code, uint selection, void *data, uint32_t len, int msec);
+#define node_send_ctrl_inactive(node, id, msec) \
+	node_ctrl(node, CTRL_INACTIVE, id, NULL, 0, msec)
 #define node_send_ctrl_active(node, id, tv, msec) \
 	node_ctrl(node, CTRL_ACTIVE, id, (void *)tv, sizeof(*tv), msec)
 #endif
