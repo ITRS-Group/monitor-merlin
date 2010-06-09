@@ -75,6 +75,55 @@ static int node_action_handler(merlin_node *node, int action)
 	return 1;
 }
 
+static int ipc_action_handler(merlin_node *node, int state)
+{
+	int i;
+
+	if (node != &ipc || ipc.state == state)
+		return 0;
+	switch (state) {
+	case STATE_CONNECTED:
+		if (use_database) {
+			sql_reinit();
+			sql_query("UPDATE %s.program_status SET "
+					  "is_running = 1, last_alive = %lu "
+					  "WHERE instance_id = 0", sql_db_name(), time(NULL));
+		}
+
+		for (i = 0; i < num_nodes; i++) {
+			merlin_node *node = node_table[i];
+			if (node->state == STATE_CONNECTED && node->start.tv_sec > 0)
+				ipc_send_ctrl_active(node->id, &node->start);
+			else
+				ipc_send_ctrl_inactive(node->id);
+
+			/*
+			 * we mustn't notify our connected nodes that the module once
+			 * again came online, since the module is supposed to create
+			 * that event itself
+			 */
+		}
+		break;
+
+	case STATE_PENDING:
+	case STATE_NEGOTIATING:
+	case STATE_NONE:
+		/* if ipc wasn't connected before, we return early */
+		if (ipc.state != STATE_CONNECTED)
+			return 0;
+		/* make sure the gui knows the module isn't running any more */
+		sql_query("UPDATE %s.program_status SET is_running = 0 "
+				  "WHERE instance_id = 0", sql_db_name());
+
+		/* also tell our peers and masters */
+		for (i = 0; i < num_nocs + num_peers; i++) {
+			merlin_node *node = node_table[i];
+			node_send_ctrl_inactive(node, CTRL_GENERIC, 100);
+		}
+	}
+
+	return 0;
+}
 
 static void grok_daemon_compound(struct cfg_comp *comp)
 {
@@ -484,36 +533,6 @@ static void clean_exit(int sig)
 }
 
 
-static int on_ipc_connect(void)
-{
-	int i;
-
-	if (use_database) {
-		sql_reinit();
-		sql_query("UPDATE %s.program_status SET "
-		          "is_running = 1, last_alive = %lu "
-		          "WHERE instance_id = 0", sql_db_name(), time(NULL));
-	}
-
-	for (i = 0; i < num_nodes; i++) {
-		merlin_node *node = node_table[i];
-		if (node->state == STATE_CONNECTED && node->start.tv_sec > 0)
-			ipc_send_ctrl_active(node->id, &node->start);
-		else
-			ipc_send_ctrl(CTRL_INACTIVE, node->id);
-	}
-
-	return 0;
-}
-
-static int on_ipc_disconnect(void)
-{
-	/* make sure the gui knows the module isn't running any more */
-	sql_query("UPDATE %s.program_status SET is_running = 0 "
-			  "WHERE instance_id = 0", sql_db_name());
-	return 0;
-}
-
 int main(int argc, char **argv)
 {
 	int i, result, stop = 0;
@@ -582,10 +601,7 @@ int main(int argc, char **argv)
 	if (stop)
 		return kill_daemon(pidfile);
 
-	if (use_database) {
-		mrm_ipc_set_connect_handler(on_ipc_connect);
-		mrm_ipc_set_disconnect_handler(on_ipc_disconnect);
-	}
+	ipc.action = ipc_action_handler;
 
 	result = ipc_init();
 	if (result < 0) {

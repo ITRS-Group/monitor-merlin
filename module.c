@@ -439,13 +439,27 @@ static int post_config_init(int cb, void *ds)
 }
 
 /*
- * This gets run when we create an ipc connection.
- * It should (always) be the first event to go through
- * the ipc socket
+ * This gets run when we create an ipc connection, or when that
+ * connection is lost. A CTRL_ACTIVE packet should always be
+ * the first to go through the ipc socket
  */
-static int on_ipc_connect(void)
+static int ipc_action_handler(merlin_node *node, int state)
 {
-	return ipc_send_ctrl_active(CTRL_GENERIC, &merlin_start);
+	if (node != &ipc || ipc.state == state)
+		return 0;
+
+	/*
+	 * we must use node_send_ctrl_active() here or we'll
+	 * end up in an infinite loop in ipc_ctrl(), rapidly
+	 * devouring all available stack space. Since we
+	 * know we're connected anyways, we don't really
+	 * need the ipc_is_connected(0) call that ipc_ctrl
+	 * adds before trying to send.
+	 */
+	if (state == STATE_CONNECTED)
+		return node_send_ctrl_active(&ipc, CTRL_GENERIC, &merlin_start, 100);
+
+	return 0;
 }
 
 /**
@@ -483,7 +497,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	/* this gets de-registered immediately, so we need to add it manually */
 	neb_register_callback(NEBCALLBACK_PROCESS_DATA, neb_handle, 0, post_config_init);
 
-	mrm_ipc_set_connect_handler(on_ipc_connect);
+	ipc.action = ipc_action_handler;
 
 	linfo("Merlin module %s initialized successfully", merlin_version);
 	mrm_ipc_reap(NULL);

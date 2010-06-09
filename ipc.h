@@ -13,8 +13,6 @@ extern merlin_node ipc;
 extern void ipc_init_struct(void);
 extern int ipc_init(void);
 extern void ipc_deinit(void);
-extern void mrm_ipc_set_connect_handler(int (*handler)(void));
-extern void mrm_ipc_set_disconnect_handler(int (*handler)(void));
 extern int ipc_grok_var(char *var, char *val);
 extern int ipc_ctrl(int code, uint sel, void *data, uint32_t len);
 extern int ipc_send_event(merlin_event *pkt);

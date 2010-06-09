@@ -15,22 +15,6 @@ void ipc_init_struct(void)
 	ipc.type = MODE_LOCAL;
 	ipc.name = "ipc";
 }
-/*
- * these are, if set, run when completing or losing the ipc
- * connection, respectively
- */
-static int (*on_connect)(void);
-static int (*on_disconnect)(void);
-
-void mrm_ipc_set_connect_handler(int (*handler)(void))
-{
-	on_connect = handler;
-}
-
-void mrm_ipc_set_disconnect_handler(int (*handler)(void))
-{
-	on_disconnect = handler;
-}
 
 void ipc_log_event_count(void)
 {
@@ -62,11 +46,8 @@ int ipc_accept(void)
 	}
 
 	set_socket_buffers(ipc.sock);
-	ipc.state = STATE_CONNECTED;
 
-	/* run daemon's on-connect handlers */
-	if (on_connect)
-		on_connect();
+	node_set_state(&ipc, STATE_CONNECTED);
 
 	return ipc.sock;
 }
@@ -245,11 +226,6 @@ int ipc_init(void)
 	set_socket_buffers(ipc.sock);
 	node_set_state(&ipc, STATE_CONNECTED);
 
-	if (on_connect) {
-		linfo("Running on_connect hook");
-		on_connect();
-	}
-
 	return 0;
 }
 
@@ -266,9 +242,6 @@ void ipc_deinit(void)
 
 	if (!is_module)
 		unlink(ipc_sock_path);
-
-	if (on_disconnect)
-		on_disconnect();
 }
 
 
@@ -287,8 +260,6 @@ int ipc_is_connected(int msec)
 		if (ipc.sock < 0) {
 			lerr("ipc: accept() failed: %s", strerror(errno));
 			return 0;
-		} else if (on_connect) {
-			on_connect();
 		}
 		node_set_state(&ipc, STATE_CONNECTED);
 	}
