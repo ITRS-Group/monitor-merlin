@@ -81,17 +81,6 @@ dbi_result sql_get_result(void)
 
 static int run_query(char *query, int len, int rerun)
 {
-	static char *last_query = NULL;
-
-	if (!rerun && (!prefixcmp(query, "INSERT") || !prefixcmp(query, "UPDATE"))) {
-		if (last_query && !strcmp(query, last_query)) {
-			free(query);
-			return 0;
-		}
-		safe_free(last_query);
-		last_query = query;
-	}
-
 	db.result = dbi_conn_query_null(db.conn, (unsigned char *)query, len);
 	if (!db.result)
 		return -1;
@@ -161,7 +150,7 @@ int sql_vquery(const char *fmt, va_list ap)
 		}
 	}
 
-	/* "query" is stashed in run_query(), so we mustn't free it */
+	free(query);
 
 	return !!db.result;
 }
