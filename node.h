@@ -90,9 +90,7 @@ struct merlin_node {
 	int sock;               /* the socket */
 	int type;               /* server type (master, slave, peer) */
 	int state;              /* state of this node (down, pending, active) */
-	unsigned selection;     /* numeric index for hostgroup */
 	int peer_id;            /* peer id, used to distribute checks */
-	char *hostgroup;        /* only set for pollers on the noc-side */
 	struct sockaddr *sa;    /* should always point to sain */
 	struct sockaddr_in sain;
 	time_t last_recv;       /* last time node sent something to us */

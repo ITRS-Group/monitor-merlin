@@ -179,6 +179,7 @@ static void create_node_tree(merlin_node *table, unsigned n)
 static void grok_node(struct cfg_comp *c, merlin_node *node)
 {
 	unsigned int i;
+	int sel_id = -1;
 
 	if (!node)
 		return;
@@ -190,8 +191,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			cfg_error(c, v, "Variable must have a value\n");
 
 		if (node->type != MODE_NOC && !strcmp(v->key, "hostgroup")) {
-			node->hostgroup = strdup(v->value);
-			node->selection = add_selection(node->hostgroup, node);
+			sel_id = add_selection(v->value, node);
 		}
 		else if (!strcmp(v->key, "address") || !strcmp(v->key, "host")) {
 			if (!resolve(v->value, &node->sain.sin_addr))
@@ -206,6 +206,9 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			cfg_error(c, v, "Unknown variable\n");
 	}
 	node->last_action = -1;
+	if (node->type == MODE_POLLER && sel_id == -1) {
+		cfg_error(c, NULL, "Missing 'hostgroup' variable in poller definition\n");
+	}
 }
 
 void node_grok_config(struct cfg_comp *config)
@@ -242,8 +245,6 @@ void node_grok_config(struct cfg_comp *config)
 		if (!prefixcmp(c->name, "poller") || !prefixcmp(c->name, "slave")) {
 			node->type = MODE_POLLER;
 			grok_node(c, node);
-			if (!node->hostgroup)
-				cfg_error(c, NULL, "Missing 'hostgroup' variable\n");
 		} else if (!prefixcmp(c->name, "peer")) {
 			node->type = MODE_PEER;
 			grok_node(c, node);
