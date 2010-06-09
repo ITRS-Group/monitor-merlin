@@ -484,6 +484,11 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		}
 	}
 
+	/*
+	 * let the various handler know which node sent the packet
+	 */
+	pkt->hdr.selection = node->id;
+
 	/* not all packets get delivered to the merlin module */
 	switch (pkt->hdr.type) {
 	case NEBCALLBACK_HOST_CHECK_DATA:
@@ -491,6 +496,9 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 		mrm_db_update(node, pkt);
 		return 0;
+
+	case CTRL_PACKET:
+		return ipc_send_event(pkt);
 
 	default:
 		/*
@@ -501,7 +509,6 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		 * the event, which makes unusable for sending to the
 		 * ipc (or, indeed, anywhere else) afterwards.
 		 */
-		pkt->hdr.selection = node->id;
 		ipc_send_event(pkt);
 		mrm_db_update(node, pkt);
 		return 0;
