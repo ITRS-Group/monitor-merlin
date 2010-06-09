@@ -123,8 +123,18 @@ extern const char *node_state(merlin_node *node);
 extern const char *node_type(merlin_node *node);
 extern void node_set_state(merlin_node *node, int state);
 extern int node_ctrl(merlin_node *node, int code, uint selection, void *data, uint32_t len, int msec);
-#define node_send_ctrl_inactive(node, id, msec) \
-	node_ctrl(node, CTRL_INACTIVE, id, NULL, 0, msec)
-#define node_send_ctrl_active(node, id, tv, msec) \
-	node_ctrl(node, CTRL_ACTIVE, id, (void *)tv, sizeof(*tv), msec)
+
+/*
+ * we make these inlined rather than macros so the compiler
+ * does type-checking in the arguments
+ */
+static inline int node_send_ctrl_inactive(merlin_node *node, uint id, int msec)
+{
+	return node_ctrl(node, CTRL_INACTIVE, id, NULL, 0, msec);
+}
+
+static inline int node_send_ctrl_active(merlin_node *node, uint id, struct timeval *tv, int msec)
+{
+	return node_ctrl(node, CTRL_ACTIVE, id, (void *)tv, sizeof(*tv), msec);
+}
 #endif

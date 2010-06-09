@@ -26,8 +26,17 @@ extern int ipc_reinit(void);
 extern int ipc_accept(void);
 extern void ipc_log_event_count(void);
 
-#define ipc_send_ctrl_inactive(id) ipc_ctrl(CTRL_INACTIVE, id, NULL, 0)
-#define ipc_send_ctrl_active(id, tv) \
-	ipc_ctrl(CTRL_ACTIVE, id, (void *)tv, sizeof(*(tv)))
+/*
+ * we make these inlines rather than macros so the compiler
+ * can do type-checking of the arguments
+ */
+static inline int ipc_send_ctrl_inactive(uint id)
+{
+	return ipc_ctrl(CTRL_INACTIVE, id, NULL, 0);
+}
+static inline int ipc_send_ctrl_active(uint id, struct timeval *tv)
+{
+	return ipc_ctrl(CTRL_ACTIVE, id, (void *)tv, sizeof(*tv));
+}
 #define ipc_send_ctrl(code, sel) ipc_ctrl(code, sel, NULL, 0)
 #endif /* INCLUDE_ipc_h__ */
