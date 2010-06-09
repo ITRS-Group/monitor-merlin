@@ -4,8 +4,17 @@ static int listen_sock = -1; /* for bind() and such */
 static char *ipc_sock_path;
 static char *ipc_binlog_path, *ipc_binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 static time_t last_connect_attempt;
-merlin_node ipc = { "ipc", -1, -1, 0, 0 }; /* the ipc node */
+merlin_node ipc; /* the ipc node */
 
+void ipc_init_struct(void)
+{
+	memset(&ipc, 0, sizeof(ipc));
+	ipc.sock = -1;
+	ipc.state = STATE_NONE;
+	ipc.id = CTRL_GENERIC;
+	ipc.type = MODE_LOCAL;
+	ipc.name = "ipc";
+}
 /*
  * these are, if set, run when completing or losing the ipc
  * connection, respectively

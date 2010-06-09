@@ -458,6 +458,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 
 	neb_handle = (void *)handle;
 
+	ipc_init_struct();
 	gettimeofday(&merlin_start, NULL);
 
 	/* if we're linked with mtest we needn't parse the configuration */

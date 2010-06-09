@@ -10,6 +10,7 @@
 #endif
 extern merlin_node ipc;
 
+extern void ipc_init_struct(void);
 extern int ipc_init(void);
 extern void ipc_deinit(void);
 extern void mrm_ipc_set_connect_handler(int (*handler)(void));
