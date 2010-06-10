@@ -172,7 +172,10 @@ const char *tv_delta(struct timeval *start, struct timeval *stop)
 	secs -= mins * 60;
 
 	/* add the micro-seconds */
-	secs = ((secs * 1000000) + (stop->tv_usec - start->tv_usec)) / 1000000;
+	secs *= 1000000;
+	secs += stop->tv_usec;
+	secs -= start->tv_usec;
+	secs /= 1000000;
 
 	if (!mins && !hours && !days) {
 		sprintf(buf, "%.3lfs", secs);
