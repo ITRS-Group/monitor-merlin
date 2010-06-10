@@ -409,8 +409,8 @@ int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
 
 	len = io_recv_all(node->sock, &pkt->hdr, HDR_SIZE);
 	if (len != HDR_SIZE) {
-		lerr("In %s: Incomplete header read(). Expected %zu, got %d",
-			 __func__, HDR_SIZE, len);
+		lerr("%s: Incomplete header read(%d...). %zu != %d: %s",
+			 __func__, node->sock, HDR_SIZE, len, strerror(errno));
 		lerr("Sync lost with %s?", node->name);
 		node_disconnect(node);
 		return -1;
