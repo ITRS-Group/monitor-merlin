@@ -440,19 +440,18 @@ static int ipc_reap_events(void)
 static int io_poll_sockets(void)
 {
 	fd_set rd, wr;
-	int sel_val, ipc_sock, ipc_listen_sock, net_sock, nfound;
+	int sel_val, ipc_listen_sock, net_sock, nfound;
 	int sockets = 0;
 	struct timeval tv = { 2, 0 };
 
 	sel_val = net_sock = net_sock_desc();
 	ipc_listen_sock = ipc_listen_sock_desc();
-	ipc_sock = ipc_sock_desc();
-	sel_val = max(sel_val, max(ipc_sock, ipc_listen_sock));
+	sel_val = max(sel_val, max(ipc.sock, ipc_listen_sock));
 
 	FD_ZERO(&rd);
 	FD_ZERO(&wr);
-	if (ipc_sock >= 0)
-		FD_SET(ipc_sock, &rd);
+	if (ipc.sock >= 0)
+		FD_SET(ipc.sock, &rd);
 	FD_SET(ipc_listen_sock, &rd);
 	if (net_sock >= 0)
 		FD_SET(net_sock, &rd);
@@ -473,7 +472,7 @@ static int io_poll_sockets(void)
 	if (ipc_listen_sock > 0 && FD_ISSET(ipc_listen_sock, &rd)) {
 		linfo("Accepting inbound connection on ipc socket");
 		ipc_accept();
-	} else if (ipc_sock > 0 && FD_ISSET(ipc_sock, &rd)) {
+	} else if (ipc.sock > 0 && FD_ISSET(ipc.sock, &rd)) {
 		sockets++;
 		ipc_reap_events();
 	}

@@ -272,11 +272,6 @@ int ipc_listen_sock_desc(void)
 	return listen_sock;
 }
 
-int ipc_sock_desc(void)
-{
-	return ipc.sock;
-}
-
 /*
  * Sends a control packet to ipc, making sure it's connected
  * first. If data isn't null, len bytes is copied from it to
