@@ -122,11 +122,22 @@ static int handle_host_result(merlin_header *hdr, void *buf)
 /* events that require status updates return 1, others return 0 */
 int handle_ipc_event(merlin_event *pkt)
 {
-	ldebug("Inbound %s event from %s. len %d, type %d",
-	       callback_name(pkt->hdr.type),
-		   node_table[pkt->hdr.selection]->name,
-		   pkt->hdr.len, *pkt->body);
+	merlin_node *node = NULL;
 
+	if (pkt->hdr.selection < num_nodes) {
+		node = node_table[pkt->hdr.selection];
+	}
+
+	if (node) {
+		node->stats.events.read++;
+		node->stats.bytes.read += packet_size(pkt);
+		node_log_event_count(node, 0);
+	}
+/*	ldebug("Inbound %s event from %s. len %d, type %d",
+	       callback_name(pkt->hdr.type),
+		   node ? node->name : "local Merlin daemon",
+		   pkt->hdr.len, *pkt->body);
+*/
 	/* restore the pointers so the various handlers won't have to */
 	deblockify(pkt->body, pkt->hdr.len, pkt->hdr.type);
 
