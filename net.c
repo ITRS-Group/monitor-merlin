@@ -146,10 +146,12 @@ static int net_try_connect(merlin_node *node)
 		  ntohs(node->sain.sin_port));
 
 	if (connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
-		lerr("connect() failed to node '%s' (%s:%d): %s",
-			 node->name, inet_ntoa(node->sain.sin_addr),
-			 ntohs(node->sain.sin_port), strerror(errno));
-		node_disconnect(node);
+		if (errno != EINPROGRESS && errno != EALREADY) {
+			lerr("connect() failed to node '%s' (%s:%d): %s",
+				 node->name, inet_ntoa(node->sain.sin_addr),
+				 ntohs(node->sain.sin_port), strerror(errno));
+			node_disconnect(node);
+		}
 		return -1;
 	}
 
