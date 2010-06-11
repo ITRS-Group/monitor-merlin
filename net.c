@@ -97,7 +97,7 @@ int net_try_connect(merlin_node *node)
 		return 0;
 
 	/* create the socket if necessary */
-	if (node->sock == -1) {
+	if (node->sock < 0) {
 		struct timeval sock_timeout = { 0, 5000 };
 
 		node->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
