@@ -162,35 +162,22 @@ int net_try_connect(merlin_node *node)
 	return 0;
 }
 
-/* check if a node is connected.
- * Return 1 if yes and 0 if not */
+/*
+ * Check if a node is connected. Return 1 if yes and 0 if not.
+ * Attempting to connect is handled from the main polling loop
+ */
 static int node_is_connected(merlin_node *node)
 {
-	int result;
-
-	if (!node)
+	if (!node || node->sock < 0)
 		return 0;
 
-	/* quick way out. The slow way out is far too slow */
-	if (node->sock >= 0 && node->state == STATE_CONNECTED)
-		return 1;
-
-	if (node->sock == -1 || node->state == STATE_NONE) {
-		result = net_try_connect(node);
-		if (result < 0)
-			return 0;
+	if (node->state == STATE_PENDING) {
+		net_complete_connection(node);
+	} else if (node->state == STATE_NONE) {
+		net_try_connect(node);
 	}
 
-	result = net_is_connected(node->sock);
-	if (!result && errno == ENOTCONN) {
-		node_set_state(node, STATE_NONE);
-	}
-
-	if (result) {
-		node_set_state(node, STATE_CONNECTED);
-	}
-
-	return result;
+	return node->state == STATE_CONNECTED;
 }
 
 
@@ -201,7 +188,8 @@ static int node_is_connected(merlin_node *node)
  * often, but if it does we must make sure both ends agree on one
  * socket to use.
  * con is the one that might be in a connection attempt
- * lis is the one we found with accept. */
+ * lis is the one we found with accept.
+ */
 static int net_negotiate_socket(merlin_node *node, int lis)
 {
 	int con, sel;
