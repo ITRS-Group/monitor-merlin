@@ -614,9 +614,7 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 		/* new connections go first */
 		if (node->state == STATE_PENDING && FD_ISSET(node->sock, wr)) {
 			sockets++;
-			if (net_complete_connection(node)) {
-				node_disconnect(node);
-			}
+			node_set_state(node, STATE_CONNECTED);
 			continue;
 		}
 
