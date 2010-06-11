@@ -67,8 +67,8 @@ static int net_is_connected(int sock)
 		case ENOBUFS:
 		case EFAULT:
 		case ENOTSOCK:
-			lerr("getpeername(): system error %d: %s", errno, strerror(errno));
-			(void)close(sock);
+			lerr("getpeername(%d): system error %d: %s", sock, errno, strerror(errno));
+			close(sock);
 			/* fallthrough */
 		case ENOTCONN:
 			return 0;
