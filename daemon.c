@@ -39,10 +39,6 @@ static void usage(char *fmt, ...)
 /* node connect/disconnect handlers */
 static int node_action_handler(merlin_node *node, int action)
 {
-	/* only masters and peers need to know about state changes */
-	if (node->type == MODE_NOC)
-		return 0;
-
 	/* don't send the same event twice */
 	if (node->state == action)
 		return 0;
