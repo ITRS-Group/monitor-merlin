@@ -57,6 +57,8 @@ static int net_is_connected(int sock)
 	struct sockaddr_in sain;
 	socklen_t slen = sizeof(struct sockaddr_in);
 	int optval;
+	if (sock < 0)
+		return 0;
 
 	errno = 0;
 	if (getpeername(sock, (struct sockaddr *)&sain, &slen) < 0) {
