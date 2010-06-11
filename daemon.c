@@ -478,6 +478,7 @@ static int io_poll_sockets(void)
 static void polling_loop(void)
 {
 	for (;;) {
+		int i;
 		time_t now = time(NULL);
 
 		/*
@@ -503,6 +504,13 @@ static void polling_loop(void)
 
 		while (net_accept_one() >= 0)
 			; /* nothing */
+
+		for (i = 0; i < num_nodes; i++) {
+			merlin_node *node = node_table[i];
+			if (node->state == STATE_NONE) {
+				net_try_connect(node);
+			}
+		}
 
 		io_poll_sockets();
 	}

@@ -96,7 +96,7 @@ static int net_is_connected(int sock)
  * to be able to effectively multiplex), the connection attempt will
  * never be completed in this function
  */
-static int net_try_connect(merlin_node *node)
+int net_try_connect(merlin_node *node)
 {
 	struct sockaddr *sa = (struct sockaddr *)&node->sain;
 	int result;
