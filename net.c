@@ -524,26 +524,24 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
  * Reads input from a particular node and ships it off to
  * the "handle_network_event()" routine up above
  */
-static void net_input(merlin_node *node)
+static int net_input(merlin_node *node, int msec)
 {
 	merlin_event pkt;
 	int len;
 
 	errno = 0;
-	len = node_read_event(node, &pkt, 0);
+	len = node_read_event(node, &pkt, msec);
 	/* errors are handled in node_read_event() */
 	if (len <= 0)
-		return;
-
-	/* We read something the size of an mrm packet header */
+		return len;
 
 	if (pkt.hdr.type == CTRL_PACKET && pkt.hdr.code == CTRL_PULSE) {
 		/* noop. we've already updated the last_recv time */
-		return;
+	} else {
+		handle_network_event(node, &pkt);
 	}
 
-	handle_network_event(node, &pkt);
-	return;
+	return len;
 }
 
 
@@ -636,15 +634,15 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 		 * a pulse at least once in a while, so we know it's still OK.
 		 * If they fail to do that, we may have to take action. */
 		if (FD_ISSET(node->sock, rd)) {
-			int result;
+			int events = 0;
 
 			sockets++;
-			do {
-				/* read all available events */
-				net_input(node);
-				result = io_read_ok(node->sock, 50);
-			} while (result > 0);
-
+			/* read all available events */
+			while (net_input(node, 50) > 0) {
+				events++;
+			}
+			ldebug("Received %d events from %s node %s",
+				   events, node_type(node), node->name);
 			continue;
 		}
 
