@@ -33,6 +33,14 @@ node_selection *node_selection_by_name(const char *name)
 	return NULL;
 }
 
+merlin_node *node_by_id(uint id)
+{
+	if (num_nodes && id < num_nodes)
+		return node_table[id];
+
+	return NULL;
+}
+
 /*
  * Returns the (list of) merlin node(s) associated
  * with a particular selection id, or null if the

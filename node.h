@@ -121,6 +121,7 @@ extern const char *node_state(merlin_node *node);
 extern const char *node_type(merlin_node *node);
 extern void node_set_state(merlin_node *node, int state);
 extern int node_ctrl(merlin_node *node, int code, uint selection, void *data, uint32_t len, int msec);
+extern merlin_node *node_by_id(uint id);
 
 /*
  * we make these inlined rather than macros so the compiler
