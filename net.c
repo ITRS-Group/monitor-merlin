@@ -314,7 +314,7 @@ int net_accept_one(void)
 		  node ? node->state : -1);
 	if (!node) {
 		close(sock);
-		return -1;
+		return 0;
 	}
 
 	switch (node->state) {
