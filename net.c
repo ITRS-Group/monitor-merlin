@@ -316,15 +316,14 @@ int net_accept_one(void)
 	}
 
 	node = find_node(&sain, NULL);
+	linfo("%s connected from %s:%d. Current state is %d",
+		  node ? node->name : "An unregistered node",
+		  inet_ntoa(sain.sin_addr), ntohs(sain.sin_port),
+		  node ? node->state : -1);
 	if (!node) {
-		linfo("'%s' is not a registered node", inet_ntoa(sain.sin_addr));
 		close(sock);
 		return -1;
 	}
-
-	linfo("%s node '%s' connected from %s : %d",
-		  node_type(node), node->name,
-		  inet_ntoa(sain.sin_addr), ntohs(sain.sin_port));
 
 	switch (node->state) {
 	case STATE_NEGOTIATING: /* this should *NEVER EVER* happen */
