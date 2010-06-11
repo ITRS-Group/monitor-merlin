@@ -244,7 +244,6 @@ static void set_node_state(int id, int state)
  */
 void handle_control(merlin_event *pkt)
 {
-	char *node_name;
 	merlin_node *node;
 
 	if (!pkt) {
@@ -252,20 +251,15 @@ void handle_control(merlin_event *pkt)
 		return;
 	}
 
-	if (pkt->hdr.selection < num_nodes)
-		node_name = node_table[pkt->hdr.selection]->name;
-	else
-		node_name = "local Merlin daemon";
-
+	node = node_by_id(pkt->hdr.selection);
 	linfo("Received control packet code %d from %s",
-		  pkt->hdr.code, node_name);
+		  pkt->hdr.code, node ? node->name : "local Merlin daemon");
 
 	switch (pkt->hdr.code) {
 	case CTRL_INACTIVE:
 		set_node_state(pkt->hdr.selection, STATE_NONE);
 		break;
 	case CTRL_ACTIVE:
-		node = node_table[pkt->hdr.selection];
 		memcpy(&node->start, &pkt->body, sizeof(struct timeval));
 		ldebug("node %s started %lu.%lu", node->name, node->start.tv_sec, node->start.tv_usec);
 		set_node_state(pkt->hdr.selection, STATE_CONNECTED);
