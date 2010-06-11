@@ -530,6 +530,18 @@ int net_send_ipc_data(merlin_event *pkt)
 	if (!num_nodes)
 		return 0;
 
+	/* nocs and peers always get all data */
+	for (i = 0; i < num_nocs + num_peers; i++) {
+		net_sendto(node_table[i], pkt);
+	}
+
+	/* packets designated for everyone get sent immediately */
+	if (pkt->hdr.selection == 0xffff) {
+		for (i = 0; i < num_pollers; i++)
+			net_sendto(poller_table[i], pkt);
+		return 0;
+	}
+
 	if (num_pollers && pkt->hdr.selection != 0xffff) {
 		linked_item *li = nodes_by_sel_id(pkt->hdr.selection);
 
@@ -540,11 +552,6 @@ int net_send_ipc_data(merlin_event *pkt)
 		for (; li; li = li->next_item)
 			net_sendto((merlin_node *)li->item, pkt);
 	}
-
-	for (i = 0; i < num_nocs + num_peers; i++) {
-		net_sendto(node_table[i], pkt);
-	}
-
 	return 0;
 }
 
