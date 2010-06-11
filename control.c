@@ -215,25 +215,23 @@ static void assign_peer_ids(void)
 }
 
 /*
- * Marks a (poller) node as active or inactive
+ * This gets run whenever we receive a CTRL_ACTIVE or CTRL_INACTIVE
+ * packet. node is the originating node. state is the new state we
+ * should set the node to (STATE_CONNECTED et al).
  */
-static void set_node_state(int id, int state)
+static void node_action(merlin_node *node, int state)
 {
-	merlin_node *node;
 	int old_state;
 
-	/* make sure we don't access outside the node_table */
-	if (id < 0 || id >= num_nodes)
+	if (!node)
 		return;
 
-	node = node_table[id];
-	if (state == STATE_NONE) {
+	if (state != STATE_CONNECTED) {
 		memset(&node->start, 0, sizeof(node->start));
 	}
 
-	old_state = node->state;
 	node->state = state;
-	if (node->type == MODE_PEER && state != old_state) {
+	if (node->type == MODE_PEER) {
 		assign_peer_ids();
 	}
 }
@@ -257,12 +255,12 @@ void handle_control(merlin_event *pkt)
 
 	switch (pkt->hdr.code) {
 	case CTRL_INACTIVE:
-		set_node_state(pkt->hdr.selection, STATE_NONE);
+		node_action(node, STATE_NONE);
 		break;
 	case CTRL_ACTIVE:
 		memcpy(&node->start, &pkt->body, sizeof(struct timeval));
 		ldebug("node %s started %lu.%lu", node->name, node->start.tv_sec, node->start.tv_usec);
-		set_node_state(pkt->hdr.selection, STATE_CONNECTED);
+		node_action(node, STATE_CONNECTED);
 		break;
 	case CTRL_STALL:
 		ctrl_stall_start();
