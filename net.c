@@ -26,28 +26,6 @@ merlin_node *find_node(struct sockaddr_in *sain, const char *name)
 
 
 /*
- * Completes a connection to a node we've attempted to connect to
- */
-static int net_complete_connection(merlin_node *node)
-{
-	int error, fail;
-	socklen_t optlen = sizeof(int);
-
-	error = getsockopt(node->sock, SOL_SOCKET, SO_ERROR, &fail, &optlen);
-
-	if (!error && !fail) {
-		/* successful connection */
-		linfo("Successfully completed connection to %s node '%s' (%s:%d)",
-		      node_type(node), node->name, inet_ntoa(node->sain.sin_addr),
-		      ntohs(node->sain.sin_port));
-		node_set_state(node, STATE_CONNECTED);
-	}
-
-	return error | fail;
-}
-
-
-/*
  * checks if a socket is connected or not by looking up the ip and port
  * of the remote host.
  * Returns 1 if connected and 0 if not.
@@ -88,6 +66,18 @@ static int net_is_connected(int sock)
 	if (!optval)
 		return 1;
 
+	return 0;
+}
+
+
+/*
+ * Completes a connection to a node we've attempted to connect to
+ */
+static int net_complete_connection(merlin_node *node)
+{
+	if (net_is_connected(node->sock)) {
+		node_set_state(node, STATE_CONNECTED);
+	}
 	return 0;
 }
 
