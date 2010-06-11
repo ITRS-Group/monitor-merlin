@@ -388,17 +388,23 @@ static int handle_ipc_event(merlin_event *pkt)
 	int result = 0;
 
 	if (pkt->hdr.type == CTRL_PACKET) {
-		if (pkt->hdr.code == CTRL_PATHS) {
+		switch (pkt->hdr.code) {
+		case CTRL_PATHS:
 			read_nagios_paths(pkt);
 			return 0;
-		}
-		if (pkt->hdr.code == CTRL_ACTIVE) {
-			struct timeval *tv = (struct timeval *)&pkt->body;
-			memcpy(&ipc.start, tv, sizeof(*tv));
-		}
-		if (pkt->hdr.code == CTRL_INACTIVE) {
-			/* this should really never happen */
+
+		case CTRL_ACTIVE:
+			memcpy(&ipc.start, &pkt->body, sizeof(ipc.start));
+			/* this gets propagated, so don't return here */
+			break;
+		case CTRL_INACTIVE:
+			/* this should really never happen, but forward it if it does */
 			memset(&ipc.start, 0, sizeof(ipc.start));
+			break;
+		default:
+			lwarn("forwarding control packet %d to the network",
+				  pkt->hdr.code);
+			break;
 		}
 	}
 
