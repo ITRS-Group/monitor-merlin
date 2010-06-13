@@ -228,9 +228,9 @@ static int net_negotiate_socket(merlin_node *node, int lis)
 	}
 
 	ldebug("negotiate. lis(%d): %s:%d", lis,
-		   inet_ntoa(lissain.sin_addr), lissain.sin_port);
+		   inet_ntoa(lissain.sin_addr), ntohs(lissain.sin_port));
 	ldebug("negotiate. con(%d): %s:%d", con,
-		   inet_ntoa(consain.sin_addr), consain.sin_port);
+		   inet_ntoa(consain.sin_addr), ntohs(consain.sin_port));
 
 	if (lissain.sin_addr.s_addr > consain.sin_addr.s_addr) {
 		ldebug("negotiate: con has lowest ip. using that");
