@@ -135,13 +135,18 @@ int net_try_connect(merlin_node *node)
 		  ntohs(node->sain.sin_port));
 
 	if (connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
-		if (errno != EINPROGRESS && errno != EALREADY) {
+		if (errno == EINPROGRESS || errno == EALREADY) {
+			node_set_state(node, STATE_PENDING);
+		} else if (errno == EISCONN) {
+			node_set_state(node, STATE_CONNECTED);
+			return 0;
+		} else {
 			lerr("connect() failed to node '%s' (%s:%d): %s",
 				 node->name, inet_ntoa(node->sain.sin_addr),
 				 ntohs(node->sain.sin_port), strerror(errno));
 			node_disconnect(node);
+			return -1;
 		}
-		return -1;
 	}
 
 	if (net_is_connected(node->sock)) {
