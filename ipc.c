@@ -45,7 +45,7 @@ int ipc_accept(void)
 		return -1;
 	}
 
-	set_socket_buffers(ipc.sock);
+	set_socket_options(ipc.sock, 1);
 
 	node_set_state(&ipc, STATE_CONNECTED);
 
@@ -179,6 +179,7 @@ int ipc_init(void)
 			lerr("Failed to obtain ipc socket: %s", strerror(errno));
 			return -1;
 		}
+		set_socket_options(listen_sock, 0);
 	}
 
 	if (!is_module) {
@@ -223,7 +224,7 @@ int ipc_init(void)
 
 	/* module connected successfully */
 	ipc.sock = listen_sock;
-	set_socket_buffers(ipc.sock);
+	set_socket_options(ipc.sock, 1);
 	node_set_state(&ipc, STATE_CONNECTED);
 
 	return 0;

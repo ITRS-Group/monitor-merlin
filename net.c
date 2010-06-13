@@ -91,32 +91,14 @@ static int net_complete_connection(merlin_node *node)
 int net_try_connect(merlin_node *node)
 {
 	struct sockaddr *sa = (struct sockaddr *)&node->sain;
-	int result;
 
 	/* create the socket if necessary */
 	if (node->sock < 0) {
-		struct timeval sock_timeout = { 0, 5000 };
-
 		node->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (node->sock < 0)
 			return -1;
 
-		/*
-		 * make sure the import program doesn't write where
-		 * it shouldn't
-		 */
-		fcntl(node->sock, F_SETFD, FD_CLOEXEC);
-
-		result = setsockopt(node->sock, SOL_SOCKET, SO_RCVTIMEO,
-							&sock_timeout, sizeof(sock_timeout));
-		result |= setsockopt(node->sock, SOL_SOCKET, SO_SNDTIMEO,
-							 &sock_timeout, sizeof(sock_timeout));
-
-		if (result) {
-			lerr("Failed to set send/receive timeouts: %s", strerror(errno));
-			close(node->sock);
-			return -1;
-		}
+		set_socket_options(node->sock, 1);
 	}
 
 	/*
@@ -280,6 +262,7 @@ int net_accept_one(void)
 		lerr("accept() failed: %s", strerror(errno));
 		return -1;
 	}
+	set_socket_options(sock, 1);
 
 	node = find_node(&sain, NULL);
 	linfo("%s connected from %s:%d. Current state is %d",
@@ -360,11 +343,7 @@ int net_init(void)
 	if (net_sock < 0)
 		return -1;
 
-	/*
-	 * make sure random output from import programs and whatnot
-	 * doesn't carry over into the net_sock
-	 */
-	fcntl(net_sock, F_SETFD, FD_CLOEXEC);
+	set_socket_options(net_sock, 0);
 
 	/* if this fails we can do nothing but try anyway */
 	(void)setsockopt(net_sock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int));

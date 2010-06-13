@@ -229,21 +229,26 @@ int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 }
 
 /*
- * Beef up the send and receive buffers of the sockets we work on
+ * Set some common socket options
  */
-int set_socket_buffers(int sd)
+int set_socket_options(int sd, int beefup_buffers)
 {
-	int optval = 128 << 10; /* 128KB */
-
-	setsockopt(sd, SOL_SOCKET, SO_SNDBUF, &optval, sizeof(int));
-	setsockopt(sd, SOL_SOCKET, SO_RCVBUF, &optval, sizeof(int));
+	struct timeval sock_timeout = { 0, 5000 };
 
 	/*
-	 * we also set it to non-blocking mode, although that's not
-	 * strictly speaking necessary
+	 * make sure random output from import programs and whatnot
+	 * doesn't carry over into the net_sock
 	 */
-	if (fcntl(sd, F_SETFL, O_NONBLOCK) < 0)
-		lwarn("ipc: fcntl(sock, F_SEFTL, O_NONBLOCKING) failed");
+	fcntl(sd, F_SETFD, FD_CLOEXEC);
+
+	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &sock_timeout, sizeof(sock_timeout));
+	setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &sock_timeout, sizeof(sock_timeout));
+
+	if (beefup_buffers) {
+		int optval = 128 << 10; /* 128KB */
+		setsockopt(sd, SOL_SOCKET, SO_SNDBUF, &optval, sizeof(int));
+		setsockopt(sd, SOL_SOCKET, SO_RCVBUF, &optval, sizeof(int));
+	}
 
 	return 0;
 }
