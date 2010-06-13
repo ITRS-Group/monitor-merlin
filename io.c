@@ -52,7 +52,7 @@ int io_send_all(int fd, const void *buf, size_t len)
 
 int io_recv_all(int fd, void *buf, size_t len)
 {
-	int poll_ret, rd;
+	int poll_ret, rd, loops = 0;
 	size_t total = 0;
 
 	poll_ret = io_poll(fd, POLLIN, 0);
@@ -60,6 +60,7 @@ int io_recv_all(int fd, void *buf, size_t len)
 		lerr("io_poll(%d, POLLIN, 0) returned %d: %s", fd, poll_ret, strerror(errno));
 
 	do {
+		loops++;
 		rd = recv(fd, buf + total, len - total, MSG_DONTWAIT | MSG_NOSIGNAL);
 		if (poll_ret > 0 && rd + total == 0) {
 			/* disconnected peer? */
@@ -77,7 +78,7 @@ int io_recv_all(int fd, void *buf, size_t len)
 			return rd;
 		}
 		total += rd;
-	} while (total < len && rd > 0);
+	} while (total < len && rd > 0 && loops < 15);
 
 	if (rd < 0)
 		return rd;
