@@ -621,8 +621,9 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 			while (net_input(node, 50) > 0) {
 				events++;
 			}
-			ldebug("Received %d events from %s node %s",
-				   events, node_type(node), node->name);
+			if (events)
+				ldebug("Received %d events from %s node %s",
+					   events, node_type(node), node->name);
 			continue;
 		}
 
