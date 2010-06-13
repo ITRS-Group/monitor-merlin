@@ -500,61 +500,7 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 
 	/* if binlog has entries, we must send those first */
 	if (binlog_has_entries(node->binlog)) {
-		merlin_event *temp_pkt;
-		uint len;
-
-		linfo("Emptying backlog for %s", node->name);
-		while (io_write_ok(node->sock, 500) && !binlog_read(node->binlog, (void **)&temp_pkt, &len)) {
-			result = io_send_all(node->sock, temp_pkt, packet_size(temp_pkt));
-
-			/*
-			 * binlog duplicates the memory, so we must release it
-			 * when we've sent it
-			 */
-
-			/* keep going while we successfully send something */
-			if (result == packet_size(temp_pkt)) {
-				free(temp_pkt);
-				node->stats.events.sent++;
-				node->stats.events.logged--;
-				node->stats.bytes.sent += packet_size(temp_pkt);
-				node->stats.bytes.logged -= packet_size(temp_pkt);
-				continue;
-			}
-
-			/*
-			 * any other failure means we must kill the connection
-			 * and let whatever api (net or ipc) it was that called
-			 * us attempt to establish it again
-			 */
-			node_disconnect(node);
-
-			/*
-			 * we can recover from total failures by unread()'ing
-			 * the entry we just read and then adding the new entry
-			 * to the binlog in the hopes that we'll get a
-			 * connection up and running again before it's time to
-			 * send more data to this node
-			 */
-			if (result < 0) {
-				if (!binlog_unread(node->binlog, temp_pkt, len)) {
-					return node_binlog_add(node, pkt);
-				} else {
-					free(temp_pkt);
-				}
-			}
-
-			/*
-			 * we wrote a partial event or failed to unread the event,
-			 * so this node is now out of sync. We must wipe the binlog
-			 * and possibly mark this node as being out of sync.
-			 */
-			binlog_wipe(node->binlog, BINLOG_UNLINK);
-			node->stats.events.dropped += node->stats.events.logged + 1;
-			node->stats.bytes.dropped += node->stats.events.logged + packet_size(pkt);
-			node_log_event_count(node, 0);
-			return -1;
-		}
+		node_send_binlog(node, pkt);
 	}
 
 	/* binlog may still have entries. If so, add to it and return */
@@ -580,6 +526,73 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 
 	/* possibly mark the node as out of sync here */
 	return -1;
+}
+
+int node_send_binlog(merlin_node *node, merlin_event *pkt)
+{
+	merlin_event *temp_pkt;
+	uint len;
+
+	linfo("Emptying backlog for %s", node->name);
+	while (io_write_ok(node->sock, 500) && !binlog_read(node->binlog, (void **)&temp_pkt, &len)) {
+		int result = io_send_all(node->sock, temp_pkt, packet_size(temp_pkt));
+
+		/* keep going while we successfully send something */
+		if (result == packet_size(temp_pkt)) {
+			node->stats.events.sent++;
+			node->stats.events.logged--;
+			node->stats.bytes.sent += packet_size(temp_pkt);
+			node->stats.bytes.logged -= packet_size(temp_pkt);
+
+			/*
+			 * binlog duplicates the memory, so we must release it
+			 * when we've sent and counted it
+			 */
+			free(temp_pkt);
+			continue;
+		}
+
+		/*
+		 * most other failure means we must kill the connection
+		 * and let whatever api (net or ipc) it was that called
+		 * us attempt to establish it again
+		 */
+		if (result >= 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+			node_disconnect(node);
+		}
+
+		/*
+		 * we can recover from total failures by unread()'ing
+		 * the entry we just read and then adding the new entry
+		 * to the binlog in the hopes that we'll get a
+		 * connection up and running again before it's time to
+		 * send more data to this node
+		 */
+		if (result <= 0) {
+			if (!binlog_unread(node->binlog, temp_pkt, len)) {
+				if (pkt)
+					return node_binlog_add(node, pkt);
+				return 0;
+			} else {
+				free(temp_pkt);
+			}
+		}
+
+		/*
+		 * we wrote a partial event or failed to unread the event,
+		 * so this node is now out of sync. We must wipe the binlog
+		 * and possibly mark this node as being out of sync.
+		 */
+		binlog_wipe(node->binlog, BINLOG_UNLINK);
+		if (pkt) {
+			node->stats.events.dropped += node->stats.events.logged + 1;
+			node->stats.bytes.dropped += node->stats.events.logged + packet_size(pkt);
+		}
+		node_log_event_count(node, 0);
+		return -1;
+	}
+
+	return 0;
 }
 
 /*
