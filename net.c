@@ -594,10 +594,9 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 					   events, node_type(node), node->name);
 			continue;
 		}
-
-		check_node_activity(node);
 	}
 
+	/* check_node_activity(node); */
 	return sockets;
 }
 
