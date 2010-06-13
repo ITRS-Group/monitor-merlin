@@ -535,7 +535,7 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
 
-		if (!node_is_connected(node) && node->state != STATE_PENDING)
+		if (node->sock < 0 || node->state == STATE_NONE)
 			continue;
 
 		if (node->state == STATE_PENDING)
