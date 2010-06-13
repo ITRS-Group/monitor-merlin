@@ -502,7 +502,7 @@ int net_send_ipc_data(merlin_event *pkt)
 	}
 
 	/* packets designated for everyone get sent immediately */
-	if (pkt->hdr.selection == 0xffff) {
+	if (pkt->hdr.selection == 0xffff && pkt->hdr.type == CTRL_PACKET) {
 		for (i = 0; i < num_pollers; i++)
 			net_sendto(poller_table[i], pkt);
 		return 0;
