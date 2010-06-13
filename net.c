@@ -540,8 +540,17 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 
 		if (node->state == STATE_PENDING)
 			FD_SET(node->sock, wr);
-		else
+		else if (node->state == STATE_CONNECTED) {
+			/*
+			 * if the node has unsent entries, we check if we
+			 * can write to it so the polling loop can send the
+			 * logged events
+			 */
+			if (binlog_has_entries(node->binlog))
+				FD_SET(node->sock, wr);
+
 			FD_SET(node->sock, rd);
+		}
 
 		if (node->sock > sel_val)
 			sel_val = node->sock;
@@ -558,7 +567,6 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
  */
 int net_handle_polling_results(fd_set *rd, fd_set *wr)
 {
-	int sockets = 0;
 	uint i;
 
 	/* loop the nodes and see which ones have sent something */
@@ -569,10 +577,13 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 		if (node->sock < 0)
 			continue;
 
-		/* new connections go first */
-		if (node->state == STATE_PENDING && FD_ISSET(node->sock, wr)) {
-			sockets++;
-			node_set_state(node, STATE_CONNECTED);
+		/* handle new connections and binlogs come first */
+		if (FD_ISSET(node->sock, wr)) {
+			if (node->state == STATE_PENDING) {
+				node_set_state(node, STATE_CONNECTED);
+			} else if (binlog_has_entries(node->binlog)) {
+				node_send_binlog(node, NULL);
+			}
 			continue;
 		}
 
@@ -584,7 +595,6 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 		if (FD_ISSET(node->sock, rd)) {
 			int events = 0;
 
-			sockets++;
 			/* read all available events */
 			while (net_input(node, 50) > 0) {
 				events++;
@@ -597,7 +607,7 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 	}
 
 	/* check_node_activity(node); */
-	return sockets;
+	return 0;
 }
 
 void check_all_node_activity(void)
