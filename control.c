@@ -221,8 +221,6 @@ static void assign_peer_ids(void)
  */
 static void node_action(merlin_node *node, int state)
 {
-	int old_state;
-
 	if (!node)
 		return;
 
