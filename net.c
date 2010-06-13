@@ -608,9 +608,11 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 			continue;
 		}
 
-		/* handle input, and missing input. All nodes should send
+		/*
+		 * handle input, and missing input. All nodes should send
 		 * a pulse at least once in a while, so we know it's still OK.
-		 * If they fail to do that, we may have to take action. */
+		 * If they fail to do that, we may have to take action.
+		 */
 		if (FD_ISSET(node->sock, rd)) {
 			int events = 0;
 
