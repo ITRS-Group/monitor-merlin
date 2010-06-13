@@ -67,12 +67,14 @@ int io_recv_all(int fd, void *buf, size_t len)
 		}
 
 		if (rd < 0) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				rd = io_read_ok(fd, 100);
+				continue;
+			}
+
 			lerr("recv(%d, (buf + total), %zu, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d (%s)",
 				 fd, len - total, rd, strerror(errno));
-			if (errno != EAGAIN)
-				return rd;
-
-			continue;
+			return rd;
 		}
 		total += rd;
 	} while (total < len && rd > 0);
