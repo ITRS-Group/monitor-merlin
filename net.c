@@ -195,22 +195,6 @@ static int net_negotiate_socket(merlin_node *node, int lis)
 
 	linfo("Negotiating socket for %s %s", node_type(node), node->name);
 	sel = con = node->sock;
-	if (con == -1)
-		return lis;
-
-	if (lis == -1)
-		return con;
-
-	/* we may have to complete a pending connection first */
-	if (node->state == STATE_PENDING && io_write_ok(con, 50)) {
-		net_complete_connection(node);
-	}
-
-	/* if that failed, we must use the inbound socket */
-	if (node->state != STATE_CONNECTED) {
-		close(con);
-		return lis;
-	}
 
 	/* we prefer the socket with the lowest ip-address */
 	if (getsockname(lis, (struct sockaddr *)&lissain, &slen) < 0) {
