@@ -340,9 +340,7 @@ int net_deinit(void)
 	uint i;
 
 	for (i = 0; i < num_nodes; i++) {
-		merlin_node *node = node_table[i];
-		node_disconnect(node);
-		free(node);
+		node_disconnect(node_table[i]);
 	}
 
 	if (node_table)
