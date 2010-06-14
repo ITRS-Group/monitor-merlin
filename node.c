@@ -586,7 +586,7 @@ int node_send_binlog(merlin_node *node, merlin_event *pkt)
 		binlog_wipe(node->binlog, BINLOG_UNLINK);
 		if (pkt) {
 			node->stats.events.dropped += node->stats.events.logged + 1;
-			node->stats.bytes.dropped += node->stats.events.logged + packet_size(pkt);
+			node->stats.bytes.dropped += node->stats.bytes.logged + packet_size(pkt);
 		}
 		node_log_event_count(node, 0);
 		return -1;
