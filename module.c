@@ -189,7 +189,6 @@ static int mrm_ipc_reap(void *discard)
 {
 	real_ipc_reap();
 
-	linfo("Scheduling next ipc reaping at %lu", time(NULL) + mrm_reap_interval);
 	schedule_new_event(EVENT_USER_FUNCTION, TRUE,
 	                   time(NULL) + mrm_reap_interval, FALSE,
 	                   0, NULL, FALSE, mrm_ipc_reap, NULL, 0);
