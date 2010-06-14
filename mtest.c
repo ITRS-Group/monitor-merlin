@@ -508,7 +508,7 @@ static void test_comment(void)
 	sql_query("TRUNCATE comment");
 
 	/* test adding comments for all hosts */
-	orig->type = NEBTYPE_COMMENT_ADD;
+	orig->type = NEBTYPE_COMMENT_LOAD;
 	for (i = 0; i < num_hosts; i++) {
 		host *h = &hosts[i];
 
@@ -537,7 +537,7 @@ static void test_comment(void)
 	verify_count("removing host comments", 0, "SELECT * FROM comment");
 
 	/* test adding comments for all services */
-	orig->type = NEBTYPE_COMMENT_ADD;
+	orig->type = NEBTYPE_COMMENT_LOAD;
 	for (i = 0; i < num_services; i++) {
 		service *s = &services[i];
 
