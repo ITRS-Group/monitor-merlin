@@ -7,7 +7,7 @@ time_t merlin_should_send_paths = 1;
 
 /** code start **/
 extern hostgroup *hostgroup_list;
-#define mrm_reap_interval 5
+static int mrm_reap_interval = 2;
 
 static int handle_host_status(merlin_header *hdr, void *buf)
 {
@@ -270,13 +270,20 @@ static void setup_host_hash_tables(void)
 	free(num_ents);
 }
 
-
 static void grok_module_compound(struct cfg_comp *comp)
 {
 	uint i;
 
 	for (i = 0; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
+
+		if (!strcmp(v->key, "ipc_reap_interval")) {
+			char *endp;
+			mrm_reap_interval = (int)strtoul(v->value, &endp, 0);
+			if (mrm_reap_interval < 0 || *endp != '\0')
+				cfg_error(comp, v, "Illegal value for %s", v->key);
+			continue;
+		}
 
 		if (grok_common_var(comp, v))
 			continue;
@@ -287,6 +294,9 @@ static void grok_module_compound(struct cfg_comp *comp)
 
 		cfg_error(comp, comp->vlist[i], "Unknown variable");
 	}
+
+	if (!mrm_reap_interval)
+		mrm_reap_interval = 2;
 }
 
 static void grok_daemon_compound(struct cfg_comp *comp)
