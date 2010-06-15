@@ -36,6 +36,20 @@ static void usage(char *fmt, ...)
 	exit(1);
 }
 
+void db_mark_node_inactive(merlin_node *node)
+{
+	int node_id;
+
+	if (!use_database)
+		return;
+
+	node_id = node == &ipc ? 0 : node->id + 1;
+	sql_query("UPDATE %s.program_status "
+	          "SET is_running = 0, last_alive = 0 "
+	          "WHERE instance_id = %d",
+	          sql_db_name(), node_id);
+}
+
 /* node connect/disconnect handlers */
 static int node_action_handler(merlin_node *node, int action)
 {
@@ -63,6 +77,7 @@ static int node_action_handler(merlin_node *node, int action)
 	case STATE_NONE:
 		/* only send INACTIVE if we haven't already */
 		if (node->state == STATE_CONNECTED) {
+			db_mark_node_inactive(node);
 			ldebug("Sending IPC control INACTIVE for '%s'", node->name);
 			return ipc_send_ctrl(CTRL_INACTIVE, node->id);
 		}
@@ -108,8 +123,7 @@ static int ipc_action_handler(merlin_node *node, int state)
 		if (ipc.state != STATE_CONNECTED)
 			return 0;
 		/* make sure the gui knows the module isn't running any more */
-		sql_query("UPDATE %s.program_status SET is_running = 0 "
-				  "WHERE instance_id = 0", sql_db_name());
+		db_mark_node_inactive(&ipc);
 
 		/* also tell our peers and masters */
 		for (i = 0; i < num_nocs + num_peers; i++) {

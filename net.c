@@ -416,6 +416,11 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 			ldebug("%s started @ %lu.%lu", node->name,
 				   node->info.start.tv_sec, node->info.start.tv_usec);
 		}
+		if (pkt->hdr.code == CTRL_INACTIVE) {
+			memset(&node->info, 0, sizeof(node->info));
+			ldebug("Module @ %s has stopped", node->name);
+			db_mark_node_inactive(node);
+		}
 	} else if (node->type == MODE_POLLER && num_nocs) {
 		uint i;
 

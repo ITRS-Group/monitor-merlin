@@ -12,5 +12,6 @@
 
 extern int use_database;
 extern int mrm_db_update(merlin_node *node, merlin_event *pkt);
+extern void db_mark_node_inactive(merlin_node *node);
 
 #endif
