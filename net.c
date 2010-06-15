@@ -497,6 +497,7 @@ static int net_input(merlin_node *node, int msec)
 int net_send_ipc_data(merlin_event *pkt)
 {
 	uint i;
+	int all_pollers = 0;
 
 	if (!num_nodes)
 		return 0;
@@ -506,8 +507,22 @@ int net_send_ipc_data(merlin_event *pkt)
 		net_sendto(node_table[i], pkt);
 	}
 
-	/* packets designated for everyone get sent immediately */
+	/* general control packets are for everyone */
 	if (pkt->hdr.selection == 0xffff && pkt->hdr.type == CTRL_PACKET) {
+		all_pollers = 1;
+	}
+
+	/*
+	 * pollers might be used as ui-servers too, so we should
+	 * send PROGRAM_STATUS_DATA to it so users at that end can
+	 * know whether or not the master server is online
+	 */
+	if (pkt->hdr.type == NEBCALLBACK_PROGRAM_STATUS_DATA) {
+		all_pollers = 1;
+	}
+
+	/* packets designated for everyone get sent immediately */
+	if (all_pollers) {
 		for (i = 0; i < num_pollers; i++)
 			net_sendto(poller_table[i], pkt);
 		return 0;
