@@ -175,7 +175,12 @@ static void assign_peer_ids(void)
 		int result;
 		merlin_node *node = peerid_table[i];
 
-		node->peer_id += inc;
+		/*
+		 * we must assign peer_id using i here, in case we sort multiple
+		 * times. Otherwise we'll only ever increase the peer_id and
+		 * end up with all peers having the same id.
+		 */
+		node->peer_id = i + inc;
 		if (node->state == STATE_CONNECTED)
 			active_peers++;
 
