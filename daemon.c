@@ -53,8 +53,8 @@ static int node_action_handler(merlin_node *node, int action)
 		 * We  need to send our own timestamp to the other end so
 		 * they know how to sort us in case we're a peer to them.
 		 */
-		if (ipc.start.tv_sec && ipc_is_connected(0)) {
-			node_send_ctrl_active(node, CTRL_GENERIC, &ipc.start, 100);
+		if (ipc.info.start.tv_sec && ipc_is_connected(0)) {
+			node_send_ctrl_active(node, CTRL_GENERIC, &ipc.info, 100);
 		}
 		break;
 
@@ -88,8 +88,8 @@ static int ipc_action_handler(merlin_node *node, int state)
 
 		for (i = 0; i < num_nodes; i++) {
 			merlin_node *node = node_table[i];
-			if (node->state == STATE_CONNECTED && node->start.tv_sec > 0)
-				ipc_send_ctrl_active(node->id, &node->start);
+			if (node->state == STATE_CONNECTED && node->info.start.tv_sec > 0)
+				ipc_send_ctrl_active(node->id, &node->info);
 			else
 				ipc_send_ctrl_inactive(node->id);
 
@@ -394,12 +394,12 @@ static int handle_ipc_event(merlin_event *pkt)
 			return 0;
 
 		case CTRL_ACTIVE:
-			memcpy(&ipc.start, &pkt->body, sizeof(ipc.start));
+			memcpy(&ipc.info, &pkt->body, sizeof(ipc.info));
 			/* this gets propagated, so don't return here */
 			break;
 		case CTRL_INACTIVE:
 			/* this should really never happen, but forward it if it does */
-			memset(&ipc.start, 0, sizeof(ipc.start));
+			memset(&ipc.info, 0, sizeof(ipc.info));
 			break;
 		default:
 			lwarn("forwarding control packet %d to the network",
@@ -540,7 +540,7 @@ int main(int argc, char **argv)
 
 	is_module = 0;
 	ipc_init_struct();
-	gettimeofday(&merlin_start, NULL);
+	gettimeofday(&self.start, NULL);
 
 	for (i = 1; i < argc; i++) {
 		char *opt, *arg = argv[i];

@@ -412,9 +412,9 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		 * peers, but we might as well set it for all modules
 		 */
 		if (pkt->hdr.code == CTRL_ACTIVE) {
-			memcpy(&node->start, pkt->body, pkt->hdr.len);
+			memcpy(&node->info, pkt->body, sizeof(node->info));
 			ldebug("%s started @ %lu.%lu", node->name,
-				   node->start.tv_sec, node->start.tv_usec);
+				   node->info.start.tv_sec, node->info.start.tv_usec);
 		}
 	} else if (node->type == MODE_POLLER && num_nocs) {
 		uint i;

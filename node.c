@@ -268,7 +268,7 @@ void node_grok_config(struct cfg_comp *config)
 			node->name = strdup(inet_ntoa(node->sain.sin_addr));
 
 		node->sock = -1;
-		node->start.tv_sec = node->start.tv_usec = 0;
+		memset(&node->info, 0, sizeof(node->info));
 	}
 
 	create_node_tree(table, node_i);
@@ -290,7 +290,7 @@ void node_log_event_count(merlin_node *node, int force)
 		return;
 
 	s->last_logged = now.tv_sec;
-	dura = tv_delta(&merlin_start, &now);
+	dura = tv_delta(&self.start, &now);
 
 	b_in = s->bytes.read;
 	b_out = s->bytes.sent + s->bytes.logged + s->bytes.dropped;

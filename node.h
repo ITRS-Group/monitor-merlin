@@ -50,6 +50,13 @@ struct merlin_event {
 } __attribute__((packed));
 typedef struct merlin_event merlin_event;
 
+struct merlin_nodeinfo {
+	struct timeval start;   /* module (or daemon) start time */
+	time_t last_cfg_change; /* when config was last changed */
+	unsigned char config_hash[20];   /* SHA1 hash of object config hash */
+} __attribute__((packed));
+typedef struct merlin_nodeinfo merlin_nodeinfo;
+
 struct statistics_vars {
 	uint64_t sent, read, logged, dropped;
 };
@@ -95,7 +102,7 @@ struct merlin_node {
 	struct sockaddr_in sain;
 	time_t last_recv;       /* last time node sent something to us */
 	time_t last_sent;       /* when we sent something last */
-	struct timeval start;   /* when this node's module started */
+	merlin_nodeinfo info;   /* node info */
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
 	binlog *binlog;         /* binary backlog for this node */
 	merlin_node_stats stats; /* event/data statistics */
@@ -133,8 +140,8 @@ static inline int node_send_ctrl_inactive(merlin_node *node, uint id, int msec)
 	return node_ctrl(node, CTRL_INACTIVE, id, NULL, 0, msec);
 }
 
-static inline int node_send_ctrl_active(merlin_node *node, uint id, struct timeval *tv, int msec)
+static inline int node_send_ctrl_active(merlin_node *node, uint id, merlin_nodeinfo *info, int msec)
 {
-	return node_ctrl(node, CTRL_ACTIVE, id, (void *)tv, sizeof(*tv), msec);
+	return node_ctrl(node, CTRL_ACTIVE, id, (void *)info, sizeof(*info), msec);
 }
 #endif

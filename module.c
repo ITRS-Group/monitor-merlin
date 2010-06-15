@@ -473,7 +473,7 @@ static int ipc_action_handler(merlin_node *node, int state)
 	 * adds before trying to send.
 	 */
 	if (state == STATE_CONNECTED)
-		return node_send_ctrl_active(&ipc, CTRL_GENERIC, &merlin_start, 100);
+		return node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 100);
 
 	return 0;
 }
@@ -489,7 +489,8 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	neb_handle = (void *)handle;
 
 	ipc_init_struct();
-	gettimeofday(&merlin_start, NULL);
+	memset(&self, 0, sizeof(self));
+	gettimeofday(&self.start, NULL);
 
 	/* if we're linked with mtest we needn't parse the configuration */
 	if (flags != -1 && arg != NULL)

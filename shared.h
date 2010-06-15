@@ -84,7 +84,7 @@ extern int debug;
 #define num_nodes (num_nocs + num_pollers + num_peers)
 extern uint num_nocs, num_peers, num_pollers;
 extern int use_database;
-extern struct timeval merlin_start;
+extern merlin_nodeinfo self;
 
 /** event structures where Nagios' doesn't provide good ones */
 struct monitored_object_state {

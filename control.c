@@ -150,7 +150,7 @@ static int cmp_peer(const void *a_, const void *b_)
 			return 1;
 	}
 
-	return timeval_comp(&a->start, &b->start);
+	return timeval_comp(&a->info.start, &b->info.start);
 }
 
 static void assign_peer_ids(void)
@@ -183,7 +183,7 @@ static void assign_peer_ids(void)
 		if (inc)
 			continue;
 
-		result = timeval_comp(&merlin_start, &node->start);
+		result = timeval_comp(&self.start, &node->info.start);
 		if (result < 0) {
 			continue;
 		}
@@ -225,7 +225,7 @@ static void node_action(merlin_node *node, int state)
 		return;
 
 	if (state != STATE_CONNECTED) {
-		memset(&node->start, 0, sizeof(node->start));
+		memset(&node->info, 0, sizeof(node->info));
 	}
 
 	node->state = state;
@@ -256,8 +256,8 @@ void handle_control(merlin_event *pkt)
 		node_action(node, STATE_NONE);
 		break;
 	case CTRL_ACTIVE:
-		memcpy(&node->start, &pkt->body, sizeof(struct timeval));
-		ldebug("node %s started %lu.%lu", node->name, node->start.tv_sec, node->start.tv_usec);
+		memcpy(&node->info, &pkt->body, sizeof(node->info));
+		ldebug("node %s started %lu.%lu", node->name, node->info.start.tv_sec, node->info.start.tv_usec);
 		node_action(node, STATE_CONNECTED);
 		break;
 	case CTRL_STALL:
