@@ -207,11 +207,14 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 {
 	char *global_host_event_handler;
 	char *global_service_event_handler;
-	int result;
+	int result, node_id;
 
 	sql_quote(p->global_host_event_handler, &global_host_event_handler);
 	sql_quote(p->global_service_event_handler, &global_service_event_handler);
 
+	node_id = node == &ipc ? 0 : node->id + 1;
+	ldebug("Updating status data for node '%s' with id %d",
+		   node->name, node_id);
 	result = sql_query
 		("UPDATE %s.program_status SET is_running = 1, "
 		 "last_alive = %lu, program_start = %lu, pid = %d, daemon_mode = %d, "
@@ -236,7 +239,7 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 		 p->obsess_over_hosts, p->obsess_over_services,
 		 p->modified_host_attributes, p->modified_service_attributes,
 		 safe_str(global_host_event_handler), safe_str(global_service_event_handler),
-		 node->id + 1);
+		 node_id);
 
 	free(global_host_event_handler);
 	free(global_service_event_handler);
