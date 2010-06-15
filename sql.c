@@ -19,13 +19,8 @@ static struct {
 	dbi_driver driver;
 } db;
 
-static time_t last_connect_attempt = 0;
 
-#undef ESC_BUFSIZE
-#define ESC_BUFSIZE (8192 * 2)
-#undef ESC_BUFS
-#define ESC_BUFS 8 /* must be a power of 2 */
-#define MAX_ESC_STRING ((ESC_BUFSIZE * 2) + 1)
+static time_t last_connect_attempt;
 
 /*
  * Quotes a string and escapes all meta-characters inside the string.
