@@ -97,8 +97,8 @@ static int ipc_action_handler(merlin_node *node, int state)
 		if (use_database) {
 			sql_reinit();
 			sql_query("UPDATE %s.program_status SET "
-					  "is_running = 1, last_alive = %lu "
-					  "WHERE instance_id = 0", sql_db_name(), time(NULL));
+			          "is_running = 1, last_alive = %lu "
+			          "WHERE instance_id = 0", sql_db_name(), time(NULL));
 		}
 
 		for (i = 0; i < num_nodes; i++) {
@@ -651,15 +651,15 @@ int main(int argc, char **argv)
 	sql_init();
 	if (use_database) {
 		sql_query("TRUNCATE program_status");
-		sql_query("INSERT INTO program_status(instance_id, instance_name, is_running) "
-				  "VALUES(0, 'Local Nagios daemon', 0)");
+		sql_query("INSERT INTO %s.program_status(instance_id, instance_name, is_running) "
+		          "VALUES(0, 'Local Nagios daemon', 0)", sql_db_name());
 		for (i = 0; i < num_nodes; i++) {
 			char *node_name;
 			merlin_node *node = noc_table[i];
 
 			sql_quote(node->name, &node_name);
-			sql_query("INSERT INTO program_status(instance_id, instance_name, is_running) "
-					  "VALUES(%d, %s, 0)", node->id + 1, node_name);
+			sql_query("INSERT INTO %s.program_status(instance_id, instance_name, is_running) "
+			          "VALUES(%d, %s, 0)", sql_db_name(), node->id + 1, node_name);
 			safe_free(node_name);
 		}
 	}
