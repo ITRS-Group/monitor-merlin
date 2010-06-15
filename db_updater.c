@@ -213,8 +213,6 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 	sql_quote(p->global_service_event_handler, &global_service_event_handler);
 
 	node_id = node == &ipc ? 0 : node->id + 1;
-	ldebug("Updating status data for node '%s' with id %d",
-		   node->name, node_id);
 	result = sql_query
 		("UPDATE %s.program_status SET is_running = 1, "
 		 "last_alive = %lu, program_start = %lu, pid = %d, daemon_mode = %d, "
