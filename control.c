@@ -258,6 +258,8 @@ void handle_control(merlin_event *pkt)
 	case CTRL_ACTIVE:
 		memcpy(&node->info, &pkt->body, sizeof(node->info));
 		ldebug("node %s started %lu.%lu", node->name, node->info.start.tv_sec, node->info.start.tv_usec);
+		ldebug("config hash: %s; last change: %lu\n",
+			   tohex(node->info.config_hash, 20), node->info.last_cfg_change);
 		node_action(node, STATE_CONNECTED);
 		break;
 	case CTRL_STALL:

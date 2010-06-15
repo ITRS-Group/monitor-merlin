@@ -153,6 +153,7 @@ struct merlin_service_status {
 typedef struct merlin_service_status merlin_service_status;
 
 /** prototypes **/
+extern char *tohex(const unsigned char *data, int len);
 extern void bt_scan(const char *mark, int count);
 extern const char *human_bytes(uint64_t n);
 extern linked_item *add_linked_item(linked_item *list, void *item);

@@ -26,6 +26,29 @@ char *next_word(char *str)
 	return NULL;
 }
 
+/*
+ * converts an arbitrarily long string of data into its
+ * hexadecimal representation
+ */
+char *tohex(const unsigned char *data, int len)
+{
+	/* number of bufs must be a power of 2 */
+	static char bufs[4][41], hex[] = "0123456789abcdef";
+	static int bufno;
+	char *buf;
+	int i;
+
+	buf = bufs[bufno & (ARRAY_SIZE(bufs) - 1)];
+	for (i = 0; i < 20 && i < len; i++) {
+		unsigned int val = *data++;
+		*buf++ = hex[val >> 4];
+		*buf++ = hex[val & 0xf];
+	}
+	*buf = '\0';
+
+	return bufs[bufno++ & (ARRAY_SIZE(bufs) - 1)];
+}
+
 #define CB_ENTRY(s) #s
 static const char *callback_names[NEBCALLBACK_NUMITEMS] = {
 	CB_ENTRY(RESERVED0),
