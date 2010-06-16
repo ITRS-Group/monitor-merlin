@@ -32,11 +32,11 @@
 #define packet_size(pkt) ((pkt)->hdr.len + HDR_SIZE)
 
 struct merlin_header {
-	u_int16_t protocol;   /* always 0 for now */
-	u_int16_t type;       /* event type */
-	u_int16_t code;       /* event code (used for control packets) */
-	u_int16_t selection;  /* used when noc Nagios communicates with mrd */
-	u_int32_t len;        /* size of body */
+	uint16_t protocol;   /* always 0 for now */
+	uint16_t type;       /* event type */
+	uint16_t code;       /* event code (used for control packets) */
+	uint16_t selection;  /* used when noc Nagios communicates with mrd */
+	uint32_t len;        /* size of body */
 	struct timeval sent;  /* when this message was sent */
 
 	/* pad to 64 bytes for future extensions */
