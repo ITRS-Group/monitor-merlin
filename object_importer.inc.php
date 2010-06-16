@@ -721,6 +721,19 @@ class nagios_object_importer
 			$obj['instance_name'] = 'Local Nagios/Merlin instance';
 			$obj['is_running'] = 1;
 		} else {
+			if ($obj_type === 'comment') {
+				# According to nagios/comments.h:
+				# #define HOST_COMMENT 1
+				# #define SERVICE_COMMENT 2
+				# We can't use "empty()" here, or a service_description
+				# of '0' will cause it to be considered a host comment.
+				if (isset($obj['service_description']) && strlen($obj['service_description'])) {
+					$obj['comment_type'] = 2;
+				} else {
+					unset($obj['service_description']);
+					$obj['comment_type'] = 1;
+				}
+			}
 			$obj['id'] = $obj_key;
 		}
 
