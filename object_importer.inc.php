@@ -733,6 +733,18 @@ class nagios_object_importer
 					unset($obj['service_description']);
 					$obj['comment_type'] = 1;
 				}
+			} elseif ($obj_type === 'scheduled_downtime') {
+				# According to nagios/common.h:
+				# #define SERVICE_DOWNTIME 1
+				# #define HOST_DOWNTIME 2
+				# #define ANY_DOWNTIME 3
+				# that last one is a bit weird...
+				if (isset($obj['service_description']) && strlen($obj['service_description'])) {
+					$obj['downtime_type'] = 1;
+				} else {
+					unset($obj['service_description']);
+					$obj['downtime_type'] = 2;
+				}
 			}
 			$obj['id'] = $obj_key;
 		}
