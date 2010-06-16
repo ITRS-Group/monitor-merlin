@@ -603,10 +603,9 @@ int main(int argc, char **argv)
 	}
 
 	if (use_database && !import_program) {
-		fprintf(stderr, "Using database, but no import program configured\n");
-		fprintf(stderr, "Make sure you specify the import_program directive in\n");
-		fprintf(stderr, "the \"daemon\" section of your merlin configuration file\n");
-		exit(EXIT_FAILURE);
+		lwarn("Using database, but no import program configured. Are you sure about this?");
+		lwarn("If not, make sure you specify the import_program directive in");
+		lwarn("the \"daemon\" section of your merlin configuration file");
 	}
 
 	if (!pidfile)
