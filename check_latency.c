@@ -8,6 +8,10 @@
 #include <unistd.h>
 #include "cfgfile.h"
 
+#ifndef __GNUC__
+# define __attribute__(x) /* nothing */
+#endif
+
 #ifndef ARRAY_SIZE
 # define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #endif
@@ -189,6 +193,7 @@ static int get_latency(const char *path)
 	return 0;
 }
 
+__attribute__((__format__(__printf__, 1, 2)))
 static void usage(const char *fmt, ...)
 {
 	if (fmt) {
@@ -235,6 +240,7 @@ static void grok_threshold(char *opt, threshold *th)
 
 static char *errors[8];
 static int error_idx;
+__attribute__((__format__(__printf__, 1, 2)))
 static void push_error(const char *fmt, ...)
 {
 	va_list ap;
@@ -245,6 +251,7 @@ static void push_error(const char *fmt, ...)
 
 static char *warnings[8];
 static int warning_idx;
+__attribute__((__format__(__printf__, 1, 2)))
 static void push_warning(const char *fmt, ...)
 {
 	va_list ap;
