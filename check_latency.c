@@ -1,5 +1,16 @@
+#define _GNU_SOURCE 1 /* for vasprintf */
+#include <stdio.h>
 #include <stdarg.h>
-#include "shared.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include "cfgfile.h"
+
+#ifndef ARRAY_SIZE
+# define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+#endif
 
 typedef struct {
 	uint objects;
