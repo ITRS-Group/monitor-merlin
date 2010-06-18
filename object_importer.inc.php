@@ -423,8 +423,11 @@ class nagios_object_importer
 			return $this->convert[$obj_type][$k];
 
 		if ($obj_type === 'host') {
-			if ($k === 'vrml_image' || $k === '3d_coords')
+			if ($k === 'vrml_image' || $k === '3d_coords' ||
+				$k === '2d_coords')
+			{
 				return false;
+			}
 		} elseif ($obj_type === 'program_status') {
 			if (substr($k, 0, strlen('enable_')) === 'enable_') {
 				return substr($k, strlen('enable_')) . '_enabled';
