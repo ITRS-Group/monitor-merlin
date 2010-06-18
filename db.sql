@@ -1,4 +1,4 @@
-SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+/*!40101 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO" */;
 --
 -- Database design for the merlin database
 --
