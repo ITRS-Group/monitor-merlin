@@ -210,10 +210,14 @@ int sql_init(void)
 		return -1;
 	}
 
-	result = dbi_conn_set_option(db.conn, "host", db.host ? db.host : "localhost");
-	result |= dbi_conn_set_option(db.conn, "username", db.user ? db.user : "merlin");
-	result |= dbi_conn_set_option(db.conn, "password", db.pass ? db.pass : "merlin");
-	result |= dbi_conn_set_option(db.conn, "dbname", db.name ? db.name : "merlin");
+	db.name = db.name ? db.name : "merlin";
+	db.host = db.host ? db.host : "localhost";
+	db.user = db.user ? db.user : "merlin";
+	db.pass = db.pass ? db.pass : "merlin";
+	result = dbi_conn_set_option(db.conn, "host", db.host);
+	result |= dbi_conn_set_option(db.conn, "username", db.user);
+	result |= dbi_conn_set_option(db.conn, "password", db.pass);
+	result |= dbi_conn_set_option(db.conn, "dbname", db.name);
 	if (db.port)
 		result |= dbi_conn_set_option_numeric(db.conn, "port", db.port);
 	result |= dbi_conn_set_option(db.conn, "encoding", db.encoding ? db.encoding : "UTF-8");
