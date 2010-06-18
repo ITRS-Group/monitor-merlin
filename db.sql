@@ -7,9 +7,9 @@ DROP TABLE IF EXISTS contact_access;
 CREATE TABLE contact_access(
 	contact			int,
 	host			int,
-	service			int,
-	KEY contact(contact)
+	service			int
 );
+CREATE UNIQUE INDEX ca_contact_id ON contact_access(contact);
 
 DROP TABLE IF EXISTS notification;
 CREATE TABLE notification(
@@ -28,11 +28,11 @@ CREATE TABLE notification(
 	ack_author				varchar(255),
 	ack_data				text,
 	escalated				int,
-	contacts_notified		int,
-	KEY host_name(host_name),
-	KEY service_name(host_name, service_description),
-	KEY contact_name(contact_name)
+	contacts_notified		int
 ) COLLATE latin1_general_cs;
+CREATE INDEX n_host_name ON notification(host_name);
+CREATE INDEX n_service_name ON notification(host_name, service_description);
+CREATE INDEX n_contact_name ON notification(contact_name);
 
 DROP TABLE IF EXISTS program_status;
 CREATE TABLE program_status(
@@ -63,7 +63,6 @@ CREATE TABLE program_status(
 	global_host_event_handler		text,
 	global_service_event_handler	text
 ) COLLATE latin1_general_cs;
-INSERT INTO program_status(instance_id, instance_name) VALUES(0, "Local Nagios/Merlin Instance");
 
 -- removed. scheduled_downtime is the one we use
 DROP TABLE IF EXISTS downtime;
@@ -83,11 +82,11 @@ CREATE TABLE scheduled_downtime(
 	fixed					tinyint(2),
 	duration				int(11),
 	triggered_by			int,
-	downtime_id				int NOT NULL,
-	KEY host_downtime(host_name),
-	KEY service_downtime(service_description),
-	UNIQUE KEY downtime_id(downtime_id)
+	downtime_id				int NOT NULL
 ) COLLATE latin1_general_cs;
+CREATE INDEX sd_host_name ON scheduled_downtime(host_name);
+CREATE INDEX sd_service_name ON scheduled_downtime(host_name, service_description);
+CREATE UNIQUE INDEX sd_downtime_id ON scheduled_downtime(downtime_id);
 
 DROP TABLE IF EXISTS comment;
 CREATE TABLE comment(
@@ -104,11 +103,11 @@ CREATE TABLE comment(
 	entry_type			int,
 	expires				int,
 	expire_time			int(10),
-	comment_id			int not null,
-	KEY host_comment(host_name),
-	KEY service_comment(host_name, service_description),
-	UNIQUE KEY comment_id(comment_id)
+	comment_id			int not null
 ) COLLATE latin1_general_cs;
+CREATE INDEX c_host_name ON comment(host_name);
+CREATE INDEX c_service_name ON comment(host_name, service_description);
+CREATE UNIQUE INDEX c_comment_id ON comment(comment_id);
 
 DROP TABLE IF EXISTS contact;
 CREATE TABLE contact(
@@ -138,7 +137,7 @@ CREATE TABLE contact(
 	last_host_notification				INT(10),
 	last_service_notification			INT(10)
 ) COLLATE latin1_general_cs;
-CREATE UNIQUE INDEX contact_name ON contact(contact_name);
+CREATE UNIQUE INDEX c_contact_name ON contact(contact_name);
 
 -- contact, contactgroup:
 DROP TABLE IF EXISTS contact_contactgroup;
@@ -171,7 +170,7 @@ CREATE TABLE timeperiod(
 	friday					VARCHAR(50),
 	saturday				VARCHAR(50)
 ) COLLATE latin1_general_cs;
-CREATE UNIQUE INDEX timeperiod_name ON timeperiod(timeperiod_name);
+CREATE UNIQUE INDEX t_timeperiod_name ON timeperiod(timeperiod_name);
 
 -- junction table for timeperiod<->exclude
 DROP TABLE IF EXISTS timeperiod_exclude;
@@ -188,7 +187,7 @@ CREATE TABLE command(
 	command_name	VARCHAR(75) NOT NULL,
 	command_line	BLOB NOT NULL
 ) COLLATE latin1_general_cs;
-CREATE UNIQUE INDEX command_name ON command(command_name);
+CREATE UNIQUE INDEX c_command_name ON command(command_name);
 
 
 -- host table
@@ -289,7 +288,7 @@ CREATE TABLE host(
 	early_timeout smallint(1),
 	return_code smallint(8)
 ) COLLATE latin1_general_cs;
-CREATE UNIQUE INDEX host_name ON host(host_name);
+CREATE UNIQUE INDEX h_host_name ON host(host_name);
 
 -- junctions for host objects
 DROP TABLE IF EXISTS host_parents;
@@ -425,9 +424,9 @@ CREATE TABLE service(
 	start_time int(10),
 	end_time int(10),
 	early_timeout smallint(1),
-	return_code smallint(8),
-	UNIQUE KEY service_name(host_name, service_description)
+	return_code smallint(8)
 ) COLLATE latin1_general_cs;
+CREATE UNIQUE INDEX s_service_name ON service(host_name, service_description);
 
 -- junctions for service objects
 DROP TABLE IF EXISTS service_contact;
@@ -459,7 +458,7 @@ CREATE TABLE servicegroup(
 	notes_url			VARCHAR(160),
 	action_url			VARCHAR(160)
 ) COLLATE latin1_general_cs;
-CREATE UNIQUE INDEX servicegroup_name ON servicegroup(servicegroup_name);
+CREATE UNIQUE INDEX s_servicegroup_name ON servicegroup(servicegroup_name);
 
 
 DROP TABLE IF EXISTS servicedependency;
@@ -548,7 +547,7 @@ CREATE TABLE custom_vars(
 	value		VARCHAR(255)
 )  COLLATE latin1_general_cs;
 -- No single object can have multiple variables named the same
-CREATE UNIQUE INDEX objvar ON custom_vars(obj_type, obj_id, variable);
+CREATE UNIQUE INDEX cv_objvar ON custom_vars(obj_type, obj_id, variable);
 
 -- gui <=> webconfig db scheme cross-pollination ends here
 
@@ -558,30 +557,29 @@ DROP TABLE IF EXISTS serviceextinfo;
 DROP TABLE IF EXISTS gui_action_log;
 DROP TABLE IF EXISTS gui_access;
 
-DROP TABLE IF EXISTS `db_version`;
-CREATE TABLE `db_version` (
-  `version` int(11)
+DROP TABLE IF EXISTS db_version;
+CREATE TABLE db_version (
+  version int(11)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 INSERT INTO db_version(version) VALUES(2);
 
-DROP TABLE IF EXISTS `report_data`;
-CREATE TABLE `report_data` (
-  `id` int(11) NOT NULL auto_increment,
-  `timestamp` int(11) NOT NULL default '0',
-  `event_type` int(11) NOT NULL default '0',
-  `flags` int(11),
-  `attrib` int(11),
-  `host_name` varchar(160) default '',
-  `service_description` varchar(160) default '',
-  `state` int(2) NOT NULL default '0',
-  `hard` int(2) NOT NULL default '0',
-  `retry` int(5) NOT NULL default '0',
-  `downtime_depth` int(11),
-  `output` text,
-  PRIMARY KEY  (`id`),
-  KEY          (`timestamp`),
-  KEY event_type (event_type),
-  KEY host_name (host_name),
-  KEY host_name_2 (host_name,service_description),
-  KEY state (state)
+DROP TABLE IF EXISTS report_data;
+CREATE TABLE report_data (
+  id int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  timestamp int(11) NOT NULL default '0',
+  event_type int(11) NOT NULL default '0',
+  flags int(11),
+  attrib int(11),
+  host_name varchar(160) default '',
+  service_description varchar(160) default '',
+  state int(2) NOT NULL default '0',
+  hard int(2) NOT NULL default '0',
+  retry int(5) NOT NULL default '0',
+  downtime_depth int(11),
+  output text
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE latin1_general_cs;
+CREATE INDEX rd_timestamp ON report_data(timestamp);
+CREATE INDEX rd_event_type ON report_data(event_type);
+CREATE INDEX rd_host_name ON report_data(host_name);
+CREATE INDEX rd_service_name ON report_data(host_name, service_description);
+CREATE INDEX rd_state ON report_data(state);
