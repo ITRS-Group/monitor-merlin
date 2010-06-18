@@ -5,7 +5,7 @@
 #define safe_free(str) do { if (str) free(str); } while (0)
 
 #define STATUS_QUERY(type) \
-	"UPDATE %s." type " SET " \
+	"UPDATE " type " SET " \
 	"initial_state = %d, flap_detection_enabled = %d, " \
 	"low_flap_threshold = %f, high_flap_threshold = %f, " \
 	"check_freshness = %d, freshness_threshold = %d, " \
@@ -33,7 +33,6 @@
 	"output = %s, long_output = %s, perf_data = %s"
 
 #define STATUS_ARGS(output, long_output, perf_data) \
-	sql_db_name(), \
 	p->state.initial_state, p->state.flap_detection_enabled, \
 	p->state.low_flap_threshold, p->state.high_flap_threshold, \
 	p->state.check_freshness, p->state.freshness_threshold, \
@@ -122,21 +121,20 @@ static int handle_host_result(object_state *st, const nebstruct_host_check_data 
 		lerr("Failed to find stored state for host '%s'", p->host_name);
 	} else {
 		if (p->state != extract_state(st->state)) {
-			result = sql_query("UPDATE %s.host SET last_state_change = %lu "
+			result = sql_query("UPDATE host SET last_state_change = %lu "
 				   "WHERE host_name = %s",
-				   sql_db_name(), p->end_time.tv_sec, host_name);
+				   p->end_time.tv_sec, host_name);
 			sql_free_result();
 		}
 	}
 
 	result = sql_query
-		("UPDATE %s.host SET current_attempt = %d, check_type = %d, "
+		("UPDATE host SET current_attempt = %d, check_type = %d, "
 		 "state_type = %d, current_state = %d, timeout = %d, "
 		 "start_time = %lu, end_time = %lu, early_timeout = %d, "
 		 "execution_time = %f, latency = '%.3f', last_check = %lu, "
 		 "return_code = %d, output = %s, long_output = %s, perf_data = %s "
 		 "WHERE host_name = %s",
-		 sql_db_name(),
 		 p->current_attempt, p->check_type,
 		 p->state_type, p->state, p->timeout,
 		 p->start_time.tv_sec, p->end_time.tv_sec, p->early_timeout,
@@ -171,21 +169,20 @@ static int handle_service_result(object_state *st, const nebstruct_service_check
 			 p->service_description, p->host_name);
 	} else {
 		if (p->state != extract_state(st->state)) {
-			result = sql_query("UPDATE %s.service SET last_state_change = %lu "
+			result = sql_query("UPDATE service SET last_state_change = %lu "
 					   "WHERE host_name = %s AND service_description = %s",
-					   sql_db_name(), p->end_time.tv_sec, host_name, service_description);
+					   p->end_time.tv_sec, host_name, service_description);
 			sql_free_result();
 		}
 	}
 
 	result = sql_query
-		("UPDATE %s.service SET current_attempt = %d, check_type = %d, "
+		("UPDATE service SET current_attempt = %d, check_type = %d, "
 		 "state_type = %d, current_state = %d, timeout = %d, "
 		 "start_time = %lu, end_time = %lu, early_timeout = %d, "
 		 "execution_time = %f, latency = '%.3f', last_check = %lu, "
 		 "return_code = %d, output = %s, long_output = %s, perf_data = %s "
 		 " WHERE host_name = %s AND service_description = %s",
-		 sql_db_name(),
 		 p->current_attempt, p->check_type,
 		 p->state_type, p->state, p->timeout,
 		 p->start_time.tv_sec, p->end_time.tv_sec, p->early_timeout,
@@ -214,7 +211,7 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 
 	node_id = node == &ipc ? 0 : node->id + 1;
 	result = sql_query
-		("UPDATE %s.program_status SET is_running = 1, "
+		("UPDATE program_status SET is_running = 1, "
 		 "last_alive = %lu, program_start = %lu, pid = %d, daemon_mode = %d, "
 		 "last_command_check = %lu, last_log_rotation = %lu, "
 		 "notifications_enabled = %d, "
@@ -226,7 +223,6 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 		 "modified_host_attributes = %lu, modified_service_attributes = %lu, "
 		 "global_host_event_handler = %s, global_service_event_handler = %s "
 		 "WHERE instance_id = %d",
-		 sql_db_name(),
 		 time(NULL), p->program_start, p->pid, p->daemon_mode,
 		 p->last_command_check, p->last_log_rotation,
 		 p->notifications_enabled,
@@ -260,9 +256,8 @@ static int handle_downtime(const nebstruct_downtime_data *p)
 	if (p->type == NEBTYPE_DOWNTIME_DELETE ||
 		p->type == NEBTYPE_DOWNTIME_STOP)
 	{
-		result = sql_query("DELETE FROM %s.scheduled_downtime "
-						   "WHERE downtime_id = %lu",
-						   sql_db_name(), p->downtime_id);
+		result = sql_query("DELETE FROM scheduled_downtime "
+						   "WHERE downtime_id = %lu", p->downtime_id);
 
 		/* NEBTYPE_DOWNTIME_STOP has further actions to take */
 		if (p->type == NEBTYPE_DOWNTIME_DELETE)
@@ -277,37 +272,35 @@ static int handle_downtime(const nebstruct_downtime_data *p)
 	case NEBTYPE_DOWNTIME_STOP:
 		if (!service_description) {
 			result = sql_query
-				("UPDATE %s.host SET "
+				("UPDATE host SET "
 				 "scheduled_downtime_depth = scheduled_downtime_depth %c 1 "
-				 "WHERE host_name = %s", sql_db_name(),
+				 "WHERE host_name = %s",
 				 p->type == NEBTYPE_DOWNTIME_START ? '+' : '-', host_name);
 		} else {
 			result = sql_query
-				("UPDATE %s.service SET "
+				("UPDATE service SET "
 				 "scheduled_downtime_depth = scheduled_downtime_depth %c 1 "
 				 "WHERE host_name = %s AND service_description = %s",
-				 sql_db_name(),
 				 p->type == NEBTYPE_DOWNTIME_START ? '+' : '-',
 				 host_name, service_description);
 		}
 		break;
 	case NEBTYPE_DOWNTIME_LOAD:
 		result = sql_query
-			("DELETE FROM %s.scheduled_downtime WHERE downtime_id = %lu",
-			 sql_db_name(), p->downtime_id);
+			("DELETE FROM scheduled_downtime WHERE downtime_id = %lu",
+			 p->downtime_id);
 		/* fallthrough */
 	case NEBTYPE_DOWNTIME_ADD:
 		sql_quote(p->author_name, &author_name);
 		sql_quote(p->comment_data, &comment_data);
 		result = sql_query
-			("INSERT INTO %s.scheduled_downtime "
+			("INSERT INTO scheduled_downtime "
 			 "(downtime_type, host_name, service_description, entry_time, "
 			 "author_name, comment_data, start_time, end_time, fixed, "
 			 "duration, triggered_by, downtime_id) "
 			 "VALUES(%d, %s, %s, %lu, "
 			 "       %s, %s, %lu, %lu, %d, "
 			 "       %lu, %lu, %lu)",
-			 sql_db_name(),
 			 p->downtime_type, host_name, safe_str(service_description),
 			 p->entry_time, author_name, comment_data, p->start_time,
 			 p->end_time, p->fixed, p->duration, p->triggered_by,
@@ -345,20 +338,19 @@ static int handle_flapping(const nebstruct_flapping_data *p)
 
 	if (service_description) {
 		result = sql_query
-			("UPDATE %s.service SET is_flapping = %d, "
+			("UPDATE service SET is_flapping = %d, "
 			 "flapping_comment_id = %lu, percent_state_change = %f "
 			 "WHERE host_name = %s AND service_description = %s",
-			 sql_db_name(),
 			 p->type == NEBTYPE_FLAPPING_START,
 			 comment_id, p->percent_change,
 			 host_name, service_description);
 		free(service_description);
 	} else {
 		result = sql_query
-			("UPDATE %s.host SET is_flapping = %d, "
+			("UPDATE host SET is_flapping = %d, "
 			 "flapping_comment_id = %lu, percent_state_change = %f "
 			 "WHERE host_name = %s",
-			 sql_db_name(), p->type == NEBTYPE_FLAPPING_START,
+			 p->type == NEBTYPE_FLAPPING_START,
 			 comment_id, p->percent_change, host_name);
 	}
 
@@ -374,8 +366,7 @@ static int handle_comment(const nebstruct_comment_data *p)
 
 	if (p->type == NEBTYPE_COMMENT_DELETE) {
 		result = sql_query
-			("DELETE FROM %s.comment WHERE comment_id = %lu",
-			 sql_db_name(), p->comment_id);
+			("DELETE FROM comment WHERE comment_id = %lu", p->comment_id);
 		return result;
 	}
 
@@ -385,12 +376,12 @@ static int handle_comment(const nebstruct_comment_data *p)
 	sql_quote(p->service_description, &service_description);
 
 	result = sql_query
-		("INSERT INTO %s.comment(comment_type, host_name, "
+		("INSERT INTO comment(comment_type, host_name, "
 		 "service_description, entry_time, author_name, comment_data, "
 		 "persistent, source, entry_type, expires, expire_time, "
 		 "comment_id) "
 		 "VALUES(%d, %s, %s, %lu, %s, %s, %d, %d, %d, %d, %lu, %lu)",
-		 sql_db_name(), p->comment_type, host_name,
+		 p->comment_type, host_name,
 		 safe_str(service_description), p->entry_time,
 		 author_name, comment_data, p->persistent, p->source,
 		 p->entry_type, p->expires, p->expire_time, p->comment_id);
@@ -417,14 +408,13 @@ static int handle_contact_notification(const nebstruct_contact_notification_data
 	sql_quote(p->ack_data, &ack_data);
 
 	result = sql_query
-		("INSERT INTO %s.notification "
+		("INSERT INTO notification "
 		 "(notification_type, start_time, end_time, "
 		 "contact_name, host_name, service_description, "
 		 "reason_type, state, output,"
 		 "ack_author, ack_data, escalated) "
 		 "VALUES(%d, %lu, %lu, %s, %s,"
 		 "%s, %d, %d, %s, %s, %s, %d)",
-		 sql_db_name(),
 		 p->notification_type, p->start_time.tv_sec, p->end_time.tv_sec,
 		 contact_name, host_name,  safe_str(service_description),
 		 p->reason_type, p->state, safe_str(output),
@@ -453,13 +443,12 @@ static int handle_notification(const nebstruct_notification_data *p)
 	sql_quote(p->ack_data, &ack_data);
 
 	result = sql_query
-		("INSERT INTO %s.notification "
+		("INSERT INTO notification "
 		 "(notification_type, start_time, end_time, host_name,"
 		 "service_description, reason_type, state, output,"
 		 "ack_author, ack_data, escalated, contacts_notified) "
 		 "VALUES(%d, %lu, %lu, %s,"
 		 "%s, %d, %d, %s, %s, %s, %d, %d)",
-		 sql_db_name(),
 		 p->notification_type, p->start_time.tv_sec, p->end_time.tv_sec,
 		 host_name,  safe_str(service_description), p->reason_type, p->state,
 		 safe_str(output), safe_str(ack_author), safe_str(ack_data),
@@ -489,7 +478,7 @@ static int handle_contact_notification_method(const nebstruct_contact_notificati
 	sql_quote(p->command_name, &command_name);
 
 	result = sql_query
-		("INSERT INTO %s.notification "
+		("INSERT INTO notification "
 		 "(notification_type, start_time, end_time, "
 		 "contact_name, host_name, service_description, "
 		 "command_name, reason_type, state, output,"
@@ -498,7 +487,6 @@ static int handle_contact_notification_method(const nebstruct_contact_notificati
 		 "%s, %s, %s, "
 		 "%s, %d, %d, %s, "
 		 "%s, %s, %d)",
-		 sql_db_name(),
 		 p->notification_type, p->start_time.tv_sec, p->end_time.tv_sec,
 		 contact_name, host_name,  safe_str(service_description),
 		 command_name, p->reason_type, p->state, safe_str(output),
