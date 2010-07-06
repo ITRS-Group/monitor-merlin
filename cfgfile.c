@@ -43,8 +43,8 @@ static char *cfg_read_file(const char *path, unsigned *len)
 	buf = malloc(st.st_size + 3);
 	if (!buf) {
 		*len = -errno;
-		fprintf(stderr, "Failed to allocate %lu bytes of memory for '%s'\n",
-				st.st_size, path);
+		fprintf(stderr, "Failed to allocate %lld bytes of memory for '%s'\n",
+		        (long long)st.st_size, path);
 		close(fd);
 		return NULL;
 	}
