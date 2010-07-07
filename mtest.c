@@ -141,7 +141,7 @@ static void verify_count(const char *name, uint expected, const char *fmt, ...)
 
 static void load_hosts_and_services(void)
 {
-	uint i = 0;
+	int i = 0;
 	dbi_result result;
 
 	num_hosts = count_table_rows("host");
@@ -253,7 +253,7 @@ static void test_external_command(void)
 static void test_flapping(void)
 {
 	nebstruct_flapping_data *orig, *mod;
-	uint i;
+	int i;
 
 	orig = calloc(1, sizeof(*orig));
 	orig->percent_change = 78.5;
@@ -314,7 +314,7 @@ static void test_flapping(void)
 static void test_host_check(void)
 {
 	nebstruct_host_check_data *orig, *mod;
-	uint i;
+	int i;
 
 	orig = calloc(1, sizeof(*orig));
 
@@ -343,7 +343,7 @@ static void test_host_check(void)
 static void test_service_check(void)
 {
 	nebstruct_service_check_data *orig, *mod;
-	uint i;
+	int i;
 
 	orig = calloc(1, sizeof(*orig));
 	orig->type = NEBTYPE_SERVICECHECK_PROCESSED;
@@ -369,7 +369,7 @@ static void test_host_status(void)
 {
 	merlin_host_status *orig, *mod;
 	nebstruct_host_status_data *ds;
-	uint i;
+	int i;
 
 	orig = calloc(1, sizeof(*orig));
 	ds = calloc(1, sizeof(*ds));
@@ -406,7 +406,7 @@ static void test_service_status(void)
 {
 	merlin_service_status *orig, *mod;
 	nebstruct_service_status_data *ds;
-	uint i;
+	int i;
 
 	orig = calloc(1, sizeof(*orig));
 	ds = calloc(1, sizeof(*ds));
@@ -440,7 +440,7 @@ static void test_service_status(void)
 static void test_contact_notification_method(void)
 {
 	nebstruct_contact_notification_method_data *orig, *mod;
-	uint i;
+	int i;
 
 	orig = calloc(1, sizeof(*orig));
 	orig->output = OUTPUT;
@@ -495,7 +495,7 @@ static void test_contact_notification_method(void)
 static void test_comment(void)
 {
 	nebstruct_comment_data *orig, *mod;
-	uint i;
+	int i;
 
 	orig = calloc(1, sizeof(*orig));
 	orig->author_name = AUTHOR_NAME;
@@ -573,7 +573,7 @@ static void test_comment(void)
 static void test_downtime(void)
 {
 	nebstruct_downtime_data *orig, *mod;
-	uint i;
+	int i;
 
 	orig = calloc(1, sizeof(*orig));
 	orig->author_name = AUTHOR_NAME;
@@ -891,7 +891,7 @@ int main(int argc, char **argv)
 	/* shut valgrind up */
 	memset(&pkt, 0, sizeof(pkt));
 
-	for (i = 0; i < ARRAY_SIZE(mtest); i++) {
+	for (i = 0; i < (int)ARRAY_SIZE(mtest); i++) {
 		struct merlin_test *t = &mtest[i];
 
 		pkt.hdr.type = t->callback;
