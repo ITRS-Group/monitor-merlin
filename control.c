@@ -155,7 +155,7 @@ static int cmp_peer(const void *a_, const void *b_)
 
 static void assign_peer_ids(void)
 {
-	int i, inc = 0;
+	uint i, inc = 0;
 
 	if (!num_peers)
 		return;

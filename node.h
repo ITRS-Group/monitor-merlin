@@ -29,7 +29,7 @@
 #define TOTAL_PKT_SIZE 32768
 #define MAX_PKT_SIZE TOTAL_PKT_SIZE /* for now. remove this macro later */
 
-#define packet_size(pkt) ((pkt)->hdr.len + HDR_SIZE)
+#define packet_size(pkt) ((int)((pkt)->hdr.len + HDR_SIZE))
 
 struct merlin_header {
 	uint16_t protocol;   /* always 0 for now */

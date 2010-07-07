@@ -442,7 +442,7 @@ int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
 		return HDR_SIZE;
 
 	result = io_recv_all(node->sock, pkt->body, pkt->hdr.len);
-	if (result != pkt->hdr.len) {
+	if (result != (int)pkt->hdr.len) {
 		lwarn("Bogus read in %s(). got %d, expected %d",
 			  __func__, result, pkt->hdr.len);
 		lwarn("Sync lost with %s?", node->name);

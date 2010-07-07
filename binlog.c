@@ -24,8 +24,7 @@ struct binlog {
 	uint write_index, read_index, file_entries;
 	uint alloc, max_mem_usage;
 	uint mem_size, max_mem_size;
-	uint file_size, max_file_size;
-	off_t file_read_pos, file_write_pos;
+	off_t max_file_size, file_size, file_read_pos, file_write_pos;
 	int is_valid;
 	char *path;
 	int fd;
@@ -66,7 +65,7 @@ static int binlog_set_base_path(const char *path)
 #endif
 
 /*** private helpers ***/
-static int safe_write(binlog *bl, void *buf, uint len)
+static int safe_write(binlog *bl, void *buf, int len)
 {
 	int result;
 	off_t pos;
@@ -334,7 +333,7 @@ int binlog_unread(binlog *bl, void *buf, uint len)
 	 * if we've started reading from the file, the entry belongs
 	 * there. If we haven't, it belongs on the memory stack
 	 */
-	if (bl->file_read_pos >= len)
+	if (bl->file_read_pos >= (off_t)len)
 		binlog_file_unread(bl, len);
 
 	return binlog_mem_unread(bl, buf, len);
@@ -417,7 +416,7 @@ static int binlog_file_add(binlog *bl, void *buf, uint len)
 	int ret;
 
 	/* bail out early if there's no room */
-	if (bl->file_size + len > bl->max_file_size)
+	if (bl->file_size + (off_t)len > bl->max_file_size)
 		return BINLOG_ENOSPC;
 
 	ret = binlog_open(bl);

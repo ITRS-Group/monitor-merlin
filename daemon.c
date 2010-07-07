@@ -88,7 +88,7 @@ static int node_action_handler(merlin_node *node, int action)
 
 static int ipc_action_handler(merlin_node *node, int state)
 {
-	int i;
+	uint i;
 
 	if (node != &ipc || ipc.state == state)
 		return 0;
@@ -188,7 +188,7 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 /* daemon-specific node manipulation */
 static void post_process_nodes(void)
 {
-	int i;
+	uint i;
 
 	ldebug("post processing %d masters, %d pollers, %d peers",
 	       num_nocs, num_pollers, num_peers);
@@ -498,7 +498,7 @@ static int io_poll_sockets(void)
 static void polling_loop(void)
 {
 	for (;;) {
-		int i;
+		uint i;
 		time_t now = time(NULL);
 
 		/*
@@ -652,7 +652,7 @@ int main(int argc, char **argv)
 		sql_query("TRUNCATE program_status");
 		sql_query("INSERT INTO program_status(instance_id, instance_name, is_running) "
 		          "VALUES(0, 'Local Nagios daemon', 0)");
-		for (i = 0; i < num_nodes; i++) {
+		for (i = 0; i < (int)num_nodes; i++) {
 			char *node_name;
 			merlin_node *node = noc_table[i];
 

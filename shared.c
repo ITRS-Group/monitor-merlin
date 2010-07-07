@@ -148,7 +148,7 @@ const char *human_bytes(uint64_t n)
 	const char *suffix = "KMGTP";
 	static char tbuf[4][30];
 	static int t = 0;
-	int shift = 1;
+	unsigned int shift = 1;
 
 	t++;
 	t &= 0x3;
