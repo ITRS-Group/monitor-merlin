@@ -2,7 +2,6 @@
 #include <string.h>
 #include "hash.h"
 
-#define HASH_MASK (HASH_BUCKETS - 1)
 #define hash_func(k) sdbm((unsigned char *)k)
 #define hash_func2(k1, k2) (hash_func(k1) ^ hash_func(k2))
 
@@ -15,25 +14,51 @@ typedef struct hash_bucket {
 
 struct hash_table {
 	hash_bucket **buckets;
-	size_t num_buckets;
-	size_t entries;
-	size_t max_entries;
+	unsigned int num_buckets;
+	unsigned int added, removed;
+	unsigned int entries;
+	unsigned int max_entries;
 };
 
 /* struct data access functions */
-size_t hash_get_max_entries(hash_table *table)
-{
-	return table ? table->max_entries : 0;
-}
-
-size_t hash_get_num_entries(hash_table *table)
+unsigned int hash_entries(hash_table *table)
 {
 	return table ? table->entries : 0;
 }
 
-size_t hash_table_size(hash_table *table)
+unsigned int hash_entries_max(hash_table *table)
+{
+	return table ? table->max_entries : 0;
+}
+
+unsigned int hash_entries_added(hash_table *table)
+{
+	return table ? table->added : 0;
+}
+
+unsigned int hash_entries_removed(hash_table *table)
+{
+	return table ? table->removed : 0;
+}
+
+unsigned int hash_table_size(hash_table *table)
 {
 	return table ? table->num_buckets : 0;
+}
+
+void hash_debug_print_table_data(hash_table *table, const char *name, int force)
+{
+	int delta = hash_check_table(table);
+	unsigned int count;
+	if (!delta && !force)
+		return;
+
+	count = hash_count_entries(table);
+	printf("debug data for hash table '%s'\n", name);
+	printf("  entries: %u; counted: %u; delta: %d\n",
+		   table->entries, count, delta);
+	printf("  added: %u; removed: %u; delta: %d\n",
+		   table->added, table->removed, table->added - table->removed);
 }
 
 /*
@@ -61,6 +86,7 @@ static inline int hash_add_bucket(hash_table *table, const char *k1, const char 
 
 	h = h % table->num_buckets;
 
+	table->added++;
 	bkt->data = data;
 	bkt->key = k1;
 	bkt->key2 = k2;
@@ -133,7 +159,7 @@ void *hash_find2(hash_table *table, const char *k1, const char *k2)
 	return bkt ? bkt->data : NULL;
 }
 
-hash_table *hash_init(size_t buckets)
+hash_table *hash_init(unsigned int buckets)
 {
 	hash_table *table = calloc(sizeof(hash_table), 1);
 
@@ -202,6 +228,7 @@ void *hash_remove(hash_table *table, const char *key)
 	if (!strcmp(key, bkt->key)) {
 		table->buckets[h] = bkt->next;
 		table->entries--;
+		table->removed++;
 		return hash_destroy_bucket(bkt);
 	}
 
@@ -210,6 +237,7 @@ void *hash_remove(hash_table *table, const char *key)
 		if (!strcmp(key, bkt->key)) {
 			prev->next = bkt->next;
 			table->entries--;
+			table->removed++;
 			return hash_destroy_bucket(bkt);
 		}
 	}
@@ -230,6 +258,7 @@ void *hash_remove2(hash_table *table, const char *k1, const char *k2)
 	if (!strcmp(k1, bkt->key) && !strcmp(k2, bkt->key2)) {
 		table->buckets[h] = bkt->next;
 		table->entries--;
+		table->removed++;
 		return hash_destroy_bucket(bkt);
 	}
 
@@ -238,6 +267,7 @@ void *hash_remove2(hash_table *table, const char *k1, const char *k2)
 		if (!strcmp(k1, bkt->key) && !strcmp(k2, bkt->key2)) {
 			prev->next = bkt->next;
 			table->entries--;
+			table->removed++;
 			return hash_destroy_bucket(bkt);
 		}
 	}
@@ -245,10 +275,9 @@ void *hash_remove2(hash_table *table, const char *k1, const char *k2)
 	return NULL;
 }
 
-size_t hash_count_entries(hash_table *table)
+unsigned int hash_count_entries(hash_table *table)
 {
-	uint i;
-	size_t count = 0;
+	unsigned int i, count = 0;
 
 	for (i = 0; i < table->num_buckets; i++) {
 		hash_bucket *bkt;
@@ -261,19 +290,38 @@ size_t hash_count_entries(hash_table *table)
 
 int hash_check_table(hash_table *table)
 {
-	return hash_count_entries(table) - table->entries;
+	return table ? table->entries - hash_count_entries(table) : 0;
 }
 
 void hash_walk_data(hash_table *table, int (*walker)(void *))
 {
-	hash_bucket *bkt;
-	uint i;
+	hash_bucket *bkt, *prev;
+	unsigned int i;
+
+	if (!table->entries)
+		return;
 
 	for (i = 0; i < table->num_buckets; i++) {
+		int depth = 0;
+
+		prev = table->buckets[i];
 		hash_bucket *next;
 		for (bkt = table->buckets[i]; bkt; bkt = next) {
 			next = bkt->next;
-			walker(bkt->data);
+
+			if (walker(bkt->data) != HASH_WALK_REMOVE) {
+				/* only update prev if we don't remove current */
+				prev = bkt;
+				depth++;
+				continue;
+			}
+			table->removed++;
+			table->entries--;
+			hash_destroy_bucket(bkt);
+			prev->next = next;
+			if (!depth) {
+				table->buckets[i] = next;
+			}
 		}
 	}
 }
