@@ -403,8 +403,7 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
  */
 int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
 {
-	int len;
-	uint result;
+	int len, result;
 
 	node_log_event_count(node, 0);
 
