@@ -92,8 +92,11 @@ $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
 version.c: gen-version.sh
 	sh gen-version.sh > version.c
 
-clean: clean-core clean-log
+clean: clean-core clean-log clean-test
 	rm -f $(NEB) $(PROG) *.o blread endpoint
+
+clean-test:
+	rm -f sltest bltest test-hash mtest
 
 clean-core:
 	rm -f core core.[0-9]*
