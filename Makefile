@@ -48,13 +48,19 @@ $(NEB): $(MODULE_OBJS)
 %.o: %.c
 	$(QUIET_CC)$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
-test: test-binlog test-slist
+test: test-binlog test-slist test__hash
+
+test__hash: test-hash
+	@./test-hash
 
 test-slist: sltest
 	@./sltest
 
 test-binlog: bltest
 	@./bltest
+
+test-hash: test-hash.o hash.o test_utils.o
+	$(QUIET_LINK)$(CC) $(LDFLAGS) $^ -o $@
 
 sltest: sltest.o test_utils.o slist.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
