@@ -626,7 +626,7 @@ static void pass(const char *msg, struct test_binlog *t)
 static int test_binlog(struct test_binlog *t, binlog *bl)
 {
 	size_t ok = 0;
-	int i;
+	uint i;
 
 	for (i = 0; i < ARRAY_SIZE(msg_list); i++) {
 		int result;
@@ -729,7 +729,7 @@ static void test_binlog_leakage(void)
 
 int main(int argc, char **argv)
 {
-	int i;
+	uint i;
 
 	if (isatty(fileno(stdout))) {
 		green = CLR_GREEN;

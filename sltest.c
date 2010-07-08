@@ -613,7 +613,7 @@ static int cmp_service(const void *a, const void *b)
 
 int main(int argc, char **argv)
 {
-	int i;
+	uint i;
 	slist *sl;
 	host **host_list = malloc(ARRAY_SIZE(msg_list) * sizeof(host *));
 	service **service_list = malloc(ARRAY_SIZE(msg_list) * sizeof(service *));
