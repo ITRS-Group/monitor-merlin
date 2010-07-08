@@ -59,7 +59,7 @@ test-binlog: bltest
 sltest: sltest.o test_utils.o slist.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
-bltest: binlog.o bltest.o
+bltest: binlog.o bltest.o test_utils.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $(DAEMON_LDFLAGS) $^ -o $@
 
 bltest.o: bltest.c binlog.h

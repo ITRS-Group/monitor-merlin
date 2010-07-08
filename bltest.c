@@ -1,5 +1,6 @@
 #include "binlog.h"
 #include "colors.h"
+#include "test_utils.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -585,9 +586,6 @@ static char *msg_list[] = {
 };
 
 #define BLPATH "/tmp/binlog-test"
-static const char *green, *red, *reset;
-static unsigned int passed = 0, failed = 0;
-
 struct test_binlog {
 	char *path;
 	char *name;
@@ -611,15 +609,8 @@ static void print_test_params(struct test_binlog *t)
 
 static void fail(const char *msg, struct test_binlog *t)
 {
-	printf("%sFAIL%s %s\n", red, reset, msg);
-	failed++;
+	t_fail("%s", msg);
 	print_test_params(t);
-}
-
-static void pass(const char *msg, struct test_binlog *t)
-{
-	printf("%sPASS%s %s\n", green, reset, msg);
-	passed++;
 }
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
@@ -680,12 +671,12 @@ static int test_binlog(struct test_binlog *t, binlog *bl)
 	if (binlog_has_entries(bl))
 		fail("Wiped binlog claims to have entries", NULL);
 	else
-		pass("Wiped binlog has no entries", NULL);
+		t_pass("Wiped binlog has no entries");
 	binlog_invalidate(bl);
 	if (binlog_is_valid(bl))
 		fail("invalidated binlog claims to be valid", NULL);
 	else
-		pass("invalidated binlog is invalid", NULL);
+		t_pass("invalidated binlog is invalid");
 
 	if (ok == ARRAY_SIZE(msg_list))
 		return 0;
@@ -720,9 +711,9 @@ static void test_binlog_leakage(void)
 		free(p);
 	}
 	if (expect_end == 1)
-		pass("Transitioning from memory to file", NULL);
+		t_pass("Transitioning from memory to file");
 	else
-		fail("Transitioning from memory to file", NULL);
+		t_fail("Transitioning from memory to file");
 
 	binlog_destroy(bl, BINLOG_UNLINK);
 }
@@ -731,6 +722,8 @@ int main(int argc, char **argv)
 {
 	uint i;
 
+	t_set_colors(0);
+	t_start("binlog tests");
 	if (isatty(fileno(stdout))) {
 		green = CLR_GREEN;
 		red = CLR_RED;
@@ -751,14 +744,14 @@ int main(int argc, char **argv)
 		}
 
 		if (!test_binlog(t, bl)) {
-			pass(t->name, NULL);
+			t_pass(t->name);
 		} else {
 			fail(t->name, t);
 		}
 		binlog_destroy(bl, 1);
 
 		if (stat(t->path, &st) < 0) {
-			pass("binlog_destroy(bl, 1) removes the fully read file", t);
+			t_pass("binlog_destroy(bl, 1) removes the fully read file");
 		} else {
 			fail("binlog_destroy(bl, 1) fails to remove the fully read file", t);
 		}
@@ -766,5 +759,6 @@ int main(int argc, char **argv)
 	}
 
 	test_binlog_leakage();
+	t_end();
 	return 0;
 }
