@@ -13,7 +13,7 @@
 #include "binlog.h"
 
 struct binlog_entry {
-	uint size;
+	unsigned int size;
 	void *data;
 };
 typedef struct binlog_entry binlog_entry;
@@ -21,9 +21,9 @@ typedef struct binlog_entry binlog_entry;
 
 struct binlog {
 	struct binlog_entry **cache;
-	uint write_index, read_index, file_entries;
-	uint alloc, max_mem_usage;
-	uint mem_size, max_mem_size;
+	unsigned int write_index, read_index, file_entries;
+	unsigned int alloc, max_mem_usage;
+	unsigned int mem_size, max_mem_size;
 	off_t max_file_size, file_size, file_read_pos, file_write_pos;
 	int is_valid;
 	char *path;
@@ -35,7 +35,7 @@ static char *base_path;
 
 static int binlog_set_base_path(const char *path)
 {
-	uint len;
+	unsigned int len;
 	struct stat st;
 	int result = 0;
 
@@ -109,7 +109,7 @@ const char *binlog_path(binlog *bl)
 	return bl->path;
 }
 
-binlog *binlog_create(const char *path, uint msize, uint fsize, int flags)
+binlog *binlog_create(const char *path, unsigned int msize, unsigned int fsize, int flags)
 {
 	binlog *bl;
 
@@ -141,7 +141,7 @@ binlog *binlog_create(const char *path, uint msize, uint fsize, int flags)
 
 void binlog_wipe(binlog *bl, int flags)
 {
-	uint max_mem_size, max_file_size;
+	unsigned int max_mem_size, max_file_size;
 	char *path;
 
 	max_mem_size = bl->max_mem_size;
@@ -159,7 +159,7 @@ void binlog_wipe(binlog *bl, int flags)
 	}
 
 	if (bl->cache) {
-		uint i;
+		unsigned int i;
 
 		for (i = 0; i < bl->write_index; i++) {
 			struct binlog_entry *entry = bl->cache[i];
@@ -194,7 +194,7 @@ void binlog_destroy(binlog *bl, int flags)
 	free(bl);
 }
 
-static int binlog_file_read(binlog *bl, void **buf, uint *len)
+static int binlog_file_read(binlog *bl, void **buf, unsigned int *len)
 {
 	int result;
 
@@ -221,7 +221,7 @@ static int binlog_file_read(binlog *bl, void **buf, uint *len)
 	return 0;
 }
 
-static int binlog_mem_read(binlog *bl, void **buf, uint *len)
+static int binlog_mem_read(binlog *bl, void **buf, unsigned int *len)
 {
 	if (bl->cache && bl->read_index < bl->write_index) {
 		*buf = bl->cache[bl->read_index]->data;
@@ -246,7 +246,7 @@ static int binlog_mem_read(binlog *bl, void **buf, uint *len)
 	return BINLOG_EMPTY;
 }
 
-int binlog_read(binlog *bl, void **buf, uint *len)
+int binlog_read(binlog *bl, void **buf, unsigned int *len)
 {
 	/*
 	 * reading from memory must come first in order to
@@ -264,7 +264,7 @@ int binlog_read(binlog *bl, void **buf, uint *len)
  * This is easy. We just reset file_read_pos to point to the start
  * of the old entry and increment the file_entries counter.
  */
-static int binlog_file_unread(binlog *bl, uint len)
+static int binlog_file_unread(binlog *bl, unsigned int len)
 {
 	bl->file_read_pos -= len;
 	bl->file_entries++;
@@ -275,7 +275,7 @@ static int binlog_file_unread(binlog *bl, uint len)
  * This is also fairly straightforward. We basically just add the
  * pointer to the previous entry in the memory list
  */
-static int binlog_mem_unread(binlog *bl, void *buf, uint len)
+static int binlog_mem_unread(binlog *bl, void *buf, unsigned int len)
 {
 	binlog_entry *entry;
 
@@ -317,7 +317,7 @@ static int binlog_mem_unread(binlog *bl, void *buf, uint len)
 	return 0;
 }
 
-int binlog_unread(binlog *bl, void *buf, uint len)
+int binlog_unread(binlog *bl, void *buf, unsigned int len)
 {
 	if (!bl || !buf || !len)
 		return -1;
@@ -339,9 +339,9 @@ int binlog_unread(binlog *bl, void *buf, uint len)
 	return binlog_mem_unread(bl, buf, len);
 }
 
-uint binlog_num_entries(binlog *bl)
+unsigned int binlog_num_entries(binlog *bl)
 {
-	uint entries = 0;
+	unsigned int entries = 0;
 
 	if (!bl)
 		return 0;
@@ -386,7 +386,7 @@ static int binlog_grow(binlog *bl)
 	return 0;
 }
 
-static int binlog_mem_add(binlog *bl, void *buf, uint len)
+static int binlog_mem_add(binlog *bl, void *buf, unsigned int len)
 {
 	binlog_entry *entry;
 
@@ -411,7 +411,7 @@ static int binlog_mem_add(binlog *bl, void *buf, uint len)
 	return 0;
 }
 
-static int binlog_file_add(binlog *bl, void *buf, uint len)
+static int binlog_file_add(binlog *bl, void *buf, unsigned int len)
 {
 	int ret;
 
@@ -434,7 +434,7 @@ static int binlog_file_add(binlog *bl, void *buf, uint len)
 	return ret;
 }
 
-int binlog_add(binlog *bl, void *buf, uint len)
+int binlog_add(binlog *bl, void *buf, unsigned int len)
 {
 	/*
 	 * if we've started adding to the file, we must continue
@@ -477,17 +477,17 @@ int binlog_flush(binlog *bl)
 	return 0;
 }
 
-uint binlog_msize(binlog *bl)
+unsigned int binlog_msize(binlog *bl)
 {
 	return bl ? bl->mem_size : 0;
 }
 
-uint binlog_fsize(binlog *bl)
+unsigned int binlog_fsize(binlog *bl)
 {
 	return bl ? bl->file_size : 0;
 }
 
-uint binlog_size(binlog *bl)
+unsigned int binlog_size(binlog *bl)
 {
 	return binlog_fsize(bl) + binlog_msize(bl);
 }

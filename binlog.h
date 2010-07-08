@@ -9,8 +9,6 @@
  * @{
  */
 
-typedef unsigned int uint;
-
 /** A binary log. */
 typedef struct binlog binlog;
 
@@ -49,14 +47,14 @@ extern const char *binlog_path(binlog *bl);
  * @param flags Decide what to do with an already existing file at path
  * @return A binlog object on success, NULL on errors.
  */
-extern binlog *binlog_create(const char *path, uint msize, uint fsize, int flags);
+extern binlog *binlog_create(const char *path, unsigned int msize, unsigned int fsize, int flags);
 
 /**
  * Get the number of unread entries in the binlog
  * @param bl The binary log to examine
  * @returns Number of entries in binlog
  */
-extern uint binlog_num_entries(binlog *bl);
+extern unsigned int binlog_num_entries(binlog *bl);
 #define binlog_has_entries(bl) binlog_num_entries(bl)
 
 /**
@@ -84,7 +82,7 @@ extern void binlog_destroy(binlog *bl, int flags);
  * @param len A pointer to where the size of the logged event will be stored.
  * @return 0 on success. < 0 on failure.
  */
-extern int binlog_read(binlog *bl, void **buf, uint *len);
+extern int binlog_read(binlog *bl, void **buf, unsigned int *len);
 
 /*
  * "unread" one entry from the binlog. This lets one maintain
@@ -98,7 +96,7 @@ extern int binlog_read(binlog *bl, void **buf, uint *len);
  * @param len The length of the data to read
  * @return 0 on success. < 0 on failure.
  */
-extern int binlog_unread(binlog *bl, void *buf, uint len);
+extern int binlog_unread(binlog *bl, void *buf, unsigned int len);
 
 /**
  * Add an event to the binary log.
@@ -110,7 +108,7 @@ extern int binlog_unread(binlog *bl, void *buf, uint len);
  * @param len The size of the data to store.
  * @return 0 on success. < 0 on failure.
  */
-extern int binlog_add(binlog *bl, void *buf, uint len);
+extern int binlog_add(binlog *bl, void *buf, unsigned int len);
 
 /**
  * Close a file associated to a binary log. In normal circum-
@@ -136,21 +134,21 @@ extern int binlog_flush(binlog *bl);
  * @param bl The binary log object.
  * @return memory consumption
  */
-extern uint binlog_msize(binlog *bl);
+extern unsigned int binlog_msize(binlog *bl);
 
 /**
  * Get on-disk binlog size
  * @param bl The binary log object.
  * @return disk storage consumption
  */
-extern uint binlog_fsize(binlog *bl);
+extern unsigned int binlog_fsize(binlog *bl);
 
 /**
  * Get binlog size
  * @param bl The binary log object.
  * @return disk storage consumption and memory consumption
  */
-extern uint binlog_size(binlog *bl);
+extern unsigned int binlog_size(binlog *bl);
 
 /** warning condition for backlog base path having insecure permissions */
 #define BINLOG_UNSAFE  1
