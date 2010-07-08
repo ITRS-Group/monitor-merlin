@@ -17,3 +17,6 @@ check_latency
 start.sh
 postgres.sh
 funused.sh
+test-hash
+bltest
+sltest
