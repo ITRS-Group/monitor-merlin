@@ -43,6 +43,7 @@ data into a variety of databases, using libdbi.
 
 %build
 make
+make test
 
 %install
 rm -rf %buildroot
