@@ -297,6 +297,18 @@ static int hook_comment(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
+static int hook_downtime(merlin_event *pkt, void *data)
+{
+	nebstruct_downtime_data *ds = (nebstruct_downtime_data *)data;
+
+	/*
+	 * set the poller id properly for downtime packets
+	 */
+	pkt->hdr.selection = get_selection(ds->host_name);
+
+	return send_generic(pkt, data);
+}
+
 static int hook_host_status(merlin_event *pkt, void *data)
 {
 	nebstruct_host_status_data *ds = (nebstruct_host_status_data *)data;
@@ -437,7 +449,11 @@ int merlin_mod_hook(int cb, void *data)
 	case NEBCALLBACK_COMMENT_DATA:
 		result = hook_comment(&pkt, data);
 		break;
+
 	case NEBCALLBACK_DOWNTIME_DATA:
+		result = hook_downtime(&pkt, data);
+		break;
+
 	case NEBCALLBACK_FLAPPING_DATA:
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
