@@ -662,6 +662,7 @@ int main(int argc, char **argv)
 			safe_free(node_name);
 		}
 	}
+	state_init();
 	linfo("Merlin daemon %s successfully initialized", merlin_version);
 	polling_loop();
 
