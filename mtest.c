@@ -311,60 +311,6 @@ static void test_flapping(void)
 	free(orig);
 }
 
-static void test_host_check(void)
-{
-	nebstruct_host_check_data *orig, *mod;
-	int i;
-
-	orig = calloc(1, sizeof(*orig));
-
-	/*
-	 * run the tests for all hosts
-	 * first we set an arbitrary state, and then we check how many
-	 * rows have the state we've set
-	 */
-	sql_query("UPDATE host SET current_state = 155");
-	orig->type = NEBTYPE_HOSTCHECK_PROCESSED;
-	for (i = 0; i < num_hosts; i++) {
-		host *h = &hosts[i];
-
-		orig->host_name = h->name;
-		orig->output = h->plugin_output;
-		orig->perf_data = h->perf_data;
-		mod = blk_prep(orig);
-		test_compare(host_name);
-		test_compare(output);
-		test_compare(perf_data);
-		merlin_mod_hook(NEBCALLBACK_HOST_CHECK_DATA, orig);
-	}
-	free(orig);
-}
-
-static void test_service_check(void)
-{
-	nebstruct_service_check_data *orig, *mod;
-	int i;
-
-	orig = calloc(1, sizeof(*orig));
-	orig->type = NEBTYPE_SERVICECHECK_PROCESSED;
-	gettimeofday(&orig->start_time, NULL);
-	gettimeofday(&orig->end_time, NULL);
-	for (i = 0; i < num_services; i++) {
-		service *s = &services[i];
-		orig->host_name = s->host_name;
-		orig->service_description = s->description;
-		orig->output = s->plugin_output;
-		orig->perf_data = s->perf_data;
-		mod = blk_prep(orig);
-		test_compare(host_name);
-		test_compare(output);
-		test_compare(perf_data);
-		test_compare(service_description);
-		merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, orig);
-	}
-	free(orig);
-}
-
 static void test_host_status(void)
 {
 	merlin_host_status *orig, *mod;
@@ -379,6 +325,7 @@ static void test_host_status(void)
 	 * first we set an arbitrary state, and then we check how many
 	 * rows have the state we've set
 	 */
+	sql_query("UPDATE host SET current_state = 155");
 	for (i = 0; i < num_hosts; i++) {
 		host *h = &hosts[i];
 
@@ -410,6 +357,13 @@ static void test_service_status(void)
 
 	orig = calloc(1, sizeof(*orig));
 	ds = calloc(1, sizeof(*ds));
+
+	/*
+	 * run the tests for all services
+	 * first we set an arbitrary state, and then we check how many
+	 * rows have the state we've set
+	 */
+	sql_query("UPDATE service SET current_state = 155");
 	for (i = 0; i < num_services; i++) {
 		service *s = &services[i];
 
@@ -425,9 +379,91 @@ static void test_service_status(void)
 		ok_str(orig->state.perf_data, mod->state.perf_data, "perf_data must match");
 		ok_str(orig->state.long_plugin_output, mod->state.long_plugin_output, "long plugin output must match");
 
-		ds->object_ptr = s;
 		s->current_state = 15;
+		ds->object_ptr = s;
 		merlin_mod_hook(NEBCALLBACK_SERVICE_STATUS_DATA, ds);
+	}
+	zzz();
+	verify_count("service status updates db properly", num_services,
+				 "SELECT * FROM service WHERE current_state = 15");
+
+	free(ds);
+	free(orig);
+}
+
+static void test_host_check(void)
+{
+	merlin_host_status *orig, *mod;
+	nebstruct_host_check_data *ds;
+	int i;
+
+	orig = calloc(1, sizeof(*orig));
+	ds = calloc(1, sizeof(*ds));
+	ds->type = NEBTYPE_HOSTCHECK_PROCESSED;
+
+	/*
+	 * run the tests for all hosts
+	 * first we set an arbitrary state, and then we check how many
+	 * rows have the state we've set
+	 */
+	sql_query("UPDATE host SET current_state = 155");
+	for (i = 0; i < num_hosts; i++) {
+		host *h = &hosts[i];
+
+		orig->name = h->name;
+		orig->state.plugin_output = h->plugin_output;
+		orig->state.perf_data = h->perf_data;
+		orig->state.long_plugin_output = h->long_plugin_output;
+		mod = blk_prep(orig);
+		ok_str(mod->name, h->name, "host name transfers properly");
+		ok_str(mod->state.plugin_output, h->plugin_output, "host output transfers properly");
+		ok_str(mod->state.perf_data, h->perf_data, "performance data transfers properly");
+
+		h->current_state = 4;
+		ds->object_ptr = h;
+		merlin_mod_hook(NEBCALLBACK_HOST_CHECK_DATA, ds);
+	}
+	zzz();
+	verify_count("host status updates db properly", num_hosts,
+				 "SELECT * FROM host WHERE current_state = 4");
+	free(ds);
+	free(orig);
+}
+
+static void test_service_check(void)
+{
+	merlin_service_status *orig, *mod;
+	nebstruct_service_check_data *ds;
+	int i;
+
+	orig = calloc(1, sizeof(*orig));
+	ds = calloc(1, sizeof(*ds));
+	ds->type = NEBTYPE_SERVICECHECK_PROCESSED;
+
+	/*
+	 * run the tests for all services
+	 * first we set an arbitrary state, and then we check how many
+	 * rows have the state we've set
+	 */
+	sql_query("UPDATE service SET current_state = 155");
+	for (i = 0; i < num_services; i++) {
+		service *s = &services[i];
+
+		orig->host_name = s->host_name;
+		orig->service_description = s->description;
+		orig->state.plugin_output = s->plugin_output;
+		orig->state.perf_data = s->perf_data;
+		orig->state.long_plugin_output = s->long_plugin_output;
+		mod = blk_prep(orig);
+		test_compare(host_name);
+		test_compare(service_description);
+		ok_str(orig->state.plugin_output, mod->state.plugin_output, "plugin_output must match");
+		ok_str(orig->state.perf_data, mod->state.perf_data, "perf_data must match");
+		ok_str(orig->state.long_plugin_output, mod->state.long_plugin_output, "long plugin output must match");
+
+		s->current_state = 15;
+		ds->object_ptr = s;
+		merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, ds);
 	}
 	zzz();
 	verify_count("service status updates db properly", num_services,
