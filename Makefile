@@ -1,14 +1,14 @@
 CC = gcc
 CFLAGS = -O2 -pipe $(WARN_FLAGS) -ggdb3 -fPIC -fno-strict-aliasing -rdynamic
 WARN_FLAGS = -Wall -Wextra -Wno-unused-parameter
-SHARED_OBJS = cfgfile.o ipc.o shared.o io.o node.o data.o binlog.o
+SHARED_OBJS = cfgfile.o ipc.o shared.o io.o node.o data.o binlog.o hash.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
 COMMON_OBJS = version.o logging.o $(SHARED_OBJS)
 DAEMON_OBJS = status.o daemonize.o daemon.o net.o sql.o db_updater.o
 DAEMON_OBJS += $(COMMON_OBJS)
-MODULE_OBJS = module.o hooks.o control.o hash.o slist.o $(COMMON_OBJS)
+MODULE_OBJS = module.o hooks.o control.o slist.o $(COMMON_OBJS)
 MODULE_DEPS = module.h hash.h slist.h
-DAEMON_DEPS = net.h sql.h daemon.h
+DAEMON_DEPS = net.h sql.h daemon.h hash.h
 DEPS = Makefile cfgfile.h ipc.h logging.h shared.h
 DSO = merlin
 PROG = $(DSO)d
