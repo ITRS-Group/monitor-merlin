@@ -183,6 +183,56 @@ static int get_selection(const char *key)
 	return sel ? sel->id & 0xffff : CTRL_GENERIC;
 }
 
+static int send_host_status(merlin_event *pkt, struct host_struct *obj)
+{
+	merlin_host_status st_obj;
+	static struct host_struct *last_obj = NULL;
+
+	memset(&st_obj, 0, sizeof(st_obj));
+	if (obj == last_obj) {
+		check_dupes = 1;
+	} else {
+		check_dupes = 0;
+		last_obj = obj;
+	}
+
+	MOD2NET_STATE_VARS(st_obj.state, obj);
+	st_obj.state.last_notification = obj->last_host_notification;
+	st_obj.state.next_notification = obj->next_host_notification;
+	st_obj.state.accept_passive_checks = obj->accept_passive_host_checks;
+	st_obj.state.obsess = obj->obsess_over_host;
+	st_obj.name = obj->name;
+
+	pkt->hdr.selection = get_selection(obj->name);
+	return send_generic(pkt, &st_obj);
+}
+
+static int send_service_status(merlin_event *pkt, struct service_struct *obj)
+{
+	merlin_service_status st_obj;
+	static struct service_struct *last_obj = NULL;
+
+	memset(&st_obj, 0, sizeof(st_obj));
+	if (obj == last_obj) {
+		check_dupes = 1;
+	} else {
+		check_dupes = 0;
+		last_obj = obj;
+	}
+
+	MOD2NET_STATE_VARS(st_obj.state, obj);
+	st_obj.state.last_notification = obj->last_notification;
+	st_obj.state.next_notification = obj->next_notification;
+	st_obj.state.accept_passive_checks = obj->accept_passive_service_checks;
+	st_obj.state.obsess = obj->obsess_over_service;
+	st_obj.host_name = obj->host_name;
+	st_obj.service_description = obj->description;
+
+	pkt->hdr.selection = get_selection(obj->host_name);
+
+	return send_generic(pkt, &st_obj);
+}
+
 /*
  * checks if a poller responsible for a particular
  * hostname happens to be active and connected
@@ -235,10 +285,7 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		return 0;
 
 	case NEBTYPE_SERVICECHECK_PROCESSED:
-		/* XXX: temporarily disabled */
-		return 0;
-		pkt->hdr.selection = get_selection(ds->host_name);
-		return send_generic(pkt, ds);
+		return send_service_status(pkt, ds->object_ptr);
 	}
 
 	return 0;
@@ -269,10 +316,12 @@ static int hook_host_result(merlin_event *pkt, void *data)
 
 	/* only send processed host checks */
 	case NEBTYPE_HOSTCHECK_PROCESSED:
-		/* XXX: temporarily disabled */
-		return 0;
+		/*
+		 * we fiddle a bit here and send processed host check results
+		 * as host status updates
+		 */
 		pkt->hdr.selection = get_selection(ds->host_name);
-		return send_generic(pkt, ds);
+		return send_host_status(pkt, ds->object_ptr);
 	}
 
 	return 0;
@@ -312,58 +361,13 @@ static int hook_downtime(merlin_event *pkt, void *data)
 static int hook_host_status(merlin_event *pkt, void *data)
 {
 	nebstruct_host_status_data *ds = (nebstruct_host_status_data *)data;
-	merlin_host_status st_obj;
-	struct host_struct *obj;
-	static struct host_struct *last_obj = NULL;
-
-	memset(&st_obj, 0, sizeof(st_obj));
-	obj = (struct host_struct *)ds->object_ptr;
-	if (obj == last_obj) {
-		check_dupes = 1;
-	} else {
-		check_dupes = 0;
-		last_obj = obj;
-	}
-
-	MOD2NET_STATE_VARS(st_obj.state, obj);
-	st_obj.state.last_notification = obj->last_host_notification;
-	st_obj.state.next_notification = obj->next_host_notification;
-	st_obj.state.accept_passive_checks = obj->accept_passive_host_checks;
-	st_obj.state.obsess = obj->obsess_over_host;
-	st_obj.name = obj->name;
-
-	pkt->hdr.selection = get_selection(obj->name);
-
-	return send_generic(pkt, &st_obj);
+	return send_host_status(pkt, ds->object_ptr);
 }
 
 static int hook_service_status(merlin_event *pkt, void *data)
 {
 	nebstruct_service_status_data *ds = (nebstruct_service_status_data *)data;
-	merlin_service_status st_obj;
-	struct service_struct *obj;
-	static struct service_struct *last_obj = NULL;
-
-	memset(&st_obj, 0, sizeof(st_obj));
-	obj = (struct service_struct *)ds->object_ptr;
-	if (obj == last_obj) {
-		check_dupes = 1;
-	} else {
-		check_dupes = 0;
-		last_obj = obj;
-	}
-
-	MOD2NET_STATE_VARS(st_obj.state, obj);
-	st_obj.state.last_notification = obj->last_notification;
-	st_obj.state.next_notification = obj->next_notification;
-	st_obj.state.accept_passive_checks = obj->accept_passive_service_checks;
-	st_obj.state.obsess = obj->obsess_over_service;
-	st_obj.host_name = obj->host_name;
-	st_obj.service_description = obj->description;
-
-	pkt->hdr.selection = get_selection(obj->host_name);
-
-	return send_generic(pkt, &st_obj);
+	return send_service_status(pkt, ds->object_ptr);
 }
 
 static int hook_contact_notification(merlin_event *pkt, void *data)
