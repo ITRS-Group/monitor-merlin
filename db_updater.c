@@ -60,7 +60,7 @@
 	safe_str(output), safe_str(long_output), safe_str(perf_data)
 
 
-static int handle_host_status(const merlin_host_status *p)
+static int handle_host_status(int cb, const merlin_host_status *p)
 {
 	char *host_name;
 	char *output, *long_output, *perf_data;
@@ -73,6 +73,21 @@ static int handle_host_status(const merlin_host_status *p)
 	result = sql_query(STATUS_QUERY("host") " WHERE host_name = %s",
 					   STATUS_ARGS(output, long_output, perf_data),
 					   host_name);
+
+	/* this check is only done when we have new checkresults */
+	if (cb == NEBCALLBACK_HOST_CHECK_DATA &&
+	    host_has_new_state(p->name, p->state.current_state, p->state.state_type))
+	{
+		result = sql_query("INSERT INTO %s ("
+		                   "timestamp, event_type, host_name, state, "
+		                   "hard, retry, output"
+		                   ") VALUES(%lu, %d, %s, %d, %d, %d, %s)",
+		                   sql_table_name(),
+		                   p->state.last_check, NEBTYPE_HOSTCHECK_PROCESSED, host_name, p->state.current_state,
+	                       p->state.state_type == HARD_STATE, p->state.current_attempt,
+		                   output);
+	}
+
 	free(host_name);
 	safe_free(output);
 	safe_free(long_output);
@@ -80,7 +95,7 @@ static int handle_host_status(const merlin_host_status *p)
 	return result;
 }
 
-static int handle_service_status(const merlin_service_status *p)
+static int handle_service_status(int cb, const merlin_service_status *p)
 {
 	char *host_name, *service_description;
 	char *output, *long_output, *perf_data;
@@ -95,6 +110,21 @@ static int handle_service_status(const merlin_service_status *p)
 					   " WHERE host_name = %s AND service_description = %s",
 					   STATUS_ARGS(output, long_output, perf_data),
 					   host_name, service_description);
+	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA &&
+	    service_has_new_state(p->host_name, p->service_description, p->state.current_state, p->state.state_type))
+	{
+		result = sql_query("INSERT INTO %s ("
+		                   "timestamp, event_type, host_name, service_description,"
+		                   "state, hard, retry, output) "
+		                   "VALUES(%lu, %d, %s, %s, "
+		                   "%d, '%d', '%d', %s)",
+		                   sql_table_name(),
+		                   p->state.last_check, NEBTYPE_SERVICECHECK_PROCESSED, host_name,
+		                   service_description, p->state.current_state,
+	                       p->state.state_type == HARD_STATE, p->state.current_attempt,
+	                       output);
+	}
+
 	free(host_name);
 	free(service_description);
 	safe_free(output);
@@ -102,103 +132,6 @@ static int handle_service_status(const merlin_service_status *p)
 	safe_free(perf_data);
 	return result;
 }
-
-#ifdef INSERT_CHECK_RESULTS
-static int handle_host_result(object_state *st, const nebstruct_host_check_data *p)
-{
-	char *host_name, *output, *long_output, *perf_data = NULL;
-	int result;
-
-	if (p->type != NEBTYPE_HOSTCHECK_PROCESSED)
-		return 0;
-
-	sql_quote(p->host_name, &host_name);
-	sql_quote(p->output, &output);
-	sql_quote(p->perf_data, &perf_data);
-	sql_quote(p->long_output, &long_output);
-
-	if (!st) {
-		lerr("Failed to find stored state for host '%s'", p->host_name);
-	} else {
-		if (p->state != extract_state(st->state)) {
-			result = sql_query("UPDATE host SET last_state_change = %lu "
-				   "WHERE host_name = %s",
-				   p->end_time.tv_sec, host_name);
-			sql_free_result();
-		}
-	}
-
-	result = sql_query
-		("UPDATE host SET current_attempt = %d, check_type = %d, "
-		 "state_type = %d, current_state = %d, timeout = %d, "
-		 "start_time = %lu, end_time = %lu, early_timeout = %d, "
-		 "execution_time = %f, latency = '%.3f', last_check = %lu, "
-		 "return_code = %d, output = %s, long_output = %s, perf_data = %s "
-		 "WHERE host_name = %s",
-		 p->current_attempt, p->check_type,
-		 p->state_type, p->state, p->timeout,
-		 p->start_time.tv_sec, p->end_time.tv_sec, p->early_timeout,
-		 p->execution_time, p->latency, p->end_time.tv_sec,
-		 p->return_code, safe_str(output), safe_str(long_output), safe_str(perf_data),
-		 host_name);
-
-	free(host_name);
-	safe_free(output);
-	safe_free(long_output);
-	safe_free(perf_data);
-
-	return result;
-}
-
-static int handle_service_result(object_state *st, const nebstruct_service_check_data *p)
-{
-	char *host_name, *output, *long_output, *perf_data, *service_description;
-	int result;
-
-	if (p->type != NEBTYPE_SERVICECHECK_PROCESSED)
-		return 0;
-
-	sql_quote(p->host_name, &host_name);
-	sql_quote(p->output, &output);
-	sql_quote(p->output, &long_output);
-	sql_quote(p->perf_data, &perf_data);
-	sql_quote(p->service_description, &service_description);
-
-	if (!st) {
-		lerr("Failed to get stored state for service '%s' on host '%s'",
-			 p->service_description, p->host_name);
-	} else {
-		if (p->state != extract_state(st->state)) {
-			result = sql_query("UPDATE service SET last_state_change = %lu "
-					   "WHERE host_name = %s AND service_description = %s",
-					   p->end_time.tv_sec, host_name, service_description);
-			sql_free_result();
-		}
-	}
-
-	result = sql_query
-		("UPDATE service SET current_attempt = %d, check_type = %d, "
-		 "state_type = %d, current_state = %d, timeout = %d, "
-		 "start_time = %lu, end_time = %lu, early_timeout = %d, "
-		 "execution_time = %f, latency = '%.3f', last_check = %lu, "
-		 "return_code = %d, output = %s, long_output = %s, perf_data = %s "
-		 " WHERE host_name = %s AND service_description = %s",
-		 p->current_attempt, p->check_type,
-		 p->state_type, p->state, p->timeout,
-		 p->start_time.tv_sec, p->end_time.tv_sec, p->early_timeout,
-		 p->execution_time, p->latency, p->end_time.tv_sec,
-		 p->return_code, safe_str(output), safe_str(long_output), safe_str(perf_data),
-		 host_name, service_description);
-
-	free(host_name);
-	safe_free(output);
-	safe_free(long_output);
-	safe_free(perf_data);
-	free(service_description);
-
-	return result;
-}
-#endif /* INSERT_CHECK_RESULTS */
 
 static int handle_program_status(merlin_node *node, const nebstruct_program_status_data *p)
 {
@@ -507,18 +440,6 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 {
 	int errors = 0;
 
-	/*
-	 * we don't insert host and service check data events,
-	 * since we get the state of them from the host/service
-	 * status events instead, but if there are network
-	 * nodes we'll get them passed to us anyway
-	 */
-	if (pkt->hdr.type == NEBCALLBACK_HOST_CHECK_DATA ||
-		pkt->hdr.type == NEBCALLBACK_SERVICE_CHECK_DATA)
-	{
-		return 0;
-	}
-
 	if (!sql_is_connected())
 		return 0;
 
@@ -557,11 +478,13 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
 		errors = handle_contact_notification_method((void *)pkt->body);
 		break;
+	case NEBCALLBACK_HOST_CHECK_DATA:
 	case NEBCALLBACK_HOST_STATUS_DATA:
-		errors = handle_host_status((void *)pkt->body);
+		errors = handle_host_status(pkt->hdr.type, (void *)pkt->body);
 		break;
+	case NEBCALLBACK_SERVICE_CHECK_DATA:
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
-		errors = handle_service_status((void *)pkt->body);
+		errors = handle_service_status(pkt->hdr.type, (void *)pkt->body);
 		break;
 
 		/* some callbacks are unhandled by design */
