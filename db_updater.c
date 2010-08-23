@@ -133,6 +133,77 @@ static int handle_service_status(int cb, const merlin_service_status *p)
 	return result;
 }
 
+static int rpt_downtime(void *data)
+{
+	nebstruct_downtime_data *ds = (nebstruct_downtime_data *)data;
+	int depth, result;
+	char *host_name;
+
+	switch (ds->type) {
+	case NEBTYPE_DOWNTIME_START:
+	case NEBTYPE_DOWNTIME_STOP:
+		break;
+	case NEBTYPE_DOWNTIME_DELETE:
+		/*
+		 * if we're deleting a downtime that hasn't started yet, nothing
+		 * should be added to the database. Otherwise, transform it to a
+		 * NEBTYPE_DOWNTIME_STOP event to mark the downtime as stopped.
+		 */
+		if (ds->start_time > time(NULL))
+			return 0;
+		ds->type = NEBTYPE_DOWNTIME_STOP;
+		break;
+	default:
+		return 0;
+	}
+
+	sql_quote(ds->host_name, &host_name);
+	if (ds->service_description) {
+		char *service_description;
+
+		sql_quote(ds->service_description, &service_description);
+		depth = ds->type == NEBTYPE_DOWNTIME_START;
+		result = sql_query("INSERT INTO %s"
+						   "(timestamp, event_type, host_name,"
+						   "service_description, downtime_depth) "
+						   "VALUES(%lu, %d, %s, %s, %d)",
+						   sql_table_name(),
+						   ds->timestamp.tv_sec, ds->type, host_name,
+						   service_description, depth);
+		free(service_description);
+	} else {
+		depth = ds->type == NEBTYPE_DOWNTIME_START;
+		result = sql_query("INSERT INTO %s"
+						   "(timestamp, event_type, host_name, downtime_depth)"
+						   "VALUES(%lu, %d, %s, %d)",
+						   sql_table_name(),
+						   ds->timestamp.tv_sec, ds->type, host_name, depth);
+	}
+	free(host_name);
+
+	return result;
+}
+
+static int rpt_process_data(void *data)
+{
+	nebstruct_process_data *ds = (nebstruct_process_data *)data;
+
+	switch(ds->type) {
+	case NEBTYPE_PROCESS_START:
+	case NEBTYPE_PROCESS_SHUTDOWN:
+		break;
+	case NEBTYPE_PROCESS_RESTART:
+		ds->type = NEBTYPE_PROCESS_SHUTDOWN;
+		break;
+	default:
+		return 0;
+	}
+
+	return sql_query("INSERT INTO %s(timestamp, event_type) "
+					 "VALUES(%lu, %d)",
+					 sql_table_name(), ds->timestamp.tv_sec, ds->type);
+}
+
 static int handle_program_status(merlin_node *node, const nebstruct_program_status_data *p)
 {
 	char *global_host_event_handler;
@@ -459,12 +530,14 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 	switch (pkt->hdr.type) {
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 		errors = handle_program_status(node, (void *)pkt->body);
+		errors |= rpt_process_data(pkt->body);
 		break;
 	case NEBCALLBACK_COMMENT_DATA:
 		errors = handle_comment((void *)pkt->body);
 		break;
 	case NEBCALLBACK_DOWNTIME_DATA:
 		errors = handle_downtime((void *)pkt->body);
+		errors |= rpt_downtime((void *)pkt->body);
 		break;
 	case NEBCALLBACK_FLAPPING_DATA:
 		errors = handle_flapping((void *)pkt->body);
