@@ -61,6 +61,13 @@ int sql_error(const char **msg)
 	return dbi_conn_error(db.conn, msg);
 }
 
+const char *sql_error_msg(void)
+{
+	const char *msg;
+	sql_error(&msg);
+	return msg;
+}
+
 void sql_free_result(void)
 {
 	if (db.result) {
