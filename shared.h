@@ -59,6 +59,7 @@
 # define ARRAY_SIZE(ary) (sizeof(ary)/sizeof(ary[0]))
 #endif
 
+#define safe_str(str) (str == NULL ? "''" : str)
 static inline void *safe_free(void *ptr)
 {
 	if (ptr)

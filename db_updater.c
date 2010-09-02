@@ -1,9 +1,6 @@
 #include "nagios/broker.h"
 #include "daemon.h"
 
-#define safe_str(str) (str == NULL ? "''" : str)
-#define safe_free(str) do { if (str) free(str); } while (0)
-
 #define STATUS_QUERY(type) \
 	"UPDATE " type " SET " \
 	"initial_state = %d, flap_detection_enabled = %d, " \
