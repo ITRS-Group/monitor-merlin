@@ -9,10 +9,14 @@ DAEMON_OBJS += $(SHARED_OBJS)
 MODULE_OBJS = module.o hooks.o control.o slist.o $(COMMON_OBJS)
 MODULE_DEPS = module.h hash.h slist.h
 DAEMON_DEPS = net.h sql.h daemon.h hash.h
+APP_OBJS = $(COMMON_OBJS) state.o logutils.o lparse.o test_utils.o
+IMPORT_OBJS = $(APP_OBJS) import.o sql.o
+SHOWLOG_OBJS = $(APP_OBJS) showlog.o auth.o
 DEPS = Makefile cfgfile.h ipc.h logging.h shared.h
 DSO = merlin
 PROG = $(DSO)d
 NEB = $(DSO).so
+APPS = showlog import
 MOD_LDFLAGS = -shared -ggdb3 -fPIC
 DAEMON_LDFLAGS = -ldbi -ggdb3 -rdynamic -Wl,-export-dynamic
 MTEST_LDFLAGS = -ldbi -ggdb3 -ldl -rdynamic -Wl,-export-dynamic
@@ -24,7 +28,7 @@ ifndef V
 	QUIET_LINK  = @echo '   ' LINK $@;
 endif
 
-all: $(NEB) $(PROG) mtest
+all: $(NEB) $(PROG) mtest $(APPS)
 
 install: all
 	@echo "Installing to $(DESTDIR)"
@@ -40,6 +44,12 @@ mtest: mtest.o $(TEST_OBJS) $(TEST_DEPS) slist.o sql.o hooks.o hash.o module.o c
 	$(QUIET_LINK)$(CC) $^ -o $@ $(MTEST_LDFLAGS)
 
 test-lparse: test-lparse.o lparse.o logutils.o hash.o test_utils.o
+	$(QUIET_LINK)$(CC) $^ -o $@
+
+import: $(IMPORT_OBJS)
+	$(QUIET_LINK)$(CC) $^ -o $@ -ldbi
+
+showlog: $(SHOWLOG_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@
 
 $(PROG): $(DAEMON_OBJS)
@@ -99,7 +109,7 @@ version.c: gen-version.sh
 	sh gen-version.sh > version.c
 
 clean: clean-core clean-log clean-test
-	rm -f $(NEB) $(PROG) *.o blread endpoint
+	rm -f $(NEB) $(PROG) $(APPS) *.o blread endpoint
 
 clean-test:
 	rm -f sltest bltest test-hash mtest test-lparse

@@ -21,3 +21,5 @@ test-hash
 bltest
 sltest
 test-lparse
+import
+showlog
