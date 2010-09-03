@@ -142,8 +142,10 @@ say ()
 
 install_files ()
 {
+	execs="import showlog merlind install-merlin.sh init.sh"
+	files="$execs merlin.so db.sql example.conf"
 	missing=
-	for i in merlin.so merlind example.conf install-merlin.sh db.sql init.sh; do
+	for i in $files; do
 		if ! test -f "$src_dir/$i"; then
 			echo "$src_dir/$i is missing"
 			missing="$missing $src_dir/$i"
@@ -154,13 +156,13 @@ install_files ()
 	test -d "$root_path/$dest_dir" || mkdir -p 755 "$root_path/$dest_dir"
 	test -d "$root_path/$dest_dir/logs" || mkdir -p 777 "$root_path/$dest_dir/logs"
 	test -d "$root_path/$dest_dir" || { echo "$root_path/$dest_dir is not a directory"; return 1; }
-	for f in merlind merlin.so install-merlin.sh init.sh db.sql example.conf; do
+	for f in $files; do
 		cp "$src_dir/$f" "$root_path/$dest_dir"
 	done
 	macro_subst "$src_dir/example.conf" > "$root_path/$dest_dir/merlin.conf"
 	macro_subst "$src_dir/import.php" > "$root_path/$dest_dir/import.php"
 	macro_subst "$src_dir/object_importer.inc.php" > "$root_path/$dest_dir/object_importer.inc.php"
-	for f in merlind import.php install-merlin.sh init.sh; do
+	for f in $execs; do
 		chmod 755 "$root_path/$dest_dir/$f"
 	done
 	for f in merlin.conf example.conf merlin.so; do
