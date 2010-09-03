@@ -30,13 +30,28 @@ Summary: The merlin daemon is a multiplexing event-transport program
 Group: op5/Monitor
 Requires: libdbi
 Requires: libdbi-dbd-mysql
-Requires: monitor-reports-module >= 2.0.7
+Requires: merlin-apps >= %version
 
 %description -n merlin
 The merlin daemon is a multiplexing event-transport program designed to
 link multiple Nagios instances together. It can also inject status
 data into a variety of databases, using libdbi.
 
+%package -n merlin-apps
+Summary: Applications used to set up and aid a merlin/ninja installation
+Group: op5/Monitor
+Requires: libdbi
+
+%description -n merlin-apps
+This package contains standalone applications required by Ninja and
+Merlin in order to make them both fully support everything that a
+bogstandard Nagios install can handle.
+'showlog' is used to display nagios logfiles with various filters
+and output modes and works as a backend for the "Event Log" and
+associated pages within Ninja.
+'import' is used to import report data into a reports database to be
+used by the monitor-reports-gui package. It also imports historical
+notifications, although not at the same time.
 
 %prep
 %setup -q
@@ -105,6 +120,11 @@ echo "Importing notifications from logfiles to database"
 %_sysconfdir/logrotate.d/merlin
 /etc/init.d/merlind
 %dir %mod_path/logs
+
+%files -n merlin-apps
+%defattr(-,root,root)
+%mod_path/import
+%mod_path/showlog
 
 %clean
 rm -rf %buildroot
