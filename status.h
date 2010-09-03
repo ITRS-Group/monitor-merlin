@@ -1,6 +1,6 @@
 #ifndef INCLUDE_status_h__
 #define INCLUDE_status_h__
-#include "hash.h"
+#include "state.h"
 
 struct object_state {
 	char *name;
