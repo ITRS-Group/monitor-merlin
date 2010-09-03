@@ -363,6 +363,8 @@ static void enable_indexes(void)
 	else {
 		if (dbi_result_next_row(result)) {
 			entries = dbi_result_get_int_idx(result, 1);
+		} else {
+			entries = 0;
 		}
 		sql_free_result();
 	}
@@ -467,6 +469,7 @@ static int insert_notification(struct string_code *sc)
 		return 0;
 
 	disable_indexes();
+	sql_quote(strv[0], &contact_name);
 	sql_quote(strv[1], &host_name);
 	if (base_idx) {
 		sql_quote(strv[2], &service_description);
