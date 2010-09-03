@@ -39,6 +39,9 @@ check_latency: check_latency.o cfgfile.o
 mtest: mtest.o $(TEST_OBJS) $(TEST_DEPS) slist.o sql.o hooks.o hash.o module.o control.o version.o logging.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(MTEST_LDFLAGS)
 
+test-lparse: test-lparse.o lparse.o logutils.o hash.o test_utils.o
+	$(QUIET_LINK)$(CC) $^ -o $@
+
 $(PROG): $(DAEMON_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $(LIBS) $^ -o $@
 
@@ -48,7 +51,7 @@ $(NEB): $(MODULE_OBJS)
 %.o: %.c
 	$(QUIET_CC)$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
-test: test-binlog test-slist test__hash
+test: test-binlog test-slist test__hash test__lparse
 
 test__hash: test-hash
 	@./test-hash
@@ -61,6 +64,9 @@ test-binlog: bltest
 
 test-hash: test-hash.o hash.o test_utils.o
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $^ -o $@
+
+test__lparse: test-lparse
+	@./test-lparse
 
 sltest: sltest.o test_utils.o slist.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
@@ -96,7 +102,7 @@ clean: clean-core clean-log clean-test
 	rm -f $(NEB) $(PROG) *.o blread endpoint
 
 clean-test:
-	rm -f sltest bltest test-hash mtest
+	rm -f sltest bltest test-hash mtest test-lparse
 
 clean-core:
 	rm -f core core.[0-9]*

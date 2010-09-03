@@ -20,3 +20,4 @@ funused.sh
 test-hash
 bltest
 sltest
+test-lparse
