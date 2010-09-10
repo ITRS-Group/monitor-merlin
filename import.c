@@ -1360,6 +1360,14 @@ int main(int argc, char **argv)
 				incremental = strtoul(opt, NULL, 0);
 				if (!incremental)
 					usage("--incremental= requires a parameter");
+				/*
+				 * since we use '1' to mean "determine automatically",
+				 * we magic a '1' from userspace to '2'. In practice,
+				 * this just means the user doesn't need to know a
+				 * thing about this program's internals.
+				 */
+				if (incremental == 1)
+					incremental = 2;
 			}
 			continue;
 		}
