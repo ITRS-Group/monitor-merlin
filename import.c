@@ -317,7 +317,7 @@ static void end_progress(void)
 	putchar('\n');
 }
 
-static int use_sql = 1, indexes_disabled;
+static int indexes_disabled;
 static void disable_indexes(void)
 {
 	if (indexes_disabled)
@@ -392,7 +392,7 @@ static int insert_downtime_event(int type, char *host, char *service, int id)
 	if (dt_depth > max_dt_depth)
 		max_dt_depth = dt_depth;
 
-	if (!use_sql || only_notifications)
+	if (!use_database || only_notifications)
 		return 0;
 
 	memset(&ds, 0, sizeof(ds));
@@ -465,7 +465,7 @@ static int insert_notification(struct string_code *sc)
 		return 0;
 	}
 
-	if (!use_sql)
+	if (!use_database)
 		return 0;
 
 	disable_indexes();
@@ -531,7 +531,7 @@ static int insert_service_check(struct string_code *sc)
 		ds.output = strv[5];
 	}
 
-	if (!use_sql || only_notifications)
+	if (!use_database || only_notifications)
 		return 0;
 
 	disable_indexes();
@@ -566,7 +566,7 @@ static int insert_host_check(struct string_code *sc)
 		ds.output = strv[4];
 	}
 
-	if (!use_sql || only_notifications)
+	if (!use_database || only_notifications)
 		return 0;
 
 	disable_indexes();
@@ -577,7 +577,7 @@ static int insert_process_event(int type)
 {
 	nebstruct_process_data ds;
 
-	if (!use_sql || only_notifications)
+	if (!use_database || only_notifications)
 		return 0;
 
 	memset(&ds, 0, sizeof(ds));
@@ -1258,7 +1258,7 @@ static int parse_one_line(char *str, uint len)
 {
 	const char *msg;
 
-	if (parse_line(str, len) && use_sql && sql_error(&msg))
+	if (parse_line(str, len) && use_database && sql_error(&msg))
 		lp_crash("sql error: %s", msg);
 
 	return 0;
@@ -1323,6 +1323,7 @@ int main(int argc, char **argv)
 	const char *nagios_cfg = NULL;
 	char *db_name, *db_user, *db_pass, *db_table;
 
+	use_database = 1;
 	db_name = db_user = db_pass = db_table = NULL;
 
 	do_progress = isatty(fileno(stdout));
@@ -1372,7 +1373,7 @@ int main(int argc, char **argv)
 			continue;
 		}
 		if (!prefixcmp(arg, "--no-sql")) {
-			use_sql = 0;
+			use_database = 0;
 			continue;
 		}
 		if (!prefixcmp(arg, "--only-notifications")) {
@@ -1480,7 +1481,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (use_sql) {
+	if (use_database) {
 		db_name = db_name ? db_name : "monitor_reports";
 		db_user = db_user ? db_user : "monitor";
 		db_pass = db_pass ? db_pass : "monitor";
@@ -1599,7 +1600,7 @@ int main(int argc, char **argv)
 		printf("max downtime depth: %u\n", max_dt_depth);
 	}
 
-	if (use_sql) {
+	if (use_database) {
 		enable_indexes();
 		sql_close();
 	}
