@@ -12,6 +12,7 @@ DAEMON_DEPS = net.h sql.h daemon.h hash.h
 APP_OBJS = $(COMMON_OBJS) state.o logutils.o lparse.o test_utils.o
 IMPORT_OBJS = $(APP_OBJS) import.o sql.o
 SHOWLOG_OBJS = $(APP_OBJS) showlog.o auth.o
+NEBTEST_OBJS = $(TEST_OBJS) nebtest.o
 DEPS = Makefile cfgfile.h ipc.h logging.h shared.h
 DSO = merlin
 PROG = $(DSO)d
@@ -52,6 +53,9 @@ import: $(IMPORT_OBJS)
 showlog: $(SHOWLOG_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@
 
+nebtest: $(NEBTEST_OBJS)
+	$(QUIET_LINK)$(CC) $^ -o $@ -ldl -rdynamic -Wl,-export-dynamic
+
 $(PROG): $(DAEMON_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $(LIBS) $^ -o $@
 
@@ -61,7 +65,10 @@ $(NEB): $(MODULE_OBJS)
 %.o: %.c
 	$(QUIET_CC)$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
-test: test-binlog test-slist test__hash test__lparse
+test: test-binlog test-slist test__hash test__lparse test_module
+
+test_module: nebtest merlin.so
+	@./nebtest merlin.so
 
 test__hash: test-hash
 	@./test-hash
