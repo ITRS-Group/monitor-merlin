@@ -433,6 +433,12 @@ class nagios_host(nagios_group_member):
 
 class nagios_service(nagios_slave_object, nagios_group_member):
 	otype = 'service'
+	slave_keys = {
+		'check_command': 'command',
+		'event_handler': 'command',
+		'check_period': 'timeperiod',
+		'notification_period': 'timeperiod',
+	}
 
 	def close(self):
 		if self.obj.has_key('name'):
