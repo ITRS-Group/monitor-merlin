@@ -115,6 +115,7 @@ def grab_object_cfg_files(nagios_cfg_path):
 class nagios_object:
 	otype = ''
 	slave_keys = {}
+	preserve = {}
 
 	def __init__(self, otype = ''):
 		if otype != '':
@@ -122,6 +123,7 @@ class nagios_object:
 		self.name = ''
 		self.obj = {}
 		self.members = {}
+		self.groups = {}
 		self.slaves = {}
 
 	# string to list conversion for objects (we do this a lot)
@@ -153,7 +155,7 @@ class nagios_object:
 		else:
 			self.name = str(len(nagios_objects[self.otype]))
 
-	def write(self, f):
+	def raw_write(self, f):
 		global written, blocked_writes, num_written
 
 		# write it only once
@@ -167,7 +169,24 @@ class nagios_object:
 			f.write("%s%-30s %s\n" % (' ' * 4, k, v))
 		f.write("}\n")
 
-	def write_linked(self, f):
+	def write(self, f):
+		pobj = {}
+		for (k, l) in self.preserve.items():
+			v = self.obj.get(k)
+			if not v:
+				continue
+			pobj[k] = v
+			ok_list = set(self.s2l(v)) & interesting[l]
+			if not len(ok_list):
+				self.obj.pop(k)
+			else:
+				self.obj[k] = ','.join(ok_list)
+
+		self.raw_write(f)
+		for (k, v) in pobj.items():
+			self.obj[k] = v
+
+	def raw_write_linked(self, f):
 		self.write_template(f)
 		self.write(f)
 		for (key, ltype) in self.slave_keys.items():
@@ -190,6 +209,9 @@ class nagios_object:
 		for (otype, olist) in self.slaves.items():
 			for obj in olist.values():
 				obj.write_linked(f)
+
+	def write_linked(self, f):
+		self.raw_write_linked(f)
 
 	# splits a comma-separated list into 'include' and 'exclude'
 	def incex(self, key):
@@ -334,9 +356,12 @@ class nagios_group(nagios_object):
 		members = self.list2objs(self.otype[:-5], inc)
 		if not members:
 			return True
-		print(members)
 		# TODO: what the hell should we do now that we have
 		#       the members parsed out?
+		self.obj['members'] = ','.join(inc)
+		for m in members.values():
+			m.add_group(self)
+			self.members[m.name] = m
 
 class nagios_servicegroup(nagios_group):
 	def parse(self):
@@ -354,10 +379,13 @@ class nagios_servicegroup(nagios_group):
 			self.members[service.name] = service
 
 class nagios_group_member(nagios_object):
+	def add_group(self, group):
+		self.groups[group.name] = group
+
 	def add_to_groups(self):
 		gtype = self.otype + 'group'
 		gvar = gtype + 's'
-		groups = self.obj.pop(gvar, False)
+		groups = self.obj.get(gvar, False)
 		if not groups:
 			return True
 		for gname in self.s2l(groups):
@@ -426,6 +454,7 @@ class nagios_host(nagios_group_member):
 		#'parents': 'host',
 		'contact_groups': 'Mcontactgroup',
 		}
+	preserve = {'hostgroups': 'hostgroup', 'parents': 'host'}
 
 	def parse(self):
 		self.add_to_groups()
@@ -455,6 +484,11 @@ class nagios_service(nagios_slave_object, nagios_group_member):
 		hie = self.incex('host_name')
 		gie = self.incex_members('hostgroup', 'hostgroup_name')
 		inc = self.incex2inc('host', hie[0] | gie[0], hie[1] | gie[1])
+		# remove hostgroup references and replace with host refs
+		self.obj.pop('hostgroup_name', False)
+		self.obj.pop('host_name', False)
+		self.obj['host_name'] = ','.join(inc)
+		
 		if not len(inc):
 			return False
 		hosts = self.list2objs('host', inc)
@@ -462,11 +496,8 @@ class nagios_service(nagios_slave_object, nagios_group_member):
 			if not h.slaves.has_key(self.otype):
 				h.slaves[self.otype] = {}
 
+			# must use copy.deepcopy() here
 			h.slaves[self.otype][self.obj['service_description']] = copy.deepcopy(self)
-
-	def write_linked(self, f):
-		self.write_template(f)
-		self.write(f)
 
 def parse_nagios_objects(path):
 	f = open(path)
@@ -609,9 +640,9 @@ def hg_pregen(li):
 
 interesting = {}
 outparams = [
-#	{'file': 'p1', 'hostgroups': ['p1_hosts']},
-#	{'file': 'p2', 'hostgroups': ['p2_hosts']},
-	{'file': 'p3', 'hostgroups': ['p3_hosts']},
+	{'file': 'p1', 'hostgroups': ['p1_hosts']},
+	{'file': 'p2', 'hostgroups': ['p2_hosts']},
+	{'file': 'p3', 'hostgroups': ['p3_hosts', 'p2_hosts']},
 	]
 def run_param(param):
 	interesting['hostgroup'] = set(param['hostgroups'])
@@ -626,8 +657,8 @@ def run_param(param):
 
 	write_hg_list(param['file'], interesting['hostgroup'])
 
-for param in outparams:
-	run_param(param)
+#for param in outparams:
+#	run_param(param)
 
 i = 0
 hostgroup_list = hg_pregen(nagios_objects['hostgroup'].keys())
