@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import os, sys, posix, re, copy
+import os, sys, posix, re, copy, random
+import itertools
 
 nagios_cfg = '/opt/monitor/etc/nagios.cfg'
 object_cfg_files = {}
@@ -9,8 +10,12 @@ hostgroups = []
 hosts = []
 nagios_objects = {}
 obj_files = []
-written = 0
-allowed_writes = 1
+
+# These keeps track of which and how many objects we've
+# written and must be wiped between each file we create
+written = {}
+num_written = 0
+blocked_writes = 0
 
 class compound_object:
 	name = ''
@@ -118,7 +123,6 @@ class nagios_object:
 		self.obj = {}
 		self.members = {}
 		self.slaves = {}
-		self.written = 0
 
 	# string to list conversion for objects (we do this a lot)
 	def s2l(self, s):
@@ -147,13 +151,14 @@ class nagios_object:
 			self.name = str(len(nagios_objects[self.otype]))
 
 	def write(self, f):
-		global written
+		global written, blocked_writes, num_written
 
 		# write it only once
-		if self.written >= allowed_writes:
+		if written[self.otype].get(self.name):
+			blocked_writes += 1
 			return True
-		self.written += 1
-		written += 1
+		written[self.otype][self.name] = True
+		num_written += 1
 		f.write("define %s {\n" % self.otype.replace('_template', ''))
 		for (k, v) in self.obj.items():
 			f.write("%s%-30s %s\n" % (' ' * 4, k, v))
@@ -405,7 +410,7 @@ class nagios_slave_object(nagios_object):
 
 class nagios_servicedependency(nagios_object):
 	otype = 'servicedependency'
-		
+
 
 class nagios_host(nagios_group_member):
 	otype = 'host'
@@ -421,6 +426,7 @@ class nagios_host(nagios_group_member):
 
 	def parse(self):
 		self.add_to_groups()
+
 
 class nagios_service(nagios_slave_object, nagios_group_member):
 	otype = 'service'
@@ -530,38 +536,98 @@ for otype in parse_order:
 	for (oname, obj) in olist.items():
 		obj.parse()
 
+def write_hostgroup(f, hg_name):
+	hg = nagios_objects['hostgroup'].get(hg_name)
+	if not hg:
+		print("Hostgroup '%s' doesn't exist" % hg_name)
+		return False
+
+	hg.write(f)
+	for host in hg.members.values():
+		host.write_linked(f)
+
+def create_otype_dict(default):
+	global parse_order
+	d = {}
+	for otype in parse_order:
+		d[otype] = default
+		d[otype + '_template'] = default
+	return d
+
+def write_hg_list(path, hg_list):
+	global written, blocked_writes, num_written
+	written = create_otype_dict({})
+	num_written = 0
+	blocked_writes = 0
+
+	f = open(path, "w")
+	include_all = ['contact', 'contactgroup']
+	for otype in include_all:
+		olist = nagios_objects.get(otype)
+		if not olist:
+			continue
+		for o in olist.values():
+			o.write_linked(f)
+
+	for hg_name in hg_list:
+		write_hostgroup(f, hg_name)
+	print("%s created with %d objects for hostgroup list '%s'" %
+		(path, num_written, ','.join(hg_list)))
+	f.close()
+
+def hg_permute(li):
+	for i in range(len(li)):
+		for p in itertools.combinations(li, len(li) - i):
+			yield(p)
+
+# since we'll be doing 2**x runs through the hostgroups and their
+# associated objects, we really don't want to run every combination
+# of all hostgroups. For those who have 200-ish of the little
+# buggers, we'd be looking at a runtime counted in years. Instead,
+# we grab a random selection of 16 hostgroups to calculate for
+# We do it rather inefficiently, but we really don't care since
+# it's a one-off only used for testing
+def hg_pregen(li):
+	perm_const = 11
+
+	if len(li) < perm_const:
+		return li
+	psel = {}
+	while len(psel) < perm_const:
+		r = random.choice(li)
+		psel[r] = nagios_objects['hostgroup'][r]
+	return psel.keys()
+
+interesting = {}
 outparams = [
 #	{'file': 'p1', 'hostgroups': ['p1_hosts']},
 #	{'file': 'p2', 'hostgroups': ['p2_hosts']},
 	{'file': 'p3', 'hostgroups': ['p3_hosts']},
 	]
-
-fail = False
-for hg in nagios_objects['hostgroup'].values():
-	f = open("output/" + hg.name, "w")
-	hg.write(f)
-	for host in hg.members.values():
-		host.write_linked(f)
-	allowed_writes += 1
-	f.close()
-
-sys.exit(0)
-
-for param in outparams:
-	interesting_hgs = param['hostgroups']
-	for shg in param['hostgroups']:
+def run_param(param):
+	interesting['hostgroup'] = set(param['hostgroups'])
+	interesting['host'] = set()
+	for shg in interesting['hostgroup']:
 		hg = nagios_objects['hostgroup'].get(shg)
 		if not hg:
 			print("Hostgroup '%s' doesn't exist, you retard" % shg)
-			fail = True
-			continue
-		f = open(param['file'], "w")
-		hg.write(f)
-		for host in hg.members.values():
-			host.write_linked(f)
-		allowed_writes += 1
+			sys.exit(1)
 
-if fail:
-	print("Hostgroups: ")
-	for hg_name in nagios_objects['hostgroup']:
-		print(hg_name)
+		interesting['host'] |= set(interesting['host']) | set(hg.members.keys())
+
+	write_hg_list(param['file'], interesting['hostgroup'])
+
+for param in outparams:
+	run_param(param)
+
+i = 0
+hostgroup_list = hg_pregen(nagios_objects['hostgroup'].keys())
+num_hgs = len(hostgroup_list)
+gen_confs = (2 ** num_hgs - 1)
+print("Generating %d configurations" % gen_confs)
+if gen_confs > 100:
+	print("This will take a while")
+for p in hg_permute(hostgroup_list):
+	param = {'file': 'output/%d' % i, 'hostgroups': p}
+	run_param(param)
+	i += 1
