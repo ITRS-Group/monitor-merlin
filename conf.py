@@ -126,6 +126,9 @@ class nagios_object:
 
 	# string to list conversion for objects (we do this a lot)
 	def s2l(self, s):
+		if not s:
+			return []
+
 		return re.split('[\t ]*,[\t ]*', s)
 
 	def add(self, k, v):
