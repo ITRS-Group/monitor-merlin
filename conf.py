@@ -11,8 +11,6 @@ nagios_objects = {}
 obj_files = []
 written = 0
 allowed_writes = 1
-interesting_objects = {}
-interesting_hosts = {}
 
 class compound_object:
 	name = ''
