@@ -106,6 +106,7 @@ endpoint.o: test/endpoint.c $(DEPS)
 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 ipc.o net.o: node.h
+mtest.o nebtest.o: nagios-stubs.h
 
 $(COMMON_OBJS): $(DEPS)
 module.o: module.c $(MODULE_DEPS) $(DEPS) hash.h
