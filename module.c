@@ -37,6 +37,9 @@ static int handle_host_status(merlin_header *hdr, void *buf)
 	obj->next_host_notification = st_obj->state.next_notification;
 	obj->accept_passive_host_checks = st_obj->state.accept_passive_checks;
 	obj->obsess_over_host = st_obj->state.obsess;
+	if (hdr->type == NEBCALLBACK_HOST_CHECK_DATA && obj->perf_data) {
+		update_host_performance_data(obj);
+	}
 
 	return 0;
 }
@@ -59,6 +62,9 @@ static int handle_service_status(merlin_header *hdr, void *buf)
 	obj->next_notification = st_obj->state.next_notification;
 	obj->accept_passive_service_checks = st_obj->state.accept_passive_checks;
 	obj->obsess_over_service = st_obj->state.obsess;
+	if (hdr->type == NEBCALLBACK_SERVICE_CHECK_DATA && obj->perf_data) {
+		update_service_performance_data(obj);
+	}
 
 	return 0;
 }

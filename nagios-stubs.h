@@ -32,3 +32,11 @@ int process_external_command2(int cmd_id, time_t entry_time, char *args)
 {
 	return 0;
 }
+int update_host_performance_data(host *hst)
+{
+	return 0;
+}
+int update_service_performance_data(host *hst)
+{
+	return 0;
+}
