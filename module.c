@@ -1,4 +1,5 @@
 #include "module.h"
+#include "nagios/nagios.h"
 #include "nagios/objects.h"
 #include "nagios/statusdata.h"
 #include "nagios/macros.h"
@@ -119,6 +120,14 @@ static int handle_host_result(merlin_header *hdr, void *buf)
 	return 1;
 }
 
+int handle_external_command(merlin_header *hdr, void *buf)
+{
+	nebstruct_external_command_data *ds = (nebstruct_external_command_data *)buf;
+
+	process_external_command2(ds->command_type, ds->entry_time, ds->command_args);
+	return 1;
+}
+
 /* events that require status updates return 1, others return 0 */
 int handle_ipc_event(merlin_event *pkt)
 {
@@ -146,6 +155,8 @@ int handle_ipc_event(merlin_event *pkt)
 		return handle_host_status(&pkt->hdr, pkt->body);
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
 		return handle_service_status(&pkt->hdr, pkt->body);
+	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
+		return handle_external_command(&pkt->hdr, pkt->body);
 	default:
 		lwarn("Ignoring unrecognized/unhandled callback type: %d (%s)",
 		      pkt->hdr.type, callback_name(pkt->hdr.type));
