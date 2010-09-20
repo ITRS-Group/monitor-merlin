@@ -8,11 +8,11 @@
  * In short, these functions are only called from the triggered event
  * thingie.
  */
-
 #include <execinfo.h>
 #include "module.h"
 #include "nagios/objects.h"
 #include "nagios/neberrors.h"
+#include "nagios/common.h"
 
 static int check_dupes;
 static merlin_event last_pkt;
@@ -358,6 +358,54 @@ static int hook_downtime(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
+static int hook_external_command(merlin_event *pkt, void *data)
+{
+	nebstruct_external_command_data *ds = (nebstruct_external_command_data *)data;
+	char *semi_colon;
+
+	switch (ds->command_type) {
+	case CMD_ACKNOWLEDGE_HOST_PROBLEM:
+	case CMD_ACKNOWLEDGE_SVC_PROBLEM:
+	case CMD_ADD_HOST_COMMENT:
+	case CMD_ADD_SVC_COMMENT:
+	case CMD_DELAY_SVC_NOTIFICATION:
+	case CMD_DELAY_HOST_NOTIFICATION:
+	case CMD_SCHEDULE_HOST_SVC_CHECKS:
+	case CMD_DELAY_HOST_SVC_NOTIFICATIONS:
+	case CMD_PROCESS_HOST_CHECK_RESULT:
+	case CMD_PROCESS_SERVICE_CHECK_RESULT:
+	case CMD_SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME:
+	case CMD_SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME:
+	case CMD_SCHEDULE_FORCED_HOST_CHECK:
+	case CMD_SCHEDULE_FORCED_HOST_SVC_CHECKS:
+	case CMD_SCHEDULE_FORCED_SVC_CHECK:
+	case CMD_SCHEDULE_HOST_DOWNTIME:
+	case CMD_SCHEDULE_HOST_SVC_DOWNTIME:
+	case CMD_SCHEDULE_SVC_DOWNTIME:
+	case CMD_SCHEDULE_HOST_CHECK:
+	case CMD_SCHEDULE_SVC_CHECK:
+	case CMD_SEND_CUSTOM_HOST_NOTIFICATION:
+	case CMD_SEND_CUSTOM_SVC_NOTIFICATION:
+	case CMD_SET_HOST_NOTIFICATION_NUMBER:
+	case CMD_SET_SVC_NOTIFICATION_NUMBER:
+		if (!ds->command_args || !(semi_colon = strchr(ds->command_args, ';')))
+			return send_generic(pkt, data);
+
+		/*
+		 * looks like we have everything we need, so get the
+		 * selection based on the hostname so the daemon knows
+		 * which node(s) to send the command to (could very well
+		 * be 'nowhere')
+		 */
+		*semi_colon = '\0';
+		pkt->hdr.selection = get_selection(ds->command_args);
+		*semi_colon = ';';
+		break;
+	}
+
+	return send_generic(pkt, data);
+}
+
 static int hook_host_status(merlin_event *pkt, void *data)
 {
 	nebstruct_host_status_data *ds = (nebstruct_host_status_data *)data;
@@ -458,9 +506,12 @@ int merlin_mod_hook(int cb, void *data)
 		result = hook_downtime(&pkt, data);
 		break;
 
+	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
+		result = hook_external_command(&pkt, data);
+		break;
+
 	case NEBCALLBACK_FLAPPING_DATA:
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
-	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
 		result = send_generic(&pkt, data);
 		break;
 
