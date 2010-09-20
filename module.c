@@ -3,6 +3,7 @@
 #include "nagios/objects.h"
 #include "nagios/statusdata.h"
 #include "nagios/macros.h"
+#include "nagios/perfdata.h"
 
 time_t merlin_should_send_paths = 1;
 
@@ -10,6 +11,16 @@ time_t merlin_should_send_paths = 1;
 extern hostgroup *hostgroup_list;
 static int mrm_reap_interval = 2;
 
+/*
+ * handle_{host,service}_result() is basically identical to
+ * handle_{host,service}_status(), with the added exception
+ * that the check result events also cause performance data
+ * to be handled by Nagios, so they're handled by the same
+ * routines.
+ *
+ * In essence, it would probably be enough to just send the
+ * check result events and ignore the rest
+ */
 static int handle_host_status(merlin_header *hdr, void *buf)
 {
 	struct host_struct *obj;
@@ -52,74 +63,6 @@ static int handle_service_status(merlin_header *hdr, void *buf)
 	return 0;
 }
 
-static int handle_service_result(merlin_header *hdr, void *buf)
-{
-	service *srv;
-	nebstruct_service_check_data *ds = (nebstruct_service_check_data *)buf;
-
-	linfo("Received check result for service '%s' on host '%s'",
-		  ds->service_description, ds->host_name);
-
-	srv = find_service(ds->host_name, ds->service_description);
-	if (!srv) {
-		lerr("Unable to find service '%s' on host '%s'", ds->service_description, ds->host_name);
-		return 0;
-	}
-
-	safe_free(srv->plugin_output);
-	srv->plugin_output = safe_strdup(ds->output);
-
-	safe_free(srv->long_plugin_output);
-	srv->long_plugin_output = safe_strdup(ds->long_output);
-
-	safe_free(srv->perf_data);
-	srv->perf_data = safe_strdup(ds->perf_data);
-
-	srv->last_state = srv->current_state;
-	srv->current_state = ds->state;
-	srv->last_check = ds->end_time.tv_sec;
-	srv->has_been_checked = 1;
-
-	linfo("Updating status for service '%s' on host '%s'",
-		  srv->description, srv->host_name);
-
-	return 1;
-}
-
-
-static int handle_host_result(merlin_header *hdr, void *buf)
-{
-	host *hst;
-
-	nebstruct_host_check_data *ds = (nebstruct_host_check_data *)buf;
-
-	linfo("received check result for host '%s'", ds->host_name);
-
-	hst = find_host(ds->host_name);
-	if (!hst) {
-		lerr("Unable to find host '%s'", ds->host_name);
-		return 0;
-	}
-
-	safe_free(hst->plugin_output);
-	hst->plugin_output = safe_strdup(ds->output);
-
-	safe_free(hst->long_plugin_output);
-	hst->long_plugin_output = safe_strdup(ds->long_output);
-
-	safe_free(hst->perf_data);
-	hst->perf_data = safe_strdup(ds->perf_data);
-
-	hst->last_state = hst->current_state;
-	hst->current_state = ds->state;
-	hst->last_check = ds->end_time.tv_sec;
-	hst->has_been_checked = 1;
-
-	linfo("Updating status for host '%s'", hst->name);
-
-	return 1;
-}
-
 int handle_external_command(merlin_header *hdr, void *buf)
 {
 	nebstruct_external_command_data *ds = (nebstruct_external_command_data *)buf;
@@ -146,13 +89,16 @@ int handle_ipc_event(merlin_event *pkt)
 	/* restore the pointers so the various handlers won't have to */
 	deblockify(pkt->body, pkt->hdr.len, pkt->hdr.type);
 
+	/*
+	 * check results and status updates are handled the same,
+	 * with the exception that checkresults also cause performance
+	 * data to be handled.
+	 */
 	switch (pkt->hdr.type) {
 	case NEBCALLBACK_HOST_CHECK_DATA:
-		return handle_host_result(&pkt->hdr, pkt->body);
-	case NEBCALLBACK_SERVICE_CHECK_DATA:
-		return handle_service_result(&pkt->hdr, pkt->body);
 	case NEBCALLBACK_HOST_STATUS_DATA:
 		return handle_host_status(&pkt->hdr, pkt->body);
+	case NEBCALLBACK_SERVICE_CHECK_DATA:
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
 		return handle_service_status(&pkt->hdr, pkt->body);
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
