@@ -119,6 +119,11 @@ class nagios_object_importer
 				  'contact_groups' => 'contactgroup'
 				  );
 
+		$this->obj_rel['contact'] =
+			array('host_notification_period' => 'timeperiod',
+			      'service_notification_period' => 'timeperiod',
+			      );
+
 		$this->obj_rel['hostgroup'] =
 			array('members' => 'host');
 
