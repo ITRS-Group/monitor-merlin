@@ -440,8 +440,6 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 
 	/* not all packets get delivered to the merlin module */
 	switch (pkt->hdr.type) {
-	case NEBCALLBACK_HOST_CHECK_DATA:
-	case NEBCALLBACK_SERVICE_CHECK_DATA:
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 		mrm_db_update(node, pkt);
 		return 0;
