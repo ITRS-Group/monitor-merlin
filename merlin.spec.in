@@ -125,6 +125,7 @@ echo "Importing notifications from logfiles to database"
 %defattr(-,root,root)
 %mod_path/import
 %mod_path/showlog
+%mod_path/conf.py
 
 %clean
 rm -rf %buildroot
