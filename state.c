@@ -48,6 +48,10 @@ int host_has_new_state(char *host, int state, int type)
 {
 	int *old_state;
 
+	if (!host) {
+		lerr("host_has_new_state() called with NULL host");
+		return 0;
+	}
 	old_state = hash_find(host_states, host);
 	if (!old_state) {
 		int *cur_state;
@@ -65,6 +69,14 @@ int service_has_new_state(char *host, char *desc, int state, int type)
 {
 	int *old_state;
 
+	if (!host) {
+		lerr("service_has_new_state() called with NULL host");
+		return 0;
+	}
+	if (!desc) {
+		lerr("service_has_new_state() called with NULL desc");
+		return 0;
+	}
 	old_state = hash_find2(svc_states, host, desc);
 	if (!old_state) {
 		int *cur_state;
