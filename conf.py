@@ -282,7 +282,11 @@ class nagios_object:
 		tname = self.obj.get('use')
 		if not tname:
 			return
-		ttype = self.otype if '_' in self.otype else self.otype + '_template'
+		if self.otype.endswith('_template'):
+			ttype = self.otype
+		else:
+			ttype = self.otype + '_template'
+
 		tmplt = nagios_objects[ttype].get(tname)
 		if tmplt:
 			tmplt.write_linked(f)
