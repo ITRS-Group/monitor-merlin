@@ -188,6 +188,10 @@ static int send_host_status(merlin_event *pkt, struct host_struct *obj)
 	merlin_host_status st_obj;
 	static struct host_struct *last_obj = NULL;
 
+	if (!obj) {
+		lerr("send_host_status() called with NULL obj");
+		return -1;
+	}
 	memset(&st_obj, 0, sizeof(st_obj));
 	if (obj == last_obj) {
 		check_dupes = 1;
@@ -212,6 +216,10 @@ static int send_service_status(merlin_event *pkt, struct service_struct *obj)
 	merlin_service_status st_obj;
 	static struct service_struct *last_obj = NULL;
 
+	if (!obj) {
+		lerr("send_service_status() called with NULL obj");
+		return -1;
+	}
 	memset(&st_obj, 0, sizeof(st_obj));
 	if (obj == last_obj) {
 		check_dupes = 1;
