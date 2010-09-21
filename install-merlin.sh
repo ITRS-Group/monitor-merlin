@@ -17,6 +17,7 @@ db_root_pass=
 batch=
 install=db,files,config,init
 
+progname="$0"
 raw_sed_version=$(sed --version | sed '1q')
 sed_version=$(echo "$raw_sed_version" | sed -e 's/[^0-9]*//' -e 's/[.]//g')
 if [ "$sed_version" -lt 409 ]; then
@@ -182,6 +183,29 @@ install_init ()
 	fi
 }
 
+show_usage()
+{
+	cat << END_OF_HELP
+
+usage: $progname [options]
+
+Where options can be any combination of:
+  --help|-h                            Print this cruft and exit
+  --nagios-cfg=</path/to/nagios.cfg>   Path to nagios.cfg
+  --dest-dir=</install/directory>      Where to install Merlin
+  --batch                              Assume 'yes' to all questions
+  --root=</path/to/fakeroot>           Useful for package builders
+  --install=<db,config,files,init>     Components to install. Any combo works
+  --db-name=<database name>            Name of database to modify
+  --db-type=<mysql>                    Database type. Only mysql for now
+  --db-user=<username>                 User merlin should use with db
+  --db-pass=<password>                 Password for the db user
+  --db-root-user=<db admin>            Database admin username
+  --db-root-pass=<pass>                Database admin password
+
+END_OF_HELP
+	exit 1
+}
 
 while test "$1"; do
 	case "$1" in
@@ -257,6 +281,9 @@ while test "$1"; do
 		--root)
 			shift
 			root_path="$1"
+			;;
+		--help|-h)
+			show_usage
 			;;
 		*)
 			echo "Illegal argument. I have no idea what to make of '$1'"
