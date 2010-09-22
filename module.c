@@ -28,7 +28,8 @@ static int handle_host_status(merlin_header *hdr, void *buf)
 
 	obj = find_host(st_obj->name);
 	if (!obj) {
-		lerr("Host '%s' not found. Ignoring status update event", st_obj->name);
+		lerr("Host '%s' not found. Ignoring %s event",
+		     st_obj->name, callback_name(hdr->type));
 		return -1;
 	}
 
@@ -51,8 +52,9 @@ static int handle_service_status(merlin_header *hdr, void *buf)
 
 	obj = find_service(st_obj->host_name, st_obj->service_description);
 	if (!obj) {
-		lerr("Service '%s' on host '%s' not found. Ignoring status update event",
-		     st_obj->host_name, st_obj->service_description);
+		lerr("Service '%s' on host '%s' not found. Ignoring %s event",
+		     st_obj->host_name, st_obj->service_description,
+		     callback_name(hdr->type));
 
 		return -1;
 	}
