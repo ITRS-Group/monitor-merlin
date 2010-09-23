@@ -16,6 +16,12 @@ obj_files = []
 written = {}
 num_written = 0
 blocked_writes = 0
+parse_order = [
+	'timeperiod', 'command', 'contact', 'contactgroup',
+	'host', 'hostgroup', 'service', 'servicegroup',
+	'hostextinfo', 'hostescalation', 'hostdependency',
+	'serviceextinfo', 'serviceescalation', 'servicedependency',
+	]
 
 class compound_object:
 	name = ''
@@ -492,7 +498,7 @@ class nagios_service(nagios_slave_object, nagios_group_member):
 		self.obj.pop('hostgroup_name', False)
 		self.obj.pop('host_name', False)
 		self.obj['host_name'] = ','.join(inc)
-		
+
 		if not len(inc):
 			return False
 		hosts = self.list2objs('host', inc)
@@ -551,34 +557,18 @@ def parse_nagios_objects(path):
 		(key, value) = obj.parse_line(line)
 		obj.add(key, value)
 
-ncfg_path = '/opt/monitor/etc/nagios.cfg'
-if __name__ == '__main__':
-	for arg in sys.argv[1:]:
-		if arg.startswith('--nagios-cfg='):
-			ncfg_path = arg[len("--nagios-cfg="):]
-			continue
-
-	obj_files = grab_object_cfg_files(ncfg_path)
-	for f in obj_files:
-		parse_nagios_objects(f)
-
 # Most things can be parsed in any random order, really.
 # The respective master objects and their groups must be
 # parsed before their slaves though (hosts must be parsed
 # before services, and services must be parsed before
 # serviceescalations etc)
-parse_order = [
-	'timeperiod', 'command', 'contact', 'contactgroup',
-	'host', 'hostgroup', 'service', 'servicegroup',
-	'hostextinfo', 'hostescalation', 'hostdependency',
-	'serviceextinfo', 'serviceescalation', 'servicedependency',
-	]
-for otype in parse_order:
-	olist = nagios_objects.get(otype)
-	if not olist:
-		continue
-	for (oname, obj) in olist.items():
-		obj.parse()
+def post_parse():
+	for otype in parse_order:
+		olist = nagios_objects.get(otype)
+		if not olist:
+			continue
+		for (oname, obj) in olist.items():
+			obj.parse()
 
 def write_hostgroup(f, hg_name):
 	hg = nagios_objects['hostgroup'].get(hg_name)
@@ -661,17 +651,64 @@ def run_param(param):
 
 	write_hg_list(param['file'], interesting['hostgroup'])
 
-#for param in outparams:
-#	run_param(param)
+progname = sys.argv[0]
+def usage(msg = False):
+	if msg:
+		print(msg)
 
-i = 0
-hostgroup_list = hg_pregen(nagios_objects['hostgroup'].keys())
-num_hgs = len(hostgroup_list)
-gen_confs = (2 ** num_hgs - 1)
-print("Generating %d configurations" % gen_confs)
-if gen_confs > 100:
-	print("This will take a while")
-for p in hg_permute(hostgroup_list):
-	param = {'file': 'output/%d' % i, 'hostgroups': p}
-	run_param(param)
-	i += 1
+	print("usage: %s [options] <outfile:hostgroup1,hostgroup2,hostgroupN...>" % progname)
+#	print("\nWhere [options] is one of the following:")
+#	print("--include-all=<objecttypes>   include all objects of types <objecttypes>")
+#	print("--expand-templates            expand objects with template info")
+#	print("--merge-extinfo[=yes|no]      merge extinfo into master objects")
+#	print("--prefix=<objecttype:prefix>  prefix for objecctype objects")
+#	print("                              If objecttype is omitted, this prefix")
+#	print("                              will be used for all object types")
+	sys.exit(1)
+
+ncfg_path = '/opt/monitor/etc/nagios.cfg'
+if __name__ == '__main__':
+	what = 'randomize'
+	argparams = []
+	for arg in sys.argv[1:]:
+		if arg.startswith('--nagios-cfg='):
+			ncfg_path = arg.split('=', 1)[1]
+		elif arg.startswith("-P=") or arg.startswith("--PROGNAME="):
+			progname = arg.split('=', 1)[1]
+		elif arg == '-r' or arg == '--randomize':
+			what = 'randomize'
+		elif arg == '-p' or arg == '--params':
+			what = 'params'
+		else:
+			# default case. outfile:hg1,hg2,hgN... argument
+			what = 'args'
+			ary = arg.split(':')
+			if len(ary) != 2:
+				usage("Unknown argument: %s" % arg)
+			hgs = re.split('[\t ]*,[\t ]*', ary[1])
+			argparams.append({'file': ary[0], 'hostgroups': hgs})
+
+	obj_files = grab_object_cfg_files(ncfg_path)
+	for f in obj_files:
+		parse_nagios_objects(f)
+
+	post_parse()
+
+	if what == 'params':
+		for param in outparams:
+			run_param(param)
+	elif what == 'randomize':
+		i = 0
+		hostgroup_list = hg_pregen(nagios_objects['hostgroup'].keys())
+		num_hgs = len(hostgroup_list)
+		gen_confs = (2 ** num_hgs - 1)
+		print("Generating %d configurations" % gen_confs)
+		if gen_confs > 100:
+			print("This will take a while")
+		for p in hg_permute(hostgroup_list):
+			param = {'file': 'output/%d' % i, 'hostgroups': p}
+			run_param(param)
+			i += 1
+	elif what == 'args':
+		for param in argparams:
+			run_param(param)
