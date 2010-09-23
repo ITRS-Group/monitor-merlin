@@ -82,10 +82,19 @@ int get_num_selections(void)
 	return num_selections;
 }
 
-static int add_selection(char *name, merlin_node *node)
+static int add_one_selection(char *name, merlin_node *node)
 {
 	int i;
 	node_selection *sel = NULL;
+
+	/*
+	 * strip trailing spaces. leading ones are stripped in
+	 * the caller
+	 */
+	i = strlen(name);
+	while (name[i - 1] == '\t' || name[i - 1] == ' ')
+		name[--i] = 0;
+	printf("Adding selection '%s' for node '%s'\n", name, node->name);
 
 	/* if this selection is already added, just add the node to it */
 	for (i = 0; i < num_selections; i++) {
@@ -106,6 +115,25 @@ static int add_selection(char *name, merlin_node *node)
 	sel->nodes = add_linked_item(sel->nodes, node);
 
 	return sel->id;
+}
+
+static int add_selection(char *name, merlin_node *node)
+{
+	for (;;) {
+		char *comma;
+
+		if ((comma = strchr(name, ','))) {
+			*comma = 0;
+		}
+		add_one_selection(name, node);
+		if (!comma)
+			break;
+		name = comma + 1;
+		while (*name == ' ' || *name == '\t')
+			name++;
+	}
+
+	return 0;
 }
 
 /*
