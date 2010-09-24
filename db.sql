@@ -2,15 +2,9 @@
 --
 -- Database design for the merlin database
 --
-
-DROP TABLE IF EXISTS contact_access;
-CREATE TABLE contact_access(
-	contact			int,
-	host			int,
-	service			int
-);
-CREATE UNIQUE INDEX ca_contact_id ON contact_access(contact);
-
+--
+-- This table is not automagically recreated every time we upgrade
+--
 CREATE TABLE IF NOT EXISTS notification(
 	instance_id				int NOT NULL DEFAULT 0,
 	id						int NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -32,6 +26,37 @@ CREATE TABLE IF NOT EXISTS notification(
 CREATE INDEX n_host_name ON notification(host_name);
 CREATE INDEX n_service_name ON notification(host_name, service_description);
 CREATE INDEX n_contact_name ON notification(contact_name);
+
+--
+-- This table is not automagically recreated every time we upgrade
+--
+CREATE TABLE IF NOT EXISTS report_data (
+  id int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  timestamp int(11) NOT NULL default '0',
+  event_type int(11) NOT NULL default '0',
+  flags int(11),
+  attrib int(11),
+  host_name varchar(160) default '',
+  service_description varchar(160) default '',
+  state int(2) NOT NULL default '0',
+  hard int(2) NOT NULL default '0',
+  retry int(5) NOT NULL default '0',
+  downtime_depth int(11),
+  output text
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE latin1_general_cs;
+CREATE INDEX rd_timestamp ON report_data(timestamp);
+CREATE INDEX rd_event_type ON report_data(event_type);
+CREATE INDEX rd_host_name ON report_data(host_name);
+CREATE INDEX rd_service_name ON report_data(host_name, service_description);
+CREATE INDEX rd_state ON report_data(state);
+
+DROP TABLE IF EXISTS contact_access;
+CREATE TABLE contact_access(
+	contact			int,
+	host			int,
+	service			int
+);
+CREATE UNIQUE INDEX ca_contact_id ON contact_access(contact);
 
 DROP TABLE IF EXISTS program_status;
 CREATE TABLE program_status(
@@ -561,23 +586,3 @@ CREATE TABLE db_version (
   version int(11)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 INSERT INTO db_version(version) VALUES(2);
-
-CREATE TABLE IF NOT EXISTS report_data (
-  id int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
-  timestamp int(11) NOT NULL default '0',
-  event_type int(11) NOT NULL default '0',
-  flags int(11),
-  attrib int(11),
-  host_name varchar(160) default '',
-  service_description varchar(160) default '',
-  state int(2) NOT NULL default '0',
-  hard int(2) NOT NULL default '0',
-  retry int(5) NOT NULL default '0',
-  downtime_depth int(11),
-  output text
-) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE latin1_general_cs;
-CREATE INDEX rd_timestamp ON report_data(timestamp);
-CREATE INDEX rd_event_type ON report_data(event_type);
-CREATE INDEX rd_host_name ON report_data(host_name);
-CREATE INDEX rd_service_name ON report_data(host_name, service_description);
-CREATE INDEX rd_state ON report_data(state);
