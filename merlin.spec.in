@@ -150,7 +150,7 @@ sh /etc/init.d/monitor start || :
 /usr/libexec/merlin/*
 /usr/bin/mon
 %_sysconfdir/cron.d/*
-
+/opt/plugins/*
 
 %clean
 rm -rf %buildroot
