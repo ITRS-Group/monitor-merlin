@@ -1378,9 +1378,6 @@ int main(int argc, char **argv)
 		}
 		if (!prefixcmp(arg, "--only-notifications")) {
 			only_notifications = 1;
-			db_name = db_name ? db_name : "merlin";
-			db_user = db_user ? db_user : "merlin";
-			db_pass = db_pass ? db_pass : "merlin";
 			db_table = db_table ? db_table : "notification";
 			continue;
 		}
@@ -1482,9 +1479,9 @@ int main(int argc, char **argv)
 	}
 
 	if (use_database) {
-		db_name = db_name ? db_name : "monitor_reports";
-		db_user = db_user ? db_user : "monitor";
-		db_pass = db_pass ? db_pass : "monitor";
+		db_name = db_name ? db_name : "merlin";
+		db_user = db_user ? db_user : "merlin";
+		db_pass = db_pass ? db_pass : "merlin";
 		db_table = db_table ? db_table : "report_data";
 		sql_config("db_database", db_name);
 		sql_config("db_user", db_user);
