@@ -11,8 +11,7 @@ CREATE TABLE contact_access(
 );
 CREATE UNIQUE INDEX ca_contact_id ON contact_access(contact);
 
-DROP TABLE IF EXISTS notification;
-CREATE TABLE notification(
+CREATE TABLE IF NOT EXISTS notification(
 	instance_id				int NOT NULL DEFAULT 0,
 	id						int NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	notification_type		int,
@@ -563,8 +562,7 @@ CREATE TABLE db_version (
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 INSERT INTO db_version(version) VALUES(2);
 
-DROP TABLE IF EXISTS report_data;
-CREATE TABLE report_data (
+CREATE TABLE IF NOT EXISTS report_data (
   id int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
   timestamp int(11) NOT NULL default '0',
   event_type int(11) NOT NULL default '0',
