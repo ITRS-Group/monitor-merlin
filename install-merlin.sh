@@ -143,7 +143,7 @@ say ()
 
 install_files ()
 {
-	execs="import showlog merlind install-merlin.sh init.sh oconf.py"
+	execs="import showlog merlind install-merlin.sh init.sh"
 	files="$execs merlin.so db.sql example.conf"
 	missing=
 	for i in $files; do

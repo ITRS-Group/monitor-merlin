@@ -6,8 +6,8 @@
 
 %{?dgroup:%define daemon_group %{dgroup}}
 
-Summary: %name is a Nagios module designed to communicate with Merlin
-Name: monitor-merlin
+Summary: The merlin daemon is a multiplexing event-transport program
+Name: merlin
 Version: @@VERSION@@
 Release: @@RELEASE@@
 License: GPL
@@ -15,43 +15,43 @@ Group: op5/Monitor
 URL: http://www.op5.se
 Source0: %name-%version.tar.gz
 Prefix: /opt/monitor
-Requires: monitor >= 4.0, merlin = %version-%release
+Requires: libdbi
+Requires: libdbi-dbd-mysql
+Requires: merlin-apps >= %version
 BuildRequires: mysql-devel
 BuildRoot: /override/%name-%version
 
 %description
+The merlin daemon is a multiplexing event-transport program designed to
+link multiple Nagios instances together. It can also inject status
+data into a variety of databases, using libdbi.
+
+
+%package module
+Summary: %name is a Nagios module designed to communicate with Merlin
+Group: op5/Monitor
+Requires: monitor >= 4.0, merlin = %version-%release
+Obsoletes: monitor-merlin
+
+%description module
 %name is an event broker module running inside Nagios. Its' only
 purpose in life is to send events from the Nagios core to the merlin
 daemon, which then takes appropriate action.
 
 
-%package -n merlin
-Summary: The merlin daemon is a multiplexing event-transport program
-Group: op5/Monitor
-Requires: libdbi
-Requires: libdbi-dbd-mysql
-Requires: merlin-apps >= %version
-
-%description -n merlin
-The merlin daemon is a multiplexing event-transport program designed to
-link multiple Nagios instances together. It can also inject status
-data into a variety of databases, using libdbi.
-
-%package -n merlin-apps
+%package apps
 Summary: Applications used to set up and aid a merlin/ninja installation
 Group: op5/Monitor
 Requires: libdbi
+Obsoletes: monitor-distributed
 
-%description -n merlin-apps
+%description apps
 This package contains standalone applications required by Ninja and
 Merlin in order to make them both fully support everything that a
-bogstandard Nagios install can handle.
-'showlog' is used to display nagios logfiles with various filters
-and output modes and works as a backend for the "Event Log" and
-associated pages within Ninja.
-'import' is used to import report data into a reports database to be
-used by the monitor-reports-gui package. It also imports historical
-notifications, although not at the same time.
+fully fledged op5 Monitor install is supposed to handle.
+'mon' works as a single entry point wrapper and general purpose helper
+tool for those applications and a wide variety of other different
+tasks.
 
 %prep
 %setup -q
@@ -69,8 +69,38 @@ mkdir -p %buildroot/%mod_path/binlogs
 mkdir -p %buildroot%_sysconfdir/logrotate.d
 cp %_sourcedir/merlin.logrotate %buildroot%_sysconfdir/logrotate.d/merlin
 
+# install the apps. This isn't handled by the install-merlin.sh helper
+# yet. It might be in some far off future, but for now we don't have
+# time.
+cd %_sourcedir/apps
+mkdir -p %buildroot/usr/libexec
+cp -r libexec %buildroot/usr/libexec/%name
+cp ../oconf.py %buildroot/usr/libexec/%name
+mkdir -p %buildroot/usr/bin
+cp mon.py %buildroot/usr/bin/mon
+chmod 755 %buildroot/usr/bin/mon
+mkdir -p %buildroot/opt
+cp -r plugins %buildroot/opt
+chmod 755 %buildroot/opt/plugins/*
+for path in %buildroot/opt/plugins/*; do
+	full_f=${path##*/}(basename $i)
+	f=${full_f%.*}
+	ln -s $full_f %buildroot/opt/plugins/$f
+done
+find %buildroot -type f -name README -delete
+mkdir -p %buildroot%_sysconfdir/cron.d
+cp reportdata-import.cron %buildroot%_sysconfdir/cron.d/reportdata-import
 
-%pre
+
+%post
+%mod_path/install-merlin.sh --batch --install=db
+/sbin/chkconfig --add merlind
+echo "Importing notifications from logfiles to database"
+mon log import --only-notifications --incremental
+/etc/init.d/merlind restart
+
+
+%pre module
 # If we're upgrading the module while Nagios makes a call
 # into it, we'll end up with a core-dump due to some weirdness
 # in dlopen(). If we're installing anew, we need to update the
@@ -79,9 +109,9 @@ cp %_sourcedir/merlin.logrotate %buildroot%_sysconfdir/logrotate.d/merlin
 sh /etc/init.d/monitor stop || :
 sh /etc/init.d/monitor slay || :
 
-%preun
+%preun module
 if [ $1 -eq 0 ]; then
-	# removing the ndbneb module entirely
+	# removing the merlin module entirely
 	sh /etc/init.d/monitor stop || :
 	sh /etc/init.d/monitor slay || :
 	sed -i /merlin.so/d %prefix/etc/nagios.cfg
@@ -89,25 +119,13 @@ if [ $1 -eq 0 ]; then
 	sh /etc/init.d/merlind stop || :
 fi
 
-%post
+%post module
 %mod_path/install-merlin.sh --batch --install=config \
 	--nagios-cfg=%nagios_cfg --dest-dir=%mod_path
 sh /etc/init.d/monitor start || :
 
-%post -n merlin
-%mod_path/install-merlin.sh --batch --install=db
-/sbin/chkconfig --add merlind
-echo "Importing notifications from logfiles to database"
-/opt/monitor/op5/reports/module/import --only-notifications --incremental
-/etc/init.d/merlind restart
-
 
 %files
-%defattr(-,root,root)
-%mod_path/merlin.so
-%mod_path/binlogs
-
-%files -n merlin
 %defattr(-,root,root)
 %config %mod_path/merlin.conf
 %mod_path/db.sql
@@ -121,11 +139,19 @@ echo "Importing notifications from logfiles to database"
 /etc/init.d/merlind
 %dir %mod_path/logs
 
-%files -n merlin-apps
+%files module
+%defattr(-,root,root)
+%mod_path/merlin.so
+%mod_path/binlogs
+
+%files apps
 %defattr(-,root,root)
 %mod_path/import
 %mod_path/showlog
-%mod_path/oconf.py
+/usr/libexec/merlin/*
+/usr/bin/mon
+%_sysconfdir/cron.d/*
+
 
 %clean
 rm -rf %buildroot

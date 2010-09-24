@@ -1,0 +1,2 @@
+# import logs at 04:30 every night. That gives 150 minutes for transfer
+30 04 * * * monitor mon log import

@@ -1,0 +1,2 @@
+# push logs 02:00 every night
+00 02 * * * monitor mon log push
