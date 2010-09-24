@@ -75,7 +75,6 @@ cp %_sourcedir/merlin.logrotate %buildroot%_sysconfdir/logrotate.d/merlin
 cd %_sourcedir/apps
 mkdir -p %buildroot/usr/libexec
 cp -r libexec %buildroot/usr/libexec/%name
-cp ../oconf.py %buildroot/usr/libexec/%name
 mkdir -p %buildroot/usr/bin
 cp mon.py %buildroot/usr/bin/mon
 chmod 755 %buildroot/usr/bin/mon
