@@ -738,6 +738,6 @@ if __name__ == '__main__':
 			param = {'file': 'output/%d' % i, 'hostgroups': p}
 			run_param(param)
 			i += 1
-	elif cmd == 'args':
+	elif cmd == 'split':
 		for param in argparams:
 			run_param(param)
