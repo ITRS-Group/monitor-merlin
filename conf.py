@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os, sys, posix, re, copy, random
-import itertools
+import itertools, hashlib
 
 nagios_cfg = '/opt/monitor/etc/nagios.cfg'
 object_cfg_files = {}
@@ -656,32 +656,54 @@ def usage(msg = False):
 	if msg:
 		print(msg)
 
-	print("usage: %s [options] <outfile:hostgroup1,hostgroup2,hostgroupN...>" % progname)
-#	print("\nWhere [options] is one of the following:")
-#	print("--include-all=<objecttypes>   include all objects of types <objecttypes>")
-#	print("--expand-templates            expand objects with template info")
-#	print("--merge-extinfo[=yes|no]      merge extinfo into master objects")
-#	print("--prefix=<objecttype:prefix>  prefix for objecctype objects")
+	print("usage: %s <command> [options] <outfile:hostgroup1,hostgroup2,hostgroupN...>" % progname)
+	print("\nWhere <command> is one of the following:\n")
+	print("  sha1        print a sha1 hash of the config")
+	print("  split       split the config based on hostgroups")
+	print("  files       print the configuration files in alphabetical order")
+	print("\nAnd [options] depends on the command you choose to run.")
 #	print("                              If objecttype is omitted, this prefix")
 #	print("                              will be used for all object types")
+	print("")
 	sys.exit(1)
+
+def cmd_sha1(obj_files):
+	sob_files = sorted(obj_files)
+	sha1 = hashlib.sha1()
+	for cfile in sob_files:
+		sha1.update(open(cfile).read())
+	dig = sha1.hexdigest()
+	print(dig)
+
+def cmd_files(obj_files):
+	sob_files = sorted(obj_files)
+	for cfile in sob_files:
+		print(cfile)
 
 ncfg_path = '/opt/monitor/etc/nagios.cfg'
 if __name__ == '__main__':
-	what = 'randomize'
 	argparams = []
+	if len(sys.argv) == 1:
+		usage()
+	cmd = False
 	for arg in sys.argv[1:]:
 		if arg.startswith('--nagios-cfg='):
 			ncfg_path = arg.split('=', 1)[1]
 		elif arg.startswith("-P=") or arg.startswith("--PROGNAME="):
 			progname = arg.split('=', 1)[1]
 		elif arg == '-r' or arg == '--randomize':
-			what = 'randomize'
+			cmd = 'randomize'
 		elif arg == '-p' or arg == '--params':
-			what = 'params'
+			cmd = 'params'
 		else:
+			if not cmd:
+				cmd = arg
+				continue
+			if cmd != 'split':
+				usage("Unknown argument to command %s: %s" % (cmd, arg))
+
 			# default case. outfile:hg1,hg2,hgN... argument
-			what = 'args'
+			cmd = 'split'
 			ary = arg.split(':')
 			if len(ary) != 2:
 				usage("Unknown argument: %s" % arg)
@@ -689,15 +711,22 @@ if __name__ == '__main__':
 			argparams.append({'file': ary[0], 'hostgroups': hgs})
 
 	obj_files = grab_object_cfg_files(ncfg_path)
+	if cmd == 'sha1':
+		cmd_sha1(obj_files)
+		sys.exit(0)
+	if cmd == 'files':
+		cmd_files(obj_files)
+		sys.exit(0)
+
 	for f in obj_files:
 		parse_nagios_objects(f)
 
 	post_parse()
 
-	if what == 'params':
+	if cmd == 'params':
 		for param in outparams:
 			run_param(param)
-	elif what == 'randomize':
+	elif cmd == 'randomize':
 		i = 0
 		hostgroup_list = hg_pregen(nagios_objects['hostgroup'].keys())
 		num_hgs = len(hostgroup_list)
@@ -709,6 +738,6 @@ if __name__ == '__main__':
 			param = {'file': 'output/%d' % i, 'hostgroups': p}
 			run_param(param)
 			i += 1
-	elif what == 'args':
+	elif cmd == 'args':
 		for param in argparams:
 			run_param(param)
