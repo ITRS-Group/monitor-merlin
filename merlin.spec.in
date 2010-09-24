@@ -82,7 +82,7 @@ mkdir -p %buildroot/opt
 cp -r plugins %buildroot/opt
 chmod 755 %buildroot/opt/plugins/*
 for path in %buildroot/opt/plugins/*; do
-	full_f=${path##*/}(basename $i)
+	full_f=${path##*/}
 	f=${full_f%.*}
 	ln -s $full_f %buildroot/opt/plugins/$f
 done
