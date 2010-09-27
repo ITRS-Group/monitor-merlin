@@ -132,8 +132,6 @@ void bt_scan(const char *mark, int count) {}
 
 static const char *config_key_expires(const char *var)
 {
-	if (!strcmp(var, "mode"))
-		return "2009-10";
 	if (!strcmp(var, "ipc_debug_write"))
 		return "2011-05";
 	if (!strcmp(var, "ipc_debug_read"))
