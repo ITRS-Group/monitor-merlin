@@ -31,7 +31,6 @@ data into a variety of databases, using libdbi.
 Summary: A Nagios module designed to communicate with the Merlin daemon
 Group: op5/Monitor
 Requires: monitor >= 4.0, merlin = %version-%release
-Obsoletes: monitor-merlin
 
 %description -n monitor-merlin
 monitor-merlin is an event broker module running inside Nagios. Its
