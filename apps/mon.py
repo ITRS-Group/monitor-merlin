@@ -3,7 +3,7 @@
 import os, sys, subprocess, tempfile
 
 merlin_dir = "/opt/monitor/op5/merlin"
-libexec_dir = "/opt/monitor/op5/distributed/libexec"
+libexec_dir = "/usr/libexec/merlin"
 node_conf_dir = "/etc/op5/distributed/nodes"
 pushed_logs = "/opt/monitor/pushed_logs"
 archive_dir = "/opt/monitor/var/archives"
