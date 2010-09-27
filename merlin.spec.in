@@ -27,16 +27,16 @@ link multiple Nagios instances together. It can also inject status
 data into a variety of databases, using libdbi.
 
 
-%package module
-Summary: %name is a Nagios module designed to communicate with Merlin
+%package -n monitor-merlin
+Summary: A Nagios module designed to communicate with the Merlin daemon
 Group: op5/Monitor
 Requires: monitor >= 4.0, merlin = %version-%release
 Obsoletes: monitor-merlin
 
-%description module
-%name is an event broker module running inside Nagios. Its' only
-purpose in life is to send events from the Nagios core to the merlin
-daemon, which then takes appropriate action.
+%description -n monitor-merlin
+monitor-merlin is an event broker module running inside Nagios. Its
+only purpose in life is to send events from the Nagios core to the
+merlin daemon, which then takes appropriate action.
 
 
 %package apps
@@ -99,7 +99,7 @@ mon log import --only-notifications --incremental
 /etc/init.d/merlind restart
 
 
-%pre module
+%pre -n monitor-merlin
 # If we're upgrading the module while Nagios makes a call
 # into it, we'll end up with a core-dump due to some weirdness
 # in dlopen(). If we're installing anew, we need to update the
@@ -108,7 +108,7 @@ mon log import --only-notifications --incremental
 sh /etc/init.d/monitor stop || :
 sh /etc/init.d/monitor slay || :
 
-%preun module
+%preun -n monitor-merlin
 if [ $1 -eq 0 ]; then
 	# removing the merlin module entirely
 	sh /etc/init.d/monitor stop || :
@@ -118,7 +118,7 @@ if [ $1 -eq 0 ]; then
 	sh /etc/init.d/merlind stop || :
 fi
 
-%post module
+%post -n monitor-merlin
 %mod_path/install-merlin.sh --batch --install=config \
 	--nagios-cfg=%nagios_cfg --dest-dir=%mod_path
 sh /etc/init.d/monitor start || :
@@ -137,11 +137,11 @@ sh /etc/init.d/monitor start || :
 %_sysconfdir/logrotate.d/merlin
 /etc/init.d/merlind
 %dir %mod_path/logs
+%mod_path/binlogs
 
-%files module
+%files -n monitor-merlin
 %defattr(-,root,root)
 %mod_path/merlin.so
-%mod_path/binlogs
 
 %files apps
 %defattr(-,root,root)
