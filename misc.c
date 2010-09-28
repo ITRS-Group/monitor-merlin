@@ -186,13 +186,17 @@ static struct file_list *get_cfg_files(char *str, struct file_list *list)
 time_t get_last_cfg_change(void)
 {
 	time_t mt = 0;
-	struct file_list *flist;
+	struct file_list *flist, *base;
 
-	flist = get_cfg_files(config_file, NULL);
+	base = flist = get_cfg_files(config_file, NULL);
 
-	for (; flist; flist = flist->next)
+	for (; flist; flist = flist->next) {
 		if (flist->st.st_mtime > mt)
 			mt = flist->st.st_mtime;
+	}
+
+	if (base)
+		file_list_free(base);
 
 	/* 0 if we for some reason failed */
 	return mt;
