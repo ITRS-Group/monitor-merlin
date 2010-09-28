@@ -3,6 +3,7 @@
 
 #define STATUS_QUERY(type) \
 	"UPDATE " type " SET " \
+	"instance_id = %d, " \
 	"initial_state = %d, flap_detection_enabled = %d, " \
 	"low_flap_threshold = %f, high_flap_threshold = %f, " \
 	"check_freshness = %d, freshness_threshold = %d, " \
@@ -57,17 +58,20 @@
 	safe_str(output), safe_str(long_output), safe_str(perf_data)
 
 
-static int handle_host_status(int cb, const merlin_host_status *p)
+static int handle_host_status(merlin_node *node, int cb, const merlin_host_status *p)
 {
 	char *host_name;
 	char *output, *long_output, *perf_data;
-	int result;
+	int result, node_id;
+
+	node_id = node == &ipc ? 0 : node->id + 1;
 
 	sql_quote(p->name, &host_name);
 	sql_quote(p->state.plugin_output, &output);
 	sql_quote(p->state.long_plugin_output, &long_output);
 	sql_quote(p->state.perf_data, &perf_data);
 	result = sql_query(STATUS_QUERY("host") " WHERE host_name = %s",
+					   node_id,
 					   STATUS_ARGS(output, long_output, perf_data),
 					   host_name);
 
@@ -92,11 +96,13 @@ static int handle_host_status(int cb, const merlin_host_status *p)
 	return result;
 }
 
-static int handle_service_status(int cb, const merlin_service_status *p)
+static int handle_service_status(merlin_node *node, int cb, const merlin_service_status *p)
 {
 	char *host_name, *service_description;
 	char *output, *long_output, *perf_data;
-	int result;
+	int result, node_id;
+
+	node_id = node == &ipc ? 0 : node->id + 1;
 
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->service_description, &service_description);
@@ -105,6 +111,7 @@ static int handle_service_status(int cb, const merlin_service_status *p)
 	sql_quote(p->state.perf_data, &perf_data);
 	result = sql_query(STATUS_QUERY("service")
 					   " WHERE host_name = %s AND service_description = %s",
+					   node_id,
 					   STATUS_ARGS(output, long_output, perf_data),
 					   host_name, service_description);
 	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA &&
@@ -550,11 +557,11 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 		break;
 	case NEBCALLBACK_HOST_CHECK_DATA:
 	case NEBCALLBACK_HOST_STATUS_DATA:
-		errors = handle_host_status(pkt->hdr.type, (void *)pkt->body);
+		errors = handle_host_status(node, pkt->hdr.type, (void *)pkt->body);
 		break;
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
-		errors = handle_service_status(pkt->hdr.type, (void *)pkt->body);
+		errors = handle_service_status(node, pkt->hdr.type, (void *)pkt->body);
 		break;
 
 		/* some callbacks are unhandled by design */
