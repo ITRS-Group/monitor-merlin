@@ -144,10 +144,6 @@ static struct file_list *get_cfg_files(char *str, struct file_list *list)
 	int size, i;
 	struct file_list *base = NULL;
 
-	base = list = malloc(sizeof(struct file_list));
-	if (!base)
-		return NULL;
-
 	p = read_strip_split(str, &size);
 	if (!p || !size)
 		return NULL;
