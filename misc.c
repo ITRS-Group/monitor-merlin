@@ -75,7 +75,6 @@ static struct file_list *recurse_cfg_dir(char *path, struct file_list *list,
 	char *cwd, *wd;				/* current working directory */
 	size_t wdl;					/* length of current working directory */
 	struct stat st;
-	int foo = -1;
 
 	cwd = getcwd(NULL, 0);
 
