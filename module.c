@@ -456,6 +456,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	ipc_init_struct();
 	memset(&self, 0, sizeof(self));
 	gettimeofday(&self.start, NULL);
+	self.last_cfg_change = get_last_cfg_change();
 
 	/* if we're linked with mtest we needn't parse the configuration */
 	if (flags != -1 && arg != NULL)
