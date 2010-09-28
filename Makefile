@@ -41,7 +41,7 @@ check:
 check_latency: check_latency.o cfgfile.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS)
 
-mtest: mtest.o $(TEST_OBJS) $(TEST_DEPS) slist.o sql.o hooks.o hash.o module.o control.o version.o logging.o
+mtest: mtest.o sql.o $(TEST_OBJS) $(TEST_DEPS) $(MODULE_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(MTEST_LDFLAGS)
 
 test-lparse: test-lparse.o lparse.o logutils.o hash.o test_utils.o
