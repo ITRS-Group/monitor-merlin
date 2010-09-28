@@ -462,13 +462,15 @@ if os.access(libexec_dir, os.X_OK):
 # we break things down to categories and subcommands
 for raw_cmd in commands:
 	if not '.' in raw_cmd:
-		help_helpers.append(raw_cmd)
+		if not raw_cmd in help_helpers:
+			help_helpers.append(raw_cmd)
 		continue
 
 	(cat, cmd) = raw_cmd.split('.')
 	if not cat in categories:
 		categories[cat] = []
-	categories[cat].append(cmd)
+	if not cmd in categories[cat]:
+		categories[cat].append(cmd)
 
 def show_usage():
 	print('''usage: mon [category] <command> [options]
