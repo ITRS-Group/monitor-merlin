@@ -428,7 +428,9 @@ if os.access(libexec_dir, os.X_OK):
 
 		# remove script suffixes
 		ary = rh.split('.')
-		if len(ary) > 1 and ary[len(ary) - 1] in ['sh', 'php', 'pl', 'py']:
+		if len(ary) > 1 and ary[-1] in ['sh', 'php', 'pl', 'py', 'pyc']:
+			if ary[-1] == 'pyc':
+				continue
 			if len(ary) == 2 and ary[-1] == 'py':
 				if load_command_module(libexec_dir + '/' + rh):
 					continue
