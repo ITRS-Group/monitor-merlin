@@ -88,7 +88,6 @@ static struct file_list *recurse_cfg_dir(char *path, struct file_list *list,
 
 	wd = getcwd(NULL, 0);
 	wdl = strlen(wd);
-	printf("Entering %s. %u levels deep now\n", wd, depth);
 
 	while ((df = readdir(dp))) {
 		unsigned len;
