@@ -1,4 +1,6 @@
 #include "module.h"
+#include "sha1.h"
+#include <sys/mman.h>
 
 /* does a deep free of a file_list struct */
 void file_list_free(struct file_list *list)
@@ -194,4 +196,71 @@ time_t get_last_cfg_change(void)
 
 	/* 0 if we for some reason failed */
 	return mt;
+}
+
+static int flist_cmp(const void *a_, const void *b_)
+{
+	const file_list *a = *(const file_list **)a_;
+	const file_list *b = *(const file_list **)b_;
+
+	return strcmp(a->name, b->name);
+}
+
+/* mmap() the file and hash its contents, adding it to ctx */
+static int flist_hash_add(struct file_list *fl, blk_SHA_CTX *ctx)
+{
+	void *map;
+	int fd;
+
+	fd = open(fl->name, O_RDONLY);
+	if (fd < 0)
+		return -1;
+	map = mmap(NULL, fl->st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (!map)
+		return -1;
+	blk_SHA1_Update(ctx, map, fl->st.st_size);
+	munmap(map, fl->st.st_size);
+	return 0;
+}
+
+/*
+ * calculate a sha1 hash of the contents of all config files
+ * sorted by their full path.
+ * *hash must hold at least 20 bytes
+ */
+int get_config_hash(unsigned char *hash)
+{
+	struct file_list *flist, *base;
+	struct file_list **sorted_flist;
+	int num_files = 0, i = 0;
+	blk_SHA_CTX ctx;
+
+	blk_SHA1_Init(&ctx);
+
+	base = flist = get_cfg_files(config_file, NULL);
+
+	/*
+	 * this is horribly inefficient, but I don't really care.
+	 * it works, and it was quick to write up. I'll improve on
+	 * it later.
+	 */
+	for (flist = base; flist; flist = flist->next) {
+		num_files++;
+	}
+
+	sorted_flist = calloc(num_files, sizeof(file_list *));
+	for (flist = base; flist; flist = flist->next) {
+		sorted_flist[i++] = flist;
+	}
+	qsort(sorted_flist, num_files, sizeof(file_list *), flist_cmp);
+	for (i = 0; i < num_files; i++) {
+		flist_hash_add(sorted_flist[i], &ctx);
+	}
+	blk_SHA1_Final(hash, &ctx);
+	free(sorted_flist);
+
+	if (base)
+		file_list_free(base);
+
+	return 0;
 }
