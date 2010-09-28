@@ -404,6 +404,10 @@ def load_command_module(path):
 
 	if getattr(module, "pure_script", False):
 		return False
+	init_func = getattr(module, "module_init", False)
+	if init_func != False:
+		if init_func() == False:
+			return False
 
 	for f in dir(module):
 		if not f.startswith('cmd_'):
