@@ -92,8 +92,7 @@ def write_conf(opt, nesting = 0):
 		print((' ' * (nesting - 4)) + "}")
 
 
-# what's up with the lack of macros and functions to test if something's
-# a file or a directory??
+# grab object configuration files from a cfg_dir directive
 def recurse_grab_object_cfg_files(v):
 	obj_files = []
 	f_ary = os.listdir(v)
