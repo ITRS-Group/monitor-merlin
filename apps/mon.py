@@ -388,20 +388,32 @@ commands = { 'node.remove': cmd_node_remove, 'node.add': cmd_node_add,
 	'node.edit': cmd_node_edit, 'node.rename': cmd_node_rename,
 	'log.fetch': cmd_log_fetch, 'log.sortmerge': cmd_log_sortmerge,
 	'log.import': cmd_log_import, 'log.show': cmd_log_show}
-
-# we break things down to categories and subcommands
 categories = {}
 help_helpers = []
 helpers = {}
-for raw_cmd in commands:
-	if not '.' in raw_cmd:
-		help_helpers.append(raw_cmd)
-		continue
 
-	(cat, cmd) = raw_cmd.split('.')
-	if not cat in categories:
-		categories[cat] = []
-	categories[cat].append(cmd)
+def load_command_module(path):
+	global commands
+	ret = False
+
+	if not libexec_dir in sys.path:
+		sys.path.append(libexec_dir)
+
+	modname = os.path.basename(path)[:-3]
+	module = __import__(os.path.basename(path)[:-3])
+
+	if getattr(module, "pure_script", False):
+		return False
+
+	for f in dir(module):
+		if not f.startswith('cmd_'):
+			continue
+		ret = True
+		func = getattr(module, f)
+		callname = modname + '.' + func.__name__[4:]
+		commands[callname] = func
+
+	return ret
 
 if os.access(libexec_dir, os.X_OK):
 	raw_helpers = os.listdir(libexec_dir)
@@ -413,6 +425,10 @@ if os.access(libexec_dir, os.X_OK):
 		# remove script suffixes
 		ary = rh.split('.')
 		if len(ary) > 1 and ary[len(ary) - 1] in ['sh', 'php', 'pl', 'py']:
+			if len(ary) == 2 and ary[-1] == 'py':
+				if load_command_module(libexec_dir + '/' + rh):
+					continue
+
 			helper = '.'.join(ary[:-1])
 		else:
 			helper = '.'.join(ary)
@@ -436,6 +452,17 @@ if os.access(libexec_dir, os.X_OK):
 
 		commands[helper] = run_helper
 		helpers[helper] = rh
+
+# we break things down to categories and subcommands
+for raw_cmd in commands:
+	if not '.' in raw_cmd:
+		help_helpers.append(raw_cmd)
+		continue
+
+	(cat, cmd) = raw_cmd.split('.')
+	if not cat in categories:
+		categories[cat] = []
+	categories[cat].append(cmd)
 
 def show_usage():
 	print('''usage: mon [category] <command> [options]
