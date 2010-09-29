@@ -17,7 +17,7 @@ DEPS = Makefile cfgfile.h ipc.h logging.h shared.h
 DSO = merlin
 PROG = $(DSO)d
 NEB = $(DSO).so
-APPS = showlog import
+APPS = showlog import oconf
 MOD_LDFLAGS = -shared -ggdb3 -fPIC
 DAEMON_LDFLAGS = -ldbi -ggdb3 -rdynamic -Wl,-export-dynamic
 MTEST_LDFLAGS = -ldbi -ggdb3 -ldl -rdynamic -Wl,-export-dynamic
@@ -61,6 +61,9 @@ $(PROG): $(DAEMON_OBJS)
 
 $(NEB): $(MODULE_OBJS)
 	$(QUIET_LINK)$(CC) $(MOD_LDFLAGS) $(LDFLAGS) $^ -o $@
+
+oconf: oconf.o sha1.o misc.o
+	$(QUIET_LINK)$(CC) $(LDFLAGS) $^ -o $@
 
 %.o: %.c
 	$(QUIET_CC)$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
