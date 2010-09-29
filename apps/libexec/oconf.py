@@ -634,6 +634,8 @@ def hg_pregen(li):
 
 interesting = {}
 def run_param(param):
+	global nagios_objects, interesting
+	parse_object_config()
 	interesting['hostgroup'] = set(param['hostgroups'])
 	interesting['host'] = set()
 	for shg in interesting['hostgroup']:
@@ -707,6 +709,8 @@ def cmd_t_params(args):
 	map(run_param, outparams)
 
 def cmd_t_randomize(args):
+	global nagios_objects, interesting
+	parse_object_config()
 	i = 0
 	hostgroup_list = hg_pregen(nagios_objects['hostgroup'].keys())
 	num_hgs = len(hostgroup_list)
