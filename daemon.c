@@ -10,6 +10,7 @@ static const char *pidfile, *merlin_user;
 static char *import_program;
 unsigned short default_port = 15551;
 static int importer_pid;
+static char *merlin_conf;
 
 static void usage(char *fmt, ...)
 	__attribute__((format(printf,1,2)));
@@ -550,7 +551,6 @@ static void clean_exit(int sig)
 int main(int argc, char **argv)
 {
 	int i, result, stop = 0;
-	char *config_file = NULL;
 
 	is_module = 0;
 	ipc_init_struct();
@@ -560,8 +560,8 @@ int main(int argc, char **argv)
 		char *opt, *arg = argv[i];
 
 		if (*arg != '-') {
-			if (!config_file) {
-				config_file = arg;
+			if (!merlin_conf) {
+				merlin_conf = arg;
 				continue;
 			}
 			goto unknown_argument;
@@ -587,18 +587,18 @@ int main(int argc, char **argv)
 
 		i++;
 		if (!strcmp(arg, "--config") || !strcmp(arg, "-c")) {
-			config_file = opt;
+			merlin_conf = opt;
 			continue;
 		}
 		unknown_argument:
 		usage("Unknown argument: %s", arg);
 	}
 
-	if (!config_file)
+	if (!merlin_conf)
 		usage("No config-file specified\n");
 
-	if (!grok_config(config_file)) {
-		fprintf(stderr, "%s contains errors. Bailing out\n", config_file);
+	if (!grok_config(merlin_conf)) {
+		fprintf(stderr, "%s contains errors. Bailing out\n", merlin_conf);
 		return 1;
 	}
 
