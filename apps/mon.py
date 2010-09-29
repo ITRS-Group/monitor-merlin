@@ -169,8 +169,14 @@ def load_command_module(path):
 if os.access(libexec_dir, os.X_OK):
 	raw_helpers = os.listdir(libexec_dir)
 	for rh in raw_helpers:
-		# ignore non-executables
-		if not os.access(libexec_dir + "/" + rh, os.X_OK):
+		path = libexec_dir + '/' + rh
+
+		# ignore entries starting with dot or dash
+		if rh[0] == '.' or rh[0] == '-':
+			continue
+
+		# also ignore non-executables and directories
+		if os.path.isdir(path) or not os.access(path, os.X_OK):
 			continue
 
 		# remove script suffixes
@@ -258,6 +264,7 @@ if cat in commands:
 elif len(sys.argv) > 2:
 	cmd = cat + '.' + sys.argv[2]
 	args = sys.argv[3:]
+
 if not cmd in commands:
 	print("Bad category/command: %s" % cmd.replace('.', ' '))
 	sys.exit(1)
