@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os, sys, posix, re, copy, random
-import itertools, hashlib
+import itertools
 
 nagios_cfg = '/opt/monitor/etc/nagios.cfg'
 object_cfg_files = {}
@@ -653,7 +653,6 @@ def usage(msg = False):
 
 	print("usage: %s <command> [options] <outfile:hostgroup1,hostgroup2,hostgroupN...>" % progname)
 	print("\nWhere <command> is one of the following:\n")
-	print("  sha1        print a sha1 hash of the config")
 	print("  split       split the config based on hostgroups")
 	print("  files       print the configuration files in alphabetical order")
 	print("\nAnd [options] depends on the command you choose to run.")
@@ -662,13 +661,6 @@ def usage(msg = False):
 	print("")
 	sys.exit(1)
 
-def cmd_sha1(obj_files):
-	sob_files = sorted(obj_files)
-	sha1 = hashlib.sha1()
-	for cfile in sob_files:
-		sha1.update(open(cfile).read())
-	dig = sha1.hexdigest()
-	print(dig)
 
 def cmd_files(args):
 	global ncfg_path
