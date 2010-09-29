@@ -12,7 +12,7 @@ def run_helper(helper, args):
 	app = libexec_dir + "/" + helpers[helper]
 	ret = os.spawnv(os.P_WAIT, app, [app] + args)
 	if ret < 0:
-		print("Helper %s was killed by signal %d" % helper % ret)
+		print("Helper %s was killed by signal %d" % (app, ret))
 
 ## log commands ##
 # force running push_logs on poller and peer systems
