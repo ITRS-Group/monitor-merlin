@@ -654,13 +654,26 @@ def usage(msg = False):
 	print("usage: %s <command> [options] <outfile:hostgroup1,hostgroup2,hostgroupN...>" % progname)
 	print("\nWhere <command> is one of the following:\n")
 	print("  split       split the config based on hostgroups")
+	print("  hash        print sha1 hash of running configuration")
+	print("  changed     print last modification time of all files")
 	print("  files       print the configuration files in alphabetical order")
 	print("\nAnd [options] depends on the command you choose to run.")
-#	print("                              If objecttype is omitted, this prefix")
-#	print("                              will be used for all object types")
 	print("")
 	sys.exit(1)
 
+
+def oconf_helper(args):
+	app = os.path.dirname(__file__) + '/-oconf'
+	ret = os.spawnv(os.P_WAIT, app, [app] + args)
+	if ret < 0:
+		print("Helper %s was killed by signal %d" (app, ret))
+
+def cmd_hash(args):
+	print(args)
+	oconf_helper(['hash'] + args)
+
+def cmd_changed(args):
+	oconf_helper(['last-changed'] + args)
 
 def cmd_files(args):
 	global ncfg_path
