@@ -10,6 +10,7 @@ hostgroups = []
 hosts = []
 nagios_objects = {}
 obj_files = []
+ncfg_path = '/opt/monitor/etc/nagios.cfg'
 
 # These keeps track of which and how many objects we've
 # written and must be wiped between each file we create
@@ -679,7 +680,6 @@ def cmd_files(obj_files):
 	for cfile in sob_files:
 		print(cfile)
 
-ncfg_path = '/opt/monitor/etc/nagios.cfg'
 if __name__ == '__main__':
 	argparams = []
 	if len(sys.argv) == 1:
