@@ -633,11 +633,6 @@ def hg_pregen(li):
 	return psel.keys()
 
 interesting = {}
-outparams = [
-	{'file': 'p1', 'hostgroups': ['p1_hosts']},
-	{'file': 'p2', 'hostgroups': ['p2_hosts']},
-	{'file': 'p3', 'hostgroups': ['p3_hosts', 'p2_hosts']},
-	]
 def run_param(param):
 	interesting['hostgroup'] = set(param['hostgroups'])
 	interesting['host'] = set()
@@ -675,68 +670,71 @@ def cmd_sha1(obj_files):
 	dig = sha1.hexdigest()
 	print(dig)
 
-def cmd_files(obj_files):
-	sob_files = sorted(obj_files)
+def cmd_files(args):
+	global ncfg_path
+	sob_files = sorted(grab_object_cfg_files(ncfg_path))
 	for cfile in sob_files:
 		print(cfile)
 
-if __name__ == '__main__':
-	argparams = []
-	if len(sys.argv) == 1:
-		usage()
-	cmd = False
-	for arg in sys.argv[1:]:
-		if arg.startswith('--nagios-cfg='):
-			ncfg_path = arg.split('=', 1)[1]
-		elif arg.startswith("-P=") or arg.startswith("--PROGNAME="):
-			progname = arg.split('=', 1)[1]
-		elif arg == '-r' or arg == '--randomize':
-			cmd = 'randomize'
-		elif arg == '-p' or arg == '--params':
-			cmd = 'params'
-		else:
-			if not cmd:
-				cmd = arg
-				continue
-			if cmd != 'split':
-				usage("Unknown argument to command %s: %s" % (cmd, arg))
+def cmd_split(args):
+	parse_object_config()
+	arg_params = []
+	if len(args) == 0:
+		usage("'split' requires arguments")
 
-			# default case. outfile:hg1,hg2,hgN... argument
-			cmd = 'split'
-			ary = arg.split(':')
-			if len(ary) != 2:
-				usage("Unknown argument: %s" % arg)
-			hgs = re.split('[\t ]*,[\t ]*', ary[1])
-			argparams.append({'file': ary[0], 'hostgroups': hgs})
+	# default case. outfile:hg1,hg2,hgN... argument
+	cmd = 'split'
+	ary = arg.split(':')
+	if len(ary) != 2:
+		usage("Unknown argument: %s" % arg)
+		hgs = re.split('[\t ]*,[\t ]*', ary[1])
+		argparams.append({'file': ary[0], 'hostgroups': hgs})
 
+	for param in argparams:
+		run_param(param)
+
+def cmd_t_params(args):
+	outparams = [
+		{'file': 'p1', 'hostgroups': ['p1_hosts']},
+		{'file': 'p2', 'hostgroups': ['p2_hosts']},
+		{'file': 'p3', 'hostgroups': ['p3_hosts', 'p2_hosts']},
+	]
+	map(run_param, outparams)
+
+def cmd_t_randomize(args):
+	i = 0
+	hostgroup_list = hg_pregen(nagios_objects['hostgroup'].keys())
+	num_hgs = len(hostgroup_list)
+	gen_confs = (2 ** num_hgs - 1)
+	print("Generating %d configurations" % gen_confs)
+	if gen_confs > 100:
+		print("This will take a while")
+	for p in hg_permute(hostgroup_list):
+		param = {'file': 'output/%d' % i, 'hostgroups': p}
+		run_param(param)
+		i += 1
+
+def parse_object_config():
+	global ncfg_path
 	obj_files = grab_object_cfg_files(ncfg_path)
-	if cmd == 'sha1':
-		cmd_sha1(obj_files)
-		sys.exit(0)
-	if cmd == 'files':
-		cmd_files(obj_files)
-		sys.exit(0)
 
 	for f in obj_files:
 		parse_nagios_objects(f)
 
 	post_parse()
 
-	if cmd == 'params':
-		for param in outparams:
-			run_param(param)
-	elif cmd == 'randomize':
-		i = 0
-		hostgroup_list = hg_pregen(nagios_objects['hostgroup'].keys())
-		num_hgs = len(hostgroup_list)
-		gen_confs = (2 ** num_hgs - 1)
-		print("Generating %d configurations" % gen_confs)
-		if gen_confs > 100:
-			print("This will take a while")
-		for p in hg_permute(hostgroup_list):
-			param = {'file': 'output/%d' % i, 'hostgroups': p}
-			run_param(param)
-			i += 1
-	elif cmd == 'split':
-		for param in argparams:
-			run_param(param)
+def module_init():
+	global ncfg_path, progname
+	if os.path.basename(sys.argv[0]).startswith('mon'):
+		progname = "mon oconf"
+		i = 2
+		if len(sys.argv) == 2:
+			usage()
+	else:
+		progname = os.path.basename(sys.argv[0])
+		i = 1
+
+	# arguments viable for all our commands are parsed here
+	for arg in sys.argv[i:]:
+		if arg.startswith('--nagios-cfg='):
+			ncfg_path = arg.split('=', 1)[1]
