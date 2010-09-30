@@ -371,6 +371,15 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	nebstruct_external_command_data *ds = (nebstruct_external_command_data *)data;
 	char *semi_colon;
 
+	/*
+	 * all comments generate two events, but we only want to
+	 * send one of them, so focus on NEBTYPE_EXTERNALCOMMAND_END,
+	 * since that one's only generated if the command is valid in
+	 * the Nagios instance that generates it.
+	 */
+	if (ds->type != NEBTYPE_EXTERNALCOMMAND_END)
+		return 0;
+
 	switch (ds->command_type) {
 	case CMD_ACKNOWLEDGE_HOST_PROBLEM:
 	case CMD_ACKNOWLEDGE_SVC_PROBLEM:
