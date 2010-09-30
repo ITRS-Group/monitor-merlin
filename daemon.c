@@ -296,7 +296,7 @@ static void reap_child_process(void)
 				lwarn("import program exited with return code %d", WEXITSTATUS(status));
 			}
 		} else {
-			lerr("import program stopped or killed");
+			lerr("import program stopped or killed. That's a Bad Thing(tm)");
 		}
 		/* successfully reaped, so reset and resume */
 		importer_pid = 0;
