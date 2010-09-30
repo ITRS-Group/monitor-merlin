@@ -12,6 +12,7 @@ unsigned short default_port = 15551;
 static int importer_pid;
 static char *merlin_conf;
 merlin_confsync csync = { NULL, NULL };
+static int num_children;
 
 static void usage(char *fmt, ...)
 	__attribute__((format(printf,1,2)));
@@ -268,10 +269,25 @@ static void reap_child_process(void)
 {
 	int status, pid;
 
-	if (!importer_pid)
+	if (!num_children)
 		return;
 
 	pid = waitpid(-1, &status, WNOHANG);
+	if (pid < 0) {
+		if (errno == ECHILD) {
+			/* no child running. Just reset */
+			num_children = importer_pid = 0;
+		} else {
+			/* some random error. log it */
+			lerr("waitpid(-1...) failed: %s", strerror(errno));
+		}
+
+		return;
+	}
+
+	/* we reaped an actual child, so decrement the counter */
+	num_children--;
+
 	if (pid == importer_pid) {
 		if (WIFEXITED(status)) {
 			if (!WEXITSTATUS(status)) {
@@ -285,25 +301,45 @@ static void reap_child_process(void)
 		/* successfully reaped, so reset and resume */
 		importer_pid = 0;
 		ipc_send_ctrl(CTRL_RESUME, CTRL_GENERIC);
-	} else if (pid < 0 && errno == ECHILD) {
-		/* no child running. Just reset */
-		importer_pid = 0;
-	} else if (pid < 0) {
-		/* some random error. log it */
-		lerr("waitpid(-1...) failed: %s", strerror(errno));
+	} else {
+		/* looks like we reaped some other helper we spawned */
+		linfo("Child with pid %d successfully reaped", pid);
 	}
 }
 
 /*
- * this should only be executed by the child process
- * created in import_objects_and_status()
+ * Run a program, stashing the child pid in *pid.
+ * Since it's not supposed to run all that often, we don't care a
+ * whole lot about performance and lazily run all commands through
+ * /bin/sh for argument handling
  */
-static void run_import_program(char *cmd)
+static void run_program(char *what, char *cmd, int *prog_id)
 {
 	char *args[4] = { "sh", "-c", cmd, NULL };
+	int pid;
 
-	execvp("/bin/sh", args);
-	lerr("execvp failed: %s", strerror(errno));
+	linfo("Executing %s command '%s'", what, cmd);
+	pid = fork();
+	if (!pid) {
+		/*
+		 * child runs the command. if execvp() returns, that means it
+		 * failed horribly and that we're basically screwed
+		 */
+		execv("/bin/sh", args);
+		lerr("execv() failed: %s", strerror(errno));
+		exit(1);
+	}
+	if (pid < 0) {
+		lerr("Skipping %s due to failed fork(): %s", what, strerror(errno));
+		return;
+	}
+	/*
+	 * everything went ok, so update prog_id if passed
+	 * and increment num_children
+	 */
+	if (prog_id)
+		*prog_id = pid;
+	num_children++;
 }
 
 /*
@@ -313,7 +349,7 @@ static void run_import_program(char *cmd)
 static int import_objects_and_status(char *cfg, char *cache, char *status)
 {
 	char *cmd;
-	int result = 0, pid;
+	int result = 0;
 
 	/* don't bother if we're not using a datbase */
 	if (!use_database)
@@ -340,25 +376,16 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 		free(cmd2);
 	}
 
-	linfo("Executing import command '%s'", cmd);
-	pid = fork();
-	if (pid < 0) {
-		lerr("Skipping import due to failed fork(): %s", strerror(errno));
-	} else if (!pid) {
-		/*
-		 * child runs the actual import. if run_import_program()
-		 * returns, execvp() failed and we're basically screwed.
-		 */
-		run_import_program(cmd);
-		exit(1);
-	}
-
-	/* mark import as running in parent */
-	importer_pid = pid;
+	run_program("import", cmd, &importer_pid);
 	free(cmd);
 
-	/* ask the module to stall events for us until we're done */
-	ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
+	/*
+	 * If the import program started successfully, we
+	 * ask the module to stall events until it's done
+	 */
+	if (importer_pid > 0) {
+		ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
+	}
 
 	return result;
 }
@@ -514,19 +541,17 @@ static void polling_loop(void)
 		 */
 		ipc_log_event_count();
 
-		/* check if an import in progress is done yet */
-		if (importer_pid) {
-			reap_child_process();
+		/* reap any children that might have finished */
+		reap_child_process();
 
-			/*
-			 * reap_child_process() resets importer_pid if
-			 * the import is completed.
-			 * if it's not and at tops 15 seconds have passed,
-			 * ask for some more time.
-			 */
-			if (importer_pid && !(now % 15)) {
-				ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
-			}
+		/*
+		 * reap_child_process() resets importer_pid if
+		 * the import is completed.
+		 * if it's not and at tops 15 seconds have passed,
+		 * ask for some more time.
+		 */
+		if (importer_pid && !(now % 15)) {
+			ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
 		}
 
 		while (net_accept_one() >= 0)
