@@ -11,6 +11,7 @@ static char *import_program;
 unsigned short default_port = 15551;
 static int importer_pid;
 static char *merlin_conf;
+merlin_confsync csync = { NULL, NULL };
 
 static void usage(char *fmt, ...)
 	__attribute__((format(printf,1,2)));
@@ -182,6 +183,11 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 				struct cfg_var *v = c->vlist[vi];
 				sql_config(v->key, v->value);
 			}
+			continue;
+		}
+		if (!strcmp(c->name, "object_config")) {
+			grok_confsync_compound(c, &csync);
+			continue;
 		}
 	}
 }
