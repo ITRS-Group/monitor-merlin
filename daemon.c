@@ -654,9 +654,24 @@ static void polling_loop(void)
 			ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
 		}
 
+		/*
+		 * We try accepting inbound connections first. This is kinda
+		 * useful since we open the listening network socket before
+		 * we launch into the ipc socket code. It's not rare for other
+		 * nodes to have initiated connection attempts in that short
+		 * time. if they have and are currently waiting for us to just
+		 * accept that connection, we can humor them and avoid the
+		 * whole socket negotiation thing.
+		 */
 		while (net_accept_one() >= 0)
 			; /* nothing */
 
+		/*
+		 * Next we try to connect to all nodes that aren't yet
+		 * connected. Quite often we'll run into firewall rules that
+		 * say one network can't connect to the other, but not the
+		 * other way around, so it's useful to try from both sides
+		 */
 		for (i = 0; i < num_nodes; i++) {
 			merlin_node *node = node_table[i];
 			if (node->state == STATE_NONE) {
@@ -664,6 +679,10 @@ static void polling_loop(void)
 			}
 		}
 
+		/*
+		 * io_poll_sockets() is the real worker. It handles network
+		 * and ipc based IO and ships inbound events off to their
+		 * right destination.
 		io_poll_sockets();
 	}
 }
