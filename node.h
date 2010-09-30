@@ -88,6 +88,7 @@ typedef struct node_selection node_selection;
 /* for node->type */
 #define MODE_LOCAL     0
 #define MODE_NOC       1
+#define MODE_MASTER    MODE_NOC /* alias for MODE_NOC */
 #define MODE_PEER      (1 << 1)
 #define MODE_POLLER    (1 << 2)
 
