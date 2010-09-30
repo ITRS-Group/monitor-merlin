@@ -683,6 +683,7 @@ static void polling_loop(void)
 		 * io_poll_sockets() is the real worker. It handles network
 		 * and ipc based IO and ships inbound events off to their
 		 * right destination.
+		 */
 		io_poll_sockets();
 	}
 }
