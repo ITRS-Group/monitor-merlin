@@ -112,7 +112,7 @@ struct merlin_node {
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
 	binlog *binlog;         /* binary backlog for this node */
 	merlin_node_stats stats; /* event/data statistics */
-	merlin_confsync csync;  /* config synchronization configuration */
+	merlin_confsync *csync; /* config synchronization configuration */
 	int (*action)(struct merlin_node *, int); /* (daemon) action handler */
 };
 typedef struct merlin_node merlin_node;
