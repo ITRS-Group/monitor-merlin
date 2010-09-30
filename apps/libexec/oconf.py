@@ -671,7 +671,6 @@ def oconf_helper(args):
 		print("Helper %s was killed by signal %d" (app, ret))
 
 def cmd_hash(args):
-	print(args)
 	oconf_helper(['hash'] + args)
 
 def cmd_changed(args):
