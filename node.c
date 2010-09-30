@@ -497,8 +497,9 @@ int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
 	if (pkt->hdr.type == CTRL_PACKET && pkt->hdr.code == CTRL_ACTIVE) {
 		merlin_nodeinfo *info = (merlin_nodeinfo *)&pkt->body;
 		ldebug("Received CTRL_ACTIVE from %s", node->name);
-		ldebug("   start time: %lu.%lu", tv->tv_sec, tv->tv_usec);
-		ldebug("  config hash: %s", tohex(info->config_hash));
+		ldebug("   start time: %lu.%lu",
+		       node->info.start.tv_sec, node->info.start.tv_usec);
+		ldebug("  config hash: %s", tohex(info->config_hash, 20));
 		ldebug(" config mtime: %lu", info->last_cfg_change);
 	}
 
