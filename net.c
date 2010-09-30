@@ -414,6 +414,7 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		if (pkt->hdr.code == CTRL_ACTIVE) {
 			memcpy(&node->info, pkt->body, sizeof(node->info));
 			ldebug("Module @ %s is ACTIVE", node->name);
+			csync_node_active(node);
 		}
 		if (pkt->hdr.code == CTRL_INACTIVE) {
 			memset(&node->info, 0, sizeof(node->info));

@@ -431,6 +431,106 @@ static int read_nagios_paths(merlin_event *pkt)
 	return 0;
 }
 
+/*
+ * Compares *node's info struct and returns:
+ * 0 if node's config is same as ours (we should do nothing)
+ * > 0 if node's config is newer than ours (we should fetch)
+ * < 0 if node's config is older than ours (we should push)
+ *
+ * If hashes don't match but config is exactly the same
+ * age, we instead return:
+ * > 0 if node started after us (we should fetch)
+ * < 0 if node started before us (we should push)
+ *
+ * If all of the above are identical, we return the hash delta.
+ * This should only happen rarely, but it will ensure that not
+ * both sides try to fetch or push at the same time.
+ */
+static int csync_config_cmp(merlin_node *node)
+{
+	int mtime_delta, sec_delta, usec_delta, hash_delta;
+
+	hash_delta = memcmp(node->info.config_hash, ipc.info.config_hash, 20);
+	if (!hash_delta)
+		return 0;
+
+	mtime_delta = node->info.last_cfg_change - ipc.info.last_cfg_change;
+	if (mtime_delta)
+		return mtime_delta;
+
+	sec_delta = node->info.start.tv_sec - ipc.info.start.tv_sec;
+	if (sec_delta)
+		return sec_delta;
+
+	usec_delta = node->info.start.tv_usec - ipc.info.start.tv_usec;
+	if (usec_delta)
+		return usec_delta;
+
+	return hash_delta;
+}
+
+/*
+ * executed when a node comes online and reports itself as
+ * being active. This is where we run the configuration sync
+ * if any is configured
+ *
+ * Note that the 'push' and 'fetch' options in the configuration
+ * are simply guidance names. One could configure them in reverse
+ * if one wanted, or make them boil noodles for the IT staff or
+ * paint a skateboard blue for all Merlin cares. It will just
+ * assume that things work out just fine so long as the config
+ * is (somewhat) in sync.
+ */
+void csync_node_active(merlin_node *node)
+{
+	int val = 0, pid = 0;
+	merlin_confsync *cs = NULL;
+	char *cmd = NULL;
+
+	/* bail early if we have no push/fetch configuration */
+	cs = node->csync ? node->csync : &csync;
+	if (!cs->push && !cs->fetch)
+		return;
+
+	switch (node->type) {
+	case MODE_PEER:
+		/*
+		 * peers are synced to each other based on who's
+		 * got the latest configuration, unless both already
+		 * have the same.
+		 * Since loadbalancing is based on alphabetically sorted
+		 * lists between peers, it's important that they share
+		 * configuration as quickly as possible.
+		 */
+		val = csync_config_cmp(node);
+		break;
+
+	case MODE_MASTER:
+		/* we always fetch from masters */
+		val = 1;
+		break;
+
+	case MODE_POLLER:
+		/* we always push to pollers */
+		val = -1;
+		break;
+	}
+
+	if (val < 0) {
+		cmd = cs->push;
+	} else if (val > 0) {
+		cmd = cs->fetch;
+	}
+
+	if (cmd) {
+		ldebug("node %s; val: %d; sync-command: [%s]", node->name, val, cmd);
+		run_program("csync", cmd, &pid);
+		if (pid > 0)
+			ldebug("command has pid %d", pid);
+	}
+}
+
+
 static int handle_ipc_event(merlin_event *pkt)
 {
 	int result = 0;
