@@ -88,7 +88,7 @@ done
 find %buildroot -type f -name README -delete
 mkdir -p %buildroot%_sysconfdir/cron.d
 cp reportdata-import.cron %buildroot%_sysconfdir/cron.d/reportdata-import
-cp ../oconf %buildroot/usr/libexec/merlin/-oconf
+cp %_sourcedir/oconf %buildroot/usr/libexec/merlin/-oconf
 
 
 %post
