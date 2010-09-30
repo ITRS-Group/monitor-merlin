@@ -241,6 +241,20 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 		else
 			cfg_error(c, v, "Unknown variable\n");
 	}
+
+	for (i = 0; i < c->nested; i++) {
+		struct cfg_comp *comp = c->nest[i];
+		if (!strcmp(comp->name, "object_config")) {
+			node->csync = calloc(1, sizeof(*node->csync));
+			if (!node->csync)
+				cfg_error(comp, NULL, "Failed to allocate memory for confsync struct");
+			grok_confsync_compound(comp, node->csync);
+			continue;
+		}
+
+		cfg_error(comp, NULL, "Unknown compound statement in node object");
+	}
+
 	node->last_action = -1;
 	if (node->type == MODE_POLLER && sel_id == -1) {
 		cfg_error(c, NULL, "Missing 'hostgroup' variable in poller definition\n");
