@@ -31,6 +31,15 @@ endif
 
 all: $(NEB) $(PROG) mtest $(APPS)
 
+thanks:
+	@echo "The following people have contributed to Merlin with patches,"
+	@echo "bugreports, testing or ideas in one way or another."
+	@echo "Our sincerest thanks to all of you."
+	@echo
+	@git log | sed -n 's/.*-.*:[\t ]\(.*\)[\t ]\+<.*@.*>.*/  \1/p' | sort -u
+	@echo
+	@echo "To view authors sorted by contributions, use 'git shortlog -ns'"
+
 install: all
 	@echo "Installing to $(DESTDIR)"
 	sh install-merlin.sh --dest-dir="$(DESTDIR)"
