@@ -1,16 +1,27 @@
 import os, sys
 
+modpath = os.path.dirname(__file__) + '/modules'
+if not modpath in sys.path:
+	sys.path.append(modpath)
+from compound_config import *
+
 node_conf_dir = "/etc/op5/distributed/nodes"
 num_nodes = {'poller': 0, 'peer': 0, 'master': 0}
 configured_nodes = {}
+merlin_conf = '/opt/monitor/op5/merlin/merlin.conf'
 
 def module_init():
+	global merlin_conf
 	# load the configured_nodes we'll be using
 	if os.access(node_conf_dir, os.X_OK):
 		for f in os.listdir(node_conf_dir):
 			node = merlin_node(f)
 			num_nodes[node.ntype] += 1
 			configured_nodes[node.name] = node
+
+	for arg in sys.argv:
+		if arg.startswith('--merlin-cfg=') or arg.startswith('--config='):
+			merlin_conf = arg.split('=', 1)[1]
 
 class merlin_node:
 	valid_types = ['poller', 'master', 'peer']
