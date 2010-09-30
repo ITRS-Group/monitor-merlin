@@ -160,6 +160,7 @@ extern const char *human_bytes(uint64_t n);
 extern linked_item *add_linked_item(linked_item *list, void *item);
 extern int set_socket_options(int sd, int beefup_buffers);
 extern char *next_word(char *str);
+extern int grok_confsync_compound(struct cfg_comp *comp, merlin_confsync *csync);
 extern int grok_common_var(struct cfg_comp *config, struct cfg_var *v);
 extern const char *callback_name(int id);
 extern const char *tv_delta(struct timeval *start, struct timeval *stop);

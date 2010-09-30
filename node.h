@@ -57,6 +57,12 @@ struct merlin_nodeinfo {
 } __attribute__((packed));
 typedef struct merlin_nodeinfo merlin_nodeinfo;
 
+struct merlin_confsync {
+	char *push;
+	char *fetch;
+};
+typedef struct merlin_confsync merlin_confsync;
+
 struct statistics_vars {
 	uint64_t sent, read, logged, dropped;
 };
@@ -106,6 +112,7 @@ struct merlin_node {
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
 	binlog *binlog;         /* binary backlog for this node */
 	merlin_node_stats stats; /* event/data statistics */
+	merlin_confsync csync;  /* config synchronization configuration */
 	int (*action)(struct merlin_node *, int); /* (daemon) action handler */
 };
 typedef struct merlin_node merlin_node;

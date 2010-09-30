@@ -211,6 +211,45 @@ const char *tv_delta(struct timeval *start, struct timeval *stop)
 	return buf;
 }
 
+/*
+ * Parse config sync options.
+ *
+ * This is used for each node and also in the daemon compound
+ */
+int grok_confsync_compound(struct cfg_comp *comp, merlin_confsync *csync)
+{
+	unsigned i;
+
+	if (!comp || !csync) {
+		return -1;
+	}
+
+	/*
+	 * first we reset it. An empty compound in the configuration
+	 * means "reset the defaults and don't bother syncing this
+	 * server automagically"
+	 */
+	memset(csync, 0, sizeof(*csync));
+	for (i = 0; i < comp->vars; i++) {
+		struct cfg_var *v = comp->vlist[i];
+		if (!strcmp(v->key, "push")) {
+			csync->push = strdup(v->value);
+			continue;
+		}
+		if (!strcmp(v->key, "fetch")) {
+			csync->fetch = strdup(v->value);
+			continue;
+		}
+		/*
+		 * we ignore additional variables here, since the
+		 * config sync script may want to add additional
+		 * stuff to handle
+		 */
+	}
+
+	return 0;
+}
+
 int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 {
 	const char *expires;
