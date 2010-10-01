@@ -520,9 +520,12 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 	pkt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
 
 	if (pkt->hdr.type == CTRL_PACKET && pkt->hdr.code == CTRL_ACTIVE) {
-		struct timeval *tv = (struct timeval *)&pkt->body;
-		ldebug("Sending CTRL_ACTIVE to %s with start time %lu.%lu",
-			   node->name, tv->tv_sec, tv->tv_usec);
+		merlin_nodeinfo *info = (merlin_nodeinfo *)&pkt->body;
+		ldebug("Sending CTRL_ACTIVE to %s", node->name);
+		ldebug("   start time: %lu.%lu",
+		       node->info.start.tv_sec, node->info.start.tv_usec);
+		ldebug("  config hash: %s", tohex(info->config_hash, 20));
+		ldebug(" config mtime: %lu", info->last_cfg_change);
 	}
 
 	if (packet_size(pkt) > TOTAL_PKT_SIZE) {
