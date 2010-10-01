@@ -635,7 +635,6 @@ def cmd_split(args):
 		hgs = re.split('[\t ]*,[\t ]*', ary[1])
 		argparams.append({'file': ary[0], 'hostgroups': hgs})
 
-	print(argparams)
 	if not len(argparams):
 		return
 
