@@ -666,13 +666,12 @@ def cmd_t_randomize(args):
 		run_param(param)
 		i += 1
 
-def parse_object_config():
+def parse_object_config(files = False):
 	global ncfg_path
-	obj_files = grab_object_cfg_files(ncfg_path)
+	if not files:
+		files = grab_object_cfg_files(ncfg_path)
 
-	for f in obj_files:
-		parse_nagios_objects(f)
-
+	map(parse_nagios_objects, files)
 	post_parse()
 
 def module_init():
