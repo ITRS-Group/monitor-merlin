@@ -154,7 +154,7 @@ int sql_vquery(const char *fmt, va_list ap)
 
 	free(query);
 
-	return !!db.result;
+	return !db.result;
 }
 
 int sql_query(const char *fmt, ...)
