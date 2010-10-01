@@ -96,6 +96,9 @@ send_to_node()
 	cmd="scp -C -p $SSH_ARGS -r $src $OCONF_SSH_USER@$ADDRESS:$OCONF_DEST"
 #	echo "Running: $cmd"
 	$cmd
+	cmd="ssh $SSH_ARGS root@$ADDRESS /etc/init.d/monitor restart"
+#	echo "Running: $cmd"
+	$cmd
 }
 
 for node in $peers $pollers; do
