@@ -93,7 +93,7 @@ send_to_node()
 		test -z "$OCONF_DEST" && OCONF_DEST=/opt/monitor/etc/from-master.cfg
 	else
 		src=$OCONF_PATH
-		OCONF_DEST="/tmp/csync"
+		test "$OCONF_DEST" || OCONF_FEST=$src
 	fi
 	cmd="scp -C -p $SSH_ARGS -r $src $OCONF_SSH_USER@$ADDRESS:$OCONF_DEST"
 #	echo "Running: $cmd"
