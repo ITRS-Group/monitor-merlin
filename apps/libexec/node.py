@@ -209,6 +209,11 @@ def cmd_show(args):
 	for arg in args:
 		if not arg in configured_nodes.keys():
 			print("'%s' is not a configured node. Try the 'list' command" % arg)
+			# scripts will list one node at a time. If the command
+			# fails, they don't have to check the output to see if
+			# the got anything sensible or not
+			if len(args) == 1:
+				sys.exit(1)
 			continue
 		if not configured_nodes[arg].ntype in wanted_types:
 			continue
