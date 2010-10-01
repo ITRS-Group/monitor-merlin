@@ -48,7 +48,6 @@ trap 'rm -f $lock_file' EXIT 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
 
 pollers=$(mon node list --type=poller)
 peers=$(mon node list --type=peer)
-exit 0
 
 # possibly no peers or pollers. In that case we really shouldn't be
 # run at all, but if we are we exit immediately
