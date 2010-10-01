@@ -639,7 +639,7 @@ def cmd_split(args):
 	if not len(argparams):
 		return
 
-	parse_object_config()
+	parse_object_config([object_cache])
 
 	for param in argparams:
 		run_param(param)
