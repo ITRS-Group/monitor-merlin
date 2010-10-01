@@ -17,6 +17,8 @@
 cache_dir=/var/cache/merlin
 conf_dir=$cache_dir/config
 lock_file=$cache_dir/.push.lock
+test -d $cache_dir || mkdir -p $cache_dir
+test -d $conf_dir || mkdir -p $conf_dir
 
 while test "$#" -gt 0; do
 	case "$1" in
