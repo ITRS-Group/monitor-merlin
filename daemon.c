@@ -491,6 +491,8 @@ void csync_node_active(merlin_node *node)
 	merlin_confsync *cs = NULL;
 	char *cmd = NULL;
 
+	ldebug("CONFSYNC CHECK FOR NODE %s", node->name);
+
 	/* bail early if we have no push/fetch configuration */
 	cs = node->csync ? node->csync : &csync;
 	if (!cs->push && !cs->fetch)
@@ -538,6 +540,7 @@ void csync_node_active(merlin_node *node)
 static int handle_ipc_event(merlin_event *pkt)
 {
 	int result = 0;
+	unsigned int i;
 
 	if (pkt->hdr.type == CTRL_PACKET) {
 		switch (pkt->hdr.code) {
@@ -548,6 +551,20 @@ static int handle_ipc_event(merlin_event *pkt)
 		case CTRL_ACTIVE:
 			memcpy(&ipc.info, &pkt->body, sizeof(ipc.info));
 			/* this gets propagated, so don't return here */
+
+			/*
+			 * when we read an ALIVE packet from ipc, we
+			 * need to see if our connected nodes could use
+			 * a refreshed configuration
+			 */
+			for (i = 0; i < num_nodes; i++) {
+				merlin_node *node = node_table[i];
+				/* skip nodes that have no start or mtime */
+				if (!node->info.start.tv_sec || !node->info.last_cfg_change)
+					continue;
+				csync_node_active(node_table[i]);
+			}
+
 			break;
 		case CTRL_INACTIVE:
 			/* this should really never happen, but forward it if it does */
