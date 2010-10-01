@@ -138,9 +138,10 @@ commands = { 'log.fetch': cmd_log_fetch, 'log.sortmerge': cmd_log_sortmerge,
 categories = {}
 help_helpers = []
 helpers = {}
+init_funcs = {}
 
 def load_command_module(path):
-	global commands
+	global commands, init_funcs
 	ret = False
 
 	if not libexec_dir in sys.path:
@@ -151,10 +152,9 @@ def load_command_module(path):
 
 	if getattr(module, "pure_script", False):
 		return False
+	# we grab the init function here, but delay running it
+	# until we know which module we'll be using.
 	init_func = getattr(module, "module_init", False)
-	if init_func != False:
-		if init_func() == False:
-			return False
 
 	for f in dir(module):
 		if not f.startswith('cmd_'):
@@ -163,6 +163,7 @@ def load_command_module(path):
 		func = getattr(module, f)
 		callname = modname + '.' + func.__name__[4:]
 		commands[callname] = func
+		init_funcs[callname] = init_func
 
 	return ret
 
@@ -272,4 +273,10 @@ if not cmd in commands:
 if commands[cmd] == run_helper:
 	run_helper(cmd, args)
 else:
+	# now we run the command module's possibly costly
+	# intialization routines
+	init = init_funcs.get(cmd, False)
+	if init != False:
+		init()
+
 	commands[cmd](args)
