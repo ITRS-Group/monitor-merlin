@@ -285,6 +285,10 @@ static void reap_child_process(void)
 		return;
 	}
 
+	/* child may not be done yet */
+	if (!pid)
+		return;
+
 	/* we reaped an actual child, so decrement the counter */
 	num_children--;
 
