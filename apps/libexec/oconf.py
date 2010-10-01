@@ -292,8 +292,9 @@ class nagios_group(nagios_object):
 
 	def write_linked(self, f):
 		self.write(f)
-	#	for obj in self.members.values():
-	#		obj.write_linked(f)
+		if self.otype == 'contactgroup':
+			for obj in self.members.values():
+				obj.write_linked(f)
 
 	# TODO: Support groups-in-groups
 	def parse(self):
@@ -531,7 +532,7 @@ def write_hg_list(path, hg_list):
 	blocked_writes = 0
 
 	f = open(path, "w")
-	include_all = ['contact', 'contactgroup']
+	include_all = []
 	for otype in include_all:
 		olist = nagios_objects.get(otype)
 		if not olist:
