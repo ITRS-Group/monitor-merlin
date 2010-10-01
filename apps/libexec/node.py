@@ -1,46 +1,23 @@
-import os, sys
+import os, sys, re
 
 modpath = os.path.dirname(__file__) + '/modules'
 if not modpath in sys.path:
 	sys.path.append(modpath)
 from compound_config import *
 
-node_conf_dir = "/etc/op5/distributed/nodes"
-num_nodes = {'poller': 0, 'peer': 0, 'master': 0}
-configured_nodes = {}
-merlin_conf = '/opt/monitor/op5/merlin/merlin.conf'
-
-def module_init():
-	global merlin_conf
-	# load the configured_nodes we'll be using
-	if os.access(node_conf_dir, os.X_OK):
-		for f in os.listdir(node_conf_dir):
-			node = merlin_node(f)
-			num_nodes[node.ntype] += 1
-			configured_nodes[node.name] = node
-
-	for arg in sys.argv:
-		if arg.startswith('--merlin-cfg=') or arg.startswith('--config='):
-			merlin_conf = arg.split('=', 1)[1]
-
 class merlin_node:
 	valid_types = ['poller', 'master', 'peer']
-	ntype = 'poller'
-	name = False
-	address = ''
-	pushed_logs_dir = ''
-	ssh_key = ''
-	ssh_user = 'monitor'
-	options = {'ntype': 'poller', 'ssh_user': 'monitor'}
 
-	def __init__(self, name):
-		self.name = name
-		if os.access(node_conf_dir + '/' + name, os.R_OK):
-			self.load()
-
-		if not self.address:
-			self.set("address=" + name, False)
-
+	def __init__(self, name, ntype = 'poller'):
+		self.options = {'type': 'poller', 'port': 15551}
+		self.set('name', name)
+		self.set('type', ntype)
+		self.set("address", name)
+		self.hostgroup = []
+		self.pushed_logs_dir = ''
+		self.ssh_key = ''
+		self.ssh_user = 'monitor'
+		self.port = '15551'
 
 	def verify(self):
 		if not self.ntype in self.valid_types:
@@ -57,11 +34,14 @@ class merlin_node:
 
 
 	def write(self, f):
-		f.write("TYPE=%s\n" % self.ntype)
-		f.write("ADDRESS=%s\n" % self.address)
-		if self.ssh_key:
-			f.write("SSH_KEY=%s\n" % self.ssh_key)
-
+		for (k, v) in self.options.items():
+			k = k.upper()
+			# how the hell does one check the result of
+			# type() something?
+			if type(v) == type([]):
+				print("%s=%s" % (k, ','.join(v)))
+			else:
+				print("%s=%s" % (k, v))
 
 	def save(self):
 		if not self.verify():
@@ -73,7 +53,7 @@ class merlin_node:
 		return True
 
 
-	def load(self):
+	def load(self, comp):
 		f = open(node_conf_dir + '/' + self.name)
 		for line in f:
 			line = line.strip()
@@ -89,15 +69,19 @@ class merlin_node:
 
 	# set a variable for the object. Return True on success
 	# and false on errors.
-	def set(self, arg, verbose=True):
+	def set_arg(self, arg, verbose=True):
 		arg = arg.strip()
 		if not '=' in arg:
 			print("Arguments should be in the form key=value. %s doesn't work" % arg)
 			return False
 		(k, v) = arg.split('=', 1)
+		self.set(k, v)
+
+	def set(self, k, v):
 		k = k.lower()
-		self.options[k] = v
-		if k == 'type':
+		if k == 'name':
+			self.name = v
+		elif k == 'type':
 			self.ntype = v
 		elif k == 'address':
 			self.address = v
@@ -109,11 +93,20 @@ class merlin_node:
 			self.ssh_key = v
 		elif k == 'ssh_user' or k == 'user':
 			self.ssh_user = v
-		else:
+		elif k == 'port':
+			self.port = v
+		elif k == 'hostgroup' or k == 'hostgroups':
+			v = re.split("[\t ]*,[\t ]", v)
+		elif not k.startswith('oconf_'):
 			print("Unknown key in key=value pair: %s=%s" % (k, v))
+			raise hell
 			return False
-		if verbose:
-			print("Setting '%s=%s' for node '%s'" % (k, v, self.name))
+
+		if k == 'hostgroup' and self.options.has_key(k):
+			print(self.name, k, self.options[k], v)
+			self.options[k] += v
+		else:
+			self.options[k] = v
 
 
 	def rename(self, arg):
@@ -144,14 +137,55 @@ class merlin_node:
 			return False
 		return True
 
+node_conf_dir = "/etc/op5/distributed/nodes"
+num_nodes = {'poller': 0, 'peer': 0, 'master': 0}
+configured_nodes = {}
+merlin_conf = '/opt/monitor/op5/merlin/merlin.conf'
+wanted_types = merlin_node.valid_types
+wanted_names = []
+ntype = 'poller'
+
+def module_init():
+	global merlin_conf, wanted_types, wanted_names, configured_nodes
+
+	i = 2
+	for arg in sys.argv[i:]:
+		if arg.startswith('--merlin-cfg=') or arg.startswith('--config='):
+			merlin_conf = arg.split('=', 1)[1]
+		elif arg.startswith('--type='):
+			wanted_types = arg.split('=')[1].split(',')
+		elif arg.startswith('--name='):
+			wanted_names = arg.split('=')[1].split(',')
+		else:
+			# not an argument we recognize, so ignore it
+			i += 1
+			continue
+
+		popped = sys.argv.pop(i)
+		i += 1
+
+	# load the configured nodes
+	conf = parse_conf(merlin_conf)
+	for comp in conf.objects:
+		comp.name = comp.name.strip()
+		ary = re.split("[\t ]+", comp.name, 1)
+		if len(ary) != 2 or not ary[0] in merlin_node.valid_types:
+			continue
+		node = merlin_node(ary[1], ary[0])
+		node.ntype = ary[0]
+		configured_nodes[node.name] = node
+		for (k, v) in comp.params:
+			node.set(k, v)
+		for sc in comp.objects:
+			if sc.name != 'object_config':
+				continue
+			for (sk, sv) in sc.params:
+				node.set('oconf_' + sk, sv)
+
 ## node commands ##
 # list configured nodes, capable of filtering by type
 def cmd_list(args):
-	wanted_types = merlin_node.valid_types
-	for arg in args:
-		if arg.startswith('--type='):
-			wanted_types = arg.split('=')[1].split(',')
-
+	global wanted_types
 	for node in configured_nodes.values():
 		if not node.ntype in wanted_types:
 			continue
@@ -162,14 +196,6 @@ def cmd_list(args):
 # suitable for being used as "eval $(mon node show nodename)" from
 # shell scripts
 def cmd_show(args):
-	wanted_types = merlin_node.valid_types
-	i = 0
-	for arg in args:
-		if arg.startswith('--type='):
-			wanted_types = arg.split('=')[1].split(',')
-			args.pop(i)
-		i += 1
-
 	if len(configured_nodes) == 0:
 		print("No nodes configured")
 		return
@@ -191,7 +217,7 @@ def cmd_show(args):
 		configured_nodes[arg].show()
 
 
-def cmd_add(args):
+def _cmd_add(args):
 	if len(args) < 1:
 		return False
 	name = args[0]
@@ -201,11 +227,11 @@ def cmd_add(args):
 
 	node = merlin_node(name)
 
-	if len(args) == 1:
-		node.address = node.name
-
 	for arg in args[1:]:
-		node.set(arg, False)
+		if not '=' in arg:
+			continue
+		ary = arg.split('=', 1)
+		node.set(ary[0], ary[1])
 	
 	if node.save():
 		print("Successfully added %s node '%s'" % (node.ntype, node.name))
@@ -215,7 +241,7 @@ def cmd_add(args):
 	return False
 
 
-def cmd_edit(args):
+def _cmd_edit(args):
 	if len(args) < 2:
 		print("No key=value pairs to modify")
 		return False
@@ -232,7 +258,7 @@ def cmd_edit(args):
 	return node.save()
 
 
-def cmd_remove(args):
+def _cmd_remove(args):
 	if len(args) == 0:
 		print("Which node do you want to remove? Try the 'list' command")
 		return
@@ -246,7 +272,7 @@ def cmd_remove(args):
 		os.unlink(node_conf_dir + '/' + arg)
 
 
-def cmd_rename(args):
+def _cmd_rename(args):
 	if len(args) != 2 or not args[0] in configured_nodes.keys():
 		print("Which node do you want to rename? Try the 'list' command")
 		return False
