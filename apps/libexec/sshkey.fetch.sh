@@ -22,7 +22,7 @@ usage()
 {
 	cat << END_OF_HELP
 
-usage: ssh-grab-keys.sh [--outfile=<authorized_keys>] <destinations>
+usage: mon sshkey grab [--outfile=<authorized_keys>] <destinations>
 
 END_OF_HELP
 }

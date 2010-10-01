@@ -33,7 +33,7 @@ usage()
 {
 	cat << END_OF_HELP
 
-usage: ssh-append-key [--key=<keyfile.pub>] <destinations>
+usage: mon sshkey push [--key=<keyfile.pub>] <destinations>
 
 END_OF_HELP
 }
