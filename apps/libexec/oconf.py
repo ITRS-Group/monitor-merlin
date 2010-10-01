@@ -620,18 +620,25 @@ def cmd_files(args):
 		print(cfile)
 
 def cmd_split(args):
-	parse_object_config()
-	arg_params = []
 	if len(args) == 0:
 		usage("'split' requires arguments")
 
-	# default case. outfile:hg1,hg2,hgN... argument
-	cmd = 'split'
-	ary = arg.split(':')
-	if len(ary) != 2:
-		usage("Unknown argument: %s" % arg)
+	argparams = []
+
+	for arg in args:
+		# default case. outfile:hg1,hg2,hgN... argument
+		ary = arg.split(':')
+		if len(ary) != 2:
+			usage("Unknown argument: %s" % arg)
+
 		hgs = re.split('[\t ]*,[\t ]*', ary[1])
 		argparams.append({'file': ary[0], 'hostgroups': hgs})
+
+	print(argparams)
+	if not len(argparams):
+		return
+
+	parse_object_config()
 
 	for param in argparams:
 		run_param(param)
