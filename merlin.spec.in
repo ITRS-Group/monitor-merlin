@@ -94,8 +94,8 @@ cp ../oconf %buildroot/usr/libexec/merlin/-oconf
 %post
 %mod_path/install-merlin.sh --batch --install=db
 /sbin/chkconfig --add merlind
-echo "Importing notifications from logfiles to database"
-mon log import --only-notifications --incremental
+#echo "Importing notifications from logfiles to database"
+#mon log import --only-notifications --incremental
 /etc/init.d/merlind restart
 
 
