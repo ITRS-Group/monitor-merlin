@@ -11,6 +11,7 @@ from compound_config import *
 nagios_cfg = '/opt/monitor/etc/nagios.cfg'
 object_cfg_files = {}
 object_prefix = ''
+object_cache = '/opt/monitor/var/objects.cache'
 hostgroups = []
 hosts = []
 nagios_objects = {}
@@ -642,6 +643,11 @@ def cmd_split(args):
 
 	for param in argparams:
 		run_param(param)
+
+def cmd_hglist(args):
+	parse_object_config([object_cache])
+	for k in nagios_objects['hostgroup'].keys():
+		print("  %s" % k)
 
 def cmd_t_params(args):
 	outparams = [
