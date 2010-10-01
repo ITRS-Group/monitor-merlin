@@ -55,7 +55,7 @@ while test "$#" -ne 0; do
 		destinations="$destinations $1"
 	;;
 	*)
-		destinations="$destinations root@$1"
+		destinations="$destinations root@$1 monitor@$1"
 	;;
 	esac
 	shift
