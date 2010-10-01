@@ -134,7 +134,7 @@ static int insert_host_result(nebstruct_host_check_data *ds)
 		("INSERT INTO %s("
 		 "timestamp, event_type, host_name, state, "
 		 "hard, retry, output"
-		 ") VALUES(%lu, %d, '%s', %d, %d, %d, '%s')",
+		 ") VALUES(%lu, %d, %s, %d, %d, %d, %s)",
 		 sql_table_name(),
 		 ds->timestamp.tv_sec, ds->type, host_name, ds->state,
 		 ds->state_type == HARD_STATE, ds->current_attempt,
@@ -164,7 +164,7 @@ static int insert_service_result(nebstruct_service_check_data *ds)
 		("INSERT INTO %s ("
 		 "timestamp, event_type, host_name, service_description, state, "
 		 "hard, retry, output) "
-		 "VALUES(%lu, %d, '%s', '%s', '%d', '%d', '%d', '%s')",
+		 "VALUES(%lu, %d, %s, %s, '%d', '%d', '%d', %s)",
 		 sql_table_name(),
 		 ds->timestamp.tv_sec, ds->type, host_name,
 		 service_description, ds->state,
