@@ -292,6 +292,9 @@ static void reap_child_process(void)
 	/* we reaped an actual child, so decrement the counter */
 	num_children--;
 
+	/* looks like we reaped some helper we spawned */
+	linfo("Child with pid %d successfully reaped", pid);
+
 	if (pid == importer_pid) {
 		if (WIFEXITED(status)) {
 			if (!WEXITSTATUS(status)) {
@@ -305,9 +308,6 @@ static void reap_child_process(void)
 		/* successfully reaped, so reset and resume */
 		importer_pid = 0;
 		ipc_send_ctrl(CTRL_RESUME, CTRL_GENERIC);
-	} else {
-		/* looks like we reaped some other helper we spawned */
-		linfo("Child with pid %d successfully reaped", pid);
 	}
 }
 
