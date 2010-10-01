@@ -14,10 +14,41 @@
 # Note that ssh-keys need to be installed on all systems
 
 # where we'll cache the split-out configuration
-cache_dir=/var/cache/merlin/config
+cache_dir=/var/cache/merlin
+conf_dir=$cache_dir/config
+lock_file=$cache_dir/.push.lock
+
+while test "$#" -gt 0; do
+	case "$1" in
+	--force)
+		rm -f $lock_file
+		;;
+	esac
+	shift
+done
+
+# there's room for a small race here, but the only thing it
+# should lead to is a few wasted cycles so we don't worry too
+# much about that. We do take care of an overly stale lockfile
+# though. 5 minutes should be about enough.
+now=$(date +%s)
+if test -f $lock_file; then
+	locked=$(cat $lock_file)
+	expires=$(expr $now - $locked - 300)
+	if test $expires -lt 0; then
+		when=$(echo $expires | cut -b2-)
+		echo "push already in progress. Lock expires in $when seconds. Aborting"
+		exit 0
+	fi
+	echo "Stale lockfile expired $expires seconds ago"
+fi
+echo $now > $lock_file
+# make sure the lockfile is removed when we exit
+trap 'rm -f $lock_file' EXIT 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
 
 pollers=$(mon node list --type=poller)
 peers=$(mon node list --type=peer)
+exit 0
 
 # possibly no peers or pollers. In that case we really shouldn't be
 # run at all, but if we are we exit immediately
@@ -26,14 +57,14 @@ if test -z "$pollers" -a -z "$peers"; then
 fi
 
 if test "$pollers"; then
-	rm -rf $cache_dir
-	mkdir -m 700 $cache_dir
+	rm -rf $conf_dir
+	mkdir -m 700 $conf_dir
 	split_args=
 	for node in $pollers; do
 		HOSTGROUP=
 		ADDRESS=
 		eval $(mon node show $node)
-		split_args="$split_args $cache_dir/$node:$HOSTGROUP"
+		split_args="$split_args $conf_dir/$node:$HOSTGROUP"
 	done
 	cmd="mon oconf split $split_args"
 #	echo "Running: $cmd"
@@ -57,7 +88,7 @@ send_to_node()
 	test "$OCONF_SSH_USER" || OCONF_SSH_USER=monitor
 	echo "Sending to $TYPE node $node"
 	if [ "$TYPE" = 'poller' ]; then
-		src=$cache_dir/$node
+		src=$conf_dir/$node
 		test -z "$OCONF_DEST" && OCONF_DEST=/opt/monitor/etc/from-master.cfg
 	else
 		src=$OCONF_PATH
