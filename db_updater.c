@@ -76,17 +76,33 @@ static int handle_host_status(merlin_node *node, int cb, const merlin_host_statu
 					   host_name);
 
 	/* this check is only done when we have new checkresults */
-	if (cb == NEBCALLBACK_HOST_CHECK_DATA &&
-	    host_has_new_state(p->name, p->state.current_state, p->state.state_type))
-	{
-		result = sql_query("INSERT INTO %s ("
-		                   "timestamp, event_type, host_name, state, "
-		                   "hard, retry, output"
-		                   ") VALUES(%lu, %d, %s, %d, %d, %d, %s)",
-		                   sql_table_name(),
-		                   p->state.last_check, NEBTYPE_HOSTCHECK_PROCESSED, host_name, p->state.current_state,
-	                       p->state.state_type == HARD_STATE, p->state.current_attempt,
-		                   output);
+	if (cb == NEBCALLBACK_HOST_CHECK_DATA) {
+		if (host_has_new_state(p->name, p->state.current_state, p->state.state_type)) {
+			result = sql_query
+				("INSERT INTO %s(timestamp, event_type, host_name, state, "
+				 "hard, retry, output) "
+				 "VALUES(%lu, %d, %s, %d, %d, %d, %s)",
+				 sql_table_name(), p->state.last_check,
+				 NEBTYPE_HOSTCHECK_PROCESSED, host_name,
+				 p->state.current_state,
+				 p->state.state_type == HARD_STATE,
+				 p->state.current_attempt, output);
+		}
+
+		/*
+		 * Stash host performance data separately, in case
+		 * people people are using Merlin with Nagiosgrapher or
+		 * similar performance data graphing solutions.
+		 */
+		if (host_perf_table && p->state.perf_data && *p->state.perf_data) {
+			char *perfdata;
+			sql_quote(p->state.perf_data, &perfdata);
+			result = sql_query
+				("INSERT INTO %s(timestamp, host_name, perfdata) "
+				 "VALUES(%lu, %s, %s)",
+				 host_perf_table, p->state.last_check, host_name, perfdata);
+			free(perfdata);
+		}
 	}
 
 	free(host_name);
@@ -109,24 +125,40 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 	sql_quote(p->state.plugin_output, &output);
 	sql_quote(p->state.long_plugin_output, &long_output);
 	sql_quote(p->state.perf_data, &perf_data);
-	result = sql_query(STATUS_QUERY("service")
-					   " WHERE host_name = %s AND service_description = %s",
-					   node_id,
-					   STATUS_ARGS(output, long_output, perf_data),
-					   host_name, service_description);
-	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA &&
-	    service_has_new_state(p->host_name, p->service_description, p->state.current_state, p->state.state_type))
-	{
-		result = sql_query("INSERT INTO %s ("
-		                   "timestamp, event_type, host_name, service_description,"
-		                   "state, hard, retry, output) "
-		                   "VALUES(%lu, %d, %s, %s, "
-		                   "%d, '%d', '%d', %s)",
-		                   sql_table_name(),
-		                   p->state.last_check, NEBTYPE_SERVICECHECK_PROCESSED, host_name,
-		                   service_description, p->state.current_state,
-	                       p->state.state_type == HARD_STATE, p->state.current_attempt,
-	                       output);
+	result = sql_query
+		(STATUS_QUERY("service")
+		 " WHERE host_name = %s AND service_description = %s",
+		 node_id, STATUS_ARGS(output, long_output, perf_data),
+		 host_name, service_description);
+
+	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA) {
+		if (service_has_new_state(p->host_name, p->service_description, p->state.current_state, p->state.state_type)) {
+			result = sql_query
+				("INSERT INTO %s(timestamp, event_type, host_name, "
+				 "service_description, state, hard, retry, output) "
+				 "VALUES(%lu, %d, %s, %s, %d, '%d', '%d', %s)",
+				 sql_table_name(), p->state.last_check,
+				 NEBTYPE_SERVICECHECK_PROCESSED, host_name,
+				 service_description, p->state.current_state,
+				 p->state.state_type == HARD_STATE,
+				 p->state.current_attempt, output);
+		}
+		/*
+		 * Stash service performance data separately, in case
+		 * people people are using Merlin with Nagiosgrapher or
+		 * similar performance data graphing solutions.
+		 */
+		if (service_perf_table && p->state.perf_data && *p->state.perf_data) {
+			char *perfdata;
+			sql_quote(p->state.perf_data, &perfdata);
+			result = sql_query
+				("INSERT INTO %s(timestamp, host_name, "
+				 "service_description, perfdata) "
+				 "VALUES(%lu, %s, %s, %s)",
+				 service_perf_table, p->state.last_check,
+				 host_name, service_description, perfdata);
+			free(perfdata);
+		}
 	}
 
 	free(host_name);

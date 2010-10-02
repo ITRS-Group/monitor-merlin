@@ -5,6 +5,9 @@
 #include <stdarg.h>
 #define prefixcmp(a, b) strncmp(a, b, strlen(b))
 
+extern char *host_perf_table;
+extern char *service_perf_table;
+
 typedef dbi_result SQL_RESULT;
 
 extern int sql_config(const char *key, const char *value);

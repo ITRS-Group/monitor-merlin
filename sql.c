@@ -1,6 +1,10 @@
 #define _GNU_SOURCE
 #include "daemon.h"
 
+/* where to (optionally) stash performance data */
+char *host_perf_table = NULL;
+char *service_perf_table = NULL;
+
 /*
  * File-scoped definition of the database settings we've tried
  * (or succeeded) connecting with
@@ -330,6 +334,12 @@ int sql_config(const char *key, const char *value)
 		if (endp == value || *endp != 0)
 			return -1;
 	}
+	else if (!strcmp(key, "host_perfdata_table"))
+		host_perf_table = value_cpy;
+	else if (!strcmp(key, "service_perfdata_table"))
+		service_perf_table = value_cpy;
+	else if (!strcmp(key, "perfdata_table"))
+		host_perf_table = service_perf_table = value_cpy;
 	else
 		return -1; /* config error */
 

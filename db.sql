@@ -50,6 +50,22 @@ CREATE INDEX rd_host_name ON report_data(host_name);
 CREATE INDEX rd_service_name ON report_data(host_name, service_description);
 CREATE INDEX rd_state ON report_data(state);
 
+--
+-- This table is not automagically recreated every time we upgrade
+-- and logging to it is not enabled by default. Repairing it if it
+-- breaks, or pre-populating it with data, is impossible since Nagios
+-- doesn't store historical performance data anywhere standard.
+--
+CREATE TABLE IF NOT EXISTS perfdata(
+	timestamp  int(11) NOT NULL,
+	host_name  varchar(70) NOT NULL,
+	service_description varchar(200),
+	perfdata TEXT NOT NULL
+);
+CREATE INDEX pd_time ON perfdata(timestamp);
+CREATE INDEX pd_host_name ON perfdata(host_name);
+CREATE INDEX pd_service_name ON perfdata(host_name, service_description);
+
 DROP TABLE IF EXISTS contact_access;
 CREATE TABLE contact_access(
 	contact			int,
