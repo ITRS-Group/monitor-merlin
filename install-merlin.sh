@@ -8,6 +8,8 @@ popd >/dev/null 2>&1
 nagios_cfg=/usr/local/nagios/etc/nagios.cfg
 dest_dir=/usr/local/nagios/addons/merlin
 root_path=
+bindir=/usr/bin
+libexecdir=/usr/libexec/merlin
 db_type=mysql
 db_name=merlin
 db_user=merlin
@@ -15,7 +17,7 @@ db_pass=merlin
 db_root_user=root
 db_root_pass=
 batch=
-install=db,files,config,init
+install=db,files,config,init,apps
 
 progname="$0"
 raw_sed_version=$(sed --version | sed '1q')
@@ -141,6 +143,17 @@ say ()
 	test "$batch" || echo "$@"
 }
 
+install_apps ()
+{
+	mkdir -p $root_path/$bindir
+	mkdir -p $root_path/$libexecdir
+	cp apps/mon.py $root_path/usr/bin/mon
+	cp apps/libexec/* $root_path/$libexecdir
+	cp oconf $root_path/$libexecdir/merlin/-oconf
+	chmod 755 $root_path/$bindir/mon
+	chmod 755 $root_path/$libexecdir/*
+}
+
 install_files ()
 {
 	execs="import showlog merlind install-merlin.sh init.sh"
@@ -202,6 +215,8 @@ Where options can be any combination of:
   --db-pass=<password>                 Password for the db user
   --db-root-user=<db admin>            Database admin username
   --db-root-pass=<pass>                Database admin password
+  --bindir=/path/to/binaries           Usually /usr/bin
+  --libexecdir=/path/to/libexecdir     Usually /usr/libexec/merlin
 
 END_OF_HELP
 	exit 1
@@ -299,7 +314,7 @@ fi
 
 for c in $(echo "$install" | sed 's/,/ /g'); do
 	case "$c" in
-		files|db|config|init) ;;
+		files|db|config|init|apps) ;;
 		*)
 			echo "I don't know how to install component $c"
 			echo "You may only pass one or more of 'db,files,config' to --install"
@@ -320,6 +335,8 @@ cat << EOF
   Path settings:
     Nagios config file  (--nagios-cfg): $nagios_cfg
     Destination directory (--dest-dir): $dest_dir
+    libexecdir          (--libexecdir): $libexecdir
+    bindir                  (--bindir): $bindir
     Base root                 (--root): $root_path
 
   Installing the following components: $install

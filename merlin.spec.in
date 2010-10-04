@@ -61,35 +61,13 @@ make test
 
 %install
 rm -rf %buildroot
-sh install-merlin.sh --batch --root=%buildroot --install=files,init \
+sh install-merlin.sh --batch --root=%buildroot --bindir=%_bindir \
+	--libexecdir=%_libexecdir/merlin --install=files,apps,init \
 	--dest-dir %mod_path
 chmod 777 %buildroot/%mod_path/logs
 mkdir -p %buildroot/%mod_path/binlogs
 mkdir -p %buildroot%_sysconfdir/logrotate.d
 cp %_sourcedir/merlin.logrotate %buildroot%_sysconfdir/logrotate.d/merlin
-
-# install the apps. This isn't handled by the install-merlin.sh helper
-# yet. It might be in some far off future, but for now we don't have
-# time.
-cd apps
-mkdir -p %buildroot/usr/libexec
-cp -r libexec %buildroot/usr/libexec/%name
-mkdir -p %buildroot/usr/bin
-cp mon.py %buildroot/usr/bin/mon
-chmod 755 %buildroot/usr/bin/mon
-mkdir -p %buildroot/opt
-cp -r plugins %buildroot/opt
-chmod 755 %buildroot/opt/plugins/*
-for path in %buildroot/opt/plugins/*; do
-	full_f=${path##*/}
-	f=${full_f%.*}
-	ln -s $full_f %buildroot/opt/plugins/$f
-done
-find %buildroot -type f -name README -delete
-mkdir -p %buildroot%_sysconfdir/cron.d
-cp reportdata-import.cron %buildroot%_sysconfdir/cron.d/reportdata-import
-cp ../oconf %buildroot/usr/libexec/merlin/-oconf
-
 
 %post
 %mod_path/install-merlin.sh --batch --install=db
