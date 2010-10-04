@@ -148,8 +148,8 @@ install_apps ()
 	mkdir -p $root_path/$bindir
 	mkdir -p $root_path/$libexecdir
 	cp apps/mon.py $root_path/usr/bin/mon
-	cp apps/libexec/* $root_path/$libexecdir
-	cp oconf $root_path/$libexecdir/merlin/-oconf
+	cp -a apps/libexec/* $root_path/$libexecdir
+	cp oconf $root_path/$libexecdir/-oconf
 	chmod 755 $root_path/$bindir/mon
 	chmod 755 $root_path/$libexecdir/*
 }
@@ -361,7 +361,7 @@ case $(ask "Does this look ok? [Y/n]" "ynYN" y) in
 esac
 
 components=
-for i in db config files; do
+for i in db config files apps; do
 	echo "$install" | grep -q $i && components="$i"
 done
 if ! test "$components"; then
@@ -386,6 +386,9 @@ if echo "$install" | grep -q 'db'; then
 fi
 if echo "$install" | grep -q 'config'; then
 	modify_nagios_cfg || abort "Failed to modify Nagios config."
+fi
+if echo "$install" | grep -q 'apps'; then
+	install_apps || abort "Failed to install apps"
 fi
 
 say 
