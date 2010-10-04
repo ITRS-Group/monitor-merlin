@@ -336,24 +336,28 @@ CREATE TABLE host_parents(
 	host	 INT NOT NULL,
 	parents	 INT NOT NULL
 ) ;
+CREATE UNIQUE INDEX hp_host_parents ON host_parents(host, parents);
 
 DROP TABLE IF EXISTS host_contact;
 CREATE TABLE host_contact(
 	host	INT NOT NULL,
 	contact	INT NOT NULL
 ) ;
+CREATE UNIQUE INDEX hc_host_contact ON host_contact(host, contact);
 
 DROP TABLE IF EXISTS host_contactgroup;
 CREATE TABLE host_contactgroup(
 	host			INT NOT NULL,
 	contactgroup	INT NOT NULL
 ) ;
+CREATE UNIQUE INDEX hcg_host_contactgrouop ON host_contactgroup(host, contactgroup);
 
 DROP TABLE IF EXISTS host_hostgroup;
 CREATE TABLE host_hostgroup(
 	host		INT NOT NULL,
 	hostgroup	INT NOT NULL
 ) ;
+CREATE UNIQUE INDEX hhg_h_hg ON host_hostgroup(host, hostgroup);
 
 
 DROP TABLE IF EXISTS hostgroup;
@@ -474,18 +478,21 @@ CREATE TABLE service_contact(
 	service	INT NOT NULL,
 	contact	INT NOT NULL
 ) ;
+CREATE UNIQUE INDEX sc_service_contact ON service_contact(service, contact);
 
 DROP TABLE IF EXISTS service_contactgroup;
 CREATE TABLE service_contactgroup(
 	service			INT NOT NULL,
 	contactgroup	INT NOT NULL
 ) ;
+CREATE UNIQUE INDEX scg_s_cg ON service_contactgroup(service, contactgroup);
 
 DROP TABLE IF EXISTS service_servicegroup;
 CREATE TABLE service_servicegroup(
 	service			INT NOT NULL,
 	servicegroup	INT NOT NULL
 ) ;
+CREATE UNIQUE INDEX ssg_s_sg ON service_servicegroup(service, servicegroup);
 
 
 DROP TABLE IF EXISTS servicegroup;
@@ -531,12 +538,14 @@ CREATE TABLE serviceescalation_contact(
 	serviceescalation	INT NOT NULL,
 	contact				INT NOT NULL
 ) ;
+CREATE UNIQUE INDEX sec_se_c ON serviceescalation_contact(serviceescalation, contact);
 
 DROP TABLE IF EXISTS serviceescalation_contactgroup;
 CREATE TABLE serviceescalation_contactgroup(
 	serviceescalation	INT NOT NULL,
 	contactgroup		INT NOT NULL
 ) ;
+CREATE UNIQUE INDEX secg_se_cg ON serviceescalation_contactgroup(serviceescalation, contactgroup);
 
 
 DROP TABLE IF EXISTS hostdependency;
@@ -570,12 +579,14 @@ CREATE TABLE hostescalation_contact(
 	hostescalation	INT NOT NULL,
 	contact			INT NOT NULL
 ) ;
+CREATE UNIQUE INDEX hec_he_c ON hostescalation_contact(hostescalation, contact);
 
 DROP TABLE IF EXISTS hostescalation_contactgroup;
 CREATE TABLE hostescalation_contactgroup(
 	hostescalation		INT NOT NULL,
 	contactgroup		INT NOT NULL
 ) ;
+CREATE UNIQUE INDEX hecg_he_cg ON hostescalation_contactgroup(hostescalation, contactgroup);
 
 
 -- custom variables
