@@ -297,6 +297,20 @@ while test "$1"; do
 			shift
 			root_path="$1"
 			;;
+		--libexecdir=*)
+			libexecdir=$(get_arg "$1")
+			;;
+		--libexecdir)
+			shift
+			libexecdir="$1"
+			;;
+		--bindir=*)
+			bindir=$(get_arg "$1")
+			;;
+		--bindir)
+			shift
+			bindir="$1"
+			;;
 		--help|-h)
 			show_usage
 			;;
