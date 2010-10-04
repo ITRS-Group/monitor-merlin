@@ -69,6 +69,22 @@ mkdir -p %buildroot/%mod_path/binlogs
 mkdir -p %buildroot%_sysconfdir/logrotate.d
 cp %_sourcedir/merlin.logrotate %buildroot%_sysconfdir/logrotate.d/merlin
 
+# install plugins and create their symlinks
+mkdir -p %buildroot/opt
+cp -r apps/plugins %buildroot/opt
+chmod 755 %buildroot/opt/plugins/*
+for path in %buildroot/opt/plugins/*; do
+	full_f=${path##*/}
+	f=${full_f%.*}
+	ln -s $full_f %buildroot/opt/plugins/$f
+done
+
+# install crontabs
+mkdir -p %buildroot%_sysconfdir/cron.d
+cp apps/reportdata-import.cron %buildroot%_sysconfdir/cron.d/reportdata-import
+
+
+
 %post
 %mod_path/install-merlin.sh --batch --install=db
 /sbin/chkconfig --add merlind
