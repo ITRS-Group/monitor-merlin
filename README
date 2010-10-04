@@ -70,10 +70,7 @@ hash-character (#) is considered a comment. Thus,
 
 makes "key" the key, "value" the value, terminated by the semi-colon,
 and "# comment" all of the comment.
-Leading and trailing whitespace is ignored. You can create key+value
-pairs without the equality sign if you want, but I wouldn't recommend
-it (it just happened to be how I wrote the config parsing library) as
-it looks a tad unfinished that way.
+Leading and trailing whitespace is ignored.
 
 The thing it doesn't really cover very well is how to configure nocs,
 peers and pollers, which is described more in-depth here.
