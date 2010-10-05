@@ -1,12 +1,17 @@
 class compound_object:
-	name = ''
-	parent = False
-
 	def __init__(self, name = '', parent = False):
+		# we stash start and end line so our caller can remove
+		# compounds using sed without affecting config comments
+		self.line_start = 0
+		self.line_end = 0
+
 		self.name = name
 		self.parent = parent
 		self.params = []
 		self.objects = []
+
+		# optionally set by caller for toplevel compounds (files)
+		self.path = False
 
 	def add(self, key, value):
 		# we add values as tuples in a list object so we
@@ -21,6 +26,7 @@ class compound_object:
 
 def parse_conf(path):
 	cur = compound_object(path)
+	cur.path = path
 	pushed_objs = []
 
 	lnum = 0
@@ -32,6 +38,7 @@ def parse_conf(path):
 			continue
 
 		if line[0] == '}' and cur.parent:
+			cur.line_end = lnum
 			cur = cur.close()
 			continue
 
@@ -40,6 +47,7 @@ def parse_conf(path):
 			n = compound_object(line[:-1].strip(), cur)
 			cur.objects.append(n)
 			cur = n
+			cur.line_start = lnum
 			continue
 
 		kv = line.split('=')
