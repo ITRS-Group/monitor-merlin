@@ -16,7 +16,6 @@ hostgroups = []
 hosts = []
 nagios_objects = {}
 obj_files = []
-ncfg_path = '/opt/monitor/etc/nagios.cfg'
 
 # These keeps track of which and how many objects we've
 # written and must be wiped between each file we create
@@ -615,8 +614,7 @@ def cmd_changed(args):
 	oconf_helper(['last-changed'] + args)
 
 def cmd_files(args):
-	global ncfg_path
-	sob_files = sorted(grab_object_cfg_files(ncfg_path))
+	sob_files = sorted(grab_object_cfg_files(nagios_cfg))
 	for cfile in sob_files:
 		print(cfile)
 
@@ -672,15 +670,14 @@ def cmd_t_randomize(args):
 		i += 1
 
 def parse_object_config(files = False):
-	global ncfg_path
 	if not files:
-		files = grab_object_cfg_files(ncfg_path)
+		files = grab_object_cfg_files(nagios_cfg)
 
 	map(parse_nagios_objects, files)
 	post_parse()
 
 def module_init():
-	global ncfg_path, progname
+	global nagios_cfg, progname
 	if os.path.basename(sys.argv[0]).startswith('mon'):
 		progname = "mon oconf"
 		i = 2
@@ -693,4 +690,4 @@ def module_init():
 	# arguments viable for all our commands are parsed here
 	for arg in sys.argv[i:]:
 		if arg.startswith('--nagios-cfg='):
-			ncfg_path = arg.split('=', 1)[1]
+			nagios_cfg = arg.split('=', 1)[1]
