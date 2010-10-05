@@ -643,7 +643,7 @@ def cmd_split(args):
 
 def cmd_hglist(args):
 	parse_object_config([object_cache])
-	for k in nagios_objects['hostgroup'].keys():
+	for k in sorted(nagios_objects['hostgroup'].keys()):
 		print("  %s" % k)
 
 def cmd_t_params(args):
