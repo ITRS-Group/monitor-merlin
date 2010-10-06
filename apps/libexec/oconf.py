@@ -652,15 +652,7 @@ def cmd_hglist(args):
 	for k in sorted(nagios_objects['hostgroup'].keys()):
 		print("  %s" % k)
 
-def cmd_t_params(args):
-	outparams = [
-		{'file': 'p1', 'hostgroups': ['p1_hosts']},
-		{'file': 'p2', 'hostgroups': ['p2_hosts']},
-		{'file': 'p3', 'hostgroups': ['p3_hosts', 'p2_hosts']},
-	]
-	map(run_param, outparams)
-
-def cmd_t_randomize(args):
+def _cmd_t_randomize(args):
 	global nagios_objects, interesting
 	parse_object_config()
 	i = 0
