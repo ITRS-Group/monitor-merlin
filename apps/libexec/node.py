@@ -19,6 +19,10 @@ class merlin_node:
 		self.ssh_user = 'monitor'
 		self.port = '15551'
 
+		# the compound object has info we will need, so
+		# prepare a storage area for it
+		self.comp = False
+
 	def verify(self):
 		if not self.ntype in self.valid_types:
 			print("'%s' is not a valid node type" % self.ntype)
@@ -32,24 +36,47 @@ class merlin_node:
 			return False
 		return True
 
-
 	def write(self, f):
+		oconf_vars = {}
+		f.write("%s %s {\n" % (self.ntype, self.name))
+		valid_vars = ['address', 'port']
+		if self.ntype != 'master':
+			valid_vars.append('hostgroup')
+
 		for (k, v) in self.options.items():
-			k = k.upper()
-			# how the hell does one check the result of
-			# type() something?
+			# we handle object_config variables first
+			if k.startswith('oconf_'):
+				short_var = k.split('_', 1)[1]
+				oconf_vars[short_var] = v
+				continue
+			if not k in valid_vars:
+				continue
 			if type(v) == type([]):
-				print("%s=%s" % (k, ','.join(v)))
-			else:
-				print("%s=%s" % (k, v))
+				v = ','.join(v)
+
+			# we store and print oconf variables specially
+			f.write("\t%s = %s\n" % (k, v))
+
+		if len(oconf_vars):
+			f.write("\n\tobject_config {\n")
+			for (k, v) in oconf_vars.items():
+				f.write("\t\t%s = %s\n" % (k, v))
+			f.write("\t}\n")
+
+		f.write("}\n")
+
 
 	def save(self):
 		if not self.verify():
 			print("Refusing to save a node that doesn't verify")
 			return False
-		f = open(node_conf_dir + '/' + self.name, "w")
+		self.write(sys.stdout)
+		f = open(self.path, "a")
 		self.write(f)
-		f.close()
+		# If we unconditionally close f, it gets a lot
+		# harder to test and debug this thing.
+		if f != sys.stdout:
+			f.close()
 		return True
 
 
@@ -102,7 +129,13 @@ class merlin_node:
 
 
 	def show(self):
-		self.write(sys.stdout)
+		for (k, v) in self.options.items():
+			k = k.upper()
+
+			if type(v) == type([]):
+				v = ','.join(v)
+
+			print("%s=%s" % (k, v))
 
 
 	def ctrl(self, args):
@@ -158,6 +191,8 @@ def module_init():
 		if len(ary) != 2 or not ary[0] in merlin_node.valid_types:
 			continue
 		node = merlin_node(ary[1], ary[0])
+		node.comp = comp
+		node.path = merlin_conf
 		configured_nodes[node.name] = node
 		for (k, v) in comp.params:
 			node.set(k, v)
@@ -207,22 +242,23 @@ def cmd_show(args):
 		configured_nodes[arg].show()
 
 
-def _cmd_add(args):
+def cmd_add(args):
 	if len(args) < 1:
 		return False
 	name = args[0]
 	if name in configured_nodes.keys():
-		print("%s is already configured. Use 'edit' command to alter it" % name)
+		print("%s is already configured. Aborting" % name)
 		return False
 
 	node = merlin_node(name)
+	node.path = merlin_conf
 
 	for arg in args[1:]:
 		if not '=' in arg:
 			continue
 		ary = arg.split('=', 1)
 		node.set(ary[0], ary[1])
-	
+
 	if node.save():
 		print("Successfully added %s node '%s'" % (node.ntype, node.name))
 		return True
