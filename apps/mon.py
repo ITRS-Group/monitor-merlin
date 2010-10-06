@@ -263,15 +263,33 @@ Remove a configured node
 if len(sys.argv) < 2 or sys.argv[1] == '--help' or sys.argv[1] == 'help':
 	show_usage()
 
+autohelp = False
 cmd = cat = sys.argv[1]
 if cat in commands:
 	args = sys.argv[2:]
 elif len(sys.argv) > 2:
-	cmd = cat + '.' + sys.argv[2]
+	if sys.argv[2] == '--help' or sys.argv[2] == 'help':
+		cmd = cat + '.help'
+		autohelp = True
+	else:
+		cmd = cat + '.' + sys.argv[2]
 	args = sys.argv[3:]
+else:
+	# only one argument passed, and it's not a stand-alone command.
+	# Take it to mean 'help' for that category
+	cmd = cat + '.help'
+	autohelp = True
 
 if not cmd in commands:
-	print("Bad category/command: %s" % cmd.replace('.', ' '))
+	print("")
+	if not cat in categories.keys():
+		print("No category '%s' available, and it's not a raw command" % cat)
+	elif autohelp == True:
+		print("Category '%s' has no help overview." % cat)
+		print("Available commands: %s" % ', '.join(categories[cat]))
+	else:
+		print("Bad category/command: %s" % cmd.replace('.', ' '))
+	print("")
 	sys.exit(1)
 
 if commands[cmd] == run_helper:
