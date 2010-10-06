@@ -194,6 +194,29 @@ def module_init():
 			for (sk, sv) in sc.params:
 				node.set('oconf_' + sk, sv)
 
+
+def cmd_help(args=False):
+	print("""
+usage: mon node <command> [options]
+
+Command overview
+----------------
+  add <name> type=[peer|poller|master] [var1=value] [varN=value]
+    Adds a node with the designated type and variables
+
+  remove <name1> [name2] [nameN]
+    Removes a set of pollers
+
+  list [--type=poller,peer,master]
+    Lists all nodes of the (optionally) specified type
+
+  show [--type=poller,peer,master]]
+    Show all nodes of the selected type(s) in a shell-friendly fashion.
+
+  show <name1> [name2] [nameN...]
+    Show named nodes. eval'able from shell if only one node is chosen.
+""")
+
 ## node commands ##
 # list configured nodes, capable of filtering by type
 def cmd_list(args):
