@@ -7,6 +7,10 @@ libexec_dir = "/usr/libexec/merlin"
 pushed_logs = "/opt/monitor/pushed_logs"
 archive_dir = "/opt/monitor/var/archives"
 
+if not libexec_dir in sys.path:
+	sys.path.append(libexec_dir)
+import node
+
 # run a generic helper from the libexec dir
 def run_helper(helper, args):
 	app = libexec_dir + "/" + helpers[helper]
@@ -58,7 +62,7 @@ def cmd_log_sortmerge(args):
 			print("Log files still in transit for node '%s'" % node.name)
 			return False
 
-	if len(pushed) != num_nodes['peer'] + num_nodes['poller']:
+	if len(pushed) != node.num_nodes['peer'] + node.num_nodes['poller']:
 		print("Some nodes haven't pushed their logs. Aborting")
 		return False
 
@@ -102,7 +106,7 @@ def cmd_log_import(args):
 		i += 1
 
 	if not '--list-files' in args:
-		if num_nodes['poller'] or num_nodes['peer']:
+		if node.num_nodes['poller'] or node.num_nodes['peer']:
 			if fetch == True:
 				cmd_log_fetch(since)
 			tmpname = cmd_log_sortmerge(['--since=' + since])
