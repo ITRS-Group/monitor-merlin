@@ -98,17 +98,9 @@ class merlin_node:
 			self.ntype = v
 		elif k == 'address':
 			self.address = v
-		elif k == 'pushed_logs_dir':
-			self.pushed_logs_dir = v
-		elif k == 'ssh_key' or k == 'key':
-			if len(v) and not os.access(v, os.R_OK):
-				print("It seems I can't access the key '%s'. Misconfigured?" % v)
-			self.ssh_key = v
-		elif k == 'ssh_user' or k == 'user':
-			self.ssh_user = v
 		elif k == 'port':
 			self.port = v
-		elif k == 'hostgroup' or k == 'hostgroups':
+		elif k == 'hostgroup':
 			v = re.split("[\t ]*,[\t ]", v)
 		elif not k.startswith('oconf_'):
 			print("Unknown key in key=value pair: %s=%s" % (k, v))
