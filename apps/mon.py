@@ -260,7 +260,7 @@ Remove a configured node
 	mon node remove <nodename>""")
 	sys.exit(1)
 
-if len(sys.argv) < 2 or sys.argv[1] == '--help' or sys.argv == 'help':
+if len(sys.argv) < 2 or sys.argv[1] == '--help' or sys.argv[1] == 'help':
 	show_usage()
 
 cmd = cat = sys.argv[1]
