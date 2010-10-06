@@ -241,7 +241,7 @@ Where category is optional and their respective commands are as follows:\n''')
 	if len(help_helpers):
 		print("%9s: %s" % ("", ', '.join(help_helpers)))
 
-	print('''\nand options simply depend on what command+command you choose.
+	print('''\nand options simply depend on what category+command you choose.
 Some commands accept a --help flag to print some helptext.''')
 	print("""\nExamples:
 Show monitor's logfiles, with filtering and colors etc
