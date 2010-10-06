@@ -172,7 +172,6 @@ def module_init():
 		if len(ary) != 2 or not ary[0] in merlin_node.valid_types:
 			continue
 		node = merlin_node(ary[1], ary[0])
-		node.ntype = ary[0]
 		configured_nodes[node.name] = node
 		for (k, v) in comp.params:
 			node.set(k, v)
