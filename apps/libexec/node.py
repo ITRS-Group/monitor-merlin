@@ -53,20 +53,6 @@ class merlin_node:
 		return True
 
 
-	def load(self, comp):
-		f = open(node_conf_dir + '/' + self.name)
-		for line in f:
-			line = line.strip()
-			# ignore comments and empty lines
-			if line[0] == '#' or len(line) == 0:
-				continue
-			# warn about bogus lines
-			if not '=' in line:
-				print("'%s' has a malformed configuration")
-				continue
-			self.set(line, False)
-
-
 	# set a variable for the object. Return True on success
 	# and false on errors.
 	def set_arg(self, arg, verbose=True):
