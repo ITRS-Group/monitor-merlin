@@ -590,16 +590,22 @@ def usage(msg = False):
 	if msg:
 		print(msg)
 
-	print("usage: %s <command> [options] <outfile:hostgroup1,hostgroup2,hostgroupN...>" % progname)
+	print("usage: %s <command> [options]" % progname)
 	print("\nWhere <command> is one of the following:\n")
 	print("  split       split the config based on hostgroups")
 	print("  hash        print sha1 hash of running configuration")
 	print("  changed     print last modification time of all files")
 	print("  files       print the configuration files in alphabetical order")
-	print("\nAnd [options] depends on the command you choose to run.")
-	print("")
+	print("\nAnd [options] depends on the command you choose to run.\n")
+	print("Command options")
+	print("---------------")
+	print("  split <outfile:hostgrp1,hostgrp2,hostgrpN...>")
+	print("     print the configuration for hostgroups 1 through N to outfile")
+	print("\nCurrently, no other commands take any options\n")
 	sys.exit(1)
 
+def cmd_help(args):
+	usage()
 
 def oconf_helper(args):
 	app = os.path.dirname(__file__) + '/-oconf'
