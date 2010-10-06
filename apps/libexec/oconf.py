@@ -596,12 +596,13 @@ def usage(msg = False):
 	print("  hash        print sha1 hash of running configuration")
 	print("  changed     print last modification time of all files")
 	print("  files       print the configuration files in alphabetical order")
-	print("\nAnd [options] depends on the command you choose to run.\n")
+	print("  hglist      print a sorted list of all configured hostgroups")
+	print("  push        push object configuration to all peers and pollers")
+	print("\nand [options] depends on the command you choose to run.\n")
 	print("Command options")
 	print("---------------")
 	print("  split <outfile:hostgrp1,hostgrp2,hostgrpN...>")
 	print("     print the configuration for hostgroups 1 through N to outfile")
-	print("\nCurrently, no other commands take any options\n")
 	sys.exit(1)
 
 def cmd_help(args):
