@@ -248,7 +248,7 @@ def _cmd_edit(args):
 	return node.save()
 
 
-def _cmd_remove(args):
+def cmd_remove(args):
 	if len(args) == 0:
 		print("Which node do you want to remove? Try the 'list' command")
 		return
@@ -258,8 +258,10 @@ def _cmd_remove(args):
 			print("'%s' is not a configured node. Try the 'list' command" % arg)
 			continue
 
-		configured_nodes.pop(arg)
-		os.unlink(node_conf_dir + '/' + arg)
+		node = configured_nodes.pop(arg)
+		sed_range = str(node.comp.line_start) + ',' + str(node.comp.line_end)
+		cmd_args = ['sed', '-i', sed_range + 'd', merlin_conf]
+		os.spawnvp(os.P_WAIT, 'sed', cmd_args)
 
 
 def _cmd_rename(args):
