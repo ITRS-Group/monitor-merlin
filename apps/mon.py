@@ -263,6 +263,7 @@ Remove a configured node
 if len(sys.argv) < 2 or sys.argv[1] == '--help' or sys.argv[1] == 'help':
 	show_usage()
 
+args = []
 autohelp = False
 cmd = cat = sys.argv[1]
 if cat in commands:
