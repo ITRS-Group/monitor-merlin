@@ -1,4 +1,5 @@
 #include "shared.h"
+#include <netdb.h>
 
 merlin_node **noc_table, **poller_table, **peer_table;
 
@@ -148,11 +149,57 @@ linked_item *nodes_by_sel_name(const char *name)
 
 
 /*
- * FIXME: should also handle hostnames
+ * Resolve an ip-address or hostname and convert it to a
+ * machine-usable 32-bit representation
  */
 static int resolve(const char *cp, struct in_addr *inp)
 {
-	return inet_aton(cp, inp);
+	struct addrinfo hints, *rp, *ai = NULL;
+	int result;
+
+	/* try simple lookup first and avoid DNS lookups */
+	result = inet_aton(cp, inp);
+	if (result)
+		return 0;
+
+	linfo("Resolving '%s'...", cp);
+	/*
+	 * we allow only IPv4 for now. Change to AF_UNSPEC when we
+	 * want to support IPv6 too, and make the necessary changes
+	 * to the merlin_node structure
+	 */
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_protocol = 0;
+
+	result = getaddrinfo(cp, NULL, &hints, &ai);
+	if (result < 0) {
+		lerr("Failed to lookup '%s': %s", cp, gai_strerror(result));
+		freeaddrinfo(ai);
+		return -1;
+	}
+
+	/*
+	 * walk the results. We break at the first result we find
+	 * and copy it to inp
+	 */
+	for (rp = ai; rp; rp = ai->ai_next) {
+		if (rp->ai_addr)
+			break;
+	}
+
+	if (rp) {
+		char buf[256]; /* used for inet_ntop() */
+		struct sockaddr_in *sain = (struct sockaddr_in *)rp->ai_addr;
+
+		linfo("'%s' resolves to %s", cp,
+			  inet_ntop(rp->ai_family, &sain->sin_addr, buf, sizeof(buf)));
+		memcpy(inp, &sain->sin_addr, sizeof(*inp));
+	}
+	freeaddrinfo(ai);
+
+	return rp ? 0 : -1;
 }
 
 
@@ -230,7 +277,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			sel_id = add_selection(v->value, node);
 		}
 		else if (!strcmp(v->key, "address") || !strcmp(v->key, "host")) {
-			if (!resolve(v->value, &node->sain.sin_addr))
+			if (resolve(v->value, &node->sain.sin_addr) < 0)
 				cfg_error(c, v, "Unable to resolve '%s'\n", v->value);
 		}
 		else if (!strcmp(v->key, "port")) {
