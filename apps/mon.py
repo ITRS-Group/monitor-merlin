@@ -233,31 +233,22 @@ for raw_cmd in commands:
 def show_usage():
 	print('''usage: mon [category] <command> [options]
 
-Where category is optional and their respective commands are as follows:\n''')
+Where category is sometimes optional.\n''')
+	topic = 'Available categorized commands:'
+	print("%s\n%s" % (topic, '-' * len(topic)))
 	cat_keys = categories.keys()
 	cat_keys.sort()
 	for cat in cat_keys:
-		print("%9s: %s" % (cat, ', '.join(categories[cat])))
+		print("  %-7s: %s" % (cat, ', '.join(categories[cat])))
 	if len(help_helpers):
-		print("%9s: %s" % ("", ', '.join(help_helpers)))
+		topic = "Commands without category:"
+		print("\n%s\n%s\n   %s" % (topic, '-' * len(topic), ', '.join(help_helpers)))
 
-	print('''\nand options simply depend on what category+command you choose.
-Some commands accept a --help flag to print some helptext.''')
-	print("""\nExamples:
-Show monitor's logfiles, with filtering and colors etc
-	mon log show [options]
+	print('''\nOptions naturally depend on which command you choose.
 
-Import logfiles to populate the database for reports
-	mon log import [options]
-
-List all configured nodes for distributed systems
-	mon node list
-
-Show all pollers configured for distributed monitoring
-	mon node show --type=poller
-
-Remove a configured node
-	mon node remove <nodename>""")
+Some commands accept a --help flag to print some helptext, and some
+categories have a help-command associated with them.
+''')
 	sys.exit(1)
 
 if len(sys.argv) < 2 or sys.argv[1] == '--help' or sys.argv[1] == 'help':
