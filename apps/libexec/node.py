@@ -370,12 +370,11 @@ def cmd_status(args):
 				la_color = color.green
 			else:
 				la_color = color.red
-				last_alive = 0
 
+			delta = time_delta(last_alive)
+			dtime = time.strftime("%F %H:%m:%d", time.localtime(last_alive))
 			print("Last alive: %s (%d) (%s%s ago%s)" %
-				(time.strftime("%F %H:%m:%d", time.localtime(last_alive)),
-				last_alive, la_color, time_delta(last_alive), color.reset
-				))
+				(dtime,	last_alive, la_color, delta, color.reset))
 
 		hchecks = info.pop('host_checks')
 		schecks = info.pop('service_checks')
