@@ -1,6 +1,6 @@
 import os, sys, re, time
 
-modpath = os.path.dirname(__file__) + '/modules'
+modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
 if not modpath in sys.path:
 	sys.path.append(modpath)
 from compound_config import *
