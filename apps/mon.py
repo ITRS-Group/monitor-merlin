@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python -tt
 
 import os, sys, subprocess, tempfile
 
