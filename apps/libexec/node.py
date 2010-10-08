@@ -1,9 +1,10 @@
-import os, sys, re
+import os, sys, re, time
 
 modpath = os.path.dirname(__file__) + '/modules'
 if not modpath in sys.path:
 	sys.path.append(modpath)
 from compound_config import *
+from merlin_apps_utils import *
 
 class merlin_node:
 	valid_types = ['poller', 'master', 'peer']
@@ -155,9 +156,11 @@ merlin_conf = '/opt/monitor/op5/merlin/merlin.conf'
 wanted_types = merlin_node.valid_types
 wanted_names = []
 ntype = 'poller'
+dbopt = {}
 
 def module_init():
 	global merlin_conf, wanted_types, wanted_names, configured_nodes
+	global dbopt
 
 	i = 2
 	for arg in sys.argv[i:]:
@@ -179,6 +182,17 @@ def module_init():
 	conf = parse_conf(merlin_conf)
 	for comp in conf.objects:
 		comp.name = comp.name.strip()
+		# grab the database settings. fugly, but quick
+		if comp.name == 'daemon':
+			for dobj in comp.objects:
+				dobj.name.strip()
+				if dobj.name != 'database':
+					continue
+				for k, v in dobj.params:
+					dbopt[k] = v
+			continue
+		
+
 		ary = re.split("[\t ]+", comp.name, 1)
 		if len(ary) != 2 or not ary[0] in merlin_node.valid_types:
 			continue
@@ -216,6 +230,177 @@ Command overview
   show <name1> [name2] [nameN...]
     Show named nodes. eval'able from shell if only one node is chosen.
 """)
+
+def get_min_avg_max(table, column, iid=False):
+	query = 'SELECT min(%s), avg(%s), max(%s) FROM %s' % \
+		(column, column, column, table)
+
+	if iid != False:
+		query += ' WHERE instance_id = %d' % iid
+
+	dbc.execute(query)
+	row = dbc.fetchone()
+	ret = {'min': row[0], 'avg': row[1], 'max': row[2]}
+	return ret
+
+def get_num_checks(table, iid=None):
+	query = 'SELECT count(*) FROM %s' % table
+	if iid != None:
+		query += ' WHERE instance_id = %d' % iid
+
+	dbc.execute(query)
+	row = dbc.fetchone()
+	return row[0]
+
+def get_node_status():
+	global dbc
+
+	cols = {
+		'instance_name': False, 'instance_id': False,
+		'is_running': False, 'last_alive': False,
+	}
+
+	dbc.execute("select %s "
+		"FROM program_status ORDER BY instance_name" % ', '.join(cols.keys()))
+
+	result_set = {}
+	for row in dbc.fetchall():
+		res = {}
+		node_name = row[0]
+		col_num = 1
+		for col in cols.keys()[1:]:
+			res[col] = row[col_num]
+			col_num += 1
+
+		result_set[node_name] = res
+
+	for (name, info) in result_set.items():
+		iid = info['instance_id']
+		for otype in ['host', 'service']:
+			info['%s_checks' % otype] = get_num_checks(otype, iid)
+			info['%s_latency' % otype] = get_min_avg_max(otype, 'latency', iid)
+			info['%s_exectime' % otype] = get_min_avg_max(otype, 'execution_time', iid)
+
+	return result_set
+
+def fmt_min_avg_max(lat, thresh={}):
+	values = []
+	keys = []
+	for (k, v) in lat.items():
+		if v == None:
+			continue
+		v_color = ''
+		max_v = thresh.get(k, -1)
+		if max_v >= 0 and max_v < v:
+			v_color = color.red
+		keys.insert(0, k)
+		values.insert(0, "%s%.3f%s" % (v_color, v, color.reset))
+
+	if not values and not keys:
+		return ": %s%s%s" % (color.red, "Unable to retrieve data", color.reset)
+	
+	ret = "(%s): %s" % (' / '.join(keys), ' / '.join(values))
+	return ret
+
+dbc = False
+def cmd_status(args):
+	global dbc, dbopt
+	db_host = dbopt.get('host', 'localhost')
+	db_name = dbopt.get('name', 'merlin')
+	db_user = dbopt.get('user', 'merlin')
+	db_pass = dbopt.get('pass', 'merlin')
+	db_type = dbopt.get('type', 'mysql')
+
+	high_latency = {}
+	inactive = {}
+	mentioned = {}
+
+	# now we load whatever database driver is appropriate
+	if db_type == 'mysql':
+		try:
+			import MySQLdb as db
+		except:
+			print("Failed to import MySQLdb")
+			print("Install mysqldb-python or MySQLdb-python to make this command work")
+			sys.exit(1)
+	elif db_type in ['postgres', 'psql', 'pgsql']:
+		try:
+			import pgdb as db
+		except:
+			print("Failed to import pgdb")
+			print("Install postgresql-python to make this command work")
+			sys.exit(1)
+
+	#print("Connecting to %s on %s with %s:%s as user:pass" %
+	#	(db_name, db_host, db_user, db_pass))
+	conn = db.connect(host=db_host, user=db_user, passwd=db_pass, db=db_name)
+	dbc = conn.cursor()
+	status = get_node_status()
+	latency_thresholds = {'min': -1.0, 'avg': 100.0, 'max': -1.0}
+	sinfo = sorted(status.items())
+	host_checks = get_num_checks('host')
+	service_checks = get_num_checks('service')
+	print("Total checks (host / service): %d / %d" % (host_checks, service_checks))
+
+	for (name, info) in sinfo:
+		print("")
+		iid = info.pop('instance_id', 0)
+		is_running = info.pop('is_running')
+		name = "#%02d: %s" % (iid, name)
+		name_len = len(name) + 9
+		if is_running:
+			name += " (%sACTIVE%s)" % (color.green, color.reset)
+		else:
+			name += " (%sINACTIVE%s)" % (color.red, color.reset)
+			name_len += 2
+
+		print("%s\n%s" % (name, '-' * name_len))
+		last_alive = info.pop('last_alive')
+		if not last_alive:
+			print("%sUnable to determine when this node was last alive%s" %
+				(color.red, color.reset))
+		else:
+			if last_alive + 20 >= time.time():
+				la_color = color.green
+			else:
+				la_color = color.red
+				last_alive = 0
+
+			print("Last alive: %s (%d) (%s%s ago%s)" %
+				(time.strftime("%F %H:%m:%d", time.localtime(last_alive)),
+				last_alive, la_color, time_delta(last_alive), color.reset
+				))
+
+		hchecks = info.pop('host_checks')
+		schecks = info.pop('service_checks')
+		hc_color = sc_color = ''
+		if hchecks == 0 or (hchecks == host_checks and num_nodes > 1):
+			hc_color = color.red
+		if schecks == 0 or (schecks == service_checks and num_nodes > 1):
+			sc_color = color.red
+		print("Checks (host/service): %s%d%s / %s%d%s  (%s%.2f%%%s / %s%.2f%%%s)" %
+			(hc_color, hchecks, color.reset, sc_color, schecks, color.reset,
+			hc_color, float(hchecks) / float(host_checks) * 100, color.reset,
+			sc_color, float(schecks) / float(service_checks) * 100, color.reset))
+
+		# if this node has never reported any checks, we can't
+		# very well print out its latency or execution time values
+		if not hchecks and not schecks:
+			continue
+		host_lat = fmt_min_avg_max(info.pop('host_latency'), latency_thresholds)
+		service_lat = fmt_min_avg_max(info.pop('service_latency'), latency_thresholds)
+		host_exectime = fmt_min_avg_max(info.pop('host_exectime'))
+		service_exectime = fmt_min_avg_max(info.pop('service_exectime'))
+		print("Host latency    %s" % host_lat)
+		print("Service latency %s" % service_lat)
+		#print("Host check execution time    %s" % host_exectime)
+		#print("Service check execution time %s" % service_exectime)
+
+		# should be empty by now
+		for (k, v) in info.items():
+			print("%s = %s" % (k, v))
+
+	conn.close()
 
 ## node commands ##
 # list configured nodes, capable of filtering by type
