@@ -215,20 +215,26 @@ usage: mon node <command> [options]
 
 Command overview
 ----------------
-  add <name> type=[peer|poller|master] [var1=value] [varN=value]
-    Adds a node with the designated type and variables
+ add <name> type=[peer|poller|master] [var1=value] [varN=value]
+   Adds a node with the designated type and variables
 
-  remove <name1> [name2] [nameN]
-    Removes a set of pollers
+ remove <name1> [name2] [nameN]
+   Removes a set of pollers
 
-  list [--type=poller,peer,master]
-    Lists all nodes of the (optionally) specified type
+ list [--type=poller,peer,master]
+   Lists all nodes of the (optionally) specified type
 
-  show [--type=poller,peer,master]]
-    Show all nodes of the selected type(s) in a shell-friendly fashion.
+ show [--type=poller,peer,master]]
+   Show all nodes of the selected type(s) in a shell-friendly fashion.
 
-  show <name1> [name2] [nameN...]
-    Show named nodes. eval'able from shell if only one node is chosen.
+ show <name1> [name2] [nameN...]
+   Show named nodes. eval'able from shell if only one node is chosen.
+
+ status
+   Show status of all nodes configured in the running Merlin daemon
+   Red text points to problem areas, such as high latency or the node
+   being inactive, not handling any checks,  or not sending regular
+   enough program_status updates.
 """)
 
 def get_min_avg_max(table, column, iid=False):
