@@ -53,7 +53,7 @@ static int handle_service_status(merlin_header *hdr, void *buf)
 	obj = find_service(st_obj->host_name, st_obj->service_description);
 	if (!obj) {
 		lerr("Service '%s' on host '%s' not found. Ignoring %s event",
-		     st_obj->host_name, st_obj->service_description,
+		     st_obj->service_description, st_obj->host_name,
 		     callback_name(hdr->type));
 
 		return -1;
