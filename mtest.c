@@ -2,6 +2,7 @@
  * This file contains tests for the "blockify()/deblockify()"
  * function, ensuring we don't garble data before we send it off
  */
+#define _GNU_SOURCE 1
 #define NSCORE
 #include <dlfcn.h>
 #include "nagios/nebstructs.h"
@@ -23,6 +24,7 @@
 #define HOST_NAME "webex"
 #define SERVICE_DESCRIPTION "http"
 #define OUTPUT "The plugin output"
+#define LONG_PLUGIN_OUTPUT "some\nrandom\ndata"
 #define PERF_DATA "random_value='5;5;5'"
 #define CONTACT_NAME "ae"
 #define AUTHOR_NAME "Pelle plutt"
@@ -130,7 +132,7 @@ static void load_hosts_and_services(void)
 		hosts[i].name = dbi_result_get_string_copy_idx(result, 1);
 		hosts[i].plugin_output = OUTPUT;
 		hosts[i].perf_data = PERF_DATA;
-		hosts[i].long_plugin_output = NULL;
+		hosts[i].long_plugin_output = LONG_PLUGIN_OUTPUT;
 		i++;
 	}
 	ok_uint(i, num_hosts, "number of hosts loaded");
@@ -143,6 +145,9 @@ static void load_hosts_and_services(void)
 	while (i < num_services && dbi_result_next_row(result)) {
 		services[i].host_name = dbi_result_get_string_copy_idx(result, 1);
 		services[i].description = dbi_result_get_string_copy_idx(result, 2);
+		services[i].plugin_output = OUTPUT;
+		services[i].perf_data = PERF_DATA;
+		services[i].long_plugin_output = LONG_PLUGIN_OUTPUT;
 		i++;
 	}
 	ok_uint(i, num_services, "number of services loaded");
@@ -377,6 +382,10 @@ static void test_host_check(void)
 	 * rows have the state we've set
 	 */
 	sql_query("UPDATE host SET current_state = 155");
+	if (host_perf_table)
+		sql_query("TRUNCATE %s", host_perf_table);
+	sql_query("TRUNCATE report_data");
+	zzz();
 	for (i = 0; i < num_hosts; i++) {
 		host *h = &hosts[i];
 
@@ -394,8 +403,17 @@ static void test_host_check(void)
 		merlin_mod_hook(NEBCALLBACK_HOST_CHECK_DATA, ds);
 	}
 	zzz();
-	verify_count("host status updates db properly", num_hosts,
+	verify_count("host checks update db properly", num_hosts,
 				 "SELECT * FROM host WHERE current_state = 4");
+	if (host_perf_table) {
+		char *query;
+		asprintf(&query, "select * from %s", host_perf_table);
+		verify_count("host checks are inserted into perfdata table",
+					 num_hosts, query);
+		free(query);
+	}
+	verify_count("host checks update report_data", num_hosts,
+				 "SELECT * FROM report_data WHERE event_type = 801");
 	free(ds);
 	free(orig);
 }
@@ -416,6 +434,10 @@ static void test_service_check(void)
 	 * rows have the state we've set
 	 */
 	sql_query("UPDATE service SET current_state = 155");
+	if (service_perf_table)
+		sql_query("TRUNCATE %s", service_perf_table);
+	sql_query("TRUNCATE report_data");
+	zzz();
 	for (i = 0; i < num_services; i++) {
 		service *s = &services[i];
 
@@ -436,8 +458,16 @@ static void test_service_check(void)
 		merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, ds);
 	}
 	zzz();
-	verify_count("service status updates db properly", num_services,
+	verify_count("service checks updates db properly", num_services,
 				 "SELECT * FROM service WHERE current_state = 15");
+	if (service_perf_table) {
+		char *query;
+		asprintf(&query, "SELECT * FROM %s", service_perf_table);
+		verify_count("service checks are inserted into perfdata table",
+					 num_services, query);
+	}
+	verify_count("service checks update report_data", num_services,
+				 "SELECT * FROM report_data WHERE event_type = 701");
 
 	free(ds);
 	free(orig);
