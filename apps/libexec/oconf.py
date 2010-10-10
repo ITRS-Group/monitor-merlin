@@ -675,7 +675,7 @@ def parse_object_config(files = False):
 	map(parse_nagios_objects, files)
 	post_parse()
 
-def module_init():
+def module_init(args):
 	global nagios_cfg, progname
 	if os.path.basename(sys.argv[0]).startswith('mon'):
 		progname = "mon oconf"
@@ -687,6 +687,6 @@ def module_init():
 		i = 1
 
 	# arguments viable for all our commands are parsed here
-	for arg in sys.argv[i:]:
+	for arg in args:
 		if arg.startswith('--nagios-cfg='):
 			nagios_cfg = arg.split('=', 1)[1]

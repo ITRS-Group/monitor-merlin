@@ -291,6 +291,6 @@ else:
 	# intialization routines
 	init = init_funcs.get(cmd, False)
 	if init != False:
-		init()
+		init(args)
 
 	commands[cmd](args)

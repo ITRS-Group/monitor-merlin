@@ -158,14 +158,15 @@ wanted_names = []
 ntype = 'poller'
 dbopt = {}
 
+def module_init(args):
 def module_init():
 	global merlin_conf, wanted_types, wanted_names, configured_nodes
 	global dbopt
 
-	i = 2
-	for arg in sys.argv[i:]:
+	i = 0
+	for arg in args:
 		if arg.startswith('--merlin-cfg=') or arg.startswith('--config='):
-			merlin_conf = arg.split('=', 1)[1]
+			mconf.config_file = arg.split('=', 1)[1]
 		elif arg.startswith('--type='):
 			wanted_types = arg.split('=')[1].split(',')
 		elif arg.startswith('--name='):
@@ -175,7 +176,7 @@ def module_init():
 			i += 1
 			continue
 
-		popped = sys.argv.pop(i)
+		popped = args.pop(i)
 		i += 1
 
 	# load the configured nodes
