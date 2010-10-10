@@ -171,7 +171,13 @@ def parse():
 		ary = re.split("[\t ]+", comp.name, 1)
 		if len(ary) != 2 or not ary[0] in merlin_node.valid_types:
 			continue
-		node = merlin_node(ary[1], ary[0])
+		(ntype, name) = ary
+		if ntype == 'slave':
+			ntype = 'poller'
+		elif ntype == 'noc':
+			ntype = 'master'
+
+		node = merlin_node(name, ntype)
 		node.comp = comp
 		node.path = config_file
 		num_nodes[ntype] += 1
