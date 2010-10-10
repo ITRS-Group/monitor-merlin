@@ -63,9 +63,15 @@ if test "$pollers"; then
 	split_args=
 	for node in $pollers; do
 		HOSTGROUP=
-		ADDRESS=
-		eval $(mon node show $node)
-		split_args="$split_args $conf_dir/$node:$HOSTGROUP"
+		conf=$(mon node show $node)
+		HOSTGROUP=$(echo "$conf" | sed -n 's/^HOSTGROUP=//p')
+		if test -z "$HOSTGROUP"; then
+			echo "Poller $node has no hostgroups assigned to it."
+			echo "Merlin doesn't accept pollers without hostgroups."
+			echo "Please fix your configuration."
+			exit 1
+		fi
+		split_args="$split_args '$conf_dir/$node:$HOSTGROUP'"
 	done
 	cmd="mon oconf split $split_args"
 #	echo "Running: $cmd"
