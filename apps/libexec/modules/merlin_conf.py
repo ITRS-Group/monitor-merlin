@@ -174,6 +174,7 @@ def parse():
 		node = merlin_node(ary[1], ary[0])
 		node.comp = comp
 		node.path = config_file
+		num_nodes[ntype] += 1
 		configured_nodes[node.name] = node
 		for (k, v) in comp.params:
 			node.set(k, v)
