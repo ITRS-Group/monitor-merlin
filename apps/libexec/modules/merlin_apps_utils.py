@@ -1,6 +1,6 @@
 #!/usr/bin/python -tt
 
-import sys, os, time
+import sys, os, time, errno
 
 class ansi_color:
 	_color_names = "grey red green yellow blue magenta cyan white"
@@ -41,3 +41,12 @@ def time_delta(then, now=time.time()):
 
 	ret += '%ds' % seconds
 	return ret
+
+def mkdir_p(dirname, mode=0777):
+	try:
+		os.makedirs(dirname, mode)
+	except OSError, exc:
+		if exc.errno == errno.EEXIST:
+			pass
+		else:
+			raise
