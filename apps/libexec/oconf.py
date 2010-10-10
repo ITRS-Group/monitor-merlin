@@ -7,6 +7,8 @@ modpath = os.path.dirname(__file__) + '/modules'
 if not modpath in sys.path:
 	sys.path.append(modpath)
 from compound_config import *
+from merlin_apps_utils import *
+import merlin_conf as mconf
 
 nagios_cfg = '/opt/monitor/etc/nagios.cfg'
 object_cfg_files = {}
@@ -648,6 +650,40 @@ def cmd_split(args):
 	for param in argparams:
 		run_param(param)
 
+cache_dir = '/var/cache/merlin'
+config_dir = cache_dir + '/config'
+def cmd_nodesplit(args):
+	global cache_dir, config_dir
+
+	parse_object_config([object_cache])
+	cache_dir = '/var/cache/merlin'
+	if not mconf.num_nodes['poller']:
+		print("No pollers configured, so nothing to do.")
+		return True
+
+	for arg in args:
+		if arg.startswith('--cache-dir='):
+			config_dir = arg.split('=', 1)[1]
+
+	config_dir = cache_dir + '/config'
+	mkdir_p(config_dir)
+
+	params = []
+	for name, node in mconf.configured_nodes.items():
+		if node.ntype != 'poller':
+			continue
+		hostgroups = node.options.get('hostgroup', False)
+		if not hostgroups:
+			print("%s is a poller without hostgroups assigned to it." % name)
+			print("Fix your config, please")
+			sys.exit(1)
+
+		outfile = '%s/%s' % (config_dir, name)
+		params.append({'file': outfile, 'hostgroups': hostgroups})
+
+	map(run_param, params)
+
+
 def cmd_hglist(args):
 	parse_object_config([object_cache])
 	for k in sorted(nagios_objects['hostgroup'].keys()):
@@ -690,3 +726,7 @@ def module_init(args):
 	for arg in args:
 		if arg.startswith('--nagios-cfg='):
 			nagios_cfg = arg.split('=', 1)[1]
+		elif arg.startswith('--merlin-cfg='):
+			mconf.config_file = arg.split('=', 1)[1]
+
+	mconf.parse()
