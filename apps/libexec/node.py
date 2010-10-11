@@ -12,24 +12,23 @@ wanted_names = []
 def module_init(args):
 	global wanted_types, wanted_names
 
-	i = 0
+	rem_args = []
 	for arg in args:
 		if arg.startswith('--merlin-cfg=') or arg.startswith('--config='):
 			mconf.config_file = arg.split('=', 1)[1]
 		elif arg.startswith('--type='):
 			wanted_types = arg.split('=')[1].split(',')
+			print(wanted_types)
 		elif arg.startswith('--name='):
 			wanted_names = arg.split('=')[1].split(',')
 		else:
-			# not an argument we recognize, so ignore it
-			i += 1
+			# not an argument we recognize, so stash it and move on
+			rem_args += [arg]
 			continue
-
-		popped = args.pop(i)
-		i += 1
 
 	# load the merlin configuration, and thus all nodes
 	mconf.parse()
+	return rem_args
 
 def cmd_help(args=False):
 	print("""
