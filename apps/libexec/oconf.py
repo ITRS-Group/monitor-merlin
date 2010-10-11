@@ -680,13 +680,17 @@ def cmd_nodesplit(args):
 			print("Fix your config, please")
 			sys.exit(1)
 
-		node.oconf_file = '%s/%s' % (config_dir, name)
+		node.oconf_file = '%s/%s.cfg' % (config_dir, name)
 		params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
 
 	# If there are no pollers with hostgroups, we might as well
 	# go home.
 	if not len(params):
 		return
+
+	# make sure files are created with the proper mode
+	# for the target system
+	old_umask = os.umask(022)
 
 	parse_object_config([object_cache])
 	map(run_param, params)
@@ -722,37 +726,60 @@ def cmd_push(args):
 		# we don't push to master nodes
 		if node.ntype == 'master':
 			continue
-		# if this node doesn't have an object config file, we ignore
-		# it completely
-		if not node.oconf_file:
+
+		# Copy recursively in 'archive' mode
+		rsync_args = ['rsync', '-aotz', '--delete']
+		rsync_args += ['-b', '--backup-dir=/var/cache/merlin/backups']
+
+		# Use compression by default
+		ssh_cmd = 'ssh -C'
+
+		if not node.oconf_file and node.ntype == 'poller':
 			continue
 
-		# use compression by default
-		scp_args = ['scp', '-C']
-		oconf_dest = node.options.get('oconf_dest', '/opt/monitor/etc/oconf/from-master.cfg')
-		ssh_user = node.options.get('oconf_ssh_user', 'monitor')
+		# now we set up source and destination. Pollers and peers
+		# have different demands for this, and peers can be
+		# configured to either transport only object configuration
+		# (put it in a directory on its own and ship only objects)
+		# or everything (ship /opt/monitor/etc to /opt/monitor)
+		if node.ntype == 'poller':
+			# pollers without an oconf_file are ignored
+			if not node.oconf_file:
+				continue
+			source = node.oconf_file
+			default_dest = '/opt/monitor/etc/oconf/from-master.cfg'
+		else:
+			source = node.options.get('oconf_source', '/opt/monitor/etc')
+			default_dest = '/opt/monitor'
+
+		oconf_dest = node.options.get('oconf_dest', default_dest)
+		ssh_user = node.options.get('oconf_ssh_user', 'root')
 		ssh_key = get_ssh_key(node)
-		user_address_dest = "%s@%s:%s" % (ssh_user, node.address, oconf_dest)
 		if ssh_key and ssh_key != True:
 			if not os.path.isfile(ssh_key):
 				print("ssh key '%s' for node '%s' not found" % (ssh_key, name))
 				print("We can't push config without keys being properly set up")
 				continue
-			scp_args += ['-i', ssh_key]
+			ssh_cmd += ' -i ' + ssh_key
 
 		# if we're not running from console, we need to disable
 		# keyboard-interactive authentication to avoid hanging
-		if True or not os.isatty(sys.stdout.fileno()):
-			scp_args += ['-o', 'KbdInteractiveAuthentication=no']
+		if not os.isatty(sys.stdout.fileno()):
+			ssh_cmd += '-o KbdInteractiveAuthentication=no'
 
-		scp_args += [node.oconf_file, user_address_dest]
-		ret = os.spawnvp(os.P_WAIT, 'scp', scp_args)
+		ssh_cmd += ' -l ' + ssh_user
+		user_address_dest = "%s@%s:%s" % (ssh_user, node.address, oconf_dest)
+		address_dest = node.address + ':' + oconf_dest
+		rsync_args += [source, '-e', ssh_cmd, address_dest]
+#		scp_args += [source, user_address_dest]
+		ret = os.spawnvp(os.P_WAIT, 'rsync', rsync_args)
 		if ret != 0:
-			print("scp returned non-zero (%d). Breakage?")
+			print("rsync returned non-zero (%d). Breakage?")
 			print("Won't restart monitor and merlin on node '%s'" % name)
 			errors += 1
+			continue
 
-		if not node.ctrl("df -h"):
+		if not node.ctrl("mon restart"):
 			print("Restart failed for node '%s'" % name)
 			errors += 1
 
