@@ -689,6 +689,75 @@ def cmd_nodesplit(args):
 	map(run_param, params)
 
 
+def get_ssh_key(node):
+	ssh_key = node.options.get('oconf_ssh_key', False)
+	if ssh_key and os.path.isfile(ssh_key):
+		return ssh_key
+	home = os.getenv('HOME', False)
+	if not home:
+		return False
+	sshdir = home + "/.ssh"
+	if not os.path.isdir(sshdir):
+		return False
+
+	# Try various keyfiles in the preferred order.
+	# If we find one, we simply return 'true', since
+	# ssh will look for the keys there too and may
+	# choose one with better encryption (or whatever).
+	for keyfile in ['id_rsa', 'id_dsa', 'identity']:
+		if os.path.isfile(sshdir + '/' + keyfile):
+			return True
+
+	# no key seems to exist
+	return False
+
+
+def cmd_push(args):
+	errors = 0
+	cmd_nodesplit(args)
+	for name, node in mconf.configured_nodes.items():
+		# we don't push to master nodes
+		if node.ntype == 'master':
+			continue
+		# if this node doesn't have an object config file, we ignore
+		# it completely
+		if not node.oconf_file:
+			continue
+
+		# use compression by default
+		scp_args = ['scp', '-C']
+		oconf_dest = node.options.get('oconf_dest', '/opt/monitor/etc/oconf/from-master.cfg')
+		ssh_user = node.options.get('oconf_ssh_user', 'monitor')
+		ssh_key = get_ssh_key(node)
+		user_address_dest = "%s@%s:%s" % (ssh_user, node.address, oconf_dest)
+		if ssh_key and ssh_key != True:
+			if not os.path.isfile(ssh_key):
+				print("ssh key '%s' for node '%s' not found" % (ssh_key, name))
+				print("We can't push config without keys being properly set up")
+				continue
+			scp_args += ['-i', ssh_key]
+
+		# if we're not running from console, we need to disable
+		# keyboard-interactive authentication to avoid hanging
+		if True or not os.isatty(sys.stdout.fileno()):
+			scp_args += ['-o', 'KbdInteractiveAuthentication=no']
+
+		scp_args += [node.oconf_file, user_address_dest]
+		ret = os.spawnvp(os.P_WAIT, 'scp', scp_args)
+		if ret != 0:
+			print("scp returned non-zero (%d). Breakage?")
+			print("Won't restart monitor and merlin on node '%s'" % name)
+			errors += 1
+
+		if not node.ctrl("df -h"):
+			print("Restart failed for node '%s'" % name)
+			errors += 1
+
+	# splitting, pushing and restarting is done. If there were
+	# errors, we exit with non-zero exit status
+	if errors:
+		sys.exit(1)
+
 def cmd_hglist(args):
 	parse_object_config([object_cache])
 	for k in sorted(nagios_objects['hostgroup'].keys()):
