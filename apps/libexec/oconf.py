@@ -587,12 +587,11 @@ def run_param(param):
 
 	write_hg_list(param['file'], interesting['hostgroup'])
 
-progname = sys.argv[0]
 def usage(msg = False):
 	if msg:
 		print(msg)
 
-	print("usage: %s <command> [options]" % progname)
+	print("usage: mon oconf <command> [options]" % progname)
 	print("\nWhere <command> is one of the following:\n")
 	print("  split       split the config based on hostgroups")
 	print("  hash        print sha1 hash of running configuration")
@@ -791,14 +790,6 @@ def parse_object_config(files = False):
 
 def module_init(args):
 	global nagios_cfg, progname
-	if os.path.basename(sys.argv[0]).startswith('mon'):
-		progname = "mon oconf"
-		i = 2
-		if len(sys.argv) == 2:
-			usage()
-	else:
-		progname = os.path.basename(sys.argv[0])
-		i = 1
 
 	# arguments viable for all our commands are parsed here
 	for arg in args:
