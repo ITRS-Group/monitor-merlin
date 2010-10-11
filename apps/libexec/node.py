@@ -273,11 +273,11 @@ def cmd_add(args):
 	if len(args) < 1:
 		return False
 	name = args[0]
-	if name in configured_nodes.keys():
+	if name in mconf.configured_nodes.keys():
 		print("%s is already configured. Aborting" % name)
 		return False
 
-	node = merlin_node(name)
+	node = mconf.merlin_node(name)
 	node.path = merlin_conf
 
 	for arg in args[1:]:
@@ -300,11 +300,11 @@ def _cmd_edit(args):
 		return False
 
 	name = args[0]
-	if not name in configured_nodes.keys():
+	if not name in mconf.configured_nodes.keys():
 		print("%s isn't configured yet. Use 'add' to add it" % name)
 		return False
 
-	node = merlin_node(args[0])
+	node = mconf.merlin_node(args[0])
 	for arg in args[1:]:
 		node.set(arg)
 
@@ -317,13 +317,13 @@ def cmd_remove(args):
 		return
 
 	for arg in args:
-		if not arg in configured_nodes:
+		if not arg in mconf.configured_nodes:
 			print("'%s' is not a configured node. Try the 'list' command" % arg)
 			continue
 
-		node = configured_nodes.pop(arg)
+		node = mconf.configured_nodes.pop(arg)
 		sed_range = str(node.comp.line_start) + ',' + str(node.comp.line_end)
-		cmd_args = ['sed', '-i', sed_range + 'd', merlin_conf]
+		cmd_args = ['sed', '-i', sed_range + 'd', mconf.config_file]
 		os.spawnvp(os.P_WAIT, 'sed', cmd_args)
 
 
@@ -350,15 +350,15 @@ def cmd_ctrl(args):
 		node.ctrl(' '.join(cmd_args))
 
 def _cmd_rename(args):
-	if len(args) != 2 or not args[0] in configured_nodes.keys():
+	if len(args) != 2 or not args[0] in mconf.configured_nodes.keys():
 		print("Which node do you want to rename? Try the 'list' command")
 		return False
 
-	node = configured_nodes[args[0]]
+	node = mconf.configured_nodes[args[0]]
 	dest = args[1]
-	if dest in configured_nodes.keys():
+	if dest in mconf.configured_nodes.keys():
 		print("A node named '%s' already exists. Remove it first" % dest)
 		return False
-	configured_nodes.pop(args[0])
-	configured_nodes[dest] = node
+	mconf.configured_nodes.pop(args[0])
+	mconf.configured_nodes[dest] = node
 	node.rename(dest)
