@@ -358,7 +358,7 @@ class nagios_group_member(nagios_object):
 class nagios_contact(nagios_group_member):
 	otype = 'contact'
 	slave_keys = {
-		'contactgroups': 'Mcontactgroup',
+#		'contactgroups': 'Mcontactgroup',
 		'host_notification_period': 'timeperiod',
 		'service_notification_period': 'timeperiod',
 		'host_notification_commands': 'command',
