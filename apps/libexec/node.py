@@ -332,6 +332,22 @@ def cmd_ctrl(args):
 		print("Control without commands seems quite pointless. I'm going home")
 		print("Try 'mon node help' for some assistance")
 		sys.exit(1)
+	nodes = []
+	cmd_args = []
+	i = 0
+	for arg in args:
+		node = mconf.configured_nodes.get(arg, False)
+		if node == False:
+			cmd_args = args[i + 1:]
+			break
+		nodes.append(node)
+
+	if not len(nodes) or not len(cmd_args):
+		print("No nodes, or no commands to send. Aborting")
+		sys.exit(1)
+
+	for node in nodes:
+		node.ctrl(' '.join(cmd_args))
 
 def _cmd_rename(args):
 	if len(args) != 2 or not args[0] in configured_nodes.keys():
