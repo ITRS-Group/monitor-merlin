@@ -591,19 +591,35 @@ def usage(msg = False):
 	if msg:
 		print(msg)
 
-	print("usage: mon oconf <command> [options]" % progname)
-	print("\nWhere <command> is one of the following:\n")
-	print("  split       split the config based on hostgroups")
-	print("  hash        print sha1 hash of running configuration")
-	print("  changed     print last modification time of all files")
-	print("  files       print the configuration files in alphabetical order")
-	print("  hglist      print a sorted list of all configured hostgroups")
-	print("  push        push object configuration to all peers and pollers")
-	print("\nand [options] depends on the command you choose to run.\n")
-	print("Command options")
-	print("---------------")
-	print("  split <outfile:hostgrp1,hostgrp2,hostgrpN...>")
-	print("     print the configuration for hostgroups 1 through N to outfile")
+	print("""
+usage: mon oconf <command> [options]
+
+Command overview
+----------------
+ split <outfile:hostgroup1,hostgroup2,hostgroupN>
+   write config for hostgroup1,hostgroup2 and hostgroupN into outfile
+
+ nodesplit
+   same as above, but use merlin's config to split config
+
+ hash
+   print sha1 hash of running configuration
+
+ changed
+   print last modification time of all files
+
+ files
+   print the configuration files in alphabetical order
+
+ hglist
+   print a sorted list of all configured hostgroups
+
+ push
+   Split configuration based on merlin's peer and poller configuration
+   and send object configuration to all peers and pollers, restarting
+   those that receive a configuration update. ssh keys need to be set
+   up for this to be usable without admin supervision.
+""")
 	sys.exit(1)
 
 def cmd_help(args):
@@ -816,7 +832,7 @@ def parse_object_config(files = False):
 	post_parse()
 
 def module_init(args):
-	global nagios_cfg, progname
+	global nagios_cfg
 
 	# arguments viable for all our commands are parsed here
 	for arg in args:

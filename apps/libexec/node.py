@@ -51,6 +51,9 @@ Command overview
  show <name1> [name2] [nameN...]
    Show named nodes. eval'able from shell if only one node is chosen.
 
+ ctrl <name> <command>
+   Execute <command> on the remote node <name>.
+
  status
    Show status of all nodes configured in the running Merlin daemon
    Red text points to problem areas, such as high latency or the node
