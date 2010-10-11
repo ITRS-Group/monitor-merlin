@@ -634,6 +634,10 @@ def cmd_split(args):
 	argparams = []
 
 	for arg in args:
+		# Ignore global arguments
+		if arg.startswith('--'):
+			continue
+
 		# default case. outfile:hg1,hg2,hgN... argument
 		ary = arg.split(':')
 		if len(ary) != 2:
