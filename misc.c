@@ -93,6 +93,7 @@ static struct file_list *recurse_cfg_dir(char *path, struct file_list *list,
 
 	while ((df = readdir(dp))) {
 		unsigned len;
+		struct file_list *fl;
 
 		if (!df->d_name)
 			continue;
@@ -116,15 +117,10 @@ static struct file_list *recurse_cfg_dir(char *path, struct file_list *list,
 			continue;
 
 		/* found a file matching "*.cfg" pattern */
-		if (!list) {
-			list = malloc(sizeof(struct file_list));
-		}
-		else {
-			list->next = malloc(sizeof(struct file_list));
-			list = list->next;
-		}
+		fl = malloc(sizeof(*fl));
+		fl->next = list;
+		list = fl;
 
-		list->next = NULL;
 		list->name = malloc(wdl + len + 2);
 		memcpy(&list->st, &st, sizeof(struct stat));
 		sprintf(list->name, "%s/%s", wd, df->d_name);
@@ -143,7 +139,6 @@ static struct file_list *get_cfg_files(char *str, struct file_list *list)
 {
 	char *p;
 	int size, i;
-	struct file_list *base = NULL;
 
 	p = read_strip_split(str, &size);
 	if (!p || !size)
@@ -151,22 +146,24 @@ static struct file_list *get_cfg_files(char *str, struct file_list *list)
 
 	for (i = 0; i < size; i += strlen(&p[i]) + 1) {
 		if (!prefixcmp(&p[i], "cfg_file=")) {
+			struct file_list *fl;
+
 			i += 9;
-			if (!list) {
-				base = list = malloc(sizeof(struct file_list));
-				if (!base)
-					return NULL;
-			}
-			else {
-				list->next = malloc(sizeof(struct file_list));
-				if (!list->next)
-					return base ? base : list;
-				list = list->next;
-			}
-			list->next = NULL;
+
+			/*
+			 * get a new list entry and point its tail
+			 * to the previous one. If the previous one
+			 * was NULL, that means its our sentinel
+			 */
+			fl = malloc(sizeof(*fl));
+			if (!fl)
+				return list;
+			fl->next = list;
+			list = fl;
+
 			list->name = strdup(&p[i]);
 			if (!list->name)
-				return base ? base : list;
+				return list;
 			stat(list->name, &list->st);
 		}
 		else if (!prefixcmp(&p[i], "cfg_dir=")) {
@@ -175,7 +172,7 @@ static struct file_list *get_cfg_files(char *str, struct file_list *list)
 		}
 	}
 
-	return base ? base : list;
+	return list;
 }
 
 /* returns the last timestamp of a configuration change */
