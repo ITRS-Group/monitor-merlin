@@ -41,7 +41,7 @@ merlin daemon, which then takes appropriate action.
 %package apps
 Summary: Applications used to set up and aid a merlin/ninja installation
 Group: op5/Monitor
-Requires: libdbi
+Requires: libdbi, rsync, MySQL-python
 Obsoletes: monitor-distributed
 
 %description apps
@@ -50,7 +50,11 @@ Merlin in order to make them both fully support everything that a
 fully fledged op5 Monitor install is supposed to handle.
 'mon' works as a single entry point wrapper and general purpose helper
 tool for those applications and a wide variety of other different
-tasks.
+tasks, such as showing monitor's configuration files, calculating
+sha1 checksums and the latest changed such file, as well as
+preparing object configuration for pollers, helping with ssh key
+management and allround tasks regarding administering a distributed
+network monitoring setup.
 
 %prep
 %setup -q
