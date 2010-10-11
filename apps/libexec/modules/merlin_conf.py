@@ -14,6 +14,7 @@ class merlin_node:
 		self.ssh_key = ''
 		self.ssh_user = 'monitor'
 		self.port = '15551'
+		self.oconf_file = False
 
 		# the compound object has info we will need, so
 		# prepare a storage area for it

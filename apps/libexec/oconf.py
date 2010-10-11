@@ -678,8 +678,8 @@ def cmd_nodesplit(args):
 			print("Fix your config, please")
 			sys.exit(1)
 
-		outfile = '%s/%s' % (config_dir, name)
-		params.append({'file': outfile, 'hostgroups': hostgroups})
+		node.oconf_file = '%s/%s' % (config_dir, name)
+		params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
 
 	map(run_param, params)
 
