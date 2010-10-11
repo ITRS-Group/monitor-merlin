@@ -13,7 +13,7 @@ class merlin_node:
 		self.hostgroup = []
 		self.pushed_logs_dir = ''
 		self.ssh_key = ''
-		self.ssh_user = 'monitor'
+		self.ssh_user = False
 		self.port = '15551'
 		self.oconf_file = False
 
