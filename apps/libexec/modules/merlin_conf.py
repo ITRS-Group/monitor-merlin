@@ -130,13 +130,13 @@ class merlin_node:
 			print("%s=%s" % (k, v))
 
 
-	def ctrl(self, args):
+	def ctrl(self, command):
 		if not self.ssh_user:
 			self.ssh_user = 'root'
 		prefix_args = ["ssh", self.ssh_user + "@" + self.address]
 		if self.ssh_key:
 			prefix_args += ['-i', self.ssh_key]
-		all_args = prefix_args + [args]
+		all_args = prefix_args + [command]
 		print("Connecting to '%s' with the following command:\n  %s"
 			  % (self.name, ' '.join(all_args)))
 		ret = os.spawnvp(os.P_WAIT, "ssh", all_args)
