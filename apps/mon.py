@@ -291,6 +291,8 @@ else:
 	# intialization routines
 	init = init_funcs.get(cmd, False)
 	if init != False:
-		init(args)
+		rem_args = init(args)
+		if type(rem_args) == type([]):
+			args = rem_args
 
 	commands[cmd](args)
