@@ -8,12 +8,14 @@ class ansi_color:
 	esc = '%s[' % chr(27)
 	def __init__(self, f=sys.stdout.fileno()):
 		if not os.isatty(f):
+			self.bright = ''
 			self.reset = ''
 			for attr in self._color_names.split():
 				setattr(self, attr, '')
 			for attr in self._attr_names.split():
 				setattr(self, attr, '')
 		else:
+			self.bright = '\033m\033[1m'
 			self.reset = '%s0m' % self.esc
 			i = 0
 			for name in self._color_names.split():
