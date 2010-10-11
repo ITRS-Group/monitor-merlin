@@ -1,4 +1,4 @@
-import re
+import sys, os, re
 from compound_config import *
 
 class merlin_node:
