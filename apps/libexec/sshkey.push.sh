@@ -68,15 +68,15 @@ if test -z "$key"; then
 		key=~/.ssh/id_dsa.pub
 	else
 		echo "--key not specified and no valid keys found"
-		ssh-keygen -t rsa -b 2048
-	fi
-else
-	if ! test -r "$key"; then
-		echo "Key '$key' doesn't exist. Generate it first with ssh-keygen"
-		exit 1
+		ssh-keygen -t rsa -b 2048 -N "" -f ~/.ssh/id_rsa
+		key=~/.ssh/id_rsa.pub
 	fi
 fi
-test -f "$key" || exit 0
+
+if ! test -r "$key"; then
+	echo "Key '$key' doesn't exist. Generate it first with ssh-keygen"
+	exit 1
+fi
 
 for dest in $destinations; do
 	echo "Appending $key to $dest"
