@@ -655,7 +655,6 @@ config_dir = cache_dir + '/config'
 def cmd_nodesplit(args):
 	global cache_dir, config_dir
 
-	parse_object_config([object_cache])
 	cache_dir = '/var/cache/merlin'
 	if not mconf.num_nodes['poller']:
 		print("No pollers configured, so nothing to do.")
@@ -681,6 +680,12 @@ def cmd_nodesplit(args):
 		node.oconf_file = '%s/%s' % (config_dir, name)
 		params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
 
+	# If there are no pollers with hostgroups, we might as well
+	# go home.
+	if not len(params):
+		return
+
+	parse_object_config([object_cache])
 	map(run_param, params)
 
 
