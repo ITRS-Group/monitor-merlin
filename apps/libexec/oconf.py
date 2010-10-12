@@ -738,6 +738,8 @@ def get_ssh_key(node):
 def cmd_push(args):
 	errors = 0
 	cmd_nodesplit(args)
+	restart_nodes = {}
+
 	for name, node in mconf.configured_nodes.items():
 		# we don't push to master nodes
 		if node.ntype == 'master':
@@ -795,6 +797,12 @@ def cmd_push(args):
 			errors += 1
 			continue
 
+		restart_nodes[name] = node
+
+	# we restart all nodes after having pushed configuration to all
+	# of them, or we might trigger an avalanche of config pushes
+	# that trigger and re-trigger each other.
+	for name, node in restart_nodes.items():
 		if not node.ctrl("mon restart"):
 			print("Restart failed for node '%s'" % name)
 			errors += 1
