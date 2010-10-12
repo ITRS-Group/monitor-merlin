@@ -2,6 +2,7 @@
 #define INCLUDE_node_h__
 
 #include <sys/types.h>
+#include <netinet/in.h>
 #include <sys/time.h>
 #include "cfgfile.h"
 #include "binlog.h"
