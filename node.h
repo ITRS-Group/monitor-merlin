@@ -51,7 +51,26 @@ struct merlin_event {
 } __attribute__((packed));
 typedef struct merlin_event merlin_event;
 
+/*
+ * New entries in this struct *must* be appended LAST for the change
+ * to not break backwards compatibility. When the receiving code
+ * expects a new entry from this struct to exist, it should take care
+ * to mark the size of the received packet and never access anything
+ * beyond it.
+ * Since it gets copied into pre-allocated memory, we needn't bother
+ * about the fields we never set. Newly added fields just shouldn't
+ * ever have an expected value of 0 when it exists, since that's what
+ * they will be if the sending end doesn't have the field we want to
+ * know about.
+ * Thus, we must make sure to always use fixed-size entries in this
+ * struct.
+ */
+#define MERLIN_NODEINFO_VERSION 0
 struct merlin_nodeinfo {
+	uint32_t version;       /* version of this structure (0 right now) */
+	uint32_t word_size;     /* bits per register (sizeof(void *) * 8) */
+	uint32_t byte_order;    /* 1234 = little, 4321 = big, ... */
+	uint32_t object_structure_version;
 	struct timeval start;   /* module (or daemon) start time */
 	time_t last_cfg_change; /* when config was last changed */
 	unsigned char config_hash[20];   /* SHA1 hash of object config hash */

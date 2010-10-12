@@ -483,7 +483,15 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 
 	linfo("Merlin Module Loaded");
 
+	/*
+	 * now we collect info about ourselves. Somewhat akin to a
+	 * capabilities and attributes list.
+	 */
 	memset(&self, 0, sizeof(self));
+	self.version = MERLIN_NODEINFO_VERSION;
+	self.word_size = __WORDSIZE;
+	self.byte_order = __BYTE_ORDER;
+	self.object_structure_version = CURRENT_OBJECT_STRUCTURE_VERSION;
 	gettimeofday(&self.start, NULL);
 	self.last_cfg_change = get_last_cfg_change();
 	get_config_hash(self.config_hash);

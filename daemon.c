@@ -549,8 +549,16 @@ static int handle_ipc_event(merlin_event *pkt)
 			return 0;
 
 		case CTRL_ACTIVE:
-			memcpy(&ipc.info, &pkt->body, sizeof(ipc.info));
-			/* this gets propagated, so don't return here */
+			/*
+			 * handle_ctrl_active() should basically never return
+			 * anything but zero from our module. If it does, it
+			 * will already have logged everything the user needs
+			 * to know, so we can just return without further
+			 * actions
+			 */
+			if (handle_ctrl_active(&ipc, pkt) < 0) {
+				return 0;
+			}
 
 			/*
 			 * when we read an ALIVE packet from ipc, we

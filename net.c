@@ -412,7 +412,18 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		 * peers, but we might as well set it for all modules
 		 */
 		if (pkt->hdr.code == CTRL_ACTIVE) {
-			memcpy(&node->info, pkt->body, sizeof(node->info));
+			/*
+			 * If the CTRL_ACTIVE packet shows compatibility
+			 * problems, we ignore it and move on
+			 */
+			if (handle_ctrl_active(node, pkt) < 0) {
+				return 0;
+			}
+
+			/*
+			 * Otherwise we run the confsync check for
+			 * the recently activated node
+			 */
 			ldebug("Module @ %s is ACTIVE", node->name);
 			csync_node_active(node);
 		}

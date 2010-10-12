@@ -261,11 +261,13 @@ void handle_control(merlin_event *pkt)
 		node_action(node, STATE_NONE);
 		break;
 	case CTRL_ACTIVE:
-		memcpy(&node->info, &pkt->body, sizeof(node->info));
-		ldebug("node %s started %lu.%lu", node->name, node->info.start.tv_sec, node->info.start.tv_usec);
-		ldebug("config hash: %s; last change: %lu\n",
-			   tohex(node->info.config_hash, 20), node->info.last_cfg_change);
-		node_action(node, STATE_CONNECTED);
+		/*
+		 * Only mark the node as connected if the CTRL_ACTIVE packet
+		 * checks out properly
+		 */
+		if (!handle_ctrl_active(node, pkt)) {
+			node_action(node, STATE_CONNECTED);
+		}
 		break;
 	case CTRL_STALL:
 		ctrl_stall_start();
