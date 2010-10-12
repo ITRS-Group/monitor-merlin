@@ -880,9 +880,9 @@ class nagios_object_importer
 
 		$result = mysql_query($query, $this->db);
 		if($result === false) {
-			echo "SQL query failed with the following error message;<br />\n" .
-				mysql_error() . "<br />\n";
-			if($this->DEBUG) echo "Query was;<br />\n<b>$query</b><br />\n";
+			echo "SQL query failed with the following error message:\n" .
+				mysql_error() . "\n";
+			if($this->DEBUG) echo "Query was:\n$query\n";
 		}
 
 		return($result);
@@ -926,7 +926,7 @@ class nagios_object_importer
 	function gui_db_connect()
 	{
 		if($this->db_type !== 'mysql') {
-			die("Only mysql is supported as of yet.<br />\n");
+			die("Only mysql is supported as of yet.\n");
 		}
 
 		$this->db = mysql_connect
