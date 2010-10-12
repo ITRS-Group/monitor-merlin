@@ -19,7 +19,9 @@ Requires: libdbi
 Requires: libdbi-dbd-mysql
 Requires: merlin-apps >= %version
 BuildRequires: mysql-devel
+Obsoletes: monitor-reports-module
 BuildRoot: /override/%name-%version
+
 
 %description
 The merlin daemon is a multiplexing event-transport program designed to
