@@ -9,6 +9,7 @@ int daemon_dumps_core = 0;
 sched_info scheduling_info;
 #define num_hosts scheduling_info.total_hosts
 #define num_services scheduling_info.total_services
+int __nagios_object_structure_version = CURRENT_OBJECT_STRUCTURE_VERSION;
 
 /* nagios functions we must have for dlopen() to work properly */
 int schedule_new_event(int a, int b, time_t c, int d, unsigned long e,

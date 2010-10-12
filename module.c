@@ -453,17 +453,40 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 
 	neb_handle = (void *)handle;
 
+	/*
+	 * this must come before reading configuration. It's a very
+	 * cheap operation anyways and doesn't allocate any memory,
+	 * so it doesn't matter if we do it needlessly.
+	 */
 	ipc_init_struct();
-	memset(&self, 0, sizeof(self));
-	gettimeofday(&self.start, NULL);
-	self.last_cfg_change = get_last_cfg_change();
-	get_config_hash(self.config_hash);
 
 	/* if we're linked with mtest we needn't parse the configuration */
 	if (flags != -1 && arg != NULL)
 		read_config(arg);
 
+	/*
+	 * Must come after reading configuration or we won't know
+	 * where the logs should end up. This will leak a bit of
+	 * memory, but since the user will almost certainly reload
+	 * Nagios once he or she notices that Merlin doesn't work
+	 * it shouldn't be much of an issue.
+	 */
+	if (__nagios_object_structure_version != CURRENT_OBJECT_STRUCTURE_VERSION) {
+		lerr("FATAL: Nagios has a different object structure layout than expect");
+		lerr("FATAL: I expected %d, but nagios reports %d.",
+			 CURRENT_OBJECT_STRUCTURE_VERSION, __nagios_object_structure_version);
+		lerr("FATAL: Upgrade Nagios, or recompile Merlin against the header");
+		lerr("FATAL: files from the currently running Nagios in order to");
+		lerr("FATAL: fix this problem.");
+		return -1;
+	}
+
 	linfo("Merlin Module Loaded");
+
+	memset(&self, 0, sizeof(self));
+	gettimeofday(&self.start, NULL);
+	self.last_cfg_change = get_last_cfg_change();
+	get_config_hash(self.config_hash);
 
 	/* make sure we can catch whatever we want */
 	event_broker_options = BROKER_EVERYTHING;

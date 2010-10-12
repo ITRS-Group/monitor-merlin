@@ -39,6 +39,7 @@ extern void *neb_handle;
 /** global variables exported by Nagios **/
 extern char *config_file;
 extern int event_broker_options;
+extern int __nagios_object_structure_version;
 
 /** prototypes **/
 extern int send_paths(void);
