@@ -352,8 +352,9 @@ def cmd_ctrl(args):
 		sys.exit(1)
 	nodes = {}
 	cmd_args = []
-	i = 0
+	i = -1
 	for arg in args:
+		i += 1
 		if arg == '--all':
 			wanted_names = mconf.configured_nodes.keys()
 			continue
@@ -368,7 +369,7 @@ def cmd_ctrl(args):
 
 		node = mconf.configured_nodes.get(arg, False)
 		if node == False:
-			cmd_args = args[i + 1:]
+			cmd_args = args[i:]
 			break
 		wanted_names += [node.name]
 
@@ -389,8 +390,9 @@ def cmd_ctrl(args):
 		print("No nodes, or no commands to send. Aborting")
 		sys.exit(1)
 
-	for node in nodes:
-		node.ctrl(' '.join(cmd_args))
+	cmd = ' '.join(cmd_args)
+	for name, node in nodes.items():
+		node.ctrl(cmd)
 
 def _cmd_rename(args):
 	if len(args) != 2 or not args[0] in mconf.configured_nodes.keys():
