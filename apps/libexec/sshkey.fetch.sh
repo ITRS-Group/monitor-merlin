@@ -30,7 +30,18 @@ usage()
 {
 	cat << END_OF_HELP
 
-usage: mon sshkey fetch [--outfile=<authorized_keys>] <destinations>
+usage: mon sshkey fetch [options] <sources>
+
+Where options can be any combination of:
+
+  --all               Add all configured nodes as sources
+  --type=<types>      Make all configured nodes of type sources.
+                      <types> can be a comma-separated list containing any
+                      combination of peer, poller and master
+  --outfile=<outfile> The target file. Defaults to ~/.ssh/authorized_keys
+
+If nodes are configured and either option is either --type or --all,
+no sources need to be specified.
 
 END_OF_HELP
 }
@@ -38,10 +49,10 @@ END_OF_HELP
 outfile= destinations=
 while test "$#" -ne 0; do
 	case "$1" in
-	--output=*|-o=)
+	--outfile=*|-o=)
 		outfile=$(get_val "$1")
 	;;
-	--output|-o)
+	--outfile|-o)
 		shift
 		outfile="$1"
 	;;

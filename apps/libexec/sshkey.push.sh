@@ -45,7 +45,20 @@ usage()
 {
 	cat << END_OF_HELP
 
-usage: mon sshkey push [--key=<keyfile.pub>] <destinations>
+usage: mon sshkey push [options] <destinations>
+
+Where options can be any combination of:
+
+  --all               Add all configured nodes as destinations
+  --type=<types>      Make all configured nodes of type destinations
+                      <types> can be a comma-separated list containing any
+                      combination of peer, poller and master
+  --key=<keyfile>     The key to install. Defaults to ~/.ssh/id_rsa.pub
+                      If not specified and no key exists, one will be
+                      generated. Note that the key must have no password.
+
+If nodes are configured and either option is either --type or --all,
+no destinations need to be specified.
 
 END_OF_HELP
 }
