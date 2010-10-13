@@ -102,7 +102,7 @@ class merlin_node:
 		elif k == 'port':
 			self.port = v
 		elif k == 'hostgroup':
-			v = re.split("[\t ]*,[\t ]", v)
+			v = re.split("[\t ]*,[\t ]*", v)
 		elif not k.startswith('oconf_'):
 			print("Unknown key in key=value pair: %s=%s" % (k, v))
 			raise hell
