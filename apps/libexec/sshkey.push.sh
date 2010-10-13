@@ -8,23 +8,35 @@ get_val ()
 append_key() {
 	cat $1 | ssh "$2" -C '
 key=$(cat);
-dir=.ssh
-keyfile=$dir/authorized_keys
+uid=$(id -u)
 
-if ! test -d $dir; then
-	mkdir $dir
-	chmod 700 .ssh
-fi
+install_key()
+{
+	keyfile="$1"
+	keydir=$(dirname "$keyfile")
+	if ! test -d $keydir; then
+		echo "Creating $keydir"
+		mkdir -p -m 700 $keydir
+	fi
 
-if ! test -f .ssh/authorized_keys; then
-	echo "$key" > $keyfile
-	chmod 600 $keyfile
-	echo "Keyfile $keyfile created successfully"
-elif grep -q "$key" $keyfile; then
-	echo "Key already installed";
-else
-	echo "$key" >> ~/.ssh/authorized_keys;
-	echo "Successfully installed public ssh key";
+	if ! test -f $keyfile; then
+		echo "$key" > $keyfile
+		echo "Keyfile $keyfile created successfully"
+	elif grep -q "$key" $keyfile; then
+		echo "Key already installed in $keyfile";
+	else
+		echo "$key" >> $keyfile
+		echo "Successfully installed public ssh key";
+	fi
+	chmod 700 "$keydir"
+	chmod 600 "$keydir/"*
+}
+
+install_key ~/.ssh/authorized_keys
+# If we logged in as root we set up the key for monitor as well
+if test "$uid" -eq 0; then
+	install_key ~monitor/.ssh/authorized_keys
+	chown -R monitor ~monitor/.ssh
 fi
 '
 }
@@ -55,7 +67,7 @@ while test "$#" -ne 0; do
 		destinations="$destinations $1"
 	;;
 	*)
-		destinations="$destinations root@$1 monitor@$1"
+		destinations="$destinations root@$1"
 	;;
 	esac
 	shift
