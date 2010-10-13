@@ -1,3 +1,4 @@
+
 import os, sys, re, time
 
 modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
@@ -8,9 +9,12 @@ import merlin_conf as mconf
 
 wanted_types = mconf.merlin_node.valid_types
 wanted_names = []
+have_type_arg = False
+have_name_arg = False
 
 def module_init(args):
 	global wanted_types, wanted_names
+	global have_type_arg, have_name_arg
 
 	rem_args = []
 	for arg in args:
@@ -18,9 +22,10 @@ def module_init(args):
 			mconf.config_file = arg.split('=', 1)[1]
 		elif arg.startswith('--type='):
 			wanted_types = arg.split('=')[1].split(',')
-			print(wanted_types)
+			have_type_arg = True
 		elif arg.startswith('--name='):
 			wanted_names = arg.split('=')[1].split(',')
+			have_name_arg = True
 		else:
 			# not an argument we recognize, so stash it and move on
 			rem_args += [arg]
@@ -51,8 +56,17 @@ Command overview
  show <name1> [name2] [nameN...]
    Show named nodes. eval'able from shell if only one node is chosen.
 
- ctrl <name> <command>
-   Execute <command> on the remote node <name>.
+ ctrl <name1> <name2> [--all|--type=<peer|poller|master>] -- <command>
+   Execute <command> on the remote node(s) named. --all means run it on
+   all configured nodes, as does making the first argument '--'.
+   --type=<types> means to run the command on all configured nodes of
+   the given type(s).
+   The first not understood argument marks the start of the command,
+   but always using double dashes is recommended. Use single-quotes
+   to execute commands with shell variables, output redirection or
+   scriptlets, like so:
+       mon node ctrl -- '(for x in 1 2 3; do echo $x; done) > /tmp/foo'
+       mon node ctrl -- cat /tmp/foo
 
  status
    Show status of all nodes configured in the running Merlin daemon
@@ -330,19 +344,46 @@ def cmd_remove(args):
 
 
 def cmd_ctrl(args):
+	global wanted_names
+
 	if len(args) == 0:
 		print("Control without commands seems quite pointless. I'm going home")
 		print("Try 'mon node help' for some assistance")
 		sys.exit(1)
-	nodes = []
+	nodes = {}
 	cmd_args = []
 	i = 0
 	for arg in args:
+		if arg == '--all':
+			wanted_names = mconf.configured_nodes.keys()
+			continue
+		elif arg == '--':
+			# double dashes means "here's the command"
+			cmd_args = args[i + 1:]
+			# if it's the first argument we got, the user wants
+			# to run the command on all configured nodes
+			if not i:
+				wanted_names = mconf.configured_nodes.keys()
+			break
+
 		node = mconf.configured_nodes.get(arg, False)
 		if node == False:
 			cmd_args = args[i + 1:]
 			break
-		nodes.append(node)
+		wanted_names += [node.name]
+
+	if have_type_arg and not len(wanted_names):
+		wanted_names = mconf.configured_nodes.keys()
+
+	for name in wanted_names:
+		node = mconf.configured_nodes.get(name, False)
+		if not node:
+			print("%s is not a configured node. Aborting" % name)
+			sys.exit(1)
+
+		# check type and add it if we want it
+		if node.ntype in wanted_types:
+			nodes[name] = node
 
 	if not len(nodes) or not len(cmd_args):
 		print("No nodes, or no commands to send. Aborting")
