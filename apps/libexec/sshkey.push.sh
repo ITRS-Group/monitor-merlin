@@ -63,11 +63,16 @@ while test "$#" -ne 0; do
 	--help|-h)
 		usage
 	;;
-	*@*)
-		destinations="$destinations $1"
+	--all)
+		more_dests=$(mon node show | sed -n 's/^ADDRESS=//p')
+		destinations="$destinations $more_dests"
+	;;
+	--type=*)
+		more_dests=$(mon node show "$1" | sed -n 's/^ADDRESS=//p')
+		destinations="$destinations $more_dests"
 	;;
 	*)
-		destinations="$destinations root@$1"
+		destinations="$destinations $1"
 	;;
 	esac
 	shift
@@ -92,5 +97,13 @@ fi
 
 for dest in $destinations; do
 	echo "Appending $key to $dest"
+	case "$dest" in
+	*@*)
+		dest="$dest"
+	;;
+	*)
+		dest="root@$dest"
+	;;
+	esac
 	append_key $key $dest | sed 's/^./  &/'
 done

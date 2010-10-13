@@ -48,11 +48,16 @@ while test "$#" -ne 0; do
 	--help|-h)
 		usage
 	;;
-	*@*)
-		destinations="$destinations $1"
+	--all)
+		more_dest=$(mon node show | sed -n 's/^ADDRESS=//p')
+		destinations="$destinations $more_dest"
+	;;
+	--type=*)
+		more_dest=$(mon node show "$1" | sed -n 's/^ADDRESS=//p')
+		destinations="$destinations $more_dest"
 	;;
 	*)
-		destinations="$destinations root@$1 monitor@$1"
+		destinations="$destinations $1"
 	;;
 	esac
 	shift
@@ -69,8 +74,9 @@ fi
 
 test "$destinations" || usage
 
-for dest in $destinations; do
-	echo "Fetching public key from $dest"
+add_key_locally()
+{
+	dest="$1"
 	key=$(grab_key $dest)
 	if grep -q "$key" "$outfile"; then
 		echo "We already have that key in $outfile"
@@ -78,6 +84,19 @@ for dest in $destinations; do
 		echo "Successfully fetched key from $dest to $outfile"
 		echo "$key" >> "$outfile"
 	fi
+}
+
+for dest in $destinations; do
+	echo "Fetching public key from $dest"
+	case "$dest" in
+	*@*)
+		add_key_locally "$dest"
+	;;
+	*)
+		add_key_locally "root@$dest"
+		add_key_locally "monitor@$dest"
+	;;
+	esac
 done
 
 chmod 600 "$outfile"
