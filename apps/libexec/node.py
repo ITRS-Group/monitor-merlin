@@ -189,6 +189,7 @@ def cmd_status(args):
 	for (name, info) in sinfo:
 		print("")
 		iid = info.pop('instance_id', 0)
+		node = mconf.configured_nodes.get(name, False)
 		is_running = info.pop('is_running')
 		name = "#%02d: %s" % (iid, name)
 		name_len = len(name) + 9
@@ -199,6 +200,10 @@ def cmd_status(args):
 			name_len += 2
 
 		print("%s\n%s" % (name, '-' * name_len))
+		if iid and not node:
+			print("%sThis node is currently not in the configuration file%s" %
+				(color.yellow, color.reset))
+
 		last_alive = info.pop('last_alive')
 		if not last_alive:
 			print("%sUnable to determine when this node was last alive%s" %
