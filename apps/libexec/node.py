@@ -299,7 +299,7 @@ def cmd_add(args):
 		return False
 
 	node = mconf.merlin_node(name)
-	node.path = merlin_conf
+	node.path = mconf.config_file
 
 	for arg in args[1:]:
 		if not '=' in arg:
