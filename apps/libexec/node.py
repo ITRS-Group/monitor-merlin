@@ -17,7 +17,14 @@ def module_init(args):
 	global have_type_arg, have_name_arg
 
 	rem_args = []
+	i = -1
 	for arg in args:
+		i += 1
+		# stop parsing immediately if we hit double-dashes, or we
+		# may well break recursive commands sent with mon node ctrl.
+		if arg == '--':
+			rem_args += args[i:]
+			break
 		if arg.startswith('--merlin-cfg=') or arg.startswith('--config='):
 			mconf.config_file = arg.split('=', 1)[1]
 		elif arg.startswith('--type='):
