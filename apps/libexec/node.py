@@ -186,6 +186,10 @@ def cmd_status(args):
 	service_checks = get_num_checks('service')
 	print("Total checks (host / service): %d / %d" % (host_checks, service_checks))
 
+	num_peers = mconf.num_nodes['peer']
+	num_pollers = mconf.num_nodes['poller']
+	num_masters = mconf.num_nodes['master']
+	num_helpers = num_peers + num_pollers
 	for (name, info) in sinfo:
 		print("")
 		iid = info.pop('instance_id', 0)
@@ -222,10 +226,34 @@ def cmd_status(args):
 		hchecks = info.pop('host_checks')
 		schecks = info.pop('service_checks')
 		hc_color = sc_color = ''
-		if hchecks == 0 or (hchecks == host_checks and mconf.num_nodes > 1):
-			hc_color = color.red
-		if schecks == 0 or (schecks == service_checks and mconf.num_nodes > 1):
-			sc_color = color.red
+
+		# master nodes should never run checks
+		hc_color = ''
+		sc_color = ''
+		if node:
+			# if the node is a master and it's running checks,
+			# that's an error
+			if node.ntype == 'master':
+				if hchecks:
+					hc_color = color.red
+				if schecks:
+					sc_color = color.red
+			else:
+				# if it's not and it's not running checks,
+				# that's also an error
+				if not hchecks:
+					hc_color = color.red
+				if not schecks:
+					sc_color = color.red
+
+		# if this is the local node, we have helpers attached
+		# and we're still running all checks, that's bad
+		if not iid and num_helpers:
+			if hchecks == host_checks:
+				hc_color = color.red
+			if schecks == service_checks:
+				hc_color = color.red
+
 		print("Checks (host/service): %s%d%s / %s%d%s  (%s%.2f%%%s / %s%.2f%%%s)" %
 			(hc_color, hchecks, color.reset, sc_color, schecks, color.reset,
 			hc_color, float(hchecks) / float(host_checks) * 100, color.reset,
