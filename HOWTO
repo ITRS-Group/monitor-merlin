@@ -1,0 +1,721 @@
+Introduction
+------------
+This HOWTO describes the requirements for setting up a loadbalanced
+and redundant network monitoring system using op5 Monitor. Note that
+Merlin is a part of op5 Monitor. Non-customers will have to adjust
+paths etc used throughout this guide in order to be able to use it.
+Replacing "op5 Monitor" with "nagios + merlin" will be a good start
+for those of you venturing into the unknown without the aid of our
+rather excellent support services.
+
+The guide will assume that we're installing two redundant and
+loadbalanced master-servers ("yoda" and "obi1"), with three
+poller servers, two of which are peered with each other. The single
+poller will be designated "solo". The peered pollers will be "luke"
+and "leya". We'll assume that each poller has their names in the
+DNS and can be looked up that way. 'solo' will be responsible for
+monitoring the hostgroup 'hyperdrive'. 'luke' and 'leya' will share
+responsibility in monitoring the hostgroups 'theforce' and 'tattoine'.
+
+With this setup, communications will go like this:
+luke will talk with:
+leya, obi1, yoda
+
+leya will talk with:
+luke, obi1, yoda
+
+solo will talk with:
+obi1, yoda
+
+obi1 will talk with:
+yoda, luke, leya, solo
+
+yoda will talk with:
+obi1, luke, leya, solo
+
+
+Preparations
+------------
+The following needs to be in place for this HOWTO to be usable, but
+how to obtain or set them up is outside the scope of this article.
+
+* Make sure you have the passwords for the root accounts on all the
+  servers intended to be part of the monitoring network. This will
+  be needed in order to configure merlin.
+* Open the firewalls for port 15551 (merlin's default port) and 22.
+  Both ends will attempt to connect on port 15551, so it's ok if only
+  one side of the intended connection can connect to the other. For
+  port 22, it's a little bit more complicated and in order to get the
+  full shebang of features both ends will need to be able to initiate
+  connections with the other. It's possible to get away with not
+  allowing pollers to initiate connections to the master server, but
+  certain recovery operations will then not be possible.
+* op5 Monitor needs to be installed on all systems intended to be part
+  of the network.
+
+
+Hello mon'!
+-----------
+Included in op5 Monitor is the 'mon' helper. mon is a nifty little
+tool designed to help with configuring, managing and verifying the
+status of a distributed Merlin installation.
+
+It's usage is quite simple: mon <category> <command>
+Just type mon and you'll get a list of all available categories and
+commands. Some commands lack a category and are runnable all by
+themselves, such as 'stop', 'start' and 'restart', which take care
+of stopping, starting and restarting monitor and merlin using the
+proper shutdown and startup sequences.
+
+We'll soon see exactly how useful that little helper is.
+
+
+Step 1 - Configure Merlin on one of the master systems
+------------------------------------------------------
+The aforementioned 'mon' helper has a 'node' category. This is useful
+for manipulating configured nodes in merlin's configuration file,
+among other things.
+We'll start with configuring Merlin properly on 'yoda'. The commands
+to do so will look like this:
+
+  mon node add obi1 type=peer
+  mon node add luke type=poller hostgroup=theforce,tattoine
+  # type=poller is default, so we don't have to spell it out
+  mon node add leya hostgroup=theforce,tattoine
+  mon node add solo hostgroup=hyperride
+
+The 'node' category also has a 'remove' command, so when we've noticed
+the typo we made when adding the poller 'solo', we can fix that by
+removing the faulty node and re-adding it again:
+
+  mon node remove solo
+  mon node add solo type=poller hostgroup=hyperdrive
+
+You may verify that you've done things right in a couple of different
+ways. 'mon node list' lists nodes. It accepts --type= argument, so
+if we want to list all pollers and peers, we can run:
+
+  mon node list --type=poller,peer
+
+This in conjunction with 'mon node show <name>' is excellent to use
+when scripting.
+
+The contents of the configuration file, which by default resides in
+/opt/monitor/op5/merlin/merlin.conf, should now include something
+like this:
+	--8<--8<--8<--
+	peer obi1 {
+		address = obi1
+		port = 15551
+	}
+	poller luke {
+		address = luke
+		port = 15551
+		hostgroup = theforce,tattoine
+	}
+	poller leya {
+		address = leya
+		port = 15551
+		hostgroup = theforce,tattoine
+	}
+	poller solo {
+		address = solo
+		port = 15551
+		hostgroup = hyperdrive
+	}
+	--8<--8<--8<--8<--
+
+
+Step 2 - Distribute ssh-keys
+----------------------------
+The 'mon' helper has an sshkey category. The commands in it let you
+push and fetch sshkeys from remote destinations.
+
+  mon sshkey push --all
+
+will append your ~/.ssh/id_rsa.pub file to the authorized_keys file
+for the root and monitor user on all configured remote nodes.
+If you don't have a public keyfile, one will be generated for you.
+Please note that if you generate a keyfile yourself, it must not have
+a password, or configuration synchronization will fail to work.
+
+So far we've set up one-way communication. 'yoda' can now talk to
+all the other systems without having to use passwords. In order to
+fetch all the keys from the remote systems, we'll use the following
+command:
+
+  mon sshkey fetch --all
+
+This will fetch all the relevant keys into ~/.ssh/authorized_keys.
+So every node can talk to 'yoda', and 'yoda' can talk to every
+other node. That's great. But 'luke' and 'leya' need to be able
+to talk to each other as well, and all the pollers need to be
+able to talk to 'obi1'. Since we have all keys except our own in
+~/.ssh/authorized_keys, we can simply amend it with the key we
+generated earlier and distribute the resulting file to every node.
+Or we can do what we just did for 'yoda' on all the other nodes,
+and simply wait until we're done configuring merlin on all nodes
+and then log in to them and run the 'mon sshkey push --all' and
+'mon sshkey fetch --all' commands there too.
+
+You can verify that this works by running:
+  mon node ctrl -- 'echo hostname is $(hostname)'
+
+
+Step 3 - Configure Merlin on the remote systems
+-----------------------------------------------
+I sneakily introduced the 'node ctrl' command in the last section.
+This time we'll use it rather heavily, along with the 'node add'
+command which will run on the remote systems.
+
+First we add ourself and 'obi1' as master to all pollers:
+  mon node ctrl --type=poller -- mon node add yoda type=master
+  mon node ctrl --type=poller -- mon node add obi1 type=master
+
+Now the poller 'solo' is actually done and configured already.
+
+Then we add ourself as a peer to all our peers (just 'obi1' really,
+but in case you build larger networks, this will work better):
+  mon node ctrl --type=peer -- mon node add yoda type=peer
+
+Then we add all pollers to 'obi1':
+  mon node ctrl obi1 -- mon node add luke hostgroup=theforce,tattoine
+  mon node ctrl obi1 -- mon node add leya hostgroup=theforce,tattoine
+  mon node ctrl obi1 -- mon node add solo hostgroup=hyperdrive
+
+And finally we add luke and leya as peers to each other:
+  mon node ctrl leya -- mon node add luke type=peer
+  mon node ctrl luke -- mon node add leya type=peer
+
+solo will have the following config:
+	--8<--8<--8<--
+	master yoda {
+		address = yoda
+		port = 15551
+	}
+	master obi1 {
+		address = obi1
+		port = 15551
+	}
+	--8<--8<--8<--
+
+luke will have this in its config file:
+	--8<--8<--8<--
+	master yoda {
+		address = yoda
+		port = 15551
+	}
+	master obi1 {
+		address = obi1
+		port = 15551
+	}
+	peer leya {
+		address = leya
+		port = 15551
+	}
+	--8<--8<--8<--
+
+leya will have this:
+	--8<--8<--8<--
+	master yoda {
+		address = yoda
+		port = 15551
+	}
+	master obi1 {
+		address = obi1
+		port = 15551
+	}
+	peer luke {
+		address = luke
+		port = 15551
+	}
+	--8<--8<--8<--
+
+obi1 will have this:
+	--8<--8<--8<--
+	peer yoda {
+		address = yoda
+		port = 15551
+	}
+	poller luke {
+		address = luke
+		port = 15551
+		hostgroup = theforce,tattoine
+	}
+	poller leya {
+		address = leya
+		port = 15551
+		hostgroup = theforce,tattoine
+	}
+	poller solo {
+		address = solo
+		port = 15551
+		hostgroup = hyperdrive
+	}
+	--8<--8<--8<--
+
+
+Step 4 - Verifying configuration and ssh-key setup
+--------------------------------------------------
+Now that we have merlin configured properly on all our five nodes,
+we can use a recursive version of the 'node ctrl' command to make
+sure ssh work properly from all systems to all systems they need
+to talk to. Try pasting this into the console:
+
+  mon node ctrl -- \
+    'echo On $(hostname); hostname | mon node ctrl -- \
+	  \'from=$(cat); echo "@$(hostname) from $from\'' \
+  | grep ^@
+
+Hard to follow? I agree, but it should produce something like this:
+  @yoda from obi1
+  @luke from obi1
+  @leya from obi1
+  @solo from obi1
+  @yoda from luke
+  @obi1 from luke
+  @leya from luke
+  @yoda from leya
+  @obi1 from leya
+  @luke from leya
+  @yoda from solo
+  @obi1 from solo
+
+If it does, that means ssh keys are properly installed, at least for
+the root user(s). If the command seems to hang somewhere in the middle,
+try rerunning it without the ending 'grep' statement. If that ends up
+with a password prompt appearing, you'll need to revisit the sshkey
+configuration and again make sure every node that should be able to
+talk to other nodes can talk to the nodes it should be able to talk
+to. Simple, eh?
+
+(XXX; Test this and make sure it actually works like this)
+
+Step 5 - Configuring Nagios
+---------------------------
+Handling object configuration is very much out of scope for this
+article, but there are a few rules (most of them are actually more
+like guidelines, but things will be confusing if you don't follow
+them, so please do) one needs to adhere to in order for Merlin to
+work properly.
+
+* Each host that is a member of a hostgroup used to distribute work
+  from a master to a poller should never be member of a hostgroup
+  that is used to distribute work to a different poller. In our
+  case, that means that any host that is a member of either 'theforce'
+  or 'tattoine' shouldn't also be a member of 'hyperdrive'.
+
+* Two peers absolutely must have identical object configuration.
+  This is due to the way loadbalancing works in Merin. In our case
+  that means that since 'luke' is responsible for 'theforce' and
+  'tattoine', its peer 'leia' must also be responsible for exactly
+  those two hostgroups, and no other.
+
+That's basically it. It's possible to circumvent these rules, but
+if you do, you're on your own. No tools currently exist to enforce
+them, and Merlin won't complain if you suddenly add another poller
+that's responsible for 'tattoine' and 'hyperdrive', even though
+such a configuration is obviously retarded in light of the above
+rules.
+
+
+Step 6 - Synchronization configuration
+--------------------------------------
+Configuration synchronization will be a bit easier for you if you
+move all of monitor's object configuration files to a cfg_dir
+instead of using the default layout of mixing object configuration
+with Nagios' main configuration file and other various stuff. This
+is especially true for pollers and doesn't matter nearly as much
+for masters.
+
+The quick and easy way to set it up so that it works like that is
+by running the following commands from 'yoda':
+
+  dir=/opt/monitor/etc/oconf
+  conf=/opt/monitor/etc/nagios.cfg
+  mon node ctrl -- sed -i /^cfg_file=/d $conf
+  mon node ctrl -- sed /^log_file=/acfg_dir=$dir $conf
+  mon node ctrl -- mkdir -m 775 $dir
+  mon node ctrl -- chown monitor:apache $dir
+
+Now, if you run:
+  mon node ctrl -- mon oconf hash
+
+you should get a list of 'da39a3ee5e6b4b0d3255bfef95601890afd80709'
+as output from all nodes. That means the pollers now have an empty
+object configuration, which is just the way we like it since we'll
+be pushing configuration from one of our two peered masters to all
+the pollers.
+
+("da 39 hash" is what you get from sha1 when you don't feed it any
+input at all)
+
+In merlin, you can configure a script to run that takes care of
+syncing configuration. This script should also restart monitor on
+the receiving ends when it's done sending configuration. In the
+Merlin world, this is handled by a single command that gets run
+once when we detect that we have a newer configuration than any
+of our peers or pollers.
+
+  mon oconf push
+
+takes no arguments at all. It does parse merlin.conf though and
+creates complete configuration files for all the pollers, which
+by default gets sent to /opt/monitor/etc/oconf/from-master.cfg
+on each respective poller, which is then restarted. Again by
+default, it will also send the entire /opt/monitor/etc directory
+to all its peers, using rsync --delete to make sure all systems
+are fully synced. Currently though, only changes to the object
+config triggers a full sync, so perhaps there's room for
+improvement.
+
+Config sync is configured either globally via an object_config
+compound in the daemon section of the config file, or via those
+same object_config compounds in each node if one wants to
+override how one system syncs to another. It could look something
+like this, for instance:
+
+  daemon {
+    object_config {
+      # the command to run when one or more peers or
+      # pollershave older configuration than we do
+      push = mon oconf push
+
+      # the command to run when one or more masters or
+      # peers have a newer configuration than we do
+      #pull = some random command
+    }
+  }
+
+  peer obi1 {
+    object_config {
+      # the command to run when obi1 has older config than we do
+	  # overrides the global command
+      push = rsync -aovtr --delete /opt/monitor/etc obi1:/opt/monitor
+      # command to run when obi1 has newer config than we do
+      #pull = some random command
+    }
+  }
+
+Caveats:
+* The 'pull' thing is highly untested and I'm unsure how it would
+  work if one node tries to pull from another while that other node
+  is pushing at the same time. Care should be take to avoid such
+  setups.
+* The only supported scenario is to have the master with the most
+  recently changed configuration push that config to its peers and
+  pollers. This *will* create avalanche pushing if one uses peered
+  pollers that in turn have pollers themselves, since all peered
+  pollers that in turn have pollers will try to push at the same
+  time. Due to this, more than 2 tiers is currently not supported
+  officially, although it works just fine for everything else in our
+  lab environment.
+* Config pushing from master to poller requires the objects.cache
+  file in order to split config for each poller. Since config pushes
+  should always be initiated by a running Merlin anyways, this isn't
+  much of a problem once you've done the first push and everything
+  is up and running, but when first setting up the system it will
+  be tricksy to get things to run smoothly.
+
+The object_config compounds can contain whatever variables you
+like without Merlin complaining about them, and
+
+  mon node show
+
+will show them as
+  OCONF_PUSH=mon oconf push
+  OCONF_WHATEVER_YOU_NAMED_YOUR_VARIABLE=somevalue
+
+so you can quite easily add some other scripted solution to support
+your needs. 'mon oconf push' happens to use two such private vars,
+namely 'source' and 'dest'. 'source' is really only used when pushing
+configuration to peers, and 'dest' is what we end up using as target
+when pushing the configuration. So if you want your peer sync script
+to only send /opt/monitor/etc/oconf that we created before, you can
+quite easily set that up by configuring your peer thus:
+
+peer obi1 {
+  address = obi1
+  port = 15551
+  type = peer
+
+  object_config {
+    push = mon oconf push
+    source = /opt/monitor/etc/oconf
+    dest = /opt/monitor/etc
+  }
+
+
+The 'oconf push' command uses another command internally:
+  mon oconf nodesplit
+
+This you can run without interfering with anything. In our case, it
+would print something like this:
+
+  Created /var/cache/merlin/config/luke with 1154 objects for hostgroup
+  list 'theforce,tattoine'
+  Created /var/cache/merlin/config/leya with 1154 objects for hostgroup
+  list 'theforce,tattoine'
+  Created /var/cache/merlin/config/solo with 652 objects for hostgroup
+  list 'hyperdrive'.
+
+You can inspect the files thus created and see if they seem to fit your
+criteria. Note that they will be rather large, since templates aren't
+sent to the poller nodes.
+
+Step 7 - Starting the distributed system
+----------------------------------------
+Once you've inspected the configuration and you like what you see,
+it's time to activate it and get some monitoring going on. Run the
+following sequence of commands when you're ready:
+
+  mon restart; sleep 3; mon oconf push
+
+This should send configuration to all the pollers and peers and then
+attempt to restart monitor and merlin on those nodes. Pushing config
+to masters is not yet supported, although scripting it wouldn't be
+too hard for those who are interested. Do see the notes about 'pull'
+above though.
+
+
+Step 8 - Verifying that it works
+--------------------------------
+The first thing to do is to run:
+
+  mon node status
+
+It will quite quickly become apparent that this little helper is
+awesome for finding problems in your merlin setup. It connects to
+the database, grabs the currently running nodes and prints a lot
+of information about them, such as if they're active, when they
+last sent a program_status_data event, how many checks they're
+doing and what their check latency is. If, for some reason,
+one node has crashed or is otherwise unable to communicate with
+the node you're looking from, you'll find this out quite quickly
+using this little helper.
+
+Filing a bugreport without including output from a run of this
+program on all nodes hanging offense. You have been warned.
+
+
+Step 9 - Finding out why it doesn't
+-----------------------------------
+This is sort of general guidelines to troubleshooting certain issues
+in Merlin. It involves digging through logfiles, running small helper
+programs and generally just tinkering around trying to figure out
+what happened, what's happening and what will happen when I do this?
+Most of it is stuff that has come up during beta-testing or that have
+been problematic in the past. If new common problems arise, I'll add
+more recipes to this little guide.
+
+
+
+Problem: Loadbalancing seems to have stopped working even though
+         all my peers are ACTIVE and were last seen alive "3s ago"
+Answer:
+It can sometimes look like that if you check the output of
+
+  mon node status
+
+after having restarted Merlin or Monitor. Most of the time, it's
+because the peers switched peer-id's and are now slowly taking
+over each others checks. If the problem isn't resolving itself
+so that the number of checks performed by each peer is converging
+on an equal split, something else has gone wrong and a more thorough
+investigation is necessary.
+Checking if all peers have the same configuration is the first step:
+
+  mon node ctrl --type=peer -- mon oconf hash
+  mon node ctrl --type=peer -- sha1sum /opt/monitor/var/objects.cache
+
+If they do, you might have run into the intermittent error that
+some users have seen with peers in a loadbalanced setup. Restarting
+the affected systems usually restores them to good working order:
+
+  mon node ctrl --type=peer -- mon restart
+
+
+Problem: Logfiles are flooded with messages about 'nulling OOB pointer'
+Answer:
+Merlin uses a highly efficient binary protocol to transfer events
+between module and daemon and across the network to other nodes.
+The way the codec works makes it not-really-but-almost impossible
+to support network nodes with different wordsize and byte order.
+That is, 32bit and 64bit systems can't talk to each other, and
+servers running i386-type cpu's can't communicate with PowerPC or
+other big-endian machines. PDP11 won't work with anything but other
+PDP11's. They'll do just fine with each other though.
+
+Since merlin-0.9.0-beta5, merlin detects when a node with different
+wordsize, byte order and object structure version connects and warns
+about such incompatibilities. grep the logfiles for 'FATAL.*compat'
+and you should see if that's the problem.
+
+If it isn't and it's the module logfile which holds all the messages
+you've almost certainly hit a compatibility problem with Nagios, or
+a concurrency issue related to threading. There shouldn't really be
+any compatibility problems, since Merlin will unload itself if the
+version of Nagios that loads it has a different object structure
+version than we're expecting of it, but I suppose weirder things
+have happened than a random malfunction in a piece of software.
+
+
+Problem: Database isn't being updated
+Answer:
+Inserting events into the database is the job of the daemon.
+Information about its problems can be found in the daemon
+logfile, /opt/monitor/op5/merlin/daemon.log. If no "query failed"
+messages can be found there, check the neb.log file to see if
+it's sending anything, and look for disconnected peers and pollers
+with:
+
+  mon node status
+
+
+Problem: 'mon node status' shows one or more nodes as 'INACTIVE'
+Answer:
+Check that merlin and monitor is running on the remote systems.
+
+  mon node ctrl $node -- pidof monitor
+  mon node ctrl $node -- pidof merlind
+  mon node ctrl $node -- mon node status
+
+If they're not, you've found the symptom, so check the logfiles
+or look for corefiles on those systems.
+If they are, try
+
+  grep -i connect /opt/monitor/op5/merlin/logs/daemon.log
+
+If you see a lot of connection attempts to the INACTIVE node and
+no "connection refused", it's almost certainly a firewall issue.
+If you see the "connection refused" thing, it's almost certainly
+due to either merlind not running or misconfiguration.
+
+
+Problem: I've found a corefile
+Answer:
+Goodie. Now do something useful with it, pretty, pretty please.
+
+  file core
+
+will tell you which command was run to create it, so then you can
+run:
+
+  # gdb -q /path/to/$offending_program core
+  gdb> bt
+
+If the corefile came from monitor, you'll need to run:
+
+  mondebug core
+
+instead, since it will otherwise include a lot of "unresolved symbols"
+in the backtrace, which basically means that it's completely useless
+and I would still have to re-do it. At least if the core was caused
+by a module, which is something we need to know.
+
+Send me the output of both the "file" command and the backtrace
+that gdb prints, along with the corefile. This is basically everything
+I do when I get a corefile anyways, but for me to be able to do it if
+you send me the corefile means I'll have to install the exact same
+version of merlin, monitor and possibly a lot of system libraries too.
+That's extremely cumbersome, so go the extra halfinch and grab a
+backtrace while you're at it. Bugs will get fixed a billion times
+faster if you do.
+
+If the trace looks like this:
+#0  0x0022c402 in ?? ()
+#1  0x0062e116 in ?? ()
+#2  0x0806f4fb in ?? ()
+#3  0x080566cc in ?? ()
+
+That means that either the stack has been overwritten (a bug can cause
+this, and it's bad), or that there are only unresolved symbols in there.
+Either way, it's fairly useless in that state, but I'll still want it
+since any clue is better than no clue.
+
+
+
+Problem: 'mon node status' claims one node hasn't been alive for a
+         very long time
+Answer:
+There should be a timestamp stating when it was last active. grep
+for that timestamp in Merlin's logfiles and nagios.log. Start with
+daemon.log on the system where you ran 'mon node status' and look
+for disconnect messages. You'll have to check the logs on both the
+systems to find the most likely cause.
+
+To look through nagios.log you can use:
+
+  mon log show --start=$when-20 --end=$when+20
+
+although you'll have to calculate the start and end things manually,
+since that command right there isn't valid shell or anything.
+
+  mon log show --help
+
+will provide more filtering options, since grep'ing can be tricky
+without knowing what to look for.
+
+
+Problem: Reports show wrong uptime/downtime/whatever
+Answer:
+In 99% of all cases this is due to missing data in the report_data
+table. It now resides in the merlin database as opposed to the
+monitor_reports database, where it used to be.
+
+If you can find a particular period in the logs that happens to be
+broken it's not that hard to repair it, although doing so will take
+time and you have to shut down Monitor in order to pull it off.
+If the database is anything but huge, it's definitely easiest to
+just truncate the report_data table and recreate it from scratch.
+The following sequence of commands *should* take care of doing
+that, but it's been a while since I wrote them and I haven't got
+anything to test with.
+
+  mon stop
+  mon node ctrl -- mon stop
+  mon log import --fetch
+
+The 'log' category of commands is useful for importing data from
+remote sites though. Snoop around a bit and see what you can find.
+'sortmerge' will thrash the disks quite a lot and use a ton of
+memory, but 'import' is the only one which can be potentially
+dangerous. Use the --no-sql option for a dry-run first if you're
+nervous.
+
+If the report_data table *is* huge and shutting down monitor
+while repairs are under way is not an option, there may be other
+solutions to try but they are all situational and more or less
+voodooish.
+
+
+Problem: Merlin's config sync destroyed my configuration!
+Answer:
+If it happened on a poller system, that's by design. Nothing to
+do and nothing to try. Just re-do your work and make sure you
+don't do it in a file that Merlin will overwrite occasionally.
+If it was on a peer system, it might be possible to save it.
+Sneak a peak in /var/cache/merlin/backup and see if you can
+find your config files there.
+
+
+Problem: X happened and it's not a listed problem here
+Answer:
+Perhaps it's by design, and then again it might not be. If you
+think it's wrong, check the logfiles (all three of them) on
+all systems involved and look for anomalies. When that's done
+and you still haven't found anything, remain calm and write a
+concise report stating what you did, what you expected should
+happen and what happened. Feel free to include logfiles and
+stuff as well, since I'll almost certainly want to look at
+them myself.
+
+
+Problem: I want feature X!
+Answer:
+I want icecream.
+
+
+Problem: Make feature Y work like this!
+Answer:
+Talk to Peter.
