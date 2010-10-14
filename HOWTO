@@ -495,7 +495,7 @@ the node you're looking from, you'll find this out quite quickly
 using this little helper.
 
 Filing a bugreport without including output from a run of this
-program on all nodes hanging offense. You have been warned.
+program on all nodes is a hanging offense. You have been warned.
 
 
 Step 9 - Finding out why it doesn't
