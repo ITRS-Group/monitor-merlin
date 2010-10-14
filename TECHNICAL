@@ -1,0 +1,122 @@
+The life of a Nagios event
+--------------------------
+The path of events from 'luke' to 'yoda' goes as follows:
+Nagios on 'luke' runs a check (or whatever, but we'll stick
+with a check here) and runs a snippet of code inside the
+merlin broker module.
+
+The module packs the event in a way that makes it suitable
+for network transport and sends the event to its daemon via
+a unix domain socket.
+
+The daemon takes care of the event and sends it to its
+peers and its masters. If a poller was supposed to run this
+check, it also stashes the event in a binary backlog so it
+can send the event to the poller when it comes back online.
+When it has sent the event, it unpacks it and inserts it
+into the database, and then it goes on to handle other
+events in pretty much the same manner.
+
+The receiving daemon(s) forward the event to their broker
+module(s) and then unpack it to insert it in their database.
+
+The broker module(s) update the status of their Nagios instance
+with the information about the new check, and there it more or
+less ends.
+
+
+Node activation/deactivation
+----------------------------
+The first thing each Merlin module does when it gets loaded is
+is to gather a little bit if info about itself and send that
+information as a control event to its daemon. The activation
+control packet contains protocol version, wordsize, byte order,
+object structure version of Nagios, the latest mtime of the
+configured object configuration files, and a sha1 hash of the
+object configuration files.
+
+This CTRL_ACTIVE packet gets sent to all neighbours from the
+Merlin daemon, so all its configured nodes will get to see it.
+Every daemon that receives such a packet stashes the info in
+memory and forwards it to their module in case the module
+would be restarted. If there are compatibility issues, both
+daemon and module should warn about that.
+
+When a module crashes, goes offline or is shut down in a
+controlled manner, a CTRL_INACTIVE event is generated from
+the Merlin daemon it's supposed to talk to. This CTRL_INACTIVE
+event is shipped to all the nodes in the neighbourhood and
+causes the previously received information to be wiped, and
+the module to be marked as inactive. An inactive node is
+considered dead when it comes to distributing workload.
+
+In order for a Merlin node to be considered capable of running
+checks, it must be connected (via the daemon) and it must have
+sent a CTRL_ACTIVE event, which only ever comes from inside
+the module.
+
+CTRL_ACTIVE has control-code 3.
+CTRL_INACTIVE has control-code 2.
+
+
+Peered loadbalancing
+--------------------
+Two peers automagically distribute the workload between them
+by means of an alphabetically sorted list of all configured
+hosts and services and a peer-id calculation (not negotiation)
+that yields the same result on all peers in the ring.
+
+Peer-id calculation is done in the module when it receives a
+CTRL_ACTIVE or CTRL_INACTIVE event.
+
+When Nagios tries to run a check, the module looks up the
+slot number for that particular check in its alphabetically
+sorted lists, and if slot-number modulo the number of active
+peers matches the peer-id of the module, it will run the check.
+Otherwise it will block the check from happening.
+
+Peered nodes with pollers attached will still use the same list
+to distribute checks, except that all checks that are handled
+by an active poller will always be blocked on all peers. This
+means that peers with pollers will not share the workload
+exactly equally, and in theory one node could end up running
+all checks, but in practice the workload split is still very
+even.
+
+
+Pollerbased monitoring
+----------------------
+Pollers will always execute all checks assigned to it, unless
+they have peers or pollers themselves. Work is assigned to
+pollers via hostgroups. Each hostgroup represents a "selection"
+in merlin, and every poller responsible for each "selection"
+is checked to see if the master node has to perform the check
+itself or if it's supposed to be delegated to a poller. If at
+least one active poller exists for the selection a particular
+check belongs to, the master will refuse to run the check.
+
+
+Configuration synchronization
+-----------------------------
+The CTRL_ACTIVE packets sent by the Merlin module when it gets
+loaded contains a SHA1 checksum of its configuration, along
+with the latest timestamp of that configuration. Currently,
+configuraion can be pushed from master to pollers and from
+peer to peer. Although a 'pull' config option exists, it's
+not tested and not supported. It just should work in theory.
+
+If an activated peer has a different SHA1 hash than the node
+receiving the CTRL_ACTIVE event, a comparison is made to see
+which one has the newest configuration. The node with the
+newest configuration initiates the push command, which needs
+to be configured in the merlin.conf config-file. See the
+HOWTO for more information about configuring syncrhonization
+of object config.
+
+For pollers this is more complicated, since pollers are not
+meant to have identical configuration. In that case, only
+the timestamp is compared. If the poller has an older config,
+the master initiates a push. Otherwise we assume everything
+is working properly. Pollers (currently) never push to masters.
+Such setups have been discussed and discarded for this first
+stable release of Merlin.
