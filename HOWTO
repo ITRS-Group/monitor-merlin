@@ -76,7 +76,7 @@ The aforementioned 'mon' helper has a 'node' category. This is useful
 for manipulating configured nodes in merlin's configuration file,
 among other things.
 We'll start with configuring Merlin properly on 'yoda'. The commands
-to do so will look like this:
+to do so will look like this (yes, there's a typo there):
 
   mon node add obi1 type=peer
   mon node add luke type=poller hostgroup=theforce,tattoine
