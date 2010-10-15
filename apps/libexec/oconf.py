@@ -574,7 +574,6 @@ def hg_pregen(li):
 interesting = {}
 def run_param(param):
 	global nagios_objects, interesting
-	parse_object_config()
 	interesting['hostgroup'] = set(param['hostgroups'])
 	interesting['host'] = set()
 	for shg in interesting['hostgroup']:
