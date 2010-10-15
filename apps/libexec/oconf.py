@@ -699,6 +699,15 @@ def cmd_nodesplit(args):
 
 	# now that the potentially failing calls have been made, we
 	# parse the object configuration from the objects.cache file
+	# or, if that file doesn't exist, from the regular object
+	# config. Either way, this must come before the loop as we
+	# need the last_changed variable from here in order to know
+	# which nodes we can avoid pushing to
+	if os.path.isfile(object_cache):
+		parse_object_config([object_cache])
+	else:
+		parse_object_config()
+
 	params = []
 	for name, node in mconf.configured_nodes.items():
 		if node.ntype != 'poller':
