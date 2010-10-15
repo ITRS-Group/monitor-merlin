@@ -736,9 +736,9 @@ def cmd_nodesplit(args):
 
 	# make sure files are created with the proper mode
 	# for the target system
-	old_umask = os.umask(022)
-
+	old_umask = os.umask(002)
 	map(run_param, params)
+	os.umask(old_umask)
 
 
 def get_ssh_key(node):
