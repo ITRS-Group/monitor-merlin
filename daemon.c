@@ -454,13 +454,17 @@ static int csync_config_cmp(merlin_node *node)
 {
 	int mtime_delta, sec_delta, usec_delta, hash_delta;
 
-	hash_delta = memcmp(node->info.config_hash, ipc.info.config_hash, 20);
-	if (!hash_delta)
-		return 0;
+	if (node->type == MODE_POLLER) {
+		hash_delta = memcmp(node->info.config_hash, ipc.info.config_hash, 20);
+		if (!hash_delta)
+			return 0;
+	}
 
 	mtime_delta = node->info.last_cfg_change - ipc.info.last_cfg_change;
 	if (mtime_delta)
 		return mtime_delta;
+
+	lwarn("CSYNC: Hash mismatch between us and %s, but mtime matches", node->name);
 
 	sec_delta = node->info.start.tv_sec - ipc.info.start.tv_sec;
 	if (sec_delta)
@@ -498,29 +502,9 @@ void csync_node_active(merlin_node *node)
 	if (!cs->push && !cs->fetch)
 		return;
 
-	switch (node->type) {
-	case MODE_PEER:
-		/*
-		 * peers are synced to each other based on who's
-		 * got the latest configuration, unless both already
-		 * have the same.
-		 * Since loadbalancing is based on alphabetically sorted
-		 * lists between peers, it's important that they share
-		 * configuration as quickly as possible.
-		 */
-		val = csync_config_cmp(node);
-		break;
-
-	case MODE_MASTER:
-		/* we always fetch from masters */
-		val = 1;
-		break;
-
-	case MODE_POLLER:
-		/* we always push to pollers */
-		val = -1;
-		break;
-	}
+	val = csync_config_cmp(node);
+	if (!val)
+		return;
 
 	if (val < 0) {
 		cmd = cs->push;
