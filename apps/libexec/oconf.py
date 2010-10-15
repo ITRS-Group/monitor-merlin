@@ -10,6 +10,8 @@ from compound_config import *
 from merlin_apps_utils import *
 import merlin_conf as mconf
 
+# when whatever config file we're reading was last changed
+last_changed = 0
 nagios_cfg = '/opt/monitor/etc/nagios.cfg'
 object_cfg_files = {}
 object_prefix = ''
@@ -449,6 +451,11 @@ class nagios_service(nagios_slave_object, nagios_group_member):
 			h.slaves[self.otype][self.obj['service_description']] = copy.deepcopy(self)
 
 def parse_nagios_objects(path):
+	global last_changed
+
+	st = os.stat(path)
+	last_changed = st['st_mtime'] if st['st_mtime'] > last_changed else last_changed
+
 	f = open(path)
 	obj = False
 	otype = ''
@@ -673,6 +680,11 @@ config_dir = cache_dir + '/config'
 def cmd_nodesplit(args):
 	global cache_dir, config_dir
 
+	force = False
+	for arg in args:
+		if arg == '--force':
+			force = True
+
 	cache_dir = '/var/cache/merlin'
 	if not mconf.num_nodes['poller']:
 		print("No pollers configured, so nothing to do.")
@@ -685,6 +697,8 @@ def cmd_nodesplit(args):
 	config_dir = cache_dir + '/config'
 	mkdir_p(config_dir)
 
+	# now that the potentially failing calls have been made, we
+	# parse the object configuration from the objects.cache file
 	params = []
 	for name, node in mconf.configured_nodes.items():
 		if node.ntype != 'poller':
@@ -696,6 +710,14 @@ def cmd_nodesplit(args):
 			sys.exit(1)
 
 		node.oconf_file = '%s/%s.cfg' % (config_dir, name)
+		# if there is a cached config file which is newer than
+		# the object config and we're not being forced, there's
+		# no need to re-create it
+		if os.access(node.oconf_file, os.F_OK):
+			st = os.stat(node.oconf_file, os.F_OK)
+			if not force st['st_mtime'] < last_changed:
+				continue
+
 		params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
 
 	# If there are no pollers with hostgroups, we might as well
@@ -707,7 +729,6 @@ def cmd_nodesplit(args):
 	# for the target system
 	old_umask = os.umask(022)
 
-	parse_object_config([object_cache])
 	map(run_param, params)
 
 
