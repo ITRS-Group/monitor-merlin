@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -O2 -pipe $(WARN_FLAGS) -ggdb3 -fPIC -fno-strict-aliasing -rdynamic
 WARN_FLAGS = -Wall -Wextra -Wno-unused-parameter
 COMMON_OBJS = cfgfile.o shared.o hash.o version.o logging.o
-SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o data.o binlog.o
+SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
 DAEMON_OBJS = status.o daemonize.o daemon.o net.o sql.o db_updater.o state.o
 DAEMON_OBJS += $(SHARED_OBJS)
@@ -105,14 +105,14 @@ bltest: binlog.o bltest.o test_utils.o
 
 bltest.o: bltest.c binlog.h
 
-blread: blread.o data.o $(COMMON_OBJS)
+blread: blread.o codec.o $(COMMON_OBJS)
 
-data.o: hookinfo.h
+codec.o: hookinfo.h
 
 blread.o: test/blread.c $(DEPS)
 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
-endpoint: endpoint.o data.o $(COMMON_OBJS)
+endpoint: endpoint.o codec.o $(COMMON_OBJS)
 
 endpoint.o: test/endpoint.c $(DEPS)
 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
