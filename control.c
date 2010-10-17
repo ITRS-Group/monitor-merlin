@@ -156,6 +156,7 @@ static int cmp_peer(const void *a_, const void *b_)
 static void assign_peer_ids(void)
 {
 	uint i, inc = 0;
+	uint h_extra, s_extra, h_checks, s_checks;
 
 	if (!num_peers)
 		return;
@@ -214,9 +215,11 @@ static void assign_peer_ids(void)
 
 	linfo("We're now peer #%d out of %d active ones", peer_id,
 		  active_peers + 1);
-	linfo("Handling roughly %d host and %d service checks",
-		  scheduling_info.total_hosts / (active_peers + 1),
-		  scheduling_info.total_services / (active_peers + 1));
+	h_extra = (scheduling_info.total_hosts % (active_peers + 1)) > peer_id;
+	s_extra = (scheduling_info.total_services % (active_peers + 1)) > peer_id;
+	h_checks = (scheduling_info.total_hosts / (active_peers + 1)) + h_extra;
+	s_checks = (scheduling_info.total_services / (active_peers + 1)) + s_extra;
+	linfo("Handling %u host and %u service checks", h_checks, s_checks);
 }
 
 /*
