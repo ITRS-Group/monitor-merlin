@@ -448,12 +448,12 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 	/*
 	 * if everything goes right it's quite easy to handle
 	 */
+	memcpy(&node->info, pkt->body, len);
 	ldebug("Received CTRL_ACTIVE from %s", node->name);
 	ldebug("   start time: %lu.%lu",
-	       node->info.start.tv_sec, node->info.start.tv_usec);
+	       info->start.tv_sec, info->start.tv_usec);
 	ldebug("  config hash: %s", tohex(info->config_hash, 20));
 	ldebug(" config mtime: %lu", info->last_cfg_change);
-	memcpy(&node->info, pkt->body, len);
 
 	return 0;
 }

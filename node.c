@@ -561,7 +561,7 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 		merlin_nodeinfo *info = (merlin_nodeinfo *)&pkt->body;
 		ldebug("Sending CTRL_ACTIVE to %s", node->name);
 		ldebug("   start time: %lu.%lu",
-		       node->info.start.tv_sec, node->info.start.tv_usec);
+		       info->start.tv_sec, info->start.tv_usec);
 		ldebug("  config hash: %s", tohex(info->config_hash, 20));
 		ldebug(" config mtime: %lu", info->last_cfg_change);
 	}
