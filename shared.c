@@ -236,7 +236,7 @@ int grok_confsync_compound(struct cfg_comp *comp, merlin_confsync *csync)
 			csync->push = strdup(v->value);
 			continue;
 		}
-		if (!strcmp(v->key, "fetch")) {
+		if (!strcmp(v->key, "fetch") || !strcmp(v->key, "pull")) {
 			csync->fetch = strdup(v->value);
 			continue;
 		}
