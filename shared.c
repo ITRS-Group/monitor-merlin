@@ -328,6 +328,7 @@ int set_socket_options(int sd, int beefup_buffers)
  * Returns < -1 if node is incompatible with us.
  * Returns 1 if node is compatible in word and byte alignment
  *   but has more features than we do.
+ * Returns 1 if node is compatible, but info isn't new
  * Returns > 1 if node is compatible but lacks features we
  *   have
  */
@@ -445,8 +446,19 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 		return ret;
 	}
 
+
+	/* everything seems ok, so handle it properly */
+
+
+	/* if info isn't new, we return 1 */
+	if (!memcmp(&node->info, pkt->body, len)) {
+		ldebug("%s re-sent identical CTRL_ACTIVE info", node->name);
+		return 1;
+	}
+
 	/*
-	 * if everything goes right it's quite easy to handle
+	 * otherwise update the node's info and
+	 * print some debug logging.
 	 */
 	memcpy(&node->info, pkt->body, len);
 	ldebug("Received CTRL_ACTIVE from %s", node->name);
