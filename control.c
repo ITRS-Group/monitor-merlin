@@ -266,7 +266,7 @@ void handle_control(merlin_event *pkt)
 	case CTRL_ACTIVE:
 		/*
 		 * Only mark the node as connected if the CTRL_ACTIVE packet
-		 * checks out properly
+		 * checks out properly and the info is new
 		 */
 		if (!handle_ctrl_active(node, pkt)) {
 			node_action(node, STATE_CONNECTED);

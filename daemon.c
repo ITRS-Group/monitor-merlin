@@ -562,9 +562,10 @@ static int handle_ipc_event(merlin_event *pkt)
 			 * anything but zero from our module. If it does, it
 			 * will already have logged everything the user needs
 			 * to know, so we can just return without further
-			 * actions
+			 * actions, even if the info returned is the same as
+			 * we already have
 			 */
-			if (handle_ctrl_active(&ipc, pkt) < 0) {
+			if (handle_ctrl_active(&ipc, pkt)) {
 				return 0;
 			}
 
