@@ -454,26 +454,46 @@ static int csync_config_cmp(merlin_node *node)
 {
 	int mtime_delta, sec_delta, usec_delta, hash_delta;
 
+	ldebug("Comparing config with %s node %s", node_type(node), node->name);
+	if (!ipc.info.last_cfg_change) {
+		/*
+		 * if our module is inactive, we can't know anything so we
+		 * can't do anything, and we can't fetch the last config
+		 * change time, since it might be being changed as we speak.
+		 */
+		ldebug("Our module is inactive, so can't check csync stuff");
+		return 0;
+	}
+
 	if (node->type == MODE_POLLER) {
 		hash_delta = memcmp(node->info.config_hash, ipc.info.config_hash, 20);
-		if (!hash_delta)
+		if (!hash_delta) {
+			ldebug("hashes match. No sync required");
 			return 0;
+		}
 	}
 
 	mtime_delta = node->info.last_cfg_change - ipc.info.last_cfg_change;
-	if (mtime_delta)
+	if (mtime_delta) {
+		ldebug("mtime_delta: %d", mtime_delta);
 		return mtime_delta;
+	}
 
 	lwarn("CSYNC: Hash mismatch between us and %s, but mtime matches", node->name);
 
 	sec_delta = node->info.start.tv_sec - ipc.info.start.tv_sec;
-	if (sec_delta)
+	if (sec_delta) {
+		ldebug("Returning sec_delta: %d", sec_delta);
 		return sec_delta;
+	}
 
 	usec_delta = node->info.start.tv_usec - ipc.info.start.tv_usec;
-	if (usec_delta)
+	if (usec_delta) {
+		ldebug("Returning usec_delta: %d", usec_delta);
 		return usec_delta;
+	}
 
+	ldebug("Returning hash_delta as fallback (weeeeird!): %d", hash_delta);
 	return hash_delta;
 }
 
@@ -495,12 +515,14 @@ void csync_node_active(merlin_node *node)
 	merlin_confsync *cs = NULL;
 	char *cmd = NULL;
 
-	ldebug("CONFSYNC CHECK FOR NODE %s", node->name);
+	ldebug("CSYNC: Checking node %s", node->name);
 
 	/* bail early if we have no push/fetch configuration */
 	cs = node->csync ? node->csync : &csync;
-	if (!cs->push && !cs->fetch)
+	if (!cs->push && !cs->fetch) {
+		ldebug("CSYNC: No config sync configured. Bailing early");
 		return;
+	}
 
 	val = csync_config_cmp(node);
 	if (!val)
@@ -508,15 +530,17 @@ void csync_node_active(merlin_node *node)
 
 	if (val < 0) {
 		cmd = cs->push;
+		ldebug("CSYNC: We'll try to push");
 	} else if (val > 0) {
 		cmd = cs->fetch;
+		ldebug("CSYNC: We'll try to fetch");
 	}
 
 	if (cmd) {
-		ldebug("node %s; val: %d; sync-command: [%s]", node->name, val, cmd);
+		ldebug("CSYNC: node %s; val: %d; sync-command: [%s]", node->name, val, cmd);
 		run_program("csync", cmd, &pid);
 		if (pid > 0)
-			ldebug("command has pid %d", pid);
+			ldebug("CSYNC: command has pid %d", pid);
 	}
 }
 
