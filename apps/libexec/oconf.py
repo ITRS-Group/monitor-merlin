@@ -724,7 +724,7 @@ def cmd_nodesplit(args):
 		# no need to re-create it
 		if os.access(node.oconf_file, os.F_OK):
 			st = os.stat(node.oconf_file, os.F_OK)
-			if not force st['st_mtime'] < last_changed:
+			if not force or st['st_mtime'] < last_changed:
 				continue
 
 		params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
