@@ -163,6 +163,7 @@ extern char *next_word(char *str);
 extern int grok_confsync_compound(struct cfg_comp *comp, merlin_confsync *csync);
 extern int grok_common_var(struct cfg_comp *config, struct cfg_var *v);
 extern const char *callback_name(int id);
+extern const char *ctrl_name(uint code);
 extern const char *tv_delta(struct timeval *start, struct timeval *stop);
 extern int handle_ctrl_active(merlin_node *node, merlin_event *pkt);
 

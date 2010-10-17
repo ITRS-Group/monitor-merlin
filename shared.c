@@ -94,6 +94,26 @@ const char *callback_name(int id)
 	return callback_names[id];
 }
 
+#define CTRL_ENTRY(s) "CTRL_"#s
+static const char *control_names[] = {
+	CTRL_ENTRY(NOTHING),
+	CTRL_ENTRY(PULSE),
+	CTRL_ENTRY(INACTIVE),
+	CTRL_ENTRY(ACTIVE),
+	CTRL_ENTRY(PATHS),
+	CTRL_ENTRY(STALL),
+	CTRL_ENTRY(RESUME),
+	CTRL_ENTRY(STOP),
+};
+const char *ctrl_name(uint code)
+{
+	if (code > ARRAY_SIZE(control_names))
+		return "(invalid/unknown)";
+	if (code == CTRL_GENERIC)
+		return "CTRL_GENERIC";
+	return control_names[code];
+}
+
 #if (defined(__GLIBC__) && (__GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1))
 #include <execinfo.h>
 void bt_scan(const char *mark, int count)
