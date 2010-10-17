@@ -4,13 +4,38 @@
 /*
  * Both of these conversions involve a fair deal of Black Magic.
  * If you don't understand what's happening, please don't fiddle.
+ *
+ * For those seeking enlightenment, read on:
+ * The packet must be a single continuous block of memory in order
+ * to be efficiently sent over the network. In order to arrange
+ * this, we must handle strings somewhat specially.
+ *
+ * Each string is copied to the "free" memory area beyond the rest
+ * of the data contained in the object we're mangling, one* after
+ * another and will a single nul char separating them. The pointers
+ * to the strings are then modified so they contain the relative
+ * offset from the beginning of the memory area instead of an
+ * absolute memory address.  This means that in order to use those
+ * strings once a packet has been encoded, it must be decoded again
+ * so the string pointers are restored to an absolute address,
+ * calculated based on the address of the base object and their
+ * relative offset regarding that base object.
+ *
+ * One way to access a string inside an encoded object without
+ * first running it through merlin_encode is to use:
+ *
+ *   str = buf->some_string + (unsigned long)buf);
+ *
+ * but that quickly gets unwieldy, is harder to test automagically
+ * and means callers must be aware of implementation details they
+ * shouldn't really have to care about, so we avoid that idiom.
  */
 
 /*
  * Fixed-length variables are simply memcpy()'d.
- * Each string allocated is stuck in a memory area at the end of the object.
- * The pointer offset is then set to reflect the start of the string relative
- * to the beginning of the memory chunk.
+ * Each string allocated is stuck in a memory area at the end of
+ * the object. The pointer offset is then set to reflect the start
+ * of the string relative to the beginning of the memory chunk.
  */
 int merlin_encode(void *data, int cb_type, char *buf, int buflen)
 {
@@ -68,8 +93,14 @@ int merlin_encode(void *data, int cb_type, char *buf, int buflen)
 }
 
 
-/* Undo the pointer mangling done above (well, not exactly, but the string
- * pointers will point to the location of the string in the block anyways) */
+/*
+ * Undo the pointer mangling done above (well, not exactly, but the
+ * string pointers will point to the location of the string in the
+ * block anyways, and thus "work").
+ * Note that strings still cannot be free()'d, since the memory
+ * they reside in is a single continuous block making up the entire
+ * event.
+ */
 int merlin_decode(void *ds, off_t len, int cb_type)
 {
 	off_t *ptrs;
