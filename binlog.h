@@ -84,7 +84,7 @@ extern void binlog_destroy(binlog *bl, int flags);
  */
 extern int binlog_read(binlog *bl, void **buf, unsigned int *len);
 
-/*
+/**
  * "unread" one entry from the binlog. This lets one maintain
  * sequential reading from the binlog even when event processing
  * fails. Note that the data isn't duplicated again here, since
