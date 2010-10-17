@@ -153,7 +153,7 @@ static int send_generic(merlin_event *pkt, void *data)
 {
 	int result;
 
-	pkt->hdr.len = blockify_event(pkt, data);
+	pkt->hdr.len = merlin_encode_event(pkt, data);
 	if (!pkt->hdr.len) {
 		lerr("Header len is 0 for callback %d. Update offset in hookinfo.h", pkt->hdr.type);
 		return -1;

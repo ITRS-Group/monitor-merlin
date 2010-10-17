@@ -483,7 +483,7 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		 * IMPORTANT NOTE:
 		 * It's absolutely vital that we send the event to the
 		 * ipc socket *before* we ship it off to the db_update
-		 * function, since the db_updpate function deblockify()'s
+		 * function, since the db_updpate function merlin_decode()'s
 		 * the event, which makes unusable for sending to the
 		 * ipc (or, indeed, anywhere else) afterwards.
 		 */

@@ -95,7 +95,7 @@ int handle_ipc_event(merlin_event *pkt)
 		   pkt->hdr.len, *pkt->body);
 */
 	/* restore the pointers so the various handlers won't have to */
-	deblockify(pkt->body, pkt->hdr.len, pkt->hdr.type);
+	merlin_decode(pkt->body, pkt->hdr.len, pkt->hdr.type);
 
 	/*
 	 * check results and status updates are handled the same,

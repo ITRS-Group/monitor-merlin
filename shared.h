@@ -167,14 +167,14 @@ extern const char *tv_delta(struct timeval *start, struct timeval *stop);
 extern int handle_ctrl_active(merlin_node *node, merlin_event *pkt);
 
 /* data blockification routines */
-extern int blockify(void *data, int cb_type, char *buf, int buflen);
-extern int deblockify(void *ds, off_t len, int cb_type);
-static inline int blockify_event(merlin_event *pkt, void *data)
+extern int merlin_encode(void *data, int cb_type, char *buf, int buflen);
+extern int merlin_decode(void *ds, off_t len, int cb_type);
+static inline int merlin_encode_event(merlin_event *pkt, void *data)
 {
-	return blockify(data, pkt->hdr.type, pkt->body, sizeof(pkt->body));
+	return merlin_encode(data, pkt->hdr.type, pkt->body, sizeof(pkt->body));
 }
-static inline int deblockify_event(merlin_event *pkt)
+static inline int merlin_decode_event(merlin_event *pkt)
 {
-	return deblockify(pkt->body, sizeof(pkt->body), pkt->hdr.type);
+	return merlin_decode(pkt->body, sizeof(pkt->body), pkt->hdr.type);
 }
 #endif

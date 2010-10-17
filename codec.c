@@ -12,7 +12,7 @@
  * The pointer offset is then set to reflect the start of the string relative
  * to the beginning of the memory chunk.
  */
-int blockify(void *data, int cb_type, char *buf, int buflen)
+int merlin_encode(void *data, int cb_type, char *buf, int buflen)
 {
 	int i, len, strings;
 	off_t off, *ptrs;
@@ -70,7 +70,7 @@ int blockify(void *data, int cb_type, char *buf, int buflen)
 
 /* Undo the pointer mangling done above (well, not exactly, but the string
  * pointers will point to the location of the string in the block anyways) */
-int deblockify(void *ds, off_t len, int cb_type)
+int merlin_decode(void *ds, off_t len, int cb_type)
 {
 	off_t *ptrs;
 	int strings, i;

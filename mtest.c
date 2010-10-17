@@ -1,6 +1,6 @@
 /*
- * This file contains tests for the "blockify()/deblockify()"
- * function, ensuring we don't garble data before we send it off
+ * This file contains tests for the merlin_{encode,decode}()"
+ * functions, ensuring we don't garble data before we send it off
  */
 #define _GNU_SOURCE 1
 #define NSCORE
@@ -81,8 +81,8 @@ int neb_deregister_callback(int callback_type, int (*callback_func)(int, void *)
 /* various testing helpers */
 static void *blk_prep(void *data)
 {
-	blockify_event(&pkt, data);
-	deblockify_event(&pkt);
+	merlin_encode_event(&pkt, data);
+	merlin_decode_event(&pkt);
 	return pkt.body;
 }
 

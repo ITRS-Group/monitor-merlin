@@ -1,5 +1,5 @@
 /**
- * Conversion table to blockify and de-blockify data-structs sent from
+ * Conversion table to encode and decode data-structs sent from
  * Nagios to event broker modules.
  *
  * To add more checks here, first go check in nagios/include/nebcallbacks.h
