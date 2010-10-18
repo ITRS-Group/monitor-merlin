@@ -454,7 +454,8 @@ def parse_nagios_objects(path):
 	global last_changed
 
 	st = os.stat(path)
-	last_changed = st['st_mtime'] if st['st_mtime'] > last_changed else last_changed
+	if st['st_mtime'] > last_changed:
+		last_changed = st['st_mtime']
 
 	f = open(path)
 	obj = False
