@@ -645,7 +645,7 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 			int events = 0;
 
 			/* read all available events */
-			while (net_input(node, 50) > 0) {
+			while (net_input(node, 1) > 0) {
 				events++;
 			}
 			if (events)
