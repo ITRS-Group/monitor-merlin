@@ -49,41 +49,46 @@ char *tohex(const unsigned char *data, int len)
 	return bufs[bufno++ & (ARRAY_SIZE(bufs) - 1)];
 }
 
-#define CB_ENTRY(s) #s
-static const char *callback_names[NEBCALLBACK_NUMITEMS] = {
-	CB_ENTRY(RESERVED0),
-	CB_ENTRY(RESERVED1),
-	CB_ENTRY(RESERVED2),
-	CB_ENTRY(RESERVED3),
-	CB_ENTRY(RESERVED4),
-	CB_ENTRY(RAW_DATA),
-	CB_ENTRY(NEB_DATA),
-	CB_ENTRY(PROCESS_DATA),
-	CB_ENTRY(TIMED_EVENT_DATA),
-	CB_ENTRY(LOG_DATA),
-	CB_ENTRY(SYSTEM_COMMAND_DATA),
-	CB_ENTRY(EVENT_HANDLER_DATA),
-	CB_ENTRY(NOTIFICATION_DATA),
-	CB_ENTRY(SERVICE_CHECK_DATA),
-	CB_ENTRY(HOST_CHECK_DATA),
-	CB_ENTRY(COMMENT_DATA),
-	CB_ENTRY(DOWNTIME_DATA),
-	CB_ENTRY(FLAPPING_DATA),
-	CB_ENTRY(PROGRAM_STATUS_DATA),
-	CB_ENTRY(HOST_STATUS_DATA),
-	CB_ENTRY(SERVICE_STATUS_DATA),
-	CB_ENTRY(ADAPTIVE_PROGRAM_DATA),
-	CB_ENTRY(ADAPTIVE_HOST_DATA),
-	CB_ENTRY(ADAPTIVE_SERVICE_DATA),
-	CB_ENTRY(EXTERNAL_COMMAND_DATA),
-	CB_ENTRY(AGGREGATED_STATUS_DATA),
-	CB_ENTRY(RETENTION_DATA),
-	CB_ENTRY(CONTACT_NOTIFICATION_DATA),
-	CB_ENTRY(CONTACT_NOTIFICATION_METHOD_DATA),
-	CB_ENTRY(ACKNOWLEDGEMENT_DATA),
-	CB_ENTRY(STATE_CHANGE_DATA),
-	CB_ENTRY(CONTACT_STATUS_DATA),
-	CB_ENTRY(ADAPTIVE_CONTACT_DATA)
+#define CB_ENTRY(s) { NEBCALLBACK_##s##_DATA, #s, sizeof(#s) - 1 }
+#define CB_RESERVED(s) { NEBCALLBACK_RESERVED##s, "RESERVED" #s, sizeof("RESERVED"#s) - 1 }
+struct {
+	int id;
+	char *name;
+	uint name_len;
+} callback_list[NEBCALLBACK_NUMITEMS] = {
+	CB_RESERVED(0),
+	CB_RESERVED(1),
+	CB_RESERVED(2),
+	CB_RESERVED(3),
+	CB_RESERVED(4),
+	CB_ENTRY(RAW),
+	CB_ENTRY(NEB),
+	CB_ENTRY(PROCESS),
+	CB_ENTRY(TIMED_EVENT),
+	CB_ENTRY(LOG),
+	CB_ENTRY(SYSTEM_COMMAND),
+	CB_ENTRY(EVENT_HANDLER),
+	CB_ENTRY(NOTIFICATION),
+	CB_ENTRY(SERVICE_CHECK),
+	CB_ENTRY(HOST_CHECK),
+	CB_ENTRY(COMMENT),
+	CB_ENTRY(DOWNTIME),
+	CB_ENTRY(FLAPPING),
+	CB_ENTRY(PROGRAM_STATUS),
+	CB_ENTRY(HOST_STATUS),
+	CB_ENTRY(SERVICE_STATUS),
+	CB_ENTRY(ADAPTIVE_PROGRAM),
+	CB_ENTRY(ADAPTIVE_HOST),
+	CB_ENTRY(ADAPTIVE_SERVICE),
+	CB_ENTRY(EXTERNAL_COMMAND),
+	CB_ENTRY(AGGREGATED_STATUS),
+	CB_ENTRY(RETENTION),
+	CB_ENTRY(CONTACT_NOTIFICATION),
+	CB_ENTRY(CONTACT_NOTIFICATION_METHOD),
+	CB_ENTRY(ACKNOWLEDGEMENT),
+	CB_ENTRY(STATE_CHANGE),
+	CB_ENTRY(CONTACT_STATUS),
+	CB_ENTRY(ADAPTIVE_CONTACT)
 };
 
 const char *callback_name(int id)
@@ -91,7 +96,37 @@ const char *callback_name(int id)
 	if (id < 0 || id > NEBCALLBACK_NUMITEMS - 1)
 		return "(invalid/unknown)";
 
-	return callback_names[id];
+	return callback_list[id].name;
+}
+
+int callback_id(const char *orig_name)
+{
+	uint i, len;
+	char name[100];
+
+	if (!orig_name)
+		return -1;
+
+	len = strlen(orig_name);
+	if (len > sizeof(name))
+		return -1;
+
+	for (i = 0; i < len; i++) {
+		name[i] = toupper(orig_name[i]);
+	}
+	name[i] = '\0';
+
+	for (i = 0; i < ARRAY_SIZE(callback_list); i++) {
+		if (len != callback_list[i].name_len)
+			continue;
+
+		if (!strcmp(callback_list[i].name, name)) {
+			return callback_list[i].id;
+		}
+	}
+
+	/* not found */
+	return -1;
 }
 
 #define CTRL_ENTRY(s) "CTRL_"#s

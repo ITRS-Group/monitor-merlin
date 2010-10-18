@@ -10,6 +10,16 @@ time_t merlin_should_send_paths = 1;
 /** code start **/
 extern hostgroup *hostgroup_list;
 static int mrm_reap_interval = 2;
+/*
+ * user-defined filters, used as or-gate. Defaults to
+ * 'handle everything'. This only affects what events
+ * we register callbacks for. Received events will
+ * still be parsed in full.
+ * It's calculated thus:
+ *   event_mask = handle_events & (~ignore_events);
+ * See grok_module_compound() for further details
+ */
+static uint32_t event_mask;
 
 /*
  * handle_{host,service}_result() is basically identical to
@@ -234,9 +244,57 @@ static void setup_host_hash_tables(void)
 	free(num_ents);
 }
 
+static int parse_event_filter(const char *orig_str, uint32_t *evt_mask)
+{
+	uint32_t mask = 0;
+	char *base_str, *str, *comma;
+
+	if (!orig_str || !*orig_str)
+		return -1;
+
+	/*
+	 * initializing 'mask' to the result storage means we
+	 * can let users supply the variable more times than
+	 * one and get an appending result, but that could
+	 * quite easily be surprising, so we don't do that
+	 * just yet.
+	 */
+
+	base_str = str = strdup(orig_str);
+	do {
+		int code;
+
+		while (!*str || *str == ',' || *str == ' ')
+			str++;
+		comma = strchr(str, ',');
+		if (comma)
+			*comma = 0;
+
+		if (!strcmp(str, "all"))
+			return ~0;
+
+		code = callback_id(str);
+		if (code >= 0 && code < 32) {
+			mask |= 1 << code;
+		} else {
+			lwarn("Unable to find a callback id for '%s'\n", str);
+		}
+
+		str = comma;
+		if (comma)
+			*comma = ',';
+	} while (str);
+
+	free(base_str);
+	*evt_mask = mask;
+	return 0;
+}
+
 static void grok_module_compound(struct cfg_comp *comp)
 {
 	uint i;
+	uint32_t handle_events = ~0; /* events to filter in */
+	uint32_t ignore_events = 0;  /* events to filter out */
 
 	for (i = 0; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
@@ -245,6 +303,22 @@ static void grok_module_compound(struct cfg_comp *comp)
 			char *endp;
 			mrm_reap_interval = (int)strtoul(v->value, &endp, 0);
 			if (mrm_reap_interval < 0 || *endp != '\0')
+				cfg_error(comp, v, "Illegal value for %s", v->key);
+			continue;
+		}
+
+		/* not very widely used, I should think */
+		if (!strcmp(v->key, "event_mask")) {
+			event_mask = strtoul(v->value, NULL, 0);
+			continue;
+		}
+		if (!strcmp(v->key, "handle_events")) {
+			if (parse_event_filter(v->value, &handle_events) < 0)
+				cfg_error(comp, v, "Illegal value for %s", v->key);
+			continue;
+		}
+		if (!strcmp(v->key, "ignore_events")) {
+			if (parse_event_filter(v->value, &ignore_events) < 0)
 				cfg_error(comp, v, "Illegal value for %s", v->key);
 			continue;
 		}
@@ -258,6 +332,9 @@ static void grok_module_compound(struct cfg_comp *comp)
 
 		cfg_error(comp, comp->vlist[i], "Unknown variable");
 	}
+
+	/* remove the ignored events from the handled ones */
+	event_mask = handle_events & (~ignore_events);
 
 	if (!mrm_reap_interval)
 		mrm_reap_interval = 2;
@@ -414,7 +491,7 @@ static int post_config_init(int cb, void *ds)
 	 * at us when it's reading its status back in from the
 	 * status.sav file (assuming state retention is enabled)
 	 */
-	register_merlin_hooks();
+	register_merlin_hooks(event_mask);
 
 	return 0;
 }

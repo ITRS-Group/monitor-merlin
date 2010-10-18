@@ -582,12 +582,18 @@ static struct callback_struct {
 };
 
 extern void *neb_handle;
-int register_merlin_hooks(void)
+int register_merlin_hooks(uint32_t mask)
 {
 	uint i;
 
 	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
 		struct callback_struct *cb = &callback_table[i];
+
+		/* ignored filtered-out eventtypes */
+		if (!(mask & (1 << cb->type))) {
+			ldebug("EVENTFILTER: Ignoring %s events from Nagios", callback_name(i));
+			continue;
+		}
 
 		neb_register_callback(cb->type, neb_handle, 0, merlin_mod_hook);
 	}
@@ -595,6 +601,10 @@ int register_merlin_hooks(void)
 	return 0;
 }
 
+/*
+ * We ignore any event masks here. Nagios should handle a module
+ * unloading a function it hasn't registered gracefully anyways.
+ */
 int deregister_merlin_hooks(void)
 {
 	uint i;

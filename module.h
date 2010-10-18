@@ -56,7 +56,7 @@ extern void ctrl_create_object_tables(void);
 extern void ctrl_stall_start(void);
 extern void ctrl_stall_stop(void);
 
-extern int register_merlin_hooks(void);
+extern int register_merlin_hooks(uint32_t mask);
 extern int deregister_merlin_hooks(void);
 extern int merlin_mod_hook(int cb, void *data);
 
