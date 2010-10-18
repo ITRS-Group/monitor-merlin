@@ -452,7 +452,7 @@ static int read_nagios_paths(merlin_event *pkt)
  */
 static int csync_config_cmp(merlin_node *node)
 {
-	int mtime_delta, sec_delta, usec_delta;
+	int mtime_delta;
 
 	ldebug("Comparing config with %s node %s", node_type(node), node->name);
 	if (!ipc.info.last_cfg_change) {
