@@ -723,8 +723,8 @@ def cmd_nodesplit(args):
 		# if there is a cached config file which is newer than
 		# the object config and we're not being forced, there's
 		# no need to re-create it
-		if os.access(node.oconf_file, os.F_OK):
-			st = os.stat(node.oconf_file, os.F_OK)
+		if os.access(node.oconf_file, os.R_OK):
+			st = os.stat(node.oconf_file)
 			if not force or st.st_mtime < last_changed:
 				continue
 
