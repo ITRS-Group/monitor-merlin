@@ -878,6 +878,7 @@ int nebmodule_deinit(int, int);
 int main(int argc, char **argv)
 {
 	int i;
+	char *merlin_conf = NULL;
 
 	use_database = 1;
 
@@ -907,11 +908,11 @@ int main(int argc, char **argv)
 			continue;
 		}
 		grok_config(arg);
+		merlin_conf = arg;
 	}
 
+	nebmodule_init(-1, merlin_conf, NULL);
 	t_setup();
-
-	nebmodule_init(-1, NULL, NULL);
 	if (post_config_init) {
 		nebstruct_process_data ds;
 		ds.type = NEBTYPE_PROCESS_EVENTLOOPSTART;
