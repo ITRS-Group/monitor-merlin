@@ -518,7 +518,9 @@ int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
 		return -1;
 	}
 
-	if (!pkt->hdr.len && pkt->hdr.type != CTRL_PACKET) {
+	if (pkt->hdr.type == CTRL_PACKET) {
+		ldebug("Received %s from %s", ctrl_name(pkt->hdr.code), node->name);
+	} else if (!pkt->hdr.len) {
 		lerr("Non-control packet of type %d with zero size length (this should never happen)", pkt->hdr.type);
 		return len;
 	}
@@ -557,13 +559,15 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 
 	pkt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
 
-	if (pkt->hdr.type == CTRL_PACKET && pkt->hdr.code == CTRL_ACTIVE) {
-		merlin_nodeinfo *info = (merlin_nodeinfo *)&pkt->body;
-		ldebug("Sending CTRL_ACTIVE to %s", node->name);
-		ldebug("   start time: %lu.%lu",
-		       info->start.tv_sec, info->start.tv_usec);
-		ldebug("  config hash: %s", tohex(info->config_hash, 20));
-		ldebug(" config mtime: %lu", info->last_cfg_change);
+	if (pkt->hdr.type == CTRL_PACKET) {
+		ldebug("Sending %s to %s", ctrl_name(pkt->hdr.code), node->name);
+		if (pkt->hdr.code == CTRL_ACTIVE) {
+			merlin_nodeinfo *info = (merlin_nodeinfo *)&pkt->body;
+			ldebug("   start time: %lu.%lu",
+			       info->start.tv_sec, info->start.tv_usec);
+			ldebug("  config hash: %s", tohex(info->config_hash, 20));
+			ldebug(" config mtime: %lu", info->last_cfg_change);
+		}
 	}
 
 	if (packet_size(pkt) > TOTAL_PKT_SIZE) {
@@ -618,7 +622,7 @@ int node_send_binlog(merlin_node *node, merlin_event *pkt)
 	merlin_event *temp_pkt;
 	uint len;
 
-	linfo("Emptying backlog for %s", node->name);
+	ldebug("Emptying backlog for %s", node->name);
 	while (io_write_ok(node->sock, 500) && !binlog_read(node->binlog, (void **)&temp_pkt, &len)) {
 		int result = io_send_all(node->sock, temp_pkt, packet_size(temp_pkt));
 
