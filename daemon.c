@@ -452,7 +452,7 @@ static int read_nagios_paths(merlin_event *pkt)
  */
 static int csync_config_cmp(merlin_node *node)
 {
-	int mtime_delta, sec_delta, usec_delta, hash_delta;
+	int mtime_delta, sec_delta, usec_delta;
 
 	ldebug("Comparing config with %s node %s", node_type(node), node->name);
 	if (!ipc.info.last_cfg_change) {
@@ -466,6 +466,7 @@ static int csync_config_cmp(merlin_node *node)
 	}
 
 	if (node->type == MODE_POLLER) {
+		int hash_delta;
 		hash_delta = memcmp(node->info.config_hash, ipc.info.config_hash, 20);
 		if (!hash_delta) {
 			ldebug("hashes match. No sync required");
@@ -493,8 +494,8 @@ static int csync_config_cmp(merlin_node *node)
 		return usec_delta;
 	}
 
-	ldebug("Returning hash_delta as fallback (weeeeird!): %d", hash_delta);
-	return hash_delta;
+	lwarn("CSYNC: Can't determine confsync action for %s. Returning 0...", node->name);
+	return 0;
 }
 
 /*
