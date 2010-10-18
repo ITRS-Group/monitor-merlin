@@ -465,7 +465,10 @@ static int csync_config_cmp(merlin_node *node)
 		return 0;
 	}
 
-	if (node->type == MODE_POLLER) {
+	/*
+	 * All peers must have identical configuration
+	 */
+	if (node->type == MODE_PEER) {
 		int hash_delta;
 		hash_delta = memcmp(node->info.config_hash, ipc.info.config_hash, 20);
 		if (!hash_delta) {
