@@ -483,21 +483,26 @@ static int csync_config_cmp(merlin_node *node)
 		return mtime_delta;
 	}
 
-	lwarn("CSYNC: Hash mismatch between us and %s, but mtime matches", node->name);
-
-	sec_delta = node->info.start.tv_sec - ipc.info.start.tv_sec;
-	if (sec_delta) {
-		ldebug("Returning sec_delta: %d", sec_delta);
-		return sec_delta;
-	}
-
-	usec_delta = node->info.start.tv_usec - ipc.info.start.tv_usec;
-	if (usec_delta) {
-		ldebug("Returning usec_delta: %d", usec_delta);
-		return usec_delta;
-	}
-
+	/*
+	 * Error path, really. hash mismatch (if this node is a peer),
+	 * but mtime matches. Unusual, to say the least. Either way,
+	 * we can't really do anything except warn about it and get
+	 * on with things.
+	 * this can happen for pollers (and obviously masters too) if
+	 * the config sync script is quick enough or if system clocks
+	 * are out of sync
+	 */
 	lwarn("CSYNC: Can't determine confsync action for %s. Returning 0...", node->name);
+	if (node->type == MODE_PEER) {
+		/*
+		 * if the node is a peer, someone has managed to save the
+		 * config exactly the same second on both nodes. We
+		 * can't know what to do, so just give up and return
+		 */
+		lerr("CSYNC: hash mismatch between us and %s, but mtime matches", node->name);
+		lerr("CSYNC: User intervention required.");
+	}
+
 	return 0;
 }
 
