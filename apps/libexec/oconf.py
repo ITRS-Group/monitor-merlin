@@ -454,8 +454,8 @@ def parse_nagios_objects(path):
 	global last_changed
 
 	st = os.stat(path)
-	if st['st_mtime'] > last_changed:
-		last_changed = st['st_mtime']
+	if st and st.st_mtime > last_changed:
+		last_changed = st.st_mtime
 
 	f = open(path)
 	obj = False
@@ -725,7 +725,7 @@ def cmd_nodesplit(args):
 		# no need to re-create it
 		if os.access(node.oconf_file, os.F_OK):
 			st = os.stat(node.oconf_file, os.F_OK)
-			if not force or st['st_mtime'] < last_changed:
+			if not force or st.st_mtime < last_changed:
 				continue
 
 		params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
