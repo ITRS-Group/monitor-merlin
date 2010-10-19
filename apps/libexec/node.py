@@ -259,7 +259,7 @@ def cmd_status(args):
 			if hchecks == host_checks:
 				hc_color = color.red
 			if schecks == service_checks:
-				hc_color = color.red
+				sc_color = color.red
 
 		print("Checks (host/service): %s%d%s / %s%d%s  (%s%.2f%%%s / %s%.2f%%%s)" %
 			(hc_color, hchecks, color.reset, sc_color, schecks, color.reset,
