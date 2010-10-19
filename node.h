@@ -83,6 +83,19 @@ struct merlin_confsync {
 };
 typedef struct merlin_confsync merlin_confsync;
 
+/*
+ * it doesn't make sense to use a buffer larger than the kernel's
+ * receive buffer, so that's what we stick with
+ */
+#define MERLIN_IOC_BUFSIZE (256 * 1024)
+struct merlin_iocache {
+	char *buf;             /* the data */
+	unsigned long offset;  /* where we're reading in the buffer */
+	unsigned long buflen;  /* the amount of data read into the buffer */
+	unsigned long bufsize; /* size of the buffer */
+};
+typedef struct merlin_iocache merlin_iocache;
+
 struct statistics_vars {
 	unsigned long long sent, read, logged, dropped;
 };
@@ -133,6 +146,7 @@ struct merlin_node {
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
 	binlog *binlog;         /* binary backlog for this node */
 	merlin_node_stats stats; /* event/data statistics */
+	merlin_iocache ioc;     /* I/O cache for bulk reads */
 	merlin_confsync *csync; /* config synchronization configuration */
 	int (*action)(struct merlin_node *, int); /* (daemon) action handler */
 };

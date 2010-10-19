@@ -14,6 +14,17 @@ void ipc_init_struct(void)
 	ipc.id = CTRL_GENERIC;
 	ipc.type = MODE_LOCAL;
 	ipc.name = "ipc";
+	if (is_module && !(ipc.ioc.buf = malloc(MERLIN_IOC_BUFSIZE))) {
+		lerr("Failed to malloc() %d bytes for ipc io cache: %s",
+			 MERLIN_IOC_BUFSIZE, strerror(errno));
+		/*
+		 * failing to create this buffer means we can't communicate
+		 * with the daemon in any sensible fashion, so we must bail
+		 * out noisily when it happens
+		 */
+		exit(1);
+	}
+	ipc.ioc.bufsize = MERLIN_IOC_BUFSIZE;
 }
 
 void ipc_log_event_count(void)
