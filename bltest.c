@@ -589,8 +589,7 @@ static char *msg_list[] = {
 struct test_binlog {
 	char *path;
 	char *name;
-	size_t msize;
-	size_t fsize;
+	uint msize, fsize;
 };
 static struct test_binlog test[] = {
 	{ "/tmp/binlog-test", "All in memory", 10000000, 1000000 },
@@ -649,7 +648,7 @@ static int test_binlog(struct test_binlog *t, binlog *bl)
 		}
 
 		if (len != msg_len) {
-			printf("bad length returned. Expected %zu, got %zu\n", msg_len, len);
+			printf("bad length returned. Expected %u, got %u\n", msg_len, len);
 		}
 
 		if (!str) {
