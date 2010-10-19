@@ -624,7 +624,15 @@ int node_send_binlog(merlin_node *node, merlin_event *pkt)
 
 	ldebug("Emptying backlog for %s", node->name);
 	while (io_write_ok(node->sock, 500) && !binlog_read(node->binlog, (void **)&temp_pkt, &len)) {
-		int result = io_send_all(node->sock, temp_pkt, packet_size(temp_pkt));
+		int result;
+		if (!temp_pkt) {
+			lerr("BACKLOG: binlog returned 0 but presented no data");
+			lerr("BACKLOG: binlog claims the data length is %u", len);
+			lerr("BACKLOG: wiping backlog. %s is now out of sync", node->name);
+			binlog_wipe(node->binlog, BINLOG_UNLINK);
+			return;
+		}
+		result = io_send_all(node->sock, temp_pkt, packet_size(temp_pkt));
 
 		/* keep going while we successfully send something */
 		if (result == packet_size(temp_pkt)) {
