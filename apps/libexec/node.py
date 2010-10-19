@@ -220,7 +220,7 @@ def cmd_status(args):
 			print("%sUnable to determine when this node was last alive%s" %
 				(color.red, color.reset))
 		else:
-			if last_alive + 20 >= time.time():
+			if last_alive + 30 > time.time():
 				la_color = color.green
 			else:
 				la_color = color.red
