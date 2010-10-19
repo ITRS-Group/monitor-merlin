@@ -84,7 +84,7 @@ struct merlin_confsync {
 typedef struct merlin_confsync merlin_confsync;
 
 struct statistics_vars {
-	uint64_t sent, read, logged, dropped;
+	unsigned long long sent, read, logged, dropped;
 };
 struct merlin_node_stats {
 	struct statistics_vars events, bytes;

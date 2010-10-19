@@ -59,6 +59,8 @@
 # define ARRAY_SIZE(ary) (sizeof(ary)/sizeof(ary[0]))
 #endif
 
+#define sizeof(x) (uint)sizeof(x)
+
 #define safe_str(str) (str == NULL ? "''" : str)
 static inline void *safe_free(void *ptr)
 {
@@ -156,7 +158,7 @@ typedef struct merlin_service_status merlin_service_status;
 /** prototypes **/
 extern char *tohex(const unsigned char *data, int len);
 extern void bt_scan(const char *mark, int count);
-extern const char *human_bytes(uint64_t n);
+extern const char *human_bytes(unsigned long long n);
 extern linked_item *add_linked_item(linked_item *list, void *item);
 extern int set_socket_options(int sd, int beefup_buffers);
 extern char *next_word(char *str);

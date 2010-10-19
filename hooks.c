@@ -16,10 +16,10 @@
 
 static int check_dupes;
 static merlin_event last_pkt;
-static uint64_t dupes, dupe_bytes;
+static unsigned long long dupes, dupe_bytes;
 
 struct check_stats {
-	uint64_t poller, peer, self;
+	unsigned long long poller, peer, self;
 };
 static struct check_stats service_checks, host_checks;
 

@@ -367,7 +367,7 @@ void node_log_event_count(merlin_node *node, int force)
 {
 	struct timeval now;
 	merlin_node_stats *s = &node->stats;
-	uint64_t b_in, b_out, e_in, e_out;
+	unsigned long long b_in, b_out, e_in, e_out;
 	const char *dura;
 
 	/*
@@ -385,14 +385,14 @@ void node_log_event_count(merlin_node *node, int force)
 	b_out = s->bytes.sent + s->bytes.logged + s->bytes.dropped;
 	e_in = s->events.read;
 	e_out = s->events.sent + s->events.logged + s->events.dropped;
-	linfo("Handled %lld events from/to %s in %s. in: %lld, out: %lld",
+	linfo("Handled %llu events from/to %s in %s. in: %llu, out: %llu",
 		  e_in + e_out, node->name, dura, e_in, e_out);
 	linfo("Handled %s from/to %s in %s. in: %s, out: %s",
 		  human_bytes(b_in + b_out), node->name, dura,
 		  human_bytes(b_in), human_bytes(b_out));
 	if (!e_out)
 		return;
-	linfo("%s events/bytes: read %lld/%s, sent %lld/%s, dropped %lld/%s, logged %lld/%s",
+	linfo("%s events/bytes: read %llu/%s, sent %llu/%s, dropped %llu/%s, logged %llu/%s",
 	      node->name, e_in, human_bytes(b_in),
 		  s->events.sent, human_bytes(s->bytes.sent),
 		  s->events.dropped, human_bytes(s->bytes.dropped),
@@ -505,7 +505,7 @@ int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
 
 	len = io_recv_all(node->sock, &pkt->hdr, HDR_SIZE);
 	if (len != HDR_SIZE) {
-		lerr("%s: Incomplete header read(%d...). %zu != %d: %s",
+		lerr("%s: Incomplete header read(%d...). %u != %d: %s",
 			 __func__, node->sock, HDR_SIZE, len, strerror(errno));
 		lerr("Sync lost with %s?", node->name);
 		node_disconnect(node);

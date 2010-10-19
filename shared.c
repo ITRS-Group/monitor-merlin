@@ -196,7 +196,7 @@ static const char *config_key_expires(const char *var)
 }
 
 /* converts huge values to a more humanfriendly byte-representation */
-const char *human_bytes(uint64_t n)
+const char *human_bytes(unsigned long long n)
 {
 	const char *suffix = "KMGTP";
 	static char tbuf[4][30];
@@ -224,7 +224,7 @@ linked_item *add_linked_item(linked_item *list, void *item)
 	struct linked_item *entry = malloc(sizeof(linked_item));
 
 	if (!entry) {
-		lerr("Failed to malloc(%zu): %s", sizeof(linked_item), strerror(errno));
+		lerr("Failed to malloc(%u): %s", sizeof(linked_item), strerror(errno));
 		return NULL;
 	}
 
