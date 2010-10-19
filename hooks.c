@@ -279,7 +279,7 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		 */
 		if (has_active_poller(ds->host_name)) {
 			service_checks.poller++;
-			return NEBERROR_CALLBACKOVERRIDE;
+			return NEBERROR_CALLBACKCANCEL;
 		}
 		/*
 		 * if a peer is supposed to handle this check, we must
@@ -287,7 +287,7 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		 */
 		if (!ctrl_should_run_service_check(ds->host_name, ds->service_description)) {
 			service_checks.peer++;
-			return NEBERROR_CALLBACKOVERRIDE;
+			return NEBERROR_CALLBACKCANCEL;
 		}
 		service_checks.self++;
 		return 0;
@@ -313,11 +313,11 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		 */
 		if (has_active_poller(ds->host_name)) {
 			host_checks.poller++;
-			return NEBERROR_CALLBACKOVERRIDE;
+			return NEBERROR_CALLBACKCANCEL;
 		}
 		if (!ctrl_should_run_host_check(ds->host_name)) {
 			host_checks.peer++;
-			return NEBERROR_CALLBACKOVERRIDE;
+			return NEBERROR_CALLBACKCANCEL;
 		}
 		host_checks.self++;
 		return 0;
