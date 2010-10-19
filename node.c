@@ -630,7 +630,7 @@ int node_send_binlog(merlin_node *node, merlin_event *pkt)
 			lerr("BACKLOG: binlog claims the data length is %u", len);
 			lerr("BACKLOG: wiping backlog. %s is now out of sync", node->name);
 			binlog_wipe(node->binlog, BINLOG_UNLINK);
-			return;
+			return -1;
 		}
 		result = io_send_all(node->sock, temp_pkt, packet_size(temp_pkt));
 
