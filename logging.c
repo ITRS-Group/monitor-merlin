@@ -133,8 +133,8 @@ void log_msg(int severity, const char *fmt, ...)
 		 * systems where logging matters (a lot) can specify
 		 * MERLIN_FLUSH_LOGFILES as CPPFLAGS when building
 		 */
-#ifdef MERLIN_FLUSH_LOGFILES
 		fflush(log_fp);
+#ifdef MERLIN_FLUSH_LOGFILES
 		fsync(fileno(log_fp));
 #endif
 	}
