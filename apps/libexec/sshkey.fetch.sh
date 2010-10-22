@@ -87,12 +87,12 @@ test "$destinations" || usage
 
 add_key_locally()
 {
-	dest="$1"
-	key=$(grab_key $dest)
+	src="$1"
+	key=$(grab_key $src)
 	if grep -q "$key" "$outfile"; then
 		echo "We already have that key in $outfile"
 	else
-		echo "Successfully fetched key from $dest to $outfile"
+		echo "Successfully fetched key from $src to $outfile"
 		echo "$key" >> "$outfile"
 	fi
 }
