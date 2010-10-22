@@ -587,7 +587,7 @@ def run_param(param):
 	for shg in interesting['hostgroup']:
 		hg = nagios_objects['hostgroup'].get(shg)
 		if not hg:
-			print("Hostgroup '%s' doesn't exist, you retard" % shg)
+			print("Hostgroup '%s' doesn't exist" % shg)
 			sys.exit(1)
 
 		interesting['host'] |= set(interesting['host']) | set(hg.members.keys())
