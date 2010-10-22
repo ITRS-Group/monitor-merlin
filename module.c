@@ -230,6 +230,14 @@ static int real_ipc_reap(void)
 			}
 			ioc->offset += packet_size(pkt);
 		}
+
+		/*
+		 * if we read it all, reset the buffer so we don't
+		 * hit the buffer mark and loop indefinitely
+		 */
+		if (ioc->offset >= ioc->buflen) {
+			ioc->buflen = ioc->offset = 0;
+		}
 	} while (io_read_ok(ipc.sock, 50) > 0);
 
 	ipc.stats.events.read += events;
