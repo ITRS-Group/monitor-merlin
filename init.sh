@@ -2,7 +2,7 @@
 #
 # Start / stop the Merlin daemon
 #
-# chkconfig: 2345 99 01
+# chkconfig: 2345 90 10
 #
 ### BEGIN INIT INFO
 # Provides: monitor
