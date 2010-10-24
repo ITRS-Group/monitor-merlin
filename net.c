@@ -517,9 +517,8 @@ static int net_input(merlin_node *node)
 			handle_network_event(node, pkt);
 		}
 	}
-	node->stats.events.read += events;
-	ldebug("Read %d bytes and %d events from %s node %s",
-		   len, events, node_type(node), node->name);
+	ldebug("Read %d events in %s from %s node %s",
+		   events, human_bytes(len), node_type(node), node->name);
 
 	return events;
 }
