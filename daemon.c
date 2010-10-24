@@ -647,6 +647,7 @@ static int ipc_reap_events(void)
 		return len;
 
 	while ((pkt = node_get_event(&ipc))) {
+		events++;
 		handle_ipc_event(pkt);
 	}
 	ldebug("Read %d events in %s from %s", events, human_bytes(len), ipc.name);
