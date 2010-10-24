@@ -137,8 +137,9 @@ static int real_ipc_reap(void)
 		return 0;
 	}
 
+	node_log_event_count(&ipc, 0);
+
 	if (!io_read_ok(ipc.sock, 0)) {
-		ldebug("No input available on ipc socket");
 		return 0;
 	}
 
@@ -166,8 +167,6 @@ static int real_ipc_reap(void)
 			}
 		}
 	} while (is_stalling() && io_read_ok(ipc.sock, is_stalling() * 1000));
-
-	node_log_event_count(&ipc, 0);
 
 	return 0;
 }
