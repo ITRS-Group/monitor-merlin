@@ -13,6 +13,7 @@ static int importer_pid;
 static char *merlin_conf;
 merlin_confsync csync = { NULL, NULL };
 static int num_children;
+static int killing;
 
 static void usage(char *fmt, ...)
 	__attribute__((format(printf,1,2)));
@@ -254,9 +255,19 @@ static int grok_config(char *path)
 		}
 	}
 
-	node_grok_config(config);
+	/*
+	 * if we're supposed to kill a running daemon, ignore
+	 * parsing and post-processing nodes. We avoid memory
+	 * fragmentation by releasing the config memory before
+	 * allocating memory for the nodes.
+	 */
+	if (!killing) {
+		node_grok_config(config);
+	}
 	cfg_destroy_compound(config);
-	post_process_nodes();
+	if (!killing) {
+		post_process_nodes();
+	}
 
 	return 1;
 }
@@ -748,7 +759,7 @@ static void clean_exit(int sig)
 
 int main(int argc, char **argv)
 {
-	int i, result, stop = 0;
+	int i, result;
 
 	is_module = 0;
 	ipc_init_struct();
@@ -768,7 +779,7 @@ int main(int argc, char **argv)
 		if (!strcmp(arg, "-h") || !strcmp(arg, "--help"))
 			usage(NULL);
 		if (!strcmp(arg, "-k") || !strcmp(arg, "--kill")) {
-			stop = 1;
+			killing = 1;
 			continue;
 		}
 		if (!strcmp(arg, "-d") || !strcmp(arg, "--debug")) {
@@ -800,20 +811,19 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	if (!pidfile)
+		pidfile = "/var/run/merlin.pid";
+
+	if (killing)
+		return kill_daemon(pidfile);
+
 	if (use_database && !import_program) {
 		lwarn("Using database, but no import program configured. Are you sure about this?");
 		lwarn("If not, make sure you specify the import_program directive in");
 		lwarn("the \"daemon\" section of your merlin configuration file");
 	}
 
-	if (!pidfile)
-		pidfile = "/var/run/merlin.pid";
-
-	if (stop)
-		return kill_daemon(pidfile);
-
 	ipc.action = ipc_action_handler;
-
 	result = ipc_init();
 	if (result < 0) {
 		printf("Failed to initalize ipc socket: %s\n", strerror(errno));
