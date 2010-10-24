@@ -637,19 +637,21 @@ static int handle_ipc_event(merlin_event *pkt)
 
 static int ipc_reap_events(void)
 {
-	int ipc_events = 0;
-	merlin_event p;
+	int len, events = 0;
+	merlin_event *pkt;
 
-	/*
-	 * we expect to get the vast majority of events from the ipc
-	 * socket, so make sure we read a bunch of them in one go
-	 */
-	while (ipc_read_event(&p, 0) > 0) {
-		ipc_events++;
-		handle_ipc_event(&p);
+	node_log_event_count(&ipc, 0);
+
+	len = node_recv(&ipc, MSG_DONTWAIT | MSG_NOSIGNAL);
+	if (len < 0)
+		return len;
+
+	while ((pkt = node_get_event(&ipc))) {
+		handle_ipc_event(pkt);
 	}
+	ldebug("Read %d events in %s from %s", events, human_bytes(len), ipc.name);
 
-	return ipc_events;
+	return 0;
 }
 
 static int io_poll_sockets(void)
