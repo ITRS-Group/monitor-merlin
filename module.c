@@ -131,96 +131,32 @@ int handle_ipc_event(merlin_event *pkt)
 
 static int real_ipc_reap(void)
 {
-	merlin_iocache *ioc = &ipc.ioc;
-	int to_read = 0, bytes_read = 0, result = 0;
-	unsigned long events = 0;
-
 	/* we check this once per reaping */
 	if (!ipc_is_connected(0)) {
 		linfo("ipc is not connected. ipc event reaping aborted");
 		return 0;
 	}
 
-	/*
-	 * stalling shouldn't happen very often. When it does, we use
-	 * the old way of "one event at a time", since we know that
-	 * works well
-	 */
-	if (is_stalling() > 0) {
-		merlin_event pkt;
-		do {
-			while (ipc_read_event(&pkt, 1000 * is_stalling()) > 0) {
-				if (pkt.hdr.type == CTRL_PACKET) {
-					handle_control(&pkt);
-					continue;
-				}
-				handle_ipc_event(&pkt);
-			}
-			/*
-			 * use is_stalling() > 0 here to guard
-			 * against bugs in is_stalling()
-			 */
-		} while (is_stalling() > 0);
-
+	if (!io_read_ok(ipc.sock, 0)) {
+		ldebug("No input available on ipc socket");
 		return 0;
 	}
 
-	/*
-	 * not stalling, so use the iocache buf to repeatedly read
-	 * events in bulk
-	 */
 	do {
-		to_read = ioc->bufsize - ioc->buflen;
-		if (to_read > 0) {
-			bytes_read = recv(ipc.sock, ioc->buf + ioc->buflen, to_read, MSG_DONTWAIT | MSG_NOSIGNAL);
-			if (!bytes_read && errno != EAGAIN && errno != EWOULDBLOCK) {
-				/* peer has shut down */
-				node_disconnect(&ipc);
-				result = -1;
-				break;
-			} else if (bytes_read > 0) {
-				/*
-				 * we read something, so update the stat counter
-				 * and neither break nor return
-				 */
-				ioc->buflen += bytes_read;
-				ipc.stats.bytes.read += bytes_read;
-				ldebug("to_read: %d; bytes_read: %d; buflen: %lu; bufsize: %lu; offset: %lu",
-					   to_read, bytes_read, ioc->buflen, ioc->bufsize, ioc->offset);
-			} else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				/* no real error, just no new data */
-				ldebug("No input available on ipc socket");
-				result = 0;
-				break;
-			} else {
-				/* bad things happened, so disconnect and return */
-				lerr("ipc.read() returned %d: %s", bytes_read, strerror(errno));
-				node_disconnect(&ipc);
-				result = -1;
-				break;
-			}
+		merlin_event *pkt;
+		int result;
+
+		result = node_recv(&ipc, MSG_DONTWAIT | MSG_NOSIGNAL);
+		if (result < 1) {
+			/*
+			 * daemon might have disconnected, or there might be no
+			 * new data. Either way, we return early
+			 */
+			break;
 		}
 
-		/*
-		 * now loop over the read buffer and handle each
-		 * event separately
-		 */
-		while (ioc->offset < ioc->buflen) {
-			merlin_event *pkt;
-
-			pkt = (merlin_event *)(ioc->buf + ioc->offset);
-			/*
-			 * one event was incomplete, so copy it to the start of buf
-			 * and return without handling it
-			 */
-			if (ioc->offset + packet_size(pkt) > ioc->buflen) {
-				memcpy(ioc->buf, ioc->buf + ioc->offset, ioc->buflen - ioc->offset);
-				ioc->buflen = ioc->buflen - ioc->offset;
-				ioc->offset = 0;
-				break;
-			}
-
-			events++;
+		while ((pkt = node_get_event(&ipc))) {
+			ipc.stats.events.read++;
 
 			/* control packets are handled separately */
 			if (pkt->hdr.type == CTRL_PACKET) {
@@ -228,24 +164,11 @@ static int real_ipc_reap(void)
 			} else {
 				handle_ipc_event(pkt);
 			}
-			ioc->offset += packet_size(pkt);
 		}
+	} while (is_stalling() && io_read_ok(ipc.sock, is_stalling() * 1000));
 
-		/*
-		 * if we read it all, reset the buffer so we don't
-		 * hit the buffer mark and loop indefinitely
-		 */
-		if (ioc->offset >= ioc->buflen) {
-			ioc->buflen = ioc->offset = 0;
-		}
-	} while (io_read_ok(ipc.sock, 50) > 0);
+	node_log_event_count(&ipc, 0);
 
-	ipc.stats.events.read += events;
-	if (events) {
-		ldebug("Received %lu events from %s", events, ipc.name);
-	}
-	ipc_log_event_count();
-	
 	return 0;
 }
 
