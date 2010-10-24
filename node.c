@@ -486,6 +486,120 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 }
 
 /*
+ * Read as much data as we possibly can from the node so
+ * that whatever parsing code there is can handle it later.
+ * All information the caller needs will reside in the
+ * nodes own merlin_iocache function, and we return the
+ * number of bytes read, or -1 on errors.
+ * The io-cache buffer must be allocated before we get
+ * to this point, and if the caller wants to poll the
+ * socket for input, it'll have to do so itself.
+ */
+int node_recv(merlin_node *node, int flags)
+{
+	int to_read, bytes_read;
+	merlin_iocache *ioc = &node->ioc;
+
+	if (!node || node->sock < 0) {
+		return -1;
+	}
+
+	/*
+	 * first check if we've managed to read our fill. This
+	 * prevents us from ending up in an infinite loop in case
+	 * we hit the bufsize with both buflen and offset
+	 */
+	if (ioc->offset >= ioc->buflen)
+		ioc->offset = ioc->buflen = 0;
+
+	to_read = ioc->bufsize - ioc->offset;
+	bytes_read = recv(node->sock, ioc->buf + ioc->buflen, to_read, flags);
+
+	/*
+	 * If we read something, update the stat counter
+	 * and return. The caller will have to handle the
+	 * input as it sees fit
+	 */
+	if (bytes_read > 0) {
+		ioc->buflen += bytes_read;
+		node->stats.bytes.read += bytes_read;
+		return bytes_read;
+	}
+
+	/* no real error, but no new data, so return 0 */
+	if (errno == EAGAIN || errno == EWOULDBLOCK) {
+		ldebug("No input available from %s node %s.", node_type(node), node->name);
+		return 0;
+	}
+
+	/*
+	 * Remote endpoint shut down, or we ran into some random error
+	 * we can't handle any other way than disconnecting the node and
+	 * letting the write machinery attempt to reconnect later
+	 */
+	if (bytes_read < 0) {
+		lerr("Failed to recv() %d bytes from %s node %s: %s",
+		     to_read, node_type(node), node->name, strerror(errno));
+	}
+	node_disconnect(node);
+	return -1;
+}
+
+/*
+ * Fetch one event from the node's iocache. If the cache is
+ * exhausted, we handle partial events and iocache resets and
+ * return NULL
+ */
+merlin_event *node_get_event(merlin_node *node)
+{
+	merlin_event *pkt;
+	merlin_iocache *ioc = &node->ioc;
+
+	/*
+	 * if we've read it all, mark the buffer as such so we can
+	 * read as much as possible the next time we read. If we don't
+	 * do this, we might end up with an infinite loop since it's
+	 * possible we run into buflen and offset both being the same
+	 * as bufsize, and thus we will issue zero-size reads and
+	 * never get any new events from the node.
+	 *
+	 * This must come before we assign pkt into the ioc->buf,
+	 * since we may otherwise try to read beyond the end of the
+	 * buffer.
+	 */
+	if (ioc->offset >= ioc->buflen) {
+		ioc->offset = ioc->buflen = 0;
+		return NULL;
+	}
+
+	pkt = (merlin_event *)(ioc->buf + ioc->offset);
+
+	/*
+	 * If one event lacks a complete header, we mustn't try to access
+	 * the event struct, or we'll run headlong into a SIGSEGV when the
+	 * start of the header but not the hdr.len part fits between
+	 * buf[offset] and buf[buflen].
+	 *
+	 * We must also check if body of the packet isn't complete in
+	 * the buffer.
+	 *
+	 * When either of those happen, we move the remainder of the buf
+	 * to the start of it and set the offsets and counters properly
+	 */
+	if (HDR_SIZE > ioc->bufsize - ioc->offset ||
+	    ioc->offset + packet_size(pkt) > ioc->buflen)
+	{
+		memcpy(ioc->buf, ioc->buf + ioc->offset, ioc->buflen - ioc->offset);
+		ioc->buflen = ioc->buflen - ioc->offset;
+		ioc->offset = 0;
+		return NULL;
+	}
+	node->stats.events.read++;
+	ioc->offset += packet_size(pkt);
+	return pkt;
+}
+
+/*
  * Reads one event from the given socket into the given merlin_event
  * structure. Returns < 0 on errors, 0 when no data is available and
  * the length of the data read when there is.
