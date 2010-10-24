@@ -214,6 +214,13 @@ static void post_process_nodes(void)
 			node->sain.sin_port = htons(default_port);
 
 		node->action = node_action_handler;
+
+		node->ioc.bufsize = MERLIN_IOC_BUFSIZE;
+		node->ioc.buf = malloc(node->ioc.bufsize);
+		if (!node->ioc.buf) {
+			lerr("Failed to malloc(%lu) for io cache for node %s. Aborting",
+				 node->ioc.bufsize, node->name);
+		}
 	}
 }
 

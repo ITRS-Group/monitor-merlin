@@ -499,24 +499,32 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
  * Reads input from a particular node and ships it off to
  * the "handle_network_event()" routine up above
  */
-static int net_input(merlin_node *node, int msec)
+static int net_input(merlin_node *node)
 {
-	merlin_event pkt;
-	int len;
+	merlin_event *pkt;
+	int len, events = 0;
 
 	errno = 0;
-	len = node_read_event(node, &pkt, msec);
-	/* errors are handled in node_read_event() */
-	if (len <= 0)
-		return len;
-
-	if (pkt.hdr.type == CTRL_PACKET && pkt.hdr.code == CTRL_PULSE) {
-		/* noop. we've already updated the last_recv time */
-	} else {
-		handle_network_event(node, &pkt);
+	len = node_recv(node, MSG_DONTWAIT | MSG_NOSIGNAL);
+	if (len < 0) {
+		return 0;
 	}
+	node->stats.bytes.read += len;
+	node->last_recv = time(NULL);
 
-	return len;
+	while ((pkt = node_get_event(node))) {
+		events++;
+		if (pkt->hdr.type == CTRL_PACKET && pkt->hdr.code == CTRL_PULSE) {
+			/* noop. we've already updated the last_recv time */
+		} else {
+			handle_network_event(node, pkt);
+		}
+	}
+	node->stats.events.read += events;
+	ldebug("Read %d bytes and %d events from %s node %s",
+		   len, events, node_type(node), node->name);
+
+	return events;
 }
 
 
@@ -642,16 +650,7 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 		 * If they fail to do that, we may have to take action.
 		 */
 		if (FD_ISSET(node->sock, rd)) {
-			int events = 0;
-
-			/* read all available events */
-			while (net_input(node, 1) > 0) {
-				events++;
-			}
-			if (events)
-				ldebug("Received %d events from %s node %s",
-					   events, node_type(node), node->name);
-			continue;
+			net_input(node);
 		}
 	}
 
