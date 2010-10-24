@@ -97,8 +97,6 @@ int net_try_connect(merlin_node *node)
 		node->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (node->sock < 0)
 			return -1;
-
-		set_socket_options(node->sock, 1);
 	}
 
 	/*
@@ -262,7 +260,6 @@ int net_accept_one(void)
 		lerr("accept() failed: %s", strerror(errno));
 		return -1;
 	}
-	set_socket_options(sock, 1);
 
 	node = find_node(&sain, NULL);
 	linfo("%s connected from %s:%d. Current state is %d",

@@ -19,6 +19,16 @@ void node_set_state(merlin_node *node, int state)
 	if (node->action)
 		node->action(node, state);
 
+	if (state == STATE_CONNECTED) {
+		int snd, rcv;
+		socklen_t size = sizeof(int);
+
+		set_socket_options(node->sock, (int)node->ioc.bufsize);
+		getsockopt(node->sock, SOL_SOCKET, SO_SNDBUF, &snd, &size);
+		getsockopt(node->sock, SOL_SOCKET, SO_SNDBUF, &rcv, &size);
+		ldebug("send / receive buffers are %s / %s for node %s",
+			   human_bytes(snd), human_bytes(rcv), node->name);
+	}
 	node->state = state;
 }
 

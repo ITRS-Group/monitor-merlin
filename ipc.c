@@ -56,8 +56,6 @@ int ipc_accept(void)
 		return -1;
 	}
 
-	set_socket_options(ipc.sock, 1);
-
 	node_set_state(&ipc, STATE_CONNECTED);
 
 	return ipc.sock;
@@ -235,7 +233,6 @@ int ipc_init(void)
 
 	/* module connected successfully */
 	ipc.sock = listen_sock;
-	set_socket_options(ipc.sock, 1);
 	node_set_state(&ipc, STATE_CONNECTED);
 
 	return 0;

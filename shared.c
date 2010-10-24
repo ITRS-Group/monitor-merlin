@@ -346,7 +346,7 @@ int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 /*
  * Set some common socket options
  */
-int set_socket_options(int sd, int beefup_buffers)
+int set_socket_options(int sd, int bufsize)
 {
 	struct timeval sock_timeout = { 0, 5000 };
 
@@ -359,10 +359,9 @@ int set_socket_options(int sd, int beefup_buffers)
 	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &sock_timeout, sizeof(sock_timeout));
 	setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &sock_timeout, sizeof(sock_timeout));
 
-	if (beefup_buffers) {
-		int optval = 128 << 10; /* 128KB */
-		setsockopt(sd, SOL_SOCKET, SO_SNDBUF, &optval, sizeof(int));
-		setsockopt(sd, SOL_SOCKET, SO_RCVBUF, &optval, sizeof(int));
+	if (bufsize) {
+		setsockopt(sd, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(int));
+		setsockopt(sd, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(int));
 	}
 
 	return 0;
