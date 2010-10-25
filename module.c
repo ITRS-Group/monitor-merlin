@@ -4,12 +4,15 @@
 #include "nagios/statusdata.h"
 #include "nagios/macros.h"
 #include "nagios/perfdata.h"
+#include <pthread.h>
 
 time_t merlin_should_send_paths = 1;
 
 /** code start **/
 extern hostgroup *hostgroup_list;
 static int mrm_reap_interval = 2;
+static pthread_t reaper_thread;
+
 /*
  * user-defined filters, used as or-gate. Defaults to
  * 'handle everything'. This only affects what events
@@ -129,6 +132,39 @@ int handle_ipc_event(merlin_event *pkt)
 	return 0;
 }
 
+/*
+ * Let's hope Nagios is up to scratch wrt thread-safety
+ */
+static void *ipc_reaper(void *discard)
+{
+	/* one loop to rule them all... */
+	for (;;) {
+		int recv_result;
+		merlin_event *pkt;
+
+		/* try connecting every mrm_reap_interval */
+		if (!ipc_is_connected(0)) {
+			sleep(mrm_reap_interval);
+			continue;
+		}
+
+		/* we block while reading */
+		recv_result = node_recv(&ipc, 0);
+
+		/* and then just loop over the received packets */
+		while ((pkt = node_get_event(&ipc))) {
+			/* control packets are handled separately */
+			if (pkt->hdr.type == CTRL_PACKET) {
+				handle_control(pkt);
+			} else {
+				handle_ipc_event(pkt);
+			}
+		}
+	}
+
+	return 0;
+}
+
 static int real_ipc_reap(void)
 {
 	uint loops = 0;
@@ -203,7 +239,9 @@ static int real_ipc_reap(void)
 /* this is called from inside Nagios as a scheduled event */
 static int mrm_ipc_reap(void *discard)
 {
-	real_ipc_reap();
+	while (is_stalling()) {
+		sleep(is_stalling());
+	}
 
 	schedule_new_event(EVENT_USER_FUNCTION, TRUE,
 	                   time(NULL) + mrm_reap_interval, FALSE,
@@ -503,8 +541,7 @@ int send_paths(void)
 	 */
 	ctrl_stall_start();
 	while (is_stalling()) {
-		sleep(1);
-		real_ipc_reap();
+		sleep(is_stalling());
 	}
 	return 0;
 }
@@ -517,6 +554,8 @@ int send_paths(void)
  */
 static int post_config_init(int cb, void *ds)
 {
+	int result;
+
 	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
 		return 0;
 
@@ -536,6 +575,9 @@ static int post_config_init(int cb, void *ds)
 	 * status.sav file (assuming state retention is enabled)
 	 */
 	register_merlin_hooks(event_mask);
+
+	/* now we create the ipc reaper thread */
+	result = pthread_create(&reaper_thread, NULL, ipc_reaper, NULL);
 
 	return 0;
 }

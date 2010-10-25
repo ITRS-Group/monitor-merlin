@@ -18,9 +18,9 @@ DSO = merlin
 PROG = $(DSO)d
 NEB = $(DSO).so
 APPS = showlog import oconf
-MOD_LDFLAGS = -shared -ggdb3 -fPIC
+MOD_LDFLAGS = -shared -ggdb3 -fPIC -pthread
 DAEMON_LDFLAGS = -ldbi -ggdb3 -rdynamic -Wl,-export-dynamic
-MTEST_LDFLAGS = -ldbi -ggdb3 -ldl -rdynamic -Wl,-export-dynamic
+MTEST_LDFLAGS = -ldbi -ggdb3 -ldl -rdynamic -Wl,-export-dynamic -pthread
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
 
