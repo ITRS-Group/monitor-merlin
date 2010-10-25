@@ -302,11 +302,3 @@ int ipc_send_event(merlin_event *pkt)
 
 	return 0;
 }
-
-int ipc_read_event(merlin_event *pkt, int msec)
-{
-	if (!ipc_is_connected(0) || io_read_ok(ipc.sock, msec) <= 0)
-		return 0;
-
-	return node_read_event(&ipc, pkt, msec);
-}

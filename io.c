@@ -52,39 +52,3 @@ int io_send_all(int fd, const void *buf, size_t len)
 
 	return total;
 }
-
-int io_recv_all(int fd, void *buf, size_t len)
-{
-	int poll_ret, rd, loops = 0;
-	size_t total = 0;
-
-	poll_ret = io_poll(fd, POLLIN, 0);
-	if (poll_ret < 1)
-		lerr("io_poll(%d, POLLIN, 0) returned %d: %s", fd, poll_ret, strerror(errno));
-
-	do {
-		loops++;
-		rd = recv(fd, buf + total, len - total, MSG_DONTWAIT | MSG_NOSIGNAL);
-		if (poll_ret > 0 && rd + total == 0) {
-			/* disconnected peer? */
-			return 0;
-		}
-
-		if (rd < 0) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				rd = io_read_ok(fd, 100);
-				continue;
-			}
-
-			lerr("recv(%d, (buf + total), %zu, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d (%s)",
-				 fd, len - total, rd, strerror(errno));
-			return rd;
-		}
-		total += rd;
-	} while (total < len && rd > 0 && loops < 15);
-
-	if (rd < 0)
-		return rd;
-
-	return total;
-}

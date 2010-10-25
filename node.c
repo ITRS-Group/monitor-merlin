@@ -656,67 +656,6 @@ merlin_event *node_get_event(merlin_node *node)
 }
 
 /*
- * Reads one event from the given socket into the given merlin_event
- * structure. Returns < 0 on errors, 0 when no data is available and
- * the length of the data read when there is.
- */
-int node_read_event(merlin_node *node, merlin_event *pkt, int msec)
-{
-	int len, result;
-
-	node_log_event_count(node, 0);
-
-	result = io_read_ok(node->sock, msec);
-	if (result < 0)
-		lerr("io_read_ok(%d, %d) failed for node %s: %s",
-			 node->sock, msec, node->name, strerror(errno));
-	if (result <= 0)
-		return 0;
-
-	len = io_recv_all(node->sock, &pkt->hdr, HDR_SIZE);
-	if (len != HDR_SIZE) {
-		lerr("%s: Incomplete header read(%d...). %u != %d: %s",
-			 __func__, node->sock, HDR_SIZE, len, strerror(errno));
-		lerr("Sync lost with %s?", node->name);
-		node_disconnect(node);
-		return -1;
-	}
-
-	if (pkt->hdr.protocol != MERLIN_PROTOCOL_VERSION) {
-		lerr("Bad protocol version (%d, expected %d)\n",
-			 pkt->hdr.protocol, MERLIN_PROTOCOL_VERSION);
-		return -1;
-	}
-
-	if (pkt->hdr.type == CTRL_PACKET) {
-		ldebug("Received %s from %s", ctrl_name(pkt->hdr.code), node->name);
-	} else if (!pkt->hdr.len) {
-		lerr("Non-control packet of type %d with zero size length (this should never happen)", pkt->hdr.type);
-		return len;
-	}
-
-	node->last_recv = time(NULL);
-	node->stats.events.read++;
-	node->stats.bytes.read += HDR_SIZE;
-
-	if (!pkt->hdr.len)
-		return HDR_SIZE;
-
-	result = io_recv_all(node->sock, pkt->body, pkt->hdr.len);
-	if (result != (int)pkt->hdr.len) {
-		lwarn("Bogus read in %s(). got %d, expected %d",
-			  __func__, result, pkt->hdr.len);
-		lwarn("Sync lost with %s?", node->name);
-		lwarn("packet type is %d, code is %d", pkt->hdr.type, pkt->hdr.code);
-		node_disconnect(node);
-		return -1;
-	}
-	node->stats.bytes.read += pkt->hdr.len;
-
-	return result;
-}
-
-/*
  * Send the given event "pkt" to the node "node", or take appropriate
  * actions on the node itself in case sending fails.
  * Returns 0 on success, and < 0 otherwise.
