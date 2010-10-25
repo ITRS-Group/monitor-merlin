@@ -131,6 +131,9 @@ int handle_ipc_event(merlin_event *pkt)
 
 static int real_ipc_reap(void)
 {
+	uint loops = 0;
+	unsigned long total_bytes = 0, events = 0;
+
 	/* we check this once per reaping */
 	if (!ipc_is_connected(0)) {
 		linfo("ipc is not connected. ipc event reaping aborted");
@@ -143,9 +146,11 @@ static int real_ipc_reap(void)
 		return 0;
 	}
 
-	do {
+	for (;;) {
 		merlin_event *pkt;
 		int result;
+
+		loops++;
 
 		result = node_recv(&ipc, MSG_DONTWAIT | MSG_NOSIGNAL);
 		if (result < 1) {
@@ -156,9 +161,9 @@ static int real_ipc_reap(void)
 			break;
 		}
 
+		total_bytes += result;
 		while ((pkt = node_get_event(&ipc))) {
-			ipc.stats.events.read++;
-
+			events++;
 			/* control packets are handled separately */
 			if (pkt->hdr.type == CTRL_PACKET) {
 				handle_control(pkt);
@@ -166,8 +171,32 @@ static int real_ipc_reap(void)
 				handle_ipc_event(pkt);
 			}
 		}
-	} while (is_stalling() && io_read_ok(ipc.sock, is_stalling() * 1000));
 
+		if (is_stalling() && io_read_ok(ipc.sock, is_stalling() * 1000)) {
+			continue;
+		}
+		/*
+		 * if we read the max amount, there's probably more to come, so
+		 * continue reading.
+		 */
+		if (loops > 10) {
+			lwarn("Too much time spent reaping. Returning to normal actions");
+			break;
+		}
+		if (result == (int)ipc.ioc.bufsize) {
+			ldebug("Read the max amount. Reaping again");
+			if (loops == 3) {
+				lwarn("Spending a lot of time reaping. How's latency doing?");
+			}
+			continue;
+		}
+		break;
+	}
+
+	if (loops > 1) {
+		ldebug("loops: %u; bytes: %lu; events: %lu. How's latency?",
+			   loops, total_bytes, events);
+	}
 	return 0;
 }
 
