@@ -503,6 +503,7 @@ int send_paths(void)
 	 */
 	ctrl_stall_start();
 	while (is_stalling()) {
+		sleep(1);
 		real_ipc_reap();
 	}
 	return 0;
