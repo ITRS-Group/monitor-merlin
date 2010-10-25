@@ -17,6 +17,7 @@
 static int check_dupes;
 static merlin_event last_pkt;
 static unsigned long long dupes, dupe_bytes;
+static uint32_t event_mask;
 
 struct check_stats {
 	unsigned long long poller, peer, self;
@@ -585,6 +586,7 @@ extern void *neb_handle;
 int register_merlin_hooks(uint32_t mask)
 {
 	uint i;
+	event_mask = mask;
 
 	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
 		struct callback_struct *cb = &callback_table[i];
@@ -611,8 +613,8 @@ int deregister_merlin_hooks(void)
 
 	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
 		struct callback_struct *cb = &callback_table[i];
-
-		neb_deregister_callback(cb->type, merlin_mod_hook);
+		if (event_mask & (1 << cb->type))
+			neb_deregister_callback(cb->type, merlin_mod_hook);
 	}
 
 	return 0;
