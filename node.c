@@ -747,7 +747,7 @@ int node_send_binlog(merlin_node *node, merlin_event *pkt)
 	uint len;
 
 	ldebug("Emptying backlog for %s", node->name);
-	while (io_write_ok(node->sock, 500) && !binlog_read(node->binlog, (void **)&temp_pkt, &len)) {
+	while (io_write_ok(node->sock, 10) && !binlog_read(node->binlog, (void **)&temp_pkt, &len)) {
 		int result;
 		if (!temp_pkt) {
 			lerr("BACKLOG: binlog returned 0 but presented no data");
