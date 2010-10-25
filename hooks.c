@@ -18,6 +18,18 @@ static int check_dupes;
 static merlin_event last_pkt;
 static unsigned long long dupes, dupe_bytes;
 static uint32_t event_mask;
+/*
+ * used for blocking host and service status events after a
+ * PRECHECK type NEBCALLBACK_{HOST,SERVICE}_CHECK_DATA has been
+ * generated. This prevents pointless spamming of status updates
+ * from the node that won't even run the check
+ */
+struct block_object {
+	time_t when;
+	void *obj;
+	unsigned long long safe, poller, peer, sent;
+};
+static struct block_object h_block, s_block;
 
 struct check_stats {
 	unsigned long long poller, peer, self;
@@ -270,6 +282,10 @@ static int hook_service_result(merlin_event *pkt, void *data)
 {
 	nebstruct_service_check_data *ds = (nebstruct_service_check_data *)data;
 
+	/* block status data events for this service in the imminent future */
+	s_block.obj = ds->object_ptr;
+	s_block.when = time(NULL);
+
 	switch (ds->type) {
 	case NEBTYPE_SERVICECHECK_ASYNC_PRECHECK:
 		/*
@@ -303,6 +319,10 @@ static int hook_service_result(merlin_event *pkt, void *data)
 static int hook_host_result(merlin_event *pkt, void *data)
 {
 	nebstruct_host_check_data *ds = (nebstruct_host_check_data *)data;
+
+	/* block status data events for this host in the imminent future */
+	h_block.obj = ds->object_ptr;
+	h_block.when = time(NULL);
 
 	switch (ds->type) {
 	case NEBTYPE_HOSTCHECK_ASYNC_PRECHECK:
@@ -424,15 +444,103 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
+/*
+ * This hook only exists as a proper hook so we can avoid sending
+ * the host or service status data events that always follow upon
+ * flapping start and stop events
+ */
+static int hook_flapping(merlin_event *pkt, void *data)
+{
+	nebstruct_flapping_data *ds = (nebstruct_flapping_data *)data;
+
+	if (ds->flapping_type == HOST_FLAPPING) {
+		h_block.obj = ds->object_ptr;
+		h_block.when = time(NULL);
+	} else {
+		s_block.obj = ds->object_ptr;
+		s_block.when = time(NULL);
+	}
+
+	return send_generic(pkt, data);
+}
+
+/*
+ * Show some hint of just how much bandwidth we're saving with
+ * this, and how much work we spend on saving it
+ */
+static void log_blocked(const char *what, struct block_object *blk)
+{
+	unsigned long long total = blk->safe + blk->peer + blk->poller;
+
+	/* log this once every 1000'th blocked event */
+	if (total && !(total % 1000)) {
+		linfo("Blocked(%s): %lluk status events blocked.",
+			  what, total / 1000);
+		ldebug("Blocked(%s): checks: %llu; peer: %llu; poller: %llu; sent: %llu",
+			   what, blk->safe, blk->peer, blk->poller, blk->sent);
+	}
+}
+
+/*
+ * host and service status data events should only ever come from
+ * the node that's actually running the check, otherwise we'll
+ * drown completely in pointless events about the check being
+ * reschedule on a node where it won't even run.
+ *
+ * checks of a particular host or service gets transmitted as
+ * host and service check events, so we block them here if
+ * we even suspect we're about to send a host or service
+ * status update that will get sent as check result soon, or
+ * has just been sent
+ */
 static int hook_host_status(merlin_event *pkt, void *data)
 {
 	nebstruct_host_status_data *ds = (nebstruct_host_status_data *)data;
+	struct host_struct *h = (struct host_struct *)ds->object_ptr;
+
+	log_blocked("host", &h_block);
+
+	if (h_block.obj == h && h_block.when + 1 >= time(NULL)) {
+		h_block.safe++;
+		return 0;
+	}
+
+	if (has_active_poller(h->name)) {
+		h_block.poller++;
+		return 0;
+	}
+	if (!ctrl_should_run_host_check(h->name)) {
+		h_block.peer++;
+		return 0;
+	}
+
+	h_block.sent++;
+
 	return send_host_status(pkt, ds->object_ptr);
 }
 
 static int hook_service_status(merlin_event *pkt, void *data)
 {
 	nebstruct_service_status_data *ds = (nebstruct_service_status_data *)data;
+	struct service_struct *srv = (struct service_struct *)ds->object_ptr;
+
+	log_blocked("service", &s_block);
+	if (s_block.obj == srv && s_block.when + 1 >= time(NULL)) {
+		s_block.safe++;
+		return 0;
+	}
+
+	if (has_active_poller(srv->host_name)) {
+		s_block.poller++;
+		return 0;
+	}
+	if (!ctrl_should_run_service_check(srv->host_name, srv->description)) {
+		s_block.peer++;
+		return 0;
+	}
+
+	s_block.sent++;
+
 	return send_service_status(pkt, ds->object_ptr);
 }
 
@@ -529,6 +637,9 @@ int merlin_mod_hook(int cb, void *data)
 		break;
 
 	case NEBCALLBACK_FLAPPING_DATA:
+		result = hook_flapping(&pkt, data);
+		break;
+
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 		result = send_generic(&pkt, data);
 		break;
@@ -587,6 +698,9 @@ int register_merlin_hooks(uint32_t mask)
 {
 	uint i;
 	event_mask = mask;
+
+	memset(&h_block, 0, sizeof(h_block));
+	memset(&s_block, 0, sizeof(s_block));
 
 	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
 		struct callback_struct *cb = &callback_table[i];
