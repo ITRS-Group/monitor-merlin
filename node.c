@@ -557,6 +557,45 @@ int node_recv(merlin_node *node, int flags)
 }
 
 /*
+ * wraps io_send_all() and adds proper error handling when we run
+ * into sending errors. It's up to the caller to poll the socket
+ * for writability, or pass the proper flags and ignore errors
+ */
+int node_send(merlin_node *node, void *data, int len, int flags)
+{
+	int sent;
+
+	if (!node || node->sock < 0)
+		return 0;
+
+	flags |= MSG_NOSIGNAL;
+	sent = io_send_all(node->sock, data, len);
+	/* success. Should be the normal case */
+	if (sent == len) {
+		node->stats.bytes.sent += sent;
+		node->last_sent = time(NULL);
+		return sent;
+	}
+
+	if (sent < 0) {
+		/* if we would have blocked, we simply return 0 */
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return 0;
+
+		/* otherwise we log the error and disconnect the node */
+		lerr("Failed to send(%d, %p, %d, %d) to %s: %s",
+			 node->sock, data, len, flags, node->name, strerror(errno));
+		node_disconnect(node);
+		return sent;
+	}
+
+	/* partial write. ugh... */
+	lerr("Partial send() to %s. %d of %d bytes sent",
+		 node->name, sent, len);
+	return -1;
+}
+
+/*
  * Fetch one event from the node's iocache. If the cache is
  * exhausted, we handle partial events and iocache resets and
  * return NULL
@@ -721,13 +760,11 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 	if (binlog_has_entries(node->binlog))
 		return node_binlog_add(node, pkt);
 
-	result = io_send_all(node->sock, pkt, packet_size(pkt));
+	result = node_send(node, pkt, packet_size(pkt), MSG_DONTWAIT);
 
 	/* successfully sent, so add it to the counter and return 0 */
 	if (result == packet_size(pkt)) {
 		node->stats.events.sent++;
-		node->stats.bytes.sent += result;
-		node->last_sent = time(NULL);
 		return 0;
 	}
 
@@ -757,13 +794,13 @@ int node_send_binlog(merlin_node *node, merlin_event *pkt)
 			binlog_wipe(node->binlog, BINLOG_UNLINK);
 			return -1;
 		}
-		result = io_send_all(node->sock, temp_pkt, packet_size(temp_pkt));
+		errno = 0;
+		result = node_send(node, temp_pkt, packet_size(temp_pkt), MSG_DONTWAIT);
 
 		/* keep going while we successfully send something */
 		if (result == packet_size(temp_pkt)) {
 			node->stats.events.sent++;
 			node->stats.events.logged--;
-			node->stats.bytes.sent += packet_size(temp_pkt);
 			node->stats.bytes.logged -= packet_size(temp_pkt);
 
 			/*
@@ -772,15 +809,6 @@ int node_send_binlog(merlin_node *node, merlin_event *pkt)
 			 */
 			free(temp_pkt);
 			continue;
-		}
-
-		/*
-		 * most other failure means we must kill the connection
-		 * and let whatever api (net or ipc) it was that called
-		 * us attempt to establish it again
-		 */
-		if (result >= 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
-			node_disconnect(node);
 		}
 
 		/*
