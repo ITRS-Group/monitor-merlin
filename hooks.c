@@ -591,7 +591,7 @@ int register_merlin_hooks(uint32_t mask)
 
 		/* ignored filtered-out eventtypes */
 		if (!(mask & (1 << cb->type))) {
-			ldebug("EVENTFILTER: Ignoring %s events from Nagios", callback_name(i));
+			ldebug("EVENTFILTER: Ignoring %s events from Nagios", callback_name(cb->type));
 			continue;
 		}
 
