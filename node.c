@@ -607,6 +607,7 @@ merlin_event *node_get_event(merlin_node *node)
 {
 	merlin_event *pkt;
 	merlin_iocache *ioc = &node->ioc;
+	int available;
 
 	/*
 	 * if we've read it all, mark the buffer as such so we can
@@ -639,11 +640,13 @@ merlin_event *node_get_event(merlin_node *node)
 	 * When either of those happen, we move the remainder of the buf
 	 * to the start of it and set the offsets and counters properly
 	 */
-	if (HDR_SIZE > ioc->bufsize - ioc->offset ||
-	    ioc->offset + packet_size(pkt) > ioc->buflen)
+	available = ioc->buflen - ioc->offset;
+	if ((int)HDR_SIZE > available || packet_size(pkt) > available)
 	{
-		memcpy(ioc->buf, ioc->buf + ioc->offset, ioc->buflen - ioc->offset);
-		ioc->buflen = ioc->buflen - ioc->offset;
+		memmove(ioc->buf, ioc->buf + ioc->offset, available);
+		ioc->buflen = available;
+		ldebug("IOC: moved %d bytes from %p to %p. buflen: %lu; bufsize: %lu",
+			   available, ioc->buf + ioc->offset, ioc->buf, ioc->buflen, ioc->bufsize);
 		ioc->offset = 0;
 		return NULL;
 	}
