@@ -5,12 +5,6 @@
 
 static int net_sock = -1; /* listening sock descriptor */
 
-int net_sock_desc(void)
-{
-	return net_sock;
-}
-
-
 /* do a node lookup based on name *or* ip-address + port */
 merlin_node *find_node(struct sockaddr_in *sain, const char *name)
 {
@@ -661,55 +655,4 @@ void check_all_node_activity(void)
 	/* make sure we always check activity level among the nodes */
 	for (i = 0; i < num_nodes; i++)
 		check_node_activity(node_table[i]);
-}
-
-/* poll for INBOUND socket events and completion of pending connections */
-int net_poll(void)
-{
-	fd_set rd, wr;
-	struct timeval to = { 1, 0 }, start, end;
-	uint i;
-	int sel_val = 0, nfound = 0;
-	int socks = 0;
-
-	printf("net_sock = %d\n", net_sock);
-	sel_val = net_sock;
-
-	/* add the rest of the sockets to the fd_set */
-	FD_ZERO(&rd);
-	FD_ZERO(&wr);
-	FD_SET(net_sock, &rd);
-	for (i = 0; i < num_nodes; i++) {
-		merlin_node *node = node_table[i];
-
-		if (!node_is_connected(node) && node->state != STATE_PENDING)
-			continue;
-
-		if (node->state == STATE_PENDING)
-			FD_SET(node->sock, &wr);
-		else
-			FD_SET(node->sock, &rd);
-
-		if (node->sock > sel_val)
-			sel_val = node->sock;
-	}
-
-	/* wait for input on all connected sockets */
-	gettimeofday(&start, NULL);
-	nfound = select(sel_val + 1, &rd, &wr, NULL, &to);
-	gettimeofday(&end, NULL);
-
-	if (!nfound) {
-		return 0;
-	}
-
-	/* check for inbound connections first */
-	if (FD_ISSET(net_sock, &rd)) {
-		net_accept_one();
-		socks++;
-	}
-
-	assert(nfound == socks);
-
-	return 0;
 }
