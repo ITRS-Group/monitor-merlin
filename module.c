@@ -12,6 +12,7 @@ time_t merlin_should_send_paths = 1;
 extern hostgroup *hostgroup_list;
 static int mrm_reap_interval = 2;
 static pthread_t reaper_thread;
+static int cancel_reaping;
 
 /*
  * user-defined filters, used as or-gate. Defaults to
@@ -138,7 +139,7 @@ int handle_ipc_event(merlin_event *pkt)
 static void *ipc_reaper(void *discard)
 {
 	/* one loop to rule them all... */
-	for (;;) {
+	while (!cancel_reaping) {
 		int recv_result;
 		merlin_event *pkt;
 
@@ -619,7 +620,12 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
  */
 int nebmodule_deinit(int flags, int reason)
 {
+	void *foo;
+
 	linfo("Unloading Merlin module");
+	cancel_reaping = 1;
+	pthread_cancel(reaper_thread);
+	pthread_join(reaper_thread, &foo);
 
 	log_deinit();
 	ipc_deinit();
