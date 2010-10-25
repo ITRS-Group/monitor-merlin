@@ -523,6 +523,7 @@ int node_recv(merlin_node *node, int flags)
 		ioc->offset = ioc->buflen = 0;
 
 	to_read = ioc->bufsize - ioc->offset;
+	flags |= MSG_NOSIGNAL;
 	bytes_read = recv(node->sock, ioc->buf + ioc->buflen, to_read, flags);
 
 	/*
