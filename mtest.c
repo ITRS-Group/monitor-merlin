@@ -36,7 +36,7 @@
 #define test_compare(str) ok_str(mod->str, orig->str, #str)
 
 #define CP() printf("ALIVE @ %s->%s:%d\n", __FILE__, __func__, __LINE__)
-#define zzz() usleep(150000)
+#define zzz() usleep(350000)
 
 static host *hosts;
 static service *services;
