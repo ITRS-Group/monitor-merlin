@@ -469,11 +469,13 @@ int send_paths(void)
 
 	merlin_should_send_paths = 0;
 	/*
-	 * start stalling immediately and then reap so we wait
-	 * a bit while the import is running
+	 * start stalling immediately and reap while stalling
+	 * so we wait while the import is running
 	 */
 	ctrl_stall_start();
-	real_ipc_reap();
+	while (is_stalling()) {
+		real_ipc_reap();
+	}
 	return 0;
 }
 
