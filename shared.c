@@ -348,16 +348,11 @@ int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
  */
 int set_socket_options(int sd, int bufsize)
 {
-	struct timeval sock_timeout = { 0, 5000 };
-
 	/*
 	 * make sure random output from import programs and whatnot
 	 * doesn't carry over into the net_sock
 	 */
 	fcntl(sd, F_SETFD, FD_CLOEXEC);
-
-	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &sock_timeout, sizeof(sock_timeout));
-	setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &sock_timeout, sizeof(sock_timeout));
 
 	if (bufsize) {
 		setsockopt(sd, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(int));
