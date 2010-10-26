@@ -530,17 +530,18 @@ def write_hostgroup(f, hg_name):
 	for host in hg.members.values():
 		host.write_linked(f)
 
-def create_otype_dict(default):
+def create_otype_dict():
 	global parse_order
+
 	d = {}
 	for otype in parse_order:
-		d[otype] = default
-		d[otype + '_template'] = default
+		d[otype] = {}
+		d[otype + '_template'] = {}
 	return d
 
 def write_hg_list(path, hg_list):
 	global written, blocked_writes, num_written
-	written = create_otype_dict({})
+	written = create_otype_dict()
 	num_written = 0
 	blocked_writes = 0
 
