@@ -880,7 +880,7 @@ def parse_object_config(files = False):
 	post_parse()
 
 def module_init(args):
-	global nagios_cfg
+	global nagios_cfg, object_cache
 
 	# arguments viable for all our commands are parsed here
 	for arg in args:
@@ -888,5 +888,9 @@ def module_init(args):
 			nagios_cfg = arg.split('=', 1)[1]
 		elif arg.startswith('--merlin-cfg='):
 			mconf.config_file = arg.split('=', 1)[1]
+		elif arg.startswith('--object-cache='):
+			object_cache = arg.split('=', 1)[1]
+			if not len(object_cache):
+				object_cache = False
 
 	mconf.parse()
