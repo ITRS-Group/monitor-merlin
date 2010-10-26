@@ -404,6 +404,7 @@ class nagios_host(nagios_group_member):
 		# hosts will be printed anyway
 		#'parents': 'host',
 		'contact_groups': 'Mcontactgroup',
+		'contacts': 'Mcontact',
 		}
 	preserve = {'hostgroups': 'hostgroup', 'parents': 'host'}
 
@@ -418,6 +419,8 @@ class nagios_service(nagios_slave_object, nagios_group_member):
 		'event_handler': 'command',
 		'check_period': 'timeperiod',
 		'notification_period': 'timeperiod',
+		'contact_groups': 'Mcontactgroup',
+		'contacts': 'Mcontact',
 	}
 
 	def close(self):
@@ -726,7 +729,7 @@ def cmd_nodesplit(args):
 		if os.access(node.oconf_file, os.R_OK):
 			st = os.stat(node.oconf_file)
 			if not force and st.st_mtime > last_changed:
-				print("Not building new file for %s. Old is %d; last_changed: %d" % (node.name, st.st_mtime, last_changed))
+				print("%s is newer than config source %d > %d" % (node.oconf_file, st.st_mtime, last_changed))
 				continue
 
 		params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
