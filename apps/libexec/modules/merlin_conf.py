@@ -71,7 +71,6 @@ class merlin_node:
 		if not self.verify():
 			print("Refusing to save a node that doesn't verify")
 			return False
-		self.write(sys.stdout)
 		f = open(self.path, "a")
 		self.write(f)
 		# If we unconditionally close f, it gets a lot
