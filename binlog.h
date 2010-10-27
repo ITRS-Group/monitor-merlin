@@ -180,5 +180,8 @@ extern unsigned int binlog_size(binlog *bl);
 /** An event was dropped for some reason (not out-of-space) */
 #define BINLOG_EDROPPED (-8)
 
+/** A NULL pointer was passed when a pointer was expected */
+#define BINLOG_EADDRESS (-9)
+
 /** @} */
 #endif

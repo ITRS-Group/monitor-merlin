@@ -144,6 +144,9 @@ void binlog_wipe(binlog *bl, int flags)
 	unsigned int max_mem_size, max_file_size;
 	char *path;
 
+	if (!bl)
+		return;
+
 	max_mem_size = bl->max_mem_size;
 	max_file_size = bl->max_file_size;
 	path = bl->path;
@@ -184,6 +187,9 @@ void binlog_wipe(binlog *bl, int flags)
 
 void binlog_destroy(binlog *bl, int flags)
 {
+	if (!bl)
+		return;
+
 	binlog_wipe(bl, flags);
 
 	if (bl->path) {
@@ -248,6 +254,9 @@ static int binlog_mem_read(binlog *bl, void **buf, unsigned int *len)
 
 int binlog_read(binlog *bl, void **buf, unsigned int *len)
 {
+	if (!bl || !buf || !len)
+		return BINLOG_EADDRESS;
+
 	/*
 	 * reading from memory must come first in order to
 	 * maintain sequential ordering. Otherwise we'd
@@ -320,7 +329,7 @@ static int binlog_mem_unread(binlog *bl, void *buf, unsigned int len)
 int binlog_unread(binlog *bl, void *buf, unsigned int len)
 {
 	if (!bl || !buf || !len)
-		return -1;
+		return BINLOG_EADDRESS;
 
 	/*
 	 * if the binlog is empty, adding the entry normally has the
@@ -436,6 +445,9 @@ static int binlog_file_add(binlog *bl, void *buf, unsigned int len)
 
 int binlog_add(binlog *bl, void *buf, unsigned int len)
 {
+	if (!bl || !buf)
+		return BINLOG_EADDRESS;
+
 	/*
 	 * if we've started adding to the file, we must continue
 	 * doing so in order to preserve the parsing order when
@@ -452,6 +464,9 @@ int binlog_close(binlog *bl)
 {
 	int ret = 0;
 
+	if (!bl)
+		return BINLOG_EADDRESS;
+
 	if (bl->fd != -1) {
 		ret = close(bl->fd);
 		bl->fd = -1;
@@ -462,6 +477,9 @@ int binlog_close(binlog *bl)
 
 int binlog_flush(binlog *bl)
 {
+	if (!bl)
+		return BINLOG_EADDRESS;
+
 	if (bl->cache) {
 		while (bl->read_index < bl->write_index) {
 			binlog_entry *entry = bl->cache[bl->read_index++];
