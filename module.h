@@ -108,10 +108,25 @@ extern int merlin_mod_hook(int cb, void *data);
 	mrln.long_plugin_output = nag->long_plugin_output; \
 	mrln.perf_data = nag->perf_data;
 
-#define NET2MOD_STATE_VARS(nag, mrln) \
-	nag->plugin_output = safe_free(nag->plugin_output); \
-	nag->long_plugin_output = safe_free(nag->long_plugin_output); \
-	nag->perf_data = safe_free(nag->perf_data); \
+/*
+ * Updating data inside the running Nagios is a bit trickier and
+ * some care must be taken for this to work
+ */
+struct old_net2mod_data {
+	char *plugin_output;
+	char *long_plugin_output;
+	char *perf_data;
+};
+#define NET2MOD_STATE_VARS(old, nag, mrln) \
+	/* first we must copy the variables so we don't overwrite them */ \
+	old.plugin_output = nag->plugin_output; \
+	old.long_plugin_output = nag->long_plugin_output; \
+	old.perf_data = nag->perf_data; \
+	/* next we copy the new data. assignment is atomic */ \
+	nag->plugin_output = safe_strdup(mrln.plugin_output); \
+	nag->long_plugin_output = safe_strdup(mrln.long_plugin_output); \
+	nag->perf_data = safe_strdup(mrln.perf_data); \
+	/* then we assign variables (again, this is atomic) */ \
 	nag->initial_state = mrln.initial_state; \
 	nag->flap_detection_enabled = mrln.flap_detection_enabled; \
 	nag->low_flap_threshold = mrln.low_flap_threshold; \
@@ -150,8 +165,9 @@ extern int merlin_mod_hook(int cb, void *data);
 	nag->is_flapping = mrln.is_flapping; \
 	nag->flapping_comment_id = mrln.flapping_comment_id; \
 	nag->percent_state_change = mrln.percent_state_change; \
-	nag->plugin_output = safe_strdup(mrln.plugin_output); \
-	nag->long_plugin_output = safe_strdup(mrln.long_plugin_output); \
-	nag->perf_data = safe_strdup(mrln.perf_data);
+	/* when all is done, we free the old state variables */ \
+	safe_free(old.plugin_output); \
+	safe_free(old.long_plugin_output); \
+	safe_free(old.perf_data);
 
 #endif /* MRM_MOD_H */
