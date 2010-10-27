@@ -426,7 +426,6 @@ uint path_cmp_number(char *path)
 	return ret;
 }
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
 void first_log_time(struct naglog_file *nf)
 {
 	int fd;
