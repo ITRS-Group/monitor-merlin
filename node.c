@@ -19,7 +19,7 @@ void node_set_state(merlin_node *node, int state)
 	if (node->action)
 		node->action(node, state);
 
-	if (state == STATE_CONNECTED) {
+	if (state == STATE_CONNECTED && node->sock >= 0) {
 		int snd, rcv;
 		socklen_t size = sizeof(int);
 
