@@ -434,10 +434,6 @@ extern int event_broker_options;
 extern char *macro_x[MACRO_X_COUNT];
 extern char *config_file;
 
-/* check recent additions to Nagios for why these are nifty */
-#define nagios_object_cache macro_x[MACRO_OBJECTCACHEFILE]
-#define nagios_status_log macro_x[MACRO_STATUSDATAFILE]
-
 /*
  * we send this every 15 seconds, just in case our nodes forget
  * about us. It shouldn't happen, but there are stranger things
@@ -457,49 +453,26 @@ static int send_pulse(void *discard)
  * daemon so it can import the necessary data into the
  * database.
  */
+/* check recent additions to Nagios for why these are nifty */
+#define nagios_object_cache macro_x[MACRO_OBJECTCACHEFILE]
+#define nagios_status_log macro_x[MACRO_STATUSDATAFILE]
 int send_paths(void)
 {
 	size_t config_path_len, cache_path_len;
-	static char *cache_file = NULL, *status_log = NULL;
+	char *cache_file, *status_log;
 	merlin_event pkt;
 
 	if (!merlin_should_send_paths || merlin_should_send_paths > time(NULL))
 		return 0;
 
-	/*
-	 * If it's not set, try getting it from the config file
-	 */
-	if (!nagios_object_cache) {
-		xodtemplate_grab_config_info(config_file);
-	}
+	cache_file = nagios_object_cache;
+	status_log = nagios_status_log;
 
-	/*
-	 * It seems as though Nagios being reloaded through the command-pipe
-	 * makes it forget about the variables we need. If that's the case,
-	 * we use our own stashed ones and copy them back to Nagios. We're
-	 * we're very thoughtful in that respect.
-	 */
-	if (!cache_file && nagios_object_cache) {
-		cache_file = strdup(nagios_object_cache);
-	} else if (!nagios_object_cache && cache_file) {
-		ldebug("nagios_object_cache not set");
-		nagios_object_cache = strdup(cache_file);
-	}
+	ldebug("config_file: %p; nagios_object_cache: %p; status_log: %p",
+		   config_file, cache_file, status_log);
 
-	if (!status_log && nagios_status_log) {
-		status_log = strdup(nagios_status_log);
-	} else if (!nagios_status_log && status_log) {
-		ldebug("nagios_status_log set");
-		nagios_status_log = strdup(status_log);
-	}
-
-	if (!config_file || !cache_file) {
-		lerr("config_file or xodtemplate_cache_file not set");
-		/*
-		 * this only happens when we fail miserably, so make
-		 * sure we don't continuously try to send the paths
-		 * to the necessary files
-		 */
+	if (!config_file) {
+		/* this should never happen. It really shouldn't */
 		merlin_should_send_paths = time(NULL) + merlin_sendpath_interval;
 		return -1;
 	}
@@ -518,14 +491,17 @@ int send_paths(void)
 	 * to the bytestream.
 	 */
 	config_path_len = strlen(config_file);
-	cache_path_len = strlen(cache_file);
 	memcpy(pkt.body, config_file, config_path_len);
 	pkt.hdr.len = config_path_len;
-	memcpy(pkt.body + pkt.hdr.len + 1, cache_file, cache_path_len);
-	pkt.hdr.len += cache_path_len + 1;
-	if (status_log && *status_log) {
-		memcpy(pkt.body + pkt.hdr.len + 1, status_log, strlen(status_log));
-		pkt.hdr.len += strlen(status_log) + 1;
+	if (cache_file) {
+		cache_path_len = strlen(cache_file);
+		memcpy(pkt.body + pkt.hdr.len + 1, cache_file, cache_path_len);
+		pkt.hdr.len += cache_path_len + 1;
+
+		if (status_log && *status_log) {
+			memcpy(pkt.body + pkt.hdr.len + 1, status_log, strlen(status_log));
+			pkt.hdr.len += strlen(status_log) + 1;
+		}
 	}
 
 	/* nul-terminate and include the nul-char */

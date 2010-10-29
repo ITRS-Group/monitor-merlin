@@ -388,14 +388,20 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 		return 0;
 	}
 
-	asprintf(&cmd, "%s --nagios-cfg=%s --cache=%s "
+	asprintf(&cmd, "%s --nagios-cfg=%s "
 			 "--db-name=%s --db-user=%s --db-pass=%s --db-host=%s",
-			 import_program, cfg, cache,
+			 import_program, cfg,
 			 sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host());
-	if (status && *status) {
+	if (cache && *cache) {
 		char *cmd2 = cmd;
-		asprintf(&cmd, "%s --status-log=%s", cmd2, status);
+		asprintf(&cmd, "%s --cache=%s", cmd2, cache);
 		free(cmd2);
+
+		if (status && *status) {
+			cmd2 = cmd;
+			asprintf(&cmd, "%s --status-log=%s", cmd2, status);
+			free(cmd2);
+		}
 	}
 
 	run_program("import", cmd, &importer_pid);
@@ -412,38 +418,28 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 	return result;
 }
 
-/* nagios.cfg, objects.cache and (optionally) status.log */
-static char *nagios_paths[3] = { NULL, NULL, NULL };
-static char *nagios_paths_arena;
+/* nagios.cfg, objects.cache (optional) and status.log (optional) */
 static int read_nagios_paths(merlin_event *pkt)
 {
+	char *nagios_paths_arena;
+	char *npath[3] = { NULL, NULL, NULL };
 	uint i;
 	size_t offset = 0;
 
 	if (!use_database)
 		return 0;
 
-	if (nagios_paths_arena)
-		free(nagios_paths_arena);
 	nagios_paths_arena = malloc(pkt->hdr.len);
 	if (!nagios_paths_arena)
 		return -1;
 	memcpy(nagios_paths_arena, pkt->body, pkt->hdr.len);
 
-	/*
-	 * reset the path pointers first so we don't ship an
-	 * invalid one to the importer function
-	 */
-	for (i = 0; i < ARRAY_SIZE(nagios_paths); i++) {
-		nagios_paths[i] = NULL;
+	for (i = 0; i < ARRAY_SIZE(npath) && offset < pkt->hdr.len; i++) {
+		npath[i] = nagios_paths_arena + offset;
+		offset += strlen(npath[i]) + 1;
 	}
 
-	for (i = 0; i < ARRAY_SIZE(nagios_paths) && offset < pkt->hdr.len; i++) {
-		nagios_paths[i] = nagios_paths_arena + offset;
-		offset += strlen(nagios_paths[i]) + 1;
-	}
-
-	import_objects_and_status(nagios_paths[0], nagios_paths[1], nagios_paths[2]);
+	import_objects_and_status(npath[0], npath[1], npath[2]);
 	/*
 	 * we don't need to do this until we're merging the reports-module
 	 * into merlin
