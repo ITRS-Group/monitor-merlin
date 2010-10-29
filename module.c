@@ -13,6 +13,7 @@ extern hostgroup *hostgroup_list;
 static int mrm_reap_interval = 2;
 static pthread_t reaper_thread;
 static int cancel_reaping;
+static int merlin_sendpath_interval = MERLIN_SENDPATH_INTERVAL;
 
 /*
  * user-defined filters, used as or-gate. Defaults to
@@ -413,19 +414,57 @@ extern int event_broker_options;
 extern char *macro_x[MACRO_X_COUNT];
 extern char *config_file;
 
+/* check recent additions to Nagios for why these are nifty */
+#define nagios_object_cache macro_x[MACRO_OBJECTCACHEFILE]
+#define nagios_status_log macro_x[MACRO_STATUSDATAFILE]
+
+/*
+ * Sends the path to objects.cache and status.log to the
+ * daemon so it can import the necessary data into the
+ * database.
+ */
 int send_paths(void)
 {
 	size_t config_path_len, cache_path_len;
-	char *cache_file, *status_log;
+	static char *cache_file = NULL, *status_log = NULL;
 	merlin_event pkt;
 
 	if (!merlin_should_send_paths || merlin_should_send_paths > time(NULL))
 		return 0;
 
-	cache_file = macro_x[MACRO_OBJECTCACHEFILE];
-	status_log = macro_x[MACRO_STATUSDATAFILE];
+	/*
+	 * If it's not set, try getting it from the config file
+	 */
+	if (!nagios_object_cache) {
+		xodtemplate_grab_config_info(config_file);
+	}
+
+	/*
+	 * It seems as though Nagios being reloaded through the command-pipe
+	 * makes it forget about the variables we need. If that's the case,
+	 * we use our own stashed ones and copy them back to Nagios. We're
+	 * we're very thoughtful in that respect.
+	 */
+	if (!cache_file && nagios_object_cache) {
+		cache_file = strdup(nagios_object_cache);
+	} else if (!nagios_object_cache && cache_file) {
+		nagios_object_cache = strdup(cache_file);
+	}
+
+	if (!status_log && nagios_status_log) {
+		status_log = strdup(nagios_status_log);
+	} else if (!nagios_status_log && status_log) {
+		nagios_status_log = strdup(status_log);
+	}
+
 	if (!config_file || !cache_file) {
 		lerr("config_file or xodtemplate_cache_file not set");
+		/*
+		 * this only happens when we fail miserably, so make
+		 * sure we don't continuously try to send the paths
+		 * to the necessary files
+		 */
+		merlin_should_send_paths = time(NULL) + merlin_sendpath_interval;
 		return -1;
 	}
 

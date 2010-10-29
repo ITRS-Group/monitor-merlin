@@ -41,3 +41,7 @@ int update_service_performance_data(host *hst)
 {
 	return 0;
 }
+void xodtemplate_grab_config_info(void)
+{
+	macro_x[MACRO_OBJECTCACHEFILE] = "/opt/monitor/etc/nagios.cfg";
+}
