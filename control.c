@@ -242,16 +242,13 @@ static void node_action(merlin_node *node, int state)
  * Handles merlin control events inside the module. Control events
  * that relate to cross-host communication only never reaches this.
  */
-void handle_control(merlin_event *pkt)
+void handle_control(merlin_node *node, merlin_event *pkt)
 {
-	merlin_node *node;
-
 	if (!pkt) {
 		lerr("handle_control() called with NULL packet");
 		return;
 	}
 
-	node = node_by_id(pkt->hdr.selection);
 	linfo("Received control packet code %d from %s",
 		  pkt->hdr.code, node ? node->name : "local Merlin daemon");
 

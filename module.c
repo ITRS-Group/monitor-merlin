@@ -105,10 +105,8 @@ int handle_external_command(merlin_header *hdr, void *buf)
 }
 
 /* events that require status updates return 1, others return 0 */
-int handle_ipc_event(merlin_event *pkt)
+int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 {
-	merlin_node *node = node_by_id(pkt->hdr.selection);
-
 	if (node) {
 		node->stats.events.read++;
 		node->stats.bytes.read += packet_size(pkt);
@@ -165,11 +163,15 @@ static void *ipc_reaper(void *discard)
 
 		/* and then just loop over the received packets */
 		while ((pkt = node_get_event(&ipc))) {
+			merlin_node *node = node_by_id(pkt->hdr.selection);
+			if (node)
+				node->last_recv = time(NULL);
+
 			/* control packets are handled separately */
 			if (pkt->hdr.type == CTRL_PACKET) {
-				handle_control(pkt);
+				handle_control(node, pkt);
 			} else {
-				handle_ipc_event(pkt);
+				handle_ipc_event(node, pkt);
 			}
 		}
 	}
