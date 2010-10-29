@@ -232,10 +232,6 @@ static void node_action(merlin_node *node, int state)
 	if (!node || node->state == state)
 		return;
 
-	if (state != STATE_CONNECTED) {
-		memset(&node->info, 0, sizeof(node->info));
-	}
-
 	node->state = state;
 	if (node->type == MODE_PEER) {
 		assign_peer_ids();
