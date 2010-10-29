@@ -472,14 +472,14 @@ static int csync_config_cmp(merlin_node *node)
 {
 	int mtime_delta;
 
-	ldebug("Comparing config with %s node %s", node_type(node), node->name);
+	ldebug("CSYNC: %s: Comparing config", node->name);
 	if (!ipc.info.last_cfg_change) {
 		/*
 		 * if our module is inactive, we can't know anything so we
 		 * can't do anything, and we can't fetch the last config
 		 * change time, since it might be being changed as we speak.
 		 */
-		ldebug("Our module is inactive, so can't check csync stuff");
+		ldebug("CSYNC: %s: Our module is inactive, so can't check", node->name);
 		return 0;
 	}
 
@@ -490,36 +490,28 @@ static int csync_config_cmp(merlin_node *node)
 		int hash_delta;
 		hash_delta = memcmp(node->info.config_hash, ipc.info.config_hash, 20);
 		if (!hash_delta) {
-			ldebug("hashes match. No sync required");
+			ldebug("CSYNC: %s: hashes match. No sync required", node->name);
 			return 0;
 		}
 	}
 
+	/* For non-peers, we simply move on from here. */
 	mtime_delta = node->info.last_cfg_change - ipc.info.last_cfg_change;
-	if (mtime_delta) {
-		ldebug("mtime_delta: %d", mtime_delta);
+	if (mtime_delta || node->type != MODE_PEER) {
+		ldebug("CSYNC: %s: mtime_delta: %d", node->name, mtime_delta);
 		return mtime_delta;
 	}
 
 	/*
-	 * Error path, really. hash mismatch (if this node is a peer),
-	 * but mtime matches. Unusual, to say the least. Either way,
+	 * Error path. This node is a peer, but we have a hash mismatch
+	 * and matching mtimes. Unusual, to say the least. Either way,
 	 * we can't really do anything except warn about it and get
-	 * on with things.
-	 * this can happen for pollers (and obviously masters too) if
-	 * the config sync script is quick enough or if system clocks
-	 * are out of sync
+	 * on with things. This will only happen when someone manages
+	 * to save the config exactly the same second on both nodes.
 	 */
-	lwarn("CSYNC: Can't determine confsync action for %s. Returning 0...", node->name);
-	if (node->type == MODE_PEER) {
-		/*
-		 * if the node is a peer, someone has managed to save the
-		 * config exactly the same second on both nodes. We
-		 * can't know what to do, so just give up and return
-		 */
-		lerr("CSYNC: hash mismatch between us and %s, but mtime matches", node->name);
-		lerr("CSYNC: User intervention required.");
-	}
+	lerr("CSYNC: %s: Can't determine confsync action", node->name);
+	lerr("CSYNC: %s: hash mismatch but mtime matche", node->name);
+	lerr("CSYNC: %s: User intervention required.", node->name);
 
 	return 0;
 }
@@ -542,12 +534,11 @@ void csync_node_active(merlin_node *node)
 	merlin_confsync *cs = NULL;
 	char *cmd = NULL;
 
-	ldebug("CSYNC: Checking node %s", node->name);
-
+	ldebug("CSYNC: %s: Checking...", node->name);
 	/* bail early if we have no push/fetch configuration */
 	cs = node->csync ? node->csync : &csync;
 	if (!cs->push && !cs->fetch) {
-		ldebug("CSYNC: No config sync configured. Bailing early");
+		ldebug("CSYNC: %s: No config sync configured.", node->name);
 		return;
 	}
 
