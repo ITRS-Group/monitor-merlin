@@ -470,12 +470,14 @@ int send_paths(void)
 	if (!cache_file && nagios_object_cache) {
 		cache_file = strdup(nagios_object_cache);
 	} else if (!nagios_object_cache && cache_file) {
+		ldebug("nagios_object_cache not set");
 		nagios_object_cache = strdup(cache_file);
 	}
 
 	if (!status_log && nagios_status_log) {
 		status_log = strdup(nagios_status_log);
 	} else if (!nagios_status_log && status_log) {
+		ldebug("nagios_status_log set");
 		nagios_status_log = strdup(status_log);
 	}
 
