@@ -229,7 +229,7 @@ static void assign_peer_ids(void)
  */
 static void node_action(merlin_node *node, int state)
 {
-	if (!node)
+	if (!node || node->state == state)
 		return;
 
 	if (state != STATE_CONNECTED) {
