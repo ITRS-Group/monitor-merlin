@@ -717,5 +717,27 @@ int nebmodule_deinit(int flags, int reason)
 
 	deregister_merlin_hooks();
 
+	/*
+	 * free some readily available memory. Note that
+	 * we leak some when we're being restarted through
+	 * either SIGHUP or a PROGRAM_RESTART event sent to
+	 * Nagios' command pipe. We also (currently) loose
+	 * the ipc binlog, if any, which is slightly annoying
+	 */
+	safe_free(ipc.ioc.buf);
+	safe_free(node_table);
+	binlog_wipe(ipc.binlog, BINLOG_UNLINK);
+
+	/*
+	 * TODO: free the state hash tables and their data.
+	 *       They're currently leaked.
+	 *
+	 * Requires hash api re-design so it strdup()'s the
+	 * keys itself to be done properly, or a change to
+	 * use the host and service descriptions passed to
+	 * us from Nagios, which could well be a better
+	 * solutions
+	 */
+
 	return 0;
 }
