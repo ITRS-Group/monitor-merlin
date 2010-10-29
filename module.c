@@ -8,6 +8,14 @@
 
 time_t merlin_should_send_paths = 1;
 
+/*
+ * nagios functions not included in almost-but-not-nearly-public
+ * functions. We're probably not meant to call them, but being a
+ * member of the Nagios core team has its benefits. Mwhahahahaha
+ */
+extern int xodtemplate_grab_config_info(char *main_config_file);
+
+
 /** code start **/
 extern hostgroup *hostgroup_list;
 static int mrm_reap_interval = 2;
