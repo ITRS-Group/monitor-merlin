@@ -244,14 +244,21 @@ static void node_action(merlin_node *node, int state)
  */
 void handle_control(merlin_node *node, merlin_event *pkt)
 {
+	const char *ctrl;
 	if (!pkt) {
 		lerr("handle_control() called with NULL packet");
 		return;
 	}
 
-	linfo("Received control packet code %d from %s",
-		  pkt->hdr.code, node ? node->name : "local Merlin daemon");
+	ctrl = ctrl_name(pkt->hdr.code);
+	linfo("Received control packet code %d (%s) from %s",
+		  pkt->hdr.code, ctrl, node ? node->name : "local Merlin daemon");
 
+	/* protect against bogus headers */
+	if (!node && (pkt->hdr.code == CTRL_INACTIVE || pkt->hdr.code == CTRL_ACTIVE)) {
+		lerr("Received %s with unknown node id %d", ctrl, pkt->hdr.selection);
+		return;
+	}
 	switch (pkt->hdr.code) {
 	case CTRL_INACTIVE:
 		node_action(node, STATE_NONE);
