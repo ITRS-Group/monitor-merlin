@@ -49,7 +49,7 @@ void db_mark_node_inactive(merlin_node *node)
 
 	node_id = node == &ipc ? 0 : node->id + 1;
 	sql_query("UPDATE program_status "
-	          "SET is_running = 0, last_alive = 0 "
+	          "SET is_running = 0 "
 	          "WHERE instance_id = %d",
 	          node_id);
 }
