@@ -577,20 +577,30 @@ static int handle_ipc_event(merlin_event *pkt)
 		case CTRL_ACTIVE:
 			/*
 			 * handle_ctrl_active() should basically never return
-			 * anything but zero from our module. If it does, it
+			 * anything but 0 or 1 from our module. If it does, it
 			 * will already have logged everything the user needs
 			 * to know, so we can just return without further
 			 * actions, even if the info returned is the same as
-			 * we already have
+			 * we already have, but if no problems were found we
+			 * forward the packet to the network anyway.
 			 */
-			if (handle_ctrl_active(&ipc, pkt)) {
+			result = handle_ctrl_active(&ipc, pkt);
+			if (result < 0) {
+				/* ipc is incompatible with us. weird */
 				return 0;
 			}
 
 			/*
-			 * when we read an ALIVE packet from ipc, we
-			 * need to see if our connected nodes could use
-			 * a refreshed configuration
+			 * info checks out, so we forward it. If ipc resent same
+			 * info, we won't do the config sync check
+			 */
+			if (result >= 1) {
+				break;
+			}
+
+			/*
+			 * info checks out and is new. Check to see if we
+			 * should run any config sync actions.
 			 */
 			for (i = 0; i < num_nodes; i++) {
 				merlin_node *node = node_table[i];
@@ -601,6 +611,7 @@ static int handle_ipc_event(merlin_event *pkt)
 			}
 
 			break;
+
 		case CTRL_INACTIVE:
 			/* this should really never happen, but forward it if it does */
 			memset(&ipc.info, 0, sizeof(ipc.info));
