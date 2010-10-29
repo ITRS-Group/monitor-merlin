@@ -108,6 +108,16 @@ int handle_external_command(merlin_header *hdr, void *buf)
 int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 {
 	if (node) {
+		/*
+		 * this node is obviously connected, so mark it as such,
+		 * but warn about nodes with empty info that's sending
+		 * us data.
+		 */
+		node_set_state(node, STATE_CONNECTED);
+		if (!node->info.byte_order) {
+			lwarn("STATE: %s is sending event data but hasn't sent %s",
+				  node->name, ctrl_name(CTRL_ACTIVE));
+		}
 		node->stats.events.read++;
 		node->stats.bytes.read += packet_size(pkt);
 		node_log_event_count(node, 0);
