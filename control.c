@@ -227,16 +227,29 @@ static void assign_peer_ids(void)
  * packet. node is the originating node. state is the new state we
  * should set the node to (STATE_CONNECTED et al).
  */
-static void node_action(merlin_node *node, int state)
+static int node_action(merlin_node *node, int state)
 {
 	if (!node || node->state == state)
-		return;
+		return 0;
 
 	node->state = state;
 	if (node->type == MODE_PEER) {
 		assign_peer_ids();
 	}
+
+	return 0;
 }
+
+void ctrl_set_node_actions(void)
+{
+	uint i;
+
+	for (i = 0; i < num_nodes; i++) {
+		merlin_node *node = node_table[i];
+		node->action = node_action;
+	}
+}
+
 
 /*
  * Handles merlin control events inside the module. Control events

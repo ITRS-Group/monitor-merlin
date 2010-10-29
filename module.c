@@ -671,6 +671,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	neb_register_callback(NEBCALLBACK_PROCESS_DATA, neb_handle, 0, post_config_init);
 
 	ipc.action = ipc_action_handler;
+	ctrl_set_node_actions();
 
 	linfo("Merlin module %s initialized successfully", merlin_version);
 	mrm_ipc_reap(NULL);
