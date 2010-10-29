@@ -427,6 +427,19 @@ extern char *config_file;
 #define nagios_status_log macro_x[MACRO_STATUSDATAFILE]
 
 /*
+ * we send this every 15 seconds, just in case our nodes forget
+ * about us. It shouldn't happen, but there are stranger things
+ * than random bugs in computer programs.
+ */
+static int send_pulse(void *discard)
+{
+	node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 100);
+	schedule_new_event(EVENT_USER_FUNCTION, TRUE,
+	                   time(NULL) + MERLIN_PULSE_INTERVAL, FALSE,
+	                   0, NULL, FALSE, send_pulse, NULL, 0);
+}
+
+/*
  * Sends the path to objects.cache and status.log to the
  * daemon so it can import the necessary data into the
  * database.
@@ -656,6 +669,10 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 
 	linfo("Merlin module %s initialized successfully", merlin_version);
 	mrm_ipc_reap(NULL);
+	schedule_new_event(EVENT_USER_FUNCTION, TRUE,
+	                   time(NULL) + MERLIN_PULSE_INTERVAL, FALSE,
+	                   0, NULL, FALSE, send_pulse, NULL, 0);
+
 
 	return 0;
 }

@@ -29,6 +29,7 @@ typedef struct file_list {
 } file_list;
 
 
+#define MERLIN_PULSE_INTERVAL 10
 extern hash_table *host_hash_table;
 extern node_selection *node_selection_by_hostname(const char *name);
 
