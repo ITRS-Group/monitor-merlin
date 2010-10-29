@@ -430,7 +430,7 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 	} else if (node->type == MODE_POLLER && num_nocs) {
 		uint i;
 
-		linfo("Passing on event from poller %s to %d nocs",
+		linfo("Passing on event from poller %s to %d masters",
 			  node->name, num_nocs);
 
 		for (i = 0; i < num_nocs; i++) {
