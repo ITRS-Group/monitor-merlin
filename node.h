@@ -8,6 +8,11 @@
 #include "binlog.h"
 
 #define MERLIN_PROTOCOL_VERSION 0
+/*
+ * how long we should wait before sending paths before trying
+ * to send them again in case something weird happens
+ */
+#define MERLIN_SENDPATH_INTERVAL 15
 
 /* various magic options for the "type" field */
 #define CTRL_PACKET   0xffff  /* control packet. "code" described below */

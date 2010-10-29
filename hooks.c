@@ -657,8 +657,8 @@ int merlin_mod_hook(int cb, void *data)
 	}
 
 	if (result < 0) {
-		lwarn("Daemon is flooded and backlogging failed. Staying dormant for 15 seconds");
-		merlin_should_send_paths = time(NULL) + 15;
+		lwarn("Daemon is flooded and backlogging failed. Staying dormant for %d seconds", MERLIN_SENDPATH_INTERVAL);
+		merlin_should_send_paths = time(NULL) + MERLIN_SENDPATH_INTERVAL;
 	}
 
 	return result;
