@@ -671,11 +671,8 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	ctrl_set_node_actions();
 
 	linfo("Merlin module %s initialized successfully", merlin_version);
+	send_pulse(NULL);
 	mrm_ipc_reap(NULL);
-	schedule_new_event(EVENT_USER_FUNCTION, TRUE,
-	                   time(NULL) + MERLIN_PULSE_INTERVAL, FALSE,
-	                   0, NULL, FALSE, send_pulse, NULL, 0);
-
 
 	return 0;
 }
