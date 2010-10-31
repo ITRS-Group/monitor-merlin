@@ -462,6 +462,17 @@ int send_paths(void)
 	char *cache_file, *status_log;
 	merlin_event pkt;
 
+	/*
+	 * delay sending paths until we're connected, or we'll always
+	 * just hang around until the stall times out and we start
+	 * sending more events later, thereby triggering a new connection
+	 * attempt.
+	 */
+	if (!ipc_is_connected(0)) {
+		merlin_should_send_paths = 1;
+		return 0;
+	}
+
 	if (!merlin_should_send_paths || merlin_should_send_paths > time(NULL))
 		return 0;
 
