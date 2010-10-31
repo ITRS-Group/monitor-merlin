@@ -529,14 +529,19 @@ int send_paths(void)
 		return -1;
 
 	merlin_should_send_paths = 0;
+
 	/*
-	 * start stalling immediately and reap while stalling
-	 * so we wait while the import is running
+	 * start stalling immediately and keep doing so until
+	 * the reaper thread reads a CTRL_RESUME event so we
+	 * wait until the import is completed
 	 */
 	ctrl_stall_start();
+	ldebug("Stalling up to %d seconds while awaiting CTRL_RESUME",
+		   is_stalling());
 	while (is_stalling()) {
-		sleep(is_stalling());
+		usleep(500);
 	}
+	ldebug("Stalling done");
 	return 0;
 }
 
