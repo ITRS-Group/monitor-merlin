@@ -189,21 +189,6 @@ static void *ipc_reaper(void *discard)
 	return 0;
 }
 
-/* this is called from inside Nagios as a scheduled event */
-static int mrm_ipc_reap(void *discard)
-{
-	while (is_stalling()) {
-		sleep(is_stalling());
-	}
-
-	schedule_new_event(EVENT_USER_FUNCTION, TRUE,
-	                   time(NULL) + mrm_reap_interval, FALSE,
-	                   0, NULL, FALSE, mrm_ipc_reap, NULL, 0);
-
-	return 0;
-}
-
-
 hash_table *host_hash_table;
 node_selection *node_selection_by_hostname(const char *name)
 {
@@ -678,7 +663,6 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 
 	linfo("Merlin module %s initialized successfully", merlin_version);
 	send_pulse(NULL);
-	mrm_ipc_reap(NULL);
 
 	return 0;
 }
