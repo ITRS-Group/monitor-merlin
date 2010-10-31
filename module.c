@@ -575,8 +575,9 @@ static int post_config_init(int cb, void *ds)
 	 */
 	register_merlin_hooks(event_mask);
 
-	/* now we create the ipc reaper thread */
+	/* now we create the ipc reaper thread and send the paths */
 	result = pthread_create(&reaper_thread, NULL, ipc_reaper, NULL);
+	send_paths();
 
 	return 0;
 }
