@@ -1178,6 +1178,23 @@ static int parse_line(char *line, uint len)
 	if (sc->code == IGNORE_LINE)
 		return 0;
 
+	/*
+	 * break out early if we know we won't handle this event
+	 * There's no point in parsing a potentially huge amount
+	 * of lines we're not even interested in
+	 */
+	switch (sc->code) {
+	case NEBTYPE_NOTIFICATION_END + CONCERNS_HOST:
+	case NEBTYPE_NOTIFICATION_END + CONCERNS_SERVICE:
+		if (only_notifications)
+			break;
+		return 0;
+	default:
+		if (only_notifications)
+			return 0;
+		break;
+	}
+
 	*colon = 0;
 	ptr = colon + 1;
 	while (*ptr == ' ')
