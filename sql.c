@@ -127,7 +127,7 @@ int sql_vquery(const char *fmt, va_list ap)
 		const char *error_msg;
 		int db_error = sql_error(&error_msg);
 
-		linfo("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is %d",
+		lwarn("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is %d",
 			  query, error_msg, db_error);
 		/*
 		 * if we failed because the connection has gone away, we try
@@ -147,10 +147,10 @@ int sql_vquery(const char *fmt, va_list ap)
 				break;
 
 		default:
-			linfo("Attempting to reconnect to database and re-run the query");
+			lwarn("Attempting to reconnect to database and re-run the query");
 			if (!sql_reinit()) {
 				if (!run_query(query, len, 1))
-					linfo("Successfully ran the previously failed query");
+					lwarn("Successfully ran the previously failed query");
 				/* database backlog code goes here */
 			}
 		}
