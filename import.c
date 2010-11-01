@@ -28,6 +28,7 @@
 #define PROGRESS_INTERVAL 25000 /* lines to parse between progress updates */
 
 
+static char *db_table;
 static int only_notifications;
 static unsigned long long imported, totsize, totlines, skipped;
 static int lines_since_progress, do_progress, list_files;
@@ -135,7 +136,7 @@ static int insert_host_result(nebstruct_host_check_data *ds)
 		 "timestamp, event_type, host_name, state, "
 		 "hard, retry, output"
 		 ") VALUES(%lu, %d, %s, %d, %d, %d, %s)",
-		 sql_table_name(),
+		 db_table,
 		 ds->timestamp.tv_sec, ds->type, host_name, ds->state,
 		 ds->state_type == HARD_STATE, ds->current_attempt,
 		 output);
@@ -165,7 +166,7 @@ static int insert_service_result(nebstruct_service_check_data *ds)
 		 "timestamp, event_type, host_name, service_description, state, "
 		 "hard, retry, output) "
 		 "VALUES(%lu, %d, %s, %s, '%d', '%d', '%d', %s)",
-		 sql_table_name(),
+		 db_table,
 		 ds->timestamp.tv_sec, ds->type, host_name,
 		 service_description, ds->state,
 		 ds->state_type == HARD_STATE, ds->current_attempt,
@@ -215,7 +216,7 @@ static int sql_insert_downtime(nebstruct_downtime_data *ds)
 			 "timestamp, event_type, host_name,"
 			 "service_description, downtime_depth) "
 			 "VALUES(%lu, %d, %s, %s, %d)",
-			 sql_table_name(),
+			 db_table,
 			 ds->timestamp.tv_sec, ds->type, host_name,
 			 service_description, depth);
 		free(service_description);
@@ -224,7 +225,7 @@ static int sql_insert_downtime(nebstruct_downtime_data *ds)
 			("INSERT INTO %s("
 			 "timestamp, event_type, host_name, downtime_depth)"
 			 "VALUES(%lu, %d, %s, %d)",
-			 sql_table_name(),
+			 db_table,
 			 ds->timestamp.tv_sec, ds->type, host_name, depth);
 	}
 	free(host_name);
@@ -247,7 +248,7 @@ static int insert_process_data(nebstruct_process_data *ds)
 	return sql_query
 		("INSERT INTO %s(timestamp, event_type) "
 		 "VALUES(%lu, %d)",
-		 sql_table_name(), ds->timestamp.tv_sec, ds->type);
+		 db_table, ds->timestamp.tv_sec, ds->type);
 }
 
 static inline void print_strvec(char **v, int n)
@@ -339,10 +340,10 @@ static void disable_indexes(void)
 	 * will take just about forever, as MySQL has to update
 	 * and flush the index cache between each operation.
 	 */
-	if (sql_query("ALTER TABLE %s DISABLE KEYS", sql_table_name()))
+	if (sql_query("ALTER TABLE %s DISABLE KEYS", db_table))
 		crash("Failed to disable keys: %s", sql_error_msg());
-	if (sql_query("LOCK TABLES %s WRITE", sql_table_name()))
-		crash("Failed to lock table %s: %s", sql_table_name(), sql_error_msg());
+	if (sql_query("LOCK TABLES %s WRITE", db_table))
+		crash("Failed to lock table %s: %s", db_table, sql_error_msg());
 
 	indexes_disabled = 1;
 }
@@ -357,7 +358,7 @@ static void enable_indexes(void)
 	if (!indexes_disabled)
 		return;
 
-	sql_query("SELECT id FROM %s ORDER BY id DESC LIMIT 1", sql_table_name());
+	sql_query("SELECT id FROM %s ORDER BY id DESC LIMIT 1", db_table);
 	if (!(result = sql_get_result()))
 		entries = 0;
 	else {
@@ -374,7 +375,7 @@ static void enable_indexes(void)
 	start = time(NULL);
 	printf("Creating sql table indexes. This will likely take ~%lu seconds\n",
 		   (entries / 50000) + 1);
-	sql_query("ALTER TABLE %s ENABLE KEYS", sql_table_name());
+	sql_query("ALTER TABLE %s ENABLE KEYS", db_table);
 	printf("%lu database entries indexed in %lu seconds\n",
 		   entries, time(NULL) - start);
 }
@@ -489,7 +490,7 @@ static int insert_notification(struct string_code *sc)
 		 "%s, %s, "
 		 "%s, %s, "
 		 "%d, %d)",
-		 sql_table_name(),
+		 db_table,
 		 n.type, ltime, ltime, contact_name,
 		 host_name, safe_str(service_description),
 		 command_name, output,
@@ -1339,10 +1340,10 @@ int main(int argc, char **argv)
 {
 	int i, truncate_db = 0;
 	const char *nagios_cfg = NULL;
-	char *db_name, *db_user, *db_pass, *db_table;
+	char *db_name, *db_user, *db_pass;
 
 	use_database = 1;
-	db_name = db_user = db_pass = db_table = NULL;
+	db_name = db_user = db_pass = NULL;
 
 	do_progress = isatty(fileno(stdout));
 
@@ -1504,12 +1505,11 @@ int main(int argc, char **argv)
 		sql_config("db_database", db_name);
 		sql_config("db_user", db_user);
 		sql_config("db_pass", db_pass);
-		sql_config("db_table", db_table);
 
 		if (sql_init() < 0)
 			crash("sql_init() failed");
 		if (truncate_db)
-			sql_query("TRUNCATE %s", sql_table_name());
+			sql_query("TRUNCATE %s", db_table);
 
 		if (incremental == 1) {
 			dbi_result result;
