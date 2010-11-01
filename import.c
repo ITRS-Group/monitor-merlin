@@ -1089,6 +1089,7 @@ static int parse_line(char *line, uint len)
 	static time_t last_ltime = 0;
 
 	imported += len + 1; /* make up for 1 lost byte per newline */
+	line_no++;
 
 	/* ignore empty lines */
 	if (!len)
