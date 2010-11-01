@@ -159,8 +159,9 @@ int ipc_init(void)
 	/* don't spam the logs */
 	if (last_connect_attempt + 30 >= time(NULL)) {
 		quiet = 1;
+	} else {
+		last_connect_attempt = time(NULL);
 	}
-	last_connect_attempt = time(NULL);
 
 	if (!ipc_sock_path) {
 		lerr("Attempting to initialize ipc socket, but no socket path has been set\n");
@@ -195,8 +196,10 @@ int ipc_init(void)
 		mode_t old_umask;
 		int result;
 
-		if (unlink(ipc_sock_path) && errno != ENOENT)
+		if (unlink(ipc_sock_path) && errno != ENOENT) {
+			lerr("Failed to unlink(%s)", ipc_sock_path);
 			return -1;
+		}
 
 		slen += offsetof(struct sockaddr_un, sun_path);
 		/* Socket is made world writable for now */
