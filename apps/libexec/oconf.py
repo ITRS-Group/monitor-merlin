@@ -832,7 +832,7 @@ def cmd_push(args):
 #		scp_args += [source, user_address_dest]
 		ret = os.spawnvp(os.P_WAIT, 'rsync', rsync_args)
 		if ret != 0:
-			print("rsync returned non-zero (%d). Breakage?")
+			print("rsync returned %d. Breakage?" % ret)
 			print("Won't restart monitor and merlin on node '%s'" % name)
 			errors += 1
 			continue
