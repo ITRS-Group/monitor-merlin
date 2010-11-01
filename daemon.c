@@ -659,6 +659,16 @@ static int io_poll_sockets(void)
 	int sel_val, ipc_listen_sock, nfound;
 	int sockets = 0;
 	struct timeval tv = { 2, 0 };
+	static time_t last_ipc_reinit = 0;
+
+	/*
+	 * Try re-initializing ipc if the module isn't connected
+	 * and it was a while since we tried it.
+	 */
+	if (ipc.sock < 0 && last_ipc_reinit + 5 < time(NULL)) {
+		ipc_reinit();
+		last_ipc_reinit = time(NULL);
+	}
 
 	ipc_listen_sock = ipc_listen_sock_desc();
 	sel_val = max(ipc.sock, ipc_listen_sock);
