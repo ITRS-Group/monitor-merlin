@@ -823,7 +823,7 @@ def cmd_push(args):
 		# if we're not running from console, we need to disable
 		# keyboard-interactive authentication to avoid hanging
 		if not os.isatty(sys.stdout.fileno()):
-			ssh_cmd += '-o KbdInteractiveAuthentication=no'
+			ssh_cmd += ' -o KbdInteractiveAuthentication=no'
 
 		ssh_cmd += ' -l ' + ssh_user
 		user_address_dest = "%s@%s:%s" % (ssh_user, node.address, oconf_dest)
