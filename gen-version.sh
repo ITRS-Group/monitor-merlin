@@ -1,6 +1,6 @@
 #!/bin/sh
 
-DEF_VER=v0.9.0-beta
+DEF_VER=v0.9.0
 revision= patches= version= ver= beta= dirty=
 
 # First see if there is a version file (included in release tarballs),
