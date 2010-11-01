@@ -711,6 +711,37 @@ stuff as well, since I'll almost certainly want to look at
 them myself.
 
 
+Problem: My peered pollers are acting up!
+Answer:
+It's possible that the pollers are trying to push their config
+to the master-server, but with the default sync command, it
+will attempt to push configuration to all nodes at the same
+time. This can cause one peered poller to try to push to the
+other poller, which resets that poller and causes it to try
+to push its configuration to the master, but since it pushes
+globally and by default only to pollers and peers, it will
+cause config to be pushed to the other node, which is then
+restarted, etc, etc, etc.
+To fix it, it's usually enough to add an empty object_config
+section to all your master nodes, like so:
+
+	master yoda {
+		address = yoda
+		port = 15551
+			object_config {
+			}
+	}
+	master obi1 {
+		address = obi1
+		port = 15551
+			object_config {
+			}
+	}
+
+This removes the config sync command from the master nodes,
+so Merlin won't try to push configuration around.
+
+
 Problem: I want feature X!
 Answer:
 I want icecream.
