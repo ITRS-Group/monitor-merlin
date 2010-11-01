@@ -416,7 +416,6 @@ void *neb_handle = NULL;
 
 extern int event_broker_options;
 
-extern char *macro_x[MACRO_X_COUNT];
 extern char *config_file;
 
 /*
@@ -439,13 +438,15 @@ static int send_pulse(void *discard)
  * database.
  */
 /* check recent additions to Nagios for why these are nifty */
-#define nagios_object_cache macro_x[MACRO_OBJECTCACHEFILE]
-#define nagios_status_log macro_x[MACRO_STATUSDATAFILE]
+#define nagios_object_cache mac->x[MACRO_OBJECTCACHEFILE]
+#define nagios_status_log mac->x[MACRO_STATUSDATAFILE]
 int send_paths(void)
 {
 	size_t config_path_len, cache_path_len;
 	char *cache_file, *status_log;
 	merlin_event pkt;
+	nagios_macros *mac;
+
 
 	/*
 	 * delay sending paths until we're connected, or we'll always
@@ -461,6 +462,7 @@ int send_paths(void)
 	if (!merlin_should_send_paths || merlin_should_send_paths > time(NULL))
 		return 0;
 
+	mac = get_global_macros();
 	cache_file = nagios_object_cache;
 	status_log = nagios_status_log;
 
@@ -489,7 +491,7 @@ int send_paths(void)
 	config_path_len = strlen(config_file);
 	memcpy(pkt.body, config_file, config_path_len);
 	pkt.hdr.len = config_path_len;
-	if (cache_file) {
+	if (cache_file && *cache_file) {
 		cache_path_len = strlen(cache_file);
 		memcpy(pkt.body + pkt.hdr.len + 1, cache_file, cache_path_len);
 		pkt.hdr.len += cache_path_len + 1;
