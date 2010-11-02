@@ -334,7 +334,7 @@ by running the following commands from 'yoda':
   dir=/opt/monitor/etc/oconf
   conf=/opt/monitor/etc/nagios.cfg
   mon node ctrl -- sed -i /^cfg_file=/d $conf
-  mon node ctrl -- sed /^log_file=/acfg_dir=$dir $conf
+  mon node ctrl -- sed -i /^log_file=/acfg_dir=$dir $conf
   mon node ctrl -- mkdir -m 775 $dir
   mon node ctrl -- chown monitor:apache $dir
 
