@@ -1,5 +1,26 @@
 CC = gcc
 CFLAGS = -O2 -pipe $(WARN_FLAGS) -ggdb3 -fPIC -fno-strict-aliasing -rdynamic
+
+uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo nope')
+PTHREAD_LDFLAGS = -pthread
+PTHREAD_CFLAGS = -pthread
+LIB_DL = -ldl
+ifeq ($(uname_S),FreeBSD)
+	TWEAK_CPPFLAGS = -I/usr/local/include
+	LIB_DL =
+endif
+ifeq ($(uname_S),OpenBSD)
+	TWEAK_CPPFLAGS = -I/usr/local/include
+	LIB_DL =
+endif
+ifeq ($(uname_S),NetBSD)
+	TWEAK_CPPFLAGS = -I/usr/pkg/include
+	LIB_DL =
+endif
+
+# CFLAGS, CPPFLAGS and LDFLAGS are for users to modify
+ALL_CFLAGS = $(CFLAGS) $(TWEAK_CPPFLAGS) $(CPPFLAGS) $(PTHREAD_CFLAGS)
+ALL_LDFLAGS = $(LDFLAGS) $(TWEAK_LDFLAGS) $(PTHREAD_LDFLAGS)
 WARN_FLAGS = -Wall -Wextra -Wno-unused-parameter
 COMMON_OBJS = cfgfile.o shared.o hash.o version.o logging.o
 SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o
@@ -20,7 +41,7 @@ NEB = $(DSO).so
 APPS = showlog import oconf
 MOD_LDFLAGS = -shared -ggdb3 -fPIC -pthread
 DAEMON_LDFLAGS = -ldbi -ggdb3 -rdynamic -Wl,-export-dynamic
-MTEST_LDFLAGS = -ldbi -ggdb3 -ldl -rdynamic -Wl,-export-dynamic -pthread
+MTEST_LDFLAGS = -ldbi -ggdb3 $(LIB_DL) -rdynamic -Wl,-export-dynamic -pthread
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
 
@@ -45,10 +66,10 @@ install: all
 	sh install-merlin.sh --dest-dir="$(DESTDIR)"
 
 check:
-	@for i in *.c; do sparse $(CFLAGS) $(SPARSE_FLAGS) $$i 2>&1; done | grep -v /usr/include
+	@for i in *.c; do sparse $(ALL_CFLAGS) $(SPARSE_FLAGS) $$i 2>&1; done | grep -v /usr/include
 
 check_latency: check_latency.o cfgfile.o
-	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS)
+	$(QUIET_LINK)$(CC) $^ -o $@ $(ALL_LDFLAGS)
 
 mtest: mtest.o sql.o $(TEST_OBJS) $(TEST_DEPS) $(MODULE_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(MTEST_LDFLAGS)
@@ -63,7 +84,7 @@ showlog: $(SHOWLOG_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@
 
 nebtest: $(NEBTEST_OBJS)
-	$(QUIET_LINK)$(CC) $^ -o $@ -ldl -rdynamic -Wl,-export-dynamic
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LIB_DL) -rdynamic -Wl,-export-dynamic
 
 $(PROG): $(DAEMON_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $(LIBS) $^ -o $@
@@ -75,7 +96,7 @@ oconf: oconf.o sha1.o misc.o
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $^ -o $@
 
 %.o: %.c
-	$(QUIET_CC)$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@
 
 test: test-binlog test-slist test__hash test__lparse test_module
 
