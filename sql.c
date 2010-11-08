@@ -311,10 +311,7 @@ int sql_config(const char *key, const char *value)
 {
 	char *value_cpy;
 
-	if (value)
-		value_cpy = strdup(value);
-	else
-		value_cpy = NULL;
+	value_cpy = value ? strdup(value) : NULL;
 
 	if (!prefixcmp(key, "name") || !prefixcmp(key, "database"))
 		db.name = value_cpy;
@@ -340,8 +337,11 @@ int sql_config(const char *key, const char *value)
 		service_perf_table = value_cpy;
 	else if (!strcmp(key, "perfdata_table"))
 		host_perf_table = service_perf_table = value_cpy;
-	else
+	else {
+		if (value_cpy)
+			free(value_cpy);
 		return -1; /* config error */
+	}
 
 	return 0;
 }
