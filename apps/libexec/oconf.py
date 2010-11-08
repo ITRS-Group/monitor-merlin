@@ -689,15 +689,13 @@ def cmd_nodesplit(args):
 	for arg in args:
 		if arg == '--force':
 			force = True
+		if arg.startswith('--cache-dir='):
+			config_dir = arg.split('=', 1)[1]
 
-	cache_dir = '/var/cache/merlin'
 	if not mconf.num_nodes['poller']:
 		print("No pollers configured, so nothing to do.")
 		return True
 
-	for arg in args:
-		if arg.startswith('--cache-dir='):
-			config_dir = arg.split('=', 1)[1]
 
 	config_dir = cache_dir + '/config'
 	mkdir_p(config_dir)
