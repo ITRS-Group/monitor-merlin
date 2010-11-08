@@ -1,2 +1,6 @@
 # import logs at 04:30 every night. That gives 150 minutes for transfer
-30 04 * * * monitor mon log import
+# Only use this if writing report_data is disabled in Merlin and all
+# pollers are set to send their logs every night.
+# To enable it, copy it to a separate file so it doesn't get overwritten
+# by updates later on.
+#30 04 * * * monitor mon log import --incremental

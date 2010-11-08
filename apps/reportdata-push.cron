@@ -1,2 +1,6 @@
 # push logs 02:00 every night
-00 02 * * * monitor mon log push
+# Only enable this if masters and peers aren't set to write
+# report_data as it arrives.
+# To enable it, copy it to a separate file so it doesn't get clobbered
+# by future updates.
+#00 02 * * * monitor mon log push

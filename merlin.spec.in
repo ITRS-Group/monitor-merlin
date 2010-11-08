@@ -87,7 +87,7 @@ done
 
 # install crontabs
 mkdir -p %buildroot%_sysconfdir/cron.d
-cp apps/reportdata-import.cron %buildroot%_sysconfdir/cron.d/reportdata-import
+cp apps/*.cron %buildroot%_sysconfdir/cron.d/
 
 
 
