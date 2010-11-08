@@ -685,17 +685,24 @@ config_dir = cache_dir + '/config'
 def cmd_nodesplit(args):
 	global cache_dir, config_dir
 
+	wanted_nodes = {}
 	force = False
 	for arg in args:
 		if arg == '--force':
 			force = True
 		if arg.startswith('--cache-dir='):
 			config_dir = arg.split('=', 1)[1]
+		# check if it's a poller node
+		node = mconf.configured_nodes.get(arg)
+		if node and node.ntype == 'poller':
+			wanted_nodes[node.name] = node
 
 	if not mconf.num_nodes['poller']:
 		print("No pollers configured, so nothing to do.")
 		return True
 
+	if not wanted_nodes:
+		wanted_nodes = mconf.configured_nodes
 
 	config_dir = cache_dir + '/config'
 	mkdir_p(config_dir)
