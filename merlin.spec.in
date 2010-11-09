@@ -92,7 +92,9 @@ cp apps/*.cron %buildroot%_sysconfdir/cron.d/
 
 
 %post
-%mod_path/install-merlin.sh --batch --install=db
+%mod_path/install-merlin.sh --batch --install=db \
+	--nagios-cfg=%prefix/etc/nagios.cfg --dest-dir=%prefix/op5/merlin
+
 /sbin/chkconfig --add merlind
 echo "Importing status events from logfiles to database"
 mon log import --incremental
