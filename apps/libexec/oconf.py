@@ -698,7 +698,7 @@ def cmd_nodesplit(args):
 			wanted_nodes[node.name] = node
 
 	if not mconf.num_nodes['poller']:
-		print("No pollers configured, so nothing to do.")
+		print("No pollers configured. No need to split config.")
 		return True
 
 	if not wanted_nodes:
