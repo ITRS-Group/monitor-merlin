@@ -559,6 +559,7 @@ def write_hg_list(path, hg_list):
 	print("%s created with %d objects for hostgroup list '%s'" %
 		(path, num_written, ','.join(hg_list)))
 	f.close()
+	os.utime(path, (last_changed, last_changed))
 
 def hg_permute(li):
 	for i in range(len(li)):
