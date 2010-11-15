@@ -730,13 +730,13 @@ def cmd_nodesplit(args):
 			sys.exit(1)
 
 		node.oconf_file = '%s/%s.cfg' % (config_dir, name)
-		# if there is a cached config file which is newer than
-		# the object config and we're not being forced, there's
+		# if there is a cached config file which is the same age
+		# as the object config and we're not being forced, there's
 		# no need to re-create it
 		if os.access(node.oconf_file, os.R_OK):
 			st = os.stat(node.oconf_file)
-			if not force and st.st_mtime > last_changed:
-				print("%s is newer than config source %d > %d" % (node.oconf_file, st.st_mtime, last_changed))
+			if not force and st.st_mtime == last_changed:
+				print("%s is cached" % (node.oconf_file, st.st_mtime, last_changed))
 				continue
 
 		params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
