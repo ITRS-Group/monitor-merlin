@@ -18,6 +18,8 @@ class merlin_node:
 		self.oconf_file = False
 		self.num_peers = 0
 		self.peer_nodes = {}
+		self.in_db = False
+		self.in_config = False
 		self.assignment_conflicts = {}
 
 		# the compound object has info we will need, so
@@ -188,6 +190,7 @@ def parse():
 			ntype = 'master'
 
 		node = merlin_node(name, ntype)
+		node.in_config = True
 		node.comp = comp
 		node.path = config_file
 		num_nodes[ntype] += 1
