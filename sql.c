@@ -142,7 +142,8 @@ int sql_vquery(const char *fmt, va_list ap)
 		case DBI_ERROR_NONE:
 			break;
 
-		case 1062:
+		case 1062: /* 'duplicate key' with MySQL. don't rerun */
+		case 1146: /* 'table missing' with MySQL. don't rerun */
 			if (!strcmp(db.type, "mysql"))
 				break;
 
