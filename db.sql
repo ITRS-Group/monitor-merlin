@@ -73,6 +73,8 @@ CREATE TABLE contact_access(
 	service			int
 );
 CREATE UNIQUE INDEX ca_contact_id ON contact_access(contact);
+CREATE INDEX ca_cs ON contact_access(contact, service);
+CREATE INDEX ca_ch ON contact_access(contact, host);
 
 DROP TABLE IF EXISTS program_status;
 CREATE TABLE program_status(
