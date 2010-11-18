@@ -360,6 +360,8 @@ CREATE TABLE host_hostgroup(
 	host		INT NOT NULL,
 	hostgroup	INT NOT NULL
 ) ;
+CREATE INDEX hhg_h ON host_hostgroup(host);
+CREATE INDEX hhg_hg ON host_hostgroup(hostgroup);
 CREATE UNIQUE INDEX hhg_h_hg ON host_hostgroup(host, hostgroup);
 
 
@@ -498,6 +500,8 @@ CREATE TABLE service_servicegroup(
 	service			INT NOT NULL,
 	servicegroup	INT NOT NULL
 ) ;
+CREATE INDEX ssg_s ON service_servicegroup(service);
+CREATE INDEX ssg_sg ON service_servicegroup(servicegroup);
 CREATE UNIQUE INDEX ssg_s_sg ON service_servicegroup(service, servicegroup);
 
 
