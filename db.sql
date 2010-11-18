@@ -68,11 +68,11 @@ CREATE INDEX pd_service_name ON perfdata(host_name, service_description);
 
 DROP TABLE IF EXISTS contact_access;
 CREATE TABLE contact_access(
-	contact			int,
+	contact			int NOT NULL,
 	host			int,
 	service			int
 );
-CREATE UNIQUE INDEX ca_contact_id ON contact_access(contact);
+CREATE INDEX ca_c ON contact_access(contact);
 CREATE INDEX ca_cs ON contact_access(contact, service);
 CREATE INDEX ca_ch ON contact_access(contact, host);
 
