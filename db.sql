@@ -329,6 +329,9 @@ CREATE TABLE host(
 	return_code smallint(8)
 ) COLLATE latin1_general_cs;
 CREATE UNIQUE INDEX h_host_name ON host(host_name);
+CREATE INDEX hst_dt ON host(scheduled_downtime_depth);
+CREATE INDEX hst_checks_enabled ON host(active_checks_enabled);
+CREATE INDEX hst_problem_ack ON host(problem_has_been_acknowledged);
 
 -- junctions for host objects
 DROP TABLE IF EXISTS host_parents;
@@ -471,6 +474,9 @@ CREATE TABLE service(
 	return_code smallint(8)
 ) COLLATE latin1_general_cs;
 CREATE UNIQUE INDEX s_service_name ON service(host_name, service_description);
+CREATE INDEX svc_dt ON service(scheduled_downtime_depth);
+CREATE INDEX svc_checks_enabled ON service(active_checks_enabled);
+CREATE INDEX svc_problem_ack ON service(problem_has_been_acknowledged);
 
 -- junctions for service objects
 DROP TABLE IF EXISTS service_contact;
