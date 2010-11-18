@@ -16,6 +16,9 @@ class merlin_node:
 		self.ssh_user = False
 		self.port = '15551'
 		self.oconf_file = False
+		self.num_peers = 0
+		self.peer_nodes = {}
+		self.assignment_conflicts = {}
 
 		# the compound object has info we will need, so
 		# prepare a storage area for it
@@ -196,3 +199,45 @@ def parse():
 				continue
 			for (sk, sv) in sc.params:
 				node.set('oconf_' + sk, sv)
+
+
+	# check and store how many peers each node has.
+	i = 0
+	for node in configured_nodes.values():
+		i += 1
+		# all masters should be peers to each other
+		if node.ntype == 'master':
+			node.num_peers = num_nodes['master'] - 1
+			continue
+
+		# Since we're not configured ourselves, we skip
+		# subtracting one from each num_nodes['peer']
+		# for all peers
+		if node.ntype == 'peer':
+			node.num_peers = num_nodes['peer']
+			continue
+
+		# poller. check how many nodes shares this poller's
+		# hostgroup configuration.
+		for n2 in configured_nodes.values()[i:]:
+			# the node is not a peer to itself, and it's not a
+			# peer to nodes of different kinds.
+			if n2.name == node.name or n2.ntype != node.ntype:
+				continue
+			hg1 = set(node.options.get('hostgroup', [0]))
+			hg2 = set(n2.options.get('hostgroup', [1]))
+			# if hostgroup sets match, they're peers
+			if hg1 == hg2:
+				node.num_peers += 1
+				n2.num_peers += 1
+				node.peer_nodes[n2.name] = n2
+				n2.peer_nodes[node.name] = node
+			elif hg1 & hg2:
+				# One poller handles a subset of hostgroups that
+				# another hostgroup also handles. Very bad indeed.
+				node.assignment_conflicts[n2.name] = hg1 & hg2
+				n2.assignment_conflicts[node.name] = hg2 & hg1
+				#print("Hostgroup assignment conflict for %s and %s" %
+				#	(node.name, n2.name))
+				#print("  They share the following, but not all, hostgroups: %s" %
+				#	', '.join(hg1 & hg2))
