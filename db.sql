@@ -334,6 +334,15 @@ CREATE UNIQUE INDEX h_host_name ON host(host_name);
 CREATE INDEX hst_dt ON host(scheduled_downtime_depth);
 CREATE INDEX hst_checks_enabled ON host(active_checks_enabled);
 CREATE INDEX hst_problem_ack ON host(problem_has_been_acknowledged);
+CREATE INDEX hst_flap_det_en ON host(flap_detection_enabled);
+CREATE INDEX hst_is_flapping ON host(is_flapping);
+CREATE INDEX hst_notif_en ON host(notifications_enabled);
+CREATE INDEX hst_ev_hndl_en ON host(event_handler_enabled);
+CREATE INDEX hst_psv_checks_en ON host(passive_checks_enabled);
+CREATE INDEX hst_check_type ON host(check_type);
+CREATE INDEX hst_latency ON host(latency);
+CREATE INDEX hst_exectime ON host(execution_time);
+CREATE INDEX hst_cur_state ON host(current_state);
 
 -- junctions for host objects
 DROP TABLE IF EXISTS host_parents;
@@ -342,6 +351,8 @@ CREATE TABLE host_parents(
 	parents	 INT NOT NULL
 ) ;
 CREATE UNIQUE INDEX hp_host_parents ON host_parents(host, parents);
+CREATE INDEX hp_host ON host_parents(host);
+CREATE INDEX hp_parents ON host_parents(parents);
 
 DROP TABLE IF EXISTS host_contact;
 CREATE TABLE host_contact(
@@ -481,6 +492,15 @@ CREATE UNIQUE INDEX s_service_name ON service(host_name, service_description);
 CREATE INDEX svc_dt ON service(scheduled_downtime_depth);
 CREATE INDEX svc_checks_enabled ON service(active_checks_enabled);
 CREATE INDEX svc_problem_ack ON service(problem_has_been_acknowledged);
+CREATE INDEX svc_flap_det_en ON service(flap_detection_enabled);
+CREATE INDEX svc_is_flapping ON service(is_flapping);
+CREATE INDEX svc_notif_en ON service(notifications_enabled);
+CREATE INDEX svc_ev_hndl_en ON service(event_handler_enabled);
+CREATE INDEX svc_psv_checks_en ON service(passive_checks_enabled);
+CREATE INDEX svc_check_type ON service(check_type);
+CREATE INDEX svc_latency ON service(latency);
+CREATE INDEX svc_exectime ON service(execution_time);
+CREATE INDEX svc_cur_state ON service(current_state);
 
 -- junctions for service objects
 DROP TABLE IF EXISTS service_contact;
