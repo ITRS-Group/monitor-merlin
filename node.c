@@ -269,6 +269,40 @@ static void create_node_tree(merlin_node *table, unsigned n)
 	}
 }
 
+#define MRLN_ADD_NODE_FLAG(word) { MERLIN_NODE_##word, #word }
+struct {
+	int code;
+	const char *key;
+} node_config_flags[] = {
+	MRLN_ADD_NODE_FLAG(TAKEOVER),
+};
+
+static int grok_node_flag(int *flags, const char *key, const char *value)
+{
+	uint i;
+	int set, code = -1;
+
+	set = strtobool(value);
+	for (i = 0; i < ARRAY_SIZE(node_config_flags); i++) {
+		if (!strcasecmp(key, node_config_flags[i].key)) {
+			code = node_config_flags[i].code;
+			break;
+		}
+	}
+
+	if (code != -1)
+		return -1;
+
+	/* set or unset this flag */
+	if (set) {
+		*flags |= code;
+	} else {
+		*flags = *flags & ~code;
+	}
+
+	return 0;
+}
+
 static void grok_node(struct cfg_comp *c, merlin_node *node)
 {
 	unsigned int i;
@@ -295,8 +329,9 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			if (!node->sain.sin_port)
 				cfg_error(c, v, "Illegal value for port: %s\n", v->value);
 		}
-		else
+		else if (grok_node_flag(&node->flags, v->key, v->value) < 0) {
 			cfg_error(c, v, "Unknown variable\n");
+		}
 	}
 
 	for (i = 0; i < c->nested; i++) {
@@ -351,12 +386,15 @@ void node_grok_config(struct cfg_comp *config)
 
 		if (!prefixcmp(c->name, "poller") || !prefixcmp(c->name, "slave")) {
 			node->type = MODE_POLLER;
+			node->flags = MERLIN_NODE_DEFAULT_POLLER_FLAGS;
 			grok_node(c, node);
 		} else if (!prefixcmp(c->name, "peer")) {
 			node->type = MODE_PEER;
+			node->flags = MERLIN_NODE_DEFAULT_PEER_FLAGS;
 			grok_node(c, node);
 		} else if (!prefixcmp(c->name, "noc") || !prefixcmp(c->name, "master")) {
 			node->type = MODE_NOC;
+			node->flags = MERLIN_NODE_DEFAULT_MASTER_FLAGS;
 			grok_node(c, node);
 		} else
 			cfg_error(c, NULL, "Unknown compound type\n");

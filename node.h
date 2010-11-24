@@ -14,6 +14,15 @@
  */
 #define MERLIN_SENDPATH_INTERVAL 15
 
+/*
+ * flags for node options
+ */
+#define MERLIN_NODE_TAKEOVER 1
+
+#define MERLIN_NODE_DEFAULT_POLLER_FLAGS (MERLIN_NODE_TAKEOVER)
+#define MERLIN_NODE_DEFAULT_PEER_FLAGS 0
+#define MERLIN_NODE_DEFAULT_MASTER_FLAGS 0
+
 /* various magic options for the "type" field */
 #define CTRL_PACKET   0xffff  /* control packet. "code" described below */
 #define ACK_PACKET    0xfffe  /* ACK ("I understood") (not used) */
@@ -143,6 +152,7 @@ struct merlin_node {
 	int type;               /* server type (master, slave, peer) */
 	int state;              /* state of this node (down, pending, active) */
 	int peer_id;            /* peer id, used to distribute checks */
+	int flags;              /* flags for this node */
 	struct sockaddr *sa;    /* should always point to sain */
 	struct sockaddr_in sain;
 	time_t last_recv;       /* last time node sent something to us */

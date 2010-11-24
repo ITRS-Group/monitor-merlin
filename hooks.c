@@ -32,7 +32,7 @@ struct block_object {
 static struct block_object h_block, s_block;
 
 struct check_stats {
-	unsigned long long poller, peer, self;
+	unsigned long long poller, peer, self, orphaned;
 };
 static struct check_stats service_checks, host_checks;
 
@@ -256,23 +256,40 @@ static int send_service_status(merlin_event *pkt, struct service_struct *obj)
 
 /*
  * checks if a poller responsible for a particular
- * hostname happens to be active and connected
+ * hostname happens to be active and connected.
+ * If a poller is connected, we return 1. If we're
+ * not supposed to even try handling this check, we'll
+ * return 2.
  */
 static int has_active_poller(const char *host_name)
 {
 	node_selection *sel = node_selection_by_hostname(host_name);
 	linked_item *li;
+	int takeover = 0;
 
 	if (!sel || !sel->nodes)
 		return 0;
 
+	/*
+	 * This host has pollers. If any is online, we return
+	 * 1 immediately.
+	 */
 	for (li = sel->nodes; li; li = li->next_item) {
 		merlin_node *node = (merlin_node *)li->item;
 		if (node->state == STATE_CONNECTED)
 			return 1;
+
+		/*
+		 * if we shouldn't take over for this node,
+		 * we mark the takeover flag as 0. This means
+		 * "takeover = no" must be set for at least one
+		 * node that's down for us to return 2
+		 */
+		if (node->flags & MERLIN_NODE_TAKEOVER)
+			takeover = 1;
 	}
 
-	return 0;
+	return takeover ? 0 : 2;
 }
 
 /*
@@ -281,6 +298,7 @@ static int has_active_poller(const char *host_name)
 static int hook_service_result(merlin_event *pkt, void *data)
 {
 	nebstruct_service_check_data *ds = (nebstruct_service_check_data *)data;
+	int ret;
 
 	/* block status data events for this service in the imminent future */
 	s_block.obj = ds->object_ptr;
@@ -294,10 +312,20 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		 * an override forcing Nagios to drop the check on
 		 * the floor
 		 */
-		if (has_active_poller(ds->host_name)) {
+		ret = has_active_poller(ds->host_name);
+		if (ret == 1) {
 			service_checks.poller++;
 			return NEBERROR_CALLBACKCANCEL;
 		}
+		/*
+		 * no active poller, but a poller is supposed to handle
+		 * this check and we're not supposed to take it over
+		 */
+		if (ret == 2) {
+			service_checks.orphaned++;
+			return NEBERROR_CALLBACKCANCEL;
+		}
+
 		/*
 		 * if a peer is supposed to handle this check, we must
 		 * take care not to run it
@@ -319,6 +347,7 @@ static int hook_service_result(merlin_event *pkt, void *data)
 static int hook_host_result(merlin_event *pkt, void *data)
 {
 	nebstruct_host_check_data *ds = (nebstruct_host_check_data *)data;
+	int ret;
 
 	/* block status data events for this host in the imminent future */
 	h_block.obj = ds->object_ptr;
@@ -332,10 +361,21 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		 * checking this host, we simply return an override,
 		 * forcing Nagios to drop the check on the floor.
 		 */
-		if (has_active_poller(ds->host_name)) {
+		ret = has_active_poller(ds->host_name);
+		if (ret == 1) {
 			host_checks.poller++;
 			return NEBERROR_CALLBACKCANCEL;
 		}
+		/*
+		 * The poller isn't online but we're not supposed to
+		 * take over its check
+		 */
+		if (ret == 2) {
+			host_checks.orphaned++;
+			return NEBERROR_CALLBACKCANCEL;
+		}
+
+		/* if a peer will handle it, we won't */
 		if (!ctrl_should_run_host_check(ds->host_name)) {
 			host_checks.peer++;
 			return NEBERROR_CALLBACKCANCEL;
