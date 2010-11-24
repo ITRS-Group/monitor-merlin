@@ -179,8 +179,19 @@ struct merlin_service_status {
 };
 typedef struct merlin_service_status merlin_service_status;
 
+
+#define ISOTIME_PREC_YEAR    0
+#define ISOTIME_PREC_MONTH   1
+#define ISOTIME_PREC_DAY     2
+#define ISOTIME_PREC_HOUR    3
+#define ISOTIME_PREC_MINUTE  4
+#define ISOTIME_PREC_SECOND  5
+#define ISOTIME_PREC_USECOND 6
+#define ISOTIME_PREC_MAX     ISOTIME_PREC_USECOND
+
 /** prototypes **/
 extern int strtobool(const char *str);
+extern const char *isotime(struct timeval *tv, int precision);
 extern char *tohex(const unsigned char *data, int len);
 extern void bt_scan(const char *mark, int count);
 extern const char *human_bytes(unsigned long long n);

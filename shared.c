@@ -46,6 +46,64 @@ int strtobool(const char *str)
 }
 
 /*
+ * Returns an ISO 8601 formatted date string (YYYY-MM-DD HH:MM:SS.UUU)
+ * with the desired precision.
+ * Semi-threadsafe since we round-robin rotate between two buffers for
+ * the return value
+ */
+const char *isotime(struct timeval *tv, int precision)
+{
+	static char buffers[2][32];
+	static int bufi = 0;
+	struct timeval now;
+	struct tm tm;
+	char *buf, *fmt_string;
+	int bufsize;
+	size_t len;
+
+	bufsize = sizeof(buffers[0]) - 1;
+
+	if (!tv) {
+		gettimeofday(&now, NULL);
+		tv = &now;
+	}
+
+	buf = buffers[bufi++ % ARRAY_SIZE(buffers)];
+	localtime_r(&tv->tv_sec, &tm);
+
+	switch (precision) {
+	case ISOTIME_PREC_YEAR:
+		fmt_string = "%Y";
+		break;
+	case ISOTIME_PREC_MONTH:
+		fmt_string = "%Y-%m";
+		break;
+	case ISOTIME_PREC_DAY:
+		fmt_string = "%F";
+		break;
+	case ISOTIME_PREC_HOUR:
+		fmt_string = "%F %H";
+		break;
+	case ISOTIME_PREC_MINUTE:
+		fmt_string = "%F %H:%M";
+		break;
+	case ISOTIME_PREC_SECOND:
+	case ISOTIME_PREC_USECOND:
+	default: /* second precision is the default */
+		fmt_string = "%F %H:%M:%S";
+		break;
+	}
+
+	len = strftime(buf, bufsize, fmt_string, &tm);
+	if (precision != ISOTIME_PREC_USECOND)
+		return buf;
+	snprintf(&buf[len], bufsize - len, ".%4lu", (unsigned long)tv->tv_usec);
+
+	return buf;
+}
+
+
+/*
  * converts an arbitrarily long string of data into its
  * hexadecimal representation
  */
