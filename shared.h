@@ -180,6 +180,7 @@ struct merlin_service_status {
 typedef struct merlin_service_status merlin_service_status;
 
 /** prototypes **/
+extern int strtobool(const char *str);
 extern char *tohex(const unsigned char *data, int len);
 extern void bt_scan(const char *mark, int count);
 extern const char *human_bytes(unsigned long long n);

@@ -27,6 +27,25 @@ char *next_word(char *str)
 }
 
 /*
+ * "yes", "true", "on" and any non-zero integer makes us return 1
+ * For every other case, we return 0.
+ */
+int strtobool(const char *str)
+{
+	int c = tolower(*str);
+
+	if (!str || !*str)
+		return 0;
+
+	if (c == 'y' || c == 't' || c == '1')
+		return 1;
+	if (c == 'o' && tolower(str[1]) == 'n')
+		return 1;
+
+	return !!atoi(str);
+}
+
+/*
  * converts an arbitrarily long string of data into its
  * hexadecimal representation
  */
