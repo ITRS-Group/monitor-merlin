@@ -679,11 +679,17 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 int nebmodule_deinit(int flags, int reason)
 {
 	void *foo;
+	int ret;
 
 	linfo("Unloading Merlin module");
+	pthread_cancel(&reaper_thread);
 	cancel_reaping = 1;
-	pthread_cancel(reaper_thread);
-	pthread_join(reaper_thread, &foo);
+	ret = pthread_join(reaper_thread, &foo);
+	if (ret) {
+		lerr("Failed to join reaper thread: %s", strerror(errno));
+	} else {
+		linfo("Successfully joined reaper thread");
+	}
 
 	log_deinit();
 	ipc_deinit();
