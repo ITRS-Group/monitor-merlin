@@ -22,6 +22,7 @@ static int mrm_reap_interval = 2;
 static pthread_t reaper_thread;
 static int cancel_reaping;
 static int merlin_sendpath_interval = MERLIN_SENDPATH_INTERVAL;
+static int cancel_threads = 1;
 
 /*
  * user-defined filters, used as or-gate. Defaults to
@@ -337,6 +338,10 @@ static void grok_module_compound(struct cfg_comp *comp)
 		if (!strcmp(v->key, "ignore_events")) {
 			if (parse_event_filter(v->value, &ignore_events) < 0)
 				cfg_error(comp, v, "Illegal value for %s", v->key);
+			continue;
+		}
+		if (!strcmp(v->key, "cancel_threads")) {
+			cancel_threads = strtobool(v->value);
 			continue;
 		}
 
@@ -682,7 +687,9 @@ int nebmodule_deinit(int flags, int reason)
 	int ret;
 
 	linfo("Unloading Merlin module");
-	pthread_cancel(&reaper_thread);
+	if (cancel_threads) {
+		pthread_cancel(&reaper_thread);
+	}
 	cancel_reaping = 1;
 	ret = pthread_join(reaper_thread, &foo);
 	if (ret) {
