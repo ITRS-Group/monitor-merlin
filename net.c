@@ -108,6 +108,9 @@ int net_try_connect(merlin_node *node)
 		  inet_ntoa(node->sain.sin_addr),
 		  ntohs(node->sain.sin_port));
 
+	if (fcntl(node->sock, F_SETFD, O_NONBLOCK) < 0) {
+		lwarn("Failed to set socket for %s non-blocking: %s", node->name, strerror(errno));
+	}
 	if (connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
 		if (errno == EINPROGRESS || errno == EALREADY) {
 			node_set_state(node, STATE_PENDING);
