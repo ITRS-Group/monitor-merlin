@@ -3,7 +3,6 @@
 static int listen_sock = -1; /* for bind() and such */
 static char *ipc_sock_path;
 static char *ipc_binlog_path, *ipc_binlog_dir = "/opt/monitor/op5/merlin/binlogs";
-static time_t last_connect_attempt;
 merlin_node ipc; /* the ipc node */
 
 void ipc_init_struct(void)
@@ -157,10 +156,10 @@ int ipc_init(void)
 	int quiet = 0;
 
 	/* don't spam the logs */
-	if (last_connect_attempt + 30 >= time(NULL)) {
+	if (ipc.last_conn_attempt_logged + 30 >= time(NULL)) {
 		quiet = 1;
 	} else {
-		last_connect_attempt = time(NULL);
+		ipc.last_conn_attempt_logged = time(NULL);
 	}
 
 	if (!ipc_sock_path) {
@@ -232,7 +231,7 @@ int ipc_init(void)
 		ipc_deinit();
 		return -1;
 	}
-	last_connect_attempt = 0;
+	ipc.last_conn_attempt_logged = 0;
 
 	/* module connected successfully */
 	ipc.sock = listen_sock;

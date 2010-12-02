@@ -85,10 +85,18 @@ static int net_complete_connection(merlin_node *node)
 int net_try_connect(merlin_node *node)
 {
 	struct sockaddr *sa = (struct sockaddr *)&node->sain;
+	int should_log = 0;
+
+	/* don't log obsessively */
+	if (node->last_conn_attempt_logged + 30 >= time(NULL)) {
+		should_log = 1;
+		node->last_conn_attempt_logged = time(NULL);
+	}
 
 	/* create the socket if necessary */
 	if (node->sock < 0) {
 		node->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		lerr("Failed to obtain socket for node %s. Aborting connect() attempt", node->name);
 		if (node->sock < 0)
 			return -1;
 	}
@@ -104,9 +112,11 @@ int net_try_connect(merlin_node *node)
 	}
 
 	sa->sa_family = AF_INET;
-	linfo("Connecting to %s %s@%s:%d", node_type(node), node->name,
-		  inet_ntoa(node->sain.sin_addr),
-		  ntohs(node->sain.sin_port));
+	if (should_log) {
+		linfo("Connecting to %s %s@%s:%d", node_type(node), node->name,
+		      inet_ntoa(node->sain.sin_addr),
+		      ntohs(node->sain.sin_port));
+	}
 
 	if (fcntl(node->sock, F_SETFD, O_NONBLOCK) < 0) {
 		lwarn("Failed to set socket for %s non-blocking: %s", node->name, strerror(errno));
@@ -118,9 +128,11 @@ int net_try_connect(merlin_node *node)
 			node_set_state(node, STATE_CONNECTED);
 			return 0;
 		} else {
-			lerr("connect() failed to node '%s' (%s:%d): %s",
-				 node->name, inet_ntoa(node->sain.sin_addr),
-				 ntohs(node->sain.sin_port), strerror(errno));
+			if (should_log) {
+				lerr("connect() failed to node '%s' (%s:%d): %s",
+				     node->name, inet_ntoa(node->sain.sin_addr),
+				     ntohs(node->sain.sin_port), strerror(errno));
+			}
 			node_disconnect(node);
 			return -1;
 		}
@@ -132,9 +144,12 @@ int net_try_connect(merlin_node *node)
 			  ntohs(node->sain.sin_port));
 		node_set_state(node, STATE_CONNECTED);
 	} else {
-		linfo("Connection pending to %s %s@%s:%d",
-			  node_type(node), node->name,
-			  inet_ntoa(node->sain.sin_addr), ntohs(node->sain.sin_port));
+		if (should_log) {
+			linfo("Connection pending to %s %s@%s:%d",
+			      node_type(node), node->name,
+			      inet_ntoa(node->sain.sin_addr),
+			      ntohs(node->sain.sin_port));
+		}
 		node_set_state(node, STATE_PENDING);
 	}
 
@@ -227,6 +242,7 @@ static int net_negotiate_socket(merlin_node *node, int lis)
 	}
 
 	ldebug("negotiate: con and lis are equal. killing both");
+	node->last_conn_attempt_logged = 0;
 	node_disconnect(node);
 	close(lis);
 
