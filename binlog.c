@@ -257,6 +257,11 @@ int binlog_read(binlog *bl, void **buf, unsigned int *len)
 	if (!bl || !buf || !len)
 		return BINLOG_EADDRESS;
 
+	/* don't let users read from an invalidated binlog */
+	if (!binlog_is_valid(bl)) {
+		return BINLOG_EINVALID;
+	}
+
 	/*
 	 * reading from memory must come first in order to
 	 * maintain sequential ordering. Otherwise we'd
@@ -328,8 +333,9 @@ static int binlog_mem_unread(binlog *bl, void *buf, unsigned int len)
 
 int binlog_unread(binlog *bl, void *buf, unsigned int len)
 {
-	if (!bl || !buf || !len)
+	if (!bl || !buf || !len) {
 		return BINLOG_EADDRESS;
+	}
 
 	/*
 	 * if the binlog is empty, adding the entry normally has the
@@ -445,8 +451,14 @@ static int binlog_file_add(binlog *bl, void *buf, unsigned int len)
 
 int binlog_add(binlog *bl, void *buf, unsigned int len)
 {
-	if (!bl || !buf)
+	if (!bl || !buf) {
 		return BINLOG_EADDRESS;
+	}
+
+	/* don't try to write to an invalid binlog */
+	if (!binlog_is_valid(bl)) {
+		return BINLOG_EINVALID;
+	}
 
 	/*
 	 * if we've started adding to the file, we must continue
