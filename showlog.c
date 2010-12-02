@@ -484,6 +484,7 @@ static int parse_line(char *orig_line, uint len)
 
 	case EVT_FLAPPING | EVT_HOST:
 	case EVT_DOWNTIME | EVT_HOST:
+	case EVT_EHANDLER | EVT_HOST:
 		if (!auth_host_ok(strv[0]))
 			return 0;
 		if (!is_interesting_host(strv[0]))
@@ -492,6 +493,7 @@ static int parse_line(char *orig_line, uint len)
 
 	case EVT_FLAPPING | EVT_SERVICE:
 	case EVT_DOWNTIME | EVT_SERVICE:
+	case EVT_EHANDLER | EVT_SERVICE:
 		if (!auth_service_ok(strv[0], strv[1]))
 			return 0;
 		if (!is_interesting_service(strv[0], strv[1]))
