@@ -1,6 +1,7 @@
 #include "binlog.h"
 #include "colors.h"
 #include "test_utils.h"
+#include "shared.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -612,7 +613,6 @@ static void fail(const char *msg, struct test_binlog *t)
 	print_test_params(t);
 }
 
-#define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 static int test_binlog(struct test_binlog *t, binlog *bl)
 {
 	size_t ok = 0;
