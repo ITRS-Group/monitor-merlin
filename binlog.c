@@ -132,6 +132,7 @@ binlog *binlog_create(const char *path, unsigned int msize, unsigned int fsize, 
 	bl->fd = -1;
 	bl->max_mem_size = msize;
 	bl->max_file_size = fsize;
+	bl->is_valid = 1;
 
 	if (bl->path && (flags & BINLOG_UNLINK))
 		unlink(bl->path);
