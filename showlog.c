@@ -993,7 +993,7 @@ int main(int argc, char **argv)
 		}
 
 		cur_file = nf;
-		debug("importing from %s (%lu : %u)\n", nf->path, nf->first, nf->cmp);
+		debug("showing %s (%lu : %u)\n", nf->path, nf->first, nf->cmp);
 		tot_lines += line_no;
 		line_no = 0;
 		lparse_path_real(reverse_parse_files, nf->path, nf->size, parse_line);
