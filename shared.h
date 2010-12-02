@@ -75,7 +75,7 @@
 # define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
 #endif
 #ifndef ARRAY_SIZE
-# define ARRAY_SIZE(ary) (sizeof(ary)/sizeof(ary[0]))
+# define ARRAY_SIZE(ary) (unsigned int)(sizeof(ary)/sizeof(ary[0]))
 #endif
 
 #define sizeof(x) (uint)sizeof(x)
