@@ -601,6 +601,7 @@ static void usage(const char *fmt, ...)
 	printf("  If --nagios-cfg is given or can be inferred no logfiles need to be supplied\n");
 	printf("Options:\n");
 	printf("  --reverse                               parse (and print) logs in reverse\n");
+	printf("  --list-files                            list the interesting logfiles\n");
 	printf("  --help                                  this cruft\n");
 	printf("  --debug                                 print debugging information\n");
 	printf("  --html                                  print html output\n");
@@ -726,7 +727,7 @@ int show_hide(char *arg, char *opt)
 
 int main(int argc, char **argv)
 {
-	int i, show_ltime_skews = 0;
+	int i, show_ltime_skews = 0, list_files = 0;
 	unsigned long long tot_lines = 0;
 	const char *nagios_cfg = NULL, *cgi_cfg = NULL, *object_cache = NULL;
 
@@ -773,6 +774,10 @@ int main(int argc, char **argv)
 		}
 		if (!strcmp(arg, "--help")) {
 			usage(NULL);
+			continue;
+		}
+		if (!strcmp(arg, "--list-files")) {
+			list_files = 1;
 			continue;
 		}
 		/* these must come before the more general "show/hide" below */
@@ -996,7 +1001,11 @@ int main(int argc, char **argv)
 		debug("showing %s (%lu : %u)\n", nf->path, nf->first, nf->cmp);
 		tot_lines += line_no;
 		line_no = 0;
-		lparse_path_real(reverse_parse_files, nf->path, nf->size, parse_line);
+		if (list_files) {
+			printf("%s\n", nf->path);
+		} else {
+			lparse_path_real(reverse_parse_files, nf->path, nf->size, parse_line);
+		}
 	}
 
 	if (print_time == print_time_duration) {
