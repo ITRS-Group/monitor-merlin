@@ -688,7 +688,7 @@ int nebmodule_deinit(int flags, int reason)
 
 	linfo("Unloading Merlin module");
 	if (cancel_threads) {
-		pthread_cancel(&reaper_thread);
+		pthread_cancel(reaper_thread);
 	}
 	cancel_reaping = 1;
 	ret = pthread_join(reaper_thread, &foo);
