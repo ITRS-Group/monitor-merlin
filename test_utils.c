@@ -7,6 +7,12 @@ uint passed, failed, t_verbose = 0;
 static uint t_depth;
 static const char *indent_str = "  ";
 
+/* can't be used when a or b has side-effects, but we don't care here */
+#define max(a, b) (a > b ? a : b)
+#define min(a, b) (a < b ? a : b)
+#define delta(a, b) ((max(a, b) - (min(a, b))))
+
+
 void t_set_colors(int force)
 {
 	if (force == 1 || isatty(fileno(stdout))) {
@@ -99,7 +105,7 @@ int ok_int(int a, int b, const char *name)
 	}
 
 	t_fail(name);
-	t_diag("%d != %d", a, b);
+	t_diag("%d != %d. delta: %d", a, b, delta(a, b));
 	return TEST_FAIL;
 }
 
@@ -111,7 +117,7 @@ int ok_uint(uint a, uint b, const char *name)
 	}
 
 	t_fail(name);
-	t_diag("%u != %d", a, b);
+	t_diag("%u != %u. delta: %u", a, b, delta(a, b));
 	return TEST_FAIL;
 }
 
