@@ -155,29 +155,12 @@ static void load_hosts_and_services(void)
 
 static void t_setup(void)
 {
-	time_t start;
-
 	sql_init();
 	printf("Using database '%s'\n", sql_db_name());
 	printf("%u comments\n", count_table_rows("comment"));
 	printf("%u hosts\n", count_table_rows("host"));
 	printf("%u services\n", count_table_rows("service"));
 
-	macro_x[MACRO_OBJECTCACHEFILE] = cache_file;
-	macro_x[MACRO_STATUSDATAFILE] = status_log;
-	if (ipc_init() < 0) {
-		t_fail("ipc_init()");
-		crash("Failed to initialize ipc socket");
-	} else {
-		t_pass("ipc_init()");
-	}
-	start = time(NULL);
-	ok_int(send_paths(), 0, "Sending paths");
-	if (start + 1 < time(NULL)) {
-		t_pass("import causes module to stall");
-	} else {
-		t_fail("import doesn't cause module to stall");
-	}
 	load_hosts_and_services();
 }
 
@@ -911,13 +894,25 @@ int main(int argc, char **argv)
 		merlin_conf = arg;
 	}
 
+	macro_x[MACRO_OBJECTCACHEFILE] = cache_file;
+	macro_x[MACRO_STATUSDATAFILE] = status_log;
+
 	nebmodule_init(-1, merlin_conf, NULL);
-	t_setup();
-	if (post_config_init) {
+	if (!post_config_init) {
+		t_fail("post_config_init not set (fatal)");
+		exit(1);
+	} else {
+		time_t start = time(NULL);
 		nebstruct_process_data ds;
 		ds.type = NEBTYPE_PROCESS_EVENTLOOPSTART;
 		post_config_init(NEBCALLBACK_PROCESS_DATA, &ds);
+		if (start + 1 < time(NULL)) {
+			t_pass("import causes module to stall");
+		} else {
+			t_fail("import doesn't cause module to stall");
+		}
 	}
+	t_setup();
 
 	for (i = 0; i < NEBCALLBACK_NUMITEMS; i++) {
 		struct hook_info_struct *hi = &hook_info[i];
