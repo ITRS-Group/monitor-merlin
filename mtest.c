@@ -380,22 +380,45 @@ static void test_host_check(void)
 		ok_str(mod->name, h->name, "host name transfers properly");
 		ok_str(mod->state.plugin_output, h->plugin_output, "host output transfers properly");
 		ok_str(mod->state.perf_data, h->perf_data, "performance data transfers properly");
+		h->state_type = SOFT_STATE;
 
-		h->current_state = 4;
+		/*
+		 * We send this a bunch of times. Once to reset the stored
+		 * data in the daemon so report-data gets updated, and then
+		 * twice with the same state so we know the report_data
+		 * table gets updated as it should and no more.
+		 */
+		h->current_state = 19;
+		/* should update perf_data and report_data */
 		ds->object_ptr = h;
+		merlin_mod_hook(NEBCALLBACK_HOST_CHECK_DATA, ds);
+
+		/* should update perf_data and report_data */
+		h->current_state = 1;
+		merlin_mod_hook(NEBCALLBACK_HOST_CHECK_DATA, ds);
+
+		/* shouldn't update anything (removed as 'dupe') */
+		merlin_mod_hook(NEBCALLBACK_HOST_CHECK_DATA, ds);
+
+		/* should update perf_data but not report_data */
+		h->plugin_output = "lalala";
+		merlin_mod_hook(NEBCALLBACK_HOST_CHECK_DATA, ds);
+
+		/* should update perf_data and report_data */
+		h->state_type = HARD_STATE;
 		merlin_mod_hook(NEBCALLBACK_HOST_CHECK_DATA, ds);
 	}
 	zzz();
-	verify_count("host checks update db properly", num_hosts,
-				 "SELECT * FROM host WHERE current_state = 4");
+	verify_count("host check status insertion", num_hosts,
+				 "SELECT * FROM host WHERE current_state = 1");
 	if (host_perf_table) {
 		char *query;
 		asprintf(&query, "select * from %s", host_perf_table);
-		verify_count("host checks are inserted into perfdata table",
-					 num_hosts, query);
+		verify_count("host check perf_data insertion",
+					 num_hosts * 4, query);
 		free(query);
 	}
-	verify_count("host checks update report_data", num_hosts,
+	verify_count("host check report_data insertion", num_hosts * 3,
 				 "SELECT * FROM report_data WHERE event_type = 801");
 	free(ds);
 	free(orig);
@@ -435,21 +458,44 @@ static void test_service_check(void)
 		ok_str(orig->state.plugin_output, mod->state.plugin_output, "plugin_output must match");
 		ok_str(orig->state.perf_data, mod->state.perf_data, "perf_data must match");
 		ok_str(orig->state.long_plugin_output, mod->state.long_plugin_output, "long plugin output must match");
+		s->state_type = SOFT_STATE;
 
-		s->current_state = 15;
+		/*
+		 * We send this a bunch of times. Once to reset the stored
+		 * data in the daemon so report-data gets updated, and then
+		 * twice with the same state so we know the report_data
+		 * table gets updated as it should and no more.
+		 */
+		s->current_state = 19;
+		/* should update perf_data and report_data */
 		ds->object_ptr = s;
+		merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, ds);
+
+		/* should update perf_data and report_data */
+		s->current_state = 1;
+		merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, ds);
+
+		/* should update neither perf_data nor report_data */
+		merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, ds);
+
+		/* should update perf_data but not report_data */
+		s->plugin_output = "lalala";
+		merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, ds);
+
+		/* should update perf_data and report_data */
+		s->state_type = HARD_STATE;
 		merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, ds);
 	}
 	zzz();
-	verify_count("service checks updates db properly", num_services,
-				 "SELECT * FROM service WHERE current_state = 15");
+	verify_count("service check status updates", num_services,
+				 "SELECT * FROM service WHERE current_state = 1");
 	if (service_perf_table) {
 		char *query;
 		asprintf(&query, "SELECT * FROM %s", service_perf_table);
-		verify_count("service checks are inserted into perfdata table",
-					 num_services, query);
+		verify_count("service check perfdata insertions",
+					 num_services * 4, query);
 	}
-	verify_count("service checks update report_data", num_services,
+	verify_count("service check report_data insertions", num_services * 3,
 				 "SELECT * FROM report_data WHERE event_type = 701");
 
 	free(ds);
