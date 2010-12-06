@@ -96,7 +96,8 @@ int net_try_connect(merlin_node *node)
 	/* create the socket if necessary */
 	if (node->sock < 0) {
 		node->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		lerr("Failed to obtain socket for node %s. Aborting connect() attempt", node->name);
+		lerr("Failed to obtain socket for node %s: %s", node->name, strerror(errno));
+		lerr("Aborting connection attempt to %s", node->name);
 		if (node->sock < 0)
 			return -1;
 	}
