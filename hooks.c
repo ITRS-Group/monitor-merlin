@@ -8,7 +8,6 @@
  * In short, these functions are only called from the triggered event
  * thingie.
  */
-#include <execinfo.h>
 #include "module.h"
 #include "nagios/objects.h"
 #include "nagios/neberrors.h"
