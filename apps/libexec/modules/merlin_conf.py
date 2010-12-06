@@ -163,6 +163,8 @@ config_file = '/opt/monitor/op5/merlin/merlin.conf'
 num_nodes = {'poller': 0, 'peer': 0, 'master': 0}
 configured_nodes = {}
 dbopt = {}
+daemon = {}
+module = {}
 _node_defaults = {}
 
 def parse():
@@ -172,12 +174,20 @@ def parse():
 		comp.name = comp.name.strip()
 		# grab the database settings. fugly, but quick
 		if comp.name == 'daemon':
+			for k, v in comp.params:
+				daemon[k] = v
+
 			for dobj in comp.objects:
 				dobj.name.strip()
 				if dobj.name != 'database':
 					continue
 				for k, v in dobj.params:
 					dbopt[k] = v
+			continue
+
+		if comp.name == 'module':
+			for k, v in comp.params:
+				module[k] = v
 			continue
 
 		ary = re.split("[\t ]+", comp.name, 1)
