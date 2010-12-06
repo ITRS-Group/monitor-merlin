@@ -130,7 +130,7 @@ sh /etc/init.d/monitor start || :
 
 %files
 %defattr(-,root,root)
-%config %mod_path/merlin.conf
+%config(noreplace) %mod_path/merlin.conf
 %mod_path/db.sql
 %mod_path/merlind
 %mod_path/install-merlin.sh
