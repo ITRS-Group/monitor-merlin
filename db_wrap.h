@@ -77,15 +77,18 @@ struct db_wrap_result;
 /** Convenience typedef. */
 typedef struct db_wrap_result db_wrap_result;
 
+struct db_wrap;
+/** Convenience typedef. */
+typedef struct db_wrap db_wrap;
 /**
-   Wrapper for a database connection object. These objects must be
-   initialized using a backend-specific initialization/constructor
-   function and freed using their finalize() member.
+   This type holds the "vtbl" (member functions) for db_wrap
+   objects. All instances for a given db wrapper back-end share a
+   single instance of this class.
 */
-struct db_wrap
+struct db_wrap_api
 {
 	/** Must connect to the underlying database and return 0 on succes. */
-	int (*connect)(struct db_wrap * db);
+	int (*connect)(db_wrap * db);
 	/**
 	   Must quote the first len bytes of the given string as SQL,
 	   write the quoted string to *src, and return the number of bytes
@@ -99,24 +102,24 @@ struct db_wrap
 	   that they should use strlen() to count the length of src.
 
 	*/
-	size_t (*sql_quote)(struct db_wrap * db, char const * src, size_t len, char ** dest);
+	size_t (*sql_quote)(db_wrap * db, char const * src, size_t len, char ** dest);
 	/**
 	   Frees a string allocated by sql_quote(). Results are undefined if the string
 	   came from another source.
 	*/
-	int (*free_string)(struct db_wrap * db, char *);
+	int (*free_string)(db_wrap * db, char *);
 	/**
 	   Must initialize a result object for the given db from the first
 	   len bytes of the given sql, and populte the given result object
 	   with the results.  Must return 0 on success, non-zero on error.
 
 	   On success the caller must eventually clean up the result with
-	   result->finalize(result).
+	   result->api->finalize(result).
 
 	   Implementations may optionally stream (len==0) as an indicator
 	   that they should use strlen() to count the length of src.
 	*/
-	int (*query_result)(struct db_wrap * db, char const * sql, size_t len, struct db_wrap_result ** tgt);
+	int (*query_result)(db_wrap * db, char const * sql, size_t len, struct db_wrap_result ** tgt);
 #if 0
 	/** these can be implemented generically in terms of query_result(). i think. */
 	int (*query_void)(struct db_wrap * db, char const * sql, size_t len);
@@ -132,7 +135,7 @@ struct db_wrap
 	   used by the caller. On success, the caller must free the string
 	   using free_string().
 	*/
-	int (*error_message)(struct db_wrap * db, char ** dest, size_t * len);
+	int (*error_message)(db_wrap * db, char ** dest, size_t * len);
 	/**
 	   Sets a driver-specific option to the given value. The exact
 	   type of val is driver-specific, and the client must be sure to
@@ -140,7 +143,7 @@ struct db_wrap
 
 	   Returns 0 on success.
 	*/
-	int (*option_set)(struct db_wrap * db, char const * key, void const * val);
+	int (*option_set)(db_wrap * db, char const * key, void const * val);
 	/**
 	   Gets a driver-specific option and assigns its value to
 	   *val. The exact type of val is driver-specific, and the client
@@ -148,7 +151,7 @@ struct db_wrap
 
 	   Returns 0 on success.
 	*/
-	int (*option_get)(struct db_wrap * db, char const * key, void * val);
+	int (*option_get)(db_wrap * db, char const * key, void * val);
 	/**
 	   Must free up any dynamic resources used by db, but must not
 	   free db itself. Not all backends will have a distinction betwen
@@ -159,36 +162,52 @@ struct db_wrap
 	   finalize() implementation, but such an implementation may not
 	   work with stack- or custom-allocated db_wrap objects.
 	*/
-	int (*cleanup)(struct db_wrap * db);
+	int (*cleanup)(db_wrap * db);
 	/**
 	   Must call cleanup() and then free the db object using a
 	   mechanism appropriate for its allocation.
 	*/
-	int (*finalize)(struct db_wrap * db);
+	int (*finalize)(db_wrap * db);
 
+};
+typedef struct db_wrap_api db_wrap_api;
+/**
+   Wrapper for a database connection object. These objects must be
+   initialized using a backend-specific initialization/constructor
+   function and freed using their finalize() member.
+
+   This class defines only the interface. Concrete implementations
+   must be provided which provide the features called for by the
+   interface.
+*/
+struct db_wrap
+{
+	/**
+	   The "virtual" member functions of this class. It is illegal for
+	   this to be NULL, and all instances for a given database
+	   back-end typically share a pointer to the same immutable
+	   instance.
+	*/
+	db_wrap_api const * api;
 	/**
 	   Implementation-specific private details.
 	*/
 	db_wrap_impl impl;
 };
-/** Convenience typedef. */
-typedef struct db_wrap db_wrap;
 /** Empty-initialized db_wrap object. */
 extern const db_wrap db_wrap_empty;
 /** Empty-initialized db_wrap object. */
 #define db_wrap_empty_m { \
-			NULL/*connect*/,\
-			NULL/*sql_quote*/,\
-			NULL/*free_string*/,              \
-			NULL/*query_result*/,\
-			NULL/*error_message*/,\
-			NULL/*option_set*/,\
-			NULL/*option_get*/,\
-			NULL/*cleanup*/,\
-			NULL/*finalize*/,\
+			NULL/*api*/,\
 			db_wrap_impl_empty_m \
 			}
 
+/**
+   This type holds the "vtbl" (member functions) for
+   db_wrap_result objects. All results for a given
+   db wrapper back-end share a single instance of
+   this class.
+*/
 struct db_wrap_result_api
 {
 	/** Must "step" the cursor one position and return:

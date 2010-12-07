@@ -4,6 +4,8 @@ Concrete db_wrap implementation based off of libdbi.
 
 */
 #include "db_wrap_dbi.h"
+#include <string.h> /* strcmp() */
+
 #if 1
 #  include <stdio.h>
 #  define MARKER printf("MARKER: %s:%d:%s():\n",__FILE__,__LINE__,__func__); printf
@@ -76,8 +78,7 @@ static const db_wrap_result dbiw_res_empty =
 	}
 };
 
-
-static const db_wrap db_wrap_libdbi = {
+static const db_wrap_api db_wrap_api_libdbi = {
 dbiw_connect,
 dbiw_sql_quote,
 dbiw_free_string,
@@ -86,16 +87,20 @@ dbiw_error_message,
 dbiw_option_set,
 dbiw_option_get,
 dbiw_cleanup,
-dbiw_finalize,
+dbiw_finalize
+};
+
+static const db_wrap db_wrap_libdbi = {
+&db_wrap_api_libdbi,
 {/*impl*/
 NULL/*data*/,
 NULL/*dtor*/,
-&dbiw_db_empty/*typeID*/
+&db_wrap_api_libdbi/*typeID*/
 }
 };
 
 #define DB_DECL(ERRVAL) \
-	dbiw_db * impl = (self && (self->impl.typeID==&dbiw_db_empty))   \
+	dbiw_db * impl = (self && (self->api==&db_wrap_api_libdbi))   \
 		? (dbiw_db *)self->impl.data : NULL;                       \
 		if (!impl) return ERRVAL
 
@@ -140,8 +145,20 @@ int dbiw_error_message(db_wrap * self, char ** dest, size_t * len)
 int dbiw_option_set(db_wrap * self, char const * key, void const * val)
 {
 	DB_DECL(DB_WRAP_E_BAD_ARG);
-	TODO("implement this.");
-	return -1;
+	int rc = DB_WRAP_E_UNSUPPORTED;
+#define TRYSTR(K) if (0==strcmp(K,key)) {                \
+		rc = dbi_conn_set_option(impl->conn, key, (char const *)val); }
+#define TRYNUM(K) if (0==strcmp(K,key)) {                \
+		rc = dbi_conn_set_option_numeric(impl->conn, key, *((int const *)val)); }
+
+	TRYSTR("host")
+	else TRYSTR("username")
+	else TRYSTR("password")
+	else TRYSTR("dbname")
+	else TRYNUM("port");
+#undef TRYSTR
+#undef TRYNUM
+	return rc;
 }
 
 int dbiw_option_get(db_wrap * self, char const * key, void * val)
@@ -161,7 +178,7 @@ int dbiw_cleanup(db_wrap * self)
 int dbiw_finalize(db_wrap * self)
 {
 	DB_DECL(DB_WRAP_E_BAD_ARG);
-	self->cleanup(self);
+	self->api->cleanup(self);
 	if (impl->conn)
 	{
 		dbi_conn_close(impl->conn);
@@ -178,36 +195,42 @@ int dbiw_res_step(db_wrap_result * self)
 	TODO("implement this.");
 	return -1;
 }
+
 int dbiw_res_get_int32_ndx(db_wrap_result * self, int ndx, int32_t * val)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	TODO("implement this.");
 	return -1;
 }
+
 int dbiw_res_get_int64_ndx(db_wrap_result * self, int ndx, int64_t * val)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	TODO("implement this.");
 	return -1;
 }
+
 int dbiw_res_get_double_ndx(db_wrap_result * self, int ndx, double * val)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	TODO("implement this.");
 	return -1;
 }
+
 int dbiw_res_get_string_ndx(db_wrap_result * self, int ndx, char ** val, size_t * len)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	TODO("implement this.");
 	return -1;
 }
+
 int dbiw_res_free_string(db_wrap_result * self, char * str)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	TODO("implement this.");
 	return -1;
 }
+
 int dbiw_res_finalize(db_wrap_result * self)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
@@ -229,23 +252,24 @@ int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const * param, db_wrap *
 	}
 	*wr = db_wrap_libdbi;
 	wr->impl.data = impl;
-#define CLEANUP do{ wr->finalize(wr); wr = NULL; } while(0)
+#define CLEANUP do{ impl->conn = 0/*caller keeps ownership*/; wr->api->finalize(wr); wr = NULL; } while(0)
 #define CHECKRC if (0 != rc) { CLEANUP; return rc; } (void)0
-	int rc = dbi_conn_set_option(conn, "host", param->host);
+	impl->conn = conn/* do this last, else we'll transfer ownership too early*/;
+	int rc = wr->api->option_set(wr, "host", param->host);
 	CHECKRC;
-	rc = dbi_conn_set_option(conn, "username", param->user);
+	rc = wr->api->option_set(wr, "username", param->user);
 	CHECKRC;
-	rc = dbi_conn_set_option(conn, "password", param->password);
+	rc = wr->api->option_set(wr, "password", param->password);
 	CHECKRC;
-	rc = dbi_conn_set_option(conn, "dbname", param->dbname);
+	rc = wr->api->option_set(wr, "dbname", param->dbname);
 	CHECKRC;
 	if (param->port > 0)
 	{ /** dbi appears to IGNORE THE PORT i set. If i set an invalid port, it will
-		  still connect! */
-		rc = dbi_conn_set_option_numeric(conn, "port", param->port);
+		  still connect! Aha... maybe it's defaulting to a socket connection
+		  for localhost. */
+		rc = wr->api->option_set(wr, "port", &param->port);
 		CHECKRC;
 	}
-	impl->conn = conn/* do this last, else we'll transfer ownership too early*/;
 	*tgt = wr;
 	return 0;
 #undef CHECKRC

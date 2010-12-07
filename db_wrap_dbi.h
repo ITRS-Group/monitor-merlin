@@ -5,7 +5,7 @@
 #include <dbi/dbi.h>
 
 /**
-   Initializes libdbi internals. Returns 0 on success.
+   Initializes a db_wrap object using a libdbi backend.
 
    conn must be an initalized libdbi connection object.  On success,
    ownership of that connection object is passed to the returned
@@ -20,7 +20,7 @@
    which now owns conn and which the caller must eventually free by
    calling (*tgt)->finalize(*tgt).
 
-   The connection is not opened by this function: call tgt->connect(tgt)
+   The connection is not opened by this function: call tgt->api->connect(tgt)
    to do that.
 */
 int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const * param, db_wrap ** tgt);
