@@ -295,6 +295,26 @@ int vectorize_string(char *str, int nvecs)
 	return i;
 }
 
+/*
+ * This takes care of lines that have been field-separated at
+ * semi-colons and passes it to the function above.
+ */
+char *devectorize_string(char **ary, int nvecs)
+{
+	int i;
+
+	for (i = 1; i < nvecs; i++) {
+		/* the char before the first char in the string
+		 * in our array is the one where we replaced a
+		 * semi-colon with a nul char, so the math here
+		 * is actually correct.
+		 */
+		ary[i][-1] = ';';
+	}
+
+	return *ary;
+}
+
 struct string_code *
 get_string_code(struct string_code *codes, const char *str, uint len)
 {

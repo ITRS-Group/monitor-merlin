@@ -89,6 +89,7 @@ extern char **strv;
 
 void __attribute__((__noreturn__)) lp_crash(const char *fmt, ...);
 extern int vectorize_string(char *str, int nvecs);
+extern char *devectorize_string(char **str, int nvecs);
 extern void handle_unknown_event(const char *line);
 extern void print_unhandled_events(void);
 
