@@ -304,7 +304,7 @@ struct db_wrap_conn_params
 {
 	char const * host;
 	int port;
-	char const * user;
+	char const * username;
 	char const * password;
 	char const * dbname;
 };

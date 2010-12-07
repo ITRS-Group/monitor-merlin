@@ -2,24 +2,38 @@
 #include "db_wrap_dbi.h"
 #include <assert.h>
 
-#include <stdio.h>
+#include <stdio.h> /*printf()*/
+#include <stdlib.h> /*getenv()*/
+
 #define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
 
 
-void test1()
+static db_wrap_conn_params paramMySql = db_wrap_conn_params_empty_m;
+static db_wrap_conn_params paramSqlite = db_wrap_conn_params_empty_m;
+
+void test_mysql_1()
 {
 	db_wrap * wr = NULL;
-	db_wrap_conn_params param = db_wrap_conn_params_empty;
-	param.host = "localhost";
-	param.port = 3306;
-	param.user = "merlin";
-	param.password = "merlin";
-	param.dbname = "merlin";
 	dbi_conn conn = dbi_conn_new("mysql");
 	assert(conn);
-	int rc = db_wrap_dbi_init(conn, &param, &wr);
+	int rc = db_wrap_dbi_init(conn, &paramMySql, &wr);
 	assert(0 == rc);
 	assert(wr);
+	rc = wr->api->connect(wr);
+	assert(0 == rc);
+	rc = wr->api->finalize(wr);
+	assert(0 == rc);
+}
+void test_sqlite_1()
+{
+	db_wrap * wr = NULL;
+	dbi_conn conn = dbi_conn_new("sqlite3");
+	assert(conn);
+	int rc = db_wrap_dbi_init(conn, &paramSqlite, &wr);
+	assert(0 == rc);
+	assert(wr);
+	rc = wr->api->option_set(wr, "sqlite3_dbdir", getenv("PWD"));
+	assert(0 == rc);
 	rc = wr->api->connect(wr);
 	assert(0 == rc);
 	rc = wr->api->finalize(wr);
@@ -28,8 +42,19 @@ void test1()
 
 int main(int argc, char const ** argv)
 {
+	{
+		paramMySql.host = "localhost";
+		paramMySql.port = 3306;
+		paramMySql.username = "merlin";
+		paramMySql.password = "merlin";
+		paramMySql.dbname = "merlin";
+	}
+	{
+		paramSqlite.dbname = "merlin.sqlite";
+	}
 	dbi_initialize(NULL);
-	test1();
+	test_mysql_1();
+	test_sqlite_1();
 	dbi_shutdown();
 	MARKER("If you got this far, it worked.\n");
 	return 0;

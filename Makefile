@@ -168,6 +168,7 @@ module.o: module.c $(MODULE_DEPS) $(DEPS) hash.h
 $(DAEMON_OBJS): $(DAEMON_DEPS) $(DEPS)
 $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
 
+test-dbwrap.o: test-dbwrap.c
 test-dbwrap: test-dbwrap.o db_wrap.o db_wrap_dbi.o
 test-dbwrap: LDFLAGS+=$(MTEST_LDFLAGS)
 APPS += test-dbwrap

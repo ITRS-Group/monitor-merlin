@@ -48,12 +48,12 @@ NULL/*connection*/
 
 struct dbiw_res_impl
 {
-	void * placeholder;
+	dbi_result result;
 };
 typedef struct dbiw_res_impl dbiw_res_impl;
 
 static const dbiw_res_impl dbiw_res_impl_empty = {
-NULL/*placeholder*/
+NULL/*result*/
 };
 
 
@@ -155,7 +155,10 @@ int dbiw_option_set(db_wrap * self, char const * key, void const * val)
 	else TRYSTR("username")
 	else TRYSTR("password")
 	else TRYSTR("dbname")
-	else TRYNUM("port");
+	else TRYNUM("port")
+	else TRYSTR("sqlite3_dbdir")
+	else TRYNUM("sqlite3_timeout")
+		;
 #undef TRYSTR
 #undef TRYNUM
 	return rc;
@@ -255,14 +258,13 @@ int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const * param, db_wrap *
 #define CLEANUP do{ impl->conn = 0/*caller keeps ownership*/; wr->api->finalize(wr); wr = NULL; } while(0)
 #define CHECKRC if (0 != rc) { CLEANUP; return rc; } (void)0
 	impl->conn = conn/* do this last, else we'll transfer ownership too early*/;
-	int rc = wr->api->option_set(wr, "host", param->host);
-	CHECKRC;
-	rc = wr->api->option_set(wr, "username", param->user);
-	CHECKRC;
-	rc = wr->api->option_set(wr, "password", param->password);
-	CHECKRC;
-	rc = wr->api->option_set(wr, "dbname", param->dbname);
-	CHECKRC;
+	int rc = 0;
+#define OPT(K) if (param->K && *param->K) { \
+	rc = wr->api->option_set(wr, #K, param->K);           \
+	CHECKRC; \
+}
+	OPT(host) OPT(username) OPT(password) OPT(dbname)
+#undef OPT
 	if (param->port > 0)
 	{ /** dbi appears to IGNORE THE PORT i set. If i set an invalid port, it will
 		  still connect! Aha... maybe it's defaulting to a socket connection
@@ -276,6 +278,16 @@ int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const * param, db_wrap *
 #undef CLEANUP
 }
 
+dbi_result db_wrap_dbi_result(db_wrap_result * self)
+{
+	RES_DECL(NULL);
+	return res->result;
+}
 
+dbi_conn db_wrap_dbi_conn(db_wrap * self)
+{
+	DB_DECL(NULL);
+	return impl->conn;
+}
 #undef DB_DECL
 #undef RES_DECL

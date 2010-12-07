@@ -25,5 +25,25 @@
 */
 int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const * param, db_wrap ** tgt);
 
+/**
+   A temporary function for use only while porting the dbi-using bits
+   to db_wrap. If db was created by the DBI-based driver then its
+   dbi-native handle is returned. That object is owned by the
+   db_wrap_result object and MUST NOT be destroyed by the caller.
+
+   This function will go away once the port is complete.
+*/
+dbi_conn db_wrap_dbi_conn(db_wrap * db);
+
+
+/**
+   A temporary function for use only while porting the dbi-using bits
+   to db_wrap. If db was created by the DBI-based driver then its
+   dbi-native result is returned. That object is owned by the
+   db_wrap_result object and MUST NOT be destroyed by the caller.
+
+   This function will go away once the port is complete.
+*/
+dbi_result db_wrap_dbi_result(db_wrap_result * db);
 
 #endif /* _MERLIN_DB_WRAP_DBI_H_INCLUDED */
