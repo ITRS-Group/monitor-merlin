@@ -36,6 +36,10 @@ void test_sqlite_1()
 	assert(0 == rc);
 	rc = wr->api->connect(wr);
 	assert(0 == rc);
+	char * errmsg = NULL;
+	rc = wr->api->error_message(wr, &errmsg, NULL);
+	assert(0 == rc);
+	assert(NULL == errmsg);
 	rc = wr->api->finalize(wr);
 	assert(0 == rc);
 }

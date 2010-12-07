@@ -137,9 +137,23 @@ int dbiw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_resu
 
 int dbiw_error_message(db_wrap * self, char ** dest, size_t * len)
 {
+	if (! self || !dest) return DB_WRAP_E_BAD_ARG;
 	DB_DECL(DB_WRAP_E_BAD_ARG);
-	TODO("implement this.");
-	return -1;
+	char const * msg = NULL;
+	dbi_conn_error(impl->conn, &msg);
+	if (msg && *msg)
+	{
+		char * dup = strdup(msg);
+		if (! dup) return DB_WRAP_E_ALLOC_ERROR;
+		*dest = dup;
+		if (len) *len = strlen(dup);
+	}
+	else
+	{
+		*dest = NULL;
+		if (len) *len = 0;
+	}
+	return 0;
 }
 
 int dbiw_option_set(db_wrap * self, char const * key, void const * val)

@@ -104,8 +104,9 @@ struct db_wrap_api
 	*/
 	size_t (*sql_quote)(db_wrap * db, char const * src, size_t len, char ** dest);
 	/**
-	   Frees a string allocated by sql_quote(). Results are undefined if the string
-	   came from another source.
+	   Frees a string allocated by sql_quote() or
+	   error_message(). Results are undefined if the string came from
+	   another source.
 	*/
 	int (*free_string)(db_wrap * db, char *);
 	/**
@@ -130,10 +131,21 @@ struct db_wrap_api
 #endif
 	/**
 	   Must return the last error message associated with the
-	   connection, writing the bytes to *dest and the length to
-	   *len. Returns 0 on success.  On error the result should not be
-	   used by the caller. On success, the caller must free the string
-	   using free_string().
+	   connection, writing the bytes to *dest and the length to *len
+	   (if len is not NULL, which implementations should
+	   allow). Returns 0 on success.  On error the result should not
+	   be used by the caller. On success, the caller must free the
+	   string (if it is not NULL) using free_string(). On success
+	   *dest may be set to NULL if the driver has no error to report.
+	   Some drivers may return other strings on error (sqlite3
+	   infamously uses "not an error" for this case).
+
+	   Note that some drivers own their error message strings but we cannot
+	   reasonably define their lifetimes in terms of this interface, thus
+	   implementations are required to allocate and copy them, and clients
+	   are required to free them using db->api->free_string() instead of
+	   free() (so that implementations have some leeway in the allocation
+	   of the string).
 	*/
 	int (*error_message)(db_wrap * db, char ** dest, size_t * len);
 	/**
