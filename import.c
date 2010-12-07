@@ -795,12 +795,21 @@ static inline void add_downtime(char *host, char *service, int id)
 }
 
 static time_t last_host_dt_del, last_svc_dt_del;
-static int register_downtime_command(struct string_code *sc)
+static int register_downtime_command(struct string_code *sc, int nvecs)
 {
 	struct downtime_entry *dt;
 	char *start_time, *end_time, *duration = NULL;
 	char *host = NULL, *service = NULL, *fixed, *triggered_by = NULL;
 	time_t foo;
+
+	/*
+	 * this could cause crashes if we let it go on, so
+	 * bail early if we didn't parse enough fields from
+	 * the file.
+	 */
+	if (nvecs < sc->nvecs) {
+		return -1;
+	}
 
 	switch (sc->code) {
 	case DEL_HOST_DOWNTIME:
@@ -1250,7 +1259,7 @@ static int parse_line(char *line, uint len)
 		if (sc->code != ACKNOWLEDGE_HOST_PROBLEM &&
 			sc->code != ACKNOWLEDGE_SVC_PROBLEM)
 		{
-			register_downtime_command(sc);
+			register_downtime_command(sc, nvecs);
 		} else {
 			insert_acknowledgement(sc);
 		}
