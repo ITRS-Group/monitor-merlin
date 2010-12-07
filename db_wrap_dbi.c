@@ -259,7 +259,8 @@ int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const * param, db_wrap *
 	rc = dbi_conn_set_option(conn, "dbname", param->dbname);
 	CHECKRC;
 	if (param->port > 0)
-	{
+	{ /** dbi appears to IGNORE THE PORT i set. If i set an invalid port, it will
+		  still connect! */
 		rc = dbi_conn_set_option_numeric(conn, "port", param->port);
 		CHECKRC;
 	}
