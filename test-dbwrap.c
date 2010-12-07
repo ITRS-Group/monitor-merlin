@@ -3,7 +3,7 @@
 #include <assert.h>
 
 #include <stdio.h>
-#define MARKER printf("MARKER: %s:%d:%s():\n",__FILE__,__LINE__,__func__); printf
+#define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
 
 
 void test1()
@@ -12,9 +12,9 @@ void test1()
 	db_wrap_conn_params param = db_wrap_conn_params_empty;
 	param.host = "localhost";
 	param.port = 3306;
-	param.user = "vfuc";
-	param.password = "consol";
-	param.dbname = "repodb";
+	param.user = "merlin";
+	param.password = "merlin";
+	param.dbname = "merlin";
 	dbi_conn conn = dbi_conn_new("mysql");
 	assert(conn);
 	int rc = db_wrap_dbi_init(conn, &param, &wr);
@@ -31,5 +31,6 @@ int main(int argc, char const ** argv)
 	dbi_initialize(NULL);
 	test1();
 	dbi_shutdown();
+	MARKER("If you got this far, it worked.\n");
 	return 0;
 }

@@ -20,6 +20,8 @@ DB_WRAP_E_DONE,
 DB_WRAP_E_BAD_ARG,
 /** Signifies an allocation error. */
 DB_WRAP_E_ALLOC_ERROR,
+/** Signifies an unsupported operation. */
+DB_WRAP_E_UNSUPPORTED
 /*
   TODOs:
 
@@ -186,11 +188,8 @@ extern const db_wrap db_wrap_empty;
 			NULL/*finalize*/,\
 			db_wrap_impl_empty_m \
 			}
-/**
-   Wraps the basic functionality of "db result" objects, for looping
-   over result sets.
-*/
-struct db_wrap_result
+
+struct db_wrap_result_api
 {
 	/** Must "step" the cursor one position and return:
 
@@ -245,6 +244,18 @@ struct db_wrap_result
 	   method.
 	*/
 	int (*finalize)(db_wrap_result * self);
+};
+/**
+   Convenience typedef.
+*/
+typedef struct db_wrap_result_api db_wrap_result_api;
+/**
+   Wraps the basic functionality of "db result" objects, for looping
+   over result sets.
+*/
+struct db_wrap_result
+{
+	db_wrap_result_api const * api;
 	/*
 	  TODOs???
 
@@ -260,13 +271,7 @@ struct db_wrap_result
 
 /** Empty-initialized db_wrap_result object. */
 #define db_wrap_result_empty_m {\
-		NULL/*step*/,  \
-		NULL/*get_int32_ndx*/,\
-		NULL/*get_int64_ndx*/,              \
-		NULL/*get_double_ndx*/,         \
-		NULL/*get_string_ndx*/,     \
-		NULL/*free_string*/,\
-		NULL/*finalize*/,               \
+		NULL/*api*/, \
 		db_wrap_impl_empty_m/*impl*/        \
 	}
 /** Empty-initialized db_wrap_result object. */

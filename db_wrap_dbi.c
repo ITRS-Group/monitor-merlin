@@ -35,37 +35,13 @@ static int dbiw_res_finalize(db_wrap_result * self);
 
 struct dbiw_db
 {
-#if 0
-	char * host;
-	char *name;
-	char *user;
-	char *pass;
-	char *type;
-	char *encoding;
-	unsigned int port;
-#endif
 	dbi_conn conn;
-#if 0
-	dbi_result result;
-	dbi_driver driver;
-#endif
 };
 typedef struct dbiw_db dbiw_db;
+
+
 static dbiw_db dbiw_db_empty = {
-#if 0
-NULL/*host*/,
-NULL/*name*/,
-NULL/*user*/,
-NULL/*pass*/,
-NULL/*type*/,
-NULL/*encoding*/,
-0/*port*/,
-#endif
 NULL/*connection*/
-#if 0
-NULL/*result*/,
-NULL/*driver*/
-#endif
 };
 
 struct dbiw_res_impl
@@ -74,12 +50,12 @@ struct dbiw_res_impl
 };
 typedef struct dbiw_res_impl dbiw_res_impl;
 
-/*static*/ dbiw_res_impl dbiw_res_impl_empty = {
+static const dbiw_res_impl dbiw_res_impl_empty = {
 NULL/*placeholder*/
 };
 
 
-static const db_wrap_result dbiw_res_empty =
+static const db_wrap_result_api dbiw_res_api =
 {
 	dbiw_res_step,
 	dbiw_res_get_int32_ndx,
@@ -87,11 +63,16 @@ static const db_wrap_result dbiw_res_empty =
 	dbiw_res_get_double_ndx,
 	dbiw_res_get_string_ndx,
 	dbiw_res_free_string,
-	dbiw_res_finalize,
+	dbiw_res_finalize
+};
+
+static const db_wrap_result dbiw_res_empty =
+{
+	&dbiw_res_api,
 	{/*impl*/
 		NULL/*data*/,
 		NULL/*dtor*/,
-		&dbiw_res_empty/*typeID*/
+		&dbiw_res_api/*typeID*/
 	}
 };
 
@@ -119,7 +100,7 @@ NULL/*dtor*/,
 		if (!impl) return ERRVAL
 
 #define RES_DECL(ERRVAL) \
-	dbiw_res_impl * res = (self && (self->impl.typeID==&dbiw_res_empty))   \
+	dbiw_res_impl * res = (self && (self->api==&dbiw_res_api))   \
 		? (dbiw_res_impl *)self->impl.data : NULL; \
 		if (!res) return ERRVAL
 
