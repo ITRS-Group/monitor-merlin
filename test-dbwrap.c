@@ -20,6 +20,8 @@ void test1()
 	int rc = db_wrap_dbi_init(conn, &param, &wr);
 	assert(0 == rc);
 	assert(wr);
+	rc = wr->connect(wr);
+	assert(0 == rc);
 	rc = wr->finalize(wr);
 	assert(0 == rc);
 }

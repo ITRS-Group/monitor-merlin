@@ -125,9 +125,9 @@ NULL/*dtor*/,
 
 int dbiw_connect(db_wrap * self)
 {
-	TODO("implement this.");
-	return -1;
-
+	DB_DECL(DB_WRAP_E_BAD_ARG);
+	int rc = dbi_conn_connect(impl->conn);
+	return rc;
 }
 
 size_t dbiw_sql_quote(db_wrap * self, char const * src, size_t len, char ** dest)
