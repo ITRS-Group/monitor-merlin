@@ -588,10 +588,14 @@ static int insert_process_event(int type)
 	return insert_process_data(&ds);
 }
 
+#if 0
 static int insert_acknowledgement(struct string_code *sc)
 {
 	return 0;
 }
+#else
+# define insert_acknowledgement(foo) /* nothing */ ;
+#endif
 
 static void dt_print(char *tpc, time_t when, struct downtime_entry *dt)
 {
