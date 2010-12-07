@@ -36,13 +36,13 @@ WARN_FLAGS = -Wall -Wextra -Wno-unused-parameter
 COMMON_OBJS = cfgfile.o shared.o hash.o version.o logging.o
 SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
-DAEMON_OBJS = status.o daemonize.o daemon.o net.o sql.o db_updater.o state.o
+DAEMON_OBJS = status.o daemonize.o daemon.o net.o sql.o db_wrap.o db_updater.o state.o
 DAEMON_OBJS += $(SHARED_OBJS)
 MODULE_OBJS = $(SHARED_OBJS) module.o hooks.o control.o slist.o misc.o sha1.o
 MODULE_DEPS = module.h hash.h slist.h
 DAEMON_DEPS = net.h sql.h daemon.h hash.h
 APP_OBJS = $(COMMON_OBJS) state.o logutils.o lparse.o test_utils.o
-IMPORT_OBJS = $(APP_OBJS) import.o sql.o
+IMPORT_OBJS = $(APP_OBJS) import.o sql.o db_wrap.o
 SHOWLOG_OBJS = $(APP_OBJS) showlog.o auth.o
 NEBTEST_OBJS = $(TEST_OBJS) nebtest.o
 DEPS = Makefile cfgfile.h ipc.h logging.h shared.h
@@ -167,6 +167,11 @@ $(COMMON_OBJS): $(DEPS)
 module.o: module.c $(MODULE_DEPS) $(DEPS) hash.h
 $(DAEMON_OBJS): $(DAEMON_DEPS) $(DEPS)
 $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
+
+test-dbwrap: test-dbwrap.o db_wrap.o db_wrap_dbi.o
+test-dbwrap: LDFLAGS+=$(MTEST_LDFLAGS)
+APPS += test-dbwrap
+all: test-dbwrap
 
 version.c: gen-version.sh
 	sh gen-version.sh
