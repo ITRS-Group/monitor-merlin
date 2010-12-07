@@ -871,11 +871,19 @@ static int register_downtime_command(struct string_code *sc, int nvecs)
 		dt->service = strdup(service);
 
 	dt->trigger = triggered_by ? !!(*triggered_by - '0') : 0;
-	if (strtotimet(start_time, &dt->start) || strtotimet(end_time, &dt->stop))
-	{
-		print_strvec(strv, sc->nvecs);
-		lp_crash("strtotime(): type: %s; start_time='%s'; end_time='%s'; duration='%s';",
-				 command_codes[sc->code - 1].str, start_time, end_time, duration);
+	dt->start = dt->stop = 0;
+	strtotimet(start_time, &dt->start);
+	strtotimet(end_time, &dt->stop);
+
+	/*
+	 * if neither of these is set, we can't use this command,
+	 * so log it as an unknown event and move on. We really
+	 * shouldn't crash here no matter what anyways.
+	 */
+	if (!dt->start && !dt->stop) {
+		devectorize_string(strv, nvecs);
+		warn("No dt->start or dt->stop in: %s", strv[0]);
+		return -1;
 	}
 
 	/*
@@ -885,10 +893,38 @@ static int register_downtime_command(struct string_code *sc, int nvecs)
 	 * version 2 logging but a downtime command is added that
 	 * follows the version 1 standard.
 	 * As such, we simply ignore the result of the "duration"
-	 * field conversion and just accept that it might not work
+	 * field conversion and just accept that it might not work.
+	 * If it doesn't, we force-set it to 7200, since that's what
+	 * Nagios uses as a default, and we'll need two of duration,
+	 * start_time and end_time in order to make some sense of
+	 * this downtime entry
 	 */
-	(void)strtotimet(duration, &dt->duration);
+	if (strtotimet(duration, &dt->duration) < 0)
+		dt->duration = 7200;
 	dt->fixed = *fixed - '0';
+
+	/*
+	 * we know we have a duration and at least one of stop
+	 * and start. Calculate the other if one is missing.
+	 */
+	if (!dt->stop) {
+		dt->stop = dt->start + dt->duration;
+	} else if (!dt->start) {
+		dt->start = dt->stop - dt->duration;
+	}
+
+	/* make sure we're not starting timeperiod in the past */
+	if (dt->start < ltime) {
+		dt->start = ltime;
+		if (dt->stop <= dt->start)
+			return 0;
+
+		/* if fixed, we alter duration. Otherwise we alter 'stop' */
+		if (dt->fixed == 1)
+			dt->duration = dt->stop - dt->start;
+		else
+			dt->stop = dt->start + dt->duration;
+	}
 
 	/*
 	 * ignore downtime scheduled to take place in the future.
