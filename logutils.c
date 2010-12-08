@@ -288,7 +288,7 @@ int vectorize_string(char *str, int nvecs)
 	for (p = str; *p && i < nvecs; p++) {
 		if (*p == ';') {
 			*p = 0;
-			strv[i++] = ++p;
+			strv[i++] = p+1;
 		}
 	}
 
