@@ -736,7 +736,7 @@ def cmd_nodesplit(args):
 		if os.access(node.oconf_file, os.R_OK):
 			st = os.stat(node.oconf_file)
 			if not force and st.st_mtime == last_changed:
-				print("%s is cached" % (node.oconf_file, st.st_mtime, last_changed))
+				print("%s is cached" % (node.oconf_file))
 				continue
 
 		params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
