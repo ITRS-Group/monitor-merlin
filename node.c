@@ -705,6 +705,9 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 	node_log_event_count(node, 0);
 
 	pkt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
+	if (is_module) {
+		gettimeofday(&pkt->hdr.sent, NULL);
+	}
 
 	if (pkt->hdr.type == CTRL_PACKET) {
 		ldebug("Sending %s to %s", ctrl_name(pkt->hdr.code), node->name);
