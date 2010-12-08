@@ -908,8 +908,10 @@ int main(int argc, char **argv)
 {
 	int i;
 	char *merlin_conf = NULL;
+	char cwd[PATH_MAX];
 
 	use_database = 1;
+	getcwd(cwd, sizeof(cwd));
 
 	t_set_colors(0);
 
@@ -944,6 +946,8 @@ int main(int argc, char **argv)
 	macro_x[MACRO_STATUSDATAFILE] = status_log;
 
 	nebmodule_init(-1, merlin_conf, NULL);
+	/* make sure corefiles end up where we started from */
+	chdir(cwd);
 	if (!post_config_init) {
 		t_fail("post_config_init not set (fatal)");
 		exit(1);
