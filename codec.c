@@ -39,21 +39,33 @@
  */
 int merlin_encode(void *data, int cb_type, char *buf, int buflen)
 {
-	int i, len, strings;
-	off_t off, *ptrs;
+	int i, len, num_strings;
+	off_t offset, *ptrs;
 
 	if (!data || cb_type < 0 || cb_type >= NEBCALLBACK_NUMITEMS)
 		return 0;
 
-	off = hook_info[cb_type].offset;
-	strings = hook_info[cb_type].strings;
+	/*
+	 * offset points to where we should write, based off of
+	 * the base location of the block we're writing into.
+	 * Here, we set it to write to the first byte in pkt->body
+	 * not occupied with the binary data that makes up the
+	 * struct itself.
+	 */
+	offset = hook_info[cb_type].offset;
+	num_strings = hook_info[cb_type].strings;
 	ptrs = hook_info[cb_type].ptrs;
 
-	memcpy(buf, data, off);
+	/*
+	 * copy the base struct first. We'll overwrite the string
+	 * positions later on.
+	 */
+	memcpy(buf, data, offset);
 
-	for(i = 0; i < strings; i++) {
+	for(i = 0; i < num_strings; i++) {
 		char *sp;
 
+		/* get the pointer to the real string */
 		memcpy(&sp, (char *)buf + ptrs[i], sizeof(sp));
 		if (!sp) {	/* NULL pointers remain NULL pointers */
 			continue;
@@ -61,35 +73,40 @@ int merlin_encode(void *data, int cb_type, char *buf, int buflen)
 
 		/* check this after !sp. No need to log a warning if only
 		 * NULL-strings remain */
-		if (buflen <= off) {
+		if (buflen <= offset) {
 			lwarn("No space remaining in buffer. Skipping remaining %d strings",
-				  strings - i);
+				  num_strings - i);
 			break;
 		}
 		len = strlen(sp);
 
-		if (len > buflen - off) {
+		if (len > buflen - offset) {
 			linfo("String is too long (%d bytes, %lu remaining). Truncating",
-				  len, buflen - off);
-			len = buflen - off;
+				  len, buflen - offset);
+			len = buflen - offset;
 		}
 
 		/* set the destination pointer */
 		if (len)
-			memcpy(buf + off, sp, len);
+			memcpy(buf + offset, sp, len);
 
 		/* nul-terminate the string. This way we can determine
 		 * the difference between NULL pointers and nul-strings */
-		buf[off + len] = '\0';
+		buf[offset + len] = '\0';
 
 		/* write the correct location back to the block */
-		memcpy(buf + ptrs[i], &off, sizeof(off));
+		memcpy(buf + ptrs[i], &offset, sizeof(offset));
 
 		/* increment offset pointers and decrement remaining space */
-		off += len + 1;
+		offset += len + 1;
 	}
 
-	return off;
+	/*
+	 * offset now holds the total length of the packet, including
+	 * the last nul-terminator, regardless of how many strings we
+	 * actually stashed in there.
+	 */
+	return offset;
 }
 
 
@@ -104,19 +121,19 @@ int merlin_encode(void *data, int cb_type, char *buf, int buflen)
 int merlin_decode(void *ds, off_t len, int cb_type)
 {
 	off_t *ptrs;
-	int strings, i;
+	int num_strings, i;
 
 	if (!ds || !len || cb_type < 0 || cb_type >= NEBCALLBACK_NUMITEMS)
 		return 0;
 
-	strings = hook_info[cb_type].strings;
+	num_strings = hook_info[cb_type].strings;
 	ptrs = hook_info[cb_type].ptrs;
 
-	for (i = 0; i < strings; i++) {
+	for (i = 0; i < num_strings; i++) {
 		char *ptr;
 
 		if (!ptrs[i]) {
-			lwarn("!ptrs[%d]; strings == %d. Fix the hook_info struct", i, strings);
+			lwarn("!ptrs[%d]; strings == %d. Fix the hook_info struct", i, num_strings);
 			continue;
 		}
 
