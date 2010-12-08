@@ -212,14 +212,9 @@ static int send_host_status(merlin_event *pkt, struct host_struct *obj)
 		last_obj = obj;
 	}
 
-	MOD2NET_STATE_VARS(st_obj.state, obj);
-	st_obj.state.last_notification = obj->last_host_notification;
-	st_obj.state.next_notification = obj->next_host_notification;
-	st_obj.state.accept_passive_checks = obj->accept_passive_host_checks;
-	st_obj.state.obsess = obj->obsess_over_host;
-	st_obj.name = obj->name;
-
+	host_mod2net(&st_obj, obj);
 	pkt->hdr.selection = get_selection(obj->name);
+
 	return send_generic(pkt, &st_obj);
 }
 
@@ -240,14 +235,7 @@ static int send_service_status(merlin_event *pkt, struct service_struct *obj)
 		last_obj = obj;
 	}
 
-	MOD2NET_STATE_VARS(st_obj.state, obj);
-	st_obj.state.last_notification = obj->last_notification;
-	st_obj.state.next_notification = obj->next_notification;
-	st_obj.state.accept_passive_checks = obj->accept_passive_service_checks;
-	st_obj.state.obsess = obj->obsess_over_service;
-	st_obj.host_name = obj->host_name;
-	st_obj.service_description = obj->description;
-
+	service_mod2net(&st_obj, obj);
 	pkt->hdr.selection = get_selection(obj->host_name);
 
 	return send_generic(pkt, &st_obj);
