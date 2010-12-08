@@ -19,6 +19,7 @@ Requires: libdbi
 Requires: libdbi-dbd-mysql
 Requires: merlin-apps >= %version
 BuildRequires: mysql-devel
+BuildRequires: libdbi-devel
 Obsoletes: monitor-reports-module
 BuildRoot: /override/%name-%version
 
