@@ -491,6 +491,7 @@ void node_disconnect(merlin_node *node)
 	node_set_state(node, STATE_NONE);
 	node->last_recv = 0;
 	node->sock = -1;
+	node->ioc.buflen = node->ioc.offset = 0;
 }
 
 static int node_binlog_add(merlin_node *node, merlin_event *pkt)
