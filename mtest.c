@@ -81,7 +81,7 @@ int neb_deregister_callback(int callback_type, int (*callback_func)(int, void *)
 /* various testing helpers */
 static void *blk_prep(void *data)
 {
-	merlin_encode_event(&pkt, data);
+	pkt.hdr.len = merlin_encode_event(&pkt, data);
 	merlin_decode_event(&pkt);
 	return pkt.body;
 }
