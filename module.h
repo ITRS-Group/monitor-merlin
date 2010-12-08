@@ -110,6 +110,28 @@ extern int merlin_mod_hook(int cb, void *data);
 	mrln.long_plugin_output = nag->long_plugin_output; \
 	mrln.perf_data = nag->perf_data;
 
+static inline void host_mod2net(merlin_host_status *st_obj, host *obj)
+{
+	MOD2NET_STATE_VARS(st_obj->state, obj);
+	st_obj->state.last_notification = obj->last_host_notification;
+	st_obj->state.next_notification = obj->next_host_notification;
+	st_obj->state.accept_passive_checks = obj->accept_passive_host_checks;
+	st_obj->state.obsess = obj->obsess_over_host;
+	st_obj->name = obj->name;
+}
+
+static inline void service_mod2net(merlin_service_status *st_obj, service *obj)
+{
+	MOD2NET_STATE_VARS(st_obj->state, obj);
+	st_obj->state.last_notification = obj->last_notification;
+	st_obj->state.next_notification = obj->next_notification;
+	st_obj->state.accept_passive_checks = obj->accept_passive_service_checks;
+	st_obj->state.obsess = obj->obsess_over_service;
+	st_obj->host_name = obj->host_name;
+	st_obj->service_description = obj->description;
+}
+
+
 /*
  * Updating data inside the running Nagios is a bit trickier and
  * some care must be taken for this to work
