@@ -56,11 +56,11 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 	for(i = 1; i <= count; ++i)
 	{
 		char * q = NULL;
-		rc = asprintf(&q,"insert into t (vint, vdbl) values(%d,%2.1lf);",i,(i*1.1));
+		rc = asprintf(&q,"insert into t (vint, vdbl, vstr) values(%d,%2.1lf,'hi, world');",i,(i*1.1));
 		assert(rc > 0);
 		assert(q);
-		res = NULL;
 		//MARKER("Query=[%s]\n",q);
+		res = NULL;
 		rc = wr->api->query_result(wr, q, strlen(q), &res);
 		free(q);
 		assert(0 == rc);
@@ -84,6 +84,16 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 	while(0 == (rc = res->api->step(res)))
 	{
 		++gotCount;
+		if (1 == gotCount)
+		{
+			char * str = NULL;
+			size_t sz = 0;
+			rc = res->api->get_string_ndx(res, 2, &str, &sz);
+			assert(0 == rc);
+			assert(sz > 0);
+			//MARKER("Read string [%s]\n",str);
+			res->api->free_string(res, str);
+		}
 	}
 	assert(gotCount == count);
 	assert(DB_WRAP_E_DONE == rc);
@@ -102,7 +112,7 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 	int32_t intGet = -1;
 	const int32_t intExpect = count;
 
-	FIXME("get-double is not working. Not sure why.");
+	FIXME("get-double is not working. Not sure why.\n");
 #if 0
 	// not yet working. don't yet know why
 	double doubleGet = -1.0;

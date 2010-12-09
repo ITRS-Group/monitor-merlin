@@ -291,8 +291,29 @@ int dbiw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * va
 int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char ** val, size_t * len)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
-	TODO("implement this.");
-	return -1;
+	if (! val) return DB_WRAP_E_BAD_ARG;
+	char const * str = dbi_result_get_string_idx(dbires, ndx +1);
+	if (! str || (0==strcmp("ERROR",str)))
+	{
+		return DB_WRAP_E_CHECK_DB_ERROR;
+	}
+	const size_t slen = strlen(str);
+	if (slen)
+	{
+		char * dup = NULL;
+		dup = strdup(str);
+		if (! dup)
+		{
+			return DB_WRAP_E_ALLOC_ERROR;
+		}
+		*val = dup;
+	}
+	else
+	{
+		*val = 0;
+	}
+	*len = slen;
+	return 0;
 }
 
 int dbiw_res_free_string(db_wrap_result * self, char * str)
