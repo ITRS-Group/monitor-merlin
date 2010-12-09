@@ -9,7 +9,7 @@
 #include <string.h> /* strlen() */
 #include <inttypes.h> /* PRIuXX macros */
 #define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
-
+#define FIXME(X) MARKER("FIXME: " X)
 
 static db_wrap_conn_params paramMySql = db_wrap_conn_params_empty_m;
 static db_wrap_conn_params paramSqlite = db_wrap_conn_params_empty_m;
@@ -19,7 +19,7 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 {
 	MARKER("Running generic tests: [%s]\n",label);
 	char const * sql = "create "
-#if 1
+#if 0
 		"temporary "
 #endif
 		"table t(vint integer)";
@@ -86,16 +86,27 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 	assert(0 == rc);
 	assert(NULL != res);
 
-#if 1
-	//#error "Something is still wrong here: get_int_by_index is always returning 0."
 	int32_t intGet = -1;
 	const int32_t intExpect = count;
+
+	FIXME("get-double is not working. Not sure why.");
+#if 0
+	// not yet working. don't yet know why
+	double doubleGet = -1.0;
+	rc = db_wrap_query_double(wr, sql, strlen(sql), &doubleGet);
+	MARKER("doubleGet=%lf\n",doubleGet);
+	assert(0 == rc);
+	assert(intGet == (int)doubleGet);
+#endif
+
+#if 1
+	//#error "Something is still wrong here: get_int_by_index is always returning 0."
 	dbi_result dbires = NULL;
 #if 0
 	dbires = db_wrap_dbi_result(res);
 	assert(dbi_result_next_row( dbires) );
 	intGet = dbi_result_get_int_idx(dbires, 1);
-#elseif 0
+#elif 0
 	dbires = (dbi_result)res->impl.data;
 	assert(dbi_result_next_row( dbires) );
 	intGet = dbi_result_get_int_idx(dbires, 1);
@@ -121,14 +132,7 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 	rc = db_wrap_query_int64(wr, sql, strlen(sql), &int64Get);
 	assert(0 == rc);
 	assert(intGet == (int)int64Get);
-#if 0
-	// not yet working. don't yet know why
-	double doubleGet = -1.0;
-	rc = db_wrap_query_double(wr, sql, strlen(sql), &doubleGet);
-	MARKER("doubleGet=%lf\n",doubleGet);
-	assert(0 == rc);
-	assert(intGet == (int)doubleGet);
-#endif
+
 
 }
 
