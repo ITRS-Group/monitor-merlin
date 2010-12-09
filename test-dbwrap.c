@@ -7,6 +7,7 @@
 #include <stdio.h> /*printf()*/
 #include <stdlib.h> /*getenv()*/
 #include <string.h> /* strlen() */
+#include <inttypes.h> /* PRIuXX macros */
 #define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
 
 
@@ -21,23 +22,29 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 #if 1
 		"temporary "
 #endif
-		"table t(v integer)";
+		"table t(vint integer)";
 	db_wrap_result * res = NULL;
-	int rc = wr->api->query_result(wr, sql, strlen(sql), &res);
+	int rc;
+
+#if 0
+	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
 	assert(0 == rc);
 	assert(NULL != res);
 	//MARKER("dbi_wrap_result@%p, dbi_result@%p\n",(void const *)res, res->impl.data);
-
 	rc = res->api->finalize(res);
 	assert(0 == rc);
 	res = NULL;
+#else
+	rc = db_wrap_query_exec(wr, sql, strlen(sql));
+	assert(0 == rc);
+#endif
 
 	int i;
 	const int count = 10;
 	for(i = 1; i <= count; ++i)
 	{
 		char * q = NULL;
-		rc = asprintf(&q,"insert into t values(%d);",i);
+		rc = asprintf(&q,"insert into t (vint) values(%d);",i);
 		assert(rc > 0);
 		assert(q);
 		res = NULL;
@@ -51,7 +58,7 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 	}
 
 	sql =
-		"select * from t order by v desc"
+		"select * from t order by vint desc"
 		;
 	res = NULL;
 	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
@@ -105,6 +112,23 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 	rc = res->api->finalize(res);
 	assert(0 == rc);
 
+	intGet = -1;
+	rc = db_wrap_query_int32(wr, sql, strlen(sql), &intGet);
+	assert(0 == rc);
+	assert(intGet == intExpect);
+
+	int64_t int64Get = -1;
+	rc = db_wrap_query_int64(wr, sql, strlen(sql), &int64Get);
+	assert(0 == rc);
+	assert(intGet == (int)int64Get);
+#if 0
+	// not yet working. don't yet know why
+	double doubleGet = -1.0;
+	rc = db_wrap_query_double(wr, sql, strlen(sql), &doubleGet);
+	MARKER("doubleGet=%lf\n",doubleGet);
+	assert(0 == rc);
+	assert(intGet == (int)doubleGet);
+#endif
 
 }
 

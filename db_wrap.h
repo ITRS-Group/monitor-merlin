@@ -72,7 +72,7 @@ struct db_wrap_impl
 typedef struct db_wrap_impl db_wrap_impl;
 
 /** Empty-initialized db_wrap_impl object. */
-#define db_wrap_impl_empty_m {NULL,NULL,NULL}
+#define db_wrap_impl_empty_m {NULL,NULL}
 
 /** Empty-initialized db_wrap_impl object. */
 extern const db_wrap_impl db_wrap_impl_empty;
@@ -353,4 +353,31 @@ typedef struct db_wrap_conn_params db_wrap_conn_params;
 	}
 /** Empty-initialized db_wrap_conn_params object. */
 extern const db_wrap_conn_params db_wrap_conn_params_empty;
+
+/**
+   Runs a query which is expected to return no results, e.g. a CREATE TABLE
+   or DELETE command.
+
+   Returns 0 on success.
+*/
+int db_wrap_query_exec(db_wrap * db, char const * sql, size_t len);
+/**
+   Runs a query which is expected to return exactly 1 int32-compatible result.
+   On success 0 is returned and *tgt is set to its value. If the query returns no
+   results then *tgt is set to 0.
+*/
+int db_wrap_query_int32(db_wrap * db, char const * sql, size_t len, int32_t * tgt);
+/**
+   Identical to db_wrap_query_int32(), but takes an int64_t instead.
+*/
+int db_wrap_query_int64(db_wrap * db, char const * sql, size_t len, int64_t * tgt);
+/**
+   Identical to db_wrap_query_int32(), but takes an double instead.
+*/
+int db_wrap_query_double(db_wrap * db, char const * sql, size_t len, double * tgt);
+/**
+   Not yet implemented.
+*/
+int db_wrap_query_string(db_wrap * db, char const * sql, size_t len, char ** tgt, size_t * tgtLen);
+
 #endif /* _MERLIN_DB_WRAP_H_INCLUDED */
