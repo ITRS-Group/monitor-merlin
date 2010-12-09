@@ -56,10 +56,11 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 	for(i = 1; i <= count; ++i)
 	{
 		char * q = NULL;
-		rc = asprintf(&q,"insert into t (vint) values(%d);",i);
+		rc = asprintf(&q,"insert into t (vint, vdbl) values(%d,%2.1lf);",i,(i*1.1));
 		assert(rc > 0);
 		assert(q);
 		res = NULL;
+		//MARKER("Query=[%s]\n",q);
 		rc = wr->api->query_result(wr, q, strlen(q), &res);
 		free(q);
 		assert(0 == rc);
@@ -112,18 +113,15 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 #endif
 
 #if 1
-	//#error "Something is still wrong here: get_int_by_index is always returning 0."
-	dbi_result dbires = NULL;
 #if 0
-	dbires = db_wrap_dbi_result(res);
+	dbi_result dbires = db_wrap_dbi_result(res);
 	assert(dbi_result_next_row( dbires) );
 	intGet = dbi_result_get_int_idx(dbires, 1);
 #elif 0
-	dbires = (dbi_result)res->impl.data;
+	dbi_result dbires = (dbi_result)res->impl.data;
 	assert(dbi_result_next_row( dbires) );
 	intGet = dbi_result_get_int_idx(dbires, 1);
 #else
-	dbires = NULL;
 	rc = res->api->step(res);
 	assert(0 == rc);
 	rc = res->api->get_int32_ndx(res, 0, &intGet);

@@ -193,6 +193,11 @@ clean-log:
 ## PHONY targets
 .PHONY: version.c clean clean-core clean-log
 
-clean-stephan:
+clean-dbwrap:
 	-rm -f merlin.sqlite
-	mysql -umerlin -pmerlin merlin -e 'drop table if exists t;'
+	-mysql -umerlin -pmerlin merlin -e 'drop table if exists t;'
+test-dbwrap-temp: test-dbwrap
+	./test-dbwrap
+test-dbwrap-notemp: test-dbwrap clean-dbwrap
+	./test-dbwrap -t
+.PHONY: test-dbwrap test-dbwrap-notemp
