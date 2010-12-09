@@ -275,7 +275,7 @@ int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * va
 int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * val)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
-	if (! val || !ndx) return DB_WRAP_E_BAD_ARG;
+	if (! val) return DB_WRAP_E_BAD_ARG;
 	*val = dbi_result_get_longlong_idx(dbires, ndx +1);
 	return 0;
 }
@@ -283,7 +283,7 @@ int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * va
 int dbiw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * val)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
-	if (! val || !ndx) return DB_WRAP_E_BAD_ARG;
+	if (! val) return DB_WRAP_E_BAD_ARG;
 	*val = dbi_result_get_double_idx(dbires, ndx +1);
 	return -1;
 }

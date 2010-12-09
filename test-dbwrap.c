@@ -107,7 +107,7 @@ void test_sqlite_1()
 #endif
 
 #if 0
-#error "Something is still wrong here: get_int_by_index is always returning 0."
+	//#error "Something is still wrong here: get_int_by_index is always returning 0."
 	int32_t intGet = -1;
 	const int32_t intExpect = 1;
 #if 1
