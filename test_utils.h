@@ -1,7 +1,7 @@
 #ifndef INCLUDE_test_utils_h__
 #define INCLUDE_test_utils_h__
-#define TEST_PASS 0
-#define TEST_FAIL 1
+#define TEST_PASS 1
+#define TEST_FAIL 0
 
 extern const char *red, *green, *yellow, *cyan, *reset;
 extern unsigned int passed, failed, t_verbose;
