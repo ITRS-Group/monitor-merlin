@@ -191,3 +191,7 @@ clean-log:
 
 ## PHONY targets
 .PHONY: version.c clean clean-core clean-log
+
+clean-stephan:
+	-rm -f merlin.sqlite
+	mysql -umerlin -pmerlin merlin -e 'drop table if exists t;'

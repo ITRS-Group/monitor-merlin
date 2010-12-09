@@ -298,8 +298,8 @@ int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char ** val
 int dbiw_res_free_string(db_wrap_result * self, char * str)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
-	TODO("implement this.");
-	return -1;
+	free(str);
+	return 0;
 }
 
 int dbiw_res_finalize(db_wrap_result * self)

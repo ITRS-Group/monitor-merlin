@@ -14,7 +14,11 @@ static db_wrap_conn_params paramSqlite = db_wrap_conn_params_empty_m;
 void test_libdbi_generic(char const * label, db_wrap * wr)
 {
 	MARKER("Running generic tests: [%s]\n",label);
-	char const * sql = "create temporary table t(a integer)";
+	char const * sql = "create "
+#if 1
+		"temporary "
+#endif
+		"table t(a integer)";
 	db_wrap_result * res = NULL;
 	int rc = wr->api->query_result(wr, sql, strlen(sql), &res);
 	assert(0 == rc);
@@ -23,6 +27,18 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 
 	rc = res->api->finalize(res);
 	assert(0 == rc);
+	res = NULL;
+
+	sql = "insert into t values(42);";
+	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
+	assert(0 == rc);
+	assert(NULL != res);
+
+
+	rc = res->api->finalize(res);
+	assert(0 == rc);
+
+
 
 	sql =
 		//"select count(*) from sqlite_master;"
