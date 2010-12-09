@@ -200,4 +200,4 @@ test-dbwrap-temp: test-dbwrap
 	./test-dbwrap
 test-dbwrap-notemp: test-dbwrap clean-dbwrap
 	./test-dbwrap -t
-.PHONY: test-dbwrap test-dbwrap-notemp
+.PHONY: test-dbwrap-temp test-dbwrap-notemp
