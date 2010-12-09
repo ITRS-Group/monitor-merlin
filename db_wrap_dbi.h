@@ -18,12 +18,20 @@
 
    On success 0 is returned, *tgt is assigned to the wrapper object,
    which now owns conn and which the caller must eventually free by
-   calling (*tgt)->finalize(*tgt).
+   calling (*tgt)->api->finalize(*tgt).
 
-   The connection is not opened by this function: call tgt->api->connect(tgt)
-   to do that.
+   The connection is not opened by this function: call
+   tgt->api->connect(tgt) to do that.
 */
 int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const * param, db_wrap ** tgt);
+
+/**
+   Functionally identical to db_wrap_dbi_init(), but it takes a libdbi
+   driver name as the first argument. e.g. "mysql" or "sqlite3".
+
+   Returns 0 on success.
+*/
+int db_wrap_dbi_init2(char const * driver, db_wrap_conn_params const * param, db_wrap ** tgt);
 
 /**
    A temporary function for use only while porting the dbi-using bits

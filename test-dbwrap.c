@@ -5,7 +5,7 @@
 #include <assert.h>
 
 #include <stdio.h> /*printf()*/
-#include <stdlib.h> /*getenv()*/
+#include <stdlib.h> /*getenv(), atexit()*/
 #include <string.h> /* strlen() */
 #include <inttypes.h> /* PRIuXX macros */
 #include <stdbool.h>
@@ -164,9 +164,7 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 void test_mysql_1()
 {
 	db_wrap * wr = NULL;
-	dbi_conn conn = dbi_conn_new("mysql");
-	assert(conn);
-	int rc = db_wrap_dbi_init(conn, &paramMySql, &wr);
+	int rc = db_wrap_dbi_init2("mysql", &paramMySql, &wr);
 	assert(0 == rc);
 	assert(wr);
 	rc = wr->api->connect(wr);
@@ -192,9 +190,7 @@ void test_mysql_1()
 void test_sqlite_1()
 {
 	db_wrap * wr = NULL;
-	dbi_conn conn = dbi_conn_new("sqlite3");
-	assert(conn);
-	int rc = db_wrap_dbi_init(conn, &paramSqlite, &wr);
+	int rc = db_wrap_dbi_init2("sqlite3", &paramSqlite, &wr);
 	assert(0 == rc);
 	assert(wr);
 	char const * dbdir = getenv("PWD");
@@ -238,6 +234,11 @@ static void show_help(char const * appname)
 	puts("\t-s = disable sqlite3 test.");
 }
 
+void do_atexit()
+{
+	dbi_shutdown();
+}
+
 int main(int argc, char const ** argv)
 {
 	int i;
@@ -278,9 +279,9 @@ int main(int argc, char const ** argv)
 		paramSqlite.dbname = "merlin.sqlite";
 	}
 	dbi_initialize(NULL);
+	atexit(do_atexit);
 	if (ThisApp.testMySQL) test_mysql_1();
 	if (ThisApp.testSQLite3) test_sqlite_1();
-	dbi_shutdown();
 	MARKER("If you got this far, it worked.\n");
 	return 0;
 }

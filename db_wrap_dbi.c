@@ -5,6 +5,7 @@ Concrete db_wrap implementation based off of libdbi.
 */
 #include "db_wrap_dbi.h"
 #include <string.h> /* strcmp() */
+#include <assert.h>
 
 #if 1
 #  include <stdio.h>
@@ -48,6 +49,29 @@ static dbiw_db dbiw_db_empty = {
 NULL/*connection*/
 };
 
+
+int db_wrap_dbi_init2(char const * driver, db_wrap_conn_params const * param, db_wrap ** tgt)
+{
+	if (! driver || !*driver || ! param || !tgt)
+	{
+		return DB_WRAP_E_BAD_ARG;
+	}
+	dbi_conn conn = dbi_conn_new(driver);
+	if (! conn)
+	{
+		return DB_WRAP_E_UNKNOWN_ERROR;
+	}
+	db_wrap * db = NULL;
+	int rc = db_wrap_dbi_init(conn, param, &db);
+	if (rc)
+	{
+		dbi_conn_close(conn);
+		return rc;
+	}
+	assert(db);
+	*tgt = db;
+	return rc;
+}
 
 static const db_wrap_result_api dbiw_res_api =
 {
