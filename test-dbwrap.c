@@ -8,21 +8,33 @@
 #include <stdlib.h> /*getenv()*/
 #include <string.h> /* strlen() */
 #include <inttypes.h> /* PRIuXX macros */
+#include <stdbool.h>
 #define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
 #define FIXME(X) MARKER("FIXME: " X)
 
 static db_wrap_conn_params paramMySql = db_wrap_conn_params_empty_m;
 static db_wrap_conn_params paramSqlite = db_wrap_conn_params_empty_m;
 
+static struct {
+	bool useTempTables;
+	bool testMySQL;
+	bool testSQLite3;
+} ThisApp = {
+true/*useTempTables*/,
+true/*testMySQL*/,
+true/*testSQLite3*/
+};
 
 void test_libdbi_generic(char const * label, db_wrap * wr)
 {
 	MARKER("Running generic tests: [%s]\n",label);
-	char const * sql = "create "
-#if 0
-		"temporary "
-#endif
-		"table t(vint integer)";
+#define TABLE_DEF \
+	"table t(vint integer, vdbl float(12,4), vstr varchar(32))"
+	char const * sql = ThisApp.useTempTables
+		? ("create temporary " TABLE_DEF)
+		: ("create " TABLE_DEF)
+		;
+#undef TABLE_DEF
 	db_wrap_result * res = NULL;
 	int rc;
 
@@ -204,8 +216,44 @@ void test_sqlite_1()
 	assert(0 == rc);
 }
 
+static void show_help(char const * appname)
+{
+	printf("Usage:\n\t%s [-s] [-m] [-t]\n",appname);
+	puts("Options:");
+	puts("\t-t = use non-temporary tables for tests. Will fail if the tables already exist.");
+	puts("\t-m = disable mysql test.");
+	puts("\t-s = disable sqlite3 test.");
+}
+
 int main(int argc, char const ** argv)
 {
+	int i;
+	for(i = 1; i < argc; ++i)
+	{
+		char const * arg = argv[i];
+		if (0 == strcmp("-t", arg) )
+		{
+			ThisApp.useTempTables = false;
+			continue;
+		}
+		else if (0 == strcmp("-s", arg) )
+		{
+			ThisApp.testSQLite3 = false;
+			continue;
+		}
+		else if (0 == strcmp("-m", arg) )
+		{
+			ThisApp.testMySQL = false;
+			continue;
+		}
+		else if ((0 == strcmp("-?", arg))
+			     || (0 == strcmp("--help", arg)) )
+		{
+			show_help(argv[0]);
+			return 1;
+		}
+	}
+
 	{
 		paramMySql.host = "localhost";
 		paramMySql.port = 3306;
@@ -217,8 +265,8 @@ int main(int argc, char const ** argv)
 		paramSqlite.dbname = "merlin.sqlite";
 	}
 	dbi_initialize(NULL);
-	test_mysql_1();
-	test_sqlite_1();
+	if (ThisApp.testMySQL) test_mysql_1();
+	if (ThisApp.testSQLite3) test_sqlite_1();
 	dbi_shutdown();
 	MARKER("If you got this far, it worked.\n");
 	return 0;
