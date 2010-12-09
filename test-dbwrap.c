@@ -121,9 +121,9 @@ void test_sqlite_1()
 #endif
 	MARKER("got int=%d\n",intGet);
 	assert(intGet == intExpect);
+#endif
 	rc = res->api->finalize(res);
 	assert(0 == rc);
-#endif
 
 	rc = wr->api->finalize(wr);
 	assert(0 == rc);
