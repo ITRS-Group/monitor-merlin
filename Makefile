@@ -170,6 +170,7 @@ $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
 
 test-dbwrap.o: test-dbwrap.c
 test-dbwrap: test-dbwrap.o db_wrap.o db_wrap_dbi.o
+db_wrap.o: db_wrap.h db_wrap.c
 test-dbwrap: LDFLAGS+=$(MTEST_LDFLAGS)
 APPS += test-dbwrap
 all: test-dbwrap
