@@ -285,7 +285,7 @@ int dbiw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * va
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
 	*val = dbi_result_get_double_idx(dbires, ndx +1);
-	return -1;
+	return 0;
 }
 
 int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char ** val, size_t * len)

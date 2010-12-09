@@ -1,3 +1,5 @@
+#define _GNU_SOURCE 1 /* for vasprintf */
+
 #include "db_wrap.h"
 #include "db_wrap_dbi.h"
 #include <assert.h>
@@ -11,6 +13,7 @@
 static db_wrap_conn_params paramMySql = db_wrap_conn_params_empty_m;
 static db_wrap_conn_params paramSqlite = db_wrap_conn_params_empty_m;
 
+
 void test_libdbi_generic(char const * label, db_wrap * wr)
 {
 	MARKER("Running generic tests: [%s]\n",label);
@@ -18,7 +21,7 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 #if 1
 		"temporary "
 #endif
-		"table t(a integer)";
+		"table t(v integer)";
 	db_wrap_result * res = NULL;
 	int rc = wr->api->query_result(wr, sql, strlen(sql), &res);
 	assert(0 == rc);
@@ -29,20 +32,26 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 	assert(0 == rc);
 	res = NULL;
 
-	sql = "insert into t values(42);";
-	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
-	assert(0 == rc);
-	assert(NULL != res);
-
-
-	rc = res->api->finalize(res);
-	assert(0 == rc);
-
-
+	int i;
+	const int count = 10;
+	for(i = 1; i <= count; ++i)
+	{
+		char * q = NULL;
+		rc = asprintf(&q,"insert into t values(%d);",i);
+		assert(rc > 0);
+		assert(q);
+		res = NULL;
+		rc = wr->api->query_result(wr, q, strlen(q), &res);
+		free(q);
+		assert(0 == rc);
+		assert(NULL != res);
+		rc = res->api->finalize(res);
+		assert(0 == rc);
+		res = NULL;
+	}
 
 	sql =
-		//"select count(*) from sqlite_master;"
-		"select 1"
+		"select * from t order by v desc"
 		;
 	res = NULL;
 	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
@@ -50,26 +59,36 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 	assert(NULL != res);
 	assert(res->impl.data == db_wrap_dbi_result(res));
 
-#if 0
 	/* ensure that stepping acts as expected. */
-	rc = res->api->step(res);
-	assert(0 == rc);
-	rc = res->api->step(res);
+	int gotCount = 0;
+	while(0 == (rc = res->api->step(res)))
+	{
+		++gotCount;
+	}
+	assert(gotCount == count);
 	assert(DB_WRAP_E_DONE == rc);
 	res->api->finalize(res);
-	return;
-#endif
 
-#if 0
+	// FIXME: add reset() to the result API.
+
+	/**
+	   Now try fetching some values...
+	*/
+	res = NULL;
+	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
+	assert(0 == rc);
+	assert(NULL != res);
+
+#if 1
 	//#error "Something is still wrong here: get_int_by_index is always returning 0."
 	int32_t intGet = -1;
-	const int32_t intExpect = 1;
+	const int32_t intExpect = count;
 	dbi_result dbires = NULL;
 #if 0
 	dbires = db_wrap_dbi_result(res);
 	assert(dbi_result_next_row( dbires) );
 	intGet = dbi_result_get_int_idx(dbires, 1);
-#elseif 1
+#elseif 0
 	dbires = (dbi_result)res->impl.data;
 	assert(dbi_result_next_row( dbires) );
 	intGet = dbi_result_get_int_idx(dbires, 1);
@@ -80,7 +99,7 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 	rc = res->api->get_int32_ndx(res, 0, &intGet);
 	assert(0 == rc);
 #endif
-	MARKER("got int=%d\n",intGet);
+	//MARKER("got int=%d\n",intGet);
 	assert(intGet == intExpect);
 #endif
 	rc = res->api->finalize(res);
