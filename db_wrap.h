@@ -248,7 +248,8 @@ struct db_wrap_result_api
 
 	FIXME: replace these values with an enum. i HATE these semantics,
 	but i can't think of an alternative without adding another member
-	function like "is_okay()".
+	function like "is_okay()". These semantics were adopted from
+	sqlite3, which uses something very similar.
 
 	*/
 	int (*step)(db_wrap_result * self);
