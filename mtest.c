@@ -155,7 +155,6 @@ static void load_hosts_and_services(void)
 
 static void t_setup(void)
 {
-	sql_init();
 	printf("Using database '%s'\n", sql_db_name());
 	printf("%u comments\n", count_table_rows("comment"));
 	printf("%u hosts\n", count_table_rows("host"));
@@ -952,6 +951,10 @@ int main(int argc, char **argv)
 		t_fail("post_config_init not set (fatal)");
 		exit(1);
 	} else {
+		sql_init();
+		sql_query("TRUNCATE host");
+		sql_query("TRUNCATE service");
+
 		time_t start = time(NULL);
 		nebstruct_process_data ds;
 		ds.type = NEBTYPE_PROCESS_EVENTLOOPSTART;
