@@ -11,8 +11,9 @@
 static db_wrap_conn_params paramMySql = db_wrap_conn_params_empty_m;
 static db_wrap_conn_params paramSqlite = db_wrap_conn_params_empty_m;
 
-void test_libdbi_generic(db_wrap * wr)
+void test_libdbi_generic(char const * label, db_wrap * wr)
 {
+	MARKER("Running generic tests: [%s]\n",label);
 	char const * sql = "create temporary table t(a integer)";
 	db_wrap_result * res = NULL;
 	int rc = wr->api->query_result(wr, sql, strlen(sql), &res);
@@ -22,6 +23,53 @@ void test_libdbi_generic(db_wrap * wr)
 
 	rc = res->api->finalize(res);
 	assert(0 == rc);
+
+	sql =
+		//"select count(*) from sqlite_master;"
+		"select 1"
+		;
+	res = NULL;
+	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
+	assert(0 == rc);
+	assert(NULL != res);
+	assert(res->impl.data == db_wrap_dbi_result(res));
+
+#if 0
+	/* ensure that stepping acts as expected. */
+	rc = res->api->step(res);
+	assert(0 == rc);
+	rc = res->api->step(res);
+	assert(DB_WRAP_E_DONE == rc);
+	res->api->finalize(res);
+	return;
+#endif
+
+#if 0
+	//#error "Something is still wrong here: get_int_by_index is always returning 0."
+	int32_t intGet = -1;
+	const int32_t intExpect = 1;
+	dbi_result dbires = NULL;
+#if 0
+	dbires = db_wrap_dbi_result(res);
+	assert(dbi_result_next_row( dbires) );
+	intGet = dbi_result_get_int_idx(dbires, 1);
+#elseif 1
+	dbires = (dbi_result)res->impl.data;
+	assert(dbi_result_next_row( dbires) );
+	intGet = dbi_result_get_int_idx(dbires, 1);
+#else
+	dbires = NULL;
+	rc = res->api->step(res);
+	assert(0 == rc);
+	rc = res->api->get_int32_ndx(res, 0, &intGet);
+	assert(0 == rc);
+#endif
+	MARKER("got int=%d\n",intGet);
+	assert(intGet == intExpect);
+#endif
+	rc = res->api->finalize(res);
+	assert(0 == rc);
+
 
 }
 
@@ -47,7 +95,7 @@ void test_mysql_1()
 	rc = wr->api->free_string(wr, sqlCP);
 	assert(0 == rc);
 
-	test_libdbi_generic(wr);
+	test_libdbi_generic("mysql",wr);
 
 	rc = wr->api->finalize(wr);
 	assert(0 == rc);
@@ -86,44 +134,8 @@ void test_sqlite_1()
 	assert(0 == rc);
 	assert(0 == strcmp( sql, dbdir) );
 
-	test_libdbi_generic(wr);
+	test_libdbi_generic("sqlite3",wr);
 
-	sql =
-		//"select count(*) from sqlite_master;"
-		"select 1"
-		;
-	db_wrap_result * res = NULL;
-	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
-	assert(0 == rc);
-	assert(NULL != res);
-	assert(res->impl.data == db_wrap_dbi_result(res));
-
-#if 0
-	rc = res->api->step(res);
-	assert(0 == rc);
-	rc = res->api->step(res);
-	assert(DB_WRAP_E_DONE == rc);
-	assert(0);
-#endif
-
-#if 0
-	//#error "Something is still wrong here: get_int_by_index is always returning 0."
-	int32_t intGet = -1;
-	const int32_t intExpect = 1;
-#if 1
-	assert(dbi_result_next_row( db_wrap_dbi_result(res)) );
-	intGet = dbi_result_get_int_idx(db_wrap_dbi_result(res), 1);
-#else
-	rc = res->api->step(res);
-	assert(0 == rc);
-	rc = res->api->get_int32_ndx(res, 0, &intGet);
-	assert(0 == rc);
-#endif
-	MARKER("got int=%d\n",intGet);
-	assert(intGet == intExpect);
-#endif
-	rc = res->api->finalize(res);
-	assert(0 == rc);
 
 	rc = wr->api->finalize(wr);
 	assert(0 == rc);
