@@ -168,6 +168,15 @@ struct db_wrap_api
 	   *val. The exact type of val is driver-specific, and the client
 	   must be sure to pass a pointer to the proper type.
 
+	   For string options, the caller must pass a (char const **),
+	   which will be pointed to the option bytes, which are owned by
+	   the wrapper object and have no designated lifetime. To be safe,
+	   the caller should copy the bytes if needed beyond the next call
+	   to the call into the db.
+
+	   For integer options, the caller must pass a (int*), which will be
+	   assigned the option's value by this function.
+
 	   Returns 0 on success.
 	*/
 	int (*option_get)(db_wrap * db, char const * key, void * val);

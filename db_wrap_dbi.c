@@ -186,8 +186,31 @@ int dbiw_option_set(db_wrap * self, char const * key, void const * val)
 int dbiw_option_get(db_wrap * self, char const * key, void * val)
 {
 	DB_DECL(DB_WRAP_E_BAD_ARG);
-	TODO("implement this.");
-	return -1;
+	char const * rcC = NULL;
+	int rcI = 0;
+#define TRYSTR(K) if (0==strcmp(K,key)) {                \
+		rcC = dbi_conn_get_option(impl->conn, key); }
+#define TRYNUM(K) if (0==strcmp(K,key)) {                \
+		rcI = dbi_conn_get_option_numeric(impl->conn, key); }
+
+	TRYSTR("host")
+	else TRYSTR("username")
+	else TRYSTR("password")
+	else TRYSTR("dbname")
+	else TRYNUM("port")
+	else TRYSTR("encoding")
+	else TRYSTR("sqlite3_dbdir")
+	else TRYNUM("sqlite3_timeout")
+	else return DB_WRAP_E_UNSUPPORTED;
+	if (rcC)
+	{
+		*((char const **)val) = rcC;
+	}
+	else
+	{
+		*((int *)val) = rcI;
+	}
+	return 0;
 }
 
 int dbiw_cleanup(db_wrap * self)

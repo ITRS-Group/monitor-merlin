@@ -46,7 +46,8 @@ void test_sqlite_1()
 	int rc = db_wrap_dbi_init(conn, &paramSqlite, &wr);
 	assert(0 == rc);
 	assert(wr);
-	rc = wr->api->option_set(wr, "sqlite3_dbdir", getenv("PWD"));
+	char const * dbdir = getenv("PWD");
+	rc = wr->api->option_set(wr, "sqlite3_dbdir", dbdir);
 	assert(0 == rc);
 	rc = wr->api->connect(wr);
 	assert(0 == rc);
@@ -64,6 +65,11 @@ void test_sqlite_1()
 	assert(0 == strcmp("'hi, ''world'''", sqlCP) );
 	rc = wr->api->free_string(wr, sqlCP);
 	assert(0 == rc);
+
+	sql = NULL;
+	rc = wr->api->option_get(wr, "sqlite3_dbdir", &sql);
+	assert(0 == rc);
+	assert(0 == strcmp( sql, dbdir) );
 
 	rc = wr->api->finalize(wr);
 	assert(0 == rc);
