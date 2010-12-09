@@ -982,6 +982,10 @@ int main(int argc, char **argv)
 		printf("Running %s to test %s\n", t->funcname, t->cb_name);
 
 		t->test();
+		if (!ipc_is_connected(0)) {
+			t_fail("%s tests seems to crash the merlin daemon", t->cb_name);
+			break;
+		}
 	}
 
 	nebmodule_deinit(-1, -1);
