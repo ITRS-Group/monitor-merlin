@@ -712,7 +712,7 @@ int nebmodule_deinit(int flags, int reason)
 	 * Nagios' command pipe. We also (currently) loose
 	 * the ipc binlog, if any, which is slightly annoying
 	 */
-	safe_free(ipc.ioc.buf);
+	safe_free(ipc.ioc.ioc_buf);
 	safe_free(node_table);
 	binlog_wipe(ipc.binlog, BINLOG_UNLINK);
 

@@ -215,11 +215,11 @@ static void post_process_nodes(void)
 
 		node->action = node_action_handler;
 
-		node->ioc.bufsize = MERLIN_IOC_BUFSIZE;
-		node->ioc.buf = malloc(node->ioc.bufsize);
-		if (!node->ioc.buf) {
+		node->ioc.ioc_bufsize = MERLIN_IOC_BUFSIZE;
+		node->ioc.ioc_buf = malloc(node->ioc.ioc_bufsize);
+		if (!node->ioc.ioc_buf) {
 			lerr("Failed to malloc(%lu) for io cache for node %s. Aborting",
-				 node->ioc.bufsize, node->name);
+				 node->ioc.ioc_bufsize, node->name);
 		}
 	}
 }

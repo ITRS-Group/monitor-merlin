@@ -103,10 +103,10 @@ typedef struct merlin_confsync merlin_confsync;
  */
 #define MERLIN_IOC_BUFSIZE (256 * 1024)
 struct merlin_iocache {
-	char *buf;             /* the data */
-	unsigned long offset;  /* where we're reading in the buffer */
-	unsigned long buflen;  /* the amount of data read into the buffer */
-	unsigned long bufsize; /* size of the buffer */
+	char *ioc_buf;             /* the data */
+	unsigned long ioc_offset;  /* where we're reading in the buffer */
+	unsigned long ioc_buflen;  /* the amount of data read into the buffer */
+	unsigned long ioc_bufsize; /* size of the buffer */
 };
 typedef struct merlin_iocache merlin_iocache;
 

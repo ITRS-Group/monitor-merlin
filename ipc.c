@@ -13,8 +13,8 @@ void ipc_init_struct(void)
 	ipc.id = CTRL_GENERIC;
 	ipc.type = MODE_LOCAL;
 	ipc.name = "ipc";
-	ipc.ioc.bufsize = MERLIN_IOC_BUFSIZE;
-	if (!(ipc.ioc.buf = malloc(ipc.ioc.bufsize))) {
+	ipc.ioc.ioc_bufsize = MERLIN_IOC_BUFSIZE;
+	if (!(ipc.ioc.ioc_buf = malloc(ipc.ioc.ioc_bufsize))) {
 		lerr("Failed to malloc() %d bytes for ipc io cache: %s",
 			 MERLIN_IOC_BUFSIZE, strerror(errno));
 		/*

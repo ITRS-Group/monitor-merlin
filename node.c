@@ -23,7 +23,7 @@ void node_set_state(merlin_node *node, int state)
 		int snd, rcv;
 		socklen_t size = sizeof(int);
 
-		set_socket_options(node->sock, (int)node->ioc.bufsize);
+		set_socket_options(node->sock, (int)node->ioc.ioc_bufsize);
 		getsockopt(node->sock, SOL_SOCKET, SO_SNDBUF, &snd, &size);
 		getsockopt(node->sock, SOL_SOCKET, SO_SNDBUF, &rcv, &size);
 		ldebug("send / receive buffers are %s / %s for node %s",
@@ -491,7 +491,7 @@ void node_disconnect(merlin_node *node)
 	node_set_state(node, STATE_NONE);
 	node->last_recv = 0;
 	node->sock = -1;
-	node->ioc.buflen = node->ioc.offset = 0;
+	node->ioc.ioc_buflen = node->ioc.ioc_offset = 0;
 }
 
 static int node_binlog_add(merlin_node *node, merlin_event *pkt)
@@ -558,12 +558,12 @@ int node_recv(merlin_node *node, int flags)
 	 * prevents us from ending up in an infinite loop in case
 	 * we hit the bufsize with both buflen and offset
 	 */
-	if (ioc->offset >= ioc->buflen)
-		ioc->offset = ioc->buflen = 0;
+	if (ioc->ioc_offset >= ioc->ioc_buflen)
+		ioc->ioc_offset = ioc->ioc_buflen = 0;
 
-	to_read = ioc->bufsize - ioc->offset;
+	to_read = ioc->ioc_bufsize - ioc->ioc_offset;
 	flags |= MSG_NOSIGNAL;
-	bytes_read = recv(node->sock, ioc->buf + ioc->buflen, to_read, flags);
+	bytes_read = recv(node->sock, ioc->ioc_buf + ioc->ioc_buflen, to_read, flags);
 
 	/*
 	 * If we read something, update the stat counter
@@ -571,7 +571,7 @@ int node_recv(merlin_node *node, int flags)
 	 * input as it sees fit
 	 */
 	if (bytes_read > 0) {
-		ioc->buflen += bytes_read;
+		ioc->ioc_buflen += bytes_read;
 		node->stats.bytes.read += bytes_read;
 		return bytes_read;
 	}
@@ -591,7 +591,7 @@ int node_recv(merlin_node *node, int flags)
 		lerr("Failed to recv() %d bytes from %s node %s: %s",
 		     to_read, node_type(node), node->name, strerror(errno));
 		ldebug("sock: %d; buf: %p; buflen: %lu; offset: %lu; bufsize: %lu",
-			   node->sock, ioc->buf, ioc->buflen, ioc->offset, ioc->bufsize);
+			   node->sock, ioc->ioc_buf, ioc->ioc_buflen, ioc->ioc_offset, ioc->ioc_bufsize);
 			   
 	}
 	node_disconnect(node);
@@ -656,16 +656,16 @@ merlin_event *node_get_event(merlin_node *node)
 	 * as bufsize, and thus we will issue zero-size reads and
 	 * never get any new events from the node.
 	 *
-	 * This must come before we assign pkt into the ioc->buf,
+	 * This must come before we assign pkt into the ioc->ioc_buf,
 	 * since we may otherwise try to read beyond the end of the
 	 * buffer.
 	 */
-	if (ioc->offset >= ioc->buflen) {
-		ioc->offset = ioc->buflen = 0;
+	if (ioc->ioc_offset >= ioc->ioc_buflen) {
+		ioc->ioc_offset = ioc->ioc_buflen = 0;
 		return NULL;
 	}
 
-	pkt = (merlin_event *)(ioc->buf + ioc->offset);
+	pkt = (merlin_event *)(ioc->ioc_buf + ioc->ioc_offset);
 
 	/*
 	 * If one event lacks a complete header, we mustn't try to access
@@ -679,18 +679,17 @@ merlin_event *node_get_event(merlin_node *node)
 	 * When either of those happen, we move the remainder of the buf
 	 * to the start of it and set the offsets and counters properly
 	 */
-	available = ioc->buflen - ioc->offset;
-	if ((int)HDR_SIZE > available || packet_size(pkt) > available)
-	{
-		memmove(ioc->buf, ioc->buf + ioc->offset, available);
-		ioc->buflen = available;
+	available = ioc->ioc_buflen - ioc->ioc_offset;
+	if ((int)HDR_SIZE > available || packet_size(pkt) > available) {
+		memmove(ioc->ioc_buf, ioc->ioc_buf + ioc->ioc_offset, available);
+		ioc->ioc_buflen = available;
 		ldebug("IOC: moved %d bytes from %p to %p. buflen: %lu; bufsize: %lu",
-			   available, ioc->buf + ioc->offset, ioc->buf, ioc->buflen, ioc->bufsize);
-		ioc->offset = 0;
+			   available, ioc->ioc_buf + ioc->ioc_offset, ioc->ioc_buf, ioc->ioc_buflen, ioc->ioc_bufsize);
+		ioc->ioc_offset = 0;
 		return NULL;
 	}
 	node->stats.events.read++;
-	ioc->offset += packet_size(pkt);
+	ioc->ioc_offset += packet_size(pkt);
 	return pkt;
 }
 
