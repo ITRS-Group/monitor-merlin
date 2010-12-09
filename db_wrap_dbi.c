@@ -8,12 +8,14 @@ Concrete db_wrap implementation based off of libdbi.
 
 #if 1
 #  include <stdio.h>
-#  define MARKER printf("MARKER: %s:%d:%s():\n",__FILE__,__LINE__,__func__); printf
+#  define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
 #  define TODO(X) MARKER("TODO: %s\n",X)
+#  define FIXME(X) MARKER("FIXME: %s\n",X)
 #else
    static void bogo_printf(...) { }
 #  define MARKER bogo_printf
 #  define TODO(X)
+#  define FIXME(X)
 #endif
 
 static int dbiw_connect(db_wrap * self);
@@ -28,10 +30,10 @@ static int dbiw_finalize(db_wrap * self);
 
 
 static int dbiw_res_step(db_wrap_result * self);
-static int dbiw_res_get_int32_ndx(db_wrap_result * self, int ndx, int32_t * val);
-static int dbiw_res_get_int64_ndx(db_wrap_result * self, int ndx, int64_t * val);
-static int dbiw_res_get_double_ndx(db_wrap_result * self, int ndx, double * val);
-static int dbiw_res_get_string_ndx(db_wrap_result * self, int ndx, char ** val, size_t * len);
+static int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * val);
+static int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * val);
+static int dbiw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * val);
+static int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char ** val, size_t * len);
 static int dbiw_res_free_string(db_wrap_result * self, char * str);
 static int dbiw_res_finalize(db_wrap_result * self);
 
@@ -44,16 +46,6 @@ typedef struct dbiw_db dbiw_db;
 
 static dbiw_db dbiw_db_empty = {
 NULL/*connection*/
-};
-
-struct dbiw_res_impl
-{
-	dbi_result result;
-};
-typedef struct dbiw_res_impl dbiw_res_impl;
-
-static const dbiw_res_impl dbiw_res_impl_empty = {
-NULL/*result*/
 };
 
 
@@ -98,19 +90,20 @@ NULL/*data*/,
 };
 
 #define DB_DECL(ERRVAL) \
-	dbiw_db * impl = (self && (self->api==&db_wrap_api_libdbi))   \
+	dbiw_db * db = (self && (self->api==&db_wrap_api_libdbi))   \
 		? (dbiw_db *)self->impl.data : NULL;                       \
-		if (!impl) return ERRVAL
+		if (!db) return ERRVAL
 
 #define RES_DECL(ERRVAL) \
-	dbiw_res_impl * res = (self && (self->api==&dbiw_res_api))   \
-		? (dbiw_res_impl *)self->impl.data : NULL; \
-		if (!res) return ERRVAL
+	dbi_result dbires = (self && (self->api==&dbiw_res_api))   \
+		? (dbi_result)self->impl.data : NULL; \
+	/*MARKER("dbi_wrap_result@%p, dbi_result@%p\n",(void const *)self, (void const *)dbires);*/ \
+		if (!dbires) return ERRVAL
 
 int dbiw_connect(db_wrap * self)
 {
 	DB_DECL(DB_WRAP_E_BAD_ARG);
-	int rc = dbi_conn_connect(impl->conn);
+	int rc = dbi_conn_connect(db->conn);
 	return rc;
 }
 
@@ -120,7 +113,7 @@ size_t dbiw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest
 	if (!sql || !*sql || !len) return 0;
 	else
 	{
-		return dbi_conn_quote_string_copy(impl->conn, sql, dest);
+		return dbi_conn_quote_string_copy(db->conn, sql, dest);
 	}
 }
 
@@ -146,22 +139,6 @@ static db_wrap_result * dbiw_res_alloc()
 	return rc;
 }
 
-/**
-   Frees res. If res->result, it frees that, too.  Returns non-0 only
-   if res was not initialized by this API.
-*/
-static int dbiw_res_free(db_wrap_result * self)
-{
-	RES_DECL(DB_WRAP_E_TYPE_ERROR);
-	if (res->result)
-	{
-		dbi_result_free(res);
-	}
-	*self = dbiw_res_empty;
-	free(self);
-	return 0;
-}
-
 int dbiw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_result ** tgt)
 {
 	/*
@@ -170,15 +147,16 @@ int dbiw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_resu
 	*/
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	if (! sql || !*sql || !len || !tgt) return DB_WRAP_E_BAD_ARG;
-	dbi_result r = dbi_conn_query(impl->conn, sql);
-	if (! r) return DB_WRAP_E_CHECK_DB_ERROR;
+	dbi_result dbir = dbi_conn_query(db->conn, sql);
+	if (! dbir) return DB_WRAP_E_CHECK_DB_ERROR;
 	db_wrap_result * wres = dbiw_res_alloc();
 	if (! wres)
 	{
-		dbi_result_free(r);
+		dbi_result_free(dbir);
 		return DB_WRAP_E_ALLOC_ERROR;
 	}
-	wres->impl.data = r;
+	wres->impl.data = dbir;
+	/*MARKER("dbi_wrap_result@%p, dbi_result @%p\n", (void const *)wres, (void const *)dbir);*/
 	*tgt = wres;
 	return 0;
 }
@@ -188,7 +166,7 @@ int dbiw_error_message(db_wrap * self, char ** dest, size_t * len)
 	if (! self || !dest) return DB_WRAP_E_BAD_ARG;
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	char const * msg = NULL;
-	dbi_conn_error(impl->conn, &msg);
+	dbi_conn_error(db->conn, &msg);
 	if (msg && *msg)
 	{
 		char * dup = strdup(msg);
@@ -209,9 +187,9 @@ int dbiw_option_set(db_wrap * self, char const * key, void const * val)
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	int rc = DB_WRAP_E_UNSUPPORTED;
 #define TRYSTR(K) if (0==strcmp(K,key)) {                \
-		rc = dbi_conn_set_option(impl->conn, key, (char const *)val); }
+		rc = dbi_conn_set_option(db->conn, key, (char const *)val); }
 #define TRYNUM(K) if (0==strcmp(K,key)) {                \
-		rc = dbi_conn_set_option_numeric(impl->conn, key, *((int const *)val)); }
+		rc = dbi_conn_set_option_numeric(db->conn, key, *((int const *)val)); }
 
 	TRYSTR("host")
 	else TRYSTR("username")
@@ -233,9 +211,9 @@ int dbiw_option_get(db_wrap * self, char const * key, void * val)
 	char const * rcC = NULL;
 	int rcI = 0;
 #define TRYSTR(K) if (0==strcmp(K,key)) {                \
-		rcC = dbi_conn_get_option(impl->conn, key); }
+		rcC = dbi_conn_get_option(db->conn, key); }
 #define TRYNUM(K) if (0==strcmp(K,key)) {                \
-		rcI = dbi_conn_get_option_numeric(impl->conn, key); }
+		rcI = dbi_conn_get_option_numeric(db->conn, key); }
 
 	TRYSTR("host")
 	else TRYSTR("username")
@@ -260,20 +238,19 @@ int dbiw_option_get(db_wrap * self, char const * key, void * val)
 int dbiw_cleanup(db_wrap * self)
 {
 	DB_DECL(DB_WRAP_E_BAD_ARG);
-	/** Defer all handling to finalize() */
+	if (db->conn)
+	{
+		dbi_conn_close(db->conn);
+	}
+	*db = dbiw_db_empty;
 	return 0;
 }
 
 int dbiw_finalize(db_wrap * self)
 {
+	/*MARKER("Freeing db handle @%p\n",(void const *)self);*/
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	self->api->cleanup(self);
-	if (impl->conn)
-	{
-		dbi_conn_close(impl->conn);
-	}
-	*impl = dbiw_db_empty;
-	free(impl);
 	free(self);
 	return 0;
 }
@@ -281,32 +258,37 @@ int dbiw_finalize(db_wrap * self)
 int dbiw_res_step(db_wrap_result * self)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
-	TODO("implement this.");
-	return -1;
+	return dbi_result_next_row(dbires)
+		? 0
+		: DB_WRAP_E_DONE
+		;
 }
 
-int dbiw_res_get_int32_ndx(db_wrap_result * self, int ndx, int32_t * val)
+int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * val)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
-	TODO("implement this.");
-	return -1;
+	if (! val) return DB_WRAP_E_BAD_ARG;
+	*val = dbi_result_get_int_idx(dbires, ndx +1);
+	return 0;
 }
 
-int dbiw_res_get_int64_ndx(db_wrap_result * self, int ndx, int64_t * val)
+int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * val)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
-	TODO("implement this.");
-	return -1;
+	if (! val || !ndx) return DB_WRAP_E_BAD_ARG;
+	*val = dbi_result_get_longlong_idx(dbires, ndx +1);
+	return 0;
 }
 
-int dbiw_res_get_double_ndx(db_wrap_result * self, int ndx, double * val)
+int dbiw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * val)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
-	TODO("implement this.");
+	if (! val || !ndx) return DB_WRAP_E_BAD_ARG;
+	*val = dbi_result_get_double_idx(dbires, ndx +1);
 	return -1;
 }
 
-int dbiw_res_get_string_ndx(db_wrap_result * self, int ndx, char ** val, size_t * len)
+int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char ** val, size_t * len)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	TODO("implement this.");
@@ -323,12 +305,19 @@ int dbiw_res_free_string(db_wrap_result * self, char * str)
 int dbiw_res_finalize(db_wrap_result * self)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
-	dbiw_res_free(self);
-	/*
-	  ignore error code in this case, because we really
-	  have no recovery strategy if it fails, and we
-	  "don't expect" it to ever fail.
-	*/
+	/*MARKER("Freeing result handle @%p/@%p\n",(void const *)self, (void const *)res);*/
+	*self = dbiw_res_empty;
+	free(self);
+	if (dbires)
+	{
+		dbi_result_free(dbires);
+
+		/*
+		  ignore error code in this case, because we really
+		  have no recovery strategy if it fails, and we
+		  "don't expect" it to ever fail.
+		*/
+	}
 	return 0;
 }
 
@@ -372,13 +361,13 @@ int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const * param, db_wrap *
 dbi_result db_wrap_dbi_result(db_wrap_result * self)
 {
 	RES_DECL(NULL);
-	return res->result;
+	return dbires;
 }
 
 dbi_conn db_wrap_dbi_conn(db_wrap * self)
 {
 	DB_DECL(NULL);
-	return impl->conn;
+	return db->conn;
 }
 #undef DB_DECL
 #undef RES_DECL

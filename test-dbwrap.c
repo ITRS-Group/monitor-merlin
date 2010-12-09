@@ -18,6 +18,8 @@ void test_libdbi_generic(db_wrap * wr)
 	int rc = wr->api->query_result(wr, sql, strlen(sql), &res);
 	assert(0 == rc);
 	assert(NULL != res);
+	//MARKER("dbi_wrap_result@%p, dbi_result@%p\n",(void const *)res, res->impl.data);
+
 	rc = res->api->finalize(res);
 	assert(0 == rc);
 
@@ -85,6 +87,43 @@ void test_sqlite_1()
 	assert(0 == strcmp( sql, dbdir) );
 
 	test_libdbi_generic(wr);
+
+	sql =
+		//"select count(*) from sqlite_master;"
+		"select 5"
+		;
+	db_wrap_result * res = NULL;
+	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
+	assert(0 == rc);
+	assert(NULL != res);
+	assert(res->impl.data == db_wrap_dbi_result(res));
+
+#if 0
+	rc = res->api->step(res);
+	assert(0 == rc);
+	rc = res->api->step(res);
+	assert(DB_WRAP_E_DONE == rc);
+	assert(0);
+#endif
+
+#if 0
+#error "Something is still wrong here: get_int_by_index is always returning 0."
+	int32_t intGet = -1;
+	const int32_t intExpect = 1;
+#if 1
+	assert(dbi_result_next_row( db_wrap_dbi_result(res)) );
+	intGet = dbi_result_get_int_idx(db_wrap_dbi_result(res), 1);
+#else
+	rc = res->api->step(res);
+	assert(0 == rc);
+	rc = res->api->get_int32_ndx(res, 0, &intGet);
+	assert(0 == rc);
+#endif
+	MARKER("got int=%d\n",intGet);
+	assert(intGet == intExpect);
+	rc = res->api->finalize(res);
+	assert(0 == rc);
+#endif
 
 	rc = wr->api->finalize(wr);
 	assert(0 == rc);

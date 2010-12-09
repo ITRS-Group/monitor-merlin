@@ -256,20 +256,27 @@ struct db_wrap_result_api
 	/**
 	   Must fetch an integer value at the given query index position (0-based!),
 	   write its value to *val, and return 0 on success.
+
+	   Reminder: some db API use 0-based indexes for fetching fields
+	   by index and some use 1-based. This API uses 0-based because in
+	   my experience that is most common (though 1-base is commonly
+	   used in bind() APIs and 1-based also makes sense for
+	   field-getter APIs).
 	 */
-	int (*get_int32_ndx)(db_wrap_result * self, int ndx, int32_t * val);
+	int (*get_int32_ndx)(db_wrap_result * self, unsigned int ndx, int32_t * val);
 
 	/**
 	   Must fetch an integer value at the given query index position (0-based!),
 	   write its value to *val, and return 0 on success.
 	 */
-	int (*get_int64_ndx)(db_wrap_result * self, int ndx, int64_t * val);
+	int (*get_int64_ndx)(db_wrap_result * self, unsigned int ndx, int64_t * val);
 
 	/**
 	   Must fetch an double value at the given query index position (0-based!),
 	   write its value to *val, and return 0 on success.
+
 	 */
-	int (*get_double_ndx)(db_wrap_result * self, int ndx, double * val);
+	int (*get_double_ndx)(db_wrap_result * self, unsigned int ndx, double * val);
 
 	/**
 	   Must fetch a string value at the given query index position
@@ -279,7 +286,7 @@ struct db_wrap_result_api
 	   greater than 0 after this call then the caller must free the
 	   string by calling free_string().
 	 */
-	int (*get_string_ndx)(db_wrap_result * self, int ndx, char ** val, size_t * len);
+	int (*get_string_ndx)(db_wrap_result * self, unsigned int ndx, char ** val, size_t * len);
 
 	/**
 	   Must free the given string, which must have been allocated by
