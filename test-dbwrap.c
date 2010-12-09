@@ -90,7 +90,7 @@ void test_sqlite_1()
 
 	sql =
 		//"select count(*) from sqlite_master;"
-		"select 5"
+		"select 1"
 		;
 	db_wrap_result * res = NULL;
 	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
