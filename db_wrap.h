@@ -18,11 +18,23 @@ DB_WRAP_E_OK = 0,
 DB_WRAP_E_DONE,
 /** Signifies that some argument is illegal. */
 DB_WRAP_E_BAD_ARG,
+/** Signifies that some argument is not of the required type. */
+DB_WRAP_E_TYPE_ERROR,
 /** Signifies an allocation error. */
 DB_WRAP_E_ALLOC_ERROR,
-/** Signifies an unknown error, probably coming from an underying API (*ahem*libdbi*ahem*)
-	which cannot, for reasons of its own, tell us what went wrong. */
+/**
+	Signifies an unknown error, probably coming from an underying API
+	(*ahem*libdbi*ahem*) which cannot, for reasons of its own, tell us
+	what went wrong.
+
+*/
 DB_WRAP_E_UNKNOWN_ERROR,
+
+/**
+   This code signifies that the caller should check the database
+   error data via db_wrap_api::error_message().
+*/
+DB_WRAP_E_CHECK_DB_ERROR,
 /** Signifies an unsupported operation. */
 DB_WRAP_E_UNSUPPORTED
 /*
@@ -46,16 +58,6 @@ struct db_wrap_impl
 	   Arbitrary implementation-dependent data.
 	*/
 	void * data;
-	/**
-	   A destructor for the data member, with the same semantics as
-	   free(). Whether or not it actually uses free() is up to the
-	   implementation, but the semantics are the same as free().
-
-	   db_wrap::finalize() implementations must, if this member is not
-	   NULL, call self->impl.dtor(self->impl.data) from their
-	   finalize() member.
-	*/
-	void (*dtor)(void *);
 
 	/**
 	   Wrapper-specific type ID specifier. May have any internal

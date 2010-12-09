@@ -11,6 +11,18 @@
 static db_wrap_conn_params paramMySql = db_wrap_conn_params_empty_m;
 static db_wrap_conn_params paramSqlite = db_wrap_conn_params_empty_m;
 
+void test_libdbi_generic(db_wrap * wr)
+{
+	char const * sql = "create temporary table t(a integer)";
+	db_wrap_result * res = NULL;
+	int rc = wr->api->query_result(wr, sql, strlen(sql), &res);
+	assert(0 == rc);
+	assert(NULL != res);
+	rc = res->api->finalize(res);
+	assert(0 == rc);
+
+}
+
 void test_mysql_1()
 {
 	db_wrap * wr = NULL;
@@ -33,6 +45,7 @@ void test_mysql_1()
 	rc = wr->api->free_string(wr, sqlCP);
 	assert(0 == rc);
 
+	test_libdbi_generic(wr);
 
 	rc = wr->api->finalize(wr);
 	assert(0 == rc);
@@ -70,6 +83,8 @@ void test_sqlite_1()
 	rc = wr->api->option_get(wr, "sqlite3_dbdir", &sql);
 	assert(0 == rc);
 	assert(0 == strcmp( sql, dbdir) );
+
+	test_libdbi_generic(wr);
 
 	rc = wr->api->finalize(wr);
 	assert(0 == rc);

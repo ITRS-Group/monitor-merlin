@@ -73,7 +73,6 @@ static const db_wrap_result dbiw_res_empty =
 	&dbiw_res_api,
 	{/*impl*/
 		NULL/*data*/,
-		NULL/*dtor*/,
 		&dbiw_res_api/*typeID*/
 	}
 };
@@ -94,7 +93,6 @@ static const db_wrap db_wrap_libdbi = {
 &db_wrap_api_libdbi,
 {/*impl*/
 NULL/*data*/,
-NULL/*dtor*/,
 &db_wrap_api_libdbi/*typeID*/
 }
 };
@@ -132,11 +130,57 @@ int dbiw_free_string(db_wrap * self, char * str)
 	free(str);
 	return 0;
 }
+
+/**
+   Allocates a new db_wrap_result object for use with the libdbi
+   wrapper. Its api and typeID members are initialized by this call.
+   Returns NULL only on alloc error.
+*/
+static db_wrap_result * dbiw_res_alloc()
+{
+	db_wrap_result * rc = (db_wrap_result*)malloc(sizeof(db_wrap_result));
+	if (rc)
+	{
+		*rc = dbiw_res_empty;
+	}
+	return rc;
+}
+
+/**
+   Frees res. If res->result, it frees that, too.  Returns non-0 only
+   if res was not initialized by this API.
+*/
+static int dbiw_res_free(db_wrap_result * self)
+{
+	RES_DECL(DB_WRAP_E_TYPE_ERROR);
+	if (res->result)
+	{
+		dbi_result_free(res);
+	}
+	*self = dbiw_res_empty;
+	free(self);
+	return 0;
+}
+
 int dbiw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_result ** tgt)
 {
+	/*
+	  This impl does not use the len param, but it's in the interface because i
+	  expect some other wrappers to need it.
+	*/
 	DB_DECL(DB_WRAP_E_BAD_ARG);
-	TODO("implement this.");
-	return -1;
+	if (! sql || !*sql || !len || !tgt) return DB_WRAP_E_BAD_ARG;
+	dbi_result r = dbi_conn_query(impl->conn, sql);
+	if (! r) return DB_WRAP_E_CHECK_DB_ERROR;
+	db_wrap_result * wres = dbiw_res_alloc();
+	if (! wres)
+	{
+		dbi_result_free(r);
+		return DB_WRAP_E_ALLOC_ERROR;
+	}
+	wres->impl.data = r;
+	*tgt = wres;
+	return 0;
 }
 
 int dbiw_error_message(db_wrap * self, char ** dest, size_t * len)
@@ -279,8 +323,13 @@ int dbiw_res_free_string(db_wrap_result * self, char * str)
 int dbiw_res_finalize(db_wrap_result * self)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
-	TODO("implement this.");
-	return -1;
+	dbiw_res_free(self);
+	/*
+	  ignore error code in this case, because we really
+	  have no recovery strategy if it fails, and we
+	  "don't expect" it to ever fail.
+	*/
+	return 0;
 }
 
 
