@@ -92,7 +92,7 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 			assert(0 == rc);
 			assert(sz > 0);
 			//MARKER("Read string [%s]\n",str);
-			res->api->free_string(res, str);
+			wr->api->free_string(wr, str);
 		}
 	}
 	assert(gotCount == count);
@@ -104,6 +104,21 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 	/**
 	   Now try fetching some values...
 	*/
+
+
+
+	if (0)
+	{
+		FIXME("get-double is not working. Not sure why.\n");
+		char const * dblSql = "select vdbl from t order by vint desc limit 1";
+		// not yet working. don't yet know why
+		double doubleGet = -1.0;
+		rc = db_wrap_query_double(wr, dblSql, strlen(dblSql), &doubleGet);
+		MARKER("doubleGet=%lf\n",doubleGet);
+		assert(0 == rc);
+		assert(11.0 == doubleGet);
+	}
+
 	res = NULL;
 	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
 	assert(0 == rc);
@@ -111,16 +126,6 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 
 	int32_t intGet = -1;
 	const int32_t intExpect = count;
-
-	FIXME("get-double is not working. Not sure why.\n");
-#if 0
-	// not yet working. don't yet know why
-	double doubleGet = -1.0;
-	rc = db_wrap_query_double(wr, sql, strlen(sql), &doubleGet);
-	MARKER("doubleGet=%lf\n",doubleGet);
-	assert(0 == rc);
-	assert(intGet == (int)doubleGet);
-#endif
 
 #if 1
 #if 0

@@ -103,8 +103,21 @@ int db_wrap_query_double(db_wrap * db, char const * sql, size_t len, double * tg
 }
 int db_wrap_query_string(db_wrap * db, char const * sql, size_t len, char ** tgt, size_t * tgtLen)
 {
-	TODO("implement this.");
-	return -1;
+	db_wrap_result * res = NULL;
+	int rc = db_wrap_query_number_prepare(db, sql, len, &res);
+	if (rc) return rc;
+	else if (! res)
+	{
+		*tgt = 0;
+		*tgtLen = 0;
+		return 0;
+	}
+	else
+	{
+		rc = res->api->get_string_ndx(res, 0, tgt, tgtLen);
+		res->api->finalize(res);
+	}
+	return rc;
 }
 
 

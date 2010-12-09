@@ -34,7 +34,7 @@ static int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32
 static int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * val);
 static int dbiw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * val);
 static int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char ** val, size_t * len);
-static int dbiw_res_free_string(db_wrap_result * self, char * str);
+//static int dbiw_res_free_string(db_wrap_result * self, char * str);
 static int dbiw_res_finalize(db_wrap_result * self);
 
 struct dbiw_db
@@ -56,7 +56,7 @@ static const db_wrap_result_api dbiw_res_api =
 	dbiw_res_get_int64_ndx,
 	dbiw_res_get_double_ndx,
 	dbiw_res_get_string_ndx,
-	dbiw_res_free_string,
+	//    dbiw_res_free_string,
 	dbiw_res_finalize
 };
 
@@ -123,7 +123,6 @@ int dbiw_free_string(db_wrap * self, char * str)
 	free(str);
 	return 0;
 }
-
 /**
    Allocates a new db_wrap_result object for use with the libdbi
    wrapper. Its api and typeID members are initialized by this call.
@@ -316,12 +315,14 @@ int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char ** val
 	return 0;
 }
 
+#if 0
 int dbiw_res_free_string(db_wrap_result * self, char * str)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	free(str);
 	return 0;
 }
+#endif
 
 int dbiw_res_finalize(db_wrap_result * self)
 {

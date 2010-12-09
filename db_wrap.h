@@ -285,7 +285,7 @@ struct db_wrap_result_api
 	   and return 0 on success. The function may allocate memory for
 	   the string, and may use a custom memory source.  If *len is
 	   greater than 0 after this call then the caller must free the
-	   string by calling free_string().
+	   string by calling the parent db_wrap object's free_string() member.
 
 	   If the fetched string has a length of 0, implementations must
 	   assign *val to NULL, *len to 0, and return 0.
@@ -296,7 +296,7 @@ struct db_wrap_result_api
 	   Must free the given string, which must have been allocated by
 	   get_string_ndx() (or equivalent).
 	*/
-	int (*free_string)(db_wrap_result * self, char * str);
+	//int (*free_string)(db_wrap_result * self, char * str);
 
 	/**
 	   Must free all resources associated with self and then
