@@ -20,6 +20,9 @@ DB_WRAP_E_DONE,
 DB_WRAP_E_BAD_ARG,
 /** Signifies an allocation error. */
 DB_WRAP_E_ALLOC_ERROR,
+/** Signifies an unknown error, probably coming from an underying API (*ahem*libdbi*ahem*)
+	which cannot, for reasons of its own, tell us what went wrong. */
+DB_WRAP_E_UNKNOWN_ERROR,
 /** Signifies an unsupported operation. */
 DB_WRAP_E_UNSUPPORTED
 /*
@@ -90,10 +93,11 @@ struct db_wrap_api
 	/** Must connect to the underlying database and return 0 on succes. */
 	int (*connect)(db_wrap * db);
 	/**
-	   Must quote the first len bytes of the given string as SQL,
-	   write the quoted string to *src, and return the number of bytes
-	   encoded by this function. If this function returns 0 then the
-	   client must not use *str, otherwise he must free it using
+	   Must quote the first len bytes of the given string as SQL, add
+	   SQL quote characters around it, write the quoted string to
+	   *src, and return the number of bytes encoded by this
+	   function. If this function returns 0 then the client must not
+	   use *str, otherwise he must free it using
 	   free_string(). Implementations are free to use a custom
 	   allocator, which is why the client MUST use free_string() to
 	   free the string.
@@ -101,12 +105,15 @@ struct db_wrap_api
 	   Implementations may optionally stream (len==0) as an indicator
 	   that they should use strlen() to count the length of src.
 
+	   ACHTUNG: this is itended for use with individual SQL statement
+	   parts, not whole SQL statements.
 	*/
 	size_t (*sql_quote)(db_wrap * db, char const * src, size_t len, char ** dest);
 	/**
 	   Frees a string allocated by sql_quote() or
 	   error_message(). Results are undefined if the string came from
-	   another source.
+	   another source. It must return 0 on success. It must, like
+	   free(), treat a NULL string gracefully, ignoring it.
 	*/
 	int (*free_string)(db_wrap * db, char *);
 	/**

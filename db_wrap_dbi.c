@@ -17,7 +17,7 @@ Concrete db_wrap implementation based off of libdbi.
 #endif
 
 static int dbiw_connect(db_wrap * self);
-static size_t dbiw_sql_quote(db_wrap * self, char const * src, size_t len, char ** dest);
+/*static*/ size_t dbiw_sql_quote(db_wrap * self, char const * src, size_t len, char ** dest);
 static int dbiw_free_string(db_wrap * self, char * str);
 static int dbiw_query_result(db_wrap * self, char const * sql, size_t len, struct db_wrap_result ** tgt);
 static int dbiw_error_message(db_wrap * self, char ** dest, size_t * len);
@@ -116,16 +116,20 @@ int dbiw_connect(db_wrap * self)
 	return rc;
 }
 
-size_t dbiw_sql_quote(db_wrap * self, char const * src, size_t len, char ** dest)
+size_t dbiw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest)
 {
 	DB_DECL(0);
-	TODO("implement this.");
-	return 0;
+	if (!sql || !*sql || !len) return 0;
+	else
+	{
+		return dbi_conn_quote_string_copy(impl->conn, sql, dest);
+	}
 }
+
 int dbiw_free_string(db_wrap * self, char * str)
 {
 	DB_DECL(0);
-	TODO("implement this.");
+	free(str);
 	return 0;
 }
 int dbiw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_result ** tgt)
@@ -170,6 +174,7 @@ int dbiw_option_set(db_wrap * self, char const * key, void const * val)
 	else TRYSTR("password")
 	else TRYSTR("dbname")
 	else TRYNUM("port")
+	else TRYSTR("encoding")
 	else TRYSTR("sqlite3_dbdir")
 	else TRYNUM("sqlite3_timeout")
 		;

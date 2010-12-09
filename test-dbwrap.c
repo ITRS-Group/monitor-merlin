@@ -4,7 +4,7 @@
 
 #include <stdio.h> /*printf()*/
 #include <stdlib.h> /*getenv()*/
-
+#include <string.h> /* strlen() */
 #define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
 
 
@@ -21,9 +21,23 @@ void test_mysql_1()
 	assert(wr);
 	rc = wr->api->connect(wr);
 	assert(0 == rc);
+
+	char * sqlCP = NULL;
+	char const * sql = "hi, 'world'";
+	size_t const sz = strlen(sql);
+	size_t const sz2 = wr->api->sql_quote(wr, sql, sz, &sqlCP);
+	assert(0 != sz2);
+	assert(sz != sz2);
+	/* ACHTUNG: what libdbi does here with the escaping is NOT SQL STANDARD. */
+	assert(0 == strcmp("'hi, \\'world\\''", sqlCP) );
+	rc = wr->api->free_string(wr, sqlCP);
+	assert(0 == rc);
+
+
 	rc = wr->api->finalize(wr);
 	assert(0 == rc);
 }
+
 void test_sqlite_1()
 {
 	db_wrap * wr = NULL;
@@ -40,6 +54,17 @@ void test_sqlite_1()
 	rc = wr->api->error_message(wr, &errmsg, NULL);
 	assert(0 == rc);
 	assert(NULL == errmsg);
+
+	char * sqlCP = NULL;
+	char const * sql = "hi, 'world'";
+	size_t const sz = strlen(sql);
+	size_t const sz2 = wr->api->sql_quote(wr, sql, sz, &sqlCP);
+	assert(0 != sz2);
+	assert(sz != sz2);
+	assert(0 == strcmp("'hi, ''world'''", sqlCP) );
+	rc = wr->api->free_string(wr, sqlCP);
+	assert(0 == rc);
+
 	rc = wr->api->finalize(wr);
 	assert(0 == rc);
 }
