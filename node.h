@@ -7,6 +7,12 @@
 #include "cfgfile.h"
 #include "binlog.h"
 
+#if __BYTE_ORDER == __BIG_ENDIAN
+# define MERLIN_SIGNATURE 0x4d524c4e45565400 /* "MRLNEVT\0" */
+#else
+# define MERLIN_SIGNATURE 0x005456454e4c524d /* "MRLNEVT\0" */
+#endif
+
 #define MERLIN_PROTOCOL_VERSION 0
 /*
  * how long we should wait before sending paths before trying
@@ -47,7 +53,11 @@
 #define packet_size(pkt) ((int)((pkt)->hdr.len + HDR_SIZE))
 
 struct merlin_header {
-	uint16_t protocol;   /* always 0 for now */
+	union merlin_signature {
+		uint64_t id;     /* used for assignment and comparison */
+		char ascii[8];   /* "MRLNEVT\0" for debugging, mostly */
+	} sig;
+	uint16_t protocol;   /* protocol version */
 	uint16_t type;       /* event type */
 	uint16_t code;       /* event code (used for control packets) */
 	uint16_t selection;  /* used when noc Nagios communicates with mrd */
@@ -55,7 +65,7 @@ struct merlin_header {
 	struct timeval sent;  /* when this message was sent */
 
 	/* pad to 64 bytes for future extensions */
-	char padding[64 - sizeof(struct timeval) - (2 * 6)];
+	char padding[64 - sizeof(struct timeval) - (2 * 6) - 8];
 } __attribute__((packed));
 typedef struct merlin_header merlin_header;
 

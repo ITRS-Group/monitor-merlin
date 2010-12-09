@@ -688,6 +688,12 @@ merlin_event *node_get_event(merlin_node *node)
 		ioc->ioc_offset = 0;
 		return NULL;
 	}
+
+	if (pkt->hdr.sig.id != MERLIN_SIGNATURE) {
+		lerr("Invalid signature on packet from '%s'. Disconnecting node", node->name);
+		node_disconnect(node);
+		return NULL;
+	}
 	node->stats.events.read++;
 	ioc->ioc_offset += packet_size(pkt);
 	return pkt;
@@ -703,11 +709,6 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 	int result;
 
 	node_log_event_count(node, 0);
-
-	pkt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
-	if (is_module) {
-		gettimeofday(&pkt->hdr.sent, NULL);
-	}
 
 	if (pkt->hdr.type == CTRL_PACKET) {
 		ldebug("Sending %s to %s", ctrl_name(pkt->hdr.code), node->name);
@@ -856,6 +857,9 @@ int node_ctrl(merlin_node *node, int code, uint selection, void *data,
 
 	memset(&pkt.hdr, 0, HDR_SIZE);
 
+	pkt.hdr.sig.id = MERLIN_SIGNATURE;
+	pkt.hdr.protocol = MERLIN_PROTOCOL_VERSION;
+	gettimeofday(&pkt.hdr.sent, NULL);
 	pkt.hdr.type = CTRL_PACKET;
 	pkt.hdr.len = len;
 	pkt.hdr.code = code;
