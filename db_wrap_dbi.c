@@ -17,7 +17,7 @@ Concrete db_wrap implementation based off of libdbi.
 #endif
 
 static int dbiw_connect(db_wrap * self);
-/*static*/ size_t dbiw_sql_quote(db_wrap * self, char const * src, size_t len, char ** dest);
+static size_t dbiw_sql_quote(db_wrap * self, char const * src, size_t len, char ** dest);
 static int dbiw_free_string(db_wrap * self, char * str);
 static int dbiw_query_result(db_wrap * self, char const * sql, size_t len, struct db_wrap_result ** tgt);
 static int dbiw_error_message(db_wrap * self, char ** dest, size_t * len);
