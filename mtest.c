@@ -423,6 +423,44 @@ static void test_host_check(void)
 	free(orig);
 }
 
+#define BROKEN_BUFSIZE (MERLIN_IOC_BUFSIZE * 2)
+static void test_broken_packets(void)
+{
+	int i, seed;
+	nebstruct_service_check_data *ds;
+	uint disconnects = 0;
+
+	memset(&pkt, 0, sizeof(pkt));
+	pkt.hdr.sig.id = MERLIN_SIGNATURE;
+	ds = calloc(1, sizeof(*ds));
+	ds->type = NEBTYPE_SERVICECHECK_PROCESSED;
+	pkt.hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
+	pkt.hdr.selection = 0xffff;
+
+	for (seed = 0; seed < 1; seed += 8237) {
+		srand(seed);
+		for (i = 0; i < num_services; i++) {
+			int real_len, sent;
+			merlin_service_status st_obj;
+
+			pkt.hdr.len = HDR_SIZE + (rand() & (MAX_PKT_SIZE - 1));
+			service_mod2net(&st_obj, &services[i]);
+			real_len = merlin_encode_event(&pkt, (void *)&st_obj);
+			pkt.hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
+			sent = node_send(&ipc, &pkt, pkt.hdr.len, 0);
+			if (real_len != sent && ipc.sock < 0) {
+				disconnects++;
+			}
+
+			if (ok_int(ipc_is_connected(0), 1, "daemon's borked-packet handling") != TEST_PASS) {
+				break;
+			}
+		}
+	}
+	fprintf(stderr, "####### Broken packet tests complete. %u disconnects of %u sent\n",
+		   disconnects, num_services);
+}
+
 static void test_service_check(void)
 {
 	merlin_service_status *orig, *mod;
@@ -882,6 +920,7 @@ static struct merlin_test {
 	T_ENTRY(DOWNTIME, downtime),
 	T_ENTRY(HOST_CHECK, host_check),
 	T_ENTRY(SERVICE_CHECK, service_check),
+	{ 0, "protocol stability", "test_broken_packets", test_broken_packets },
 };
 
 static int callback_is_tested(int id, const char *caller)
