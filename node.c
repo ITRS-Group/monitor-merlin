@@ -681,10 +681,10 @@ merlin_event *node_get_event(merlin_node *node)
 	 */
 	available = ioc->ioc_buflen - ioc->ioc_offset;
 	if ((int)HDR_SIZE > available || packet_size(pkt) > available) {
+		ldebug("IOC: moving %u bytes from %p to %p. buflen: %lu; bufsize: %lu",
+			   available, ioc->ioc_buf + ioc->ioc_offset, ioc->ioc_buf, ioc->ioc_buflen, ioc->ioc_bufsize);
 		memmove(ioc->ioc_buf, ioc->ioc_buf + ioc->ioc_offset, available);
 		ioc->ioc_buflen = available;
-		ldebug("IOC: moved %d bytes from %p to %p. buflen: %lu; bufsize: %lu",
-			   available, ioc->ioc_buf + ioc->ioc_offset, ioc->ioc_buf, ioc->ioc_buflen, ioc->ioc_bufsize);
 		ioc->ioc_offset = 0;
 		return NULL;
 	}
