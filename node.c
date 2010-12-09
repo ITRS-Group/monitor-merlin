@@ -561,7 +561,7 @@ int node_recv(merlin_node *node, int flags)
 	if (ioc->ioc_offset >= ioc->ioc_buflen)
 		ioc->ioc_offset = ioc->ioc_buflen = 0;
 
-	to_read = ioc->ioc_bufsize - ioc->ioc_offset;
+	to_read = ioc->ioc_bufsize - ioc->ioc_buflen;
 	flags |= MSG_NOSIGNAL;
 	bytes_read = recv(node->sock, ioc->ioc_buf + ioc->ioc_buflen, to_read, flags);
 
