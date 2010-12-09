@@ -286,6 +286,9 @@ struct db_wrap_result_api
 	   the string, and may use a custom memory source.  If *len is
 	   greater than 0 after this call then the caller must free the
 	   string by calling free_string().
+
+	   If the fetched string has a length of 0, implementations must
+	   assign *val to NULL, *len to 0, and return 0.
 	 */
 	int (*get_string_ndx)(db_wrap_result * self, unsigned int ndx, char ** val, size_t * len);
 
