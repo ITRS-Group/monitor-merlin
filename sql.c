@@ -20,12 +20,9 @@ static struct {
 	char const *table;
 	char const *type;
 	char const *encoding;
-	unsigned int port;
-	dbi_conn conn/*TODO: remove*/;
-	dbi_result result/*TODO: remove*/;
-	dbi_driver driver/*TODO: remove*/;
-	db_wrap * wdb;
-	db_wrap_result * wresult;
+		int port /* need to be signed int for compatibility with dbi_conn_set_option_numeric() (and similar)*/;
+		db_wrap * conn;
+		db_wrap_result * result;
 } db = {
 NULL/*host*/,
 NULL/*name*/,
@@ -36,10 +33,7 @@ NULL/*table*/,
 NULL/*encoding*/,
 0U/*port*/,
 NULL/*conn*/,
-NULL/*result*/,
-NULL/*driver*/,
-NULL/*wdb*/,
-NULL/*wresult*/
+NULL/*result*/
 };
 
 
@@ -53,11 +47,11 @@ static time_t last_connect_attempt;
 size_t sql_quote(const char *src, char **dst)
 {
 
-	if (! db.wdb)
+	if (! db.conn)
 	{
 
 	}
-	size_t const ret = db.wdb->api->sql_quote(db.wdb, src, (src?strlen(src):0U), dst);
+	size_t const ret = db.conn->api->sql_quote(db.conn, src, (src?strlen(src):0U), dst);
 	if (! ret)
 	{
 		lerr("Failed to quote and copy string at %p to %p",
@@ -81,12 +75,12 @@ size_t sql_quote(const char *src, char **dst)
  */
 int sql_error(const char **msg)
 {
-	if (!db.wdb) {
+	if (!db.conn) {
 		*msg = "no database connection";
 		return DBI_ERROR_NOCONN;
 	}
 		FIXME("Return the db's error code here.");
-		return db.wdb->api->error_message(db.wdb, msg, NULL);
+		return db.conn->api->error_message(db.conn, msg, NULL);
 }
 
 /** Convenience form of sql_error() which returns the error
@@ -102,19 +96,19 @@ const char *sql_error_msg(void)
 
 void sql_free_result(void)
 {
-	if (db.wresult) {
-			db.wresult->api->finalize(db.wresult);
-			db.wresult = NULL;
+	if (db.result) {
+			db.result->api->finalize(db.result);
+			db.result = NULL;
 	}
 }
 
 db_wrap_result * sql_get_resultNEW(void)
 {
-	return db.wresult;
+	return db.result;
 }
 dbi_result sql_get_result(void)
 {
-	return db_wrap_dbi_result(db.wresult);
+	return db_wrap_dbi_result(db.result);
 }
 
 static int run_query(char *query, size_t len, int rerunIGNORED)
@@ -129,15 +123,15 @@ static int run_query(char *query, size_t len, int rerunIGNORED)
 	  (according to the dbi docs).
 	 */
 	db_wrap_result * res = NULL;
-	int rc = db.wdb->api->query_result(db.wdb, query, len, &res);
+	int rc = db.conn->api->query_result(db.conn, query, len, &res);
 	if (rc)
 	{
 		assert(NULL == res);
 		return rc;
 	}
 	assert(NULL != res);
-	assert(NULL == db.wresult);
-	db.wresult = res;
+	assert(NULL == db.result);
+	db.result = res;
 #else
 	db.result = dbi_conn_query_null(db.conn, (unsigned char *)query, len);
 	if (!db.result)
@@ -234,7 +228,7 @@ int sql_query(const char *fmt, ...)
 
 int sql_is_connected(void)
 {
-	return (db.wdb && db.wdb->api->is_connected(db.wdb))
+	return (db.conn && db.conn->api->is_connected(db.conn))
 		? 1
 		: 0;
 }
@@ -293,18 +287,18 @@ int sql_init(void)
 		connparam.username = db.user;
 		connparam.password = db.pass;
 		if (db.port) connparam.port = db.port;
-		result = db_wrap_dbi_init2(db.type, &connparam, &db.wdb);
+		result = db_wrap_dbi_init2(db.type, &connparam, &db.conn);
 		if (result)
 		{
 			lerr("Failed to connect to db type [%s].", db.type);
 			return -1;
 		}
 #endif
-		result = db.wdb->api->option_set(db.wdb, "encoding", db.encoding ? db.encoding : "UTF-8");
+		result = db.conn->api->option_set(db.conn, "encoding", db.encoding ? db.encoding : "UTF-8");
 	if (result) {
 		lerr("Failed to set one or more database connection options");
 	}
-		result = db.wdb->api->connect(db.wdb);
+		result = db.conn->api->connect(db.conn);
 	if (result) {
 		const char *error_msg;
 		sql_error(&error_msg);
@@ -325,10 +319,10 @@ int sql_close(void)
 		return 0;
 
 	sql_free_result();
-		if (db.wdb)
+		if (db.conn)
 		{
-			db.wdb->api->finalize(db.wdb);
-			db.wdb = NULL;
+			db.conn->api->finalize(db.conn);
+			db.conn = NULL;
 		}
 	return 0;
 }
