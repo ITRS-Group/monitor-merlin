@@ -8,9 +8,9 @@
 #include "binlog.h"
 
 #if __BYTE_ORDER == __BIG_ENDIAN
-# define MERLIN_SIGNATURE 0x4d524c4e45565400 /* "MRLNEVT\0" */
+# define MERLIN_SIGNATURE (uint64_t)0x4d524c4e45565400LL /* "MRLNEVT\0" */
 #else
-# define MERLIN_SIGNATURE 0x005456454e4c524d /* "MRLNEVT\0" */
+# define MERLIN_SIGNATURE (uint64_t)0x005456454e4c524dLL /* "MRLNEVT\0" */
 #endif
 
 #define MERLIN_PROTOCOL_VERSION 0
