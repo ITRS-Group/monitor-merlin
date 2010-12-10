@@ -45,9 +45,11 @@ struct dbiw_db
 typedef struct dbiw_db dbiw_db;
 
 
+#if 0
 static dbiw_db dbiw_db_empty = {
 NULL/*connection*/
 };
+#endif
 
 static const db_wrap_result_api dbiw_res_api =
 {
@@ -77,8 +79,8 @@ dbiw_query_result,
 dbiw_error_message,
 dbiw_option_set,
 dbiw_option_get,
-dbiw_cleanup,
 dbiw_is_connected,
+dbiw_cleanup,
 dbiw_finalize
 };
 
@@ -243,6 +245,13 @@ int dbiw_option_get(db_wrap * self, char const * key, void * val)
 	return 0;
 }
 
+char dbiw_is_connected(db_wrap * self)
+{
+	DB_DECL(0);
+	return NULL != db->conn;
+}
+
+
 int dbiw_cleanup(db_wrap * self)
 {
 	DB_DECL(DB_WRAP_E_BAD_ARG);
@@ -250,14 +259,9 @@ int dbiw_cleanup(db_wrap * self)
 	{
 		dbi_conn_close(db->conn);
 	}
-	*db = dbiw_db_empty;
+	free(self->impl.data);
+	*self = db_wrap_empty;
 	return 0;
-}
-
-char dbiw_is_connected(db_wrap * self)
-{
-	DB_DECL(0);
-	return NULL != db->conn;
 }
 
 int dbiw_finalize(db_wrap * self)
@@ -318,15 +322,6 @@ int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char const 
 	*val = str;
 	return 0;
 }
-
-#if 0
-int dbiw_res_free_string(db_wrap_result * self, char * str)
-{
-	RES_DECL(DB_WRAP_E_BAD_ARG);
-	free(str);
-	return 0;
-}
-#endif
 
 int dbiw_res_finalize(db_wrap_result * self)
 {

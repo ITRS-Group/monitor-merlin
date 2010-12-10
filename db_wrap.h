@@ -175,17 +175,6 @@ struct db_wrap_api
 	   Returns 0 on success.
 	*/
 	int (*option_get)(db_wrap * db, char const * key, void * val);
-	/**
-	   Must free up any dynamic resources used by db, but must not
-	   free db itself. Not all backends will have a distinction betwen
-	   cleanup() and finalize(), but some will.
-
-	   Implementations must call impl.dtor(impl.data). They may, IFF
-	   they will only be dynamically allocated, defer that call to the
-	   finalize() implementation, but such an implementation may not
-	   work with stack- or custom-allocated db_wrap objects.
-	*/
-	int (*cleanup)(db_wrap * db);
 
 	/**
 	   Must return non-zero (true) if the db object is connected, or
@@ -199,6 +188,17 @@ struct db_wrap_api
 	   it at this level.
 	*/
 	char (*is_connected)(db_wrap * db);
+	/**
+	   Must free up any dynamic resources used by db, but must not
+	   free db itself. Not all backends will have a distinction betwen
+	   cleanup() and finalize(), but some will.
+
+	   Implementations must call impl.dtor(impl.data). They may, IFF
+	   they will only be dynamically allocated, defer that call to the
+	   finalize() implementation, but such an implementation may not
+	   work with stack- or custom-allocated db_wrap objects.
+	*/
+	int (*cleanup)(db_wrap * db);
 	/**
 	   Must call cleanup() and then free the db object using a
 	   mechanism appropriate for its allocation.
