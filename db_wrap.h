@@ -188,6 +188,7 @@ struct db_wrap_api
 	   it at this level.
 	*/
 	char (*is_connected)(db_wrap * db);
+
 	/**
 	   Must free up any dynamic resources used by db, but must not
 	   free db itself. Not all backends will have a distinction betwen
@@ -303,10 +304,12 @@ struct db_wrap_result_api
 	int (*get_string_ndx)(db_wrap_result * self, unsigned int ndx, char const ** val, size_t * len);
 
 	/**
-	   Must free the given string, which must have been allocated by
-	   get_string_ndx() (or equivalent).
+	   Must return the number of result rows for the given result set
+	   by assinging that value to *num and returning 0.  If it cannot
+	   determine this then *num must not be modified and non-0 must be
+	   returned.
 	*/
-	//int (*free_string)(db_wrap_result * self, char * str);
+	int (*num_rows)(db_wrap_result * self, size_t * num);
 
 	/**
 	   Must free all resources associated with self and then

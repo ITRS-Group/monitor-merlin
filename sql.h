@@ -23,8 +23,11 @@ extern void sql_free_result(void);
 extern int sql_query(const char *fmt, ...)
 	__attribute__((__format__(__printf__, 1, 2)));
 extern int sql_vquery(const char *fmt, va_list ap);
-//extern db_wrap_result * sql_get_result(void);
 extern dbi_result sql_get_result(void);
+/** TEMPORARY name for sql_get_result() during refactoring.
+	This function will eventually replace sql_get_result().
+*/
+extern db_wrap_result * sql_get_resultNEW(void);
 extern const char *sql_table_name(void);
 extern const char *sql_db_name(void);
 extern const char *sql_db_user(void);

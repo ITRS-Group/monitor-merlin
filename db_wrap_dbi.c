@@ -30,12 +30,12 @@ static int dbiw_cleanup(db_wrap * self);
 static char dbiw_is_connected(db_wrap * self);
 static int dbiw_finalize(db_wrap * self);
 
-
 static int dbiw_res_step(db_wrap_result * self);
 static int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * val);
 static int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * val);
 static int dbiw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * val);
 static int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char const ** val, size_t * len);
+static int dbiw_res_num_rows(db_wrap_result * self, size_t * num);
 static int dbiw_res_finalize(db_wrap_result * self);
 
 struct dbiw_db
@@ -58,7 +58,7 @@ static const db_wrap_result_api dbiw_res_api =
 	dbiw_res_get_int64_ndx,
 	dbiw_res_get_double_ndx,
 	dbiw_res_get_string_ndx,
-	//    dbiw_res_free_string,
+	dbiw_res_num_rows,
 	dbiw_res_finalize
 };
 
@@ -311,7 +311,7 @@ int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char const 
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
 	char const * str = dbi_result_get_string_idx(dbires, ndx +1);
-	if (! str || (0==strcmp("ERROR",str)))
+	if (!str || (0==strcmp("ERROR",str)))
 	{
 		return DB_WRAP_E_CHECK_DB_ERROR;
 	}
@@ -320,6 +320,14 @@ int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char const 
 		*len = strlen(str);
 	}
 	*val = str;
+	return 0;
+}
+
+int dbiw_res_num_rows(db_wrap_result * self, size_t *num)
+{
+	RES_DECL(DB_WRAP_E_BAD_ARG);
+	if (! num) return DB_WRAP_E_BAD_ARG;
+	*num = dbi_result_get_numrows(dbires);
 	return 0;
 }
 

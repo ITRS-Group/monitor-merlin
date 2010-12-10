@@ -108,17 +108,14 @@ void sql_free_result(void)
 	}
 }
 
-#if 0
-db_wrap_result * sql_get_result(void)
+db_wrap_result * sql_get_resultNEW(void)
 {
 	return db.wresult;
 }
-#else
 dbi_result sql_get_result(void)
 {
 	return db_wrap_dbi_result(db.wresult);
 }
-#endif
 
 static int run_query(char *query, size_t len, int rerunIGNORED)
 {

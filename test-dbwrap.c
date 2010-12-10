@@ -53,10 +53,12 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 
 	int i;
 	const int count = 10;
+	char const * strVal = "hi, world";
 	for(i = 1; i <= count; ++i)
 	{
 		char * q = NULL;
-		rc = asprintf(&q,"insert into t (vint, vdbl, vstr) values(%d,%2.1lf,'hi, world');",i,(i*1.1));
+		rc = asprintf(&q,"insert into t (vint, vdbl, vstr) values(%d,%2.1lf,'%s');",
+			          i,(i*1.1),strVal);
 		assert(rc > 0);
 		assert(q);
 		//MARKER("Query=[%s]\n",q);
@@ -91,7 +93,8 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 			rc = res->api->get_string_ndx(res, 2, &str, &sz);
 			assert(0 == rc);
 			assert(sz > 0);
-			MARKER("Read string [%s]\n",str);
+			assert(0 == strcmp( str, strVal) );
+			//MARKER("Read string [%s]\n",str);
 		}
 	}
 	assert(gotCount == count);
