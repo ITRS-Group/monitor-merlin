@@ -379,6 +379,7 @@ int dbiw_res_finalize(db_wrap_result * self)
 int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const * param, db_wrap ** tgt)
 {
 	if (! conn || !param || !tgt) return DB_WRAP_E_BAD_ARG;
+	INIT_DBI(-1);
 	db_wrap * wr = (db_wrap *)malloc(sizeof(db_wrap));
 	if (! wr) return DB_WRAP_E_ALLOC_ERROR;
 	*wr = db_wrap_libdbi;
