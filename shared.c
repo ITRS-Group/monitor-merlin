@@ -507,14 +507,14 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 	 * (no out_handler() is needed, since the receiving end will
 	 * transform the packet itself).
 	 */
-	if (info->word_size != __WORDSIZE) {
+	if (info->word_size != COMPAT_WORDSIZE) {
 		lerr("FATAL: %s: incompatible wordsize %d. Ours is %d",
-			 node->name, info->word_size, __WORDSIZE);
+			 node->name, info->word_size, COMPAT_WORDSIZE);
 		ret -= 4;
 	}
-	if (info->byte_order != __BYTE_ORDER) {
+	if (info->byte_order != endianness()) {
 		lerr("FATAL: %s: incompatible byte order %d. Ours is %d",
-		     node->name, info->byte_order, __BYTE_ORDER);
+		     node->name, info->byte_order, endianness());
 		ret -= 8;
 	}
 

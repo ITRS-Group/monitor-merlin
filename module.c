@@ -642,8 +642,8 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	 */
 	memset(&self, 0, sizeof(self));
 	self.version = MERLIN_NODEINFO_VERSION;
-	self.word_size = __WORDSIZE;
-	self.byte_order = __BYTE_ORDER;
+	self.word_size = COMPAT_WORDSIZE;
+	self.byte_order = endianness();
 	self.object_structure_version = CURRENT_OBJECT_STRUCTURE_VERSION;
 	gettimeofday(&self.start, NULL);
 	self.last_cfg_change = get_last_cfg_change();

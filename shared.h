@@ -32,25 +32,7 @@
 #include <sys/param.h>
 #include <ctype.h>
 
-/* BSD doesn't define __WORDSIZE, so we deal with it here. */
-#ifndef CHAR_BIT
-# define CHAR_BIT 8
-#endif
-#ifndef __WORDSIZE
-# define __WORDSIZE (sizeof(void *) * CHAR_BIT)
-#endif
-/*
- * BSD sets _BYTE_ORDER instead of __BYTE_ORDER. Since we must have
- * it defined, we bail out with an error if neither is present.
- */
-#ifndef __BYTE_ORDER
-# ifdef _BYTE_ORDER
-#  define __BYTE_ORDER _BYTE_ORDER
-# else
-#  error "Neither __BYTE_ORDER nor _BYTE_ORDER defined."
-# endif
-#endif
-
+#include "compat.h"
 #include "node.h"
 #include "io.h"
 #include "ipc.h"
