@@ -25,7 +25,7 @@ static int state_compare(const void *_a, const void *_b)
  * table and then returns it. *count holds the number of items
  * in the state cache
  */
-static struct object_state *store_object_states(dbi_result result, size_t *count)
+static struct object_state *store_object_states(db_wrap_result * result, size_t *count)
 {
 	int i = 0;
 	struct object_state *state_ary = NULL;
@@ -35,7 +35,8 @@ static struct object_state *store_object_states(dbi_result result, size_t *count
 		return NULL;
 	}
 
-	*count = dbi_result_get_numrows(result);
+		*count = 0;
+	result->api->num_rows(result, count);
 	if (!*count)
 		goto out;
 
@@ -43,13 +44,16 @@ static struct object_state *store_object_states(dbi_result result, size_t *count
 	if (!state_ary)
 		goto out;
 
-	while (dbi_result_next_row(result)) {
+	while (0 == result->api->step(result)) {
 		int state, state_type;
 		struct object_state *os = &state_ary[i++];
-
-		os->name = dbi_result_get_string_copy_idx(result, 1);
-		state = dbi_result_get_int_idx(result, 2);
-		state_type = dbi_result_get_int_idx(result, 3);
+			    char const * str = NULL;
+			    result->api->get_string_ndx(result, 0, &str, NULL);
+			    os->name = (str&&*str) ? strdup(str) : NULL;
+			    /* reminder: os->name is leaked here! We should add an
+			       atexit() handler to clean it up.*/
+			    result->api->get_int32_ndx(result, 1, &state);
+			    result->api->get_int32_ndx(result, 2, &state_type);
 		os->state = concat_state(state_type, state);
 	}
 
@@ -77,7 +81,7 @@ static int prime_host_states(size_t *count)
 {
 	sql_query("SELECT host_name, current_state, state_type "
 	          "FROM %s.host ORDER BY host_name", sql_db_name());
-	object_states[0] = store_object_states(sql_get_result(), count);
+	object_states[0] = store_object_states(sql_get_resultNEW(), count);
 	num_objects[0] = *count;
 
 	return object_states[0] != NULL;
@@ -92,7 +96,7 @@ static int prime_service_states(size_t *count)
 {
 	sql_query("SELECT CONCAT(host_name, ';', service_description) as name, current_state, state_type "
 	          "FROM %s.service ORDER BY name", sql_db_name());
-	object_states[1] = store_object_states(sql_get_result(), count);
+	object_states[1] = store_object_states(sql_get_resultNEW(), count);
 	num_objects[1] = *count;
 
 	return object_states[1] != NULL;
