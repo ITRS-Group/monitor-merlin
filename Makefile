@@ -1,5 +1,6 @@
 CC = gcc
-CFLAGS = -O2 -pipe $(WARN_FLAGS) -ggdb3 -fPIC -fno-strict-aliasing -rdynamic
+#CFLAGS = -O2 -pipe $(WARN_FLAGS) -ggdb3 -fPIC -fno-strict-aliasing -rdynamic
+CFLAGS = -pipe $(WARN_FLAGS) -ggdb3 -fPIC -fno-strict-aliasing -rdynamic
 
 uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo nope')
 PTHREAD_LDFLAGS = -pthread
@@ -32,17 +33,19 @@ endif
 # CFLAGS, CPPFLAGS and LDFLAGS are for users to modify
 ALL_CFLAGS = $(CFLAGS) $(TWEAK_CPPFLAGS) $(CPPFLAGS) $(PTHREAD_CFLAGS)
 ALL_LDFLAGS = $(LDFLAGS) $(TWEAK_LDFLAGS) $(PTHREAD_LDFLAGS)
+DBI_LDFLAGS = -ldbi
 WARN_FLAGS = -Wall -Wextra -Wno-unused-parameter
+DBWRAP_OBJS = sql.o db_wrap.o db_wrap_dbi.o
 COMMON_OBJS = cfgfile.o shared.o hash.o version.o logging.o
-SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o
+SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o  $(DBWRAP_OBJS)
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
-DAEMON_OBJS = status.o daemonize.o daemon.o net.o sql.o db_wrap.o db_updater.o state.o
+DAEMON_OBJS = status.o daemonize.o daemon.o net.o $(DBWRAP_OBJS) db_updater.o state.o
 DAEMON_OBJS += $(SHARED_OBJS)
 MODULE_OBJS = $(SHARED_OBJS) module.o hooks.o control.o slist.o misc.o sha1.o
 MODULE_DEPS = module.h hash.h slist.h
 DAEMON_DEPS = net.h sql.h daemon.h hash.h
 APP_OBJS = $(COMMON_OBJS) state.o logutils.o lparse.o test_utils.o
-IMPORT_OBJS = $(APP_OBJS) import.o sql.o db_wrap.o
+IMPORT_OBJS = $(APP_OBJS) import.o $(DBWRAP_OBJS)
 SHOWLOG_OBJS = $(APP_OBJS) showlog.o auth.o
 NEBTEST_OBJS = $(TEST_OBJS) nebtest.o
 DEPS = Makefile cfgfile.h ipc.h logging.h shared.h
@@ -52,7 +55,7 @@ DAEMON_LIBS = $(LIB_DB) $(LIB_NET)
 DAEMON_LDFLAGS = $(DAEMON_LIBS) -ggdb3
 MTEST_LIBS = $(LIB_DB) $(LIB_DL)
 MTEST_LDFLAGS = $(MTEST_LIBS) -ggdb3 -rdynamic -Wl,-export-dynamic $(PTHREAD_LDFLAGS)
-NEBTEST_LIBS = $(LIB_DL)
+NEBTEST_LIBS = $(LIB_DL) $(LIB_DB)
 NEBTEST_LDFLAGS = -rdynamic -Wl,-export-dynamic
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
@@ -93,17 +96,17 @@ check:
 check_latency: check_latency.o cfgfile.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(ALL_LDFLAGS)
 
-mtest: mtest.o sql.o $(TEST_OBJS) $(TEST_DEPS) $(MODULE_OBJS)
+mtest: mtest.o $(DBWRAP_OBJS) $(TEST_OBJS) $(TEST_DEPS) $(MODULE_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(MTEST_LDFLAGS)
 
 test-lparse: test-lparse.o lparse.o logutils.o hash.o test_utils.o
 	$(QUIET_LINK)$(CC) $^ -o $@
 
 import: $(IMPORT_OBJS)
-	$(QUIET_LINK)$(CC) $^ -o $@ $(LIB_DB)
+	$(QUIET_LINK)$(CC) $(LIB_DB) $^ -o $@
 
 showlog: $(SHOWLOG_OBJS)
-	$(QUIET_LINK)$(CC) $^ -o $@
+	$(QUIET_LINK)$(CC) $(LIB_DB) $^ -o $@
 
 nebtest: $(NEBTEST_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(NEBTEST_LIBS) $(NEBTEST_LDFLAGS)
@@ -120,7 +123,8 @@ oconf: oconf.o sha1.o misc.o
 %.o: %.c
 	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@
 
-test: test-binlog test-slist test__hash test__lparse test_module
+#test: test-binlog test-slist test__hash test__lparse test_module
+test: test-slist test__hash test__lparse test_module
 
 test_module: nebtest merlin.so
 	@./nebtest merlin.so

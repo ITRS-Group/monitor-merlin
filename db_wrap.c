@@ -101,7 +101,8 @@ int db_wrap_query_double(db_wrap * db, char const * sql, size_t len, double * tg
 	}
 	return rc;
 }
-int db_wrap_query_string(db_wrap * db, char const * sql, size_t len, char ** tgt, size_t * tgtLen)
+
+int db_wrap_query_string(db_wrap * db, char const * sql, size_t len, char const ** tgt, size_t * tgtLen)
 {
 	db_wrap_result * res = NULL;
 	int rc = db_wrap_query_number_prepare(db, sql, len, &res);

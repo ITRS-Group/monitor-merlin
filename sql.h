@@ -1,14 +1,15 @@
 #ifndef INCLUDE_sql_h__
 #define INCLUDE_sql_h__
 
-#include <dbi/dbi.h>
 #include <stdarg.h>
+#include <dbi/dbi.h> /* temporary, until DB API is completely ported */
+#include "db_wrap.h"
 #define prefixcmp(a, b) strncmp(a, b, strlen(b))
 
 extern char *host_perf_table;
 extern char *service_perf_table;
 
-typedef dbi_result SQL_RESULT;
+/*typedef dbi_result SQL_RESULT;*/
 
 extern int sql_config(const char *key, const char *value);
 extern int sql_is_connected(void);
@@ -22,6 +23,7 @@ extern void sql_free_result(void);
 extern int sql_query(const char *fmt, ...)
 	__attribute__((__format__(__printf__, 1, 2)));
 extern int sql_vquery(const char *fmt, va_list ap);
+//extern db_wrap_result * sql_get_result(void);
 extern dbi_result sql_get_result(void);
 extern const char *sql_table_name(void);
 extern const char *sql_db_name(void);

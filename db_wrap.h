@@ -104,20 +104,22 @@ struct db_wrap_api
 	   allocator, which is why the client MUST use free_string() to
 	   free the string.
 
-	   Implementations may optionally stream (len==0) as an indicator
+	   Implementations may optionally accept (len==0) as an indicator
 	   that they should use strlen() to count the length of src.
 
 	   ACHTUNG: this is itended for use with individual SQL statement
 	   parts, not whole SQL statements.
 	*/
 	size_t (*sql_quote)(db_wrap * db, char const * src, size_t len, char ** dest);
+
 	/**
-	   Frees a string allocated by sql_quote() or
-	   error_message(). Results are undefined if the string came from
-	   another source. It must return 0 on success. It must, like
-	   free(), treat a NULL string gracefully, ignoring it.
+	   Frees a string allocated by sql_quote(). Results are undefined
+	   if the string came from another source. It must return 0 on
+	   success. It must, like free(), it must gracefully ignore
+	   a NULL string value.
 	*/
-	int (*free_string)(db_wrap * db, char *);
+	int (*free_string)(db_wrap * db, char * str);
+
 	/**
 	   Must initialize a result object for the given db from the first
 	   len bytes of the given sql, and populte the given result object
@@ -130,14 +132,7 @@ struct db_wrap_api
 	   that they should use strlen() to count the length of src.
 	*/
 	int (*query_result)(db_wrap * db, char const * sql, size_t len, struct db_wrap_result ** tgt);
-#if 0
-	/** these can be implemented generically in terms of query_result(). i think. */
-	int (*query_void)(struct db_wrap * db, char const * sql, size_t len);
-	int (*query_int32)(struct db_wrap * db, char const * sql, size_t len, int32_t * tgt);
-	int (*query_int64)(struct db_wrap * db, char const * sql, size_t len, int64_t * tgt);
-	int (*query_double)(struct db_wrap * db, char const * sql, size_t len, double * tgt);
-	int (*query_string)(struct db_wrap * db, char const * sql, size_t len, char ** tgt, size_t * tgtLen);
-#endif
+
 	/**
 	   Must return the last error message associated with the
 	   connection, writing the bytes to *dest and the length to *len
@@ -149,14 +144,12 @@ struct db_wrap_api
 	   Some drivers may return other strings on error (sqlite3
 	   infamously uses "not an error" for this case).
 
-	   Note that some drivers own their error message strings but we cannot
-	   reasonably define their lifetimes in terms of this interface, thus
-	   implementations are required to allocate and copy them, and clients
-	   are required to free them using db->api->free_string() instead of
-	   free() (so that implementations have some leeway in the allocation
-	   of the string).
+	   It is ASSUMED that the underlying driver owns the returned string,
+	   and this API allows the lifetime of the returned bytes to expire
+	   at the next call into the underlying driver. Thus clients must copy
+	   it if needed.
 	*/
-	int (*error_message)(db_wrap * db, char ** dest, size_t * len);
+	int (*error_message)(db_wrap * db, char const ** dest, size_t * len);
 	/**
 	   Sets a driver-specific option to the given value. The exact
 	   type of val is driver-specific, and the client must be sure to
@@ -193,6 +186,19 @@ struct db_wrap_api
 	   work with stack- or custom-allocated db_wrap objects.
 	*/
 	int (*cleanup)(db_wrap * db);
+
+	/**
+	   Must return non-zero (true) if the db object is connected, or
+	   false if !db or db is not connected. A return value of true is
+	   NOT a guaranty that the connection actually works at the
+	   moment, but that a connection has, at some point, been
+	   established.
+
+	   TODO: reconsider whether this operation is really needed. It's
+	   here because the sql.{c, h} APIs have it, but we may not need
+	   it at this level.
+	*/
+	char (*is_connected)(db_wrap * db);
 	/**
 	   Must call cleanup() and then free the db object using a
 	   mechanism appropriate for its allocation.
@@ -282,15 +288,19 @@ struct db_wrap_result_api
 	/**
 	   Must fetch a string value at the given query index position
 	   (0-based!), write its value to *val, write its length to *len,
-	   and return 0 on success. The function may allocate memory for
-	   the string, and may use a custom memory source.  If *len is
-	   greater than 0 after this call then the caller must free the
-	   string by calling the parent db_wrap object's free_string() member.
+	   and return 0 on success. len may be NULL, in which case
+	   the length is not stored.
+
+	   The ownership of the returned string belongs to the self object
+	   (or, more correctly, the underlying driver) and those bytes
+	   may be invalidated by ANY non-get-by-index operations on this
+	   result set. Thus the user must copy them if needed for further
+	   processing.
 
 	   If the fetched string has a length of 0, implementations must
 	   assign *val to NULL, *len to 0, and return 0.
 	 */
-	int (*get_string_ndx)(db_wrap_result * self, unsigned int ndx, char ** val, size_t * len);
+	int (*get_string_ndx)(db_wrap_result * self, unsigned int ndx, char const ** val, size_t * len);
 
 	/**
 	   Must free the given string, which must have been allocated by
@@ -364,23 +374,30 @@ extern const db_wrap_conn_params db_wrap_conn_params_empty;
    Returns 0 on success.
 */
 int db_wrap_query_exec(db_wrap * db, char const * sql, size_t len);
+
 /**
    Runs a query which is expected to return exactly 1 int32-compatible result.
    On success 0 is returned and *tgt is set to its value. If the query returns no
    results then *tgt is set to 0.
 */
 int db_wrap_query_int32(db_wrap * db, char const * sql, size_t len, int32_t * tgt);
+
 /**
    Identical to db_wrap_query_int32(), but takes an int64_t instead.
 */
 int db_wrap_query_int64(db_wrap * db, char const * sql, size_t len, int64_t * tgt);
+
 /**
-   Identical to db_wrap_query_int32(), but takes an double instead.
+   Identical to db_wrap_query_int32(), but takes a double instead.
 */
 int db_wrap_query_double(db_wrap * db, char const * sql, size_t len, double * tgt);
+
 /**
-   Not yet implemented.
+   A convenience wrapper for db_wrap_result::get_string_ndx(), with
+   the same argument and string ownership conventions.
+
+   Returns 0 on success.
 */
-int db_wrap_query_string(db_wrap * db, char const * sql, size_t len, char ** tgt, size_t * tgtLen);
+int db_wrap_query_string(db_wrap * db, char const * sql, size_t len, char const ** tgt, size_t * tgtLen);
 
 #endif /* _MERLIN_DB_WRAP_H_INCLUDED */

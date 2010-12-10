@@ -86,13 +86,12 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 		++gotCount;
 		if (1 == gotCount)
 		{
-			char * str = NULL;
+			char const * str = NULL;
 			size_t sz = 0;
 			rc = res->api->get_string_ndx(res, 2, &str, &sz);
 			assert(0 == rc);
 			assert(sz > 0);
-			//MARKER("Read string [%s]\n",str);
-			wr->api->free_string(wr, str);
+			MARKER("Read string [%s]\n",str);
 		}
 	}
 	assert(gotCount == count);
@@ -198,7 +197,7 @@ void test_sqlite_1()
 	assert(0 == rc);
 	rc = wr->api->connect(wr);
 	assert(0 == rc);
-	char * errmsg = NULL;
+	char const * errmsg = NULL;
 	rc = wr->api->error_message(wr, &errmsg, NULL);
 	assert(0 == rc);
 	assert(NULL == errmsg);
@@ -278,7 +277,12 @@ int main(int argc, char const ** argv)
 	{
 		paramSqlite.dbname = "merlin.sqlite";
 	}
-	dbi_initialize(NULL);
+	int rc = dbi_initialize(NULL);
+	if (0 >= rc)
+	{
+		MARKER("ERROR: could not initialize any DBI drivers!\n");
+		return 1;
+	}
 	atexit(do_atexit);
 	if (ThisApp.testMySQL) test_mysql_1();
 	if (ThisApp.testSQLite3) test_sqlite_1();

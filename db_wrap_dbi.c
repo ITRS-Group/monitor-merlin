@@ -23,10 +23,11 @@ static int dbiw_connect(db_wrap * self);
 static size_t dbiw_sql_quote(db_wrap * self, char const * src, size_t len, char ** dest);
 static int dbiw_free_string(db_wrap * self, char * str);
 static int dbiw_query_result(db_wrap * self, char const * sql, size_t len, struct db_wrap_result ** tgt);
-static int dbiw_error_message(db_wrap * self, char ** dest, size_t * len);
+static int dbiw_error_message(db_wrap * self, char const ** dest, size_t * len);
 static int dbiw_option_set(db_wrap * self, char const * key, void const * val);
 static int dbiw_option_get(db_wrap * self, char const * key, void * val);
 static int dbiw_cleanup(db_wrap * self);
+static char dbiw_is_connected(db_wrap * self);
 static int dbiw_finalize(db_wrap * self);
 
 
@@ -34,8 +35,7 @@ static int dbiw_res_step(db_wrap_result * self);
 static int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * val);
 static int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * val);
 static int dbiw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * val);
-static int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char ** val, size_t * len);
-//static int dbiw_res_free_string(db_wrap_result * self, char * str);
+static int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char const ** val, size_t * len);
 static int dbiw_res_finalize(db_wrap_result * self);
 
 struct dbiw_db
@@ -48,30 +48,6 @@ typedef struct dbiw_db dbiw_db;
 static dbiw_db dbiw_db_empty = {
 NULL/*connection*/
 };
-
-
-int db_wrap_dbi_init2(char const * driver, db_wrap_conn_params const * param, db_wrap ** tgt)
-{
-	if (! driver || !*driver || ! param || !tgt)
-	{
-		return DB_WRAP_E_BAD_ARG;
-	}
-	dbi_conn conn = dbi_conn_new(driver);
-	if (! conn)
-	{
-		return DB_WRAP_E_UNKNOWN_ERROR;
-	}
-	db_wrap * db = NULL;
-	int rc = db_wrap_dbi_init(conn, param, &db);
-	if (rc)
-	{
-		dbi_conn_close(conn);
-		return rc;
-	}
-	assert(db);
-	*tgt = db;
-	return rc;
-}
 
 static const db_wrap_result_api dbiw_res_api =
 {
@@ -102,6 +78,7 @@ dbiw_error_message,
 dbiw_option_set,
 dbiw_option_get,
 dbiw_cleanup,
+dbiw_is_connected,
 dbiw_finalize
 };
 
@@ -134,7 +111,11 @@ int dbiw_connect(db_wrap * self)
 size_t dbiw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest)
 {
 	DB_DECL(0);
-	if (!sql || !*sql || !len) return 0;
+	if (!sql || !*sql || !len)
+	{
+		*dest = NULL;
+		return 0;
+	}
 	else
 	{
 		return dbi_conn_quote_string_copy(db->conn, sql, dest);
@@ -184,18 +165,22 @@ int dbiw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_resu
 	return 0;
 }
 
-int dbiw_error_message(db_wrap * self, char ** dest, size_t * len)
+int dbiw_error_message(db_wrap * self, char const ** dest, size_t * len)
 {
 	if (! self || !dest) return DB_WRAP_E_BAD_ARG;
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	char const * msg = NULL;
-	dbi_conn_error(db->conn, &msg);
+	dbi_conn_error(db->conn, &msg)
+		/* reminder: dbi_conn_error() returns the error code number
+		   associated with the fetched string. TODO: consider how we
+		   can represent such a dual-use in this API. The native DB
+		   APIs i've (namely sqlite3) used don't have such a duality.
+		*/
+		;
 	if (msg && *msg)
 	{
-		char * dup = strdup(msg);
-		if (! dup) return DB_WRAP_E_ALLOC_ERROR;
-		*dest = dup;
-		if (len) *len = strlen(dup);
+		*dest = msg;
+		if (len) *len = strlen(msg);
 	}
 	else
 	{
@@ -211,20 +196,20 @@ int dbiw_option_set(db_wrap * self, char const * key, void const * val)
 	int rc = DB_WRAP_E_UNSUPPORTED;
 #define TRYSTR(K) if (0==strcmp(K,key)) {                \
 		rc = dbi_conn_set_option(db->conn, key, (char const *)val); }
-#define TRYNUM(K) if (0==strcmp(K,key)) {                \
+#define TRYINT(K) if (0==strcmp(K,key)) {                \
 		rc = dbi_conn_set_option_numeric(db->conn, key, *((int const *)val)); }
 
 	TRYSTR("host")
 	else TRYSTR("username")
 	else TRYSTR("password")
 	else TRYSTR("dbname")
-	else TRYNUM("port")
+	else TRYINT("port")
 	else TRYSTR("encoding")
 	else TRYSTR("sqlite3_dbdir")
-	else TRYNUM("sqlite3_timeout")
+	else TRYINT("sqlite3_timeout")
 		;
 #undef TRYSTR
-#undef TRYNUM
+#undef TRYINT
 	return rc;
 }
 
@@ -269,6 +254,12 @@ int dbiw_cleanup(db_wrap * self)
 	return 0;
 }
 
+char dbiw_is_connected(db_wrap * self)
+{
+	DB_DECL(0);
+	return NULL != db->conn;
+}
+
 int dbiw_finalize(db_wrap * self)
 {
 	/*MARKER("Freeing db handle @%p\n",(void const *)self);*/
@@ -311,7 +302,7 @@ int dbiw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * va
 	return 0;
 }
 
-int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char ** val, size_t * len)
+int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char const ** val, size_t * len)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
@@ -320,22 +311,11 @@ int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char ** val
 	{
 		return DB_WRAP_E_CHECK_DB_ERROR;
 	}
-	const size_t slen = strlen(str);
-	if (slen)
+	if (len)
 	{
-		char * dup = NULL;
-		dup = strdup(str);
-		if (! dup)
-		{
-			return DB_WRAP_E_ALLOC_ERROR;
-		}
-		*val = dup;
+		*len = strlen(str);
 	}
-	else
-	{
-		*val = 0;
-	}
-	*len = slen;
+	*val = str;
 	return 0;
 }
 
@@ -381,28 +361,57 @@ int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const * param, db_wrap *
 	}
 	*wr = db_wrap_libdbi;
 	wr->impl.data = impl;
+	if (param)
+	{
 #define CLEANUP do{ impl->conn = 0/*caller keeps ownership*/; wr->api->finalize(wr); wr = NULL; } while(0)
 #define CHECKRC if (0 != rc) { CLEANUP; return rc; } (void)0
-	impl->conn = conn/* do this last, else we'll transfer ownership too early*/;
-	int rc = 0;
-#define OPT(K) if (param->K && *param->K) { \
-	rc = wr->api->option_set(wr, #K, param->K);           \
-	CHECKRC; \
-}
-	OPT(host) OPT(username) OPT(password) OPT(dbname)
+		impl->conn = conn/* do this last, else we'll transfer ownership too early*/;
+		int rc = 0;
+#define OPT(K) if (param->K && *param->K) {              \
+			rc = wr->api->option_set(wr, #K, param->K);   \
+			CHECKRC;                                      \
+		}
+		OPT(host) OPT(username) OPT(password) OPT(dbname);
 #undef OPT
-	if (param->port > 0)
-	{ /** dbi appears to IGNORE THE PORT i set. If i set an invalid port, it will
-		  still connect! Aha... maybe it's defaulting to a socket connection
-		  for localhost. */
-		rc = wr->api->option_set(wr, "port", &param->port);
-		CHECKRC;
+		if (param->port > 0)
+		{ /** dbi appears to IGNORE THE PORT i set. If i set an invalid port, it will
+			  still connect! Aha... maybe it's defaulting to a socket connection
+			  for localhost. */
+			rc = wr->api->option_set(wr, "port", &param->port);
+			CHECKRC;
+		}
 	}
 	*tgt = wr;
 	return 0;
 #undef CHECKRC
 #undef CLEANUP
 }
+
+
+
+int db_wrap_dbi_init2(char const * driver, db_wrap_conn_params const * param, db_wrap ** tgt)
+{
+	if (! driver || !*driver || !tgt)
+	{
+		return DB_WRAP_E_BAD_ARG;
+	}
+	dbi_conn conn = dbi_conn_new(driver);
+	if (! conn)
+	{
+		return DB_WRAP_E_UNKNOWN_ERROR;
+	}
+	db_wrap * db = NULL;
+	int rc = db_wrap_dbi_init(conn, param, &db);
+	if (rc)
+	{
+		dbi_conn_close(conn);
+		return rc;
+	}
+	assert(db);
+	*tgt = db;
+	return rc;
+}
+
 
 dbi_result db_wrap_dbi_result(db_wrap_result * self)
 {

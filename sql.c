@@ -1,27 +1,47 @@
 #define _GNU_SOURCE
 #include "daemon.h"
+#include "db_wrap_dbi.h"
 
 /* where to (optionally) stash performance data */
 char *host_perf_table = NULL;
 char *service_perf_table = NULL;
+
+#define FIXME(X)
 
 /*
  * File-scoped definition of the database settings we've tried
  * (or succeeded) connecting with
  */
 static struct {
-	char *host;
-	char *name;
-	char *user;
-	char *pass;
-	char *table;
-	char *type;
-	char *encoding;
+	char const *host;
+	char const *name;
+	char const *user;
+	char const *pass;
+	char const *table;
+	char const *type;
+	char const *encoding;
 	unsigned int port;
-	dbi_conn conn;
-	dbi_result result;
-	dbi_driver driver;
-} db;
+	dbi_conn conn/*TODO: remove*/;
+	dbi_result result/*TODO: remove*/;
+	dbi_driver driver/*TODO: remove*/;
+	db_wrap * wdb;
+	db_wrap_result * wresult;
+} db = {
+NULL/*host*/,
+NULL/*name*/,
+NULL/*user*/,
+NULL/*pass*/,
+NULL/*table*/,
+"mysql"/*type*/,
+NULL/*encoding*/,
+0U/*port*/,
+NULL/*conn*/,
+NULL/*result*/,
+NULL/*driver*/,
+NULL/*wdb*/,
+NULL/*wresult*/
+};
+
 
 
 static time_t last_connect_attempt;
@@ -32,15 +52,14 @@ static time_t last_connect_attempt;
  */
 size_t sql_quote(const char *src, char **dst)
 {
-	int ret;
 
-	if (!src || !*src) {
-		*dst = NULL;
-		return 0;
+	if (! db.wdb)
+	{
+
 	}
-
-	ret = dbi_conn_quote_string_copy(db.conn, src, dst);
-	if (!ret) {
+	size_t const ret = db.wdb->api->sql_quote(db.wdb, src, (src?strlen(src):0U), dst);
+	if (! ret)
+	{
 		lerr("Failed to quote and copy string at %p to %p",
 			 src, dst);
 		lerr("Source string: '%s'", src);
@@ -53,44 +72,80 @@ size_t sql_quote(const char *src, char **dst)
  * these two functions are only here to allow callers
  * access to error reporting without having to expose
  * the db-link to theh callers. It's also nifty as we
- * want to remain database layer agnostic
+ * want to remain database layer agnostic.
+ *
+ * The returned bytes are owned by the underlying DB driver and are
+ * not guaranteed to be valid after the next call into the db
+ * driver. It is up to the client to copy them, if needed, BEFORE
+ * making ANY other calls into the DB API.
  */
 int sql_error(const char **msg)
 {
-	if (!db.conn) {
+	if (!db.wdb) {
 		*msg = "no database connection";
 		return DBI_ERROR_NOCONN;
 	}
-
-	return dbi_conn_error(db.conn, msg);
+		FIXME("Return the db's error code here.");
+		return db.wdb->api->error_message(db.wdb, msg, NULL);
 }
 
+/** Convenience form of sql_error() which returns the error
+	string directly, or returns an unspecified string if
+	no connection is established.
+*/
 const char *sql_error_msg(void)
 {
-	const char *msg;
+	const char *msg = NULL;
 	sql_error(&msg);
 	return msg;
 }
 
 void sql_free_result(void)
 {
-	if (db.result) {
-		dbi_result_free(db.result);
-		db.result = NULL;
+	if (db.wresult) {
+			db.wresult->api->finalize(db.wresult);
+			db.wresult = NULL;
 	}
 }
 
+#if 0
+db_wrap_result * sql_get_result(void)
+{
+	return db.wresult;
+}
+#else
 dbi_result sql_get_result(void)
 {
-	return db.result;
+	return db_wrap_dbi_result(db.wresult);
 }
+#endif
 
-static int run_query(char *query, int len, int rerun)
+static int run_query(char *query, size_t len, int rerunIGNORED)
 {
+#if 1
+	/*
+	  TODO/possible FIXME: the original code uses dbi_conn_query_null(),
+	  which is explicitly useful for passing binary strings containing
+	  NULL bytes to the dbi engine. i do not know if the rest of the code
+	  depends on this binary ability. If it does then we've got a slight
+	  problem here because that feature is not portable across back-ends
+	  (according to the dbi docs).
+	 */
+	db_wrap_result * res = NULL;
+	int rc = db.wdb->api->query_result(db.wdb, query, len, &res);
+	if (rc)
+	{
+		assert(NULL == res);
+		return rc;
+	}
+	assert(NULL != res);
+	assert(NULL == db.wresult);
+	db.wresult = res;
+#else
 	db.result = dbi_conn_query_null(db.conn, (unsigned char *)query, len);
 	if (!db.result)
 		return -1;
-
+#endif
 	return 0;
 }
 
@@ -125,10 +180,15 @@ int sql_vquery(const char *fmt, va_list ap)
 
 	if (run_query(query, len, 0) < 0) {
 		const char *error_msg;
-		int db_error = sql_error(&error_msg);
+			    FIXME("db_wrap API currently only returns error string, not error code.");
+			    FIXME("Add db_error int back in once db_wrap API can do it.");
+		//int db_error =
+			        sql_error(&error_msg);
 
-		lwarn("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is %d",
-			  query, error_msg, db_error);
+		lwarn("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is UNKNOWN (FIXME:sgbeal)",
+			          query, error_msg /*,db_error*/);
+#if 0
+			    FIXME("Refactor/rework the following for the new db layer...");
 		/*
 		 * if we failed because the connection has gone away, we try
 		 * reconnecting once and rerunning the query before giving up.
@@ -155,6 +215,7 @@ int sql_vquery(const char *fmt, va_list ap)
 				/* database backlog code goes here */
 			}
 		}
+#endif
 	}
 
 	free(query);
@@ -176,13 +237,9 @@ int sql_query(const char *fmt, ...)
 
 int sql_is_connected(void)
 {
-	if (!use_database)
-		return 0;
-
-	if (db.conn)
-		return 1;
-
-	return sql_init() == 0;
+	return (db.wdb && db.wdb->api->is_connected(db.wdb))
+		? 1
+		: 0;
 }
 
 int sql_init(void)
@@ -199,6 +256,7 @@ int sql_init(void)
 	/* free any remaining result set */
 	sql_free_result();
 
+#if 0
 	if (!db.driver) {
 		result = dbi_initialize(NULL);
 		if (result < 1) {
@@ -221,23 +279,36 @@ int sql_init(void)
 		lerr("Failed to create a database connection instance");
 		return -1;
 	}
+#else
+	db.name = sql_db_name();
+	db.host = sql_db_host();
+	db.user = sql_db_user();
+	db.pass = sql_db_pass();
+		db.table = sql_table_name();
+		if (! db.type)
+		{
+			db.type = "mysql";
+		}
 
-	db.name = db.name ? db.name : "merlin";
-	db.host = db.host ? db.host : "localhost";
-	db.user = db.user ? db.user : "merlin";
-	db.pass = db.pass ? db.pass : "merlin";
-	result = dbi_conn_set_option(db.conn, "host", db.host);
-	result |= dbi_conn_set_option(db.conn, "username", db.user);
-	result |= dbi_conn_set_option(db.conn, "password", db.pass);
-	result |= dbi_conn_set_option(db.conn, "dbname", db.name);
-	if (db.port)
-		result |= dbi_conn_set_option_numeric(db.conn, "port", db.port);
-	result |= dbi_conn_set_option(db.conn, "encoding", "ISO-8859-1");
+		db_wrap_conn_params connparam = db_wrap_conn_params_empty;
+		connparam.host = db.host;
+		connparam.dbname = db.name;
+		connparam.username = db.user;
+		connparam.password = db.pass;
+		if (db.port) connparam.port = db.port;
+		result = db_wrap_dbi_init2(db.type, &connparam, &db.wdb);
+		if (result)
+		{
+			lerr("Failed to connect to db type [%s].", db.type);
+			return -1;
+		}
+#endif
+		result = db.wdb->api->option_set(db.wdb, "encoding", db.encoding ? db.encoding : "UTF-8");
 	if (result) {
 		lerr("Failed to set one or more database connection options");
 	}
-
-	if (dbi_conn_connect(db.conn) < 0) {
+		result = db.wdb->api->connect(db.wdb);
+	if (result) {
 		const char *error_msg;
 		sql_error(&error_msg);
 		lerr("Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
@@ -246,9 +317,7 @@ int sql_init(void)
 		sql_close();
 		return -1;
 	}
-
 	last_connect_attempt = 0;
-
 	return 0;
 }
 
@@ -259,11 +328,11 @@ int sql_close(void)
 		return 0;
 
 	sql_free_result();
-
-	if (db.conn)
-		dbi_conn_close(db.conn);
-
-	db.conn = NULL;
+		if (db.wdb)
+		{
+			db.wdb->api->finalize(db.wdb);
+			db.wdb = NULL;
+		}
 	return 0;
 }
 
@@ -346,3 +415,5 @@ int sql_config(const char *key, const char *value)
 
 	return 0;
 }
+
+#undef FIXME
