@@ -3,11 +3,15 @@
 Concrete db_wrap implementation based off of libdbi.
 
 */
-#include "db_wrap_dbi.h"
+
 #include <string.h> /* strcmp() */
 #include <assert.h>
+#include <stdlib.h> /* atexit() */
+#include <dbi/dbi.h> /* libdbi */
+#include "db_wrap_dbi.h"
+#include "logging.h" /* lerr() */
 
-#if 1
+#if 1 /* for debuggering only */
 #  include <stdio.h>
 #  define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
 #  define TODO(X) MARKER("TODO: %s\n",X)
@@ -19,6 +23,9 @@ Concrete db_wrap implementation based off of libdbi.
 #  define FIXME(X)
 #endif
 
+/*
+  db_wrap_api member implementations...
+*/
 static int dbiw_connect(db_wrap * self);
 static size_t dbiw_sql_quote(db_wrap * self, char const * src, size_t len, char ** dest);
 static int dbiw_free_string(db_wrap * self, char * str);
@@ -30,6 +37,9 @@ static int dbiw_cleanup(db_wrap * self);
 static char dbiw_is_connected(db_wrap * self);
 static int dbiw_finalize(db_wrap * self);
 
+/*
+  db_wrap_result_api member implementations...
+*/
 static int dbiw_res_step(db_wrap_result * self);
 static int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * val);
 static int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * val);
@@ -37,19 +47,6 @@ static int dbiw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, doub
 static int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char const ** val, size_t * len);
 static int dbiw_res_num_rows(db_wrap_result * self, size_t * num);
 static int dbiw_res_finalize(db_wrap_result * self);
-
-struct dbiw_db
-{
-	dbi_conn conn;
-};
-typedef struct dbiw_db dbiw_db;
-
-
-#if 0
-static dbiw_db dbiw_db_empty = {
-NULL/*connection*/
-};
-#endif
 
 static const db_wrap_result_api dbiw_res_api =
 {
@@ -92,22 +89,43 @@ NULL/*data*/,
 }
 };
 
-#define DB_DECL(ERRVAL) \
-	dbiw_db * db = (self && (self->api==&db_wrap_api_libdbi))   \
-		? (dbiw_db *)self->impl.data : NULL;                       \
-		if (!db) return ERRVAL
+static char dbiw_dbi_init()
+{
+	static char doneit = 0;
+	if (doneit) return 1;
+	doneit = 1;
+	const int rc = dbi_initialize(NULL);
+	if (0 >= rc)
+	{
+		lerr("Could not initialize any DBI drivers!");
+		return 0;
+	}
+	atexit(dbi_shutdown);
+	return 1;
+}
+
+
+#define INIT_DBI(RC) if (! dbiw_dbi_init()) return RC
+
+#define DB_DECL(ERRVAL)                                         \
+	dbi_conn * conn = (self && (self->api==&db_wrap_api_libdbi))   \
+		? (dbi_conn *)self->impl.data : NULL;                       \
+	if (!conn) return ERRVAL; \
+	INIT_DBI(ERRVAL)
 
 #define RES_DECL(ERRVAL) \
 	dbi_result dbires = (self && (self->api==&dbiw_res_api))   \
 		? (dbi_result)self->impl.data : NULL; \
 	/*MARKER("dbi_wrap_result@%p, dbi_result@%p\n",(void const *)self, (void const *)dbires);*/ \
-		if (!dbires) return ERRVAL
+	if (!dbires) return ERRVAL; \
+	INIT_DBI(ERRVAL)
 
 int dbiw_connect(db_wrap * self)
 {
 	DB_DECL(DB_WRAP_E_BAD_ARG);
-	int rc = dbi_conn_connect(db->conn);
-	return rc;
+	return dbi_conn_connect(conn)
+		? DB_WRAP_E_CHECK_DB_ERROR
+		: 0;
 }
 
 size_t dbiw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest)
@@ -120,7 +138,7 @@ size_t dbiw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest
 	}
 	else
 	{
-		return dbi_conn_quote_string_copy(db->conn, sql, dest);
+		return dbi_conn_quote_string_copy(conn, sql, dest);
 	}
 }
 
@@ -153,7 +171,7 @@ int dbiw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_resu
 	*/
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	if (! sql || !*sql || !len || !tgt) return DB_WRAP_E_BAD_ARG;
-	dbi_result dbir = dbi_conn_query(db->conn, sql);
+	dbi_result dbir = dbi_conn_query(conn, sql);
 	if (! dbir) return DB_WRAP_E_CHECK_DB_ERROR;
 	db_wrap_result * wres = dbiw_res_alloc();
 	if (! wres)
@@ -172,7 +190,7 @@ int dbiw_error_message(db_wrap * self, char const ** dest, size_t * len)
 	if (! self || !dest) return DB_WRAP_E_BAD_ARG;
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	char const * msg = NULL;
-	dbi_conn_error(db->conn, &msg)
+	dbi_conn_error(conn, &msg)
 		/* reminder: dbi_conn_error() returns the error code number
 		   associated with the fetched string. TODO: consider how we
 		   can represent such a dual-use in this API. The native DB
@@ -194,12 +212,18 @@ int dbiw_error_message(db_wrap * self, char const ** dest, size_t * len)
 
 int dbiw_option_set(db_wrap * self, char const * key, void const * val)
 {
+	/**
+	   Maintenance note:
+
+	   i HATE hard-coding this property list here, but i have no other way of
+	   passing off the options to the proper set_option() variant.
+	 */
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	int rc = DB_WRAP_E_UNSUPPORTED;
 #define TRYSTR(K) if (0==strcmp(K,key)) {                \
-		rc = dbi_conn_set_option(db->conn, key, (char const *)val); }
+		rc = dbi_conn_set_option(conn, key, (char const *)val); }
 #define TRYINT(K) if (0==strcmp(K,key)) {                \
-		rc = dbi_conn_set_option_numeric(db->conn, key, *((int const *)val)); }
+		rc = dbi_conn_set_option_numeric(conn, key, *((int const *)val)); }
 
 	TRYSTR("host")
 	else TRYSTR("username")
@@ -209,6 +233,7 @@ int dbiw_option_set(db_wrap * self, char const * key, void const * val)
 	else TRYSTR("encoding")
 	else TRYSTR("sqlite3_dbdir")
 	else TRYINT("sqlite3_timeout")
+		/* semicolon gets emacs' indention mode back on the right track */
 		;
 #undef TRYSTR
 #undef TRYINT
@@ -217,13 +242,14 @@ int dbiw_option_set(db_wrap * self, char const * key, void const * val)
 
 int dbiw_option_get(db_wrap * self, char const * key, void * val)
 {
+	/* See maintenance notes in dbiw_option_set(). */
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	char const * rcC = NULL;
 	int rcI = 0;
 #define TRYSTR(K) if (0==strcmp(K,key)) {                \
-		rcC = dbi_conn_get_option(db->conn, key); }
+		rcC = dbi_conn_get_option(conn, key); }
 #define TRYNUM(K) if (0==strcmp(K,key)) {                \
-		rcI = dbi_conn_get_option_numeric(db->conn, key); }
+		rcI = dbi_conn_get_option_numeric(conn, key); }
 
 	TRYSTR("host")
 	else TRYSTR("username")
@@ -248,18 +274,17 @@ int dbiw_option_get(db_wrap * self, char const * key, void * val)
 char dbiw_is_connected(db_wrap * self)
 {
 	DB_DECL(0);
-	return NULL != db->conn;
+	return NULL != conn;
 }
 
 
 int dbiw_cleanup(db_wrap * self)
 {
 	DB_DECL(DB_WRAP_E_BAD_ARG);
-	if (db->conn)
+	if (conn)
 	{
-		dbi_conn_close(db->conn);
+		dbi_conn_close(conn);
 	}
-	free(self->impl.data);
 	*self = db_wrap_empty;
 	return 0;
 }
@@ -356,19 +381,12 @@ int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const * param, db_wrap *
 	if (! conn || !param || !tgt) return DB_WRAP_E_BAD_ARG;
 	db_wrap * wr = (db_wrap *)malloc(sizeof(db_wrap));
 	if (! wr) return DB_WRAP_E_ALLOC_ERROR;
-	dbiw_db * impl = (dbiw_db*)malloc(sizeof(dbiw_db));
-	if (! impl)
-	{
-		free(wr);
-		return DB_WRAP_E_ALLOC_ERROR;
-	}
 	*wr = db_wrap_libdbi;
-	wr->impl.data = impl;
+	wr->impl.data = conn;
 	if (param)
 	{
-#define CLEANUP do{ impl->conn = 0/*caller keeps ownership*/; wr->api->finalize(wr); wr = NULL; } while(0)
+#define CLEANUP do{ wr->impl.data = 0/*caller keeps ownership*/; wr->api->finalize(wr); wr = NULL; } while(0)
 #define CHECKRC if (0 != rc) { CLEANUP; return rc; } (void)0
-		impl->conn = conn/* do this last, else we'll transfer ownership too early*/;
 		int rc = 0;
 #define OPT(K) if (param->K && *param->K) {              \
 			rc = wr->api->option_set(wr, #K, param->K);   \
@@ -394,6 +412,7 @@ int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const * param, db_wrap *
 
 int db_wrap_dbi_init2(char const * driver, db_wrap_conn_params const * param, db_wrap ** tgt)
 {
+	INIT_DBI(-1);
 	if (! driver || !*driver || !tgt)
 	{
 		return DB_WRAP_E_BAD_ARG;
@@ -425,7 +444,8 @@ dbi_result db_wrap_dbi_result(db_wrap_result * self)
 dbi_conn db_wrap_dbi_conn(db_wrap * self)
 {
 	DB_DECL(NULL);
-	return db->conn;
+	return conn;
 }
 #undef DB_DECL
 #undef RES_DECL
+#undef INIT_DBI

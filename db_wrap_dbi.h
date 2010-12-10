@@ -2,7 +2,9 @@
 #define _MERLIN_DB_WRAP_DBI_H_INCLUDED 1
 
 #include "db_wrap.h"
-#include <dbi/dbi.h>
+/*#include <dbi/dbi.h>*/
+typedef void * dbi_conn;
+typedef void * dbi_result;
 
 /**
    Initializes a db_wrap object using a libdbi backend.

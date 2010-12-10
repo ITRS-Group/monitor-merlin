@@ -37,7 +37,7 @@ DBI_LDFLAGS = -ldbi
 WARN_FLAGS = -Wall -Wextra -Wno-unused-parameter
 DBWRAP_OBJS = sql.o db_wrap.o db_wrap_dbi.o
 COMMON_OBJS = cfgfile.o shared.o hash.o version.o logging.o
-SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o  $(DBWRAP_OBJS)
+SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o $(DBWRAP_OBJS)
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
 DAEMON_OBJS = status.o daemonize.o daemon.o net.o $(DBWRAP_OBJS) db_updater.o state.o
 DAEMON_OBJS += $(SHARED_OBJS)
@@ -173,7 +173,7 @@ $(DAEMON_OBJS): $(DAEMON_DEPS) $(DEPS)
 $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
 
 test-dbwrap.o: test-dbwrap.c
-test-dbwrap: test-dbwrap.o db_wrap.o db_wrap_dbi.o
+test-dbwrap: test-dbwrap.o db_wrap.o db_wrap_dbi.o $(SHARED_OBJS)
 db_wrap.o: db_wrap.h db_wrap.c
 test-dbwrap: LDFLAGS+=$(MTEST_LDFLAGS)
 APPS += test-dbwrap

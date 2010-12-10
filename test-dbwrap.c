@@ -236,11 +236,6 @@ static void show_help(char const * appname)
 	puts("\t-s = disable sqlite3 test.");
 }
 
-void do_atexit()
-{
-	dbi_shutdown();
-}
-
 int main(int argc, char const ** argv)
 {
 	int i;
@@ -280,13 +275,6 @@ int main(int argc, char const ** argv)
 	{
 		paramSqlite.dbname = "merlin.sqlite";
 	}
-	int rc = dbi_initialize(NULL);
-	if (0 >= rc)
-	{
-		MARKER("ERROR: could not initialize any DBI drivers!\n");
-		return 1;
-	}
-	atexit(do_atexit);
 	if (ThisApp.testMySQL) test_mysql_1();
 	if (ThisApp.testSQLite3) test_sqlite_1();
 	MARKER("If you got this far, it worked.\n");
