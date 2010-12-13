@@ -640,7 +640,7 @@ static int ipc_reap_events(void)
 
 	node_log_event_count(&ipc, 0);
 
-	len = node_recv(&ipc, MSG_DONTWAIT | MSG_NOSIGNAL);
+	len = node_recv(&ipc, MSG_DONTWAIT);
 	if (len < 0)
 		return len;
 
@@ -782,6 +782,13 @@ int main(int argc, char **argv)
 	is_module = 0;
 	ipc_init_struct();
 	gettimeofday(&self.start, NULL);
+
+
+	/*
+	 * Solaris doesn't support MSG_NOSIGNAL, so
+	 * we ignore SIGPIPE globally instead
+	 */
+	signal(SIGPIPE, SIG_IGN);
 
 	for (i = 1; i < argc; i++) {
 		char *opt, *arg = argv[i];

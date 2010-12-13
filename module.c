@@ -609,6 +609,12 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	neb_handle = (void *)handle;
 
 	/*
+	 * Solaris (among others) don't have MSG_NOSIGNAL, so we
+	 * ignore SIGPIPE globally instead.
+	 */
+	signal(SIGPIPE, SIG_IGN);
+
+	/*
 	 * this must come before reading configuration. It's a very
 	 * cheap operation anyways and doesn't allocate any memory,
 	 * so it doesn't matter if we do it needlessly.

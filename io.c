@@ -28,7 +28,7 @@ int io_send_all(int fd, const void *buf, size_t len)
 
 	do {
 		loops++;
-		sent = send(fd, buf + total, len - total, MSG_DONTWAIT | MSG_NOSIGNAL);
+		sent = send(fd, buf + total, len - total, MSG_DONTWAIT);
 		if (poll_ret > 0 && sent + total == 0) {
 			/* disconnected peer? */
 			return 0;
@@ -39,7 +39,7 @@ int io_send_all(int fd, const void *buf, size_t len)
 				continue;
 			}
 
-			lerr("send(%d, (buf + total), %zu, MSG_DONTWAIT | MSG_NOSIGNAL) returned %d (%s)",
+			lerr("send(%d, (buf + total), %zu, MSG_DONTWAIT) returned %d (%s)",
 				 fd, len - total, sent, strerror(errno));
 			continue;
 		}
