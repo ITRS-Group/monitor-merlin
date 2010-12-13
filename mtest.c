@@ -144,7 +144,7 @@ static void load_hosts_and_services(void)
 	sql_query("SELECT host_name, service_description FROM service");
 	result = sql_get_result();
 		assert(NULL != result);
-	ok_uint(num_services, count_rows(result), "libdbi service count");
+	ok_uint(num_services, count_rows(result), "db_wrap service count");
 	i = 0;
 	while (i < num_services && (0 == result->api->step(result))) {
 			    services[i].host_name = NULL;
