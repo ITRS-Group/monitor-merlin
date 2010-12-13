@@ -299,7 +299,7 @@ struct db_wrap_result_api
 	   processing.
 
 	   If the fetched string has a length of 0, implementations must
-	   assign *val to NULL, *len to 0, and return 0.
+	   assign *val to NULL, *len (if not NULL) to 0, and return 0.
 	 */
 	int (*get_string_ndx)(db_wrap_result * self, unsigned int ndx, char const ** val, size_t * len);
 
@@ -402,5 +402,17 @@ int db_wrap_query_double(db_wrap * db, char const * sql, size_t len, double * tg
    Returns 0 on success.
 */
 int db_wrap_query_string(db_wrap * db, char const * sql, size_t len, char const ** tgt, size_t * tgtLen);
+
+/**
+   Functions like db_wrap_result_api::get_string_ndx(), but copies the
+   bytes of the string. The caller must free the string using free().
+
+   Returns 0 on success. On error neither sql nor len are not modified.
+
+   len may be NULL.
+
+*/
+int db_wrap_result_string_copy_ndx(db_wrap_result * res, unsigned int ndx, char ** sql, size_t *len);
+
 
 #endif /* _MERLIN_DB_WRAP_H_INCLUDED */

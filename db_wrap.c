@@ -1,6 +1,6 @@
 #include "db_wrap.h"
 #include <assert.h>
-
+#include <string.h> /* strdup() */
 const db_wrap_impl db_wrap_impl_empty = db_wrap_impl_empty_m;
 const db_wrap db_wrap_empty = db_wrap_empty_m;
 const db_wrap_result db_wrap_result_empty = db_wrap_result_empty_m;
@@ -134,4 +134,13 @@ int db_wrap_query_exec(db_wrap * db, char const * sql, size_t len)
 	assert(NULL != res);
 	res->api->finalize(res);
 	return 0;
+}
+
+int db_wrap_result_string_copy_ndx(db_wrap_result * res, unsigned int ndx, char ** sql, size_t *len)
+{
+	if (! res || !sql) return DB_WRAP_E_BAD_ARG;
+	char const * str = NULL;
+	int const rc = res->api->get_string_ndx(res, ndx, &str, len);
+	if ((0 == rc) && str) *sql = strdup(str);
+	return rc;
 }

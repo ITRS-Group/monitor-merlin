@@ -102,13 +102,9 @@ void sql_free_result(void)
 	}
 }
 
-db_wrap_result * sql_get_resultNEW(void)
+db_wrap_result * sql_get_result(void)
 {
 	return db.result;
-}
-dbi_result sql_get_result(void)
-{
-	return db_wrap_dbi_result(db.result);
 }
 
 static int run_query(char *query, size_t len, int rerunIGNORED)

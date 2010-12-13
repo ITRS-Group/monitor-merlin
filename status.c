@@ -81,7 +81,7 @@ static int prime_host_states(size_t *count)
 {
 	sql_query("SELECT host_name, current_state, state_type "
 	          "FROM %s.host ORDER BY host_name", sql_db_name());
-	object_states[0] = store_object_states(sql_get_resultNEW(), count);
+	object_states[0] = store_object_states(sql_get_result(), count);
 	num_objects[0] = *count;
 
 	return object_states[0] != NULL;
@@ -96,7 +96,7 @@ static int prime_service_states(size_t *count)
 {
 	sql_query("SELECT CONCAT(host_name, ';', service_description) as name, current_state, state_type "
 	          "FROM %s.service ORDER BY name", sql_db_name());
-	object_states[1] = store_object_states(sql_get_resultNEW(), count);
+	object_states[1] = store_object_states(sql_get_result(), count);
 	num_objects[1] = *count;
 
 	return object_states[1] != NULL;

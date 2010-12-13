@@ -10,7 +10,8 @@
 #include "lparse.h"
 #include "logutils.h"
 #include "cfgfile.h"
-
+#include <stdint.h> /* standard fixed-size integer types. */
+#include <inttypes.h> /* PRIxxx printf specifiers. */
 #define IGNORE_LINE 0
 
 #define CONCERNS_HOST 50
@@ -351,8 +352,8 @@ static void disable_indexes(void)
 
 static void enable_indexes(void)
 {
-	dbi_result result;
-	unsigned long entries;
+		db_wrap_result * result = NULL;
+	int64_t entries;
 	time_t start;
 
 	/* if we haven't disabled the indexes we can quit early */
@@ -363,10 +364,10 @@ static void enable_indexes(void)
 	if (!(result = sql_get_result()))
 		entries = 0;
 	else {
-		if (dbi_result_next_row(result)) {
-			entries = dbi_result_get_int_idx(result, 1);
+			    if (0 == result->api->step(result)) {
+			        result->api->get_int64_ndx(result, 0, &entries);
 		} else {
-			entries = 0;
+		    entries = 0;
 		}
 		sql_free_result();
 	}
@@ -374,7 +375,7 @@ static void enable_indexes(void)
 	signal(SIGINT, SIG_IGN);
 	sql_query("UNLOCK TABLES");
 	start = time(NULL);
-	printf("Creating sql table indexes. This will likely take ~%lu seconds\n",
+	printf("Creating sql table indexes. This will likely take ~%"PRIi64" seconds\n",
 		   (entries / 50000) + 1);
 	sql_query("ALTER TABLE %s ENABLE KEYS", db_table);
 	printf("%lu database entries indexed in %lu seconds\n",
@@ -1570,7 +1571,7 @@ int main(int argc, char **argv)
 			sql_query("TRUNCATE %s", db_table);
 
 		if (incremental == 1) {
-			dbi_result result;
+			db_wrap_result * result = NULL;
 			sql_query("SELECT %s FROM %s.%s ORDER BY %s DESC LIMIT 1",
 					  only_notifications ? "end_time" : "timestamp",
 					  db_name, db_table,
@@ -1582,9 +1583,15 @@ int main(int argc, char **argv)
 			 * someone might use --incremental with an empty
 			 * database. We shouldn't crash in that case
 			 */
-			if (dbi_result_next_row(result))
-				incremental = dbi_result_get_int_idx(result, 1);
-
+			if (0 == result->api->step(result)) {
+			                /* reminder: incremental is time_t and may be either uint32_t or uint64.
+			                   Thus we use an extra int object here to avoid passing an invalid pointer
+			                   to (&incremental) on platforms where time_t is not uint32_t.
+			                */
+			                int32_t inctime = 0;
+			                result->api->get_int32_ndx(result, 0, &inctime);
+			                incremental = inctime;
+			            }
 			sql_free_result();
 		}
 	}

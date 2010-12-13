@@ -86,12 +86,13 @@ static void *blk_prep(void *data)
 	return pkt.body;
 }
 
-static uint count_rows(dbi_result result)
+static uint count_rows(db_wrap_result * result)
 {
+		size_t n = 0;
 	if (result) {
-		return dbi_result_get_numrows(result);
-	}
-	return 0;
+			result->api->num_rows(result, &n);
+		}
+		return n;
 }
 
 static uint count_table_rows(const char *table_name)
@@ -114,7 +115,7 @@ static void verify_count(const char *name, uint expected, const char *fmt, ...)
 static void load_hosts_and_services(void)
 {
 	int i = 0;
-	dbi_result result;
+	db_wrap_result * result = NULL;
 
 	num_hosts = count_table_rows("host");
 	num_services = count_table_rows("service");
@@ -126,10 +127,12 @@ static void load_hosts_and_services(void)
 	hosts = calloc(num_hosts, sizeof(*hosts));
 	sql_query("SELECT host_name FROM host");
 	result = sql_get_result();
-	ok_uint(num_hosts, dbi_result_get_numrows(result), "libdbi host count");
+		assert(NULL != result);
+	ok_uint(num_hosts, count_rows(result), "db_wrap host count");
 	i = 0;
-	while (i < num_hosts && dbi_result_next_row(result)) {
-		hosts[i].name = dbi_result_get_string_copy_idx(result, 1);
+	while (i < num_hosts && (0 == result->api->step(result))) {
+			    hosts[i].name = NULL;
+			    db_wrap_result_string_copy_ndx(result, 0, & hosts[i].name, NULL);
 		hosts[i].plugin_output = OUTPUT;
 		hosts[i].perf_data = PERF_DATA;
 		hosts[i].long_plugin_output = LONG_PLUGIN_OUTPUT;
@@ -140,11 +143,14 @@ static void load_hosts_and_services(void)
 	services = calloc(num_services, sizeof(*services));
 	sql_query("SELECT host_name, service_description FROM service");
 	result = sql_get_result();
-	ok_uint(num_services, dbi_result_get_numrows(result), "libdbi service count");
+		assert(NULL != result);
+	ok_uint(num_services, count_rows(result), "libdbi service count");
 	i = 0;
-	while (i < num_services && dbi_result_next_row(result)) {
-		services[i].host_name = dbi_result_get_string_copy_idx(result, 1);
-		services[i].description = dbi_result_get_string_copy_idx(result, 2);
+	while (i < num_services && (0 == result->api->step(result))) {
+			    services[i].host_name = NULL;
+			    db_wrap_result_string_copy_ndx(result, 0, &services[i].host_name, NULL);
+			    services[i].description = NULL;
+			    db_wrap_result_string_copy_ndx(result, 1, &services[i].description, NULL);
 		services[i].plugin_output = OUTPUT;
 		services[i].perf_data = PERF_DATA;
 		services[i].long_plugin_output = LONG_PLUGIN_OUTPUT;

@@ -88,13 +88,22 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 		++gotCount;
 		if (1 == gotCount)
 		{
-			char const * str = NULL;
 			size_t sz = 0;
-			rc = res->api->get_string_ndx(res, 2, &str, &sz);
+			char const * strCheck = NULL;
+			char * strCP = NULL;
+			/** The following two blocks must behave equivalently, except for
+			    how they copy (or not) the underlying string ... */
+#if 1
+			rc = res->api->get_string_ndx(res, 2, &strCheck, &sz);
+#else
+			rc = db_wrap_result_string_copy_ndx(res, 2, &strCP, &sz);
+			strCheck = strCP;
+#endif
 			assert(0 == rc);
 			assert(sz > 0);
-			assert(0 == strcmp( str, strVal) );
-			//MARKER("Read string [%s]\n",str);
+			assert(0 == strcmp( strCheck, strVal) );
+			/*MARKER("Read string [%s]\n",strCheck);*/
+			if (NULL != strCP) free( strCP );
 		}
 	}
 	assert(gotCount == count);
