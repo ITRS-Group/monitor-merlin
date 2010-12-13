@@ -1546,6 +1546,11 @@ int main(int argc, char **argv)
 		}
 	}
 
+	if (use_database && (!truncate_db && !incremental)) {
+		printf("Defaulting to incremental mode\n");
+		incremental = 1;
+	}
+
 	if (use_database) {
 		db_name = db_name ? db_name : "merlin";
 		db_user = db_user ? db_user : "merlin";
