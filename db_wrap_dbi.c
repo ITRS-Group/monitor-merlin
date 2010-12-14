@@ -178,7 +178,7 @@ size_t dbiw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest
 
 int dbiw_free_string(db_wrap * self, char * str)
 {
-	DB_DECL(0);
+	DB_DECL(DB_WRAP_E_BAD_ARG);
 	free(str);
 	return 0;
 }
