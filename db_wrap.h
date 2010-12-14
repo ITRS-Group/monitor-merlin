@@ -425,18 +425,30 @@ int db_wrap_result_string_copy_ndx(db_wrap_result * res, unsigned int ndx, char 
 /**
    A generic front-end for loading db_wrap back-ends.
 
-   driver must be a driver name string, as defined by the concrete back-end implementation.
-   The current strings are "supported" (that is, we have code for them. Whether or not they
-   work on your box is another question entirely)...
+   driver must be a driver name string, as defined by the concrete
+   back-end implementation.  The current strings are "supported" (that
+   is, we have code for them. Whether or not they work on your box is
+   another question entirely)...
 
    "dbi:mysql", "dbi:sqlite3", "ocilib"
 
-   TODO: document the exact semantics here.
+
+   The param object contains basic connection parameters for the db
+   connection. This function does NOT perform the connection, only the
+   initial setup.
 
    Returns 0 on success, non-0 on error. On success ownership of *tgt
    is transfered to the caller, who must eventually free it with
    (*tgt)->api->finalize(*tgt). On error ownership of *tgt is not modified
    and the object need not be freed.
+
+   On error, any number of things could be wrong, for example:
+
+   - The driver string is unknown.
+
+   - The driver string is known but the underlying library is missing
+   or cannot load the driver dynamically. e.g. passing "dbi:postgres"
+   will fail if the local libdbi cannot load the "postgres" driver.
 */
 int db_wrap_driver_init(char const * driver, db_wrap_conn_params const * param, db_wrap ** tgt);
 
