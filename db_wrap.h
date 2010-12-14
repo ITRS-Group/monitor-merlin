@@ -6,6 +6,13 @@
 #include <stddef.h> /* size_t on Linux */
 
 
+#if ! defined(DB_WRAP_CONFIG_ENABLE_LIBDBI)
+#  define DB_WRAP_CONFIG_ENABLE_LIBDBI 0
+#endif
+#if ! defined(DB_WRAP_CONFIG_ENABLE_OCILIB)
+#  define DB_WRAP_CONFIG_ENABLE_OCILIB 0
+#endif
+
 enum db_wrap_constants
 {
 /**
@@ -413,6 +420,25 @@ int db_wrap_query_string(db_wrap * db, char const * sql, size_t len, char const 
 
 */
 int db_wrap_result_string_copy_ndx(db_wrap_result * res, unsigned int ndx, char ** sql, size_t *len);
+
+
+/**
+   A generic front-end for loading db_wrap back-ends.
+
+   driver must be a driver name string, as defined by the concrete back-end implementation.
+   The current strings are "supported" (that is, we have code for them. Whether or not they
+   work on your box is another question entirely)...
+
+   "dbi:mysql", "dbi:sqlite3", "ocilib"
+
+   TODO: document the exact semantics here.
+
+   Returns 0 on success, non-0 on error. On success ownership of *tgt
+   is transfered to the caller, who must eventually free it with
+   (*tgt)->api->finalize(*tgt). On error ownership of *tgt is not modified
+   and the object need not be freed.
+*/
+int db_wrap_driver_init(char const * driver, db_wrap_conn_params const * param, db_wrap ** tgt);
 
 
 #endif /* _MERLIN_DB_WRAP_H_INCLUDED */

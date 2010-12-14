@@ -11,6 +11,9 @@ Concrete db_wrap implementation based off of libdbi.
 #include "db_wrap_dbi.h"
 #include "logging.h" /* lerr() */
 
+#undef MARKER
+#undef TODO
+#undef FIXME
 #if 1 /* for debuggering only */
 #  include <stdio.h>
 #  define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
@@ -89,18 +92,49 @@ NULL/*data*/,
 }
 };
 
+/**
+   USE_DEPRECATED_DBI_API is a temporary workaround. If it is 1
+   then we use the dbi API which is documented on their web site.
+   If it is 0 we use the newer, non-deprecated API which appears to
+   be undocumented.
+*/
+#define USE_DEPRECATED_DBI_API 1
+
+#if !USE_DEPRECATED_DBI_API
+static dbi_inst DBI_INSTANCE = NULL;
+#endif
+
+static void dbiw_atexit()
+{
+#if USE_DEPRECATED_DBI_API
+	dbi_shutdown();
+#else
+	if (DBI_INSTANCE)
+	{
+		dbi_inst foo = DBI_INSTANCE;
+		DBI_INSTANCE = NULL;
+		dbi_shutdown_r(foo);
+	}
+#endif
+}
 static char dbiw_dbi_init()
 {
 	static char doneit = 0;
 	if (doneit) return 1;
 	doneit = 1;
-	const int rc = dbi_initialize(NULL);
+	const int rc =
+#if USE_DEPRECATED_DBI_API
+		dbi_initialize(NULL)
+#else
+		dbi_initialize_r(NULL,&DBI_INSTANCE)
+#endif
+		;
 	if (0 >= rc)
 	{
 		lerr("Could not initialize any DBI drivers!");
 		return 0;
 	}
-	atexit(dbi_shutdown);
+	atexit(dbiw_atexit);
 	return 1;
 }
 
@@ -418,7 +452,13 @@ int db_wrap_dbi_init2(char const * driver, db_wrap_conn_params const * param, db
 	{
 		return DB_WRAP_E_BAD_ARG;
 	}
-	dbi_conn conn = dbi_conn_new(driver);
+	dbi_conn conn =
+#if USE_DEPRECATED_DBI_API
+		dbi_conn_new(driver)
+#else
+		dbi_conn_new_r(driver,DBI_INSTANCE)
+#endif
+		;
 	if (! conn)
 	{
 		return DB_WRAP_E_UNKNOWN_ERROR;

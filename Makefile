@@ -33,9 +33,36 @@ endif
 # CFLAGS, CPPFLAGS and LDFLAGS are for users to modify
 ALL_CFLAGS = $(CFLAGS) $(TWEAK_CPPFLAGS) $(CPPFLAGS) $(PTHREAD_CFLAGS)
 ALL_LDFLAGS = $(LDFLAGS) $(TWEAK_LDFLAGS) $(PTHREAD_LDFLAGS)
-DBI_LDFLAGS = -ldbi
-WARN_FLAGS = -Wall -Wextra -Wno-unused-parameter
-DBWRAP_OBJS = sql.o db_wrap.o db_wrap_dbi.o
+WARN_FLAGS = -Wall -Wno-unused-parameter
+WARN_FLAGS += -Wextra# is not supported on older gcc's.
+
+DBWRAP_OBJS := sql.o db_wrap.o
+DBWRAP_LDFLAGS :=
+DBWRAP_CFLAGS :=
+# FIXME: try to find libdbi/ocilib, or allow the caller to enable them
+# by passing options to make.
+ENABLE_OCILIB := 0
+ENABLE_LIBDBI := 1
+ifeq ($(ENABLE_OCILIB),1)
+# Use ocilib...
+OCLIB_PREFIX := /opt/local
+OCILIB_LDFLAGS = -L$(OCILIB_PREFIX)/lib -locilib
+OCILIB_CFLAGS := -I$(OCILIB_PREFIX)/include -DDB_WRAP_CONFIG_ENABLE_OCILIB=1
+DBWRAP_CFLAGS += $(OCILIB_CFLAGS)
+DBWRAP_LDFLAGS += $(OCILIB_LDFLAGS)
+db_wrap.o: CFLAGS+=$(OCILIB_CFLAGS)
+endif
+ifeq ($(ENABLE_LIBDBI),1)
+# Use libdbi...
+LIBDBI_PREFIX := /usr
+LIBDBI_CFLAGS := -I$(LIBDBI_PREFIX)/include -DDB_WRAP_CONFIG_ENABLE_LIBDBI=1
+LIBDBI_LDFLAGS := -L$(LIBDBI_PREFIX)/lib -ldbi
+DBWRAP_CFLAGS += $(LIBDBI_CFLAGS)
+DBWRAP_LDFLAGS += $(LIBDBI_LDFLAGS)
+db_wrap.o: CFLAGS+=$(LIBDBI_CFLAGS)
+endif
+
+DBWRAP_OBJS += $(DBWRAP_OBJS)
 COMMON_OBJS = cfgfile.o shared.o hash.o version.o logging.o
 SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o $(DBWRAP_OBJS)
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
@@ -173,7 +200,7 @@ $(DAEMON_OBJS): $(DAEMON_DEPS) $(DEPS)
 $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
 
 test-dbwrap.o: test-dbwrap.c
-test-dbwrap: test-dbwrap.o db_wrap.o db_wrap_dbi.o $(SHARED_OBJS)
+test-dbwrap: test-dbwrap.o db_wrap.o $(SHARED_OBJS)
 db_wrap.o: db_wrap.h db_wrap.c
 test-dbwrap: LDFLAGS+=$(MTEST_LDFLAGS)
 APPS += test-dbwrap

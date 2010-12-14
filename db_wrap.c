@@ -8,6 +8,19 @@ const db_wrap_conn_params db_wrap_conn_params_empty = db_wrap_conn_params_empty_
 #define TODO(X)
 
 /**
+   Experiment: include the driver-specific .c files here so that we
+   can avoid adding the extra files to the Makefile. i suspect that
+   this will be easier to maintain.
+*/
+#if DB_WRAP_CONFIG_ENABLE_LIBDBI
+#  include "db_wrap_dbi.c"
+#endif
+#if DB_WRAP_CONFIG_ENABLE_OCILIB
+#  include "db_wrap_oci.c"
+#endif
+
+
+/**
    Prepares a query which is expected to evaluate to a single value.
    On success 0 is returned and:
 
@@ -143,4 +156,33 @@ int db_wrap_result_string_copy_ndx(db_wrap_result * res, unsigned int ndx, char 
 	int const rc = res->api->get_string_ndx(res, ndx, &str, len);
 	if ((0 == rc) && str) *sql = strdup(str);
 	return rc;
+}
+
+int db_wrap_driver_init(char const * driver, db_wrap_conn_params const * param, db_wrap ** tgt)
+{
+	if (! driver || ! param || !tgt) return DB_WRAP_E_BAD_ARG;
+	char const * prefix = NULL;
+	size_t preLen = 0;
+#if DB_WRAP_CONFIG_ENABLE_LIBDBI
+	prefix = "dbi:";
+	preLen = 4;
+	if (0 == strncmp( prefix, driver, preLen) )
+	{
+		driver += preLen;
+		return db_wrap_dbi_init2(driver, param, tgt);
+	}
+#endif
+#if DB_WRAP_CONFIG_ENABLE_OCILIB
+	if (0 == strcmp( "ocilib", driver) )
+	{
+		/* TODO: ocilib. The main problem here is that i have two dev
+		   boxes: one of them has only dbi and one has only ocilib,
+		   and i can't get both installed on either machine, primarily
+		   because the ocilib-using machine is ancient and has no network
+		   access for package updates.
+		*/
+		assert(0 && "oci wrapper not yet plugged in.");
+	}
+#endif
+	return -1;
 }

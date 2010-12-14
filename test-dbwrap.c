@@ -1,7 +1,6 @@
 #define _GNU_SOURCE 1 /* for vasprintf */
 
 #include "db_wrap.h"
-#include "db_wrap_dbi.h"
 #include <assert.h>
 
 #include <stdio.h> /*printf()*/
@@ -79,7 +78,7 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
 	assert(0 == rc);
 	assert(NULL != res);
-	assert(res->impl.data == db_wrap_dbi_result(res));
+	//assert(res->impl.data == db_wrap_dbi_result(res));
 
 	/* ensure that stepping acts as expected. */
 	int gotCount = 0;
@@ -175,7 +174,7 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 void test_mysql_1()
 {
 	db_wrap * wr = NULL;
-	int rc = db_wrap_dbi_init2("mysql", &paramMySql, &wr);
+	int rc = db_wrap_driver_init("dbi:mysql", &paramMySql, &wr);
 	assert(0 == rc);
 	assert(wr);
 	rc = wr->api->connect(wr);
@@ -192,7 +191,7 @@ void test_mysql_1()
 	rc = wr->api->free_string(wr, sqlCP);
 	assert(0 == rc);
 
-	test_libdbi_generic("mysql",wr);
+	test_libdbi_generic("dbi:mysql",wr);
 
 	rc = wr->api->finalize(wr);
 	assert(0 == rc);
@@ -201,7 +200,7 @@ void test_mysql_1()
 void test_sqlite_1()
 {
 	db_wrap * wr = NULL;
-	int rc = db_wrap_dbi_init2("sqlite3", &paramSqlite, &wr);
+	int rc = db_wrap_driver_init("dbi:sqlite3", &paramSqlite, &wr);
 	assert(0 == rc);
 	assert(wr);
 	char const * dbdir = getenv("PWD");
@@ -229,7 +228,7 @@ void test_sqlite_1()
 	assert(0 == rc);
 	assert(0 == strcmp( sql, dbdir) );
 
-	test_libdbi_generic("sqlite3",wr);
+	test_libdbi_generic("dbi:sqlite3",wr);
 
 
 	rc = wr->api->finalize(wr);
