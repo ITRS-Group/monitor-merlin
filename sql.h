@@ -2,7 +2,6 @@
 #define INCLUDE_sql_h__
 
 #include <stdarg.h>
-#include <dbi/dbi.h> /* temporary, until DB API is completely ported */
 #include "db_wrap.h"
 #define prefixcmp(a, b) strncmp(a, b, strlen(b))
 

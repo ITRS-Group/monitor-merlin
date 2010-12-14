@@ -77,7 +77,7 @@ int sql_error(const char **msg)
 {
 	if (!db.conn) {
 		*msg = "no database connection";
-		return DBI_ERROR_NOCONN;
+		return DB_WRAP_E_UNKNOWN_ERROR;
 	}
 		FIXME("Return the db's error code here.");
 		return db.conn->api->error_message(db.conn, msg, NULL);
@@ -283,7 +283,9 @@ int sql_init(void)
 		connparam.username = db.user;
 		connparam.password = db.pass;
 		if (db.port) connparam.port = db.port;
-		result = db_wrap_dbi_init2(db.type, &connparam, &db.conn);
+		result = db_wrap_dbi_init2(db.type, &connparam, &db.conn)
+			/* FIXME: use driver-independent init function, instead of dbi directly */
+			;
 		if (result)
 		{
 			lerr("Failed to connect to db type [%s].", db.type);
