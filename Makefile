@@ -22,7 +22,7 @@ endif
 # Solaris requires additional libraries
 ifeq ($(uname_S),SunOS)
 	TWEAK_CPPFLAGS = -I/usr/local/include
-	LIB_NET = -lnet -lsocket -lresolv
+	LIB_NET = -lnsl -lsocket -lresolv
 endif
 
 # CFLAGS, CPPFLAGS and LDFLAGS are for users to modify
