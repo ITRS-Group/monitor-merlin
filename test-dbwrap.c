@@ -36,7 +36,7 @@ false/*testOracle*/
 
 static void show_errinfo_impl(db_wrap * wr, int rc, unsigned int line)
 {
-	//if (0 != rc)
+	if (0 != rc)
 	{
 		char const * errStr = NULL;
 		int dbErrCode = 0;
