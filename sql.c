@@ -1,6 +1,5 @@
 #define _GNU_SOURCE
 #include "daemon.h"
-#include "db_wrap_dbi.h"
 
 /* where to (optionally) stash performance data */
 char *host_perf_table = NULL;
@@ -274,7 +273,7 @@ int sql_init(void)
 		db.table = sql_table_name();
 		if (! db.type)
 		{
-			db.type = "mysql";
+			db.type = "dbi:mysql";
 		}
 
 		db_wrap_conn_params connparam = db_wrap_conn_params_empty;
@@ -283,7 +282,7 @@ int sql_init(void)
 		connparam.username = db.user;
 		connparam.password = db.pass;
 		if (db.port) connparam.port = db.port;
-		result = db_wrap_dbi_init2(db.type, &connparam, &db.conn)
+		result = db_wrap_driver_init(db.type, &connparam, &db.conn)
 			/* FIXME: use driver-independent init function, instead of dbi directly */
 			;
 		if (result)

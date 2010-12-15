@@ -11,17 +11,27 @@
 #define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
 #define FIXME(X) MARKER("FIXME: " X)
 
-static db_wrap_conn_params paramMySql = db_wrap_conn_params_empty_m;
-static db_wrap_conn_params paramSqlite = db_wrap_conn_params_empty_m;
+struct {
+	db_wrap_conn_params mysql;
+	db_wrap_conn_params sqlite3;
+	db_wrap_conn_params oracle;
+} ConnParams = {
+db_wrap_conn_params_empty_m,
+db_wrap_conn_params_empty_m,
+db_wrap_conn_params_empty_m
+};
+
 
 static struct {
 	bool useTempTables;
 	bool testMySQL;
 	bool testSQLite3;
+	bool testOracle;
 } ThisApp = {
 true/*useTempTables*/,
-true/*testMySQL*/,
-true/*testSQLite3*/
+false/*testMySQL*/,
+false/*testSQLite3*/,
+false/*testOracle*/
 };
 
 void test_libdbi_generic(char const * label, db_wrap * wr)
@@ -174,7 +184,7 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 void test_mysql_1()
 {
 	db_wrap * wr = NULL;
-	int rc = db_wrap_driver_init("dbi:mysql", &paramMySql, &wr);
+	int rc = db_wrap_driver_init("dbi:mysql", &ConnParams.mysql, &wr);
 	assert(0 == rc);
 	assert(wr);
 	rc = wr->api->connect(wr);
@@ -200,7 +210,7 @@ void test_mysql_1()
 void test_sqlite_1()
 {
 	db_wrap * wr = NULL;
-	int rc = db_wrap_driver_init("dbi:sqlite3", &paramSqlite, &wr);
+	int rc = db_wrap_driver_init("dbi:sqlite3", &ConnParams.sqlite3, &wr);
 	assert(0 == rc);
 	assert(wr);
 	char const * dbdir = getenv("PWD");
@@ -235,18 +245,29 @@ void test_sqlite_1()
 	assert(0 == rc);
 }
 
+void test_oracle_1()
+{
+#if ! DB_WRAP_CONFIG_ENABLE_OCILIB
+	assert(0 && "ERROR: oracle support not compiled in!");
+#else
+	MARKER("Not yet implemented.\n");
+#endif
+}
+
 static void show_help(char const * appname)
 {
-	printf("Usage:\n\t%s [-s] [-m] [-t]\n",appname);
+	printf("Usage:\n\t%s [-s] [-m] [-o] [-t]\n",appname);
 	puts("Options:");
 	puts("\t-t = use non-temporary tables for tests. Will fail if the tables already exist.");
-	puts("\t-m = disable mysql test.");
-	puts("\t-s = disable sqlite3 test.");
+	puts("\t-m = enables mysql test.");
+	puts("\t-s = enables sqlite3 test.");
+	puts("\t-o = enables oracle test.");
 }
 
 int main(int argc, char const ** argv)
 {
 	int i;
+	int testCount = 0;
 	for(i = 1; i < argc; ++i)
 	{
 		char const * arg = argv[i];
@@ -257,12 +278,20 @@ int main(int argc, char const ** argv)
 		}
 		else if (0 == strcmp("-s", arg) )
 		{
-			ThisApp.testSQLite3 = false;
+			ThisApp.testSQLite3 = true;
+			++testCount;
 			continue;
 		}
 		else if (0 == strcmp("-m", arg) )
 		{
-			ThisApp.testMySQL = false;
+			ThisApp.testMySQL = true;
+			++testCount;
+			continue;
+		}
+		else if (0 == strcmp("-o", arg) )
+		{
+			ThisApp.testOracle = true;
+			++testCount;
 			continue;
 		}
 		else if ((0 == strcmp("-?", arg))
@@ -273,18 +302,33 @@ int main(int argc, char const ** argv)
 		}
 	}
 
+	if (testCount < 1)
 	{
-		paramMySql.host = "localhost";
-		paramMySql.port = 3306;
-		paramMySql.username = "merlin";
-		paramMySql.password = "merlin";
-		paramMySql.dbname = "merlin";
+		puts("No test options specified!");
+		show_help(argv[0]);
+		return 1;
+	}
+
+	{
+		ConnParams.mysql.host = "localhost";
+		ConnParams.mysql.port = 3306;
+		ConnParams.mysql.username = "merlin";
+		ConnParams.mysql.password = "merlin";
+		ConnParams.mysql.dbname = "merlin";
 	}
 	{
-		paramSqlite.dbname = "merlin.sqlite";
+		ConnParams.sqlite3.dbname = "merlin.sqlite";
+	}
+	{
+		//FIXME("non-default oracle port not yet supported in my oci bits.\n");
+		ConnParams.oracle.host = "localhost";
+		ConnParams.oracle.username = "merlin";
+		ConnParams.oracle.password = "merlin";
+		ConnParams.oracle.dbname = "merlin";
 	}
 	if (ThisApp.testMySQL) test_mysql_1();
 	if (ThisApp.testSQLite3) test_sqlite_1();
+	if (ThisApp.testOracle) test_oracle_1();
 	MARKER("If you got this far, it worked.\n");
 	return 0;
 }

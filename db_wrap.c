@@ -16,7 +16,7 @@ const db_wrap_conn_params db_wrap_conn_params_empty = db_wrap_conn_params_empty_
 #  include "db_wrap_dbi.c"
 #endif
 #if DB_WRAP_CONFIG_ENABLE_OCILIB
-#  include "db_wrap_oci.c"
+#  include "db_wrap_ocilib.c"
 #endif
 
 
@@ -161,15 +161,14 @@ int db_wrap_result_string_copy_ndx(db_wrap_result * res, unsigned int ndx, char 
 int db_wrap_driver_init(char const * driver, db_wrap_conn_params const * param, db_wrap ** tgt)
 {
 	if (! driver || ! param || !tgt) return DB_WRAP_E_BAD_ARG;
+#if DB_WRAP_CONFIG_ENABLE_LIBDBI
 	char const * prefix = NULL;
 	size_t preLen = 0;
-#if DB_WRAP_CONFIG_ENABLE_LIBDBI
 	prefix = "dbi:";
 	preLen = 4;
 	if (0 == strncmp( prefix, driver, preLen) )
 	{
-		driver += preLen;
-		return db_wrap_dbi_init2(driver, param, tgt);
+		return db_wrap_dbi_init2(driver + preLen, param, tgt);
 	}
 #endif
 #if DB_WRAP_CONFIG_ENABLE_OCILIB
@@ -181,8 +180,8 @@ int db_wrap_driver_init(char const * driver, db_wrap_conn_params const * param, 
 		   because the ocilib-using machine is ancient and has no network
 		   access for package updates.
 		*/
-		assert(0 && "oci wrapper not yet plugged in.");
+		return db_wrap_oci_init(param, tgt);
 	}
 #endif
-	return -1;
+	return DB_WRAP_E_UNSUPPORTED;
 }

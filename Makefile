@@ -1,3 +1,4 @@
+default: all
 CC = gcc
 #CFLAGS = -O2 -pipe $(WARN_FLAGS) -ggdb3 -fPIC -fno-strict-aliasing -rdynamic
 CFLAGS = -pipe $(WARN_FLAGS) -ggdb3 -fPIC -fno-strict-aliasing -rdynamic
@@ -34,32 +35,36 @@ endif
 ALL_CFLAGS = $(CFLAGS) $(TWEAK_CPPFLAGS) $(CPPFLAGS) $(PTHREAD_CFLAGS)
 ALL_LDFLAGS = $(LDFLAGS) $(TWEAK_LDFLAGS) $(PTHREAD_LDFLAGS)
 WARN_FLAGS = -Wall -Wno-unused-parameter
-WARN_FLAGS += -Wextra# is not supported on older gcc's.
+#WARN_FLAGS += -Wextra# is not supported on older gcc versions.
 
 DBWRAP_OBJS := sql.o db_wrap.o
 DBWRAP_LDFLAGS :=
 DBWRAP_CFLAGS :=
 # FIXME: try to find libdbi/ocilib, or allow the caller to enable them
 # by passing options to make.
-ENABLE_OCILIB := 0
-ENABLE_LIBDBI := 1
+ENABLE_OCILIB ?= 0
+ENABLE_LIBDBI ?= 0
 ifeq ($(ENABLE_OCILIB),1)
 # Use ocilib...
-OCLIB_PREFIX := /opt/local
-OCILIB_LDFLAGS = -L$(OCILIB_PREFIX)/lib -locilib
+ORACLE_PREFIX ?= /home/ora10/OraHome1
+ORACLE_LDFLAGS = -L$(ORACLE_PREFIX)/lib -lclntsh
+OCILIB_PREFIX ?= /opt/local
 OCILIB_CFLAGS := -I$(OCILIB_PREFIX)/include -DDB_WRAP_CONFIG_ENABLE_OCILIB=1
+OCILIB_LDFLAGS = -L$(OCILIB_PREFIX)/lib -locilib $(ORACLE_LDFLAGS)
 DBWRAP_CFLAGS += $(OCILIB_CFLAGS)
 DBWRAP_LDFLAGS += $(OCILIB_LDFLAGS)
-db_wrap.o: CFLAGS+=$(OCILIB_CFLAGS)
+test-dbwrap.o db_wrap.o: CFLAGS+=$(OCILIB_CFLAGS)
+db_wrap.o: db_wrap_ocilib.c
 endif
 ifeq ($(ENABLE_LIBDBI),1)
 # Use libdbi...
-LIBDBI_PREFIX := /usr
+LIBDBI_PREFIX ?= /usr
 LIBDBI_CFLAGS := -I$(LIBDBI_PREFIX)/include -DDB_WRAP_CONFIG_ENABLE_LIBDBI=1
 LIBDBI_LDFLAGS := -L$(LIBDBI_PREFIX)/lib -ldbi
 DBWRAP_CFLAGS += $(LIBDBI_CFLAGS)
 DBWRAP_LDFLAGS += $(LIBDBI_LDFLAGS)
-db_wrap.o: CFLAGS+=$(LIBDBI_CFLAGS)
+test-dbwrap.o db_wrap.o: CFLAGS+=$(LIBDBI_CFLAGS)
+db_wrap.o: db_wrap_libdbi.c
 endif
 
 DBWRAP_OBJS += $(DBWRAP_OBJS)
