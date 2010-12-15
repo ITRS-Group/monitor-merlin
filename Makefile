@@ -84,7 +84,7 @@ test-lparse: test-lparse.o lparse.o logutils.o hash.o test_utils.o
 	$(QUIET_LINK)$(CC) $^ -o $@
 
 import: $(IMPORT_OBJS)
-	$(QUIET_LINK)$(CC) $^ -o $@ -ldbi
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LIB_DB)
 
 showlog: $(SHOWLOG_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@
