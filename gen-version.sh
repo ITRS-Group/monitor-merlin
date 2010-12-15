@@ -1,13 +1,11 @@
 #!/bin/sh
 
-DEF_VER=v0.9.0
+DEF_VER=v1.0.0
 revision= patches= version= ver= beta= dirty=
 
-# First see if there is a version file (included in release tarballs),
-# then try git-describe, then default.
-if test -f version; then
-	ver=`cat version` || ver="$DEF_VER"
-elif test -d .git -o -f .git; then
+# First see if we can use git-describe, then check for a version file
+# (included in release tarballs). Fall back to default if neither works
+if test -d .git; then
 	ver=`git describe --abbrev=12 HEAD 2>/dev/null`
 	tag=`git describe --abbrev=0 HEAD 2>/dev/null`
 	case "$ver" in
@@ -24,12 +22,15 @@ elif test -d .git -o -f .git; then
 		ver=`expr "$ver" : v*'\(.*\)'`$dirty
 	fi
 	version="$tag$patches$revision$dirty"
+elif test -f version; then
+	ver=`cat version` || ver="$DEF_VER"
 else
 	version="$DEF_VER"
 fi
-
-echo "#include \"shared.h\""
-echo "const char *merlin_version = \"$version\";";
+cat << EOF > version.c
+#include "shared.h"
+const char *merlin_version = "$version";
+EOF
 exit 0
 echo "beta=$beta"
 echo "patches=$patches"

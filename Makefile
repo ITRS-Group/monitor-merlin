@@ -150,7 +150,7 @@ $(DAEMON_OBJS): $(DAEMON_DEPS) $(DEPS)
 $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
 
 version.c: gen-version.sh
-	sh gen-version.sh > version.c
+	sh gen-version.sh
 
 clean: clean-core clean-log clean-test
 	rm -f $(NEB) $(PROG) $(APPS) *.o blread endpoint
