@@ -258,6 +258,16 @@ void test_oracle_1()
 #if ! DB_WRAP_CONFIG_ENABLE_OCILIB
 	assert(0 && "ERROR: oracle support not compiled in!");
 #else
+	db_wrap * wr = NULL;
+	int rc = db_wrap_driver_init("ocilib", &ConnParams.sqlite3, &wr);
+	assert(0 == rc);
+	assert(wr);
+
+#if 0/* still waiting on my test db. */
+	rc = wr->api->connect(wr);
+	assert(0 == rc);
+#endif
+	wr->api->finalize(wr);
 	MARKER("Not yet implemented.\n");
 #endif
 }

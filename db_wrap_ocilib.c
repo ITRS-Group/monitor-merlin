@@ -120,7 +120,13 @@ static char ociw_oci_init()
 	static char doneit = 0;
 	if (doneit) return 1;
 	doneit = 1;
-	if (! OCI_Initialize(NULL,NULL,OCI_SESSION_DEFAULT))
+	/*char const * oraHome = getenv("ORA_HOME");
+	 */
+	char const * libPath =
+		//"/home/ora10/OraHome1/lib"
+		NULL
+		;
+	if (! OCI_Initialize(NULL,libPath,OCI_SESSION_DEFAULT | OCI_ENV_CONTEXT))
 	{
 		lerr("Could not initialize OCI driver!");
 		return 0;
@@ -223,11 +229,15 @@ int ociw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_resu
 int ociw_error_message(db_wrap * self, char const ** dest, size_t * len)
 {
 	if (! self || !dest) return DB_WRAP_E_BAD_ARG;
-	char const * errmsg = "FIXME: ocilib does not allow us to fetch error information on a per-session basis!"
-		" It apparently only allows a single global error handler without any client-provided state info!"
-		;
-	*dest = errmsg;
-	if (len) *len = strlen(errmsg);
+	OCI_Error * err = OCI_GetLastError();
+	if (! err)
+	{
+		*dest = NULL;
+		if (len) *len = 0;
+		return 0;
+	}
+	*dest = OCI_ErrorGetString(err);
+	if (len) *len = strlen(*dest);
 	return 0;
 }
 
