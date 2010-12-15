@@ -71,7 +71,7 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 	db_wrap_result * res = NULL;
 	int rc;
 
-#if 1
+#if 0
 	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
 	show_errinfo(wr, rc);
 	assert(0 == rc);
@@ -83,6 +83,7 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 	res = NULL;
 #else
 	rc = db_wrap_query_exec(wr, sql, strlen(sql));
+	show_errinfo(wr, rc);
 	assert(0 == rc);
 #endif
 
@@ -108,6 +109,11 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 		show_errinfo(wr, rc);
 		res = NULL;
 	}
+
+	sql = "commit";
+	rc = db_wrap_query_exec(wr, sql, strlen(sql));
+	show_errinfo(wr, rc);
+	assert(0 == rc);
 
 	sql =
 		"select * from t order by vint desc"
