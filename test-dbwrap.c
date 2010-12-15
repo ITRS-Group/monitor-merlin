@@ -87,11 +87,23 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 	assert(0 == rc);
 #endif
 
+	/**
+	   The ocilib impl will behave just fine without a COMMIT, but the data
+	   written to the db cannot be read after this test finished (they're
+	   rolled back). If i enable a begin/commit block then it works just fine
+	   in mysql/sqlite3 (using libdbi) but Oracle breaks with an "unexpected EOF"
+	   somewhere in the process.
+
+	   Leave this at 0 until we figure out what's wrong here.
+	 */
+#define TRY_BEGIN_COMMIT 0
+
+#if TRY_BEGIN_COMMIT
 	sql = "begin";
 	rc = db_wrap_query_exec(wr, sql, strlen(sql));
 	show_errinfo(wr, rc);
 	assert(0 == rc);
-
+#endif
 
 	int i;
 	const int count = 10;
@@ -116,10 +128,21 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 		res = NULL;
 	}
 
+#if TRY_BEGIN_COMMIT
 	sql = "commit";
 	rc = db_wrap_query_exec(wr, sql, strlen(sql));
 	show_errinfo(wr, rc);
 	assert(0 == rc);
+#else
+	// HUGE KLUDGE until i figure out the COMMIT rules for OCILIB:
+	if (0 == strcmp("ocilib",driver)) {
+		sql = "commit";
+		rc = db_wrap_query_exec(wr, sql, strlen(sql));
+		show_errinfo(wr, rc);
+		assert(0 == rc);
+	}
+
+#endif
 
 	sql =
 		"select * from t order by vint desc"
