@@ -63,7 +63,9 @@
 #define SERVICE_CRITICAL 2
 #define SERVICE_UNKNOWN 3
 
+ /*duplicate typedef error on my box:
 typedef unsigned int uint;
+ */
 
 struct naglog_file {
 	time_t first;
