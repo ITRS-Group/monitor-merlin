@@ -19,6 +19,11 @@ ifeq ($(uname_S),NetBSD)
 	TWEAK_CPPFLAGS = -I/usr/pkg/include
 	LIB_DL =
 endif
+# Solaris requires additional libraries
+ifeq ($(uname_S),SunOS)
+	TWEAK_CPPFLAGS = -I/usr/local/include
+	LIB_NET = -lnet -lsocket -lresolv
+endif
 
 # CFLAGS, CPPFLAGS and LDFLAGS are for users to modify
 ALL_CFLAGS = $(CFLAGS) $(TWEAK_CPPFLAGS) $(CPPFLAGS) $(PTHREAD_CFLAGS)
