@@ -37,9 +37,6 @@ IMPORT_OBJS = $(APP_OBJS) import.o sql.o
 SHOWLOG_OBJS = $(APP_OBJS) showlog.o auth.o
 NEBTEST_OBJS = $(TEST_OBJS) nebtest.o
 DEPS = Makefile cfgfile.h ipc.h logging.h shared.h
-DSO = merlin
-PROG = $(DSO)d
-NEB = $(DSO).so
 APPS = showlog import oconf
 MOD_LDFLAGS = -shared -ggdb3 -fPIC -pthread
 DAEMON_LIBS = $(LIB_DB) $(LIB_NET)
@@ -56,7 +53,7 @@ ifndef V
 	QUIET_LINK  = @echo '   ' LINK $@;
 endif
 
-all: $(NEB) $(PROG) mtest $(APPS)
+all: merlin.so merlind mtest nebtest $(APPS)
 
 thanks:
 	@echo "The following people have contributed to Merlin with patches,"
@@ -92,10 +89,10 @@ showlog: $(SHOWLOG_OBJS)
 nebtest: $(NEBTEST_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(NEBTEST_LIBS) $(NEBTEST_LDFLAGS)
 
-$(PROG): $(DAEMON_OBJS)
+merlind: $(DAEMON_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $(LIBS) $^ -o $@
 
-$(NEB): $(MODULE_OBJS)
+merlin.so: $(MODULE_OBJS)
 	$(QUIET_LINK)$(CC) $(MOD_LDFLAGS) $(LDFLAGS) $^ -o $@
 
 oconf: oconf.o sha1.o misc.o
