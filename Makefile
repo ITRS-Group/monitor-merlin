@@ -5,6 +5,8 @@ uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo nope')
 PTHREAD_LDFLAGS = -pthread
 PTHREAD_CFLAGS = -pthread
 LIB_DL = -ldl
+LIB_DB = -ldbi
+LIB_NET =
 ifeq ($(uname_S),FreeBSD)
 	TWEAK_CPPFLAGS = -I/usr/local/include
 	LIB_DL =
@@ -40,8 +42,12 @@ PROG = $(DSO)d
 NEB = $(DSO).so
 APPS = showlog import oconf
 MOD_LDFLAGS = -shared -ggdb3 -fPIC -pthread
-DAEMON_LDFLAGS = -ldbi -ggdb3 -rdynamic -Wl,-export-dynamic
-MTEST_LDFLAGS = -ldbi -ggdb3 $(LIB_DL) -rdynamic -Wl,-export-dynamic -pthread
+DAEMON_LIBS = $(LIB_DB) $(LIB_NET)
+DAEMON_LDFLAGS = $(DAEMON_LIBS) -ggdb3 -rdynamic -Wl,-export-dynamic
+MTEST_LIBS = $(LIB_DB) $(LIB_DL)
+MTEST_LDFLAGS = $(MTEST_LIBS) -ggdb3 -rdynamic -Wl,-export-dynamic -pthread
+NEBTEST_LIBS = $(LIB_DL)
+NEBTEST_LDFLAGS = -rdynamic -Wl,-export-dynamic
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
 
@@ -84,7 +90,7 @@ showlog: $(SHOWLOG_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@
 
 nebtest: $(NEBTEST_OBJS)
-	$(QUIET_LINK)$(CC) $^ -o $@ $(LIB_DL) -rdynamic -Wl,-export-dynamic
+	$(QUIET_LINK)$(CC) $^ -o $@ $(NEBTEST_LIBS) $(NEBTEST_LDFLAGS)
 
 $(PROG): $(DAEMON_OBJS)
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $(LIBS) $^ -o $@
