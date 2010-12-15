@@ -259,14 +259,16 @@ void test_oracle_1()
 	assert(0 && "ERROR: oracle support not compiled in!");
 #else
 	db_wrap * wr = NULL;
-	int rc = db_wrap_driver_init("ocilib", &ConnParams.sqlite3, &wr);
+	int rc = db_wrap_driver_init("ocilib", &ConnParams.oracle, &wr);
 	assert(0 == rc);
 	assert(wr);
-
-#if 0/* still waiting on my test db. */
 	rc = wr->api->connect(wr);
+	char const * errmsg = NULL;
+	int dbErrCode = 0;
+	wr->api->error_info(wr, &errmsg, NULL, dbErrCode);
+	MARKER("connect rc=%d. Error code [%d], error string=[%s]\n",rc, dbErrCode, errmsg);
 	assert(0 == rc);
-#endif
+	MARKER("Connected to Oracle! Erfolg! Success! Booya!\n");
 	wr->api->finalize(wr);
 	MARKER("Not yet implemented.\n");
 #endif
@@ -339,10 +341,10 @@ int main(int argc, char const ** argv)
 	}
 	{
 		//FIXME("non-default oracle port not yet supported in my oci bits.\n");
-		ConnParams.oracle.host = "localhost";
-		ConnParams.oracle.username = "merlin";
-		ConnParams.oracle.password = "merlin";
-		ConnParams.oracle.dbname = "merlin";
+		ConnParams.oracle = ConnParams.mysql;
+		ConnParams.oracle.host = "ora9.int.consol.de";
+		ConnParams.oracle.dbname = "ora10g";
+		ConnParams.oracle.port = 0;
 	}
 	if (ThisApp.testMySQL) test_mysql_1();
 	if (ThisApp.testSQLite3) test_sqlite_1();

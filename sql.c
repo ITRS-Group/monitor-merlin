@@ -78,8 +78,9 @@ int sql_error(const char **msg)
 		*msg = "no database connection";
 		return DB_WRAP_E_UNKNOWN_ERROR;
 	}
-		FIXME("Return the db's error code here.");
-		return db.conn->api->error_message(db.conn, msg, NULL);
+		int dbrc = 0;
+		db.conn->api->error_info(db.conn, msg, NULL, &dbrc);
+		return dbrc;
 }
 
 /** Convenience form of sql_error() which returns the error
@@ -168,8 +169,7 @@ int sql_vquery(const char *fmt, va_list ap)
 		const char *error_msg;
 			    FIXME("db_wrap API currently only returns error string, not error code.");
 			    FIXME("Add db_error int back in once db_wrap API can do it.");
-		//int db_error =
-			        sql_error(&error_msg);
+		int db_error = sql_error(&error_msg);
 
 		lwarn("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is UNKNOWN (FIXME:sgbeal)",
 			          query, error_msg /*,db_error*/);

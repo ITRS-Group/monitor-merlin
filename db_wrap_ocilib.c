@@ -32,7 +32,7 @@ static int ociw_connect(db_wrap * self);
 static size_t ociw_sql_quote(db_wrap * self, char const * src, size_t len, char ** dest);
 static int ociw_free_string(db_wrap * self, char * str);
 static int ociw_query_result(db_wrap * self, char const * sql, size_t len, struct db_wrap_result ** tgt);
-static int ociw_error_message(db_wrap * self, char const ** dest, size_t * len);
+static int ociw_error_info(db_wrap * self, char const ** dest, size_t * len, int * errCode);
 static int ociw_option_set(db_wrap * self, char const * key, void const * val);
 static int ociw_option_get(db_wrap * self, char const * key, void * val);
 static int ociw_cleanup(db_wrap * self);
@@ -84,7 +84,7 @@ ociw_connect,
 ociw_sql_quote,
 ociw_free_string,
 ociw_query_result,
-ociw_error_message,
+ociw_error_info,
 ociw_option_set,
 ociw_option_get,
 ociw_is_connected,
@@ -141,9 +141,11 @@ static char ociw_oci_init()
 #define IMPL_DECL(ERRVAL)                                         \
 	INIT_OCI(ERRVAL); \
 	db_wrap_ocilib_impl * dbimpl = (self && (self->api==&db_wrap_api_ocilib))                        \
-		? (db_wrap_ocilib_impl *)self->impl.data : NULL
+		? (db_wrap_ocilib_impl *)self->impl.data : NULL; \
+	if (! dbimpl) return ERRVAL
 
-#define CONN_DECL(ERRVAL) IMPL_DECL(ERRVAL); \
+#define CONN_DECL(ERRVAL) \
+	IMPL_DECL(ERRVAL);                                                  \
 	OCI_Connection * conn = dbimpl ? dbimpl->conn : NULL;                \
 	if (!conn) return ERRVAL
 
@@ -156,22 +158,28 @@ static char ociw_oci_init()
 
 int ociw_connect(db_wrap * self)
 {
+	MARKER("connect step 1\n");
 	IMPL_DECL(DB_WRAP_E_BAD_ARG);
+	MARKER("connect step 2\n");
 	if (dbimpl->conn)
 	{
+		MARKER("already connected!\n");
 		/** already connected */
 		return DB_WRAP_E_BAD_ARG;
 	}
 	db_wrap_conn_params const * param = &dbimpl->params;
 	if (! param->username || !*(param->username))
 	{
+		MARKER("Bad connection params\n");
 		return DB_WRAP_E_BAD_ARG;
 	}
 	OCI_Connection * conn = OCI_ConnectionCreate(param->dbname,
 			                                      param->username,
-			                                      param->password, OCI_SESSION_DEFAULT);
+			                                      param->password,
+			                                      OCI_SESSION_DEFAULT);
 	if (! conn)
 	{
+		MARKER("OCI_ConnectionCreate() failed.\n");
 		return DB_WRAP_E_CHECK_DB_ERROR;
 	}
 	dbimpl->conn = conn;
@@ -226,18 +234,21 @@ int ociw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_resu
 	return -1;
 }
 
-int ociw_error_message(db_wrap * self, char const ** dest, size_t * len)
+int ociw_error_info(db_wrap * self, char const ** dest, size_t * len, int * errCode)
 {
-	if (! self || !dest) return DB_WRAP_E_BAD_ARG;
+	if (! self) return DB_WRAP_E_BAD_ARG;
 	OCI_Error * err = OCI_GetLastError();
 	if (! err)
 	{
-		*dest = NULL;
+		if (dest) *dest = NULL;
 		if (len) *len = 0;
+		if (errCode) *errCode = 0;
 		return 0;
 	}
-	*dest = OCI_ErrorGetString(err);
-	if (len) *len = strlen(*dest);
+	char const * msg = OCI_ErrorGetString(err);
+	if (dest) *dest = msg;
+	if (len) *len = msg ? strlen(msg) : 0;
+	if (errCode) *errCode = OCI_ErrorGetOCICode(err);
 	return 0;
 }
 

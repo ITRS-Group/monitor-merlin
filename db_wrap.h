@@ -22,9 +22,9 @@ DB_WRAP_E_OK = 0,
 /** Signifies that looping over a result set has successfully
 	reached the end of the set.
 */
-DB_WRAP_E_DONE,
+DB_WRAP_E_DONE = 1,
 /** Signifies that some argument is illegal. */
-DB_WRAP_E_BAD_ARG,
+DB_WRAP_E_BAD_ARG = 2,
 /** Signifies that some argument is not of the required type. */
 DB_WRAP_E_TYPE_ERROR,
 /** Signifies an allocation error. */
@@ -141,14 +141,23 @@ struct db_wrap_api
 	int (*query_result)(db_wrap * db, char const * sql, size_t len, struct db_wrap_result ** tgt);
 
 	/**
-	   Must return the last error message associated with the
-	   connection, writing the bytes to *dest and the length to *len
-	   (if len is not NULL, which implementations should
-	   allow). Returns 0 on success.  On error the result should not
-	   be used by the caller. On success, the caller must free the
-	   string (if it is not NULL) using free_string(). On success
-	   *dest may be set to NULL if the driver has no error to report.
-	   Some drivers may return other strings on error (sqlite3
+	   Must return the last error information associated with the
+	   connection.
+
+	   IFF the dest parameter is non null then it must point *dest at
+	   the error string and set *len (if it is not NULL) to the length the message.
+
+	   IFF errorCode is not null then it must assign *errorCode to the
+	   driver-dependent error code.
+
+	   Implementation must allow arbitrary combinations of NULL for the dest/len/errorCode
+	   parameters, to allow clients to specify exactly which information they're
+	   interested in.
+
+	   Returns 0 on success (meaning that it fetched the info
+	   from the underlying driver). On success *dest and/or *len
+	   and/or *errorCode may be set to 0 if the driver has no error to
+	   report. Some drivers may return other strings on error (sqlite3
 	   infamously uses "not an error" for this case).
 
 	   It is ASSUMED that the underlying driver owns the returned string,
@@ -156,7 +165,8 @@ struct db_wrap_api
 	   at the next call into the underlying driver. Thus clients must copy
 	   it if needed.
 	*/
-	int (*error_message)(db_wrap * db, char const ** dest, size_t * len);
+	int (*error_info)(db_wrap * db, char const ** dest, size_t * len, int * errorCode);
+
 	/**
 	   Sets a driver-specific option to the given value. The exact
 	   type of val is driver-specific, and the client must be sure to

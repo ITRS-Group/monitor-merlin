@@ -33,7 +33,7 @@ static int dbiw_connect(db_wrap * self);
 static size_t dbiw_sql_quote(db_wrap * self, char const * src, size_t len, char ** dest);
 static int dbiw_free_string(db_wrap * self, char * str);
 static int dbiw_query_result(db_wrap * self, char const * sql, size_t len, struct db_wrap_result ** tgt);
-static int dbiw_error_message(db_wrap * self, char const ** dest, size_t * len);
+static int dbiw_error_info(db_wrap * self, char const ** dest, size_t * len, int * errCode);
 static int dbiw_option_set(db_wrap * self, char const * key, void const * val);
 static int dbiw_option_get(db_wrap * self, char const * key, void * val);
 static int dbiw_cleanup(db_wrap * self);
@@ -76,7 +76,7 @@ dbiw_connect,
 dbiw_sql_quote,
 dbiw_free_string,
 dbiw_query_result,
-dbiw_error_message,
+dbiw_error_info,
 dbiw_option_set,
 dbiw_option_get,
 dbiw_is_connected,
@@ -219,12 +219,12 @@ int dbiw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_resu
 	return 0;
 }
 
-int dbiw_error_message(db_wrap * self, char const ** dest, size_t * len)
+int dbiw_error_info(db_wrap * self, char const ** dest, size_t * len, int * errCode)
 {
-	if (! self || !dest) return DB_WRAP_E_BAD_ARG;
+	if (! self) return DB_WRAP_E_BAD_ARG;
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	char const * msg = NULL;
-	dbi_conn_error(conn, &msg)
+	int const code = dbi_conn_error(conn, &msg)
 		/* reminder: dbi_conn_error() returns the error code number
 		   associated with the fetched string. TODO: consider how we
 		   can represent such a dual-use in this API. The native DB
@@ -233,13 +233,15 @@ int dbiw_error_message(db_wrap * self, char const ** dest, size_t * len)
 		;
 	if (msg && *msg)
 	{
-		*dest = msg;
+		if (dest) *dest = msg;
 		if (len) *len = strlen(msg);
+		if (errCode) *errCode = code;
 	}
 	else
 	{
-		*dest = NULL;
+		if (dest) *dest = NULL;
 		if (len) *len = 0;
+		if (errCode) *errCode = 0;
 	}
 	return 0;
 }
