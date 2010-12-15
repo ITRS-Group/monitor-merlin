@@ -26,22 +26,22 @@ DB_WRAP_E_DONE = 1,
 /** Signifies that some argument is illegal. */
 DB_WRAP_E_BAD_ARG = 2,
 /** Signifies that some argument is not of the required type. */
-DB_WRAP_E_TYPE_ERROR,
+DB_WRAP_E_TYPE_ERROR = 3,
 /** Signifies an allocation error. */
-DB_WRAP_E_ALLOC_ERROR,
+DB_WRAP_E_ALLOC_ERROR = 4,
 /**
 	Signifies an unknown error, probably coming from an underying API
 	(*ahem*libdbi*ahem*) which cannot, for reasons of its own, tell us
 	what went wrong.
 
 */
-DB_WRAP_E_UNKNOWN_ERROR,
+DB_WRAP_E_UNKNOWN_ERROR = 5,
 
 /**
    This code signifies that the caller should check the database
    error data via db_wrap_api::error_message().
 */
-DB_WRAP_E_CHECK_DB_ERROR,
+DB_WRAP_E_CHECK_DB_ERROR = 6,
 /** Signifies an unsupported operation. */
 DB_WRAP_E_UNSUPPORTED
 /*
@@ -164,6 +164,18 @@ struct db_wrap_api
 	   and this API allows the lifetime of the returned bytes to expire
 	   at the next call into the underlying driver. Thus clients must copy
 	   it if needed.
+
+	   Portability notes:
+
+	   - Some drivers (e.g. ocilib) automatically add a newline to the
+	   end of the error message (which is somewhat tasteles, IMO).
+
+	   - sqlite3 infamously uses the error string "not an error" when
+	   there is no error, instead of using a NULL/empty string. When sqlite3
+	   is used together with this API then this API _might_ convert that
+	   to a null/empty string, but whether it does this or not is a bit
+	   uncertain due to documentation deficiencies in the underlying
+	   sqlite3 abstraction code.
 	*/
 	int (*error_info)(db_wrap * db, char const ** dest, size_t * len, int * errorCode);
 
@@ -334,6 +346,17 @@ struct db_wrap_result_api
 	   method.
 	*/
 	int (*finalize)(db_wrap_result * self);
+
+
+	/*
+	  Missing functions which we will/might eventually need:
+
+	  - get column count
+
+	  - get column name by index
+
+	  - get values by column name? Seems like overkill for this project.
+	 */
 };
 /**
    Convenience typedef.

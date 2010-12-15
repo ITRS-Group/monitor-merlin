@@ -34,25 +34,51 @@ false/*testSQLite3*/,
 false/*testOracle*/
 };
 
-void test_libdbi_generic(char const * label, db_wrap * wr)
+static void show_errinfo_impl(db_wrap * wr, int rc, unsigned int line)
 {
-	MARKER("Running generic tests: [%s]\n",label);
+	//if (0 != rc)
+	{
+		char const * errStr = NULL;
+		int dbErrCode = 0;
+		wr->api->error_info(wr, &errStr, NULL, &dbErrCode);
+		MARKER("line #%u, DB driver error info: db_wrap rc=%d, back-end error code=%d [%s]\n",
+			   line, rc, dbErrCode, errStr);
+	}
+}
+#define show_errinfo(WR,RC) show_errinfo_impl(WR, RC, __LINE__)
+
+void test_libdbi_generic(char const * driver, db_wrap * wr)
+{
+	MARKER("Running generic tests: [%s]\n",driver);
 #define TABLE_DEF \
-	"table t(vint integer, vdbl float(12,4), vstr varchar(32))"
-	char const * sql = ThisApp.useTempTables
-		? ("create temporary " TABLE_DEF)
-		: ("create " TABLE_DEF)
+	"table t(vint integer, vdbl float(12), vstr varchar(32))"
+	char const * sql = NULL;
+	if (ThisApp.useTempTables)
+	{
+		sql = (0==strcmp(driver,"ocilib"))
+			/* and the incompatibilities are already showing up! */
+			? ("create global temporary " TABLE_DEF)
+			: ("create temporary " TABLE_DEF)
+			;
+	}
+	else
+	{
+		sql = "create " TABLE_DEF;
 		;
+	}
 #undef TABLE_DEF
+	assert(NULL != sql);
 	db_wrap_result * res = NULL;
 	int rc;
 
-#if 0
+#if 1
 	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
+	show_errinfo(wr, rc);
 	assert(0 == rc);
 	assert(NULL != res);
 	//MARKER("dbi_wrap_result@%p, dbi_result@%p\n",(void const *)res, res->impl.data);
 	rc = res->api->finalize(res);
+	show_errinfo(wr, rc);
 	assert(0 == rc);
 	res = NULL;
 #else
@@ -66,18 +92,20 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 	for(i = 1; i <= count; ++i)
 	{
 		char * q = NULL;
-		rc = asprintf(&q,"insert into t (vint, vdbl, vstr) values(%d,%2.1lf,'%s');",
+		rc = asprintf(&q,"insert into t (vint, vdbl, vstr) values(%d,%2.1lf,'%s')",
 			          i,(i*1.1),strVal);
 		assert(rc > 0);
 		assert(q);
-		//MARKER("Query=[%s]\n",q);
 		res = NULL;
 		rc = wr->api->query_result(wr, q, strlen(q), &res);
+		show_errinfo(wr, rc);
+		//MARKER("Query rc=[%d]  [%s]\n",rc, q);
 		free(q);
 		assert(0 == rc);
 		assert(NULL != res);
 		rc = res->api->finalize(res);
 		assert(0 == rc);
+		show_errinfo(wr, rc);
 		res = NULL;
 	}
 
@@ -258,8 +286,9 @@ void test_oracle_1()
 #if ! DB_WRAP_CONFIG_ENABLE_OCILIB
 	assert(0 && "ERROR: oracle support not compiled in!");
 #else
+	char const * driver = "ocilib";
 	db_wrap * wr = NULL;
-	int rc = db_wrap_driver_init("ocilib", &ConnParams.oracle, &wr);
+	int rc = db_wrap_driver_init(driver, &ConnParams.oracle, &wr);
 	assert(0 == rc);
 	assert(wr);
 	rc = wr->api->connect(wr);
@@ -269,8 +298,10 @@ void test_oracle_1()
 	MARKER("connect rc=%d. Error code [%d], error string=[%s]\n",rc, dbErrCode, errmsg);
 	assert(0 == rc);
 	MARKER("Connected to Oracle! Erfolg! Success! Booya!\n");
+
+	test_libdbi_generic(driver, wr);
+
 	wr->api->finalize(wr);
-	MARKER("Not yet implemented.\n");
 #endif
 }
 

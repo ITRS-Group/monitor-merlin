@@ -61,14 +61,14 @@ static const db_wrap_result_api ociw_res_api =
 	ociw_res_finalize
 };
 
-struct ociw_result_wrap
+struct ociw_result_impl
 {
 	OCI_Statement * st;
 	OCI_Resultset * result;
 };
-typedef struct ociw_result_wrap ociw_result_wrap;
-#define ociw_result_wrap_empty_m {NULL,NULL}
-static const ociw_result_wrap ociw_result_wrap_empty = ociw_result_wrap_empty_m;
+typedef struct ociw_result_impl ociw_result_impl;
+#define ociw_result_impl_empty_m {NULL,NULL}
+static const ociw_result_impl ociw_result_impl_empty = ociw_result_impl_empty_m;
 
 static const db_wrap_result ociw_res_empty =
 {
@@ -115,6 +115,16 @@ static void ociw_atexit()
 	OCI_Cleanup();
 }
 
+static void oci_err_handler(OCI_Error *err)
+{
+	lerr("code  : ORA-%05d\n"
+		 "msg   : %s" /*REMEMBER: OCI_ErrorGetString() contains a newline!*/
+		 "sql   : %s\n",
+		 OCI_ErrorGetOCICode(err),
+		 OCI_ErrorGetString(err),
+		 OCI_GetSql(OCI_ErrorGetStatement(err))
+		);
+}
 static char ociw_oci_init()
 {
 	static char doneit = 0;
@@ -126,7 +136,9 @@ static char ociw_oci_init()
 		//"/home/ora10/OraHome1/lib"
 		NULL
 		;
-	if (! OCI_Initialize(NULL,libPath,OCI_SESSION_DEFAULT | OCI_ENV_CONTEXT))
+	if (! OCI_Initialize(oci_err_handler,
+			             libPath,
+			             OCI_SESSION_DEFAULT | OCI_ENV_CONTEXT))
 	{
 		lerr("Could not initialize OCI driver!");
 		return 0;
@@ -142,35 +154,30 @@ static char ociw_oci_init()
 	INIT_OCI(ERRVAL); \
 	db_wrap_ocilib_impl * dbimpl = (self && (self->api==&db_wrap_api_ocilib))                        \
 		? (db_wrap_ocilib_impl *)self->impl.data : NULL; \
-	if (! dbimpl) return ERRVAL
+	if (NULL==dbimpl) return ERRVAL
 
 #define CONN_DECL(ERRVAL) \
 	IMPL_DECL(ERRVAL);                                                  \
-	OCI_Connection * conn = dbimpl ? dbimpl->conn : NULL;                \
-	if (!conn) return ERRVAL
+	OCI_Connection * ociconn = dbimpl ? dbimpl->conn : NULL;                \
+	if (NULL==ociconn) return ERRVAL
 
 #define RES_DECL(ERRVAL) \
-	ociw_result_wrap * wres = (self && (self->api==&ociw_res_api))   \
-		? (ociw_result_wrap*)self->impl.data : NULL;                   \
-	OCI_Resultset * ocires = wres->result; \
-	if (!ocires) return ERRVAL; \
-	INIT_OCI(ERRVAL)
+	ociw_result_impl * wres = (self && (self->api==&ociw_res_api))   \
+		? (ociw_result_impl*)self->impl.data : NULL;                   \
+	OCI_Resultset * ocires = wres ? wres->result : NULL
+/* unclear if a null result set is legal for a non-query SQL statement: if (NULL==ocires) return ERRVAL*/
 
 int ociw_connect(db_wrap * self)
 {
-	MARKER("connect step 1\n");
 	IMPL_DECL(DB_WRAP_E_BAD_ARG);
-	MARKER("connect step 2\n");
 	if (dbimpl->conn)
 	{
-		MARKER("already connected!\n");
 		/** already connected */
 		return DB_WRAP_E_BAD_ARG;
 	}
 	db_wrap_conn_params const * param = &dbimpl->params;
 	if (! param->username || !*(param->username))
 	{
-		MARKER("Bad connection params\n");
 		return DB_WRAP_E_BAD_ARG;
 	}
 	OCI_Connection * conn = OCI_ConnectionCreate(param->dbname,
@@ -179,7 +186,6 @@ int ociw_connect(db_wrap * self)
 			                                      OCI_SESSION_DEFAULT);
 	if (! conn)
 	{
-		MARKER("OCI_ConnectionCreate() failed.\n");
 		return DB_WRAP_E_CHECK_DB_ERROR;
 	}
 	dbimpl->conn = conn;
@@ -189,6 +195,7 @@ int ociw_connect(db_wrap * self)
 size_t ociw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest)
 {
 	IMPL_DECL(0);
+	if (! dest) return DB_WRAP_E_BAD_ARG;
 	if (!sql || !*sql || !len)
 	{
 		*dest = NULL;
@@ -196,8 +203,35 @@ size_t ociw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest
 	}
 	else
 	{
-		TODO("implement this");
-		return -1;
+		/* UNBELIEVABLE:
+
+		   OCI has no routine to escape SQL without immediately sending it to the server!
+
+		   The following is an approximation, where we simply prepend/append quotes and replace
+		   all single-quote characters with two single-quote chars.
+		*/
+		char const q = '\'';
+		const size_t sz = (len * 2) /* large enough for a malicious all-quotes string.*/
+			+ 2 /* open/closing quotes */
+			+ 1 /* NULL pad */
+			;
+		char * esc = (char *)malloc(sz);
+		if (! esc) return DB_WRAP_E_ALLOC_ERROR;
+		memset(esc, 0, len);
+		char const * p = sql;
+		size_t pos = 0;
+		*(esc++) = q;
+		for(; *p && (pos<len); ++p, ++pos)
+		{
+			if (q == *p)
+			{
+			    *(esc++) = q;
+			}
+			*(esc++) = *p;
+		}
+		*(esc++) = q;
+		*dest = esc;
+		return 0;
 	}
 }
 
@@ -207,31 +241,60 @@ int ociw_free_string(db_wrap * self, char * str)
 	free(str);
 	return 0;
 }
-/**
-   Allocates a new db_wrap_result object for use with the libdbi
-   wrapper. Its api and typeID members are initialized by this call.
-   Returns NULL only on alloc error.
-*/
-static db_wrap_result * ociw_res_alloc()
-{
-	db_wrap_result * rc = (db_wrap_result*)malloc(sizeof(db_wrap_result));
-	if (rc)
-	{
-		*rc = ociw_res_empty;
-	}
-	return rc;
-}
 
 int ociw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_result ** tgt)
 {
-	/*
-	  This impl does not use the len param, but it's in the interface because i
-	  expect some other wrappers to need it.
-	*/
-	IMPL_DECL(DB_WRAP_E_BAD_ARG);
+	CONN_DECL(DB_WRAP_E_BAD_ARG);
 	if (! sql || !*sql || !len || !tgt) return DB_WRAP_E_BAD_ARG;
-	TODO("implement this");
-	return -1;
+
+	OCI_Statement * st = OCI_StatementCreate(ociconn);
+	if (! st)
+	{
+		lerr("Creation of OCI_Statement failed.\n");
+		return DB_WRAP_E_CHECK_DB_ERROR;
+	}
+	db_wrap_result * wres = (db_wrap_result*)malloc(sizeof(db_wrap_result));
+	if (! wres) return DB_WRAP_E_ALLOC_ERROR;
+	*wres = ociw_res_empty;
+	ociw_result_impl * impl = (ociw_result_impl*)malloc(sizeof(ociw_result_impl));
+	if (! impl)
+	{
+		OCI_StatementFree(st);
+		free(wres);
+		return DB_WRAP_E_ALLOC_ERROR;
+	}
+	*impl = ociw_result_impl_empty;
+	impl->st = st;
+	wres->impl.data = impl;
+#if 1
+	if (! OCI_ExecuteStmt(st, sql))
+	{
+		lerr("Execution of OCI_Statement failed: [%s]\n",OCI_GetSql(st));
+		wres->api->finalize(wres);
+		return DB_WRAP_E_CHECK_DB_ERROR;
+	}
+#else
+	if (!
+		//OCI_ExecuteStmt(st, sql)
+		OCI_Prepare(st, sql)
+	   )
+	{
+		lerr("Preparation of OCI_Statement failed: [%s]\n",OCI_GetSql(st));
+		wres->api->finalize(wres);
+		return DB_WRAP_E_CHECK_DB_ERROR;
+	}
+	if (! OCI_Execute(st))
+	{
+		lerr("Execution of OCI_Statement failed: [%s]\n",OCI_GetSql(st));
+		wres->api->finalize(wres);
+		return DB_WRAP_E_CHECK_DB_ERROR;
+	}
+#endif
+	impl->result = OCI_GetResultset(st)
+		/* MIGHT be null - the docs are not really clear here what happens on an empty result set. */
+		;
+	*tgt = wres;
+	return 0;
 }
 
 int ociw_error_info(db_wrap * self, char const ** dest, size_t * len, int * errCode)
@@ -309,54 +372,64 @@ int ociw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * va
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
-	TODO("implement this");
-	return -1;
+	*val = OCI_GetInt(ocires, ndx + 1);
+	return 0;
 }
 
 int ociw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * val)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
-	TODO("implement this");
-	return -1;
+	*val = OCI_GetBigInt(ocires, ndx + 1);
+	return 0;
 }
 
 int ociw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * val)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
-	TODO("implement this");
-	return -1;
+	*val = OCI_GetDouble(ocires, ndx + 1);
+	return 0;
 }
 
 int ociw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char const ** val, size_t * len)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
-	TODO("implement this");
-	return -1;
+	char const * str = OCI_GetString(ocires, ndx + 1);
+	*val = str;
+	if (len) *len = str ? strlen(str) : 0;
+	return 0;
 }
 
 int ociw_res_num_rows(db_wrap_result * self, size_t *num)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! num) return DB_WRAP_E_BAD_ARG;
-	TODO("implement this");
-	return -1;
+	int rc = OCI_GetRowCount(ocires);
+	if (rc < 0)
+	{
+		return DB_WRAP_E_UNKNOWN_ERROR;
+	}
+	*num = (size_t)rc;
+	return 0;
 }
 
 int ociw_res_finalize(db_wrap_result * self)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
-	/*MARKER("Freeing result handle @%p/@%p\n",(void const *)self, (void const *)res);*/
+	/*
+	  MARKER("Freeing result handle @%p/%p/@%p\n",(void const *)self, (void const *)wres, (void const *)ocires);
+	*/
 	if (wres->st)
 	{
 		OCI_StatementFree(wres->st);
 		wres->st = NULL;
 		/*
-		  NONE of the OCI demo code shows us how to free an OCI_Resultset object (in fact,
-		  the demo code mostly doesn't clean up at all), but some demo code implies
-		  that cleaning up the statement also cleans the result set.
+		  NONE of the OCI demo code shows us how to free an
+		  OCI_Resultset object (in fact, the demo code mostly doesn't
+		  clean up at all), but the docs state that cleaning up the
+		  statement also cleans the result set.
 		 */
 		wres->result = NULL;
 	}

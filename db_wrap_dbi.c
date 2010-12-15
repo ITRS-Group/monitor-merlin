@@ -372,13 +372,17 @@ int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char const 
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
 	char const * str = dbi_result_get_string_idx(dbires, ndx +1);
-	if (!str || (0==strcmp("ERROR",str)))
-	{
-		return DB_WRAP_E_CHECK_DB_ERROR;
-	}
 	if (len)
 	{
-		*len = strlen(str);
+		*len = (str && *str) ? strlen(str) : 0;
+	}
+	if (!str || (0==strcmp("ERROR",str)))
+	{
+		/* libdbi is JUST WRONG here. The convention of using the string
+		   "ERROR" to report an error is downright broken, because it
+		   prohibits that string as a value in my db.
+		*/
+		return DB_WRAP_E_CHECK_DB_ERROR;
 	}
 	*val = str;
 	return 0;
