@@ -171,8 +171,8 @@ int sql_vquery(const char *fmt, va_list ap)
 			    FIXME("Add db_error int back in once db_wrap API can do it.");
 		int db_error = sql_error(&error_msg);
 
-		lwarn("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is UNKNOWN (FIXME:sgbeal)",
-			          query, error_msg /*,db_error*/);
+		lwarn("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is %d.)",
+			          query, error_msg, db_error);
 #if 0
 			    FIXME("Refactor/rework the following for the new db layer...");
 		/*
