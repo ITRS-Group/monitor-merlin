@@ -44,6 +44,7 @@ DBWRAP_CFLAGS :=
 # by passing options to make.
 ENABLE_OCILIB ?= 0
 ENABLE_LIBDBI ?= 0
+
 ifeq ($(ENABLE_OCILIB),1)
 # Use ocilib...
 ORACLE_PREFIX ?= /home/ora10/OraHome1
@@ -56,6 +57,7 @@ DBWRAP_LDFLAGS += $(OCILIB_LDFLAGS)
 test-dbwrap.o db_wrap.o: CFLAGS+=$(OCILIB_CFLAGS)
 db_wrap.o: db_wrap_ocilib.c
 endif
+
 ifeq ($(ENABLE_LIBDBI),1)
 # Use libdbi...
 LIBDBI_PREFIX ?= /usr
@@ -64,7 +66,7 @@ LIBDBI_LDFLAGS := -L$(LIBDBI_PREFIX)/lib -ldbi
 DBWRAP_CFLAGS += $(LIBDBI_CFLAGS)
 DBWRAP_LDFLAGS += $(LIBDBI_LDFLAGS)
 test-dbwrap.o db_wrap.o: CFLAGS+=$(LIBDBI_CFLAGS)
-db_wrap.o: db_wrap_libdbi.c
+db_wrap.o: db_wrap_dbi.c
 endif
 
 DBWRAP_OBJS += $(DBWRAP_OBJS)
@@ -206,6 +208,7 @@ $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
 
 test-dbwrap.o: test-dbwrap.c
 test-dbwrap: test-dbwrap.o db_wrap.o $(SHARED_OBJS)
+test-dbwrap: LDFLAGS+=$(DBWRAP_LDFLAGS)
 db_wrap.o: db_wrap.h db_wrap.c
 test-dbwrap: LDFLAGS+=$(MTEST_LDFLAGS)
 APPS += test-dbwrap

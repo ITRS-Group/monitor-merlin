@@ -183,6 +183,9 @@ void test_libdbi_generic(char const * label, db_wrap * wr)
 
 void test_mysql_1()
 {
+#if ! DB_WRAP_CONFIG_ENABLE_LIBDBI
+	assert(0 && "ERROR: dbi:mysql support not compiled in!");
+#else
 	db_wrap * wr = NULL;
 	int rc = db_wrap_driver_init("dbi:mysql", &ConnParams.mysql, &wr);
 	assert(0 == rc);
@@ -205,10 +208,14 @@ void test_mysql_1()
 
 	rc = wr->api->finalize(wr);
 	assert(0 == rc);
+#endif
 }
 
 void test_sqlite_1()
 {
+#if ! DB_WRAP_CONFIG_ENABLE_LIBDBI
+	assert(0 && "ERROR: dbi:sqlite3 support not compiled in!");
+#else
 	db_wrap * wr = NULL;
 	int rc = db_wrap_driver_init("dbi:sqlite3", &ConnParams.sqlite3, &wr);
 	assert(0 == rc);
@@ -243,6 +250,7 @@ void test_sqlite_1()
 
 	rc = wr->api->finalize(wr);
 	assert(0 == rc);
+#endif
 }
 
 void test_oracle_1()

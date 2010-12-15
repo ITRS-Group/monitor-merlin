@@ -444,6 +444,8 @@ int db_wrap_result_string_copy_ndx(db_wrap_result * res, unsigned int ndx, char 
 
    On error, any number of things could be wrong, for example:
 
+   - One or more arguments are NULL.
+
    - The driver string is unknown.
 
    - The driver string is known but the underlying library is missing
