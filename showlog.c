@@ -13,6 +13,7 @@
 #define MAX_NVECS 16
 #define HASH_TABLE_SIZE 128
 
+static const char *progname;
 static time_t first_time, last_time; /* first and last timestamp to show */
 static time_t last_ltime, ltime; /* timestamp of last and current log-line */
 static uint last_severity, severity = -1;
@@ -584,7 +585,7 @@ static void parse_service_state_filter(char *p)
 	}
 }
 
-extern const char *__progname;
+
 __attribute__((__format__(__printf__, 1, 2)))
 static void usage(const char *fmt, ...)
 {
@@ -598,7 +599,7 @@ static void usage(const char *fmt, ...)
 		va_end(ap);
 	}
 
-	printf("usage: %s [options] [logfiles]\n\n", __progname);
+	printf("usage: %s [options] [logfiles]\n\n", progname);
 	printf("  <logfiles> refers to all the nagios logfiles you want to search through\n");
 	printf("  If --nagios-cfg is given or can be inferred no logfiles need to be supplied\n");
 	printf("Options:\n");
@@ -732,6 +733,9 @@ int main(int argc, char **argv)
 	int i, show_ltime_skews = 0, list_files = 0;
 	unsigned long long tot_lines = 0;
 	const char *nagios_cfg = NULL, *cgi_cfg = NULL, *object_cache = NULL;
+
+	progname = strrchr(argv[0], '/');
+	progname = progname ? progname + 1 : argv[0];
 
 	strv = calloc(sizeof(char *), MAX_NVECS);
 	if (!strv)

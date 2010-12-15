@@ -28,6 +28,7 @@
 #define PROGRESS_INTERVAL 25000 /* lines to parse between progress updates */
 
 
+static const char *progname;
 static char *db_table;
 static int only_notifications;
 static unsigned long long imported, totsize, totlines, skipped;
@@ -1349,7 +1350,7 @@ static int hash_interesting(const char *path)
 	return 0;
 }
 
-extern const char *__progname;
+
 __attribute__((__format__(__printf__, 1, 2)))
 static void usage(const char *fmt, ...)
 {
@@ -1361,7 +1362,7 @@ static void usage(const char *fmt, ...)
 		va_end(ap);
 	}
 
-	printf("Usage %s [options] [logfiles]\n\n", __progname);
+	printf("Usage %s [options] [logfiles]\n\n", progname);
 	printf("  [logfiles] refers to all the nagios logfiles you want to import\n");
 	printf("  If --nagios-cfg is given or can be inferred no logfiles need to be supplied\n");
 	printf("\nOptions:\n");
@@ -1390,6 +1391,9 @@ int main(int argc, char **argv)
 	int i, truncate_db = 0;
 	const char *nagios_cfg = NULL;
 	char *db_name, *db_user, *db_pass;
+
+	progname = strrchr(argv[0], '/');
+	progname = progname ? progname + 1 : argv[0];
 
 	use_database = 1;
 	db_name = db_user = db_pass = NULL;
@@ -1589,8 +1593,7 @@ int main(int argc, char **argv)
 	log_grok_var("log_levels", "warn");
 
 	if (!num_nfile)
-		crash("Usage: %s [--incremental] [--interesting <file>] [--truncate-db] logfiles\n",
-			  __progname);
+		usage("No files or directories specified, or nagios.cfg not found");
 
 	if (log_init() < 0)
 		crash("log_init() failed");

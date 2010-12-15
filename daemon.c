@@ -4,8 +4,7 @@
 #include "daemonize.h"
 #include "daemon.h"
 
-extern const char *__progname;
-
+static const char *progname;
 static const char *pidfile, *merlin_user;
 static char *import_program;
 unsigned short default_port = 15551;
@@ -35,7 +34,7 @@ static void usage(char *fmt, ...)
 		putchar('\n');
 	}
 
-	printf("Usage: %s -c <config-file> [-d] [-h]\n\n", __progname);
+	printf("Usage: %s -c <config-file> [-d] [-h]\n\n", progname);
 
 	exit(1);
 }
@@ -778,6 +777,9 @@ static void clean_exit(int sig)
 int main(int argc, char **argv)
 {
 	int i, result;
+
+	progname = strrchr(argv[0], '/');
+	progname = progname ? progname + 1 : argv[0];
 
 	is_module = 0;
 	ipc_init_struct();
