@@ -87,6 +87,12 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 	assert(0 == rc);
 #endif
 
+	sql = "begin";
+	rc = db_wrap_query_exec(wr, sql, strlen(sql));
+	show_errinfo(wr, rc);
+	assert(0 == rc);
+
+
 	int i;
 	const int count = 10;
 	char const * strVal = "hi, world";
@@ -260,7 +266,8 @@ void test_sqlite_1()
 	rc = wr->api->connect(wr);
 	assert(0 == rc);
 	char const * errmsg = NULL;
-	rc = wr->api->error_message(wr, &errmsg, NULL);
+	int dbErrno = 0;
+	rc = wr->api->error_info(wr, &errmsg, NULL, &dbErrno);
 	assert(0 == rc);
 	assert(NULL == errmsg);
 
