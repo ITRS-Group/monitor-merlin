@@ -119,12 +119,18 @@ static struct passwd *get_user_entry(const char *user)
  */
 static unsigned drop_privs(struct passwd *pw)
 {
+/* XXX: is this enough? Where else is it present? */
+#if defined(__GLIBC__)
 	/* group first, or we won't be able to swap uid */
 	if (setresgid(pw->pw_gid, pw->pw_gid, pw->pw_gid) < 0)
 		return 0;
 
 	if (setresuid(pw->pw_uid, pw->pw_uid, pw->pw_uid) < 0)
 		return 0;
+#else
+	setgid(pw->pw_gid);
+	setuid(pw->pw_uid);
+#endif
 
 	if (getegid() != pw->pw_gid || getgid() != pw->pw_uid)
 		return 0;
