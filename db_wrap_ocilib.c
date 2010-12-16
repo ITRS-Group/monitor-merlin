@@ -110,11 +110,10 @@ NULL/*data*/,
 }
 };
 
-static void ociw_atexit()
-{
-	OCI_Cleanup();
-}
-
+/**
+   An ugly workaround for collection of error information
+   reported by ocilib. See comments in ociw_oci_init().
+ */
 static struct {
 	char const * sql;
 	char const * errorString;
@@ -142,13 +141,17 @@ static void oci_err_handler(OCI_Error *err)
 		 ociw_error_info_kludge.sql
 		);
 }
+
+static void ociw_atexit()
+{
+	OCI_Cleanup();
+}
+
 static char ociw_oci_init()
 {
 	static char doneit = 0;
 	if (doneit) return 1;
 	doneit = 1;
-	/*char const * oraHome = getenv("ORA_HOME");
-	 */
 	char const * libPath =
 		//"/home/ora10/OraHome1/lib"
 		NULL
@@ -166,11 +169,14 @@ static char ociw_oci_init()
 		   OCI_GetLastError (void):
 		   Retrieve the last error occurred within the last OCILIB call.
 
-		   The problem with that is, we cannot be certain that
-		   the error code collection is called immediately
-		   after the command which fails (e.g. there might be a
+		   The problem with that is, we cannot be certain that the
+		   error code collection is called immediately after the
+		   command which fails (e.g. there might be a
 		   cleanup/finalization in between the failure and error
-		   collection).
+		   collection). OCI is probably re-setting the error state on
+		   successfull API calls (e.g. statement finalization, which
+		   is one of the corner cases where i say the error state
+		   shouldn't be touched).
 
 		   After a short discussion with Andreas, i will implement
 		   "the ugly workaround" for the short-term, in which we
