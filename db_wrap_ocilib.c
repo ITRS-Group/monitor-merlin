@@ -115,14 +115,31 @@ static void ociw_atexit()
 	OCI_Cleanup();
 }
 
+static struct {
+	char const * sql;
+	char const * errorString;
+	int ociCode;
+} ociw_error_info_kludge = {
+NULL/*sql*/,
+NULL/*errorString*/,
+0/*ociCode*/
+};
+
 static void oci_err_handler(OCI_Error *err)
 {
+	ociw_error_info_kludge.sql =
+		OCI_GetSql(OCI_ErrorGetStatement(err));
+	ociw_error_info_kludge.errorString =
+		OCI_ErrorGetString(err);
+	ociw_error_info_kludge.ociCode =
+		OCI_ErrorGetOCICode(err);
+
 	lerr("code  : ORA-%05d\n"
 		 "msg   : %s" /*REMEMBER: OCI_ErrorGetString() contains a newline!*/
 		 "sql   : %s\n",
-		 OCI_ErrorGetOCICode(err),
-		 OCI_ErrorGetString(err),
-		 OCI_GetSql(OCI_ErrorGetStatement(err))
+		 ociw_error_info_kludge.ociCode,
+		 ociw_error_info_kludge.errorString,
+		 ociw_error_info_kludge.sql
 		);
 }
 static char ociw_oci_init()
@@ -139,6 +156,28 @@ static char ociw_oci_init()
 	if (! OCI_Initialize(oci_err_handler,
 			             libPath,
 			             OCI_SESSION_DEFAULT | OCI_ENV_CONTEXT))
+		/* reminder: by passing OCI_ENV_CONTEXT we are supposed to get
+		   instance-/thread-specific error information via
+		   OCI_GetLastError(), but that's not what i'm seeing. i get fed
+		   error info via oci_err_handler, but using
+		   OCI_GetLastError() still returns no error info.
+		   That might be due to this wording from the OCI docs:
+
+		   OCI_GetLastError (void):
+		   Retrieve the last error occurred within the last OCILIB call.
+
+		   The problem with that is, we cannot be certain that
+		   the error code collection is called immediately
+		   after the command which fails (e.g. there might be a
+		   cleanup/finalization in between the failure and error
+		   collection).
+
+		   After a short discussion with Andreas, i will implement
+		   "the ugly workaround" for the short-term, in which we
+		   harvest the information statically from oci_err_handler(),
+		   and access that shared/static info from all db_wrap OCI
+		   instances.
+		*/
 	{
 		lerr("Could not initialize OCI driver!");
 		return 0;
@@ -271,6 +310,10 @@ int ociw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_resu
 	{
 		lerr("Execution of OCI_Statement failed: [%s]\n",OCI_GetSql(st));
 		wres->api->finalize(wres);
+		/*
+		  i don't quite know why, but fetching the OCI error state after this
+		  returns a 0 error code and empty error string.
+		 */
 		return DB_WRAP_E_CHECK_DB_ERROR;
 	}
 #else
@@ -285,7 +328,7 @@ int ociw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_resu
 	}
 	if (! OCI_Execute(st))
 	{
-		lerr("Execution of OCI_Statement failed: [%s]\n",OCI_GetSql(st));
+		lerr("Execution of prepared OCI_Statement failed: [%s]\n",OCI_GetSql(st));
 		wres->api->finalize(wres);
 		return DB_WRAP_E_CHECK_DB_ERROR;
 	}
@@ -300,6 +343,23 @@ int ociw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_resu
 int ociw_error_info(db_wrap * self, char const ** dest, size_t * len, int * errCode)
 {
 	if (! self) return DB_WRAP_E_BAD_ARG;
+#if 1
+	/* workaround for per-connection error info not being available to
+	   us for reasons which haven't been fully determined.
+
+	   This does NOT provide the exact same semantics as the underlying
+	   driver, which appears to re-set the error information
+	   on each call into the API. Our problem appears to be that we
+	   sometimes have several OCI calls before we check the
+	   error state, and the error state is gone by the time we
+	   can get around to fetching it.
+	*/
+	if (dest) *dest = ociw_error_info_kludge.errorString;
+	if (len) *len = ociw_error_info_kludge.errorString
+			      ? strlen(ociw_error_info_kludge.errorString)
+			      : 0;
+	if (errCode) *errCode = ociw_error_info_kludge.ociCode;
+#else
 	OCI_Error * err = OCI_GetLastError();
 	if (! err)
 	{
@@ -312,6 +372,7 @@ int ociw_error_info(db_wrap * self, char const ** dest, size_t * len, int * errC
 	if (dest) *dest = msg;
 	if (len) *len = msg ? strlen(msg) : 0;
 	if (errCode) *errCode = OCI_ErrorGetOCICode(err);
+#endif
 	return 0;
 }
 

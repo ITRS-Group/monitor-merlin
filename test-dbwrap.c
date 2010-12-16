@@ -307,7 +307,7 @@ void test_oracle_1()
 	rc = wr->api->connect(wr);
 	char const * errmsg = NULL;
 	int dbErrCode = 0;
-	wr->api->error_info(wr, &errmsg, NULL, dbErrCode);
+	wr->api->error_info(wr, &errmsg, NULL, &dbErrCode);
 	MARKER("connect rc=%d. Error code [%d], error string=[%s]\n",rc, dbErrCode, errmsg);
 	assert(0 == rc);
 	MARKER("Connected to Oracle! Erfolg! Success! Booya!\n");
