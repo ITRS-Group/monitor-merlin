@@ -20,18 +20,20 @@
 
 static inline unsigned int endianness(void)
 {
-#ifdef __BYTE_ORDER
-	return __BYTE_ORDER;
-#elif defined(_BYTE_ORDER)
-	return _BYTE_ORDER;
-#else
 	int i = 1;
+
+#ifdef __BYTE_ORDER
+	if (__BYTE_ORDER == COMPAT_LITTLE_ENDIAN || __BYTE_ORDER == COMPAT_BIG_ENDIAN)
+		return __BYTE_ORDER;
+#elif defined(_BYTE_ORDER)
+	if (_BYTE_ORDER == COMPAT_LITTLE_ENDIAN || _BYTE_ORDER == COMPAT_BIG_ENDIAN)
+		return _BYTE_ORDER;
+#endif /* __BYTE_ORDER */
 
 	if (((char *)&i)[0] == 1)
 		return COMPAT_LITTLE_ENDIAN;
 
 	return COMPAT_BIG_ENDIAN;
-#endif /* __BYTE_ORDER */
 }
 
 #endif /* INCLUDE_compat_h__ */
