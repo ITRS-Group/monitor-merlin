@@ -112,8 +112,8 @@ int ok_int(int a, int b, const char *name)
 int ok_uint(uint a, uint b, const char *name)
 {
 	if (a == b) {
-		return TEST_PASS;
 		t_pass(name);
+		return TEST_PASS;
 	}
 
 	t_fail(name);
