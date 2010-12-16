@@ -168,10 +168,18 @@ static void assign_peer_ids(void)
 		}
 	}
 
+	/* sort peerid_table with earliest started first */
 	ldebug("Sorting peerid_table with %d entries", num_peers);
 	qsort(peerid_table, num_peers, sizeof(merlin_node *), cmp_peer);
 	active_peers = 0;
 	peer_id = -1;
+
+	/*
+	 * this could be done with a binary search, but since we expect
+	 * fewer than 10 peers in each tier and we still have to walk all
+	 * the ones with a start-time higher than ours it's not really
+	 * worth the complexity
+	 */
 	for (i = 0; i < num_peers; i++) {
 		int result;
 		merlin_node *node = peerid_table[i];
@@ -189,7 +197,7 @@ static void assign_peer_ids(void)
 		if (inc)
 			continue;
 
-		result = timeval_comp(&self.start, &node->info.start);
+		result = timeval_comp(&node->info.start, &self.start);
 		if (result < 0) {
 			continue;
 		}
