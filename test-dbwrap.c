@@ -98,13 +98,6 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 	 */
 #define TRY_BEGIN_COMMIT 0
 
-#if TRY_BEGIN_COMMIT
-	sql = "begin";
-	rc = db_wrap_query_exec(wr, sql, strlen(sql));
-	show_errinfo(wr, rc);
-	assert(0 == rc);
-#endif
-
 	int i;
 	const int count = 10;
 	char const * strVal = "hi, world";
@@ -127,22 +120,6 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 		show_errinfo(wr, rc);
 		res = NULL;
 	}
-
-#if TRY_BEGIN_COMMIT
-	sql = "commit";
-	rc = db_wrap_query_exec(wr, sql, strlen(sql));
-	show_errinfo(wr, rc);
-	assert(0 == rc);
-#else
-	// HUGE KLUDGE until i figure out the COMMIT rules for OCILIB:
-	if (0 == strcmp("ocilib",driver)) {
-		sql = "commit";
-		rc = db_wrap_query_exec(wr, sql, strlen(sql));
-		show_errinfo(wr, rc);
-		assert(0 == rc);
-	}
-
-#endif
 
 	sql =
 		"select * from t order by vint desc"
@@ -335,8 +312,15 @@ void test_oracle_1()
 	assert(0 == rc);
 	MARKER("Connected to Oracle! Erfolg! Success! Booya!\n");
 
+	bool oldTempVal = ThisApp.useTempTables;
+	if (oldTempVal)
+	{
+		MARKER("WARNING: the oci driver isn't working with TEMP tables (not sure why). "
+			   "Disabling them. Make sure the db state is clean before running the tests!\n");
+		ThisApp.useTempTables = false;
+	}
 	test_libdbi_generic(driver, wr);
-
+	ThisApp.useTempTables = oldTempVal;
 	wr->api->finalize(wr);
 #endif
 }

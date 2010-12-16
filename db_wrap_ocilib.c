@@ -163,8 +163,7 @@ static char ociw_oci_init()
 
 #define RES_DECL(ERRVAL) \
 	ociw_result_impl * wres = (self && (self->api==&ociw_res_api))   \
-		? (ociw_result_impl*)self->impl.data : NULL;                   \
-	OCI_Resultset * ocires = wres ? wres->result : NULL
+		? (ociw_result_impl*)self->impl.data : NULL
 /* unclear if a null result set is legal for a non-query SQL statement: if (NULL==ocires) return ERRVAL*/
 
 int ociw_connect(db_wrap * self)
@@ -188,6 +187,7 @@ int ociw_connect(db_wrap * self)
 	{
 		return DB_WRAP_E_CHECK_DB_ERROR;
 	}
+	OCI_SetAutoCommit(conn, 1);
 	dbimpl->conn = conn;
 	return 0;
 }
@@ -362,7 +362,7 @@ int ociw_finalize(db_wrap * self)
 int ociw_res_step(db_wrap_result * self)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
-	return OCI_FetchNext(ocires)
+	return OCI_FetchNext(wres->result)
 		? 0
 		: DB_WRAP_E_DONE
 		;
@@ -372,7 +372,7 @@ int ociw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * va
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
-	*val = OCI_GetInt(ocires, ndx + 1);
+	*val = OCI_GetInt(wres->result, ndx + 1);
 	return 0;
 }
 
@@ -380,7 +380,7 @@ int ociw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * va
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
-	*val = OCI_GetBigInt(ocires, ndx + 1);
+	*val = OCI_GetBigInt(wres->result, ndx + 1);
 	return 0;
 }
 
@@ -388,7 +388,7 @@ int ociw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * va
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
-	*val = OCI_GetDouble(ocires, ndx + 1);
+	*val = OCI_GetDouble(wres->result, ndx + 1);
 	return 0;
 }
 
@@ -396,7 +396,7 @@ int ociw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char const 
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
-	char const * str = OCI_GetString(ocires, ndx + 1);
+	char const * str = OCI_GetString(wres->result, ndx + 1);
 	*val = str;
 	if (len) *len = str ? strlen(str) : 0;
 	return 0;
@@ -406,7 +406,7 @@ int ociw_res_num_rows(db_wrap_result * self, size_t *num)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! num) return DB_WRAP_E_BAD_ARG;
-	int rc = OCI_GetRowCount(ocires);
+	int rc = OCI_GetRowCount(wres->result);
 	if (rc < 0)
 	{
 		return DB_WRAP_E_UNKNOWN_ERROR;
@@ -419,7 +419,7 @@ int ociw_res_finalize(db_wrap_result * self)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	/*
-	  MARKER("Freeing result handle @%p/%p/@%p\n",(void const *)self, (void const *)wres, (void const *)ocires);
+	  MARKER("Freeing result handle @%p/%p/@%p\n",(void const *)self, (void const *)wres, (void const *)wres->result);
 	*/
 	if (wres->st)
 	{
