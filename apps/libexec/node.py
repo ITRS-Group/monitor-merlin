@@ -261,10 +261,17 @@ def cmd_status(args):
 			if schecks == service_checks:
 				sc_color = color.red
 
+		hpercent = 0
+		if host_checks != 0:
+			hpercent = float(hchecks) / float(host_checks) * 100
+		spercent = 0
+		if service_checks != 0:
+			spercent = float(schecks) / float(service_checks) * 100
+
 		print("Checks (host/service): %s%d%s / %s%d%s  (%s%.2f%%%s / %s%.2f%%%s)" %
 			(hc_color, hchecks, color.reset, sc_color, schecks, color.reset,
-			hc_color, float(hchecks) / float(host_checks) * 100, color.reset,
-			sc_color, float(schecks) / float(service_checks) * 100, color.reset))
+			hc_color, hpercent, color.reset,
+			sc_color, spercent, color.reset))
 
 		# if this node has never reported any checks, we can't
 		# very well print out its latency or execution time values
