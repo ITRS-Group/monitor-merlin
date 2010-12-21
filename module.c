@@ -165,6 +165,8 @@ static void *ipc_reaper(void *discard)
 		int recv_result;
 		merlin_event *pkt;
 
+		pthread_testcancel();
+
 		/* try connecting every mrm_reap_interval */
 		if (!ipc_is_connected(0)) {
 			sleep(mrm_reap_interval);
@@ -183,8 +185,11 @@ static void *ipc_reaper(void *discard)
 		recv_result = node_recv(&ipc, 0);
 
 		/* and then just loop over the received packets */
-		while ((pkt = node_get_event(&ipc))) {
+		while (!cancel_reaping && (pkt = node_get_event(&ipc))) {
 			merlin_node *node = node_by_id(pkt->hdr.selection);
+
+			pthread_testcancel();
+
 			if (node)
 				node->last_recv = time(NULL);
 
