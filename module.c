@@ -714,15 +714,20 @@ int nebmodule_deinit(int flags, int reason)
 	int ret;
 
 	linfo("Unloading Merlin module");
-	if (cancel_threads) {
+	if (reaper_thread && cancel_threads) {
 		pthread_cancel(reaper_thread);
 	}
 	cancel_reaping = 1;
-	ret = pthread_join(reaper_thread, NULL);
-	if (ret) {
-		lerr("Failed to join reaper thread: %s", strerror(errno));
+	if (reaper_thread) {
+		ret = pthread_join(reaper_thread, NULL);
+		if (ret) {
+			lerr("Failed to join reaper thread: %s", strerror(errno));
+		} else {
+			linfo("Successfully joined reaper thread");
+		}
 	} else {
-		linfo("Successfully joined reaper thread");
+		lwarn("No reaper thread running, or one is running with id 0.");
+		lwarn("You might want to check for filedescriptor leaks.");
 	}
 
 	log_deinit();
