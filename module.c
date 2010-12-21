@@ -158,6 +158,8 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
  */
 static void *ipc_reaper(void *discard)
 {
+	linfo("ipc reaper with thread id %ld reporting in", pthread_self());
+
 	/* one loop to rule them all... */
 	while (!cancel_reaping) {
 		int recv_result;
@@ -194,6 +196,8 @@ static void *ipc_reaper(void *discard)
 			}
 		}
 	}
+
+	linfo("ipc reaper with thread id %ld signing off", pthread_self());
 
 	return 0;
 }
@@ -577,6 +581,11 @@ static int post_config_init(int cb, void *ds)
 
 	/* now we create the ipc reaper thread and send the paths */
 	result = pthread_create(&reaper_thread, NULL, ipc_reaper, NULL);
+	if (result) {
+		lerr("Failed to create reaper thread: %s", strerror(result));
+	} else {
+		linfo("Successfully created ipc reaper with thread id %ld", reaper_thread);
+	}
 	send_paths();
 
 	return 0;
