@@ -217,6 +217,8 @@ static int flist_hash_add(struct file_list *fl, blk_SHA_CTX *ctx)
 		return -1;
 	blk_SHA1_Update(ctx, map, fl->st.st_size);
 	munmap(map, fl->st.st_size);
+	close(fd);
+
 	return 0;
 }
 
