@@ -169,6 +169,14 @@ static void *ipc_reaper(void *discard)
 			continue;
 		}
 
+		/*
+		 * in order for cancel_reaping to kick in, we must
+		 * make sure not to hang in recv() indefinitely
+		 */
+		if (io_read_ok(ipc.sock, 1000) <= 0) {
+			continue;
+		}
+
 		/* we block while reading */
 		recv_result = node_recv(&ipc, 0);
 
