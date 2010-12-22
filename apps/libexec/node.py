@@ -226,7 +226,7 @@ def cmd_status(args):
 				la_color = color.red
 
 			delta = time_delta(last_alive)
-			dtime = time.strftime("%F %H:%m:%d", time.localtime(last_alive))
+			dtime = time.strftime("%F %H:%M:%S", time.localtime(last_alive))
 			print("Last alive: %s (%d) (%s%s ago%s)" %
 				(dtime,	last_alive, la_color, delta, color.reset))
 
