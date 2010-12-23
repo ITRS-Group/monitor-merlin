@@ -170,6 +170,10 @@ int db_wrap_driver_init(char const * driver, db_wrap_conn_params const * param, 
 	{
 		return db_wrap_dbi_init2(driver + preLen, param, tgt);
 	}
+	else if (0 == strcmp( "mysql", driver) )
+	{/* backwards-compatibility hack. */
+		return db_wrap_dbi_init2(driver, param, tgt);
+	}
 #endif
 #if DB_WRAP_CONFIG_ENABLE_OCILIB
 	if (0 == strcmp( "ocilib", driver) )
