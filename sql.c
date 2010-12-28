@@ -28,7 +28,7 @@ NULL/*name*/,
 NULL/*user*/,
 NULL/*pass*/,
 NULL/*table*/,
-"dbi:mysql"/*type*/,
+NULL/*type*/,
 NULL/*encoding*/,
 0U/*port*/,
 NULL/*conn*/,
@@ -171,14 +171,10 @@ int sql_vquery(const char *fmt, va_list ap)
 			    FIXME("Add db_error int back in once db_wrap API can do it.");
 		int db_error = sql_error(&error_msg);
 
-		lwarn("run_query(): Failed to run [%s]: %s. Error-code is %d.)",
+		lwarn("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is %d.)",
 			          query, error_msg, db_error);
 #if 0
-			    /* It is unclear to me how we should best re-implement
-			       the following for the db_wrap changes, because
-			       db_wrap itself does not publish error codes like
-			       the ones used here. --- stephan beal
-			    */
+			    FIXME("Refactor/rework the following for the new db layer...");
 		/*
 		 * if we failed because the connection has gone away, we try
 		 * reconnecting once and rerunning the query before giving up.
@@ -194,7 +190,7 @@ int sql_vquery(const char *fmt, va_list ap)
 
 		case 1062: /* 'duplicate key' with MySQL. don't rerun */
 		case 1146: /* 'table missing' with MySQL. don't rerun */
-			if (!strstr(db.type, "mysql"))
+			if (!strcmp(db.type, "mysql"))
 				break;
 
 		default:
@@ -291,20 +287,21 @@ int sql_init(void)
 			;
 		if (result)
 		{
-			lerr("Failed to connect to db type [%s].", db.type);
+			lerr("Failed to connect to '%s' at '%s':'%d' as %s:%s",
+			     db.name, db.host, db.port, db.user, db.pass);
 			return -1;
 		}
 #endif
 		result = db.conn->api->option_set(db.conn, "encoding", db.encoding ? db.encoding : "UTF-8");
 	if (result) {
-		lerr("Failed to set one or more database connection options");
+		lerr("Warning: Failed to set one or more database connection options");
 	}
 		result = db.conn->api->connect(db.conn);
 	if (result) {
 		const char *error_msg;
 		sql_error(&error_msg);
 		lerr("Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
-			 db.name, db.host, db.port, db.user, db.pass, error_msg);
+			         db.name, db.host, db.port, db.user, db.pass, error_msg);
 
 		sql_close();
 		return -1;
@@ -375,6 +372,7 @@ int sql_config(const char *key, const char *value)
 
 	value_cpy = value ? strdup(value) : NULL;
 
+		FIXME("we leak these copied values if we set a particular value more than once.");
 	if (!prefixcmp(key, "name") || !prefixcmp(key, "database"))
 		db.name = value_cpy;
 	else if (!prefixcmp(key, "user"))

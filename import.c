@@ -1565,8 +1565,11 @@ int main(int argc, char **argv)
 		sql_config("db_user", db_user);
 		sql_config("db_pass", db_pass);
 
-		if (sql_init() < 0)
-			crash("sql_init() failed");
+		if (sql_init() < 0) {
+
+			        crash("sql_init() failed. db=%s, table=%s, user=%s, db msg=[%s]",
+			              db_name, db_table, db_user, sql_error_msg());
+			    }
 		if (truncate_db)
 			sql_query("TRUNCATE %s", db_table);
 
