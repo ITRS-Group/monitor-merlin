@@ -40,10 +40,10 @@ WARN_FLAGS = -Wall -Wno-unused-parameter
 DBWRAP_OBJS := sql.o db_wrap.o
 DBWRAP_LDFLAGS :=
 DBWRAP_CFLAGS :=
-# FIXME: try to find libdbi/ocilib, or allow the caller to enable them
-# by passing options to make.
+# FIXME: try to find libdbi/ocilib dynamically. Until then, the client
+# can pass ENABLE_LIBDBI=1/0 or ENABLE_OCILIB=1/0 to enable/disable them.
 ENABLE_OCILIB ?= 0
-ENABLE_LIBDBI ?= 0
+ENABLE_LIBDBI ?= 1
 
 ifeq ($(ENABLE_OCILIB),1)
 # Use ocilib...
