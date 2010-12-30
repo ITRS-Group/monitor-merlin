@@ -333,12 +333,15 @@ static void show_help(char const * appname)
 	puts("\t-m = enables mysql test.");
 	puts("\t-s = enables sqlite3 test.");
 	puts("\t-o = enables oracle test.");
+	puts("\t-h HOSTNAME = sets remote host name for some tests.");
+	putchar('\n');
 }
 
 int main(int argc, char const ** argv)
 {
 	int i;
 	int testCount = 0;
+	char const * dbhost = "localhost";
 	for(i = 1; i < argc; ++i)
 	{
 		char const * arg = argv[i];
@@ -365,6 +368,11 @@ int main(int argc, char const ** argv)
 			++testCount;
 			continue;
 		}
+		else if (0 == strcmp("-h", arg) )
+		{
+			dbhost = argv[++i];
+			continue;
+		}
 		else if ((0 == strcmp("-?", arg))
 			     || (0 == strcmp("--help", arg)) )
 		{
@@ -379,9 +387,8 @@ int main(int argc, char const ** argv)
 		show_help(argv[0]);
 		return 1;
 	}
-
 	{
-		ConnParams.mysql.host = "localhost";
+		ConnParams.mysql.host = dbhost;
 		ConnParams.mysql.port = 3306;
 		ConnParams.mysql.username = "merlin";
 		ConnParams.mysql.password = "merlin";
@@ -393,7 +400,7 @@ int main(int argc, char const ** argv)
 	{
 		//FIXME("non-default oracle port not yet supported in my oci bits.\n");
 		ConnParams.oracle = ConnParams.mysql;
-		ConnParams.oracle.host = "ora9.int.consol.de";
+		ConnParams.oracle.host = dbhost; // "ora9.int.consol.de";
 		ConnParams.oracle.dbname = "ora10g";
 		ConnParams.oracle.port = 0;
 	}
