@@ -26,6 +26,7 @@ ifeq ($(uname_S),SunOS)
 	PTHREAD_LDFLAGS =
 	PTHREAD_CFLAGS =
 	NEEDS_MEMRCHR = YesPlease
+	NEEDS_ASPRINTF = YesPlease
 endif
 
 # CFLAGS, CPPFLAGS and LDFLAGS are for users to modify
@@ -48,7 +49,7 @@ DEPS = Makefile cfgfile.h ipc.h logging.h shared.h
 APPS = showlog import oconf
 MOD_LDFLAGS = -shared -ggdb3 -fPIC $(PTHREAD_LDFLAGS)
 DAEMON_LIBS = $(LIB_DB) $(LIB_NET)
-DAEMON_LDFLAGS = $(DAEMON_LIBS) -ggdb3 -rdynamic -Wl,-export-dynamic
+DAEMON_LDFLAGS = $(DAEMON_LIBS) -ggdb3
 MTEST_LIBS = $(LIB_DB) $(LIB_DL)
 MTEST_LDFLAGS = $(MTEST_LIBS) -ggdb3 -rdynamic -Wl,-export-dynamic $(PTHREAD_LDFLAGS)
 NEBTEST_LIBS = $(LIB_DL)
@@ -60,6 +61,12 @@ ifdef NEEDS_MEMRCHR
 	TWEAK_CPPFLAGS += -DNEEDS_MEMRCHR
 	APP_OBJS += compat/memrchr.o
 endif
+
+ifdef NEEDS_ASPRINTF
+	TWEAK_CPPFLAGS += -DNEEDS_ASPRINTF
+	COMMON_OBJS += compat/asprintf.o
+endif
+
 ifndef V
 	QUIET_CC    = @echo '   ' CC $@;
 	QUIET_LINK  = @echo '   ' LINK $@;
