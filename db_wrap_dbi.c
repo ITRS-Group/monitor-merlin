@@ -512,41 +512,26 @@ int dbiw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * va
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
-	//FIXME("We probably have to check the field's size like we do for the integer types.");
-#if 1
-	/* The dbi mysql driver docs say these are treated as strings by
-	   that driver because b/c they can have arbitrary precision. But
-	   in my tests dbi_result_get_float_idx() works and get-string
-	   doesn't.
-	*/
+	unsigned int const realIdx = ndx+1;
 	*val = 0.0;
-#if 0
-	/* WTFF??? This always returns 0, but the comparison of
-	   (0.0==*val) is failing!?!?!?!
-	*/
-	*val = dbi_result_get_double_idx(dbires, ndx +1);
-	MARKER("get-double: %lf\n",*val);
-#endif
-	if (0.0 == *val) /* just in case... */
+	unsigned int const a = dbi_result_get_field_attrib_idx (dbires, realIdx, 0, 0xff);
+	/* i can't find one bit of useful docs/examples for this function, so i'm kind of
+	   guessing here. */
+	;
+	if (DBI_ATTRIBUTE_ERROR == a)
 	{
-		/* WTF? */
-		*val = dbi_result_get_float_idx(dbires, ndx +1);
-		//MARKER("get-double-as-float: %lf\n",*val);
+		return DB_WRAP_E_CHECK_DB_ERROR;
 	}
-	//MARKER("returning double: %lf\n",*val);
-#else
-	char const * str = NULL;
-	size_t len = 0;
-	int rc = self->api->get_string_ndx(self, ndx, &str, &len);
-	if (rc) return rc;
-	double dval = 0.0;
-	len = sscanf(str, "%lf", &dval);
-	if (1 != len)
+	else if (DBI_DECIMAL_SIZE4 & a)
 	{
-		return DB_WRAP_E_UNKNOWN_ERROR;
+		/* MARKER("SIZE4\n"); */
+		*val = dbi_result_get_float_idx(dbires, realIdx);
 	}
-	*val = dval;
-#endif
+	else if (DBI_DECIMAL_SIZE8 & a)
+	{
+		/* MARKER("SIZE8\n"); */
+		*val = dbi_result_get_double_idx(dbires, realIdx);
+	}
 	return 0;
 }
 
