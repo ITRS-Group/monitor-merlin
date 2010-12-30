@@ -1,6 +1,9 @@
 #define _GNU_SOURCE
 #include "daemon.h"
 
+#include <stdio.h> /* debuggering only. */
+#define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
+
 /* where to (optionally) stash performance data */
 char *host_perf_table = NULL;
 char *service_perf_table = NULL;
@@ -22,6 +25,7 @@ static struct {
 		int port /* need to be signed int for compatibility with dbi_conn_set_option_numeric() (and similar)*/;
 		db_wrap * conn;
 		db_wrap_result * result;
+	int logSQL;
 } db = {
 NULL/*host*/,
 NULL/*name*/,
@@ -32,7 +36,8 @@ NULL/*type*/,
 NULL/*encoding*/,
 0U/*port*/,
 NULL/*conn*/,
-NULL/*result*/
+NULL/*result*/,
+0/*logSQL*/
 };
 
 
@@ -41,7 +46,8 @@ static time_t last_connect_attempt;
 
 /*
  * Quotes a string and escapes all meta-characters inside the string.
- * **dst must be free()'d by the caller.
+ * If src is NULL or !*src then 0 is returned and *dest is not modified.
+ * *dst must be free()'d by the caller.
  */
 size_t sql_quote(const char *src, char **dst)
 {
@@ -53,10 +59,20 @@ size_t sql_quote(const char *src, char **dst)
 	size_t const ret = db.conn->api->sql_quote(db.conn, src, (src?strlen(src):0U), dst);
 	if (! ret)
 	{
-		lerr("Failed to quote and copy string at %p to %p",
-			 src, dst);
-		lerr("Source string: '%s'", src);
-		*dst = NULL;
+#if 0
+		if (! src || !*src)
+		{
+			*dst = strdup("''");
+			return strlen(*dst);
+		}
+		else
+#endif
+		{
+			lerr("Failed to quote and copy string at %p to %p. str=[%s]",
+			     src, dst, src);
+			lerr("Source string: '%s'", src);
+			*dst = NULL;
+		}
 	}
 	return ret;
 }
@@ -120,6 +136,10 @@ static int run_query(char *query, size_t len, int rerunIGNORED)
 	 */
 	db_wrap_result * res = NULL;
 	int rc = db.conn->api->query_result(db.conn, query, len, &res);
+	if (db.logSQL)
+	{
+		fprintf(stderr, "MERLIN SQL: [%s]\n\tResult code: %d, result object @%p\n", query, rc, res);
+	}
 	if (rc)
 	{
 		assert(NULL == res);
@@ -173,13 +193,14 @@ int sql_vquery(const char *fmt, va_list ap)
 
 		lwarn("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is %d.)",
 			          query, error_msg, db_error);
-#if 0
-			    FIXME("Refactor/rework the following for the new db layer...");
+#if 1
+			    //FIXME("Refactor/rework the following for the new db layer...");
 		/*
 		 * if we failed because the connection has gone away, we try
 		 * reconnecting once and rerunning the query before giving up.
 		 */
 		switch (db_error) {
+#if 0
 		case DBI_ERROR_USER:
 		case DBI_ERROR_BADTYPE:
 		case DBI_ERROR_BADIDX:
@@ -187,7 +208,7 @@ int sql_vquery(const char *fmt, va_list ap)
 		case DBI_ERROR_UNSUPPORTED:
 		case DBI_ERROR_NONE:
 			break;
-
+#endif
 		case 1062: /* 'duplicate key' with MySQL. don't rerun */
 		case 1146: /* 'table missing' with MySQL. don't rerun */
 			if (!strcmp(db.type, "mysql"))
@@ -238,6 +259,12 @@ int sql_init(void)
 	if (last_connect_attempt + 30 >= time(NULL))
 		return -1;
 	last_connect_attempt = time(NULL);
+
+		char const * env = getenv("MERLIN_LOG_SQL");
+		if (env && ('0'!=*env))
+		{
+			db.logSQL = 1;
+		}
 
 	/* free any remaining result set */
 	sql_free_result();
@@ -364,7 +391,11 @@ const char *sql_table_name(void)
 
 
 /*
- * Config parameters from the "database" section end up here
+ * Config parameters from the "database" section end up here.
+ *
+ * The option "logsql" tells this API to log all SQL commands
+ * to stderr if value is not NULL and does not start with the
+ * character '0' (zero).
  */
 int sql_config(const char *key, const char *value)
 {
@@ -375,6 +406,11 @@ int sql_config(const char *key, const char *value)
 		FIXME("we leak these copied values if we set a particular value more than once.");
 	if (!prefixcmp(key, "name") || !prefixcmp(key, "database"))
 		db.name = value_cpy;
+	else if (!prefixcmp(key, "logsql"))
+		{
+			db.logSQL = (value && *value && (*value!='0')) ? 1 : 0;
+			free(value_cpy);
+		}
 	else if (!prefixcmp(key, "user"))
 		db.user = value_cpy;
 	else if (!prefixcmp(key, "pass"))
@@ -407,3 +443,4 @@ int sql_config(const char *key, const char *value)
 }
 
 #undef FIXME
+#undef MARKER
