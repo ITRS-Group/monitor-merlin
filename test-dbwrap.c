@@ -169,7 +169,7 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 	const bool doCountTest = (NULL == strstr(driver,"sqlite"));
 	if (!doCountTest)
 	{
-		MARKER("WARNING: skipping count(*) test because the libdbi sqlite driver apparently doesn't handle the numeric type properly!");
+		MARKER("WARNING: skipping count(*) test because the libdbi sqlite driver apparently doesn't handle the numeric type properly!\n");
 	}
 	else
 	{
