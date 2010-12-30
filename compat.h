@@ -41,6 +41,7 @@ extern void *memrchr(const void *s, int c, size_t n);
 #endif
 
 #ifdef NEEDS_ASPRINTF
+#include <stdarg.h>
 extern int asprintf(char **strp, const char *fmt, ...);
 extern int vasprintf(char **strp, const char *fmt, va_list ap);
 #endif
