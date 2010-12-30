@@ -354,11 +354,11 @@ int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * va
 	*/
 	unsigned int const a = dbi_result_get_field_attrib_idx (dbires, realIdx,
 			                                           DBI_INTEGER_UNSIGNED,
-			                                           DBI_INTEGER_SIZEMASK)
+			                                           DBI_INTEGER_SIZE8)
 		/* i can't find one bit of useful docs/examples for this function, so i'm kind of
 		   guessing here. */
 		;
-	/*MARKER("Attribute return=0x%x/%u\n",a, a);*/
+	//MARKER("Attribute return=0x%x/%u\n",a, a);
 	/*assert(0);*/
 	/**
 	   See this thread: http://www.mail-archive.com/libdbi-users@lists.sourceforge.net/msg00126.html
@@ -429,7 +429,7 @@ int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * va
 	*/
 	unsigned int const a = dbi_result_get_field_attrib_idx (dbires, realIdx,
 			                                           DBI_INTEGER_UNSIGNED,
-			                                           DBI_INTEGER_SIZEMASK)
+			                                           DBI_INTEGER_SIZE8)
 		/* i can't find one bit of useful docs/examples for this function, so i'm kind of
 		   guessing here. */
 		;
