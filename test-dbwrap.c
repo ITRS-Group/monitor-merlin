@@ -131,7 +131,7 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 	//assert(res->impl.data == db_wrap_dbi_result(res));
 
 	/* ensure that stepping acts as expected. */
-	int gotCount = 0;
+	int32_t gotCount = 0;
 	while(0 == (rc = res->api->step(res)))
 	{
 		++gotCount;
@@ -166,10 +166,49 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 	*/
 
 
+	const bool doCountTest = (NULL == strstr(driver,"sqlite"));
+	if (!doCountTest)
+	{
+		MARKER("WARNING: skipping count(*) test because the libdbi sqlite driver apparently doesn't handle the numeric type properly!");
+	}
+	else
+	{
+		sql = "select count(*) as C from t";
+		res = NULL;
+		rc = wr->api->query_result(wr, sql, strlen(sql), &res);
+		assert(0 == rc);
+		assert(NULL != res);
+		rc = res->api->step(res);
+		assert(0 == rc);
+		typedef int64_t CountType;
+		CountType ival = -1;
+		rc =
+			//res->api->get_int32_ndx(res, 0, &ival)
+			res->api->get_int64_ndx(res, 0, &ival)
+			/*
+			  DAMN: the libdbi impls behave differently here: on some platforms
+			  count(*) will be (u)int32 and on some 64. The libdbi drivers
+			  are horribly pedantic here and require that we know exactly how
+			  big the integer is.
+
+			  http://www.mail-archive.com/libdbi-users@lists.sourceforge.net/msg00126.html
+
+			  This particular test works for me on mysql but not sqlite3. It also
+			  possibly fails on mysql 32-bit (untested).
+			*/
+			;
+		MARKER("Select/step rc=%d, ival=%ld, expecting=%ld\n", rc, (long)ival, (long)gotCount);
+		assert(0 == rc);
+		assert(ival == gotCount);
+		res->api->finalize(res);
+		res = NULL;
+		//assert(res->impl.data == db_wrap_dbi_result(res));
+	}
+
 
 	if (0)
 	{
-		FIXME("get-double is not working. Not sure why.\n");
+		FIXME("DBI get-double is not working. Not sure why.\n");
 		char const * dblSql = "select vdbl from t order by vint desc limit 1";
 		// not yet working. don't yet know why
 		double doubleGet = -1.0;
@@ -179,6 +218,10 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 		assert(11.0 == doubleGet);
 	}
 
+	sql =
+		"select * from t order by vint desc"
+		//"select count(*) as C from t"
+		;
 	res = NULL;
 	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
 	assert(0 == rc);
@@ -202,7 +245,7 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 	rc = res->api->get_int32_ndx(res, 0, &intGet);
 	assert(0 == rc);
 #endif
-	//MARKER("got int=%d\n",intGet);
+	//MARKER("got int=%d, expected=%d\n",intGet, intExpect);
 	assert(intGet == intExpect);
 #endif
 	rc = res->api->finalize(res);

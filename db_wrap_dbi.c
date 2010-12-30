@@ -10,12 +10,12 @@ Concrete db_wrap implementation based off of libdbi.
 #include <dbi/dbi.h> /* libdbi */
 #include "db_wrap_dbi.h"
 #include "logging.h" /* lerr() */
-
 #undef MARKER
 #undef TODO
 #undef FIXME
 #if 1 /* for debuggering only */
 #  include <stdio.h>
+#  include <inttypes.h> /* PRIxxx macros, only for debuggering. */
 #  define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
 #  define TODO(X) MARKER("TODO: %s\n",X)
 #  define FIXME(X) MARKER("FIXME: %s\n",X)
@@ -347,7 +347,74 @@ int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * va
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
-	*val = dbi_result_get_int_idx(dbires, ndx +1);
+	unsigned int const realIdx = ndx+1;
+#if 1
+	/**
+	   See this thread: http://www.mail-archive.com/libdbi-users@lists.sourceforge.net/msg00126.html
+	*/
+	unsigned int const a = dbi_result_get_field_attrib_idx (dbires, realIdx,
+			                                           DBI_INTEGER_UNSIGNED,
+			                                           DBI_INTEGER_SIZEMASK)
+		/* i can't find one bit of useful docs/examples for this function, so i'm kind of
+		   guessing here. */
+		;
+	/*MARKER("Attribute return=0x%x/%u\n",a, a);*/
+	/*assert(0);*/
+	/**
+	   See this thread: http://www.mail-archive.com/libdbi-users@lists.sourceforge.net/msg00126.html
+	*/
+	if (DBI_ATTRIBUTE_ERROR == a)
+	{
+		return DB_WRAP_E_CHECK_DB_ERROR;
+	}
+#if 0
+	else if (0 == a)
+	{ /* HORRIBLE KLUDGE for sqlite driver!
+	   But after testing, NONE of these return the value i'm expecting! */
+		*val = dbi_result_get_short_idx(dbires, realIdx);
+		if (!*val) *val = dbi_result_get_ushort_idx( dbires, realIdx );
+		if (!*val) *val = dbi_result_get_int_idx( dbires, realIdx );
+		if (!*val) *val = dbi_result_get_uint_idx( dbires, realIdx );
+		if (!*val) *val = dbi_result_get_longlong_idx( dbires, realIdx );
+		if (!*val) *val = dbi_result_get_ulonglong_idx( dbires, realIdx );
+		//if (!*val) *val = dbi_result_get_double_idx( dbires, realIdx );
+	}
+#endif
+	else if (DBI_INTEGER_SIZE1 & a)
+	{
+		*val =
+			(a & DBI_DECIMAL_UNSIGNED)
+			? dbi_result_get_uchar_idx(dbires, realIdx)
+			: dbi_result_get_char_idx(dbires, realIdx)
+			;
+	}
+	else if (DBI_INTEGER_SIZE2 & a)
+	{
+		*val =
+			(a & DBI_DECIMAL_UNSIGNED)
+			? dbi_result_get_ushort_idx(dbires, realIdx)
+			: dbi_result_get_short_idx(dbires, realIdx)
+			;
+	}
+	else if (DBI_INTEGER_SIZE4 & a)
+	{
+		*val =
+			(a & DBI_DECIMAL_UNSIGNED)
+			? dbi_result_get_uint_idx(dbires, realIdx)
+			: dbi_result_get_int_idx(dbires, realIdx)
+			;
+	}
+	else /* ASSUME 8-byte. */
+	{
+		*val =
+			(a & DBI_DECIMAL_UNSIGNED)
+			? dbi_result_get_ulonglong_idx(dbires, realIdx)
+			: dbi_result_get_longlong_idx(dbires, realIdx)
+			;
+	}
+#else
+	*val = dbi_result_get_int_idx(dbires, realIdx);
+#endif
 	return 0;
 }
 
@@ -355,7 +422,62 @@ int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * va
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
-	*val = dbi_result_get_longlong_idx(dbires, ndx +1);
+	unsigned int const realIdx = ndx+1;
+#if 1
+	/**
+	   See this thread: http://www.mail-archive.com/libdbi-users@lists.sourceforge.net/msg00126.html
+	*/
+	unsigned int const a = dbi_result_get_field_attrib_idx (dbires, realIdx,
+			                                           DBI_INTEGER_UNSIGNED,
+			                                           DBI_INTEGER_SIZEMASK)
+		/* i can't find one bit of useful docs/examples for this function, so i'm kind of
+		   guessing here. */
+		;
+	/*MARKER("Attribute return=0x%x/%u\n",a, a);*/
+	/*assert(0);*/
+	if (DBI_ATTRIBUTE_ERROR == a)
+	{
+		return DB_WRAP_E_CHECK_DB_ERROR;
+	}
+	else if (DBI_INTEGER_SIZE1 & a)
+	{
+		*val =
+			(a & DBI_DECIMAL_UNSIGNED)
+			? dbi_result_get_uchar_idx(dbires, realIdx)
+			: dbi_result_get_char_idx(dbires, realIdx)
+			;
+	}
+	else if (DBI_INTEGER_SIZE2 & a)
+	{
+		*val =
+			(a & DBI_DECIMAL_UNSIGNED)
+			? dbi_result_get_ushort_idx(dbires, realIdx)
+			: dbi_result_get_short_idx(dbires, realIdx)
+			;
+	}
+	else if (DBI_INTEGER_SIZE8 & a)
+	{
+		*val =
+			(a & DBI_DECIMAL_UNSIGNED)
+			? dbi_result_get_ulonglong_idx(dbires, realIdx)
+			: dbi_result_get_longlong_idx(dbires, realIdx)
+			;
+	}
+	else /* ASSUME 4-byte. */
+	{
+		*val =
+			(a & DBI_DECIMAL_UNSIGNED)
+			? dbi_result_get_uint_idx(dbires, realIdx)
+			: dbi_result_get_int_idx(dbires, realIdx)
+			;
+	}
+#else
+	//*val = dbi_result_get_int_idx(dbires, realIdx);
+	//MARKER("val as int=%"PRIi64"\n",*val);
+	//if (!*val)
+	*val = dbi_result_get_longlong_idx(dbires, realIdx);
+	//MARKER("val as longlong=%"PRIi64"\n",*val);
+#endif
 	return 0;
 }
 
