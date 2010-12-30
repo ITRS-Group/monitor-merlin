@@ -209,11 +209,14 @@ int sql_vquery(const char *fmt, va_list ap)
 		case DBI_ERROR_NONE:
 			break;
 #endif
+			    /*
+			      These values are only for MySQL. Oracle might use
+			      these to mean different things!
+			    */
 		case 1062: /* 'duplicate key' with MySQL. don't rerun */
 		case 1146: /* 'table missing' with MySQL. don't rerun */
-			if (!strcmp(db.type, "mysql"))
+			if (!strstr(db.type, "mysql"))
 				break;
-
 		default:
 			lwarn("Attempting to reconnect to database and re-run the query");
 			if (!sql_reinit()) {
