@@ -206,14 +206,19 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 	}
 
 
-	if (0)
+	if (1)
 	{
-		FIXME("DBI get-double is not working. Not sure why.\n");
 		char const * dblSql = "select vdbl from t order by vint desc limit 1";
 		// not yet working. don't yet know why
 		double doubleGet = -1.0;
 		rc = db_wrap_query_double(wr, dblSql, strlen(dblSql), &doubleGet);
-		MARKER("doubleGet=%lf\n",doubleGet);
+		if (0 != rc)
+		{
+			char const * errStr = NULL;
+			int driverRc = 0;
+			wr->api->error_info(wr, &errStr, NULL, &driverRc);
+			MARKER("doubleGet: rc=%d, driverRc=%d (%s), val=%lf\n",rc, driverRc, errStr, doubleGet);
+		}
 		assert(0 == rc);
 		assert(11.0 == doubleGet);
 	}
