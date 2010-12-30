@@ -3,6 +3,15 @@
 #                      it against that of the primary server (set in 'sync_utils.sh')
 # Author: Andreas Ericsson <ae@op5.se>
 #
+#
+# THIS SCRIPT SHOULD NEVER BE USED ALONGSIDE MERLIN!
+# It's included for completeness so op5-affiliated consultants can migrate
+# customers experiencing problems from a Merlin-based setup to the old way
+# of doing distributed monitoring.
+# DO NOT ENABLE THIS WHILE USING MERLIN FOR LOADBALANCED AND/OR DISTRIBUTED
+# MONITORING! You have been (thoroughly) warned.
+#
+#
 # Copyright (C) 2004 OP5 AB
 # All rights reserved.
 #
