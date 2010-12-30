@@ -382,6 +382,7 @@ int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * va
 #endif
 	else if (DBI_INTEGER_SIZE1 & a)
 	{
+		/* MARKER("SIZE1\n"); */
 		*val =
 			(a & DBI_DECIMAL_UNSIGNED)
 			? dbi_result_get_uchar_idx(dbires, realIdx)
@@ -390,6 +391,7 @@ int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * va
 	}
 	else if (DBI_INTEGER_SIZE2 & a)
 	{
+		/* MARKER("SIZE2\n"); */
 		*val =
 			(a & DBI_DECIMAL_UNSIGNED)
 			? dbi_result_get_ushort_idx(dbires, realIdx)
@@ -398,19 +400,30 @@ int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * va
 	}
 	else if (DBI_INTEGER_SIZE4 & a)
 	{
+		/* MARKER("SIZE4\n"); */
 		*val =
 			(a & DBI_DECIMAL_UNSIGNED)
 			? dbi_result_get_uint_idx(dbires, realIdx)
 			: dbi_result_get_int_idx(dbires, realIdx)
 			;
 	}
-	else /* ASSUME 8-byte. */
+	else if (DBI_INTEGER_SIZE8 & a)
 	{
+		/* MARKER("SIZE8\n"); */
 		*val =
 			(a & DBI_DECIMAL_UNSIGNED)
 			? dbi_result_get_ulonglong_idx(dbires, realIdx)
 			: dbi_result_get_longlong_idx(dbires, realIdx)
 			;
+	}
+	else
+	{
+		/**
+		   libdbi Sqlite driver returns 0 for attributes for
+		   the case of SELECT COUNT(*). i have no workaround
+		   for this :(.
+		*/
+		return DB_WRAP_E_UNKNOWN_ERROR;
 	}
 #else
 	*val = dbi_result_get_int_idx(dbires, realIdx);
@@ -423,13 +436,14 @@ int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * va
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
 	unsigned int const realIdx = ndx+1;
+	//FIXME("Consolidate the duplicate code in get_int32_ndx() and here.");
 #if 1
 	/**
 	   See this thread: http://www.mail-archive.com/libdbi-users@lists.sourceforge.net/msg00126.html
 	*/
 	unsigned int const a = dbi_result_get_field_attrib_idx (dbires, realIdx,
-			                                           DBI_INTEGER_UNSIGNED,
-			                                           DBI_INTEGER_SIZE8)
+			                                                 DBI_INTEGER_UNSIGNED,
+			                                                 DBI_INTEGER_SIZE8)
 		/* i can't find one bit of useful docs/examples for this function, so i'm kind of
 		   guessing here. */
 		;
@@ -441,6 +455,7 @@ int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * va
 	}
 	else if (DBI_INTEGER_SIZE1 & a)
 	{
+		/* MARKER("SIZE1\n"); */
 		*val =
 			(a & DBI_DECIMAL_UNSIGNED)
 			? dbi_result_get_uchar_idx(dbires, realIdx)
@@ -449,27 +464,39 @@ int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * va
 	}
 	else if (DBI_INTEGER_SIZE2 & a)
 	{
+		/* MARKER("SIZE2\n"); */
 		*val =
 			(a & DBI_DECIMAL_UNSIGNED)
 			? dbi_result_get_ushort_idx(dbires, realIdx)
 			: dbi_result_get_short_idx(dbires, realIdx)
 			;
 	}
+	else if (DBI_INTEGER_SIZE4 & a)
+	{
+		/* MARKER("SIZE4\n"); */
+		*val =
+			(a & DBI_DECIMAL_UNSIGNED)
+			? dbi_result_get_uint_idx(dbires, realIdx)
+			: dbi_result_get_int_idx(dbires, realIdx)
+			;
+	}
 	else if (DBI_INTEGER_SIZE8 & a)
 	{
+		/* MARKER("SIZE8\n"); */
 		*val =
 			(a & DBI_DECIMAL_UNSIGNED)
 			? dbi_result_get_ulonglong_idx(dbires, realIdx)
 			: dbi_result_get_longlong_idx(dbires, realIdx)
 			;
 	}
-	else /* ASSUME 4-byte. */
+	else
 	{
-		*val =
-			(a & DBI_DECIMAL_UNSIGNED)
-			? dbi_result_get_uint_idx(dbires, realIdx)
-			: dbi_result_get_int_idx(dbires, realIdx)
-			;
+		/**
+		   libdbi Sqlite driver returns 0 for attributes for
+		   the case of SELECT COUNT(*). i have no workaround
+		   for this :(.
+		*/
+		return DB_WRAP_E_UNKNOWN_ERROR;
 	}
 #else
 	//*val = dbi_result_get_int_idx(dbires, realIdx);

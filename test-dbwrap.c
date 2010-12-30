@@ -197,7 +197,7 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 			  possibly fails on mysql 32-bit (untested).
 			*/
 			;
-		MARKER("Select/step rc=%d, ival=%ld, expecting=%ld\n", rc, (long)ival, (long)gotCount);
+		MARKER("Select COUNT(*)/step/fetch rc=%d, ival=%ld, expecting=%ld\n", rc, (long)ival, (long)gotCount);
 		assert(0 == rc);
 		assert(ival == gotCount);
 		res->api->finalize(res);
