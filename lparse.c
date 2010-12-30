@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include "compat.h"
 #include "lparse.h"
 
 static char *buf;

@@ -23,6 +23,7 @@ endif
 ifeq ($(uname_S),SunOS)
 	TWEAK_CPPFLAGS = -I/usr/local/include
 	LIB_NET = -lnsl -lsocket -lresolv
+	NEEDS_MEMRCHR = YesPlease
 endif
 
 # CFLAGS, CPPFLAGS and LDFLAGS are for users to modify
@@ -53,6 +54,10 @@ NEBTEST_LDFLAGS = -rdynamic -Wl,-export-dynamic
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
 
+ifdef NEEDS_MEMRCHR
+	TWEAK_CPPFLAGS += -DNEEDS_MEMRCHR
+	APP_OBJS += compat/memrchr.o
+endif
 ifndef V
 	QUIET_CC    = @echo '   ' CC $@;
 	QUIET_LINK  = @echo '   ' LINK $@;

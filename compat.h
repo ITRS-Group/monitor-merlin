@@ -36,4 +36,8 @@ static inline unsigned int endianness(void)
 	return COMPAT_BIG_ENDIAN;
 }
 
+#ifdef NEEDS_MEMRCHR
+extern void *memrchr(const void *s, int c, size_t n);
+#endif
+
 #endif /* INCLUDE_compat_h__ */
