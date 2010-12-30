@@ -5,8 +5,8 @@ revision= patches= version= ver= beta= dirty=
 
 # First see if we can use git-describe, then check for a version file
 # (included in release tarballs). Fall back to default if neither works
-if test -d .git; then
-	ver=`git describe --abbrev=12 HEAD 2>/dev/null`
+ver=`git describe --abbrev=12 HEAD 2>/dev/null`
+if test $? -eq 0; then
 	tag=`git describe --abbrev=0 HEAD 2>/dev/null`
 	case "$ver" in
 	v[0-9]*)
