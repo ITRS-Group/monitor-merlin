@@ -415,9 +415,6 @@ class nagios_object_importer
 
 	private function mangle_var_name($obj_type, $k)
 	{
-		if (!$this->importing_status)
-			return $k;
-
 		if (empty($k)) {
 			echo("Found empty \$k with obj_type $obj_type\n");
 			echo var_dump($k);
