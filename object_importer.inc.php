@@ -332,7 +332,13 @@ class nagios_object_importer
 				echo "Un-cached contactgroup $row[1] assigned to $otype $row[0]\n";
 				continue;
 			}
-			$ret[$row[0]] = $cg_members[$row[1]];
+			if (!empty($ret[$row[0]])) {
+				foreach ($cg_members[$row[1]] as $cid) {
+					$ret[$row[0]][$cid] = $cid;
+				}
+			} else {
+				$ret[$row[0]] = $cg_members[$row[1]];
+			}
 		}
 		return $ret;
 	}
