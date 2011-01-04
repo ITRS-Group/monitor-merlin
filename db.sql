@@ -2,69 +2,6 @@
 --
 -- Database design for the merlin database
 --
---
--- This table is not automagically recreated every time we upgrade
---
-CREATE TABLE IF NOT EXISTS notification(
-	instance_id				int NOT NULL DEFAULT 0,
-	id						int NOT NULL PRIMARY KEY AUTO_INCREMENT,
-	notification_type		int,
-	start_time				int(11),
-	end_time				int(11),
-	contact_name			varchar(255),
-	host_name				varchar(255),
-	service_description		varchar(255),
-	command_name			varchar(255),
-	reason_type				int,
-	state					int,
-	output					text,
-	ack_author				varchar(255),
-	ack_data				text,
-	escalated				int,
-	contacts_notified		int
-) COLLATE latin1_general_cs;
-CREATE INDEX n_host_name ON notification(host_name);
-CREATE INDEX n_service_name ON notification(host_name, service_description);
-CREATE INDEX n_contact_name ON notification(contact_name);
-
---
--- This table is not automagically recreated every time we upgrade
---
-CREATE TABLE IF NOT EXISTS report_data (
-  id int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
-  timestamp int(11) NOT NULL default '0',
-  event_type int(11) NOT NULL default '0',
-  flags int(11),
-  attrib int(11),
-  host_name varchar(160) default '',
-  service_description varchar(160) default '',
-  state int(2) NOT NULL default '0',
-  hard int(2) NOT NULL default '0',
-  retry int(5) NOT NULL default '0',
-  downtime_depth int(11),
-  output text
-) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE latin1_general_cs;
-CREATE INDEX rd_timestamp ON report_data(timestamp);
-CREATE INDEX rd_event_type ON report_data(event_type);
-CREATE INDEX rd_host_name ON report_data(host_name);
-CREATE INDEX rd_service_name ON report_data(host_name, service_description);
-CREATE INDEX rd_state ON report_data(state);
-
---
--- This table is not automagically recreated every time we upgrade
--- and logging to it is not enabled by default. Repairing it if it
--- breaks, or pre-populating it with data, is impossible since Nagios
--- doesn't store historical performance data anywhere standard.
---
-CREATE TABLE IF NOT EXISTS perfdata(
-	timestamp  int(11) NOT NULL,
-	host_name  varchar(70) NOT NULL,
-	service_description varchar(200),
-	perfdata TEXT NOT NULL
-);
-CREATE INDEX pd_time ON perfdata(timestamp);
-CREATE INDEX pd_host_name ON perfdata(host_name);
-CREATE INDEX pd_service_name ON perfdata(host_name, service_description);
 
 DROP TABLE IF EXISTS contact_access;
 CREATE TABLE contact_access(
@@ -638,14 +575,82 @@ CREATE UNIQUE INDEX cv_objvar ON custom_vars(obj_type, obj_id, variable);
 
 -- gui <=> webconfig db scheme cross-pollination ends here
 
+DROP TABLE IF EXISTS db_version;
+CREATE TABLE db_version (
+  version int(11)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+INSERT INTO db_version(version) VALUES(2);
+
 -- Obsoleted tables
 DROP TABLE IF EXISTS hostextinfo;
 DROP TABLE IF EXISTS serviceextinfo;
 DROP TABLE IF EXISTS gui_action_log;
 DROP TABLE IF EXISTS gui_access;
 
-DROP TABLE IF EXISTS db_version;
-CREATE TABLE db_version (
-  version int(11)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-INSERT INTO db_version(version) VALUES(2);
+--
+-- Tables not automagically re-created on every upgrade must
+-- come below this, since they generate errors during upgrades
+-- (but not on fresh installs) due to index naming conflicts.
+-- These errors are harmless though, so we ignore them and just
+-- plow on anyway.
+--
+CREATE TABLE IF NOT EXISTS notification(
+	instance_id				int NOT NULL DEFAULT 0,
+	id						int NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	notification_type		int,
+	start_time				int(11),
+	end_time				int(11),
+	contact_name			varchar(255),
+	host_name				varchar(255),
+	service_description		varchar(255),
+	command_name			varchar(255),
+	reason_type				int,
+	state					int,
+	output					text,
+	ack_author				varchar(255),
+	ack_data				text,
+	escalated				int,
+	contacts_notified		int
+) COLLATE latin1_general_cs;
+CREATE INDEX n_host_name ON notification(host_name);
+CREATE INDEX n_service_name ON notification(host_name, service_description);
+CREATE INDEX n_contact_name ON notification(contact_name);
+
+--
+-- This table is not automagically recreated every time we upgrade
+--
+CREATE TABLE IF NOT EXISTS report_data (
+  id int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  timestamp int(11) NOT NULL default '0',
+  event_type int(11) NOT NULL default '0',
+  flags int(11),
+  attrib int(11),
+  host_name varchar(160) default '',
+  service_description varchar(160) default '',
+  state int(2) NOT NULL default '0',
+  hard int(2) NOT NULL default '0',
+  retry int(5) NOT NULL default '0',
+  downtime_depth int(11),
+  output text
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE latin1_general_cs;
+CREATE INDEX rd_timestamp ON report_data(timestamp);
+CREATE INDEX rd_event_type ON report_data(event_type);
+CREATE INDEX rd_host_name ON report_data(host_name);
+CREATE INDEX rd_service_name ON report_data(host_name, service_description);
+CREATE INDEX rd_state ON report_data(state);
+
+--
+-- This table is not automagically recreated every time we upgrade
+-- and logging to it is not enabled by default. Repairing it if it
+-- breaks, or pre-populating it with data, is impossible since Nagios
+-- doesn't store historical performance data anywhere standard.
+--
+CREATE TABLE IF NOT EXISTS perfdata(
+	timestamp  int(11) NOT NULL,
+	host_name  varchar(70) NOT NULL,
+	service_description varchar(200),
+	perfdata TEXT NOT NULL
+);
+CREATE INDEX pd_time ON perfdata(timestamp);
+CREATE INDEX pd_host_name ON perfdata(host_name);
+CREATE INDEX pd_service_name ON perfdata(host_name, service_description);
