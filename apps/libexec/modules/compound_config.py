@@ -1,3 +1,4 @@
+import re
 class compound_object:
 	def __init__(self, name = '', parent = False):
 		# we stash start and end line so our caller can remove
@@ -24,6 +25,11 @@ class compound_object:
 			return self.parent
 		return False
 
+	def __getitem__(self, key):
+		for p in self.params:
+			if p[0] == key:
+				return p[1]
+
 def parse_conf(path):
 	cur = compound_object(path)
 	cur.path = path
@@ -33,7 +39,7 @@ def parse_conf(path):
 	f = open(path)
 	for line in f:
 		lnum += 1
-		line = line.strip()
+		line = line.strip().decode('utf-8')
 		if len(line) == 0 or line[0] == '#':
 			continue
 
@@ -50,12 +56,13 @@ def parse_conf(path):
 			cur.line_start = lnum
 			continue
 
-		kv = line.split('=')
+		# \t lets this parse objects.cache files as well
+		kv = re.split(r'[=\t]', line, 1)
 		if len(kv) != 2:
 			continue
 		(key, value) = kv
 		key = key.rstrip()
-		value = value.lstrip().rstrip(';')
+		value = value.lstrip()#.rstrip(';') # why was this here?
 		cur.add(key, value)
 
 	return cur
