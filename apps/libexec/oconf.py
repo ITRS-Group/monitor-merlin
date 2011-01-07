@@ -906,7 +906,7 @@ def cmd_import(args):
 			elif args[i].startswith('--db-type'):
 				db_type = args[i][len('--db-type='):]
 			elif args[i].startswith('--cache'):
-				cache = args[i][len('--status-log='):]
+				cache = args[i][len('--cache='):]
 			elif args[i].startswith('--status-log'):
 				status_log = args[i][len('--status-log='):]
 			elif args[i].startswith('--nagios-cfg'):
