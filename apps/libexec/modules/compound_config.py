@@ -39,7 +39,10 @@ def parse_conf(path):
 	f = open(path)
 	for line in f:
 		lnum += 1
-		line = line.strip().decode('utf-8')
+		line = line.strip()
+		# this barfs on latin1 characters, but those aren't handled properly by
+		# merlin anyway.
+		line = line.decode('utf-8')
 		if len(line) == 0 or line[0] == '#':
 			continue
 

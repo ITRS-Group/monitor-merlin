@@ -9,6 +9,51 @@ class Entry:
 	id = 1
 	instance_id = 0
 
+class Database(object):
+	'''A very thin wrapper around the database layer'''
+	def __init__(self, db_type='mysql', db_host='localhost', db_name='merlin',
+	             db_user='merlin', db_pass='merlin'):
+		if db_type == 'mysql':
+			import MySQLdb as db
+		else:
+			print "Invalid database"
+
+		try:
+			self.conn = db.connect(host=db_host, user=db_user, passwd=db_pass, db=db_name)
+			self.conn.set_character_set('utf8')
+			self.db = self.conn.cursor()
+		except db.OperationalError, ex:
+			print "Couldn't connect to database: %s" % ex.args[1]
+			sys.exit(1)
+
+	def sql_exec(self, query, *args):
+		'''Run sql query, and print the query if anything breaks.
+
+		There are two modes of operation:
+		 1. Sending any number of arguments after the query to be properly
+		    escaped and inserted into the function.
+		 2. Sending a list or a tuple containing several sequences of arguments
+		    after the query. These will be executed in bulk.
+		'''
+		try:
+			if args and (isinstance(args[0], type([])) or isinstance(args[0], type(()))):
+				self.db.executemany(query, *args)
+			elif args:
+				self.db.execute(query, args)
+			else:
+				self.db.execute(query)
+		except Exception, ex:
+			raise ex
+			if args:
+				query = query % args[0]
+			raise Exception("%s\nQuery that failed:\n%s" % (ex, query))
+	
+	def __iter__(self, *args):
+		return self.db.__iter__(*args)
+
+	def next(self, *args):
+		return self.db.next(*args)
+
 class ObjectIndexer(object):
 	'''Used as a temporary data store while tables are being whiped'''
 	_indexes = {}
@@ -37,6 +82,76 @@ class ObjectIndexer(object):
 			return self._indexes[type][name]
 		except KeyError:
 			return False
+
+class AccessCacher(object):
+	'''Fills the access_cache table with information about which user is
+	allowed access to what objects'''
+	def __init__(self, indexer, db):
+		self.indexer = indexer
+		self.db = db
+
+	def _get_contactgroup_members(self):
+		'''Get all members of all user groups'''
+		self.db.sql_exec('SELECT contact, contactgroup FROM contact_contactgroup')
+		cg_members = {}
+		for row in self.db:
+			if not cg_members.has_key(row[1]):
+				cg_members[row[1]] = set()
+			cg_members[row[1]].add(row[0])
+		return cg_members
+	
+	def _cache_cg_object_access_rights(self, cg_members, otype):
+		'''Get all mappings from contacts to %(otype) via a contact group'''
+		query = 'SELECT %s, contactgroup FROM %s_contactgroup' % (otype, otype)
+		self.db.sql_exec(query)
+		ret = {}
+		for row in self.db:
+			if not cg_members.has_key(row[1]):
+				print 'Un-cached contactgroup %s assigned to %s %s' % (row[1], otype, row[0])
+				continue
+			if not ret.has_key(row[0]):
+				ret[row[0]] = cg_members[row[1]]
+			else:
+				ret[row[0]] = ret[row[0]].union(cg_members[row[1]])
+		return ret
+	
+	def _cache_contact_object_access_rights(self, otype):
+		'''Get all mappings directly between contacts and %(otype)'''
+		query = 'SELECT %s, contact FROM %s_contact' % (otype, otype)
+		self.db.sql_exec(query)
+		ret = {}
+		for row in self.db:
+			if not ret.has_key(row[0]):
+				ret[row[0]] = set()
+			ret[row[0]].add(row[1])
+		return ret
+
+	def _write_access_cache(self, obj_list, otype):
+		query = 'INSERT INTO contact_access(contact, '+otype+') VALUES (%s, %s)'
+		ca_map = []
+		for (oid, ary) in obj_list.items():
+			for cid in ary:
+				ca_map.append((cid, oid))
+		self.db.sql_exec(query, ca_map)
+
+	def cache_access_rights(self):
+		'''Sets up the contact_access cache table'''
+		def merge_dicts(dict1, dict2):
+			for key in dict2:
+				if not dict1.has_key(key):
+					dict1[key] = dict2[key]
+				else:
+					dict1[key] = dict1[key].union(dict2[key])
+			return dict1
+
+		self.db.sql_exec('TRUNCATE contact_access')
+		cg_members = self._get_contactgroup_members()
+		host = self._cache_cg_object_access_rights(cg_members, 'host')
+		service = self._cache_cg_object_access_rights(cg_members, 'service')
+		host = merge_dicts(host, self._cache_contact_object_access_rights('host'))
+		service = merge_dicts(service, self._cache_contact_object_access_rights('service'))
+		self._write_access_cache(host, 'host')
+		self._write_access_cache(service, 'service')
 
 class ObjectImporter(object):
 	base_oid = {}
@@ -151,27 +266,16 @@ class ObjectImporter(object):
 
 	def __init__(self, db_type='mysql', db_host='localhost', db_name='merlin',
 	             db_user='merlin', db_pass='merlin'):
-		if db_type == 'mysql':
-			import MySQLdb as db
-		else:
-			print "Invalid database"
-
-		try:
-			self.conn = db.connect(host=db_host, user=db_user, passwd=db_pass, db=db_name)
-			self.conn.set_character_set('utf8')
-			self.db = self.conn.cursor()
-		except db.OperationalError, ex:
-			print "Couldn't connect to database: %s" % ex.args[1]
-			sys.exit(1)
+		self.db = Database(db_type, db_host, db_name, db_user, db_pass)
 
 	def disable_indexes(self):
 		for table in self.tables_to_truncate:
-			self.sql_exec('ALTER TABLE '+table+' DISABLE KEYS')
-		self.conn.commit()
+			self.db.sql_exec('ALTER TABLE '+table+' DISABLE KEYS')
+		self.db.conn.commit()
 	
 	def enable_indexes(self):
 		for table in self.tables_to_truncate:
-			self.sql_exec('ALTER TABLE '+table+' ENABLE KEYS')
+			self.db.sql_exec('ALTER TABLE '+table+' ENABLE KEYS')
 
 	def prepare_import(self):
 		'''All tables are truncated and reimported. This method stores hosts'
@@ -181,7 +285,7 @@ class ObjectImporter(object):
 		self._preload_object_index('service',
 			"SELECT instance_id, id, CONCAT(host_name, ';', service_description) FROM service")
 
-		self.sql_exec('DESCRIBE timeperiod')
+		self.db.sql_exec('DESCRIBE timeperiod')
 		for col in self.db:
 			self.tp_vars[col[0]] = col[0]
 
@@ -203,7 +307,7 @@ class ObjectImporter(object):
 				# We're probably using myisam, in which case this is a noop,
 				# but let's try anyway...
 				try:
-					self.conn.rollback()
+					self.db.conn.rollback()
 				except:
 					pass
 
@@ -214,7 +318,7 @@ class ObjectImporter(object):
 
 		if not self.tables_truncated:
 			for table in self.tables_to_truncate:
-				self.sql_exec('TRUNCATE ' + table)
+				self.db.sql_exec('TRUNCATE ' + table)
 			self.tables_truncated = True
 
 		service_slaves = {'serviceescalation': 1, 'servicedependency': 1}
@@ -397,13 +501,13 @@ class ObjectImporter(object):
 						other_obj_type = k
 
 					query = 'INSERT INTO %s (%s, %s)' % (junction, obj_type, other_obj_type)
-					self.sql_exec(query + ' VALUES (%s, %s)', obj_key, junc_part)
+					self.db.sql_exec(query + ' VALUES (%s, %s)', obj_key, junc_part)
 			else:
 				try:
 					float(v)
 					obj[k] = "'%s'" % v
 				except:
-					obj[k] = "'%s'" % self.conn.escape_string(v.encode('utf-8')).decode('utf-8')
+					obj[k] = "'%s'" % self.db.conn.escape_string(v.encode('utf-8')).decode('utf-8')
 
 		if (not fresh and (obj_type in ('host', 'service'))) or \
 		   (obj_type == 'contact' and self.importing_status):
@@ -420,7 +524,7 @@ class ObjectImporter(object):
 			target_values = ','.join(obj.values())
 			query = 'REPLACE INTO %s(%s) VALUES (%s)' % (obj_type, target_vars, target_values)
 
-		self.sql_exec(query)
+		self.db.sql_exec(query)
 
 		self._glue_custom_vars(obj_type, obj_key, custom)
 
@@ -433,11 +537,11 @@ class ObjectImporter(object):
 		if custom == None:
 			return True
 
-		esc_obj_type = self.conn.escape_string(obj_type)
-		esc_obj_id = self.conn.escape_string(str(obj_id))
+		esc_obj_type = self.db.conn.escape_string(obj_type)
+		esc_obj_id = self.db.conn.escape_string(str(obj_id))
 		purge_query = "DELETE FROM custom_vars WHERE obj_type = '%s' AND obj_id = '%s'" % (esc_obj_type, esc_obj_id)
 
-		result = self.sql_exec(purge_query)
+		result = self.db.sql_exec(purge_query)
 		if not custom:
 			return result
 
@@ -446,13 +550,13 @@ class ObjectImporter(object):
 
 		for (k, v) in custom.items():
 			cv_map.append((esc_obj_type, esc_obj_id, k, v))
-		self.sql_exec(query, cv_map)
+		self.db.sql_exec(query, cv_map)
 
 		return ret
 
 	def _preload_object_index(self, obj_type, query):
 		'''Given a query, store all objects in the cache index'''
-		self.sql_exec(query)
+		self.db.sql_exec(query)
 		index_max = 1
 		for row in self.db:
 			self.indexer.set(obj_type, row[2], row[1], row[0])
@@ -607,7 +711,7 @@ class ObjectImporter(object):
 			return False
 
 		if not self.allowed_vars.has_key(obj_type):
-			self.sql_exec('describe ' + obj_type)
+			self.db.sql_exec('describe ' + obj_type)
 
 			if not self.allowed_vars.has_key(obj_type):
 				self.allowed_vars[obj_type] = set()
@@ -629,97 +733,13 @@ class ObjectImporter(object):
 
 	def finalize_import(self):
 		self._purge_old_objects()
-		self._cache_access_rights()
-		self.conn.commit()
-		self.conn.close()
+		cacher = AccessCacher(self.indexer, self.db)
+		cacher.cache_access_rights()
+		self.db.conn.commit()
+		self.db.conn.close()
 
 	def _purge_old_objects(self):
 		for (obj_type, ids) in self.imported.items():
 			query = "DELETE FROM %s WHERE id NOT IN ('%s')" % \
 				(obj_type, "','".join([str(x) for x in ids.keys()]))
-			self.sql_exec(query)
-
-	def _get_contactgroup_members(self):
-		'''Get all members of all user groups'''
-		self.sql_exec('SELECT contact, contactgroup FROM contact_contactgroup')
-		cg_members = {}
-		for row in self.db:
-			if not cg_members.has_key(row[1]):
-				cg_members[row[1]] = set()
-			cg_members[row[1]].add(row[0])
-		return cg_members
-	
-	def _cache_cg_object_access_rights(self, cg_members, otype):
-		'''Get all mappings from contacts to %(otype) via a contact group'''
-		query = 'SELECT %s, contactgroup FROM %s_contactgroup' % (otype, otype)
-		self.sql_exec(query)
-		ret = {}
-		for row in self.db:
-			if not cg_members.has_key(row[1]):
-				print 'Un-cached contactgroup %s assigned to %s %s' % (row[1], otype, row[0])
-				continue
-			if not ret.has_key(row[0]):
-				ret[row[0]] = cg_members[row[1]]
-			else:
-				ret[row[0]] = ret[row[0]].union(cg_members[row[1]])
-		return ret
-	
-	def _cache_contact_object_access_rights(self, otype):
-		'''Get all mappings directly between contacts and %(otype)'''
-		query = 'SELECT %s, contact FROM %s_contact' % (otype, otype)
-		self.sql_exec(query)
-		ret = {}
-		for row in self.db:
-			if not ret.has_key(row[0]):
-				ret[row[0]] = set()
-			ret[row[0]].add(row[1])
-		return ret
-
-	def _write_access_cache(self, obj_list, otype):
-		query = 'INSERT INTO contact_access(contact, '+otype+') VALUES (%s, %s)'
-		ca_map = []
-		for (oid, ary) in obj_list.items():
-			for cid in ary:
-				ca_map.append((cid, oid))
-		self.sql_exec(query, ca_map)
-
-	def _cache_access_rights(self):
-		'''Sets up the contact_access cache table'''
-		def merge_dicts(dict1, dict2):
-			for key in dict2:
-				if not dict1.has_key(key):
-					dict1[key] = dict2[key]
-				else:
-					dict1[key] = dict1[key].union(dict2[key])
-			return dict1
-
-		self.sql_exec('TRUNCATE contact_access')
-		cg_members = self._get_contactgroup_members()
-		host = self._cache_cg_object_access_rights(cg_members, 'host')
-		service = self._cache_cg_object_access_rights(cg_members, 'service')
-		host = merge_dicts(host, self._cache_contact_object_access_rights('host'))
-		service = merge_dicts(service, self._cache_contact_object_access_rights('service'))
-		self._write_access_cache(host, 'host')
-		self._write_access_cache(service, 'service')
-
-	def sql_exec(self, query, *args):
-		'''Run sql query, and print the query if anything breaks.
-
-		There are two modes of operation:
-		 1. Sending any number of arguments after the query to be properly
-		    escaped and inserted into the function.
-		 2. Sending a list or a tuple containing several sequences of arguments
-		    after the query. These will be executed in bulk.
-		'''
-		try:
-			if args and (isinstance(args[0], type([])) or isinstance(args[0], type(()))):
-				self.db.executemany(query, *args)
-			elif args:
-				self.db.execute(query, args)
-			else:
-				self.db.execute(query)
-		except Exception, ex:
-			raise ex
-			if args:
-				query = query % args[0]
-			raise Exception("%s\nQuery that failed:\n%s" % (ex, query))
+			self.db.sql_exec(query)
