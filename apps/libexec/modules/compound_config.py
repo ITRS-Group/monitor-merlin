@@ -1,4 +1,3 @@
-import re
 class compound_object:
 	def __init__(self, name = '', parent = False):
 		# we stash start and end line so our caller can remove
@@ -30,7 +29,7 @@ class compound_object:
 			if p[0] == key:
 				return p[1]
 
-def parse_conf(path):
+def parse_conf(path, splitchar='='):
 	cur = compound_object(path)
 	cur.path = path
 	pushed_objs = []
@@ -43,7 +42,7 @@ def parse_conf(path):
 		# this barfs on latin1 characters, but those aren't handled properly by
 		# merlin anyway.
 		line = line.decode('utf-8')
-		if len(line) == 0 or line[0] == '#':
+		if not line or line[0] == '#':
 			continue
 
 		if line[0] == '}' and cur.parent:
@@ -59,11 +58,10 @@ def parse_conf(path):
 			cur.line_start = lnum
 			continue
 
-		# \t lets this parse objects.cache files as well
-		kv = re.split(r'[=\t]', line, 1)
-		if len(kv) != 2:
+		kv = line.split(splitchar)
+		if kv != 2:
 			continue
-		(key, value) = kv
+		key, value = kv
 		key = key.rstrip()
 		value = value.lstrip()#.rstrip(';') # why was this here?
 		cur.add(key, value)

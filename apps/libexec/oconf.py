@@ -967,12 +967,12 @@ def cmd_import(args):
 	if cache:
 		print 'Importing objects from ' + cache
 		if not dry_run:
-			oi.import_objects_from_cache(cache, verbose)
+			oi.import_objects_from_cache(cache, True, verbose)
 	
 	if status_log:
 		print 'Importing status from ' + status_log
 		if not dry_run:
-			oi.import_objects_from_cache(status_log, verbose)
+			oi.import_objects_from_cache(status_log, False, verbose)
 
 	if not dry_run:
 		oi.commit_objects()

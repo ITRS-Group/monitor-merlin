@@ -83,6 +83,12 @@ class ObjectIndexer(object):
 		except KeyError:
 			return False
 
+	def get_id(self, type, name):
+		try:
+			return self._indexes[type][name].id
+		except KeyError:
+			return False
+
 class AccessCacher(object):
 	'''Fills the access_cache table with information about which user is
 	allowed access to what objects'''
@@ -289,14 +295,14 @@ class ObjectImporter(object):
 		for col in self.db:
 			self.tp_vars[col[0]] = col[0]
 
-	def import_objects_from_cache(self, cache, verbose=False):
+	def import_objects_from_cache(self, inputfile, is_cache, verbose=False):
 		'''Silly wrapper that only exists to print prettier backtraces to the
 		user'''
 		if verbose:
-			return self._import_objects_from_cache(cache)
+			return self._import_objects_from_cache(inputfile, is_cache)
 		else:
 			try:
-				return self._import_objects_from_cache(cache)
+				return self._import_objects_from_cache(inputfile, is_cache)
 			except Exception, ex:
 				if type(ex) == KeyError:
 					# message is only the faulting key - write something prettier
@@ -311,7 +317,7 @@ class ObjectImporter(object):
 				except:
 					pass
 
-	def _import_objects_from_cache(self, cache):
+	def _import_objects_from_cache(self, inputfile, is_cache=True):
 		'''Given a file name, insert all objects in it into the database'''
 		last_obj_type = ''
 		obj_array = {}
@@ -324,9 +330,12 @@ class ObjectImporter(object):
 		service_slaves = {'serviceescalation': 1, 'servicedependency': 1}
 
 		try:
-			root = parse_conf(cache)
+			if is_cache:
+				root = parse_conf(inputfile, '\t')
+			else:
+				root = parse_conf(inputfile, '=')
 		except IOError:
-			print "Error: Couldn't open file '%s'." % cache
+			print "Error: Couldn't open file '%s'." % inputfile
 			return
 		if not root.objects:
 			print "Couldn't parse file."
@@ -509,7 +518,10 @@ class ObjectImporter(object):
 					float(v)
 					obj[k] = "'%s'" % v
 				except:
-					obj[k] = "'%s'" % self.db.conn.escape_string(v.encode('utf-8')).decode('utf-8')
+					try:
+						obj[k] = "'%s'" % self.db.conn.escape_string(v)
+					except UnicodeDecodeError:
+						obj[k] = "'%s'" % self.db.conn.escape_string(v.encode('utf-8')).decode('utf-8')
 
 		if (not fresh and (obj_type in ('host', 'service'))) or \
 		   (obj_type == 'contact' and self.importing_status):
@@ -590,29 +602,22 @@ class ObjectImporter(object):
 			if not (k and self._is_allowed_var(obj_type, k)):
 				continue
 
-			if val == '':
+			if not val:
 				continue
 
 			if k in ('members', 'parents', 'exclude'):
 				out[k] = val
 			elif k in ('contacts', 'contact_groups'):
 				ary = re.split(r'[\t ]*,[\t ]*', val)
-				v_ary = set()
-				for v in ary:
-					v_ary.add(self.indexer.get(relation[k], v).id)
-				out[k] = v_ary
+				out[k] = set([self.indexer.get_id(relation[k], v) for v in ary])
 			else:
 				if k[0] == '_' or \
 				   (obj_type == 'timeperiod' and not self.tp_vars.has_key(k)):
 					out['__custom'] = {k: val}
 				elif relation.has_key(k):
 					if relation[k] == 'command' and val.find('!') >= 0:
-						ary = val.split('!')
-						val = ary[0]
-						out[k + '_args'] = ary[1]
-					val = self.indexer.get(relation[k], val)
-					if val:
-						val = val.id
+						val, out[k + '_args'] = val.split('!')
+					val = self.indexer.get_id(relation[k], val)
 				out[k] = val
 		return out
 
@@ -658,13 +663,9 @@ class ObjectImporter(object):
 				while ary:
 					srv = ary.pop()
 					host = ary.pop()
-					v_ary.append(self.indexer.get('service', '%s;%s' % (host, srv)).id)
+					v_ary.append(self.indexer.get_id('service', '%s;%s' % (host, srv)))
 			else:
-				for mname in ary:
-					index = self.indexer.get(ref_type, mname)
-					if index:
-						index = index.id
-					v_ary.append(index)
+				v_ary = [self.indexer.get_id(ref_type, mname) for mname in ary]
 			obj_list[obj_key]['members'] = v_ary
 		return obj_list
 
@@ -681,12 +682,7 @@ class ObjectImporter(object):
 			if not obj_list[oid].has_key(k):
 				continue
 			ary = re.split(r'[\t ]*,[\t ]*', obj_list[oid][k])
-			obj_list[oid][k] = []
-			for v in ary:
-				index = self.indexer.get(obj_type, v)
-				if index:
-					index = index.id
-				obj_list[oid][k].append(index)
+			obj_list[oid][k] = [self.indexer.get_id(obj_type, v) for v in ary]
 		return obj_list
 
 	def _post_mangle_service_slave(self, obj_type, obj):
