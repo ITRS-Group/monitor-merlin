@@ -59,7 +59,7 @@ def parse_conf(path, splitchar='='):
 			continue
 
 		kv = line.split(splitchar)
-		if kv != 2:
+		if len(kv) != 2:
 			continue
 		key, value = kv
 		key = key.rstrip()

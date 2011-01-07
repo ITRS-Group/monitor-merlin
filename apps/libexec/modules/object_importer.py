@@ -330,10 +330,7 @@ class ObjectImporter(object):
 		service_slaves = {'serviceescalation': 1, 'servicedependency': 1}
 
 		try:
-			if is_cache:
-				root = parse_conf(inputfile, '\t')
-			else:
-				root = parse_conf(inputfile, '=')
+			root = parse_conf(inputfile, (is_cache and '\t' or '='))
 		except IOError:
 			print "Error: Couldn't open file '%s'." % inputfile
 			return
