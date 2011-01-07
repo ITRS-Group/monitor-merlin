@@ -973,6 +973,9 @@ def cmd_import(args):
 		print 'Importing status from ' + status_log
 		if not dry_run:
 			oi.import_objects_from_cache(status_log, verbose)
+
+	if not dry_run:
+		oi.commit_objects()
 	
 	if not dry_run:
 		print 'Enabling indexes'

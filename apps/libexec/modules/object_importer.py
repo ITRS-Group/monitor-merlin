@@ -384,7 +384,11 @@ class ObjectImporter(object):
 					obj_array[obj_type] = {}
 				obj_array[obj_type][obj_key] = obj_data
 
-		obj_array = self._done_parsing_obj_type_objects(obj_type, obj_array)
+		self.obj_array = self._done_parsing_obj_type_objects(obj_type, obj_array)
+
+	def commit_objects(self):
+		for obj in self.obj_array:
+			self._glue_objects(self.obj_array[obj], obj)
 
 	def _done_parsing_obj_type_objects(self, obj_type, obj_array):
 		'''All objects type are grouped by nagios. This is called when one of
@@ -403,11 +407,9 @@ class ObjectImporter(object):
 			if obj_array.has_key(group):
 				obj_array[group] = self._post_mangle_groups(group,
 					obj_array[group])
-				self._glue_objects(obj_array[group], group)
 		elif obj_type.endswith('group') and not obj_array.has_key(obj_type[:-5]):
 			return obj_array
 
-		self._glue_objects(obj_array[obj_type], obj_type)
 		return obj_array
 
 	def _glue_objects(self, obj_list, obj_type):
