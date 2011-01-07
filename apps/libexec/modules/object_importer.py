@@ -20,7 +20,7 @@ class Database(object):
 
 		try:
 			self.conn = db.connect(host=db_host, user=db_user, passwd=db_pass, db=db_name)
-			self.conn.set_character_set('utf8')
+			self.conn.set_character_set('latin1')
 			self.db = self.conn.cursor()
 		except db.OperationalError, ex:
 			print "Couldn't connect to database: %s" % ex.args[1]
@@ -517,8 +517,8 @@ class ObjectImporter(object):
 				except:
 					try:
 						obj[k] = "'%s'" % self.db.conn.escape_string(v)
-					except UnicodeDecodeError:
-						obj[k] = "'%s'" % self.db.conn.escape_string(v.encode('utf-8')).decode('utf-8')
+					except (UnicodeDecodeError, UnicodeEncodeError):
+						obj[k] = "'%s'" % self.db.conn.escape_string(v.encode('latin1')).decode('latin1')
 
 		if (not fresh and (obj_type in ('host', 'service'))) or \
 		   (obj_type == 'contact' and self.importing_status):

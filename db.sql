@@ -88,8 +88,6 @@ CREATE INDEX c_host_name ON comment(host_name);
 CREATE INDEX c_service_name ON comment(host_name, service_description);
 CREATE UNIQUE INDEX c_comment_id ON comment(comment_id);
 
-ALTER TABLE comment MODIFY comment_data text CHARACTER SET utf8 collate utf8_bin;
-
 DROP TABLE IF EXISTS contact;
 CREATE TABLE contact(
 	instance_id							INT NOT NULL DEFAULT 0,
@@ -440,8 +438,6 @@ CREATE INDEX svc_check_type ON service(check_type);
 CREATE INDEX svc_latency ON service(latency);
 CREATE INDEX svc_exectime ON service(execution_time);
 CREATE INDEX svc_cur_state ON service(current_state);
-
-ALTER TABLE service CONVERT TO CHARACTER SET utf8 COLLATE utf8_bin;
 
 -- junctions for service objects
 DROP TABLE IF EXISTS service_contact;

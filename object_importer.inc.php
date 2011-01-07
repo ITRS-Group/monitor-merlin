@@ -939,7 +939,6 @@ class nagios_object_importer
 			return(false);
 
 		$ret = mysql_select_db($this->db_database);
-		$this->sql_exec_query("SET NAMES 'utf8'");
 		return $ret;
 	}
 }

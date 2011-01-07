@@ -41,7 +41,7 @@ def parse_conf(path, splitchar='='):
 		line = line.strip()
 		# this barfs on latin1 characters, but those aren't handled properly by
 		# merlin anyway.
-		line = line.decode('utf-8')
+		line = line.decode('latin1')
 		if not line or line[0] == '#':
 			continue
 

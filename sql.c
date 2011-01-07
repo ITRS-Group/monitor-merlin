@@ -232,7 +232,7 @@ int sql_init(void)
 	result |= dbi_conn_set_option(db.conn, "dbname", db.name);
 	if (db.port)
 		result |= dbi_conn_set_option_numeric(db.conn, "port", db.port);
-	result |= dbi_conn_set_option(db.conn, "encoding", db.encoding ? db.encoding : "UTF-8");
+	result |= dbi_conn_set_option(db.conn, "encoding", "ISO-8859-1");
 	if (result) {
 		lerr("Failed to set one or more database connection options");
 	}
