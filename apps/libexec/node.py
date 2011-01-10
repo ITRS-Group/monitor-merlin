@@ -181,6 +181,10 @@ def cmd_status(args):
 			print("Failed to import pgdb")
 			print("Install postgresql-python to make this command work")
 			sys.exit(1)
+	else:
+		print("Invalid database type selected: %s" % db_type)
+		print("Cannot continue")
+		sys.exit(1)
 
 	#print("Connecting to %s on %s with %s:%s as user:pass" %
 	#	(db_name, db_host, db_user, db_pass))
