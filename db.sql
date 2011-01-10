@@ -68,7 +68,7 @@ CREATE INDEX sd_service_name ON scheduled_downtime(host_name, service_descriptio
 CREATE UNIQUE INDEX sd_downtime_id ON scheduled_downtime(downtime_id);
 
 DROP TABLE IF EXISTS comment;
-CREATE TABLE comment(
+CREATE TABLE comment_tbl(
 	instance_id			int NOT NULL DEFAULT 0,
 	id					INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	host_name			varchar(255),
@@ -84,9 +84,9 @@ CREATE TABLE comment(
 	expire_time			int(10),
 	comment_id			int not null
 ) COLLATE latin1_general_cs;
-CREATE INDEX c_host_name ON comment(host_name);
-CREATE INDEX c_service_name ON comment(host_name, service_description);
-CREATE UNIQUE INDEX c_comment_id ON comment(comment_id);
+CREATE INDEX c_host_name ON comment_tbl(host_name);
+CREATE INDEX c_service_name ON comment_tbl(host_name, service_description);
+CREATE UNIQUE INDEX c_comment_id ON comment_tbl(comment_id);
 
 DROP TABLE IF EXISTS contact;
 CREATE TABLE contact(

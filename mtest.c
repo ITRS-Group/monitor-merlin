@@ -162,7 +162,7 @@ static void load_hosts_and_services(void)
 static void t_setup(void)
 {
 	printf("Using database '%s'\n", sql_db_name());
-	printf("%u comments\n", count_table_rows("comment"));
+	printf("%u comments\n", count_table_rows("comment_tbl"));
 	printf("%u hosts\n", count_table_rows("host"));
 	printf("%u services\n", count_table_rows("service"));
 
@@ -613,7 +613,7 @@ static void test_comment(void)
 	orig->expire_time = time(NULL) + 300;
 
 	/* set up for testing comments for all hosts and services */
-	sql_query("TRUNCATE comment");
+	sql_query("TRUNCATE comment_tbl");
 
 	/* test adding comments for all hosts */
 	orig->type = NEBTYPE_COMMENT_LOAD;
@@ -630,7 +630,7 @@ static void test_comment(void)
 		merlin_mod_hook(NEBCALLBACK_COMMENT_DATA, orig);
 	}
 	zzz();
-	verify_count("adding host comments", num_hosts, "SELECT * FROM comment");
+	verify_count("adding host comments", num_hosts, "SELECT * FROM comment_tbl");
 
 	/* test deleting host comments */
 	orig->type = NEBTYPE_COMMENT_DELETE;
@@ -642,7 +642,7 @@ static void test_comment(void)
 		merlin_mod_hook(NEBCALLBACK_COMMENT_DATA, orig);
 	}
 	zzz();
-	verify_count("removing host comments", 0, "SELECT * FROM comment");
+	verify_count("removing host comments", 0, "SELECT * FROM comment_tbl");
 
 	/* test adding comments for all services */
 	orig->type = NEBTYPE_COMMENT_LOAD;
@@ -660,7 +660,7 @@ static void test_comment(void)
 		merlin_mod_hook(pkt.hdr.type, orig);
 	}
 	zzz();
-	verify_count("adding service comments", num_services, "SELECT * FROM comment");
+	verify_count("adding service comments", num_services, "SELECT * FROM comment_tbl");
 
 	/* test removing comments for all services */
 	orig->type = NEBTYPE_COMMENT_DELETE;
@@ -673,7 +673,7 @@ static void test_comment(void)
 		merlin_mod_hook(pkt.hdr.type, orig);
 	}
 	zzz();
-	verify_count("removing service comments", 0, "SELECT * FROM comment");
+	verify_count("removing service comments", 0, "SELECT * FROM comment_tbl");
 
 	free(orig);
 }

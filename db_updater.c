@@ -369,7 +369,7 @@ static int handle_flapping(const nebstruct_flapping_data *p)
 	sql_quote(p->service_description, &service_description);
 
 	if (p->type == NEBTYPE_FLAPPING_STOP) {
-		sql_query("DELETE FROM comment WHERE comment_id = '%lu'",
+		sql_query("DELETE FROM comment_tbl WHERE comment_id = '%lu'",
 				  p->comment_id);
 		comment_id = 0;
 	} else {
@@ -406,7 +406,7 @@ static int handle_comment(const nebstruct_comment_data *p)
 
 	if (p->type == NEBTYPE_COMMENT_DELETE) {
 		result = sql_query
-			("DELETE FROM comment WHERE comment_id = %lu", p->comment_id);
+			("DELETE FROM comment_tbl WHERE comment_id = %lu", p->comment_id);
 		return result;
 	}
 
@@ -416,7 +416,7 @@ static int handle_comment(const nebstruct_comment_data *p)
 	sql_quote(p->service_description, &service_description);
 
 	result = sql_query
-		("INSERT INTO comment(comment_type, host_name, "
+		("INSERT INTO comment_tbl(comment_type, host_name, "
 		 "service_description, entry_time, author_name, comment_data, "
 		 "persistent, source, entry_type, expires, expire_time, "
 		 "comment_id) "
