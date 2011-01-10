@@ -63,7 +63,7 @@ def parse_conf(path, splitchar='='):
 			continue
 		key, value = kv
 		key = key.rstrip()
-		value = value.lstrip()#.rstrip(';') # why was this here?
+		value = value.lstrip().rstrip(';')
 		cur.add(key, value)
 
 	return cur
