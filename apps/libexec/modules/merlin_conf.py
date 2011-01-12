@@ -107,14 +107,10 @@ class merlin_node:
 			self.port = v
 		elif k == 'hostgroup':
 			v = re.split("[\t ]*,[\t ]*", v)
-		elif not k.startswith('oconf_'):
-			print("Unknown key in key=value pair: %s=%s" % (k, v))
-			raise hell
-			return False
-
-		if k == 'hostgroup' and self.options.has_key(k):
-			print(self.name, k, self.options[k], v)
-			self.options[k] += v
+			if self.options.has_key(k):
+				self.options[k] += v
+			else:
+				self.options[k] = v
 		else:
 			self.options[k] = v
 
