@@ -290,7 +290,7 @@ static int grok_node_flag(int *flags, const char *key, const char *value)
 		}
 	}
 
-	if (code != -1)
+	if (code == -1)
 		return -1;
 
 	/* set or unset this flag */
