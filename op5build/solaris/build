@@ -1,0 +1,41 @@
+working_dir=`pwd`
+pushd merlin 
+#        make clean
+#        ./configure --sysconfdir=/etc --with-mysql --with-mysql-dir=/opt/csw/mysql5/ --with-mysql-libdir=/opt/csw/mysql5/lib/mysql/ --disable-docs
+        make -i
+#        make install DESTDIR=$working_dir/temp
+       mkdir -p $working_dir/temp/op5/merlin
+        mkdir -p $working_dir/temp/op5/merlin/logs
+ 
+	sed -e "s/grep/\/usr\/xpg4\/bin\/grep/" install-merlin.sh > install-merlin.sh1
+	mv install-merlin.sh1 install-merlin.sh
+	sed -e "s/mysql=\"mysql\"/mysql=\"\/opt\/csw\/mysql5\/bin\/mysql\"/" install-merlin.sh > install-merlin.sh1
+	mv install-merlin.sh1 install-merlin.sh
+	sed -e "s/ php / \/opt\/csw\/php5\/bin\/php /" example.conf > example.conf1 
+        mv example.conf1  example.conf
+ 
+#	mkdir -p $working_dir/temp/opt/monitor/op5/merlin
+#	mkdir -p $working_dir/temp/opt/monitor/op5/merlin/logs
+        cp merlind $working_dir/temp/op5/merlin/
+        cp merlin.so $working_dir/temp/op5/merlin/
+	cp *.php $working_dir/temp/op5/merlin/
+	cp *.sh $working_dir/temp/op5/merlin/
+	cp *.sql $working_dir/temp/op5/merlin/
+# 	cp merlind $working_dir/temp/opt/monitor/op5/merlin/
+#	cp merlin.so $working_dir/temp/opt/monitor/op5/merlin/
+	sed -e "s/@@DESTDIR@@/\/opt\/monitor\/op5\/merlin/" example.conf > example.conf1
+	mv example.conf1 example.conf
+	sed -e "s/@@DBNAME@@/merlin/" example.conf > example.conf1
+	mv example.conf1 example.conf
+        sed -e "s/@@DBUSER@@/merlin/" example.conf > example.conf1
+        mv example.conf1 example.conf
+
+        sed -e "s/@@DBPASS@@/merlin/" example.conf > example.conf1
+        mv example.conf1 example.conf
+
+        sed -e "s/@@DBTYPE@@/mysql/" example.conf > example.conf1
+        mv example.conf1 example.conf
+
+        cp example.conf $working_dir/temp/op5/merlin/merlin.conf
+#	cp example.conf $working_dir/temp/opt/monitor/op5/merlin/merlin.conf
+popd

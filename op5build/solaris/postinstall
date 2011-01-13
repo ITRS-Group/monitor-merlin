@@ -1,0 +1,5 @@
+#!/bin/bash
+prefix='/opt/monitor/op5/merlin'
+
+bash $prefix/install-merlin.sh --batch --install=db --nagios-cfg=/opt/monitor/etc/nagios.cfg --dest-dir=/opt/monitor/op5/merlin
+
