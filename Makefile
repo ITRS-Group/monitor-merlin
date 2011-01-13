@@ -47,9 +47,10 @@ ENABLE_LIBDBI ?= 1
 
 ifeq ($(ENABLE_OCILIB),1)
 # Use ocilib...
-ORACLE_PREFIX ?= /home/ora10/OraHome1
+ORACLE_PREFIX ?= /home/oracle/oracle/product/10.2.0/db_1
+# /home/ora10/OraHome1
 ORACLE_LDFLAGS = -L$(ORACLE_PREFIX)/lib -lclntsh
-OCILIB_PREFIX ?= /opt/local
+OCILIB_PREFIX ?= /usr/local
 OCILIB_CFLAGS := -I$(OCILIB_PREFIX)/include -DDB_WRAP_CONFIG_ENABLE_OCILIB=1
 OCILIB_LDFLAGS = -L$(OCILIB_PREFIX)/lib -locilib $(ORACLE_LDFLAGS)
 DBWRAP_CFLAGS += $(OCILIB_CFLAGS)
@@ -60,7 +61,7 @@ endif
 
 ifeq ($(ENABLE_LIBDBI),1)
 # Use libdbi...
-LIBDBI_PREFIX ?= /usr
+LIBDBI_PREFIX ?= /usr/local
 LIBDBI_CFLAGS := -I$(LIBDBI_PREFIX)/include -DDB_WRAP_CONFIG_ENABLE_LIBDBI=1
 LIBDBI_LDFLAGS := -L$(LIBDBI_PREFIX)/lib -ldbi
 DBWRAP_CFLAGS += $(LIBDBI_CFLAGS)

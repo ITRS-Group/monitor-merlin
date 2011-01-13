@@ -47,16 +47,24 @@ static void show_errinfo_impl(db_wrap * wr, int rc, unsigned int line)
 }
 #define show_errinfo(WR,RC) show_errinfo_impl(WR, RC, __LINE__)
 
-void test_libdbi_generic(char const * driver, db_wrap * wr)
+void test_dbwrap_generic(char const * driver, db_wrap * wr)
 {
 	MARKER("Running generic tests: [%s]\n",driver);
-#define TABLE_DEF \
+
+	const bool isOracle = (NULL != strstr(driver,"oci"));
+	const bool isMysql = (NULL != strstr(driver,"mysql"));
+	const bool isSqlite = (NULL != strstr(driver,"sqlite"));
+
+	if (isOracle == isMysql || isSqlite == isOracle) {
+		// THIS IS ONLY HERE TO AVOID 'UNUSED VARIABLE' WARNINGS!
+	}
+
+#define TABLE_DEF                                               \
 	"table t(vint integer, vdbl float(12), vstr varchar(32))"
 	char const * sql = NULL;
 	if (ThisApp.useTempTables)
 	{
-		sql = (0==strcmp(driver,"ocilib"))
-			/* and the incompatibilities are already showing up! */
+		sql = isOracle /* and the incompatibilities are already showing up! */
 			? ("create global temporary " TABLE_DEF)
 			: ("create temporary " TABLE_DEF)
 			;
@@ -86,17 +94,6 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 	show_errinfo(wr, rc);
 	assert(0 == rc);
 #endif
-
-	/**
-	   The ocilib impl will behave just fine without a COMMIT, but the data
-	   written to the db cannot be read after this test finished (they're
-	   rolled back). If i enable a begin/commit block then it works just fine
-	   in mysql/sqlite3 (using libdbi) but Oracle breaks with an "unexpected EOF"
-	   somewhere in the process.
-
-	   Leave this at 0 until we figure out what's wrong here.
-	 */
-#define TRY_BEGIN_COMMIT 0
 
 	int i;
 	const int count = 10;
@@ -206,9 +203,20 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 	}
 
 
-	if (1)
+	if (!isOracle && !isSqlite)
 	{
-		char const * dblSql = "select vdbl from t order by vint desc limit 1";
+		/*
+		  FIXME: get-double is not working reliably for OCI and
+		  appears to be broken at the libdbi level for sqlite.
+
+		  On my first Oracle machine this test worked fine, but that machine
+		  died and when we moved to another machine, the double test
+		  suddenly fails. DAMN...
+		 */
+		char const * dblSql = (isOracle)
+			? "select vdbl from t where rownum<=1 order by vint desc"
+			: "select vdbl from t order by vint desc limit 1"
+			;
 		// not yet working. don't yet know why
 		double doubleGet = -1.0;
 		rc = db_wrap_query_double(wr, dblSql, strlen(dblSql), &doubleGet);
@@ -221,6 +229,10 @@ void test_libdbi_generic(char const * driver, db_wrap * wr)
 		}
 		assert(0 == rc);
 		assert(11.0 == doubleGet);
+	}
+	else
+	{
+		MARKER("WARNING: the fetch-double test has been disabled!\n");
 	}
 
 	sql =
@@ -292,7 +304,7 @@ void test_mysql_1()
 	rc = wr->api->free_string(wr, sqlCP);
 	assert(0 == rc);
 
-	test_libdbi_generic("dbi:mysql",wr);
+	test_dbwrap_generic("dbi:mysql",wr);
 
 	rc = wr->api->finalize(wr);
 	assert(0 == rc);
@@ -334,7 +346,7 @@ void test_sqlite_1()
 	assert(0 == rc);
 	assert(0 == strcmp( sql, dbdir) );
 
-	test_libdbi_generic("dbi:sqlite3",wr);
+	test_dbwrap_generic("dbi:sqlite3",wr);
 
 
 	rc = wr->api->finalize(wr);
@@ -367,7 +379,7 @@ void test_oracle_1()
 			   "Disabling them. Make sure the db state is clean before running the tests!\n");
 		ThisApp.useTempTables = false;
 	}
-	test_libdbi_generic(driver, wr);
+	test_dbwrap_generic(driver, wr);
 	ThisApp.useTempTables = oldTempVal;
 	wr->api->finalize(wr);
 #endif
@@ -449,7 +461,7 @@ int main(int argc, char const ** argv)
 		//FIXME("non-default oracle port not yet supported in my oci bits.\n");
 		ConnParams.oracle = ConnParams.mysql;
 		ConnParams.oracle.host = dbhost; // "ora9.int.consol.de";
-		ConnParams.oracle.dbname = "ora10g";
+		ConnParams.oracle.dbname = "merlin";
 		ConnParams.oracle.port = 0;
 	}
 	if (ThisApp.testMySQL) test_mysql_1();

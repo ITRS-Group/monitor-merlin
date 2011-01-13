@@ -455,7 +455,8 @@ int ociw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * va
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
-	*val = OCI_GetDouble(wres->result, ndx + 1);
+	const unsigned int realNdx = ndx+1;
+	*val = OCI_GetDouble(wres->result, realNdx);
 	return 0;
 }
 
