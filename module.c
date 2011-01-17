@@ -167,9 +167,18 @@ static void *ipc_reaper(void *discard)
 
 		pthread_testcancel();
 
-		/* try connecting every mrm_reap_interval */
-		if (!ipc_is_connected(0)) {
-			sleep(mrm_reap_interval);
+		/*
+		 * we mustn't attempt to connect here since that could
+		 * cause a race condition in the socket layer and the
+		 * binlog api (when we attempt to send paths).
+		 * If we're not connected, we sleep a little while to
+		 * make sure we don't hog the cpu.
+		 * The pulses we send ensure that we try to connect
+		 * at least every MERLIN_PULSE_INTERVAL, which is 10
+		 * seconds and should be good enough.
+		 */
+		if (ipc.sock < 0) {
+			usleep(50000);
 			continue;
 		}
 
