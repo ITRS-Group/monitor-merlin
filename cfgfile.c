@@ -209,6 +209,7 @@ static struct cfg_comp *parse_file(const char *path, struct cfg_comp *parent, un
 
 		if (!v.key) {
 			char *p = lstart + 1;
+			char *split = NULL;
 
 			v.line = lnum;
 			v.key = lstart;
@@ -216,12 +217,14 @@ static struct cfg_comp *parse_file(const char *path, struct cfg_comp *parent, un
 			while (p < lend && !ISSPACE(*p) && *p != '=')
 				p++;
 
+			split = p;
+
 			if (ISSPACE(*p) || *p == '=') {
 				v.key_len = p - &buf[i];
-				while(p < lend && (ISSPACE(*p) || *p == '='))
+				while(p <= lend && (ISSPACE(*p) || *p == '='))
 					*p++ = '\0';
 
-				if (*p && p <= lend)
+				if (*p && p <= lend && p > split)
 					v.value = p;
 			}
 		}
