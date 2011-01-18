@@ -137,15 +137,25 @@ if (!$dry_run) {
 }
 echo "Importing objects to database $imp->db_database\n";
 if ($cache) {
-	echo "importing objects from $cache\n";
-	if (!$dry_run)
-		$imp->import_objects_from_cache($cache);
+	$lastimport = $cache.'.lastimport';
+	$mtime = filemtime($cache);
+	$importtime = file_exists($lastimport) ? filemtime($lastimport) : 0;
+	if ($mtime > $importtime) {
+		echo "importing objects from $cache\n";
+		if (!$dry_run) {
+			$imp->import_objects_from_cache($cache, true);
+			# If the server clock is busted, this prevents that $mtime > date()
+			touch($lastimport, $mtime);
+		}
+	} else {
+		echo "objects.cache hasn't changed - skipping\n";
+	}
 }
 
 if ($status_log) {
 	echo "importing status from $status_log\n";
 	if (!$dry_run)
-		$imp->import_objects_from_cache($status_log);
+		$imp->import_objects_from_cache($status_log, false);
 }
 if (!$dry_run) {
 	echo "Enabling indexes\n";

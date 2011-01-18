@@ -39,6 +39,14 @@ class object_indexer
 
 		return $this->idx[$type][$name];
 	}
+
+	public function get_objects_for_type($type)
+	{
+		if (!isset($this->ridx[$type])) {
+			return false;
+		}
+		return $this->ridx[$type];
+	}
 }
 
 class nagios_object_importer
@@ -59,39 +67,37 @@ class nagios_object_importer
 	# internal object indexing cache
 	private $idx; # object_indexer object
 	private $base_oid = array();
-	private $imported = array();
 
 	# denotes if we're importing status.sav or objects.cache
 	private $importing_status = false;
 
-	private $tables_truncated = false;
 	private $tables_to_truncate = array
-		('command',
-		 'contact',
-		 'contact_contactgroup',
-		 'contactgroup',
-		 'host_contact',
-		 'host_contactgroup',
-		 'host_hostgroup',
-		 'host_parents',
-		 'hostdependency',
-		 'hostescalation',
-		 'hostescalation_contact',
-		 'hostescalation_contactgroup',
-		 'hostgroup',
-		 'service_contact',
-		 'service_contactgroup',
-		 'service_servicegroup',
-		 'servicedependency',
-		 'serviceescalation',
-		 'serviceescalation_contact',
-		 'serviceescalation_contactgroup',
-		 'servicegroup',
-		 'timeperiod',
-		 'timeperiod_exclude',
-		 'custom_vars',
-		 'scheduled_downtime',
-		 'comment',
+		('command' => 1,
+		 'contact' => 1,
+		 'contact_contactgroup' => 1,
+		 'contactgroup' => 1,
+		 'host_contact' => 1,
+		 'host_contactgroup' => 1,
+		 'host_hostgroup' => 1,
+		 'host_parents' => 1,
+		 'hostdependency' => 1,
+		 'hostescalation' => 1,
+		 'hostescalation_contact' => 1,
+		 'hostescalation_contactgroup' => 1,
+		 'hostgroup' => 1,
+		 'service_contact' => 1,
+		 'service_contactgroup' => 1,
+		 'service_servicegroup' => 1,
+		 'servicedependency' => 1,
+		 'serviceescalation' => 1,
+		 'serviceescalation_contact' => 1,
+		 'serviceescalation_contactgroup' => 1,
+		 'servicegroup' => 1,
+		 'timeperiod' => 1,
+		 'timeperiod_exclude' => 1,
+		 'custom_vars' => 1,
+		 'scheduled_downtime' => 1,
+		 'comment' => 1,
 		 );
 
 	# conversion table for variable names
@@ -173,18 +179,22 @@ class nagios_object_importer
 			 );
 		$this->convert['service'] = $this->convert['host'];
 		$this->convert['contact'] = $this->convert['host'];
+
+		$this->tables_to_modify = $this->tables_to_truncate;
+
+		$this->idx = new object_indexer;
 	}
 
 	public function disable_indexes()
 	{
-		foreach ($this->tables_to_truncate as $t) {
+		foreach ($this->tables_to_modify as $t => $v) {
 			$this->sql_exec_query('ALTER TABLE ' . $t . ' DISABLE KEYS');
 		}
 	}
 
 	public function enable_indexes()
 	{
-		foreach ($this->tables_to_truncate as $table) {
+		foreach ($this->tables_to_modify as $table => $v) {
 			$this->sql_exec_query('ALTER TABLE ' . $table . ' ENABLE KEYS');
 		}
 	}
@@ -301,6 +311,10 @@ class nagios_object_importer
 		# preload object indexes only once per import run
 		$this->preload_object_index('host', 'SELECT id, host_name FROM host');
 		$this->preload_object_index('service', "SELECT id, CONCAT(host_name, ';', service_description) FROM service");
+		# These two shouldn't be needed in full imports, but we don't know if
+		# that's what we have yet. Shouldn't hurt too much.
+		$this->preload_object_index('contact', 'SELECT id, contact_name FROM contact');
+		$this->preload_object_index('timeperiod', 'SELECT id, timeperiod_name FROM timeperiod');
 	}
 
 	public function finalize_import()
@@ -378,7 +392,6 @@ class nagios_object_importer
 
 	private function preload_object_index($obj_type, $query)
 	{
-		$this->idx = new object_indexer;
 		$result = $this->sql_exec_query($query);
 		$idx_max = 1;
 		while ($row = $this->sql_fetch_row($result)) {
@@ -391,7 +404,12 @@ class nagios_object_importer
 
 	private function purge_old_objects()
 	{
-		foreach ($this->imported as $obj_type => $ids) {
+		$interesting_tables = array('host','service','contact');
+		foreach ($interesting_tables as $obj_type) {
+			$ids = $this->idx->get_objects_for_type($obj_type);
+			if ($ids === false)
+				continue;
+
 			$query = "DELETE FROM $obj_type WHERE id NOT IN (";
 			$query .= join(', ', array_keys($ids)) . ')';
 			$result = $this->sql_exec_query($query);
@@ -455,7 +473,7 @@ class nagios_object_importer
 	}
 
 	// pull all objects from objects.cache
-	function import_objects_from_cache($object_cache = false)
+	function import_objects_from_cache($object_cache = false, $is_cache = true)
 	{
 		$last_obj_type = false;
 		$obj_type = false;
@@ -463,14 +481,7 @@ class nagios_object_importer
 		if (!$object_cache)
 			$object_cache = '/opt/monitor/var/objects.cache';
 
-		# if we're about to import a status log file, we'll
-		# wipe the recently imported objects in case we truncate
-		# the tables again, so avoid it if we've already done it once
-		if (!$this->tables_truncated) {
-			foreach($this->tables_to_truncate as $table)
-				$this->sql_exec_query("TRUNCATE $table");
-			$this->tables_truncated = true;
-		}
+		$this->importing_status = !$is_cache;
 
 		# service slave objects are handled separately
 		$service_slaves =
@@ -509,10 +520,6 @@ class nagios_object_importer
 					$obj_type = $str[0];
 				}
 
-				if ($obj_type === 'info' || $obj_type === 'program') {
-					$this->importing_status = true;
-				}
-
 				if (!empty($this->conv_type[$obj_type])) {
 					$obj_type = $this->conv_type[$obj_type];
 				}
@@ -525,7 +532,27 @@ class nagios_object_importer
 						$relation = false;
 
 					$this->done_parsing_obj_type_objects($last_obj_type, $obj_array);
+
 					$last_obj_type = $obj_type;
+					# First time we see a new object type, truncate it. Also,
+					# truncate any related junction tables.
+					# However, status.log mostly contains duplicate information,
+					# so avoid truncating if that's what we read.
+					if (!$this->importing_status || $obj_type == 'comment' || $obj_type == 'scheduled_downtime') {
+						if (isset($this->tables_to_truncate[$obj_type])) {
+							$this->sql_exec_query("TRUNCATE $obj_type");
+							unset($this->tables_to_truncate[$obj_type]);
+						}
+						if (isset($this->obj_rel[$obj_type])) {
+							foreach ($this->obj_rel[$obj_type] as $k => $v) {
+								$junc = $this->get_junction_table_name($obj_type, $k);
+								if (isset($this->tables_to_truncate[$junc])) {
+									$this->sql_exec_query("TRUNCATE $junc");
+									unset($this->tables_to_truncate[$junc]);
+								}
+							}
+						}
+					}
 				}
 				$obj = array();
 				continue;
@@ -711,18 +738,6 @@ class nagios_object_importer
 			unset($obj['is a fresh one']);
 		}
 
-		if ($obj_type === 'host' || $obj_type === 'service') {
-			$obj_name = $this->obj_name($obj_type, $obj);
-			if (isset($this->imported[$obj_type][$obj_key]) &&
-				$this->imported[$obj_type][$obj_key] !== $obj_name)
-			{
-				echo "overwriting $obj_type id $obj_key in \$this->imported\n";
-				printf("%s -> %s\n", $this->imported[$obj_type][$obj_key], $obj_name);
-				print_r($obj);
-				exit(0);
-			}
-			$this->imported[$obj_type][$obj_key] = $this->obj_name($obj_type, $obj);
-		}
 		if (isset($this->obj_rel[$obj_type]))
 			$spec = $this->obj_rel[$obj_type];
 
@@ -798,8 +813,7 @@ class nagios_object_importer
 				$obj[$k] = '\'' . $v . '\'';
 		}
 
-		if ((!$fresh && ($obj_type === 'host' || $obj_type === 'service'))
-			|| ($obj_type === 'contact' && $this->importing_status))
+		if ($this->importing_status && ($obj_type !== 'comment' && $obj_type !== 'scheduled_downtime' && $obj_type !== 'program_status'))
 		{
 			$query = "UPDATE $obj_type SET ";
 			$oid = $obj['id'];
@@ -816,16 +830,17 @@ class nagios_object_importer
 			$query = "REPLACE INTO $obj_type($target_vars) " .
 				"VALUES($target_values)";
 		}
+
+		# $obj is passed by reference, so we can release
+		# it here now that we're done with it.
+		$obj = false;
+
 		if (!$this->sql_exec_query($query)) {
 			$this->errors++;
 			return false;
 		}
 
 		$this->glue_custom_vars($obj_type, $obj_key, $custom);
-
-		# $obj is passed by reference, so we can release
-		# it here now that we're done with it.
-		$obj = false;
 
 		return true;
 	}
