@@ -67,7 +67,7 @@ CREATE INDEX sd_host_name ON scheduled_downtime(host_name);
 CREATE INDEX sd_service_name ON scheduled_downtime(host_name, service_description);
 CREATE UNIQUE INDEX sd_downtime_id ON scheduled_downtime(downtime_id);
 
-DROP TABLE IF EXISTS comment;
+DROP TABLE IF EXISTS comment_tbl;
 CREATE TABLE comment_tbl(
 	instance_id			int NOT NULL DEFAULT 0,
 	id					INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
