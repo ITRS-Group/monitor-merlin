@@ -1,6 +1,7 @@
 #!/usr/bin/php
 <?php
 
+require_once('MerlinPDO.inc.php');
 require_once('object_importer.inc.php');
 
 $imp = new nagios_object_importer;

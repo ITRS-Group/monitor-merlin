@@ -1,10 +1,12 @@
 <?php
 
+
 class object_indexer
 {
 	private $idx = array();
 	private $ridx = array();
-
+	public $db = FALSE;
+	public $debug = FALSE;
 	public function set($type, $name, $id)
 	{
 		if (!is_numeric($id)) {
@@ -98,7 +100,7 @@ class nagios_object_importer
 		 'timeperiod_exclude' => 1,
 		 'custom_vars' => 1,
 		 'scheduled_downtime' => 1,
-		 'comment' => 1,
+		 'comment_tbl' => 1,
 		 );
 
 	# conversion table for variable names
@@ -108,7 +110,7 @@ class nagios_object_importer
 		 'programstatus' => 'program_status',
 		 'hoststatus' => 'host', 'servicestatus' => 'service',
 		 'contactstatus' => 'contact',
-		 'hostcomment' => 'comment', 'servicecomment' => 'comment',
+		 'hostcomment' => 'comment_tbl', 'servicecomment' => 'comment_tbl',
 		 'hostdowntime' => 'scheduled_downtime',
 		 'servicedowntime' => 'scheduled_downtime');
 
@@ -188,17 +190,26 @@ class nagios_object_importer
 		$this->idx = new object_indexer;
 	}
 
+	private function isMySQL()
+	{
+		return $this->db && (0 === strpos($this->db->driverName,'mysql'));
+	}
+
 	public function disable_indexes()
 	{
-		foreach ($this->tables_to_modify as $t => $v) {
-			$this->sql_exec_query('ALTER TABLE ' . $t . ' DISABLE KEYS');
+		if ($this->isMySQL()) {
+			foreach ($this->tables_to_modify as $t => $v) {
+				$this->sql_exec_query('ALTER TABLE ' . $t . ' DISABLE KEYS');
+			}
 		}
 	}
 
 	public function enable_indexes()
 	{
-		foreach ($this->tables_to_modify as $table => $v) {
-			$this->sql_exec_query('ALTER TABLE ' . $table . ' ENABLE KEYS');
+		if ($this->isMySQL()) {
+			foreach ($this->tables_to_modify as $table => $v) {
+				$this->sql_exec_query('ALTER TABLE ' . $table . ' ENABLE KEYS');
+			}
 		}
 	}
 
@@ -332,7 +343,7 @@ class nagios_object_importer
 			("SELECT contact, contactgroup from contact_contactgroup");
 
 		$cg_members = array();
-		while ($row = $this->sql_fetch_row($result)) {
+		while ($row = $result->fetch(PDO::FETCH_NUM)) {
 			$cg_members[$row[1]][$row[0]] = $row[0];
 		}
 
@@ -344,7 +355,7 @@ class nagios_object_importer
 		$query = "SELECT $otype, contactgroup FROM {$otype}_contactgroup";
 		$result = $this->sql_exec_query($query);
 		$ret = array();
-		while ($row = $this->sql_fetch_row($result)) {
+		while ($row = $result->fetch(PDO::FETCH_NUM)) {
 			if (empty($cg_members[$row[1]])) {
 				echo "Un-cached contactgroup $row[1] assigned to $otype $row[0]\n";
 				continue;
@@ -364,7 +375,7 @@ class nagios_object_importer
 	{
 		$query = "SELECT $otype, contact FROM {$otype}_contact";
 		$result = $this->sql_exec_query($query);
-		while ($row = $this->sql_fetch_row($result)) {
+		while ($row = $result->fetch(PDO::FETCH_NUM)) {
 			$ret[$row[0]][$row[1]] = $row[1];
 		}
 		return $ret;
@@ -383,7 +394,7 @@ class nagios_object_importer
 
 	public function cache_access_rights()
 	{
-		$this->sql_exec_query("TRUNCATE contact_access");
+		$this->sql_exec_query("TRUNCATE TABLE contact_access");
 		$cg_members = $this->get_contactgroup_members();
 		$ary['host'] = $this->cache_cg_object_access_rights($cg_members, 'host');
 		$ary['service'] = $this->cache_cg_object_access_rights($cg_members, 'service');
@@ -397,7 +408,7 @@ class nagios_object_importer
 	{
 		$result = $this->sql_exec_query($query);
 		$idx_max = 1;
-		while ($row = $this->sql_fetch_row($result)) {
+		while ($row = $result->fetch(PDO::FETCH_NUM)) {
 			$this->idx->set($obj_type, $row[1], $row[0]);
 			if ($row[0] >= $idx_max)
 				$idx_max = $row[0] + 1;
@@ -427,7 +438,7 @@ class nagios_object_importer
 			if (!$result)
 				return false;
 
-			while ($row = $this->sql_fetch_row($result)) {
+			while ($row = $result->fetch(PDO::FETCH_NUM)) {
 				$this->allowed_vars[$obj_type][$row[0]] = $row[0];
 			}
 		}
@@ -463,7 +474,7 @@ class nagios_object_importer
 				return false;
 				break;
 			}
-		} elseif ($obj_type === 'comment') {
+		} elseif ($obj_type === 'comment_tbl') {
 			if ($k === 'author')
 				return 'author_name';
 		}
@@ -508,7 +519,7 @@ class nagios_object_importer
 		# others as custom variables
 		$result = $this->sql_exec_query('describe timeperiod');
 		$tp_vars = array();
-		while ($ary = $this->sql_fetch_array($result)) {
+		while ($ary = $result->fetch(PDO::FETCH_ASSOC)) {
 			$tp_vars[$ary['Field']] = $ary['Field'];
 		}
 		unset($result);
@@ -686,18 +697,18 @@ class nagios_object_importer
 		$esc_obj_type = $this->sql_escape_string($obj_type);
 		$esc_obj_id = $this->sql_escape_string($obj_id);
 		$purge_query = 'DELETE FROM custom_vars WHERE ' .
-			"obj_type = '$esc_obj_type' AND obj_id = '$esc_obj_id'";
+			"obj_type = $esc_obj_type AND obj_id = $esc_obj_id";
 
 		$result = $this->sql_exec_query($purge_query);
 		if (!$custom)
 			return $result;
 
-		$base_query = "INSERT INTO custom_vars VALUES('" .
-			$esc_obj_type . "','" . $esc_obj_id . "', '";
+		$base_query = "INSERT INTO custom_vars VALUES(" .
+			$esc_obj_type . "," . $esc_obj_id . ", ";
 
 		foreach ($custom as $k => $v) {
-			$query = $base_query . $this->sql_escape_string($k) . "','" .
-				$this->sql_escape_string($v) . "')";
+			$query = $base_query . $this->sql_escape_string($k) . ", " .
+				$this->sql_escape_string($v) . ")";
 
 			$result = $this->sql_exec_query($query);
 			if (!$result)
@@ -769,7 +780,7 @@ class nagios_object_importer
 			$obj['instance_name'] = 'Local Nagios/Merlin instance';
 			$obj['is_running'] = 1;
 		} else {
-			if ($obj_type === 'comment') {
+			if ($obj_type === 'comment_tbl') {
 				# According to nagios/comments.h:
 				# #define HOST_COMMENT 1
 				# #define SERVICE_COMMENT 2
@@ -830,7 +841,7 @@ class nagios_object_importer
 			}
 
 			if (!is_numeric($v))
-				$obj[$k] = '\'' . $this->sql_escape_string($v) . '\'';
+				$obj[$k] = $this->sql_escape_string($v);
 			else
 				$obj[$k] = '\'' . $v . '\'';
 		}
@@ -884,28 +895,30 @@ class nagios_object_importer
 	# get an error from the last result
 	function sql_error()
 	{
-		return(mysql_error($this->db));
+		$ei = $this->db->errorInfo();
+		return($ei[2]);
 	}
 
 	# get error number of last result
 	function sql_errno()
 	{
-		return(mysql_errno($this->db));
+		$ei = $this->db->errorInfo();
+		return($ei[1]);
 	}
 
 	# fetch a single row to indexed array
-	function sql_fetch_row($resource) {
-		return(mysql_fetch_row($resource));
+	function sql_fetch_row(PDOStatement $resource) {
+		 return $result ? $resource->fetch(PDO::FETCH_NUM) : NULL;
 	}
 
 	# fetch a single row to associative array
-	function sql_fetch_array($resource) {
-		return(mysql_fetch_array($resource, MYSQL_ASSOC));
+	function sql_fetch_array(PDOStatement $resource) {
+		return $resource ? $resource->fetch(PDO::FETCH_ASSOC) : NULL;
 	}
 
 	function sql_escape_string($string)
 	{
-		return mysql_real_escape_string($string);
+		return $this->db->quote($string);
 	}
 
 	# execute an SQL query with error handling
@@ -918,14 +931,15 @@ class nagios_object_importer
 		if($this->db === false) {
 			$this->gui_db_connect();
 		}
-
-		$result = mysql_query($query, $this->db);
-		if($result === false) {
-			echo "SQL query failed with the following error message:\n" .
-				mysql_error() . "\n";
-			if($this->DEBUG) echo "Query was:\n$query\n";
+		if($this->debug) {
+			echo "object_importer QUERY: [$query]\n";
 		}
-
+		$result = $this->db->query($query);
+#		if($result === false) {
+#			echo "SQL query failed with the following error message:\n" .
+#				mysql_error() . "\n";
+#			if($this->DEBUG) echo "Query was:\n$query\n";
+#		}
 		return($result);
 	}
 
@@ -942,7 +956,7 @@ class nagios_object_importer
 			return(false);
 		}
 
-		while($row = $this->sql_fetch_array($resource)) {
+		while($row = $result->fetch(PDO::FETCH_ASSOC)) {
 			$i++;
 			if(isset($row['id'])) {
 				$id = $row['id'];
@@ -966,17 +980,9 @@ class nagios_object_importer
 	# connects to and selects database. false on error, true on success
 	function gui_db_connect()
 	{
-		if($this->db_type !== 'mysql') {
-			die("Only mysql is supported as of yet.\n");
+		if( ! $this->db ) {
+		    $this->db =  MerlinPDO::db();
 		}
-
-		$this->db = mysql_connect
-			($this->db_host, $this->db_user, $this->db_pass);
-
-		if ($this->db === false)
-			return(false);
-
-		$ret = mysql_select_db($this->db_database);
-		return $ret;
+		return $this->db;
 	}
 }
