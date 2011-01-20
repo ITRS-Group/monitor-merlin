@@ -139,6 +139,8 @@ static int run_query(char *query, size_t len, int rerunIGNORED)
 	if (db.logSQL)
 	{
 		fprintf(stderr, "MERLIN SQL: [%s]\n\tResult code: %d, result object @%p\n", query, rc, res);
+		if (0 != rc)
+			fprintf(stderr, "\tError code: %d\n", rc);
 	}
 	if (rc)
 	{
@@ -185,16 +187,15 @@ int sql_vquery(const char *fmt, va_list ap)
 		return -1;
 	}
 
-	if (run_query(query, len, 0) < 0) {
+	if (run_query(query, len, 0) != 0) {
 		const char *error_msg;
-			    FIXME("db_wrap API currently only returns error string, not error code.");
-			    FIXME("Add db_error int back in once db_wrap API can do it.");
+		FIXME("db_wrap API currently only returns error string, not error code.");
+		FIXME("Add db_error int back in once db_wrap API can do it.");
 		int db_error = sql_error(&error_msg);
 
 		lwarn("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is %d.)",
 			          query, error_msg, db_error);
-#if 1
-			    //FIXME("Refactor/rework the following for the new db layer...");
+#if 0   //FIXME("Refactor/rework the following for the new db layer...");
 		/*
 		 * if we failed because the connection has gone away, we try
 		 * reconnecting once and rerunning the query before giving up.
@@ -300,27 +301,32 @@ int sql_init(void)
 	db.host = sql_db_host();
 	db.user = sql_db_user();
 	db.pass = sql_db_pass();
-		db.table = sql_table_name();
-		if (! db.type)
-		{
-			db.type = "dbi:mysql";
-		}
+	db.table = sql_table_name();
+	if (!db.type) {
+		db.type = "dbi:mysql";
+	}
 
-		db_wrap_conn_params connparam = db_wrap_conn_params_empty;
-		connparam.host = db.host;
-		connparam.dbname = db.name;
-		connparam.username = db.user;
-		connparam.password = db.pass;
-		if (db.port) connparam.port = db.port;
-		result = db_wrap_driver_init(db.type, &connparam, &db.conn)
-			/* FIXME: use driver-independent init function, instead of dbi directly */
-			;
-		if (result)
-		{
-			lerr("Failed to connect to '%s' at '%s':'%d' as %s:%s",
-			     db.name, db.host, db.port, db.user, db.pass);
-			return -1;
-		}
+	db_wrap_conn_params connparam = db_wrap_conn_params_empty;
+	connparam.host = db.host;
+	connparam.dbname = db.name;
+	connparam.username = db.user;
+	connparam.password = db.pass;
+	if (db.port)
+		connparam.port = db.port;
+
+	result = db_wrap_driver_init(db.type, &connparam, &db.conn)
+		/* FIXME: use driver-independent init function, instead of dbi directly */
+		;
+	if (result)
+	{
+		lerr("Failed to connect to db '%s' at host '%s':'%d' as user %s using driver %s.",
+			 db.name, db.host, db.port, db.user, db.type );
+		return -1;
+	}
+	if (db.logSQL) {
+		fprintf(stderr, "MERLIN DB: Connected to db [%s] using driver [%s]\n",
+				 db.name, db.type);
+	}
 #endif
 		result = db.conn->api->option_set(db.conn, "encoding", db.encoding ? db.encoding : "UTF-8");
 	if (result) {
