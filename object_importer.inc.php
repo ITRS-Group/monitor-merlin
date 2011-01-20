@@ -67,6 +67,7 @@ class nagios_object_importer
 	# internal object indexing cache
 	private $idx; # object_indexer object
 	private $base_oid = array();
+	private $imported = array();
 
 	# denotes if we're importing status.sav or objects.cache
 	private $importing_status = false;
@@ -404,12 +405,7 @@ class nagios_object_importer
 
 	private function purge_old_objects()
 	{
-		$interesting_tables = array('host','service','contact');
-		foreach ($interesting_tables as $obj_type) {
-			$ids = $this->idx->get_objects_for_type($obj_type);
-			if ($ids === false)
-				continue;
-
+		foreach ($this->imported as $obj_type => $ids) {
 			$query = "DELETE FROM $obj_type WHERE id NOT IN (";
 			$query .= join(', ', array_keys($ids)) . ')';
 			$result = $this->sql_exec_query($query);
@@ -472,7 +468,6 @@ class nagios_object_importer
 		return $k;
 	}
 
-	// pull all objects from objects.cache
 	function import_objects_from_cache($object_cache = false, $is_cache = true)
 	{
 		$last_obj_type = false;
@@ -482,6 +477,16 @@ class nagios_object_importer
 			$object_cache = '/opt/monitor/var/objects.cache';
 
 		$this->importing_status = !$is_cache;
+
+		if ($is_cache) {
+			# In the case of a partial import, we don't truncate before we
+			# need to, to hide that we're doing it. However, with a full
+			# import, it's more important to remove all incorrect data, so
+			# make sure that everything's truncated in that case.
+			foreach($this->tables_to_truncate as $table => $v)
+				$this->sql_exec_query("TRUNCATE $table");
+			$this->table_to_truncate = array();
+		}
 
 		# service slave objects are handled separately
 		$service_slaves =
@@ -534,22 +539,23 @@ class nagios_object_importer
 					$this->done_parsing_obj_type_objects($last_obj_type, $obj_array);
 
 					$last_obj_type = $obj_type;
-					# First time we see a new object type, truncate it. Also,
-					# truncate any related junction tables.
-					# However, status.log mostly contains duplicate information,
-					# so avoid truncating if that's what we read.
-					if (!$this->importing_status || $obj_type == 'comment' || $obj_type == 'scheduled_downtime') {
+
+					# If we're doing a full import, all tables are truncated, so nothing
+					# will happen here. If we're doing a partial import, all junction
+					# tables will need to be cleared, as will objects that doesn't
+					# exist in objects.cache.
+					if ($obj_type == 'comment' || $obj_type == 'scheduled_downtime') {
 						if (isset($this->tables_to_truncate[$obj_type])) {
 							$this->sql_exec_query("TRUNCATE $obj_type");
 							unset($this->tables_to_truncate[$obj_type]);
 						}
-						if (isset($this->obj_rel[$obj_type])) {
-							foreach ($this->obj_rel[$obj_type] as $k => $v) {
-								$junc = $this->get_junction_table_name($obj_type, $k);
-								if (isset($this->tables_to_truncate[$junc])) {
-									$this->sql_exec_query("TRUNCATE $junc");
-									unset($this->tables_to_truncate[$junc]);
-								}
+					}
+					if (isset($this->obj_rel[$obj_type])) {
+						foreach ($this->obj_rel[$obj_type] as $k => $v) {
+							$junc = $this->get_junction_table_name($obj_type, $k);
+							if (isset($this->tables_to_truncate[$junc])) {
+								$this->sql_exec_query("TRUNCATE $junc");
+								unset($this->tables_to_truncate[$junc]);
 							}
 						}
 					}
@@ -738,6 +744,19 @@ class nagios_object_importer
 			unset($obj['is a fresh one']);
 		}
 
+		if ($obj_type === 'host' || $obj_type === 'service') {
+			$obj_name = $this->obj_name($obj_type, $obj);
+			if (isset($this->imported[$obj_type][$obj_key]) &&
+				$this->imported[$obj_type][$obj_key] !== $obj_name)
+			{
+				echo "overwriting $obj_type id $obj_key in \$this->imported\n";
+				printf("%s -> %s\n", $this->imported[$obj_type][$obj_key], $obj_name);
+				print_r($obj);
+				exit(0);
+			}
+			$this->imported[$obj_type][$obj_key] = $this->obj_name($obj_type, $obj);
+		}
+
 		if (isset($this->obj_rel[$obj_type]))
 			$spec = $this->obj_rel[$obj_type];
 
@@ -813,7 +832,8 @@ class nagios_object_importer
 				$obj[$k] = '\'' . $v . '\'';
 		}
 
-		if ($this->importing_status && ($obj_type !== 'comment' && $obj_type !== 'scheduled_downtime' && $obj_type !== 'program_status'))
+		if ((!$fresh && ($obj_type === 'host' || $obj_type === 'service'))
+			|| ($obj_type === 'contact' && $this->importing_status))
 		{
 			$query = "UPDATE $obj_type SET ";
 			$oid = $obj['id'];
