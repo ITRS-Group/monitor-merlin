@@ -829,6 +829,8 @@ class nagios_object_importer
 			$obj['instance_id'] = 0;
 			$obj['instance_name'] = 'Local Nagios/Merlin instance';
 			$obj['is_running'] = 1;
+			# kludge to work around duplicate key error in Oracle
+			$this->sql_exec_query("DELETE FROM $obj_type WHERE instance_id='0'");
 		} else {
 			if ($obj_type === 'comment_tbl') {
 				# According to nagios/comments.h:
@@ -910,12 +912,12 @@ class nagios_object_importer
 			$query .= join(", ", $params) . " WHERE id = $oid";
 		} else {
 			# all vars are properly mangled, so let's run the query
-			if(@$obj['id']) {
+			if(isset($obj['id'])) {
 				$this->sql_exec_query("DELETE FROM $obj_type WHERE id=".$obj['id']);
 			}
 			$target_vars = implode(',', array_keys($obj));
 			$target_values = implode(',', array_values($obj));
-			$query = "INSERT INTO $obj_type($target_vars) " .
+			$query = "INSERT INTO $obj_type ($target_vars) " .
 				"VALUES($target_values)";
 		}
 
@@ -986,14 +988,10 @@ class nagios_object_importer
 			$this->gui_db_connect();
 		}
 		if($this->debug) {
-			echo "object_importer QUERY: [$query]\n";
+			$fn = basename(__FILE__);
+			echo $fn.": QUERY: [$query]\n";
 		}
 		$result = $this->db->query($query);
-#		if($result === false) {
-#			echo "SQL query failed with the following error message:\n" .
-#				mysql_error() . "\n";
-#			if($this->DEBUG) echo "Query was:\n$query\n";
-#		}
 		return($result);
 	}
 
