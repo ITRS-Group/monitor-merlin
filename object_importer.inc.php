@@ -192,7 +192,20 @@ class nagios_object_importer
 
 	private function isMySQL()
 	{
-		return $this->db && (0 === strpos($this->db->driverName,'mysql'));
+		return $this->db && ('mysql' === $this->db->driverName);
+	}
+	private function isOCI()
+	{
+		return $this->db && ('oci' === $this->db->driverName);
+	}
+
+	private function concat($list) {
+		if( $this->isMySQL() ) {
+		    return 'CONCAT('.implode(', ',$list).')';
+		}
+		else {
+		    return implode(' || ',$list);
+		}
 	}
 
 	public function disable_indexes()
@@ -320,11 +333,14 @@ class nagios_object_importer
 		return true;
 	}
 
+
 	public function prepare_import()
 	{
 		# preload object indexes only once per import run
 		$this->preload_object_index('host', 'SELECT id, host_name FROM host');
-		$this->preload_object_index('service', "SELECT id, CONCAT(host_name, ';', service_description) FROM service");
+		$this->preload_object_index('service', "SELECT id, " .
+						       $this->concat(array('host_name', "';'", 'service_description')) .
+						       " FROM service");
 		# These two shouldn't be needed in full imports, but we don't know if
 		# that's what we have yet. Shouldn't hurt too much.
 		$this->preload_object_index('contact', 'SELECT id, contact_name FROM contact');
@@ -425,6 +441,26 @@ class nagios_object_importer
 		}
 	}
 
+	private function describe($table) {
+		$query = false;
+		if( $this->isMySQL() ) {
+		    $query = "DESCRIBE $table";
+		}
+		else if( $this->isOCI() ) {
+		     $query = "SELECT COLUMN_NAME FROM USER_TAB_COLUMNS WHERE TABLE_NAME ='".strtoupper($table)."'";
+		}
+		if( false === $query) {
+		     throw new Exception("Don't know how to DESCRIBE tables for db driver [".$this->db->driverName."]!");
+		}
+		$res = $this->sql_exec_query($query);
+		$rc = array();
+		while( ($row = $res->fetch(PDO::FETCH_NUM)) ) {
+		       $low = strtolower($row[0]);
+		       $rc[] = array(0=>$low, 'Field'=>$low);
+		}
+		return $rc;
+	}
+
 	private function is_allowed_var($obj_type, $k)
 	{
 		if (!$this->importing_status)
@@ -434,11 +470,10 @@ class nagios_object_importer
 			return false;
 
 		if (!isset($this->allowed_vars[$obj_type])) {
-			$result = $this->sql_exec_query("describe $obj_type");
-			if (!$result)
+			$list = $this->describe("$obj_type");
+			if (empty($list))
 				return false;
-
-			while ($row = $result->fetch(PDO::FETCH_NUM)) {
+			foreach($list as $k => $row) {
 				$this->allowed_vars[$obj_type][$row[0]] = $row[0];
 			}
 		}
@@ -498,7 +533,7 @@ class nagios_object_importer
 			# import, it's more important to remove all incorrect data, so
 			# make sure that everything's truncated in that case.
 			foreach($this->tables_to_truncate as $table => $v)
-				$this->sql_exec_query("TRUNCATE $table");
+				$this->sql_exec_query("TRUNCATE TABLE $table");
 			$this->table_to_truncate = array();
 		}
 
@@ -517,9 +552,9 @@ class nagios_object_importer
 
 		# fetch 'real' timeperiod variables so we can exclude all
 		# others as custom variables
-		$result = $this->sql_exec_query('describe timeperiod');
+		$result = $this->describe('timeperiod');
 		$tp_vars = array();
-		while ($ary = $result->fetch(PDO::FETCH_ASSOC)) {
+		foreach($result as $k => $ary) {
 			$tp_vars[$ary['Field']] = $ary['Field'];
 		}
 		unset($result);
@@ -843,7 +878,8 @@ class nagios_object_importer
 			if (!is_numeric($v))
 				$obj[$k] = $this->sql_escape_string($v);
 			else
-				$obj[$k] = '\'' . $v . '\'';
+				#$obj[$k] = '\'' . $v . '\'';
+				$obj[$k] = $v;
 		}
 
 		if ((!$fresh && ($obj_type === 'host' || $obj_type === 'service'))
@@ -859,9 +895,12 @@ class nagios_object_importer
 			$query .= join(", ", $params) . " WHERE id = $oid";
 		} else {
 			# all vars are properly mangled, so let's run the query
+			if(@$obj['id']) {
+				$this->sql_exec_query("DELETE FROM $obj_type WHERE id=".$obj['id']);
+			}
 			$target_vars = implode(',', array_keys($obj));
 			$target_values = implode(',', array_values($obj));
-			$query = "REPLACE INTO $obj_type($target_vars) " .
+			$query = "INSERT INTO $obj_type($target_vars) " .
 				"VALUES($target_values)";
 		}
 

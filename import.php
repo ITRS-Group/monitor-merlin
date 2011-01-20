@@ -10,6 +10,7 @@ $imp->db_host = 'localhost';
 $imp->db_user = 'merlin';
 $imp->db_pass = 'merlin';
 $imp->db_database = 'merlin';
+#$imp->debug = TRUE;
 
 if (PHP_SAPI !== 'cli') {
 	$msg = "This program must be run from the command-line version of PHP\n";
