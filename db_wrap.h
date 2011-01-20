@@ -337,6 +337,10 @@ struct db_wrap_result_api
 	   by assinging that value to *num and returning 0.  If it cannot
 	   determine this then *num must not be modified and non-0 must be
 	   returned.
+
+	   ACHTUNG: the ocilib implementation can only return the number of
+	   rows TRAVERSED SO FAR (which is kinda dumb, since we already know
+	   that number). Calling this directly after a SELECT will return 0.
 	*/
 	int (*num_rows)(db_wrap_result * self, size_t * num);
 
@@ -348,15 +352,15 @@ struct db_wrap_result_api
 	int (*finalize)(db_wrap_result * self);
 
 
-	/*
-	  Missing functions which we will/might eventually need:
+    /*
+      Missing functions which we will/might eventually need:
 
-	  - get column count
+      - get column count
 
-	  - get column name by index
+      - get column name by index
 
-	  - get values by column name? Seems like overkill for this project.
-	 */
+      - get values by column name? Seems like overkill for this project.
+     */
 };
 /**
    Convenience typedef.
