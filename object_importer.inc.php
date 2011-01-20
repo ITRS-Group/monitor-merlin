@@ -441,6 +441,21 @@ class nagios_object_importer
 		}
 	}
 
+	/**
+		Similar to MySQL's "DESCRIBE $table". Returns an ARRAY of ARRAYS. Each sub-array
+		contains two entries (0=>FIELDNAME, 'Field'=>FIELDNAME). i.e. it simply holds
+		the field names for the table at the 0th index and in a field named 'Field' (for
+		MySQL compatibility).
+
+		Works with the MySQL and OCI back-ends. Requires additional code for other
+		back-ends.
+
+		BUGS: this function TO-LOWERs the result fields
+		because Oracle returns only upper-case column names
+		(which breaks this code's field mappings). i.e. all returned fields
+		will be lower-case, which will break downstream code if the fields are really
+		mixed-case.
+	*/
 	private function describe($table) {
 		$query = false;
 		if( $this->isMySQL() ) {
