@@ -194,8 +194,8 @@ int sql_vquery(const char *fmt, va_list ap)
 		int db_error = sql_error(&error_msg);
 
 		lwarn("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is %d.)",
-			          query, error_msg, db_error);
-#if 0   //FIXME("Refactor/rework the following for the new db layer...");
+			  query, error_msg, db_error);
+#if 0 //FIXME("Refactor/rework the following for the new db layer..."); Current code can endlessly loop
 		/*
 		 * if we failed because the connection has gone away, we try
 		 * reconnecting once and rerunning the query before giving up.
