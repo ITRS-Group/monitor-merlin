@@ -879,7 +879,7 @@ class nagios_object_importer
 				$obj[$k] = $this->sql_escape_string($v);
 			else
 				#$obj[$k] = '\'' . $v . '\'';
-				$obj[$k] = $v;
+				$obj[$k] = $v; # outer quotes removed by sbeal for Oracle compat.
 		}
 
 		if ((!$fresh && ($obj_type === 'host' || $obj_type === 'service'))
