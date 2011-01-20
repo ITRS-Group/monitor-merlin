@@ -552,13 +552,13 @@ class nagios_object_importer
 							$this->sql_exec_query("TRUNCATE $obj_type");
 							unset($this->tables_to_truncate[$obj_type]);
 						}
-					}
-					if (isset($this->obj_rel[$obj_type])) {
-						foreach ($this->obj_rel[$obj_type] as $k => $v) {
-							$junc = $this->get_junction_table_name($obj_type, $k);
-							if (isset($this->tables_to_truncate[$junc])) {
-								$this->sql_exec_query("TRUNCATE $junc");
-								unset($this->tables_to_truncate[$junc]);
+						if (isset($this->obj_rel[$obj_type])) {
+							foreach ($this->obj_rel[$obj_type] as $k => $v) {
+								$junc = $this->get_junction_table_name($obj_type, $k);
+								if (isset($this->tables_to_truncate[$junc])) {
+									$this->sql_exec_query("TRUNCATE $junc");
+									unset($this->tables_to_truncate[$junc]);
+								}
 							}
 						}
 					}
