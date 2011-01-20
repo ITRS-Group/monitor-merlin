@@ -86,13 +86,28 @@ static void *blk_prep(void *data)
 	return pkt.body;
 }
 
+/**
+   Counts the number of rows in the given result. ACHTUNG: this is destructive:
+   it must traverse the result in order to count the results (thanks to OCILIB).
+ */
 static uint count_rows(db_wrap_result * result)
 {
-		size_t n = 0;
+	size_t n = 0;
+#if 1
 	if (result) {
-			result->api->num_rows(result, &n);
-		}
-		return n;
+	    for( ; 0 == result->api->step(result); ++n ) {}
+	    /* ACHTUNG: the oci driver can only return the number of rows
+		 PROCESSED SO FAR, which is really stupid because we already
+		 know how many rows we've processed so far.
+	     */
+	}
+#else
+	if (result) {
+		result->api->num_rows( result, &n );
+	}
+#endif
+
+	return n;
 }
 
 static uint count_table_rows(const char *table_name)
@@ -127,35 +142,38 @@ static void load_hosts_and_services(void)
 	hosts = calloc(num_hosts, sizeof(*hosts));
 	sql_query("SELECT host_name FROM host");
 	result = sql_get_result();
-		assert(NULL != result);
+	assert(NULL != result);
 	ok_uint(num_hosts, count_rows(result), "db_wrap host count");
 	i = 0;
 	while (i < num_hosts && (0 == result->api->step(result))) {
-			    hosts[i].name = NULL;
-			    db_wrap_result_string_copy_ndx(result, 0, & hosts[i].name, NULL);
+		hosts[i].name = NULL;
+		db_wrap_result_string_copy_ndx(result, 0, & hosts[i].name, NULL);
 		hosts[i].plugin_output = OUTPUT;
 		hosts[i].perf_data = PERF_DATA;
 		hosts[i].long_plugin_output = LONG_PLUGIN_OUTPUT;
 		i++;
 	}
 	ok_uint(i, num_hosts, "number of hosts loaded");
+	ok_uint(num_hosts, count_rows(result), "db_wrap host count");
 
 	services = calloc(num_services, sizeof(*services));
 	sql_query("SELECT host_name, service_description FROM service");
 	result = sql_get_result();
-		assert(NULL != result);
+
+	assert(NULL != result);
 	ok_uint(num_services, count_rows(result), "db_wrap service count");
 	i = 0;
 	while (i < num_services && (0 == result->api->step(result))) {
-			    services[i].host_name = NULL;
-			    db_wrap_result_string_copy_ndx(result, 0, &services[i].host_name, NULL);
-			    services[i].description = NULL;
-			    db_wrap_result_string_copy_ndx(result, 1, &services[i].description, NULL);
+		services[i].host_name = NULL;
+		db_wrap_result_string_copy_ndx(result, 0, &services[i].host_name, NULL);
+		services[i].description = NULL;
+		db_wrap_result_string_copy_ndx(result, 1, &services[i].description, NULL);
 		services[i].plugin_output = OUTPUT;
 		services[i].perf_data = PERF_DATA;
 		services[i].long_plugin_output = LONG_PLUGIN_OUTPUT;
 		i++;
 	}
+	ok_uint(num_services, count_rows(result), "db_wrap service count");
 	ok_uint(i, num_services, "number of services loaded");
 }
 
