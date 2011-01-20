@@ -118,6 +118,8 @@ class nagios_object_importer
 	# object relations table used to determine db junction table names etc
 	protected $Object_Relation = array();
 
+	private $is_full_import = false;
+
 	public function __construct()
 	{
 		$this->obj_rel['host'] =
@@ -479,6 +481,7 @@ class nagios_object_importer
 		$this->importing_status = !$is_cache;
 
 		if ($is_cache) {
+			$this->is_full_import = true;
 			# In the case of a partial import, we don't truncate before we
 			# need to, to hide that we're doing it. However, with a full
 			# import, it's more important to remove all incorrect data, so
@@ -723,7 +726,7 @@ class nagios_object_importer
 		if (isset($this->conv_type[$obj_type]))
 			$obj_type = $this->conv_type[$obj_type];
 
-		if ($this->importing_status) {
+		if ($this->importing_status && $this->is_full_import) {
 			# mark hosts and services as pending if they
 			# haven't been checked and current_state = 0
 			if ($obj_type === 'host' || $obj_type === 'service') {
