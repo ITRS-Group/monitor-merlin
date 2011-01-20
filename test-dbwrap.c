@@ -96,7 +96,7 @@ void test_dbwrap_generic(char const * driver, db_wrap * wr)
 #endif
 
 	int i;
-	const int count = 10;
+	const size_t count = 10;
 	char const * strVal = "hi, world";
 	for(i = 1; i <= count; ++i)
 	{
@@ -128,7 +128,7 @@ void test_dbwrap_generic(char const * driver, db_wrap * wr)
 	//assert(res->impl.data == db_wrap_dbi_result(res));
 
 	/* ensure that stepping acts as expected. */
-	int32_t gotCount = 0;
+	size_t gotCount = 0;
 	while(0 == (rc = res->api->step(res)))
 	{
 		++gotCount;
@@ -145,107 +145,120 @@ void test_dbwrap_generic(char const * driver, db_wrap * wr)
 			rc = db_wrap_result_string_copy_ndx(res, 2, &strCP, &sz);
 			strCheck = strCP;
 #endif
-			assert(0 == rc);
-			assert(sz > 0);
-			assert(0 == strcmp( strCheck, strVal) );
-			/*MARKER("Read string [%s]\n",strCheck);*/
-			if (NULL != strCP) free( strCP );
-		}
-	}
-	assert(gotCount == count);
-	assert(DB_WRAP_E_DONE == rc);
-	res->api->finalize(res);
+            assert( 0 == rc );
+            assert( sz > 0 );
+            assert( 0 == strcmp( strCheck, strVal ) );
+            /*MARKER("Read string [%s]\n",strCheck);*/
+            if( NULL != strCP ) free( strCP );
+        }
+    }
+    assert( gotCount == count );
+    assert( DB_WRAP_E_DONE == rc );
+    res->api->finalize(res);
 
-	// FIXME: add reset() to the result API.
-
-	/**
-	   Now try fetching some values...
-	*/
-
-
-	const bool doCountTest = (NULL == strstr(driver,"sqlite"));
-	if (!doCountTest)
-	{
-		MARKER("WARNING: skipping count(*) test because the libdbi sqlite driver apparently doesn't handle the numeric type properly!\n");
-	}
-	else
-	{
-		sql = "select count(*) as C from t";
-		res = NULL;
-		rc = wr->api->query_result(wr, sql, strlen(sql), &res);
-		assert(0 == rc);
-		assert(NULL != res);
-		rc = res->api->step(res);
-		assert(0 == rc);
-		typedef int64_t CountType;
-		CountType ival = -1;
-		rc =
-			//res->api->get_int32_ndx(res, 0, &ival)
-			res->api->get_int64_ndx(res, 0, &ival)
-			/*
-			  DAMN: the libdbi impls behave differently here: on some platforms
-			  count(*) will be (u)int32 and on some 64. The libdbi drivers
-			  are horribly pedantic here and require that we know exactly how
-			  big the integer is.
-
-			  http://www.mail-archive.com/libdbi-users@lists.sourceforge.net/msg00126.html
-
-			  This particular test works for me on mysql but not sqlite3. It also
-			  possibly fails on mysql 32-bit (untested).
-			*/
-			;
-		MARKER("Select COUNT(*)/step/fetch rc=%d, ival=%ld, expecting=%ld\n", rc, (long)ival, (long)gotCount);
-		assert(0 == rc);
-		assert(ival == gotCount);
-		res->api->finalize(res);
-		res = NULL;
-		//assert(res->impl.data == db_wrap_dbi_result(res));
-	}
-
-
-	if (!isOracle && !isSqlite)
-	{
-		/*
-		  FIXME: get-double is not working reliably for OCI and
-		  appears to be broken at the libdbi level for sqlite.
-
-		  On my first Oracle machine this test worked fine, but that machine
-		  died and when we moved to another machine, the double test
-		  suddenly fails. DAMN...
-		 */
-		char const * dblSql = (isOracle)
-			? "select vdbl from t where rownum<=1 order by vint desc"
-			: "select vdbl from t order by vint desc limit 1"
-			;
-		// not yet working. don't yet know why
-		double doubleGet = -1.0;
-		rc = db_wrap_query_double(wr, dblSql, strlen(dblSql), &doubleGet);
-		if (0 != rc)
-		{
-			char const * errStr = NULL;
-			int driverRc = 0;
-			wr->api->error_info(wr, &errStr, NULL, &driverRc);
-			MARKER("doubleGet: rc=%d, driverRc=%d (%s), val=%lf\n",rc, driverRc, errStr, doubleGet);
-		}
-		assert(0 == rc);
-		assert(11.0 == doubleGet);
-	}
-	else
-	{
-		MARKER("WARNING: the fetch-double test has been disabled!\n");
-	}
-
-	sql =
-		"select * from t order by vint desc"
-		//"select count(*) as C from t"
-		;
+    {
 	res = NULL;
-	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
-	assert(0 == rc);
-	assert(NULL != res);
+	rc = wr->api->query_result( wr, sql, strlen(sql), &res );
+	assert( 0 == rc );
+	assert( NULL != res );
+	while( 0 == res->api->step(res) ) {}
+	size_t rowCount = 0;
+	res->api->num_rows( res, &rowCount );
+	res->api->finalize(res);
+	MARKER("Row count=%u, expecting %u. sql=[%s]\n",(unsigned int)rowCount, (unsigned int)count, sql);
+	assert( rowCount == count );
+    }
 
-	int32_t intGet = -1;
-	const int32_t intExpect = count;
+    // FIXME: add reset() to the result API.
+
+    /**
+       Now try fetching some values...
+    */
+
+
+    const bool doCountTest = (NULL == strstr(driver,"sqlite"));
+    if(!doCountTest)
+    {
+        MARKER("WARNING: skipping count(*) test because the libdbi sqlite driver apparently doesn't handle the numeric type properly!\n");
+    }
+    else
+    {
+        sql = "select count(*) as C from t";
+        res = NULL;
+        rc = wr->api->query_result( wr, sql, strlen(sql), &res );
+        assert( 0 == rc );
+        assert( NULL != res );
+        rc = res->api->step(res);
+        assert( 0 == rc );
+        typedef int64_t CountType;
+        CountType ival = -1;
+        rc =
+            //res->api->get_int32_ndx(res, 0, &ival)
+            res->api->get_int64_ndx(res, 0, &ival)
+            /*
+              DAMN: the libdbi impls behave differently here: on some platforms
+              count(*) will be (u)int32 and on some 64. The libdbi drivers
+              are horribly pedantic here and require that we know exactly how
+              big the integer is.
+
+              http://www.mail-archive.com/libdbi-users@lists.sourceforge.net/msg00126.html
+
+              This particular test works for me on mysql but not sqlite3. It also
+              possibly fails on mysql 32-bit (untested).
+            */
+            ;
+        MARKER("Select COUNT(*)/step/fetch rc=%d, ival=%ld, expecting=%ld\n", rc, (long)ival, (long)gotCount);
+        assert( 0 == rc );
+        assert( ival == gotCount );
+        res->api->finalize(res);
+        res = NULL;
+        //assert( res->impl.data == db_wrap_dbi_result(res) );
+    }
+
+
+    if(!isOracle && !isSqlite)
+    {
+        /*
+          FIXME: get-double is not working reliably for OCI and
+          appears to be broken at the libdbi level for sqlite.
+
+          On my first Oracle machine this test worked fine, but that machine
+          died and when we moved to another machine, the double test
+          suddenly fails. DAMN...
+         */
+        char const * dblSql = (isOracle)
+            ? "select vdbl from t where rownum<=1 order by vint desc"
+            : "select vdbl from t order by vint desc limit 1"
+            ;
+        // not yet working. don't yet know why
+        double doubleGet = -1.0;
+        rc = db_wrap_query_double(wr, dblSql, strlen(dblSql), &doubleGet );
+        if( 0 != rc )
+        {
+            char const * errStr = NULL;
+            int driverRc = 0;
+            wr->api->error_info( wr, &errStr, NULL, &driverRc );
+            MARKER("doubleGet: rc=%d, driverRc=%d (%s), val=%lf\n",rc,driverRc,errStr,doubleGet);
+        }
+        assert( 0 == rc );
+        assert( 11.0 == doubleGet );
+    }
+    else
+    {
+        MARKER("WARNING: the fetch-double test has been disabled!\n");
+    }
+
+    sql =
+        "select * from t order by vint desc"
+        //"select count(*) as C from t"
+        ;
+    res = NULL;
+    rc = wr->api->query_result( wr, sql, strlen(sql), &res );
+    assert( 0 == rc );
+    assert( NULL != res );
+
+    int32_t intGet = -1;
+    const int32_t intExpect = count;
 
 #if 1
 #if 0
