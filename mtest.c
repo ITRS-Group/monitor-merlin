@@ -371,8 +371,8 @@ static void test_host_check(void)
 	 */
 	sql_query("UPDATE host SET current_state = 155");
 	if (host_perf_table)
-		sql_query("TRUNCATE %s", host_perf_table);
-	sql_query("TRUNCATE report_data");
+		sql_query("TRUNCATE TABLE %s", host_perf_table);
+	sql_query("TRUNCATE TABLE report_data");
 	zzz();
 	for (i = 0; i < num_hosts; i++) {
 		host *h = &hosts[i];
@@ -484,8 +484,8 @@ static void test_service_check(void)
 	 */
 	sql_query("UPDATE service SET current_state = 155");
 	if (service_perf_table)
-		sql_query("TRUNCATE %s", service_perf_table);
-	sql_query("TRUNCATE report_data");
+		sql_query("TRUNCATE TABLE %s", service_perf_table);
+	sql_query("TRUNCATE TABLE report_data");
 	zzz();
 	for (i = 0; i < num_services; i++) {
 		service *s = &services[i];
@@ -563,7 +563,7 @@ static void test_contact_notification_method(void)
 	gettimeofday(&orig->end_time, NULL);
 	orig->type = NEBTYPE_CONTACTNOTIFICATIONMETHOD_END;
 
-	sql_query("TRUNCATE notification");
+	sql_query("TRUNCATE TABLE notification");
 	for (i = 0; i < num_hosts; i++) {
 		orig->host_name = hosts[i].name;
 		mod = blk_prep(orig);
@@ -613,7 +613,7 @@ static void test_comment(void)
 	orig->expire_time = time(NULL) + 300;
 
 	/* set up for testing comments for all hosts and services */
-	sql_query("TRUNCATE comment_tbl");
+	sql_query("TRUNCATE TABLE comment_tbl");
 
 	/* test adding comments for all hosts */
 	orig->type = NEBTYPE_COMMENT_LOAD;
@@ -687,7 +687,7 @@ static void test_downtime(void)
 	orig->author_name = AUTHOR_NAME;
 	orig->comment_data = COMMENT_DATA;
 
-	sql_query("TRUNCATE scheduled_downtime");
+	sql_query("TRUNCATE TABLE scheduled_downtime");
 	/* test adding downtime for all hosts */
 	orig->type = NEBTYPE_DOWNTIME_ADD;
 	for (i = 0; i < num_hosts; i++) {
@@ -997,8 +997,8 @@ int main(int argc, char **argv)
 		exit(1);
 	} else {
 		sql_init();
-		sql_query("TRUNCATE host");
-		sql_query("TRUNCATE service");
+		sql_query("TRUNCATE TABLE host");
+		sql_query("TRUNCATE TABLE service");
 
 		time_t start = time(NULL);
 		nebstruct_process_data ds;

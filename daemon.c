@@ -884,7 +884,7 @@ int main(int argc, char **argv)
 
 	sql_init();
 	if (use_database) {
-		sql_query("TRUNCATE program_status");
+		sql_query("TRUNCATE TABLE program_status");
 		sql_query("INSERT INTO program_status(instance_id, instance_name, is_running) "
 		          "VALUES(0, 'Local Nagios daemon', 0)");
 		for (i = 0; i < (int)num_nodes; i++) {
