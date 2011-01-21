@@ -245,7 +245,7 @@ CREATE TABLE host(
 	current_notification_number int(10) NOT NULL default '0',
 	no_more_notifications int(10) NOT NULL default '0',
 	current_notification_id int(10) NOT NULL default '0',
-	check_flapping_recovery_notification int(10) NOT NULL default '0',
+	check_flapping_recovery_notifi int(10) NOT NULL default '0',
 	scheduled_downtime_depth int(10) NOT NULL default '0',
 	pending_flex_downtime int(10) NOT NULL default '0',
 	is_flapping int(10) NOT NULL default '0',
