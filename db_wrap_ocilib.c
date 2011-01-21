@@ -261,6 +261,7 @@ size_t ociw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest
 			+ 1 /* NULL pad */
 			;
 		char * esc = (char *)malloc(sz);
+		char * begin = esc;
 		if (! esc) return DB_WRAP_E_ALLOC_ERROR;
 		memset(esc, 0, len);
 		char const * p = sql;
@@ -275,14 +276,16 @@ size_t ociw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest
 			*(esc++) = *p;
 		}
 		*(esc++) = q;
-		*dest = esc;
+		*esc = 0;
+		*dest = begin;
+		/*MARKER("OCI-escaped:\n\t[%s]\n=\t[%s]\n",sql,*dest);*/
 		return 0;
 	}
 }
 
 int ociw_free_string(db_wrap * self, char * str)
 {
-	IMPL_DECL(0);
+	IMPL_DECL(DB_WRAP_E_BAD_ARG);
 	free(str);
 	return 0;
 }
