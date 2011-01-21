@@ -167,7 +167,7 @@ size_t dbiw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest
 	DB_DECL(0);
 	if (!sql || !*sql || !len)
 	{
-		*dest = NULL;
+		*dest = strdup(sql ? "''" : "NULL");
 		return 0;
 	}
 	else
