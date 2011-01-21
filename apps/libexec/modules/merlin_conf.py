@@ -105,7 +105,8 @@ class merlin_node:
 			self.address = v
 		elif k == 'port':
 			self.port = v
-		elif k == 'hostgroup':
+
+		if k == 'hostgroup':
 			v = re.split("[\t ]*,[\t ]*", v)
 			if self.options.has_key(k):
 				self.options[k] += v
