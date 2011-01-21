@@ -243,7 +243,11 @@ size_t ociw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest
 	if (! dest) return DB_WRAP_E_BAD_ARG;
 	if (!sql || !*sql || !len)
 	{
+#if 0
 		*dest = NULL;
+#else
+		*dest = strdup(sql ? "''" : "NULL");
+#endif
 		return 0;
 	}
 	else
@@ -279,7 +283,7 @@ size_t ociw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest
 		*esc = 0;
 		*dest = begin;
 		/*MARKER("OCI-escaped:\n\t[%s]\n=\t[%s]\n",sql,*dest);*/
-		return 0;
+		return esc - begin;
 	}
 }
 
