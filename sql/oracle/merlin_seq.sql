@@ -348,9 +348,9 @@ CREATE TABLE host (
   instance_id NUMBER(10,0) DEFAULT '0' NOT NULL,
   id NUMBER(10,0) NOT NULL,
   host_name VARCHAR2(75 CHAR),
-  alias VARCHAR2(100 CHAR) DEFAULT NULL,
+  alias VARCHAR2(100 CHAR) DEFAULT NULL, -- should be NOT NULL, but is DEFAULT NULL for compat. with a MySQL bug.
   display_name VARCHAR2(100 CHAR),
-  address VARCHAR2(75 CHAR) DEFAULT NULL,
+  address VARCHAR2(75 CHAR) DEFAULT NULL,  -- should be NOT NULL, but is DEFAULT NULL for compat. with a MySQL bug.
   initial_state VARCHAR2(18 CHAR),
   check_command VARCHAR2(4000 CHAR),
   max_check_attempts NUMBER(5,0),
@@ -986,7 +986,7 @@ PROMPT Creating Table service ...
 CREATE TABLE service (
   instance_id NUMBER(10,0) DEFAULT '0' NOT NULL,
   id NUMBER(10,0) NOT NULL,
-  host_name VARCHAR2(75 CHAR) DEFAULT NULL,
+  host_name VARCHAR2(75 CHAR) DEFAULT NULL,  -- should be NOT NULL, but is DEFAULT NULL for compat. with a MySQL bug.
   service_description VARCHAR2(160 CHAR) NOT NULL,
   display_name VARCHAR2(160 CHAR),
   is_volatile NUMBER(3,0),
