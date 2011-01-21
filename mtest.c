@@ -36,7 +36,44 @@
 #define test_compare(str) ok_str(mod->str, orig->str, #str)
 
 #define CP() printf("ALIVE @ %s->%s:%d\n", __FILE__, __func__, __LINE__)
-#define zzz() usleep(350000)
+
+/**
+   Sleeps for a short amount of time (under 1 second).
+   If the environment variable MTEST_SLOW is set
+   and its valu does not start with the digit 0 then
+   a longer sleep period is used (required for testing
+   on my VM setup, where mysql cannot write/flush fast
+   enough for the default setup).
+
+   e.g. to run in slow mode:
+
+   MTEST_SLOW=1 ./mtest configfile.cfg
+
+   If you use any value other than '1' then execution
+   will pause() until a signal is received. e.g. the user
+   must tap Ctrl-C to continue (this is non-intuitive, but
+   gives me a chance to confirm db-side changes).
+*/
+static void zzz()
+{
+    static int doneThat = 0;
+    static char const * env = NULL;
+    if (0 == doneThat) {
+        doneThat = 1;
+        env = getenv("MTEST_SLOW");
+    }
+
+    if (env && *env && ('0' != *env)) {
+		if('1' == *env) {
+			sleep(3);
+		} else {
+			puts("!!! WAITING FOR SIGNAL BEFORE CONTINUING. !!!");
+			pause();
+		}
+    } else {
+        usleep(999999);
+    }
+}
 
 static host *hosts;
 static service *services;
@@ -90,10 +127,9 @@ static void *blk_prep(void *data)
    Counts the number of rows in the given result. ACHTUNG: this is destructive:
    it must traverse the result in order to count the results (thanks to OCILIB).
  */
-static uint count_rows(db_wrap_result * result)
+static uint count_rows_traverse(db_wrap_result * result)
 {
 	size_t n = 0;
-#if 1
 	if (result) {
 	    for( ; 0 == result->api->step(result); ++n ) {}
 	    /* ACHTUNG: the oci driver can only return the number of rows
@@ -101,19 +137,34 @@ static uint count_rows(db_wrap_result * result)
 		 know how many rows we've processed so far.
 	     */
 	}
-#else
-	if (result) {
-		result->api->num_rows( result, &n );
-	}
-#endif
 
 	return n;
 }
 
+/**
+   Returns the result of result->api->num_rows(), but note that value
+   may behave differently depending on the driver! OCI returns only
+   the number of rows traversed so far, whereas DBI returns the total
+   number of rows from e.g. a SELECT statement.
+ */
+static uint count_rows(db_wrap_result * result)
+{
+	size_t n = 0;
+
+	if (result) {
+		result->api->num_rows(result, &n);
+	}
+
+	return n;
+}
+
+
 static uint count_table_rows(const char *table_name)
 {
-	sql_query("SELECT * FROM %s", table_name);
-	return count_rows(sql_get_result());
+	sql_query("SELECT 'x' FROM %s", /*reminder: we don't use '*'
+				      here, to avoid fetching arbitrarily
+				      large data.*/ table_name);
+	return count_rows_traverse(sql_get_result());
 }
 
 static void verify_count(const char *name, uint expected, const char *fmt, ...)
@@ -123,7 +174,7 @@ static void verify_count(const char *name, uint expected, const char *fmt, ...)
 	va_start(ap, fmt);
 	sql_vquery(fmt, ap);
 	va_end(ap);
-	count = count_rows(sql_get_result());
+	count = count_rows_traverse(sql_get_result());
 	ok_uint(count, expected, name);
 }
 
@@ -324,10 +375,10 @@ static void test_host_status(void)
 		merlin_mod_hook(NEBCALLBACK_HOST_STATUS_DATA, ds);
 	}
 	zzz();
-	verify_count("host status updates db properly", num_hosts,
-				 "SELECT * FROM host WHERE current_state = 4");
 	free(ds);
 	free(orig);
+	verify_count("host status updates db properly", num_hosts,
+			"SELECT 'x' FROM host WHERE current_state = 4");
 }
 
 static void test_service_status(void)
@@ -596,7 +647,7 @@ static void test_contact_notification_method(void)
 	}
 	zzz();
 	verify_count("Adding host notifications", num_hosts,
-				 "SELECT * FROM notification");
+				 "SELECT 'x' FROM notification");
 
 	for (i = 0; i < num_services; i++) {
 		orig->host_name = services[i].host_name;
