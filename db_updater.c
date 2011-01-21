@@ -24,7 +24,7 @@
 	"last_state_change = %lu, last_hard_state_change = %lu, " \
 	"has_been_checked = %d, " \
 	"current_notification_number = %d, current_notification_id = %lu, " \
-	"check_flapping_recovery_notification = %d, " \
+	"check_flapping_recovery_notifi = %d, " \
 	"scheduled_downtime_depth = %d, pending_flex_downtime = %d, " \
 	"is_flapping = %d, flapping_comment_id = %lu, " /* 41 - 42 */ \
 	"percent_state_change = %f, " \
