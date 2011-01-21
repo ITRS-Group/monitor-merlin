@@ -915,8 +915,8 @@ class nagios_object_importer
 			if(isset($obj['id'])) {
 				$this->sql_exec_query("DELETE FROM $obj_type WHERE id=".$obj['id']);
 			}
-			$target_vars = implode(',', array_keys($obj));
-			$target_values = implode(',', array_values($obj));
+			$target_vars = implode(', ', array_keys($obj));
+			$target_values = implode(', ', array_values($obj));
 			$query = "INSERT INTO $obj_type ($target_vars) " .
 				"VALUES($target_values)";
 		}
