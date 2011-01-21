@@ -51,11 +51,11 @@ static time_t last_connect_attempt;
  */
 size_t sql_quote(const char *src, char **dst)
 {
-
 	if (! db.conn)
 	{
-
+		sql_init();
 	}
+    assert( NULL != db.conn );
 	size_t const ret = db.conn->api->sql_quote(db.conn, src, (src?strlen(src):0U), dst);
 	if (! ret)
 	{
@@ -125,7 +125,6 @@ db_wrap_result * sql_get_result(void)
 
 static int run_query(char *query, size_t len, int rerunIGNORED)
 {
-#if 1
 	/*
 	  TODO/possible FIXME: the original code uses dbi_conn_query_null(),
 	  which is explicitly useful for passing binary strings containing
@@ -141,6 +140,9 @@ static int run_query(char *query, size_t len, int rerunIGNORED)
 		fprintf(stderr, "MERLIN SQL: [%s]\n\tResult code: %d, result object @%p\n", query, rc, res);
 		if (0 != rc)
 			fprintf(stderr, "\tError code: %d\n", rc);
+			/* Reminder: the OCI driver adds a newline of its own to
+			   error text.
+			*/
 	}
 	if (rc)
 	{
@@ -150,12 +152,7 @@ static int run_query(char *query, size_t len, int rerunIGNORED)
 	assert(NULL != res);
 	assert(NULL == db.result);
 	db.result = res;
-#else
-	db.result = dbi_conn_query_null(db.conn, (unsigned char *)query, len);
-	if (!db.result)
-		return -1;
-#endif
-	return 0;
+	return rc;
 }
 
 int sql_vquery(const char *fmt, va_list ap)
