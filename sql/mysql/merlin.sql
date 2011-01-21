@@ -392,7 +392,7 @@ CREATE TABLE service(
 	last_notification int(10),
 	next_notification int(10),
 	no_more_notifications int(10) NOT NULL default '0',
-	check_flapping_recovery_notification int(10) NOT NULL default '0',
+	check_flapping_recovery_notifi int(10) NOT NULL default '0',
 	last_state_change int(10),
 	last_hard_state_change int(10),
 	last_time_ok int(10),
