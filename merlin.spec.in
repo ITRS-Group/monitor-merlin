@@ -17,6 +17,7 @@ Source0: %name-%version.tar.gz
 Prefix: /opt/monitor
 Requires: libdbi
 Requires: libdbi-dbd-mysql
+Requires: ocilib >= 3.8
 Requires: merlin-apps >= %version
 BuildRequires: mysql-devel
 BuildRequires: libdbi-devel
