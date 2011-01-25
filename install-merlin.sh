@@ -86,11 +86,11 @@ db_setup ()
 			case "$db_version" in
 				"")
 					# No db installed
-					$mysql $db_name < $src_dir/db.sql
+					$mysql $db_name < $src_dir/sql/mysql/merlin.sql
 					;;
 				"1")
 					# DB Version is 1 and db should be re-installed (According to AE)
-					$mysql $db_name < $src_dir/db.sql
+					$mysql $db_name < $src_dir/sql/mysql/merlin.sql
 					;;
 				*)
 					# Unknown version, should we handle this?
@@ -157,7 +157,7 @@ install_apps ()
 install_files ()
 {
 	execs="import showlog merlind install-merlin.sh init.sh"
-	files="$execs merlin.so db.sql example.conf"
+	files="$execs merlin.so sql/mysql/merlin.sql example.conf"
 	missing=
 	for i in $files; do
 		if ! test -f "$src_dir/$i"; then
