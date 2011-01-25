@@ -87,10 +87,10 @@ DEPS = Makefile cfgfile.h ipc.h logging.h shared.h
 APPS = showlog import oconf
 MOD_LDFLAGS = -shared -ggdb3 -fPIC $(PTHREAD_LDFLAGS)
 DAEMON_LIBS = $(LIB_DB) $(LIB_NET)
-DAEMON_LDFLAGS = $(DAEMON_LIBS) -ggdb3
+DAEMON_LDFLAGS = $(DAEMON_LIBS) $(OCILIB_LDFLAGS) -ggdb3
 MTEST_LIBS = $(LIB_DB) $(LIB_DL)
-MTEST_LDFLAGS = $(MTEST_LIBS) -ggdb3 -rdynamic -Wl,-export-dynamic $(PTHREAD_LDFLAGS)
-NEBTEST_LIBS = $(LIB_DL) $(LIB_DB)
+MTEST_LDFLAGS = $(MTEST_LIBS) $(OCILIB_LDFLAGS) -ggdb3 -rdynamic -Wl,-export-dynamic $(PTHREAD_LDFLAGS)
+NEBTEST_LIBS = $(LIB_DL) $(LIB_DB) $(OCILIB_LDFLAGS)
 NEBTEST_LDFLAGS = -rdynamic -Wl,-export-dynamic
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
@@ -138,7 +138,7 @@ test-lparse: test-lparse.o lparse.o logutils.o hash.o test_utils.o
 	$(QUIET_LINK)$(CC) $^ -o $@
 
 import: $(IMPORT_OBJS)
-	$(QUIET_LINK)$(CC) $(LIB_DB) $^ -o $@
+	$(QUIET_LINK)$(CC) $(LIB_DB) $(OCILIB_LDFLAGS) $^ -o $@
 
 showlog: $(SHOWLOG_OBJS)
 	$(QUIET_LINK)$(CC) $(LIB_DB) $^ -o $@
