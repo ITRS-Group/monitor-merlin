@@ -488,7 +488,8 @@ class nagios_object_importer
 			$list = $this->describe("$obj_type");
 			if (empty($list))
 				return false;
-			foreach($list as $k => $row) {
+
+			foreach($list as $lkey => $row) {
 				$this->allowed_vars[$obj_type][$row[0]] = $row[0];
 			}
 		}
