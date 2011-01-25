@@ -64,7 +64,7 @@ class nagios_object_importer
 
 	public $errors = 0;
 
-	public $DEBUG = true;
+	public $debug = false;
 
 	# internal object indexing cache
 	private $idx; # object_indexer object
@@ -1004,7 +1004,7 @@ class nagios_object_importer
 		$i = 0;
 
 		if(empty($resource)) {
-			if($this->DEBUG) echo "SQL ERROR: sql_fetch_result() called with empty resource\n";
+			if($this->debug) echo "SQL ERROR: sql_fetch_result() called with empty resource\n";
 			return(false);
 		}
 
