@@ -47,7 +47,7 @@ ENABLE_LIBDBI ?= 1
 
 ifeq ($(ENABLE_OCILIB),1)
 # Use ocilib...
-ORACLE_PREFIX ?= /home/oracle/oracle/product/10.2.0/db_1
+ORACLE_PREFIX ?= /usr/lib/oracle/11.2/client64
 # /home/ora10/OraHome1
 ORACLE_LDFLAGS = -L$(ORACLE_PREFIX)/lib -lclntsh
 OCILIB_PREFIX ?= /usr/local
