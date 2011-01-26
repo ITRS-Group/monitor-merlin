@@ -21,6 +21,7 @@ Requires: ocilib >= 3.8
 Requires: merlin-apps >= %version
 BuildRequires: mysql-devel
 BuildRequires: libdbi-devel
+BuildRequires: ocilib-devel
 Obsoletes: monitor-reports-module
 BuildRoot: /override/%name-%version
 
@@ -138,6 +139,7 @@ sh /etc/init.d/monitor start || :
 %mod_path/install-merlin.sh
 %mod_path/import.php
 %mod_path/object_importer.inc.php
+%mod_path/MerlinPDO.inc.php
 %mod_path/example.conf
 %mod_path/init.sh
 %_sysconfdir/logrotate.d/merlin
