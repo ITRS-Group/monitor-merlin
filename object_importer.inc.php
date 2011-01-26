@@ -54,6 +54,7 @@ class object_indexer
 class nagios_object_importer
 {
 	public $instance_id = 0;
+	public $db_quote_special = false;
 
 	public $db_type = 'mysql';
 	public $db_host = 'localhost';
@@ -975,7 +976,19 @@ class nagios_object_importer
 
 	function sql_escape_string($string)
 	{
-		return $this->db->quote($string);
+		# this->db->quote() should return "''" for an empty string
+		$s = $this->db->quote($string);
+		if ($s)
+			return $s;
+
+		# the oracle driver seems to sometimes have problems with
+		# this for some reason, though I don't know why. We solve
+		# it by escaping it ourselves in that case, using a sort
+		# of oracle-compatible escape thing but only handling the
+		# simple case of single quotes inside the quoted string.
+		$this->db_quote_special = true;
+		$s = str_replace("'", "''", $string);
+		return "'$s'";
 	}
 
 	# execute an SQL query with error handling

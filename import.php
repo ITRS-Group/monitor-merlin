@@ -164,5 +164,9 @@ if (!$dry_run) {
 	$imp->enable_indexes();
 }
 
-if (!$dry_run)
+if (!$dry_run) {
 	$imp->finalize_import();
+	if (!empty($imp->db_quote_special)) {
+		echo "Special quoting used. pdo_oci appears to be buggy.\n";
+	}
+}
