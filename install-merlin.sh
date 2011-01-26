@@ -173,7 +173,7 @@ install_files ()
 	for f in $files; do
 		cp "$src_dir/$f" "$root_path/$dest_dir"
 	done
-	mkdir "$root_path/$dest_dir/sql/mysql/"
+	mkdir -p "$root_path/$dest_dir/sql/mysql/"
 	cp "$src_dir/sql/mysql/merlin.sql" "$root_path/$dest_dir/sql/mysql/" 
 	macro_subst "$src_dir/example.conf" > "$root_path/$dest_dir/merlin.conf"
 	macro_subst "$src_dir/import.php" > "$root_path/$dest_dir/import.php"
