@@ -157,7 +157,7 @@ install_apps ()
 install_files ()
 {
 	execs="import showlog merlind install-merlin.sh init.sh"
-	files="$execs merlin.so sql/mysql/merlin.sql example.conf"
+	files="$execs merlin.so example.conf"
 	missing=
 	for i in $files; do
 		if ! test -f "$src_dir/$i"; then
@@ -173,6 +173,8 @@ install_files ()
 	for f in $files; do
 		cp "$src_dir/$f" "$root_path/$dest_dir"
 	done
+	mkdir "$root_path/$dest_dir/sql/mysql/"
+	cp "$src_dir/sql/mysql/merlin.sql" "$root_path/$dest_dir/sql/mysql/" 
 	macro_subst "$src_dir/example.conf" > "$root_path/$dest_dir/merlin.conf"
 	macro_subst "$src_dir/import.php" > "$root_path/$dest_dir/import.php"
 	macro_subst "$src_dir/object_importer.inc.php" > "$root_path/$dest_dir/object_importer.inc.php"
