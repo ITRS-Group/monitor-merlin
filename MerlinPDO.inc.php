@@ -131,7 +131,7 @@ class MerlinPDO
 		$c =& PDOProvider::config(self::DBKEY);
 		if (stristr($type, 'mysql') !== false) {
 			$c['dsn'] = "mysql:host=$host;dbname=$name";
-		} elseif ($type === 'oci' || $type === 'oracle') {
+		} elseif ($type === 'oci' || $type === 'oracle' || $type === 'ocilib') {
 			$c['dsn'] = "oci:dbname=$name";
 		}
 		$c['user'] = $user;
