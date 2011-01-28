@@ -59,20 +59,7 @@ size_t sql_quote(const char *src, char **dst)
 	size_t const ret = db.conn->api->sql_quote(db.conn, src, (src?strlen(src):0U), dst);
 	if (! ret)
 	{
-#if 0
-		if (! src || !*src)
-		{
-			*dst = strdup("''");
-			return strlen(*dst);
-		}
-		else
-#endif
-		{
-			lerr("Failed to quote and copy string at %p to %p. str=[%s]",
-			     src, dst, src);
-			lerr("Source string: '%s'", src);
-			*dst = NULL;
-		}
+		*dst = NULL;
 	}
 	return ret;
 }
