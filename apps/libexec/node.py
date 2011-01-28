@@ -165,6 +165,7 @@ def cmd_status(args):
 	high_latency = {}
 	inactive = {}
 	mentioned = {}
+	conn = False
 
 	# now we load whatever database driver is appropriate
 	if db_type == 'mysql':
@@ -181,6 +182,15 @@ def cmd_status(args):
 			print("Failed to import pgdb")
 			print("Install postgresql-python to make this command work")
 			sys.exit(1)
+	elif db_type in ['oci', 'oracle', 'ocilib']:
+		try:
+			import cx_Oracle as db
+		except:
+			print("Failed to import cx_Oracle")
+			print("Install oracle-python to make this command work")
+			sys.exit(1)
+		conn = db.connect((db_user + "/" + db_pass + "@" + db_name).encode('latin1'))
+
 	else:
 		print("Invalid database type selected: %s" % db_type)
 		print("Cannot continue")
@@ -188,7 +198,8 @@ def cmd_status(args):
 
 	#print("Connecting to %s on %s with %s:%s as user:pass" %
 	#	(db_name, db_host, db_user, db_pass))
-	conn = db.connect(host=db_host, user=db_user, passwd=db_pass, db=db_name)
+	if not conn:
+		conn = db.connect(host=db_host, user=db_user, passwd=db_pass, db=db_name)
 	dbc = conn.cursor()
 	status = get_node_status()
 	latency_thresholds = {'min': -1.0, 'avg': 100.0, 'max': -1.0}
