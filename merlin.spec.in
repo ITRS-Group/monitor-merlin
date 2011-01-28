@@ -134,7 +134,7 @@ sh /etc/init.d/monitor start || :
 %files
 %defattr(-,root,root)
 %config(noreplace) %mod_path/merlin.conf
-%mod_path/sql/mysql/merlin.sql
+%mod_path/sql
 %mod_path/merlind
 %mod_path/install-merlin.sh
 %mod_path/import.php
