@@ -28,5 +28,5 @@ extern const char *sql_db_name(void);
 extern const char *sql_db_user(void);
 extern const char *sql_db_pass(void);
 extern const char *sql_db_host(void);
-
+extern const char *sql_db_type(void);
 #endif

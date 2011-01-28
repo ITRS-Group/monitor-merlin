@@ -390,6 +390,11 @@ const char *sql_db_host(void)
 	return db.host ? db.host : "localhost";
 }
 
+const char *sql_db_type(void)
+{
+	return db.type ? db.type : "mysql";
+}
+
 const char *sql_table_name(void)
 {
 	return db.table ? db.table : "report_data";

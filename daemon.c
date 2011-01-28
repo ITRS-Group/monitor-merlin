@@ -388,9 +388,9 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 	}
 
 	asprintf(&cmd, "%s --nagios-cfg=%s "
-			 "--db-name=%s --db-user=%s --db-pass=%s --db-host=%s",
+			 "--db-type=%s --db-name=%s --db-user=%s --db-pass=%s --db-host=%s",
 			 import_program, cfg,
-			 sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host());
+			 sql_db_type(), sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host());
 	if (cache && *cache) {
 		char *cmd2 = cmd;
 		asprintf(&cmd, "%s --cache=%s", cmd2, cache);
