@@ -51,16 +51,18 @@ static time_t last_connect_attempt;
  */
 size_t sql_quote(const char *src, char **dst)
 {
-	if (! db.conn)
-	{
+	size_t ret;
+
+	if (!db.conn) {
 		sql_init();
 	}
-    assert( NULL != db.conn );
-	size_t const ret = db.conn->api->sql_quote(db.conn, src, (src?strlen(src):0U), dst);
-	if (! ret)
-	{
+
+	assert(db.conn != NULL);
+	ret = db.conn->api->sql_quote(db.conn, src, (src?strlen(src):0U), dst);
+	if (!ret) {
 		*dst = NULL;
 	}
+
 	return ret;
 }
 
@@ -77,19 +79,22 @@ size_t sql_quote(const char *src, char **dst)
  */
 int sql_error(const char **msg)
 {
+	int dbrc = 0;
+
 	if (!db.conn) {
 		*msg = "no database connection";
 		return DB_WRAP_E_UNKNOWN_ERROR;
 	}
-		int dbrc = 0;
-		db.conn->api->error_info(db.conn, msg, NULL, &dbrc);
-		return dbrc;
+
+	db.conn->api->error_info(db.conn, msg, NULL, &dbrc);
+	return dbrc;
 }
 
-/** Convenience form of sql_error() which returns the error
-	string directly, or returns an unspecified string if
-	no connection is established.
-*/
+/**
+ * Convenience form of sql_error() which returns the error
+ * string directly, or returns an unspecified string if
+ * no connection is established.
+ */
 const char *sql_error_msg(void)
 {
 	const char *msg = NULL;
@@ -100,8 +105,8 @@ const char *sql_error_msg(void)
 void sql_free_result(void)
 {
 	if (db.result) {
-			db.result->api->finalize(db.result);
-			db.result = NULL;
+		db.result->api->finalize(db.result);
+		db.result = NULL;
 	}
 }
 
@@ -112,32 +117,26 @@ db_wrap_result * sql_get_result(void)
 
 static int run_query(char *query, size_t len, int rerunIGNORED)
 {
-	/*
-	  TODO/possible FIXME: the original code uses dbi_conn_query_null(),
-	  which is explicitly useful for passing binary strings containing
-	  NULL bytes to the dbi engine. i do not know if the rest of the code
-	  depends on this binary ability. If it does then we've got a slight
-	  problem here because that feature is not portable across back-ends
-	  (according to the dbi docs).
-	 */
-	db_wrap_result * res = NULL;
+	db_wrap_result *res = NULL;
 	int rc = db.conn->api->query_result(db.conn, query, len, &res);
-	if (db.logSQL)
-	{
+
+	if (db.logSQL) {
 		fprintf(stderr, "MERLIN SQL: [%s]\n\tResult code: %d, result object @%p\n", query, rc, res);
-		if (0 != rc)
+		if (rc) {
 			fprintf(stderr, "\tError code: %d\n", rc);
-			/* Reminder: the OCI driver adds a newline of its own to
-			   error text.
+			/*
+			 * Reminder: the OCI driver adds a newline of its own to
+			 * error text.
 			*/
+		}
 	}
-	if (rc)
-	{
+
+	if (rc) {
 		assert(NULL == res);
 		return rc;
 	}
-	assert(NULL != res);
-	assert(NULL == db.result);
+	assert(res != NULL);
+	assert(db.result == NULL);
 	db.result = res;
 	return rc;
 }
@@ -232,13 +231,12 @@ int sql_query(const char *fmt, ...)
 
 int sql_is_connected(void)
 {
-	return (db.conn && db.conn->api->is_connected(db.conn))
-		? 1
-		: 0;
+	return (db.conn && db.conn->api->is_connected(db.conn)) ? 1 : 0;
 }
 
 int sql_init(void)
 {
+	const char *env;
 	int result;
 
 	if (!use_database)
@@ -248,39 +246,14 @@ int sql_init(void)
 		return -1;
 	last_connect_attempt = time(NULL);
 
-		char const * env = getenv("MERLIN_LOG_SQL");
-		if (env && ('0'!=*env))
-		{
-			db.logSQL = 1;
-		}
+	env = getenv("MERLIN_LOG_SQL");
+	if (env && *env != 0) {
+		db.logSQL = 1;
+	}
 
 	/* free any remaining result set */
 	sql_free_result();
 
-#if 0
-	if (!db.driver) {
-		result = dbi_initialize(NULL);
-		if (result < 1) {
-			lerr("Failed to initialize any libdbi drivers");
-			return -1;
-		}
-
-		if (!db.type)
-			db.type = "mysql";
-
-		db.driver = dbi_driver_open(db.type);
-		if (!db.driver) {
-			lerr("Failed to open libdbi driver '%s'", db.type);
-			return -1;
-		}
-	}
-
-	db.conn = dbi_conn_open(db.driver);
-	if (!db.conn) {
-		lerr("Failed to create a database connection instance");
-		return -1;
-	}
-#else
 	db.name = sql_db_name();
 	db.host = sql_db_host();
 	db.user = sql_db_user();
@@ -301,22 +274,23 @@ int sql_init(void)
 	result = db_wrap_driver_init(db.type, &connparam, &db.conn)
 		/* FIXME: use driver-independent init function, instead of dbi directly */
 		;
-	if (result)
-	{
+	if (result) {
 		lerr("Failed to connect to db '%s' at host '%s':'%d' as user %s using driver %s.",
 			 db.name, db.host, db.port, db.user, db.type );
 		return -1;
 	}
+
 	if (db.logSQL) {
 		fprintf(stderr, "MERLIN DB: Connected to db [%s] using driver [%s]\n",
 				 db.name, db.type);
 	}
-#endif
-		result = db.conn->api->option_set(db.conn, "encoding", db.encoding ? db.encoding : "UTF-8");
+	result = db.conn->api->option_set(db.conn, "encoding", db.encoding ? db.encoding : "UTF-8");
+
 	if (result) {
 		lerr("Warning: Failed to set one or more database connection options");
 	}
-		result = db.conn->api->connect(db.conn);
+
+	result = db.conn->api->connect(db.conn);
 	if (result) {
 		const char *error_msg;
 		sql_error(&error_msg);
@@ -326,6 +300,7 @@ int sql_init(void)
 		sql_close();
 		return -1;
 	}
+
 	last_connect_attempt = 0;
 	return 0;
 }
@@ -337,11 +312,11 @@ int sql_close(void)
 		return 0;
 
 	sql_free_result();
-		if (db.conn)
-		{
-			db.conn->api->finalize(db.conn);
-			db.conn = NULL;
-		}
+	if (db.conn) {
+		db.conn->api->finalize(db.conn);
+		db.conn = NULL;
+	}
+
 	return 0;
 }
 
@@ -404,11 +379,10 @@ int sql_config(const char *key, const char *value)
 		FIXME("we leak these copied values if we set a particular value more than once.");
 	if (!prefixcmp(key, "name") || !prefixcmp(key, "database"))
 		db.name = value_cpy;
-	else if (!prefixcmp(key, "logsql"))
-		{
-			db.logSQL = (value && *value && (*value!='0')) ? 1 : 0;
-			free(value_cpy);
-		}
+	else if (!prefixcmp(key, "logsql")) {
+		db.logSQL = (value && *value && (*value!='0')) ? 1 : 0;
+		free(value_cpy);
+	}
 	else if (!prefixcmp(key, "user"))
 		db.user = value_cpy;
 	else if (!prefixcmp(key, "pass"))
