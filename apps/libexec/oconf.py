@@ -270,7 +270,7 @@ class nagios_timeperiod(nagios_object):
 	# handle weirdo timeperiods smarter here
 	def parse_line(self, line):
 		ary = re.split('[\t ,]*', line, 1)
-		if ary[0] in ['alias', 'timeperiod_name', 'register']:
+		if ary[0] in ['alias', 'timeperiod_name', 'register', 'exclude']:
 			return (ary[0], ary[1])
 
 		ary = re.split('[\t ,]*', line)
