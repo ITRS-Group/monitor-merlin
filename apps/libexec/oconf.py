@@ -248,6 +248,9 @@ class nagios_object:
 
 class nagios_timeperiod(nagios_object):
 	otype = 'timeperiod'
+	slave_keys = {
+		'exclude': 'Mtimeperiod',
+    }
 
 	# checks for strings in the format HH:MM-HH:MM
 	def is_timedef(self, s):
