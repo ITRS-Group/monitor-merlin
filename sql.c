@@ -118,7 +118,15 @@ db_wrap_result * sql_get_result(void)
 static int run_query(char *query, size_t len, int rerunIGNORED)
 {
 	db_wrap_result *res = NULL;
-	int rc = db.conn->api->query_result(db.conn, query, len, &res);
+	int rc;
+
+	if (!db.conn && sql_init() < 0) {
+		lerr("DB: No connection. Skipping query [%s]\n", query);
+		return -1;
+	}
+
+	assert(db.conn != NULL);
+	rc = db.conn->api->query_result(db.conn, query, len, &res);
 
 	if (db.logSQL) {
 		fprintf(stderr, "MERLIN SQL: [%s]\n\tResult code: %d, result object @%p\n", query, rc, res);
