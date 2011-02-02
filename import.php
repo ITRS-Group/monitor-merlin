@@ -37,6 +37,7 @@ function usage($msg = false)
 	echo "--cache      path to the objects.cache file to import\n";
 	echo "--status-log path to the status.log file to import\n";
 	echo "--nagios-cfg path to nagios' main configuration file\n";
+	echo "--force      force re-import even if objects.cache hasn't changed\n";
 	exit(1);
 }
 
@@ -100,6 +101,7 @@ for ($i = 1; $i < $argc; $i++) {
 	 case 'status-log': $status_log = $opt; break;
 	 case 'nagios-cfg': $nagios_cfg = $opt; break;
 	 case 'dry-run': $dry_run = true; break;
+	 case 'force': $force_import = true; break;
 	 default:
 		usage("Unknown argument: $arg\n");
 		break;
@@ -142,7 +144,7 @@ if ($cache) {
 	$lastimport = $cache.'.lastimport';
 	$mtime = filemtime($cache);
 	$importtime = file_exists($lastimport) ? filemtime($lastimport) : 0;
-	if ($mtime > $importtime) {
+	if ($mtime > $importtime || $force_import) {
 		echo "importing objects from $cache\n";
 		if (!$dry_run) {
 			$imp->import_objects_from_cache($cache, true);
