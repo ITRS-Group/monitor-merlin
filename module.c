@@ -108,6 +108,15 @@ int handle_external_command(merlin_header *hdr, void *buf)
 /* events that require status updates return 1, others return 0 */
 int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 {
+	if (!pkt) {
+		lerr("MM: pkt is NULL in handle_ipc_event()");
+		return 0;
+	}
+	if (!pkt->body) {
+		lerr("MM: pkt->body is NULL in handle_ipc_event()");
+		return 0;
+	}
+
 	if (node) {
 		/*
 		 * this node is obviously connected, so mark it as such,
@@ -129,7 +138,9 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 		   pkt->hdr.len, *pkt->body);
 */
 	/* restore the pointers so the various handlers won't have to */
-	merlin_decode(pkt->body, pkt->hdr.len, pkt->hdr.type);
+	if (merlin_decode_event(pkt)) {
+		return 0;
+	}
 
 	/*
 	 * check results and status updates are handled the same,
