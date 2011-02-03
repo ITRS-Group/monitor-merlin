@@ -551,18 +551,18 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 		return 0;
 
 	if (!pkt) {
-		lerr("pkt is NULL in mrm_db_update");
+		lerr("pkt is NULL in mrm_db_update()");
 		return 0;
 	}
 	if (!pkt->body) {
-		lerr("pkt->body is NULL in mrm_db_update");
+		lerr("pkt->body is NULL in mrm_db_update()");
 		return 0;
 	}
-	merlin_decode(pkt->body, pkt->hdr.len, pkt->hdr.type);
-	if (!pkt->body) {
-		lerr("merlin_decode() made pkt->body NULL in mrm_db_update");
+
+	if (merlin_decode_event(pkt)) {
 		return 0;
 	}
+
 	switch (pkt->hdr.type) {
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 		errors = handle_program_status(node, (void *)pkt->body);
