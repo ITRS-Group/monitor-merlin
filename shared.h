@@ -197,6 +197,12 @@ static inline int merlin_encode_event(merlin_event *pkt, void *data)
 }
 static inline int merlin_decode_event(merlin_event *pkt)
 {
-	return merlin_decode(pkt->body, pkt->hdr.len, pkt->hdr.type);
+	int ret = merlin_decode(pkt->body, pkt->hdr.len, pkt->hdr.type);
+
+	if (ret) {
+		lerr("CODEC: Failed to decode packet. type: %u; code: %u; len: %u",
+			 pkt->hdr.type, pkt->hdr.code, pkt->hdr.len);
+	}
+	return ret;
 }
 #endif
