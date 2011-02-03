@@ -117,14 +117,16 @@ int merlin_encode(void *data, int cb_type, char *buf, int buflen)
  * Note that strings still cannot be free()'d, since the memory
  * they reside in is a single continuous block making up the entire
  * event.
+ * Returns 0 on success, -1 on general (input) errors and > 0 on
+ * decoding errors.
  */
 int merlin_decode(void *ds, off_t len, int cb_type)
 {
 	off_t *ptrs;
-	int num_strings, i;
+	int num_strings, i, ret = 0;
 
 	if (!ds || !len || cb_type < 0 || cb_type >= NEBCALLBACK_NUMITEMS)
-		return 0;
+		return -1;
 
 	num_strings = hook_info[cb_type].strings;
 	ptrs = hook_info[cb_type].ptrs;
@@ -149,6 +151,7 @@ int merlin_decode(void *ds, off_t len, int cb_type)
 				 i, *(int *)ds, ptr, len, (off_t)ptr - len);
 
 			ptr = NULL;
+			ret |= (1 << i);
 		}
 		else
 			ptr += (off_t)ds;
@@ -157,5 +160,5 @@ int merlin_decode(void *ds, off_t len, int cb_type)
 		memcpy((char *)ds + ptrs[i], &ptr, sizeof(ptr));
 	}
 
-	return 1;
+	return ret;
 }
