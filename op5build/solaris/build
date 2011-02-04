@@ -17,6 +17,7 @@ pushd merlin
 #	mkdir -p $working_dir/temp/opt/monitor/op5/merlin
 #	mkdir -p $working_dir/temp/opt/monitor/op5/merlin/logs
         cp merlind $working_dir/temp/op5/merlin/
+	cp import $working_dir/temp/op5/merlin/
         cp merlin.so $working_dir/temp/op5/merlin/
 	cp *.php $working_dir/temp/op5/merlin/
 	cp *.sh $working_dir/temp/op5/merlin/
