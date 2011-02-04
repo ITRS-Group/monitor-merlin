@@ -3,3 +3,7 @@ prefix='/opt/monitor/op5/merlin'
 
 bash $prefix/install-merlin.sh --batch --install=db --nagios-cfg=/opt/monitor/etc/nagios.cfg --dest-dir=/opt/monitor/op5/merlin
 
+# temporary decision - adding broker module to nagios.conf, because
+# installation script "install-merlin,sh" fails on this stage
+echo "broker_module=/opt/monitor/op5/merlin/merlin.so /opt/monitor/op5/merlin/merlin.conf" >> \
+	/opt/monitor/etc/nagios.cfg
