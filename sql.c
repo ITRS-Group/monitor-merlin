@@ -42,8 +42,6 @@ NULL/*result*/,
 
 
 
-static time_t last_connect_attempt;
-
 /*
  * Quotes a string and escapes all meta-characters inside the string.
  * If src is NULL or !*src then 0 is returned and *dest is not modified.
@@ -253,7 +251,8 @@ int sql_is_connected(int reconnect)
 int sql_init(void)
 {
 	const char *env;
-	int result;
+	int result, log_attempt = 0;
+	static time_t last_logged = 0;
 
 	if (!use_database)
 		return 0;
@@ -262,9 +261,13 @@ int sql_init(void)
 		ldebug("sql_init(): Already connected. Not reconnecting");
 		return 0;
 	}
-	if (last_connect_attempt + 30 >= time(NULL))
-		return -1;
-	last_connect_attempt = time(NULL);
+
+	if (last_logged + 30 >= time(NULL))
+		log_attempt = 0;
+	else {
+		log_attempt = 1;
+		last_logged = time(NULL);
+	}
 
 	env = getenv("MERLIN_LOG_SQL");
 	if (env && *env != 0) {
@@ -295,33 +298,36 @@ int sql_init(void)
 		/* FIXME: use driver-independent init function, instead of dbi directly */
 		;
 	if (result) {
-		lerr("Failed to connect to db '%s' at host '%s':'%d' as user %s using driver %s.",
-			 db.name, db.host, db.port, db.user, db.type );
+		if (log_attempt) {
+			lerr("Failed to connect to db '%s' at host '%s':'%d' as user %s using driver %s.",
+				 db.name, db.host, db.port, db.user, db.type );
+		}
 		return -1;
 	}
 
-	if (db.logSQL) {
-		fprintf(stderr, "MERLIN DB: Connected to db [%s] using driver [%s]\n",
-				 db.name, db.type);
-	}
 	result = db.conn->api->option_set(db.conn, "encoding", db.encoding ? db.encoding : "UTF-8");
 
-	if (result) {
+	if (result && log_attempt) {
 		lerr("Warning: Failed to set one or more database connection options");
 	}
 
 	result = db.conn->api->connect(db.conn);
 	if (result) {
-		const char *error_msg;
-		sql_error(&error_msg);
-		lerr("Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
-			         db.name, db.host, db.port, db.user, db.pass, error_msg);
+		if (log_attempt) {
+			const char *error_msg;
+			sql_error(&error_msg);
+			lerr("Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
+				 db.name, db.host, db.port, db.user, db.pass, error_msg);
 
-		sql_close();
+			sql_close();
+		}
 		return -1;
+	} else if (log_attempt) {
+		ldebug("MERLIN DB: Connected to db [%s] using driver [%s]",
+			   db.name, db.type);
 	}
 
-	last_connect_attempt = 0;
+	last_logged = 0;
 	return 0;
 }
 
