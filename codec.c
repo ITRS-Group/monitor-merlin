@@ -106,6 +106,11 @@ int merlin_encode(void *data, int cb_type, char *buf, int buflen)
 	 * the last nul-terminator, regardless of how many strings we
 	 * actually stashed in there.
 	 */
+
+	/* offset must be multiple of 8 to avoid memory alignment issues on SPARC */
+	if (offset % 8)
+		offset += 8 - offset % 8;
+
 	return offset;
 }
 
