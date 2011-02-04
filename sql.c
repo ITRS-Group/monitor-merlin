@@ -53,8 +53,9 @@ size_t sql_quote(const char *src, char **dst)
 {
 	size_t ret;
 
-	if (!db.conn) {
-		sql_init();
+	if (!sql_is_connected(1)) {
+		*dst = NULL;
+		return 0;
 	}
 
 	assert(db.conn != NULL);
@@ -166,8 +167,10 @@ int sql_vquery(const char *fmt, va_list ap)
 	 * don't even bother trying to run the query if the database
 	 * isn't online and we recently tried to connect to it
 	 */
-	if (last_connect_attempt + 30 > time(NULL) && !sql_is_connected())
+	if (!sql_is_connected(1)) {
+		ldebug("DB: Not connected and re-init failed. Skipping query");
 		return -1;
+	}
 
 	/* free any leftover result and run the new query */
 	sql_free_result();
@@ -237,9 +240,14 @@ int sql_query(const char *fmt, ...)
 	return ret;
 }
 
-int sql_is_connected(void)
+int sql_is_connected(int reconnect)
 {
-	return (db.conn && db.conn->api->is_connected(db.conn)) ? 1 : 0;
+	int ret = (db.conn && db.conn->api->is_connected(db.conn)) ? 1 : 0;
+
+	if (ret || !reconnect)
+		return ret;
+
+	return sql_init() == 0;
 }
 
 int sql_init(void)
@@ -250,6 +258,10 @@ int sql_init(void)
 	if (!use_database)
 		return 0;
 
+	if (sql_is_connected(0)) {
+		ldebug("sql_init(): Already connected. Not reconnecting");
+		return 0;
+	}
 	if (last_connect_attempt + 30 >= time(NULL))
 		return -1;
 	last_connect_attempt = time(NULL);

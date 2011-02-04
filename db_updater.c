@@ -547,7 +547,7 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 {
 	int errors = 0;
 
-	if (!sql_is_connected())
+	if (!sql_is_connected(1))
 		return 0;
 
 	if (!pkt) {
