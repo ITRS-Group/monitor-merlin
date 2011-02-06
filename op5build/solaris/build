@@ -22,6 +22,7 @@ pushd merlin
 	cp *.php $working_dir/temp/op5/merlin/
 	cp *.sh $working_dir/temp/op5/merlin/
 	cp *.sql $working_dir/temp/op5/merlin/
+	cp -r sql $working_dir/temp/op5/merlin/
 # 	cp merlind $working_dir/temp/opt/monitor/op5/merlin/
 #	cp merlin.so $working_dir/temp/opt/monitor/op5/merlin/
 	sed -e "s/@@DESTDIR@@/\/opt\/monitor\/op5\/merlin/" example.conf > example.conf1
