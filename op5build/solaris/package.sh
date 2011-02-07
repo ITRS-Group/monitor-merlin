@@ -2,36 +2,33 @@
 
 eval `cat pkginfo | grep NAME`
 product=$NAME
-echo $product
-version=dafault
+version=default
 user=default
 tmpdir=/tmp/build
 
-while getopts "hv:u:" OPTION; do
+rm -rf temp prototype instantclient_11_2
+
+while getopts "hv:" OPTION; do
   case $OPTION in
 	h)
-	echo "-u <gituser> -v <version>"
+	echo " -v <version>"
 	exit 1
 	;;
 	v)
 	version=$OPTARG
 	;;
-       u)
-        user=$OPTARG
-        ;;
 	*)
 	echo "BadArgs"
 	exit 1
  esac
 done
-if [ $version == "default" ] || [ $user == "default" ]; then
-	echo "Invalid arguments. try -h"
+
+if test "$version" = "default"; then
+	echo "Must supply version. Try the -v argument"
 	exit 1
 fi
-rm -rf $product
-git clone $user@devel.int.op5.se:~git/monitor/$product.git
-working_dir=`pwd`
-mkdir temp
+
+echo "Building $product $version"
 
 ####
 if [ -f build ]; then
@@ -39,31 +36,22 @@ if [ -f build ]; then
 fi
 ####
 
-pushd temp
-	if [ -f ../checkinstall ] ; then echo i checkinstall >> ../prototype; fi
-        if [ -f ../preinstall ] ; then echo i preinstall >> ../prototype; fi
-        if [ -f ../postinstall ] ; then echo i postinstall >> ../prototype; fi
+for i in pkginfo checkinstall preinstall postinstall; do
+	test -f $i || continue
+	echo "i $i" >> prototype
+done
 
-	echo 'i pkginfo' >> ../prototype
-	pkgproto * >> ../prototype
-	#sed -e "s|nagios nagios|root root|" ../prototype >> prototype
+cd temp
+pkgproto * >> ../prototype
 
-        mv ../prototype ./
-        if [ -f ../checkinstall ] ; then cp ../checkinstall ./; fi
-        if [ -f ../preinstall ] ; then cp ../preinstall ./; fi
-        if [ -f ../postinstall ] ; then cp ../postinstall ./; fi
+sed -e "s/@@VERSION@@/$version/g" ../pkginfo > ../pkginfo1 && mv ../pkginfo1 ../pkginfo
+mkdir -p $tmpdir/$product
 
-        cp ../pkginfo pkginfo
-        
-	sed -e "s/@@VERSION@@/$version/g" pkginfo > pkginfo1 && mv pkginfo1 pkginfo
-        
-	#pkgproto $(PACKDIR)=/ | sed -e "s|$(LOGNAME) $(GROUP)$$|root root|" | egrep -v "(s|d) none (/|/etc|/var|/usr|/usr/local) " >> Prototype        
-        mkdir -p $tmpdir/$product
-        pkgmk -o -r ./ -d $tmpdir/$product -f prototype
-        eval `cat pkginfo | grep PKG`
-	eval `cat pkginfo | grep ARCH`
-popd
+pkgmk -o -r ./ -d $tmpdir/$product -f ../prototype
+cd ..
 
+eval `cat pkginfo | grep PKG`
+eval `cat pkginfo | grep ARCH`
 
 pkgtrans -s $tmpdir/$product `pwd`/$PKG-$version-$ARCH.pkg $PKG
 echo "Package ready: $PKG-$version-$ARCH.pkg"
