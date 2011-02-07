@@ -10,8 +10,8 @@ endif
 PTHREAD_LDFLAGS = -pthread
 PTHREAD_CFLAGS = -pthread
 LIB_DL = -ldl
-LIB_DB = -ldbi
 LIB_NET =
+SYM_EXPORT = -Wl,-export-dynamic
 ifeq ($(uname_S),FreeBSD)
 	TWEAK_CPPFLAGS = -I/usr/local/include
 	LIB_DL =
@@ -32,6 +32,7 @@ ifeq ($(uname_S),SunOS)
 	PTHREAD_CFLAGS =
 	NEEDS_MEMRCHR = YesPlease
 	NEEDS_ASPRINTF = YesPlease
+	SYM_EXPORT =
 endif
 
 # CFLAGS, CPPFLAGS and LDFLAGS are for users to modify
@@ -41,7 +42,7 @@ WARN_FLAGS = -Wall -Wno-unused-parameter
 #WARN_FLAGS += -Wextra# is not supported on older gcc versions.
 
 DBWRAP_OBJS := sql.o db_wrap.o
-DBWRAP_LDFLAGS :=
+DB_LDFLAGS :=
 DBWRAP_CFLAGS :=
 # FIXME: try to find libdbi/ocilib dynamically. Until then, the client
 # can pass ENABLE_LIBDBI=1/0 or ENABLE_OCILIB=1/0 to enable/disable them.
@@ -56,9 +57,8 @@ ifeq ($(ENABLE_OCILIB),1)
 OCILIB_PREFIX ?= /usr/local
 OCILIB_CFLAGS := -I$(OCILIB_PREFIX)/include -DDB_WRAP_CONFIG_ENABLE_OCILIB=1
 OCILIB_LDFLAGS = -L$(OCILIB_PREFIX)/lib -locilib $(ORACLE_LDFLAGS)
-DBWRAP_CFLAGS += $(OCILIB_CFLAGS)
-DBWRAP_LDFLAGS += $(OCILIB_LDFLAGS)
-test-dbwrap.o db_wrap.o: CFLAGS+=$(OCILIB_CFLAGS)
+DB_CFLAGS += $(OCILIB_CFLAGS)
+DB_LDFLAGS += $(OCILIB_LDFLAGS)
 db_wrap.o: db_wrap_ocilib.c
 endif
 
@@ -67,13 +67,12 @@ ifeq ($(ENABLE_LIBDBI),1)
 LIBDBI_PREFIX ?= /usr/local
 LIBDBI_CFLAGS := -I$(LIBDBI_PREFIX)/include -DDB_WRAP_CONFIG_ENABLE_LIBDBI=1
 LIBDBI_LDFLAGS := -L$(LIBDBI_PREFIX)/lib -ldbi
-DBWRAP_CFLAGS += $(LIBDBI_CFLAGS)
-DBWRAP_LDFLAGS += $(LIBDBI_LDFLAGS)
-test-dbwrap.o db_wrap.o: CFLAGS+=$(LIBDBI_CFLAGS)
+DB_CFLAGS += $(LIBDBI_CFLAGS)
+DB_LDFLAGS += $(LIBDBI_LDFLAGS)
 db_wrap.o: db_wrap_dbi.c
 endif
+test-dbwrap.o db_wrap.o: CFLAGS+=$(LIBDBI_CFLAGS)
 
-DBWRAP_OBJS += $(DBWRAP_OBJS)
 COMMON_OBJS = cfgfile.o shared.o hash.o version.o logging.o
 SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
@@ -89,12 +88,12 @@ NEBTEST_OBJS = $(TEST_OBJS) nebtest.o
 DEPS = Makefile cfgfile.h ipc.h logging.h shared.h
 APPS = showlog import oconf
 MOD_LDFLAGS = -shared -ggdb3 -fPIC $(PTHREAD_LDFLAGS)
-DAEMON_LIBS = $(LIB_DB) $(LIB_NET)
-DAEMON_LDFLAGS = $(DAEMON_LIBS) $(OCILIB_LDFLAGS) -ggdb3
-MTEST_LIBS = $(LIB_DB) $(LIB_DL) $(LIB_NET)
-MTEST_LDFLAGS = $(MTEST_LIBS) $(OCILIB_LDFLAGS) -ggdb3 -Wl,-export-dynamic $(PTHREAD_LDFLAGS)
-NEBTEST_LIBS = $(LIB_DL) $(LIB_DB) $(OCILIB_LDFLAGS) $(LIB_NET)
-NEBTEST_LDFLAGS = -Wl,-export-dynamic
+DAEMON_LIBS = $(LIB_NET)
+DAEMON_LDFLAGS = $(DAEMON_LIBS) $(DB_LDFLAGS) -ggdb3
+MTEST_LIBS = $(LIB_DL) $(LIB_NET)
+MTEST_LDFLAGS = $(MTEST_LIBS) $(DB_LDFLAGS) -ggdb3 $(SYM_EXPORT) $(PTHREAD_LDFLAGS)
+NEBTEST_LIBS = $(LIB_DL) $(LIB_NET)
+NEBTEST_LDFLAGS = $(SYM_EXPORT) $(DB_LDFLAGS)
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
 
@@ -135,22 +134,22 @@ check_latency: check_latency.o cfgfile.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(ALL_LDFLAGS)
 
 mtest: mtest.o $(DBWRAP_OBJS) $(TEST_OBJS) $(TEST_DEPS) $(MODULE_OBJS)
-	$(QUIET_LINK)$(CC) $^ -o $@ $(MTEST_LDFLAGS)
+	$(QUIET_LINK)$(CC) $(MTEST_LDFLAGS) $^ -o $@
 
 test-lparse: test-lparse.o lparse.o logutils.o hash.o test_utils.o
 	$(QUIET_LINK)$(CC) $^ -o $@
 
 import: $(IMPORT_OBJS)
-	$(QUIET_LINK)$(CC) $(LIB_DB) $(LIB_NET) $(OCILIB_LDFLAGS) $^ -o $@
+	$(QUIET_LINK)$(CC) $(LIB_NET) $(DB_LDFLAGS) $^ -o $@
 
 showlog: $(SHOWLOG_OBJS)
-	$(QUIET_LINK)$(CC) $(LIB_DB) $(LIB_NET) $^ -o $@
+	$(QUIET_LINK)$(CC) $(LIB_NET) $^ -o $@
 
 nebtest: $(NEBTEST_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(NEBTEST_LIBS) $(NEBTEST_LDFLAGS)
 
 merlind: $(DAEMON_OBJS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $(LIBS) $^ -o $@
+	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $^ -o $@
 
 merlin.so: $(MODULE_OBJS)
 	$(QUIET_LINK)$(CC) $(MOD_LDFLAGS) $(LDFLAGS) $^ -o $@
@@ -212,7 +211,6 @@ $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
 
 test-dbwrap.o: test-dbwrap.c
 test-dbwrap: test-dbwrap.o db_wrap.o $(SHARED_OBJS)
-test-dbwrap: LDFLAGS+=$(DBWRAP_LDFLAGS)
 db_wrap.o: db_wrap.h db_wrap.c
 test-dbwrap: LDFLAGS+=$(MTEST_LDFLAGS)
 APPS += test-dbwrap
