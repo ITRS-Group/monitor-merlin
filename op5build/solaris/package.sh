@@ -5,6 +5,8 @@ product=$NAME
 version=default
 user=default
 tmpdir=/tmp/build
+arch=`uname -p`
+gsed -i "s/^ARCH=.*/ARCH=$arch/" pkginfo
 
 rm -rf temp prototype instantclient_11_2
 
