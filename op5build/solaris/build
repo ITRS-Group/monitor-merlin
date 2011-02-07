@@ -3,22 +3,33 @@ buildroot=$working_dir/temp
 cd ../..
 make clean
 make ENABLE_OCILIB=1 ENABLE_LIBDBI=0
-mkdir -p $buildroot/op5/merlin
-mkdir -p $buildroot/op5/merlin/logs
- 
+mkdir -p $buildroot/opt/monitor/op5/merlin/logs
+mkdir -p $buildroot/usr/bin
+mkdir -p $buildroot/usr/libexec
+mkdir -p $buildroot/var/cache/merlin
+chown root:sys $buildroot/var
+chown root:bin $buildroot/usr/bin
+
 gsed -i \
 	-e 's#grep#/usr/xpg4/bin/grep#" \
 	-e 's#mysql="mysql"#mysql="/opt/csw/mysql5/bin/mysql" \
 		install-merlin.sh
 
-mkdir -p $buildroot/op5/merlin/logs
-cp merlind $buildroot/op5/merlin/
-cp import $buildroot/op5/merlin/
-cp merlin.so $buildroot/op5/merlin/
-cp *.php $buildroot/op5/merlin/
-cp *.sh $buildroot/op5/merlin/
-cp *.sql $buildroot/op5/merlin/
-cp -r sql $buildroot/op5/merlin/
+mkdir -p $buildroot/opt/monitor/op5/merlin/logs
+cp merlind $buildroot/opt/monitor/op5/merlin/
+cp import $buildroot/opt/monitor/op5/merlin/
+cp merlin.so $buildroot/opt/monitor/op5/merlin/
+cp *.php $buildroot/opt/monitor/op5/merlin/
+cp *.sh $buildroot/opt/monitor/op5/merlin/
+cp *.sql $buildroot/opt/monitor/op5/merlin/
+cp -r sql $buildroot/opt/monitor/op5/merlin/
+
+gsed '1s,.*,#!/opt/csw/bin/python,' apps/mon.py > $buildroot/usr/bin/mon
+chown root:bin $buildroot/usr/bin/mon
+chown root:sys $buildroot/opt
+chmod 755 $buildroot/usr/bin/mon
+cp -r apps/libexec $buildroot/usr/libexec/merlin
+cp oconf $buildroot/usr/libexec/merlin/-oconf
 
 gsed \
 	-e 's# php # /opt/csw/php5/bin/php #' \
@@ -27,4 +38,4 @@ gsed \
 	-e 's/@@DBUSER@@/merlin/' \
 	-e 's/@@DBPASS@@/merlin/' \
 	-e 's/@@DBTYPE@@/mysql/' \
-		example.conf > $buildroot/op5/merlin/merlin.conf
+		example.conf > $buildroot/opt/monitor/op5/merlin/merlin.conf
