@@ -8,3 +8,4 @@ else
 	echo "$modline /opt/monitor/op5/merlin/merlin.conf" \
 		>> /opt/monitor/etc/nagios.cfg
 fi
+svccfg import /opt/monitor/svc/manifest-merlin.xml

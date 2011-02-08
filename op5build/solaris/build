@@ -35,3 +35,11 @@ gsed \
 	-e 's/@@DBPASS@@/merlin/' \
 	-e 's/@@DBTYPE@@/mysql/' \
 		example.conf > $buildroot/opt/monitor/op5/merlin/merlin.conf
+
+mkdir -p $buildroot/opt/monitor/svc/
+gsed \
+	-e '1s,.*,#!/sbin/sh,' \
+	-e 's#@@DESTDIR@@#/opt/monitor/op5/merlin/#' \
+		init.sh > $buildroot/opt/monitor/svc/svc-merlin
+chmod 755 $buildroot/opt/monitor/svc/svc-merlin
+cp op5build/solaris/manifest.xml $buildroot/opt/monitor/svc/manifest-merlin.xml

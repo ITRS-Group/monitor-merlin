@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
+
+<service_bundle type="manifest" name="op5merlin:merlin">
+	<service name="network/merlin" type="service" version="1">
+		<instance name="op5merlin" enabled="true">
+			<exec_method type="method" name="start" exec="/opt/monitor/svc/svc-merlin start" timeout_seconds="60"/>
+			<exec_method type="method" name="stop" exec="/opt/monitor/svc/svc-merlin stop" timeout_seconds="60"/>
+		</instance>
+	</service>
+</service_bundle>
