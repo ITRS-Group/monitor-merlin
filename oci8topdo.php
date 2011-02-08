@@ -185,5 +185,6 @@ class Oci8ToPdo_Result implements Countable {
 			# completely broken, but I don't care
 			$this->insert_id  = 0;
 		}
+		return true;
 	}
 }
