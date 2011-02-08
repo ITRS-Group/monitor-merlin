@@ -34,7 +34,7 @@ cp oconf $buildroot/usr/libexec/merlin/-oconf
 
 gsed \
 	-e 's# php # /opt/csw/php5/bin/php #' \
-	-e 's#@@DESTDIR@@#/op5/monitor/op5/merlin/" \
+	-e 's#@@DESTDIR@@#/op5/monitor/op5/merlin/#' \
 	-e 's/@@DBNAME@@/merlin/' \
 	-e 's/@@DBUSER@@/merlin/' \
 	-e 's/@@DBPASS@@/merlin/' \
