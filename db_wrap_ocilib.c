@@ -214,6 +214,8 @@ static char ociw_oci_init()
 
 int ociw_connect(db_wrap * self)
 {
+	char tnsname[1024];
+
 	IMPL_DECL(DB_WRAP_E_BAD_ARG);
 	if (dbimpl->conn)
 	{
@@ -225,7 +227,16 @@ int ociw_connect(db_wrap * self)
 	{
 		return DB_WRAP_E_BAD_ARG;
 	}
-	OCI_Connection * conn = OCI_ConnectionCreate(param->dbname,
+	memset(tnsname, 0, sizeof(tnsname));
+	if (!param->port) {
+		snprintf(tnsname, sizeof(tnsname) - 1, "//%s/%s",
+				 param->host, param->dbname);
+	} else {
+		snprintf(tnsname, sizeof(tnsname) - 1, "//%s:%d/%s",
+				 param->host, param->port, param->dbname);
+	}
+	printf("tnsname: %s\n", tnsname);
+	OCI_Connection * conn = OCI_ConnectionCreate(tnsname,
 			                                      param->username,
 			                                      param->password,
 			                                      OCI_SESSION_DEFAULT);
