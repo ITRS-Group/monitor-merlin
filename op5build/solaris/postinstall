@@ -2,7 +2,7 @@
 prefix='/opt/monitor/op5/merlin'
 
 modline=broker_module=/opt/monitor/op5/merlin/merlin.so
-if grep "$modline" /opt/monitor/etc/nagios.cfg >/dev/null; then
+if ! grep "$modline" /opt/monitor/etc/nagios.cfg >/dev/null; then
 	echo "broker_module=/opt/monitor/op5/merlin/merlin.so /opt/monitor/op5/merlin/merlin.conf" \
 		>> /opt/monitor/etc/nagios.cfg
 fi
