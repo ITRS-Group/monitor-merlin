@@ -71,7 +71,7 @@ DB_CFLAGS += $(LIBDBI_CFLAGS)
 DB_LDFLAGS += $(LIBDBI_LDFLAGS)
 db_wrap.o: db_wrap_dbi.c
 endif
-test-dbwrap.o db_wrap.o: CFLAGS+=$(LIBDBI_CFLAGS)
+test-dbwrap.o db_wrap.o: CFLAGS+=$(DB_CFLAGS)
 
 COMMON_OBJS = cfgfile.o shared.o hash.o version.o logging.o
 SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o
