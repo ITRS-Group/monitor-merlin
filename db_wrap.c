@@ -176,7 +176,7 @@ int db_wrap_driver_init(char const * driver, db_wrap_conn_params const * param, 
 	}
 #endif
 #if DB_WRAP_CONFIG_ENABLE_OCILIB
-	if (0 == strcmp( "ocilib", driver) )
+	if (!strcmp("ocilib", driver) || !strcmp("oracle", driver) || !strcmp("oci", driver))
 	{
 		/* TODO: ocilib. The main problem here is that i have two dev
 		   boxes: one of them has only dbi and one has only ocilib,
