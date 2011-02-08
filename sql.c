@@ -301,6 +301,7 @@ int sql_init(void)
 		if (log_attempt) {
 			lerr("Failed to connect to db '%s' at host '%s':'%d' as user %s using driver %s.",
 				 db.name, db.host, db.port, db.user, db.type );
+			lerr("result: %d; errno: %d (%s)", result, errno, strerror(errno));
 		}
 		return -1;
 	}
