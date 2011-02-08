@@ -722,10 +722,10 @@ static void polling_loop(void)
 		/*
 		 * reap_child_process() resets importer_pid if
 		 * the import is completed.
-		 * if it's not and at tops 15 seconds have passed,
+		 * if it's not and at tops 5 seconds have passed,
 		 * ask for some more time.
 		 */
-		if (importer_pid && !(now % 15)) {
+		if (importer_pid && !(now % 5)) {
 			ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
 		}
 
