@@ -70,7 +70,7 @@ class PDOProvider
 		}
 		$attr = array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION);
 		if (strncmp($dsn, 'oci', 3) == 0) {
-			self::$db = new Oci8ToPdo($c['host'], $c['name'], $c['user'], $c['passwd']);
+			self::$db = new Oci8ToPdo($c['host'], $c['name'], $c['user'], $c['passwd'], $c['port']);
 		} else {
 			self::$db = new PDO($dsn, $c['user'], $c['passwd'], $attr);
 		}
@@ -143,6 +143,7 @@ class MerlinPDO
 		$c['name'] = $name;
 		$c['user'] = $user;
 		$c['passwd'] = $passwd;
+		$c['port'] = $port;
 		//print_r( $c );
 		self::$pdo = PDOProvider::db(self::DBKEY)
 			/* set up initial connection. will throw if a connection cannot be established. */;

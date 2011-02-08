@@ -3,8 +3,8 @@
 class OciException extends PdoException {}
 
 class Oci8ToPdo extends PDO {
-	function __construct($host, $name, $user, $password) {
-		$this->link = oci_connect($user, $password, "//$host/$name");
+	function __construct($host, $name, $user, $password, $port=false) {
+		$this->link = oci_connect($user, $password, "//$host".($port?":$port":'')."/$name");
 
 		if (!$this->link) {
 			$this->throw_exception();
@@ -153,7 +153,7 @@ class Oci8ToPdo_Result implements Countable {
 			throw new OciException($err['message'].' - SQL=['.$sql.']');
 		}
 
-		if ($parameters != null)
+		if ($parameters != null && $this->result)
 			foreach ($parameters as $key => $val) {
 				oci_bind_by_name($this->result, $key, $parameters[$key]);
 			}

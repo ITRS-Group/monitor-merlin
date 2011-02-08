@@ -10,6 +10,7 @@ $imp->db_host = 'localhost';
 $imp->db_user = 'merlin';
 $imp->db_pass = 'merlin';
 $imp->db_database = 'merlin';
+$imp->db_port = false;
 #$imp->debug = TRUE;
 
 if (PHP_SAPI !== 'cli') {
