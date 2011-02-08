@@ -16,6 +16,7 @@ gsed -i \
 		install-merlin.sh
 
 mkdir -p $buildroot/opt/monitor/op5/merlin/logs
+chown monitor $buildroot/opt/monitor/op5/merlin/logs
 cp merlind $buildroot/opt/monitor/op5/merlin/
 cp import $buildroot/opt/monitor/op5/merlin/
 cp merlin.so $buildroot/opt/monitor/op5/merlin/
