@@ -46,7 +46,7 @@ done
 cd temp
 pkgproto * >> ../prototype
 
-sed -e "s/@@VERSION@@/$version/g" ../pkginfo > ../pkginfo1 && mv ../pkginfo1 ../pkginfo
+gsed -i "s/@@VERSION@@/$version/g" ../pkginfo
 mkdir -p $tmpdir/$product
 
 pkgmk -o -r ./ -d $tmpdir/$product -f ../prototype
