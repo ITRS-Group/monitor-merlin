@@ -235,7 +235,6 @@ int ociw_connect(db_wrap * self)
 		snprintf(tnsname, sizeof(tnsname) - 1, "//%s:%d/%s",
 				 param->host, param->port, param->dbname);
 	}
-	printf("tnsname: %s\n", tnsname);
 	OCI_Connection * conn = OCI_ConnectionCreate(tnsname,
 			                                      param->username,
 			                                      param->password,
