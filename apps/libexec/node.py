@@ -161,6 +161,7 @@ def cmd_status(args):
 	db_user = mconf.dbopt.get('user', 'merlin')
 	db_pass = mconf.dbopt.get('pass', 'merlin')
 	db_type = mconf.dbopt.get('type', 'mysql')
+	db_port = mconf.dbopt.get('port', False)
 
 	high_latency = {}
 	inactive = {}
@@ -189,7 +190,15 @@ def cmd_status(args):
 			print("Failed to import cx_Oracle")
 			print("Install oracle-python to make this command work")
 			sys.exit(1)
-		conn = db.connect((db_user + "/" + db_pass + "@" + db_name).encode('latin1'))
+		if db_port:
+			dsn = "//%s:%s" % (db_host, db_port)
+		else:
+			dsn = "//%s" % (db_host)
+		dsn += "/" + db_name
+		db_user = db_user.encode('latin1')
+		db_pass = db_pass.encode('latin1')
+		dsn = dsn.encode('latin1')
+		conn = db.connect(db_user, db_pass, dsn)
 
 	else:
 		print("Invalid database type selected: %s" % db_type)
