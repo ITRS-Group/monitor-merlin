@@ -119,7 +119,7 @@ CREATE TABLE command (
   instance_id NUMBER(10,0) DEFAULT '0' NOT NULL,
   id NUMBER(10,0) NOT NULL,
   command_name VARCHAR2(75 CHAR) NOT NULL,
-  command_line VARCHAR2(4000 CHAR) NOT NULL
+  command_line CLOB NOT NULL
 );
 
 

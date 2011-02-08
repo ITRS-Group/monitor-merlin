@@ -894,12 +894,6 @@ class nagios_object_importer
 				}
 				continue;
 			}
-
-			if (!is_numeric($v))
-				$obj[$k] = $this->sql_escape_string($v);
-			else
-				#$obj[$k] = '\'' . $v . '\'';
-				$obj[$k] = $v; # outer quotes removed by sbeal for Oracle compat.
 		}
 
 		if ((!$fresh && ($obj_type === 'host' || $obj_type === 'service'))
@@ -910,7 +904,7 @@ class nagios_object_importer
 			unset($obj['id']);
 			$params = array();
 			foreach ($obj as $k => $v) {
-				$params[] = "$k = $v";
+				$params[] = "$k = :$k";
 			}
 			$query .= join(", ", $params) . " WHERE id = $oid";
 		} else {
@@ -919,19 +913,19 @@ class nagios_object_importer
 				$this->sql_exec_query("DELETE FROM $obj_type WHERE id=".$obj['id']);
 			}
 			$target_vars = implode(', ', array_keys($obj));
-			$target_values = implode(', ', array_values($obj));
+			$target_values = ':'.implode(', :', array_keys($obj));
 			$query = "INSERT INTO $obj_type ($target_vars) " .
 				"VALUES($target_values)";
+		}
+
+		if (!$this->sql_exec_query($query, $obj)) {
+			$this->errors++;
+			return false;
 		}
 
 		# $obj is passed by reference, so we can release
 		# it here now that we're done with it.
 		$obj = false;
-
-		if (!$this->sql_exec_query($query)) {
-			$this->errors++;
-			return false;
-		}
 
 		$this->glue_custom_vars($obj_type, $obj_key, $custom);
 
@@ -993,7 +987,7 @@ class nagios_object_importer
 	}
 
 	# execute an SQL query with error handling
-	function sql_exec_query($query)
+	function sql_exec_query($query, $args=null)
 	{
 		if(empty($query))
 			return(false);
@@ -1006,7 +1000,12 @@ class nagios_object_importer
 			$fn = basename(__FILE__);
 			echo $fn.": QUERY: [$query]\n";
 		}
-		$result = $this->db->query($query);
+		if ($args) {
+			$stmt = $this->db->prepare($query);
+			$result = $stmt->execute($args);
+		} else {
+			$result = $this->db->query($query);
+		}
 		return($result);
 	}
 

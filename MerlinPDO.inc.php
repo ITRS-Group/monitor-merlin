@@ -1,4 +1,5 @@
 <?php
+require_once('oci8topdo.php');
 /*
  * Copyright(C) 2004, 2005, 2007, 2010 op5 AB
  * All rights reserved.
@@ -68,7 +69,11 @@ class PDOProvider
 			$dsn .= ';dbname='.$c['database'];
 		}
 		$attr = array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION);
-		self::$db = new PDO($dsn, $c['user'], $c['passwd'], $attr);
+		if (strncmp($dsn, 'oci', 3) == 0) {
+			self::$db = new Oci8ToPdo($c['host'], $c['name'], $c['user'], $c['passwd']);
+		} else {
+			self::$db = new PDO($dsn, $c['user'], $c['passwd'], $attr);
+		}
 		self::$db->driverName = substr($dsn, 0, strpos($dsn,':',3/*3==length of "oci"*/));
 		return self::$db;
 	}
@@ -134,6 +139,8 @@ class MerlinPDO
 		} elseif ($type === 'oci' || $type === 'oracle' || $type === 'ocilib') {
 			$c['dsn'] = "oci:dbname=$name";
 		}
+		$c['host'] = $host;
+		$c['name'] = $name;
 		$c['user'] = $user;
 		$c['passwd'] = $passwd;
 		//print_r( $c );

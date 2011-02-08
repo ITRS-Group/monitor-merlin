@@ -179,6 +179,7 @@ install_files ()
 	macro_subst "$src_dir/import.php" > "$root_path/$dest_dir/import.php"
 	macro_subst "$src_dir/object_importer.inc.php" > "$root_path/$dest_dir/object_importer.inc.php"
 	macro_subst "$src_dir/MerlinPDO.inc.php" > "$root_path/$dest_dir/MerlinPDO.inc.php"
+	macro_subst "$src_dir/oci8topdo.php" > "$root_path/$dest_dir/oci8topdo.php"
 	for f in $execs; do
 		chmod 755 "$root_path/$dest_dir/$f"
 	done
