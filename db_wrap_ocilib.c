@@ -133,12 +133,13 @@ static void oci_err_handler(OCI_Error *err)
 	ociw_error_info_kludge.ociCode =
 		OCI_ErrorGetOCICode(err);
 
+	/* OCI_ErrorGetString() returns a string with a newline */
 	lerr("code  : ORA-%05d\n"
-		 "msg   : %s" /*REMEMBER: OCI_ErrorGetString() contains a newline!*/
+		 "msg   : %s"
 		 "sql   : %s\n",
 		 ociw_error_info_kludge.ociCode,
 		 ociw_error_info_kludge.errorString,
-		 ociw_error_info_kludge.sql
+		 ociw_error_info_kludge.sql ? ociw_error_info_kludge.sql : "(null)"
 		);
 }
 
