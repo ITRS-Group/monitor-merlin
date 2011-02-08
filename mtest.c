@@ -129,7 +129,7 @@ static void *blk_prep(void *data)
  */
 static uint count_rows_traverse(db_wrap_result * result)
 {
-	size_t n = 0;
+	unsigned int n = 0;
 	if (result) {
 	    for( ; 0 == result->api->step(result); ++n ) {}
 	    /* ACHTUNG: the oci driver can only return the number of rows
