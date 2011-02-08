@@ -10,11 +10,6 @@ mkdir -p $buildroot/var/cache/merlin
 chown root:sys $buildroot/var
 chown root:bin $buildroot/usr/bin
 
-gsed -i \
-	-e 's#grep#/usr/xpg4/bin/grep#" \
-	-e 's#mysql="mysql"#mysql="/opt/csw/mysql5/bin/mysql" \
-		install-merlin.sh
-
 mkdir -p $buildroot/opt/monitor/op5/merlin/logs
 chown monitor $buildroot/opt/monitor/op5/merlin/logs
 cp merlind $buildroot/opt/monitor/op5/merlin/
