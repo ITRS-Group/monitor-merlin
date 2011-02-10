@@ -81,6 +81,14 @@ for ($i = 1; $i < $argc; $i++) {
 	}
 	$arg = substr($arg, 2);
 
+	if ($arg === 'dry-run') {
+		$dry_run = true;
+		continue;
+	} else if ($arg === 'force') {
+		$force_import = true;
+		continue;
+	}
+
 	$opt = false;
 	$optpos = strpos($arg, '=');
 	if ($optpos !== false) {
@@ -89,7 +97,7 @@ for ($i = 1; $i < $argc; $i++) {
 		$arg = substr($arg, 0, $optpos);
 	} elseif ($i < $argc - 1) {
 		$opt = $argc[++$i];
-	} elseif ($arg !== 'dry-run') {
+	} else {
 		usage("$arg requires an option\n");
 	}
 	switch ($arg) {
@@ -101,8 +109,6 @@ for ($i = 1; $i < $argc; $i++) {
 	 case 'cache': $cache = $opt; break;
 	 case 'status-log': $status_log = $opt; break;
 	 case 'nagios-cfg': $nagios_cfg = $opt; break;
-	 case 'dry-run': $dry_run = true; break;
-	 case 'force': $force_import = true; break;
 	 default:
 		usage("Unknown argument: $arg\n");
 		break;
