@@ -88,7 +88,7 @@ int net_try_connect(merlin_node *node)
 	int should_log = 0;
 
 	/* don't log obsessively */
-	if (node->last_conn_attempt_logged + 30 >= time(NULL)) {
+	if (node->last_conn_attempt_logged + 30 <= time(NULL)) {
 		should_log = 1;
 		node->last_conn_attempt_logged = time(NULL);
 	}
