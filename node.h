@@ -21,13 +21,14 @@
 #define MERLIN_SENDPATH_INTERVAL 15
 
 /*
- * flags for node options
+ * flags for node options. Must be powers of 2
  */
-#define MERLIN_NODE_TAKEOVER 1
+#define MERLIN_NODE_TAKEOVER (1 << 0)
+#define MERLIN_NODE_CONNECT  (1 << 1)
 
-#define MERLIN_NODE_DEFAULT_POLLER_FLAGS (MERLIN_NODE_TAKEOVER)
-#define MERLIN_NODE_DEFAULT_PEER_FLAGS 0
-#define MERLIN_NODE_DEFAULT_MASTER_FLAGS 0
+#define MERLIN_NODE_DEFAULT_POLLER_FLAGS (MERLIN_NODE_TAKEOVER | MERLIN_NODE_CONNECT)
+#define MERLIN_NODE_DEFAULT_PEER_FLAGS (MERLIN_NODE_CONNECT)
+#define MERLIN_NODE_DEFAULT_MASTER_FLAGS (MERLIN_NODE_CONNECT)
 
 /* various magic options for the "type" field */
 #define CTRL_PACKET   0xffff  /* control packet. "code" described below */

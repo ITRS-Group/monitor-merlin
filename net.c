@@ -93,6 +93,14 @@ int net_try_connect(merlin_node *node)
 		node->last_conn_attempt_logged = time(NULL);
 	}
 
+	if (!(node->flags & MERLIN_NODE_CONNECT)) {
+		if (should_log) {
+			linfo("Connect attempt blocked by config to %s node %s",
+				  node_type(node), node->name);
+		}
+		return 0;
+	}
+
 	/* create the socket if necessary */
 	if (node->sock < 0) {
 		node->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);

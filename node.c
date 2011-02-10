@@ -275,6 +275,7 @@ struct {
 	const char *key;
 } node_config_flags[] = {
 	MRLN_ADD_NODE_FLAG(TAKEOVER),
+	MRLN_ADD_NODE_FLAG(CONNECT),
 };
 
 static int grok_node_flag(int *flags, const char *key, const char *value)
@@ -290,8 +291,9 @@ static int grok_node_flag(int *flags, const char *key, const char *value)
 		}
 	}
 
-	if (code == -1)
+	if (code == -1) {
 		return -1;
+	}
 
 	/* set or unset this flag */
 	if (set) {
@@ -310,6 +312,18 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 
 	if (!node)
 		return;
+
+	switch (node->type) {
+	case MODE_NOC:
+		node->flags = MERLIN_NODE_DEFAULT_MASTER_FLAGS;
+		break;
+	case MODE_PEER:
+		node->flags = MERLIN_NODE_DEFAULT_PEER_FLAGS;
+		break;
+	case MODE_POLLER:
+		node->flags = MERLIN_NODE_DEFAULT_POLLER_FLAGS;
+		break;
+	}
 
 	for (i = 0; i < c->vars; i++) {
 		struct cfg_var *v = c->vlist[i];
