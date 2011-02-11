@@ -575,7 +575,7 @@ DROP TABLE IF EXISTS db_version;
 CREATE TABLE db_version (
   version int(11)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-INSERT INTO db_version(version) VALUES(2);
+INSERT INTO db_version(version) VALUES(3);
 
 -- Obsoleted tables
 DROP TABLE IF EXISTS hostextinfo;

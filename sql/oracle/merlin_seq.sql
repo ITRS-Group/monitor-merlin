@@ -337,7 +337,7 @@ CREATE TABLE db_version (
 
 
 
-INSERT INTO db_version(version) VALUES(2);
+INSERT INTO db_version(version) VALUES(3);
 commit;
 
 DROP TABLE host CASCADE CONSTRAINTS;
