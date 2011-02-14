@@ -92,7 +92,7 @@ db_setup ()
 
 			# Check for upgrade scripts
 			ver=$db_version
-			if "$db_version"; then 
+			if test "$db_version"; then 
 				while true; do
 					nextver=$((ver+1))
 					f="$src_dir/sql/update-db-${ver}to${nextver}.sql"
@@ -101,6 +101,7 @@ db_setup ()
 					ver=$nextver
 				done
 			fi
+			;;
 		*)
 			echo "Unknown database type '$db_type'"
 			echo "I understand only lower-case database types."
