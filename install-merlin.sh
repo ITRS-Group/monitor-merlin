@@ -92,8 +92,16 @@ db_setup ()
 					# DB Version is 1 and db should be re-installed (According to AE)
 					$mysql $db_name < $src_dir/sql/mysql/merlin.sql
 					;;
-				*)
-					# Unknown version, should we handle this?
+				"*")
+					# Random other version. Check for upgrade scripts
+					ver=$db_version
+					while true; do
+						nextver=$((ver+1))
+						f="$src_dir/sql/update-db-${ver}to${nextver}.sql"
+						test -f "$f" || break
+						$mysql $db_name < $f
+						ver=$nextver
+					done
 					;;
 			esac
 			;;
