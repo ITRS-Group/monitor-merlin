@@ -101,8 +101,6 @@ db_setup ()
 					ver=$nextver
 				done
 			fi
-			esac
-			;;
 		*)
 			echo "Unknown database type '$db_type'"
 			echo "I understand only lower-case database types."
