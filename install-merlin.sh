@@ -80,29 +80,27 @@ db_setup ()
 			$mysql -e \
 			  "GRANT ALL ON $db_name.* TO $db_user@localhost IDENTIFIED BY '$db_pass'"
 			$mysql -e 'FLUSH PRIVILEGES'
+
 			# Fetch db_version and do upgrade stuff if/when needed
 			query="SELECT version FROM db_version"
 			db_version=$($mysql $db_name -BNe "$query" 2>/dev/null)
-			case "$db_version" in
-				"")
-					# No db installed
-					$mysql $db_name < $src_dir/sql/mysql/merlin.sql
-					;;
-				"1")
-					# DB Version is 1 and db should be re-installed (According to AE)
-					$mysql $db_name < $src_dir/sql/mysql/merlin.sql
-					;;
-				*)
-					# Random other version. Check for upgrade scripts
-					ver=$db_version
-					while true; do
-						nextver=$((ver+1))
-						f="$src_dir/sql/update-db-${ver}to${nextver}.sql"
-						test -f "$f" || break
-						$mysql $db_name < $f
-						ver=$nextver
-					done
-					;;
+
+			# we always run the default schema, since it drops all
+			# non-persistent tables. This must come AFTER we fetch
+			# $db_version
+			$mysql -f $db_name < $src_dir/sql/mysql/merlin.sql >& /tmp/merlin-sql-upgrade.log
+
+			# Check for upgrade scripts
+			ver=$db_version
+			if "$db_version"; then 
+				while true; do
+					nextver=$((ver+1))
+					f="$src_dir/sql/update-db-${ver}to${nextver}.sql"
+					test -f "$f" || break
+					$mysql -f $db_name < $f 2>&1 >>/tmp/merlin-sql-upgrade.log
+					ver=$nextver
+				done
+			fi
 			esac
 			;;
 		*)

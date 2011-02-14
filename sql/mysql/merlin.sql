@@ -67,6 +67,7 @@ CREATE INDEX sd_host_name ON scheduled_downtime(host_name);
 CREATE INDEX sd_service_name ON scheduled_downtime(host_name, service_description);
 CREATE UNIQUE INDEX sd_downtime_id ON scheduled_downtime(downtime_id);
 
+DROP TABLE IF EXISTS comment;
 DROP TABLE IF EXISTS comment_tbl;
 CREATE TABLE comment_tbl(
 	instance_id			int NOT NULL DEFAULT 0,
@@ -575,7 +576,10 @@ DROP TABLE IF EXISTS db_version;
 CREATE TABLE db_version (
   version int(11)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-INSERT INTO db_version(version) VALUES(3);
+--
+-- ### IMPORTANT :: ONLY BUMP VERSION IF PERSISTENT TABLES CHANGE
+--
+INSERT INTO db_version(version) VALUES(2);
 
 -- Obsoleted tables
 DROP TABLE IF EXISTS hostextinfo;
