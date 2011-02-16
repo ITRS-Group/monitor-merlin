@@ -124,6 +124,25 @@ class nagios_object_importer
 
 	private $is_full_import = false;
 
+	# these columns will always be reset to the default value if unset
+	private $columns_to_clean = array(
+		'host' => array(
+			'notes' => 1,
+			'notes_url' => 1,
+			'action_url' => 1,
+			'icon_image' => 1,
+			'icon_image_alt' => 1,
+			'statusmap_image' => 1
+		),
+		'service' => array(
+			'notes' => 1,
+			'notes_url' => 1,
+			'action_url' => 1,
+			'icon_image' => 1,
+			'icon_image_alt' => 1
+		)
+	);
+
 	public function __construct()
 	{
 		$this->obj_rel['host'] =
@@ -905,6 +924,15 @@ class nagios_object_importer
 			$params = array();
 			foreach ($obj as $k => $v) {
 				$params[] = "$k = :$k";
+			}
+			// Clean hosts and services so they don't keep stale data
+			if ($obj_type !== 'contact' && !$this->importing_status) {
+				$columns = $this->columns_to_clean[$obj_type];
+
+				$missing_columns = array_diff_key($columns, $obj);
+				foreach ($missing_columns as $column => $_) {
+					$query .= "$column = DEFAULT, ";
+				}
 			}
 			$query .= join(", ", $params) . " WHERE id = $oid";
 		} else {
