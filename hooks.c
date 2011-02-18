@@ -433,10 +433,17 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_DEL_HOST_COMMENT:
 	case CMD_ADD_SVC_COMMENT:
 	case CMD_DEL_SVC_COMMENT:
+	case CMD_ACKNOWLEDGE_HOST_PROBLEM:
+	case CMD_ACKNOWLEDGE_SVC_PROBLEM:
+	case CMD_SEND_CUSTOM_HOST_NOTIFICATION:
+	case CMD_SEND_CUSTOM_SVC_NOTIFICATION:
 		/*
 		 * comments are handled by comment events and will cause
 		 * ping-pong action with duplicate comment entries in the
-		 * database if we don't filter them out
+		 * database if we don't filter them out.
+		 *
+		 * Notification-triggering events must be blocked to avoid
+		 * sending multiple notifications for the same event.
 		 */
 		return 0;
 
@@ -457,8 +464,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_DISABLE_HOST_NOTIFICATIONS:
 	case CMD_ENABLE_HOST_SVC_NOTIFICATIONS:
 	case CMD_DISABLE_HOST_SVC_NOTIFICATIONS:
-	case CMD_ACKNOWLEDGE_HOST_PROBLEM:
-	case CMD_ACKNOWLEDGE_SVC_PROBLEM:
 	case CMD_START_EXECUTING_SVC_CHECKS:
 	case CMD_STOP_EXECUTING_SVC_CHECKS:
 	case CMD_START_ACCEPTING_PASSIVE_SVC_CHECKS:
@@ -565,8 +570,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_ENABLE_CONTACTGROUP_SVC_NOTIFICATIONS:
 	case CMD_DISABLE_CONTACTGROUP_SVC_NOTIFICATIONS:
 	case CMD_CHANGE_RETRY_HOST_CHECK_INTERVAL:
-	case CMD_SEND_CUSTOM_HOST_NOTIFICATION:
-	case CMD_SEND_CUSTOM_SVC_NOTIFICATION:
 	case CMD_CHANGE_HOST_NOTIFICATION_TIMEPERIOD:
 	case CMD_CHANGE_SVC_NOTIFICATION_TIMEPERIOD:
 	case CMD_CHANGE_CONTACT_HOST_NOTIFICATION_TIMEPERIOD:
