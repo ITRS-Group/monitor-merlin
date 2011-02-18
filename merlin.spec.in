@@ -65,8 +65,8 @@ network monitoring setup.
 %setup -q
 
 %build
-make ENABLE_OCILIB=1
-make ENABLE_OCILIB=1 test
+make ENABLE_OCILIB=1 ENABLE_LIBDBI=1
+make ENABLE_OCILIB=1 ENABLE_LIBDBI=1 test
 
 %install
 rm -rf %buildroot
