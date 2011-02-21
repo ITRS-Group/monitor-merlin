@@ -9,7 +9,7 @@ archive_dir = "/opt/monitor/var/archives"
 
 module_dir = libexec_dir + '/modules'
 if not libexec_dir in sys.path:
-	sys.path.append(libexec_dir)
+	sys.path.insert(0, libexec_dir)
 import node
 
 if not module_dir in sys.path:
