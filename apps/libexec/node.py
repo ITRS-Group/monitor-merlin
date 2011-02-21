@@ -1,4 +1,3 @@
-
 import os, sys, re, time
 
 modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
@@ -6,6 +5,7 @@ if not modpath in sys.path:
 	sys.path.append(modpath)
 from merlin_apps_utils import *
 import merlin_conf as mconf
+import merlin_db
 
 wanted_types = mconf.merlin_node.valid_types
 wanted_names = []
@@ -156,60 +156,13 @@ def fmt_min_avg_max(lat, thresh={}):
 dbc = False
 def cmd_status(args):
 	global dbc
-	db_host = mconf.dbopt.get('host', 'localhost')
-	db_name = mconf.dbopt.get('name', 'merlin')
-	db_user = mconf.dbopt.get('user', 'merlin')
-	db_pass = mconf.dbopt.get('pass', 'merlin')
-	db_type = mconf.dbopt.get('type', 'mysql')
-	db_port = mconf.dbopt.get('port', False)
 
 	high_latency = {}
 	inactive = {}
 	mentioned = {}
-	conn = False
 
-	# now we load whatever database driver is appropriate
-	if db_type == 'mysql':
-		try:
-			import MySQLdb as db
-		except:
-			print("Failed to import MySQLdb")
-			print("Install mysqldb-python or MySQLdb-python to make this command work")
-			sys.exit(1)
-	elif db_type in ['postgres', 'psql', 'pgsql']:
-		try:
-			import pgdb as db
-		except:
-			print("Failed to import pgdb")
-			print("Install postgresql-python to make this command work")
-			sys.exit(1)
-	elif db_type in ['oci', 'oracle', 'ocilib']:
-		try:
-			import cx_Oracle as db
-		except:
-			print("Failed to import cx_Oracle")
-			print("Install oracle-python to make this command work")
-			sys.exit(1)
-		if db_port:
-			dsn = "//%s:%s" % (db_host, db_port)
-		else:
-			dsn = "//%s" % (db_host)
-		dsn += "/" + db_name
-		db_user = db_user.encode('latin1')
-		db_pass = db_pass.encode('latin1')
-		dsn = dsn.encode('latin1')
-		conn = db.connect(db_user, db_pass, dsn)
+	dbc = merlin_db.connect(mconf)
 
-	else:
-		print("Invalid database type selected: %s" % db_type)
-		print("Cannot continue")
-		sys.exit(1)
-
-	#print("Connecting to %s on %s with %s:%s as user:pass" %
-	#	(db_name, db_host, db_user, db_pass))
-	if not conn:
-		conn = db.connect(host=db_host, user=db_user, passwd=db_pass, db=db_name)
-	dbc = conn.cursor()
 	status = get_node_status()
 	latency_thresholds = {'min': -1.0, 'avg': 100.0, 'max': -1.0}
 	sinfo = sorted(status.items())
@@ -314,7 +267,7 @@ def cmd_status(args):
 		for (k, v) in info.items():
 			print("%s = %s" % (k, v))
 
-	conn.close()
+	merlin_db.disconnect()
 
 ## node commands ##
 # list configured nodes, capable of filtering by type
