@@ -534,6 +534,8 @@ static void test_broken_packets(void)
 	}
 	fprintf(stderr, "####### Broken packet tests complete. %u disconnects of %u sent\n",
 		   disconnects, num_services);
+
+	free(ds);
 }
 
 static void test_service_check(void)
