@@ -255,7 +255,7 @@ int sql_init(void)
 	static time_t last_logged = 0;
 
 	if (!use_database)
-		return 0;
+		return -1;
 
 	if (sql_is_connected(0)) {
 		ldebug("sql_init(): Already connected. Not reconnecting");
