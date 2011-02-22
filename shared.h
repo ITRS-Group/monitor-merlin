@@ -62,7 +62,7 @@
 
 #define sizeof(x) (uint)sizeof(x)
 
-#define safe_str(str) (str == NULL ? "''" : str)
+#define safe_str(str) (str == NULL ? "NULL" : str)
 static inline void *safe_free(void *ptr)
 {
 	if (ptr)
