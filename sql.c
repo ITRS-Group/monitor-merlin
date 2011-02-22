@@ -306,7 +306,7 @@ int sql_init(void)
 		return -1;
 	}
 
-	result = db.conn->api->option_set(db.conn, "encoding", db.encoding ? db.encoding : "UTF-8");
+	result = db.conn->api->option_set(db.conn, "encoding", db.encoding ? db.encoding : "latin1");
 
 	if (result && log_attempt) {
 		lerr("Warning: Failed to set one or more database connection options");
