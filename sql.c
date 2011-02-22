@@ -319,9 +319,8 @@ int sql_init(void)
 			sql_error(&error_msg);
 			lerr("Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
 				 db.name, db.host, db.port, db.user, db.pass, error_msg);
-
-			sql_close();
 		}
+		sql_close();
 		return -1;
 	} else if (log_attempt) {
 		ldebug("MERLIN DB: Connected to db [%s] using driver [%s]",
