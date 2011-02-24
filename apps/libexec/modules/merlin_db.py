@@ -59,4 +59,6 @@ def connect(mconf):
 
 def disconnect():
 	global conn
-	return conn.close()
+	ret = conn.close()
+	conn = False
+	return ret
