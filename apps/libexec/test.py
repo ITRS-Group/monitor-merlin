@@ -45,7 +45,7 @@ def test_cmd(cmd_fd, cmd, msg=False):
 	if msg != False:
 		text = msg
 	else:
-		txt = cmd
+		text = cmd
 
 	full_cmd = "[%d] %s\n" % (time.time(), cmd)
 	return test(os.write(cmd_fd, full_cmd), len(full_cmd), text)
