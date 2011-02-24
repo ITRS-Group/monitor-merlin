@@ -456,8 +456,22 @@ class nagios_object_importer
 	private function purge_old_objects()
 	{
 		foreach ($this->imported as $obj_type => $ids) {
-			$query = "DELETE FROM $obj_type WHERE id NOT IN (";
-			$query .= join(', ', array_keys($ids)) . ')';
+			# oracle has a limit for 1000 entries in an IN
+			# list, so we have to work around it by chaining
+			# them 1000 at a time. The overhead should be
+			# negligible for most cases.
+			$query = "DELETE FROM $obj_type WHERE id NOT IN ";
+			$ak_ids = array_keys($ids);
+			$offset = 0;
+			$num_ak_ids = count($ak_ids);
+			for ($offset = 0; $offset + 1000 < $num_ak_ids; $offset += 1000) {
+				$query .= 'id NOT IN(' . join(array_slice($ak_ids, $offset, 1000)) . ')';
+				$query .= ' AND ';
+			}
+			$query += 'id NOT IN(' .
+				join(array_slice($ak_ids, $offset, $num_ak_ids - $offset)) .
+				')';
+
 			$result = $this->sql_exec_query($query);
 		}
 	}
