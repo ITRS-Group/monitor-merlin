@@ -24,6 +24,7 @@ def connect(mconf):
 			print("Failed to import MySQLdb")
 			print("Install mysqldb-python or MySQLdb-python to make this command work")
 			sys.exit(1)
+		conn = db.connect(host=db_host, user=db_user, passwd=db_pass, db=db_name)
 	elif db_type in ['postgres', 'psql', 'pgsql']:
 		try:
 			import pgdb as db
@@ -31,6 +32,7 @@ def connect(mconf):
 			print("Failed to import pgdb")
 			print("Install postgresql-python to make this command work")
 			sys.exit(1)
+		conn = db.connect(user=db_user, password=db_pass, host=db_host, database=db_name)
 	elif db_type in ['oci', 'oracle', 'ocilib']:
 		try:
 			import cx_Oracle as db
