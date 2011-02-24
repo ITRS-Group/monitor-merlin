@@ -62,6 +62,11 @@ class Oci8ToPdo extends PDO {
 	function prepare($sql, $unused=null) {
 		return new Oci8ToPdo_Result($this->link, $sql);
 	}
+
+	function commit()
+	{
+		oci_commit($this->link);
+	}
 }
 
 class Oci8ToPdo_Result implements Countable {
