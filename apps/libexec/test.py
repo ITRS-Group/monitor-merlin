@@ -128,6 +128,19 @@ def _pasv_open_cmdpipe(cmd_pipe):
 	signal.alarm(0)
 	return cmd_fd
 
+def _pasv_help():
+	print("""Available options for 'mon test pasv'
+
+  --nagios-cfg=<file>   default /opt/monitor/var/etc/nagios.cfg
+  --counters=<int>      number of counters per object (default 30)
+  --hosts=<int>         number of hosts (default 1)
+  --services=<int>      number of services (default 5)
+  --loops=<int>         number of loops (default 1)
+  --interval=<int>      interval in seconds between loops (def 1800)
+  --delay=<int>         delay between submitting and checking (def 25)
+	""")
+	sys.exit(0)
+
 
 def cmd_pasv(args):
 	
@@ -142,7 +155,7 @@ def cmd_pasv(args):
 	num_loops = 1
 	num_counters = 30
 	interval = 1800
-	delay = 30
+	delay = 25
 	cmd_pipe = False
 
 	for arg in args:
@@ -160,6 +173,8 @@ def cmd_pasv(args):
 			interval = int(arg.split('=')[1])
 		elif arg.startswith('--delay='):
 			delay = int(arg.split('=')[1])
+		elif arg == '--help' or arg == 'help':
+			_pasv_help()
 		else:
 			print("Unknown argument: %s" % arg)
 			sys.exit(1)
