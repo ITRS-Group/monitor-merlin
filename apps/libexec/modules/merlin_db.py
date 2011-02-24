@@ -55,7 +55,7 @@ def connect(mconf):
 	if not conn:
 		conn = db.connect(host=db_host, user=db_user, passwd=db_pass, db=db_name)
 
-	return conn.cursor()
+	return conn
 
 def disconnect():
 	global conn

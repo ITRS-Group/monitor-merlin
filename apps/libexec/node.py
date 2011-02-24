@@ -161,7 +161,7 @@ def cmd_status(args):
 	inactive = {}
 	mentioned = {}
 
-	dbc = merlin_db.connect(mconf)
+	dbc = merlin_db.connect(mconf).cursor()
 
 	status = get_node_status()
 	latency_thresholds = {'min': -1.0, 'avg': 100.0, 'max': -1.0}
