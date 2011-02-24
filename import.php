@@ -35,6 +35,7 @@ function usage($msg = false)
 	echo "--db-host    database host\n";
 	echo "--db-pass    database password\n";
 	echo "--db-type    database type (mysql is the only supported for now)\n";
+	echo "--db-port    database port to connect to\n";
 	echo "--cache      path to the objects.cache file to import\n";
 	echo "--status-log path to the status.log file to import\n";
 	echo "--nagios-cfg path to nagios' main configuration file\n";
@@ -106,6 +107,7 @@ for ($i = 1; $i < $argc; $i++) {
 	 case 'db-pass': $imp->db_pass = $opt; break;
 	 case 'db-type': $imp->db_type = $opt; break;
 	 case 'db-host': $imp->db_host = $opt; break;
+	 case 'db-port': $imp->db_port = $opt; break;
 	 case 'cache': $cache = $opt; break;
 	 case 'status-log': $status_log = $opt; break;
 	 case 'nagios-cfg': $nagios_cfg = $opt; break;
