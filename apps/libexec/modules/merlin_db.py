@@ -6,6 +6,9 @@ def connect(mconf):
 	for running queries against that database."""
 	global conn
 
+	if conn:
+		return conn
+
 	db_host = mconf.dbopt.get('host', 'localhost')
 	db_name = mconf.dbopt.get('name', 'merlin')
 	db_user = mconf.dbopt.get('user', 'merlin')
