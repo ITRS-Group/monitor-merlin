@@ -139,7 +139,7 @@ class Oci8ToPdo_Result implements Countable {
 		}
 
 		// The query must be re-fetched now.
-		oci_execute($this->result, OCI_COMMIT_ON_SUCCESS);
+		oci_execute($this->result, OCI_NO_AUTO_COMMIT);
 		return $count;
 	}
 
@@ -163,14 +163,14 @@ class Oci8ToPdo_Result implements Countable {
 				oci_bind_by_name($this->result, $key, $parameters[$key]);
 			}
 
-		if (!@oci_execute($this->result, OCI_COMMIT_ON_SUCCESS)) {
+		if (!@oci_execute($this->result, OCI_NO_AUTO_COMMIT)) {
 			$e = oci_error($this->result);
 			// code 923 means no FROM found
 			// this workaround sometimes works
 			if ($e['code'] == 923) {
 				$sql .= "\nFROM DUAL";
 				$this->result = oci_parse($this->link, $sql);
-				if (!@oci_execute($this->result, OCI_COMMIT_ON_SUCCESS)) {
+				if (!@oci_execute($this->result, OCI_NO_AUTO_COMMIT)) {
 					debug_print_backtrace();
 					throw new OciException($e['message'].' - SQL=['.$this->sql.']');
 				}

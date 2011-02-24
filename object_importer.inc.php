@@ -336,6 +336,10 @@ class nagios_object_importer
 		if ($obj_type === false || empty($obj_array))
 			return true;
 
+		if ($this->is_oracle()) {
+			$this->db->commit();
+		}
+
 		switch ($obj_type) {
 		 case 'host': case 'timeperiod':
 			$this->post_mangle_self_ref($obj_type, $obj_array[$obj_type]);
@@ -372,6 +376,9 @@ class nagios_object_importer
 	{
 		$this->purge_old_objects();
 		$this->cache_access_rights();
+		if ($this->is_oracle()) {
+			$this->db->commit();
+		}
 	}
 
 	private function get_contactgroup_members()
@@ -985,6 +992,16 @@ class nagios_object_importer
 
 		foreach($obj_list as $obj_key => &$obj)
 			$this->glue_object($obj_key, $obj_type, $obj);
+	}
+
+	function is_oracle()
+	{
+		switch (strtolower($this->db_type)) {
+		 case 'oci': case 'ocilib': case 'oracle':
+			return true;
+			break;
+		}
+		return false;
 	}
 
 	# get an error from the last result
