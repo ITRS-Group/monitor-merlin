@@ -294,6 +294,9 @@ def cmd_pasv(args):
 			test(str(row[2]), cnt_hash, "output update for %s" % t.name)
 			test(str(row[3]), cnt_string, "counter truncation check for %s" % t.name)
 
+		if loops < num_loops:
+			time.sleep(interval)
+
 	total_tests = failed + passed
 	print("failed: %d/%.3f%%" % (failed, float(failed * 100) / total_tests))
 	print("passed: %d/%.3f%%" % (passed, float(passed * 100) / total_tests))
