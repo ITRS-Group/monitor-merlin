@@ -42,7 +42,11 @@ def test(a, b, msg):
 		failed += 1
 
 def test_cmd(cmd_fd, cmd, msg=False):
-	text = msg if not msg == False else cmd
+	if msg != False:
+		text = msg
+	else:
+		txt = cmd
+
 	full_cmd = "[%d] %s\n" % (time.time(), cmd)
 	return test(os.write(cmd_fd, full_cmd), len(full_cmd), text)
 
