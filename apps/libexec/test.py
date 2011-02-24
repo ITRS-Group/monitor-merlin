@@ -261,8 +261,13 @@ def cmd_pasv(args):
 		cnt_string = "%s" % " ".join(counters)
 		cnt_hash = sha.sha(cnt_string).hexdigest()
 
+		# why we have to disconnect from db and re-open the
+		# command pipe is beyond me, but that's the way it is, it
+		# seems. It also matches real-world use a lot better,
+		# since the reader imitates ninja and the writer imitates
+		# nsca.
 		cmd_fd = _pasv_open_cmdpipe(cmd_pipe)
-		db.close()
+		merlin_db.disconnect()
 
 		# new status every time so we can differ between the values
 		# and also test the worst-case scenario where the daemon has
