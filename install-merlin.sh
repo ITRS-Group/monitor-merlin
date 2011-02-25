@@ -64,14 +64,14 @@ db_setup ()
 {
 	mysql="mysql"
 	if [ -n "$db_root_user" ]; then
-		mysql="$mysql -u'$db_root_user'"
-		test -n "$db_root_pass" && mysql="$mysql -p'$db_root_pass'"
+		mysql="$mysql -u$db_root_user"
+		test -n "$db_root_pass" && mysql="$mysql -p$db_root_pass"
 	fi
 
 	case "$db_type" in
 		mysql)
 			# Create database if it do not exist
-			db_count=$($mysql -e "SHOW DATABASES LIKE '$db_name'" | wc -l)
+			db_count=$($mysql -N -s -e "SHOW DATABASES LIKE '$db_name'" | wc -l)
 			if [ $db_count -eq 0 ]; then
 				echo "Creating database $db_name"
 				$mysql -e "CREATE DATABASE IF NOT EXISTS $db_name"
