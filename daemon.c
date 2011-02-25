@@ -8,6 +8,7 @@ static const char *progname;
 static const char *pidfile, *merlin_user;
 static char *import_program;
 unsigned short default_port = 15551;
+unsigned int default_addr = 0;
 static int importer_pid;
 static char *merlin_conf;
 merlin_confsync csync = { NULL, NULL };
@@ -151,6 +152,14 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 			default_port = (unsigned short)strtoul(v->value, &endp, 0);
 			if (default_port < 1 || *endp)
 				cfg_error(comp, v, "Illegal value for port: %s", v->value);
+			continue;
+		}
+		if (!strcmp(v->key, "address")) {
+			unsigned int addr;
+			if (inet_pton(AF_INET, v->value, &addr) == 1)
+				default_addr = addr;
+			else
+				cfg_error(comp, v, "Illegal value for address: %s", v->value);
 			continue;
 		}
 		if (!strcmp(v->key, "pidfile")) {

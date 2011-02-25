@@ -355,7 +355,7 @@ int net_init(void)
 	if (!num_nodes)
 		return 0;
 
-	sain.sin_addr.s_addr = 0;
+	sain.sin_addr.s_addr = default_addr;
 	sain.sin_port = htons(default_port);
 	sain.sin_family = AF_INET;
 

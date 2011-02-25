@@ -5,6 +5,7 @@
 #include "shared.h"
 
 extern unsigned short default_port;
+extern unsigned int default_addr;
 
 extern merlin_node *find_node(struct sockaddr_in *sain, const char *name);
 extern int net_deinit(void);
