@@ -274,7 +274,7 @@ def cmd_pasv(args):
 		# new status every time so we can differ between the values
 		# and also test the worst-case scenario where the daemon has
 		# to run two queries for each passive checkresult
-		status = loops & 3
+		status = loops % 3
 
 		loop_start = time.time()
 		for t in test_objs:
