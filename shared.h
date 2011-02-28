@@ -173,6 +173,7 @@ typedef struct merlin_service_status merlin_service_status;
 
 /** prototypes **/
 extern int strtobool(const char *str);
+extern int grok_seconds(const char *p, long *result);
 extern const char *isotime(struct timeval *tv, int precision);
 extern char *tohex(const unsigned char *data, int len);
 extern void bt_scan(const char *mark, int count);
