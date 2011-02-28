@@ -7,6 +7,7 @@
 /* where to (optionally) stash performance data */
 char *host_perf_table = NULL;
 char *service_perf_table = NULL;
+static long int commit_interval, commit_queries;
 
 #define FIXME(X)
 
@@ -114,6 +115,29 @@ db_wrap_result * sql_get_result(void)
 	return db.result;
 }
 
+void sql_try_commit(int query)
+{
+	static time_t last_commit;
+	static int queries;
+	time_t now = time(NULL);
+
+	if (!db.conn || !use_database || !db.conn->api->commit)
+		return;
+
+	queries += query;
+	if (queries &&
+	    ((commit_interval && last_commit + commit_interval <= now) ||
+	    (commit_queries && queries >= commit_queries)))
+	{
+		int result;
+
+		ldebug("Committing %d queries", queries);
+		result = db.conn->api->commit(db.conn);
+		last_commit = now;
+		queries = 0;
+	}
+}
+
 static int run_query(char *query, size_t len, int rerunIGNORED)
 {
 	db_wrap_result *res = NULL;
@@ -142,6 +166,9 @@ static int run_query(char *query, size_t len, int rerunIGNORED)
 		assert(NULL == res);
 		return rc;
 	}
+
+	sql_try_commit(1);
+
 	assert(res != NULL);
 	assert(db.result == NULL);
 	db.result = res;
@@ -327,6 +354,20 @@ int sql_init(void)
 			   db.name, db.type);
 	}
 
+	/*
+	 * set auto-commit to ON if we have no commit parameters
+	 * Drivers that doesn't support it or doesn't need it shouldn't
+	 * have the "set_auto_commit()" function.
+	 */
+	if (!commit_interval && !commit_queries && db.conn->api->set_auto_commit) {
+		if (db.conn->api->set_auto_commit(db.conn, 1) != 0) {
+			if (log_attempt) {
+				lwarn("DB: Failed to set auto-commit. Using commit_queries = 1 as workaround");
+				commit_queries = 1;
+			}
+		}
+	}
+
 	last_logged = 0;
 	return 0;
 }
@@ -399,6 +440,7 @@ const char *sql_table_name(void)
 int sql_config(const char *key, const char *value)
 {
 	char *value_cpy;
+	int err;
 
 	value_cpy = value ? strdup(value) : NULL;
 
@@ -431,6 +473,17 @@ int sql_config(const char *key, const char *value)
 		service_perf_table = value_cpy;
 	else if (!strcmp(key, "perfdata_table"))
 		host_perf_table = service_perf_table = value_cpy;
+	else if (!strcmp(key, "commit_interval")) {
+		err = grok_seconds(value, &commit_interval);
+		ldebug("DB: commit_interval set to %ld seconds", commit_interval);
+		free(value_cpy);
+		return err;
+	}
+	else if (!strcmp(key, "commit_queries")) {
+		char *endp;
+		commit_queries = strtoul(value, &endp, 0);
+		ldebug("DB: commit_queries set to %ld queries", commit_queries);
+	}
 	else {
 		if (value_cpy)
 			free(value_cpy);

@@ -769,6 +769,11 @@ static void polling_loop(void)
 		 * right destination.
 		 */
 		io_poll_sockets();
+
+		/*
+		 * Try to commit any outstanding queries
+		 */
+		sql_try_commit(0);
 	}
 }
 
