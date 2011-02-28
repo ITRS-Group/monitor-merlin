@@ -13,6 +13,7 @@ import merlin_db
 
 import compound_config as cconf
 config = {}
+verbose = False
 
 def module_init(args):
 	rem_args = []
@@ -34,7 +35,8 @@ def test(a, b, msg):
 	global passed, failed
 
 	if a == b:
-		print("  %sok%s   %s" % (color.green, color.reset, msg))
+		if verbose:
+			print("  %sok%s   %s" % (color.green, color.reset, msg))
 		passed += 1
 	else:
 		print("  %sfail%s %s" % (color.red, color.reset, msg))
@@ -143,12 +145,12 @@ def _pasv_help():
 
 
 def cmd_pasv(args):
-	
 	"""
 	Submits passive checkresults to the nagios.cmd pipe and
 	verifies that the data gets written to database correctly
 	and in a timely manner.
 	"""
+	global verbose
 	nagios_cfg = False
 	num_hosts = 1
 	num_services = 5
@@ -173,8 +175,10 @@ def cmd_pasv(args):
 			interval = int(arg.split('=')[1])
 		elif arg.startswith('--delay='):
 			delay = int(arg.split('=')[1])
-		elif arg == '--help' or arg == 'help':
+		elif arg == '--help' or arg == 'help' or arg == '-h':
 			_pasv_help()
+		elif arg == '--verbose' or arg == '-v':
+			verbose = True
 		else:
 			print("Unknown argument: %s" % arg)
 			sys.exit(1)
