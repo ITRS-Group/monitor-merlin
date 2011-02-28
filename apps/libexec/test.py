@@ -281,6 +281,7 @@ def cmd_pasv(args):
 		status = loops % 3
 
 		loop_start = time.time()
+		print("Submitting passive check results")
 		for t in test_objs:
 			cmd = _pasv_build_cmd(t, status)
 			cmd += "%s|%s\n" % (cnt_hash, cnt_string)
@@ -293,6 +294,7 @@ def cmd_pasv(args):
 		db = merlin_db.connect(mconf)
 		dbc = db.cursor()
 
+		print("Sleeping %d seconds before reaping results" % delay)
 		time.sleep(delay)
 		for t in test_objs:
 			query = ("SELECT "
@@ -308,6 +310,7 @@ def cmd_pasv(args):
 		if loops < num_loops:
 			interval_sleep = (loop_start + interval) - time.time()
 			if interval_sleep > 0:
+				print("Sleeping %d seconds until next test-set" % interval_sleep)
 				time.sleep(interval_sleep)
 
 	total_tests = failed + passed
