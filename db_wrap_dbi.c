@@ -81,7 +81,9 @@ dbiw_option_set,
 dbiw_option_get,
 dbiw_is_connected,
 dbiw_cleanup,
-dbiw_finalize
+dbiw_finalize,
+NULL,
+NULL,
 };
 
 static const db_wrap db_wrap_libdbi = {

@@ -235,6 +235,16 @@ struct db_wrap_api
 	*/
 	int (*finalize)(db_wrap * db);
 
+	/**
+	 * Commit a started transaction. Should do nothing if autocommit
+	 * is enabled.
+	 */
+	int (*commit)(db_wrap *db);
+
+	/**
+	 * Set autocommit status for the connection
+	 */
+	int (*set_auto_commit)(db_wrap *db, int set);
 };
 typedef struct db_wrap_api db_wrap_api;
 /**

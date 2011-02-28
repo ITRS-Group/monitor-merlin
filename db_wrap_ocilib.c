@@ -38,6 +38,8 @@ static int ociw_option_get(db_wrap * self, char const * key, void * val);
 static int ociw_cleanup(db_wrap * self);
 static char ociw_is_connected(db_wrap * self);
 static int ociw_finalize(db_wrap * self);
+static int ociw_commit(db_wrap *self);
+static int ociw_set_auto_commit(db_wrap *self, int set);
 
 /*
   db_wrap_result_api member implementations...
@@ -89,7 +91,9 @@ ociw_option_set,
 ociw_option_get,
 ociw_is_connected,
 ociw_cleanup,
-ociw_finalize
+ociw_finalize,
+ociw_commit,
+ociw_set_auto_commit,
 };
 
 struct db_wrap_ocilib_impl
@@ -243,9 +247,22 @@ int ociw_connect(db_wrap * self)
 	{
 		return DB_WRAP_E_CHECK_DB_ERROR;
 	}
-	OCI_SetAutoCommit(conn, 1);
 	dbimpl->conn = conn;
 	return 0;
+}
+
+static int ociw_commit(db_wrap *self)
+{
+	IMPL_DECL(0);
+
+	return OCI_Commit(dbimpl->conn);
+}
+
+static int ociw_set_auto_commit(db_wrap *self, int set)
+{
+	IMPL_DECL(0);
+
+	return OCI_SetAutoCommit(dbimpl->conn, set);
 }
 
 size_t ociw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest)
