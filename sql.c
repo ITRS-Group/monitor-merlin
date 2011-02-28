@@ -448,7 +448,7 @@ int sql_config(const char *key, const char *value)
 	if (!prefixcmp(key, "name") || !prefixcmp(key, "database"))
 		db.name = value_cpy;
 	else if (!prefixcmp(key, "logsql")) {
-		db.logSQL = (value && *value && (*value!='0')) ? 1 : 0;
+		db.logSQL = strtobool(value);
 		free(value_cpy);
 	}
 	else if (!prefixcmp(key, "user"))
