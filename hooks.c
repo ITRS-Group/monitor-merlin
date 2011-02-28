@@ -817,7 +817,7 @@ int merlin_mod_hook(int cb, void *data)
 #define CB_ENTRY(pollers_only, type, hook) \
 	{ pollers_only, type, #type, #hook }
 static struct callback_struct {
-	int pollers_only;
+	int network_only;
 	int type;
 	char *name;
 	char *hook_name;
@@ -832,15 +832,15 @@ static struct callback_struct {
  */
 	CB_ENTRY(0, NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, hook_contact_notification_method),
 
-	CB_ENTRY(1, NEBCALLBACK_SERVICE_CHECK_DATA, hook_service_result),
-	CB_ENTRY(1, NEBCALLBACK_HOST_CHECK_DATA, hook_host_result),
+	CB_ENTRY(0, NEBCALLBACK_SERVICE_CHECK_DATA, hook_service_result),
+	CB_ENTRY(0, NEBCALLBACK_HOST_CHECK_DATA, hook_host_result),
 	CB_ENTRY(0, NEBCALLBACK_COMMENT_DATA, hook_generic),
 	CB_ENTRY(0, NEBCALLBACK_DOWNTIME_DATA, hook_generic),
-	CB_ENTRY(1, NEBCALLBACK_FLAPPING_DATA, hook_generic),
+	CB_ENTRY(0, NEBCALLBACK_FLAPPING_DATA, hook_generic),
 	CB_ENTRY(0, NEBCALLBACK_PROGRAM_STATUS_DATA, hook_generic),
 	CB_ENTRY(0, NEBCALLBACK_HOST_STATUS_DATA, hook_host_status),
 	CB_ENTRY(0, NEBCALLBACK_SERVICE_STATUS_DATA, hook_service_status),
-	CB_ENTRY(0, NEBCALLBACK_EXTERNAL_COMMAND_DATA, hook_generic),
+	CB_ENTRY(1, NEBCALLBACK_EXTERNAL_COMMAND_DATA, hook_generic),
 };
 
 extern void *neb_handle;
@@ -854,6 +854,11 @@ int register_merlin_hooks(uint32_t mask)
 
 	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
 		struct callback_struct *cb = &callback_table[i];
+
+		if (cb->network_only && !num_nodes) {
+			ldebug("No pollers, peers or masters. Ignoring %s events", callback_name(cb->type));
+			continue;
+		}
 
 		/* ignored filtered-out eventtypes */
 		if (!(mask & (1 << cb->type))) {
