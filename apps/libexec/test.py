@@ -198,6 +198,8 @@ def cmd_pasv(args):
 	# contaminate the testresults
 	test_cmd(cmd_fd, "STOP_EXECUTING_HOST_CHECKS")
 	test_cmd(cmd_fd, "STOP_EXECUTING_SVC_CHECKS")
+	test_cmd(cmd_fd, "START_ACCEPTING_PASSIVE_HOST_CHECKS")
+	test_cmd(cmd_fd, "START_ACCEPTING_PASSIVE_SVC_CHECKS")
 	os.close(cmd_fd)
 
 	# now we update the database with impossible values so we
