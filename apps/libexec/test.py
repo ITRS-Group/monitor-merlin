@@ -296,7 +296,7 @@ def cmd_pasv(args):
 				"FROM %s" % t.query())
 			dbc.execute(query)
 			row = dbc.fetchone()
-			test(row[0] + 15 > t.submit_time, True, "reasonable delay for %s" % t.name)
+			test(row[0] + delay > t.submit_time, True, "reasonable delay for %s" % t.name)
 			test(row[1], status, "status updated for %s" % t.name)
 			test(str(row[2]), cnt_hash, "output update for %s" % t.name)
 			test(str(row[3]), cnt_string, "counter truncation check for %s" % t.name)
