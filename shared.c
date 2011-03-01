@@ -511,8 +511,14 @@ int set_socket_options(int sd, int bufsize)
 	fcntl(sd, F_SETFD, FD_CLOEXEC);
 
 	if (bufsize) {
-		setsockopt(sd, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(int));
-		setsockopt(sd, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(int));
+		if (setsockopt(sd, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(int)) < 0) {
+			ldebug("Failed to set sendbuffer for %d to %d bytes: %s",
+				   sd, bufsize, strerror(errno));
+		}
+		if (setsockopt(sd, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(int)) < 0) {
+			ldebug("Failed to set recvbuffer for %d to %d bytes: %s",
+				   sd, bufsize, strerror(errno));
+		}
 	}
 
 	return 0;
