@@ -612,9 +612,6 @@ CREATE TABLE IF NOT EXISTS notification(
 	escalated				int,
 	contacts_notified		int
 ) COLLATE latin1_general_cs;
-CREATE INDEX n_host_name ON notification(host_name);
-CREATE INDEX n_service_name ON notification(host_name, service_description);
-CREATE INDEX n_contact_name ON notification(contact_name);
 
 --
 -- This table is not automagically recreated every time we upgrade
@@ -633,11 +630,6 @@ CREATE TABLE IF NOT EXISTS report_data (
   downtime_depth int(11),
   output text
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE latin1_general_cs;
-CREATE INDEX rd_timestamp ON report_data(timestamp);
-CREATE INDEX rd_event_type ON report_data(event_type);
-CREATE INDEX rd_host_name ON report_data(host_name);
-CREATE INDEX rd_service_name ON report_data(host_name, service_description);
-CREATE INDEX rd_state ON report_data(state);
 
 --
 -- This table is not automagically recreated every time we upgrade
@@ -651,6 +643,3 @@ CREATE TABLE IF NOT EXISTS perfdata(
 	service_description varchar(200),
 	perfdata TEXT NOT NULL
 );
-CREATE INDEX pd_time ON perfdata(timestamp);
-CREATE INDEX pd_host_name ON perfdata(host_name);
-CREATE INDEX pd_service_name ON perfdata(host_name, service_description);

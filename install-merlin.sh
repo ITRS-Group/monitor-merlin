@@ -70,11 +70,13 @@ db_setup ()
 
 	case "$db_type" in
 		mysql)
+			new_install=0
 			# Create database if it do not exist
 			db_count=$($mysql -N -s -e "SHOW DATABASES LIKE '$db_name'" | wc -l)
 			if [ $db_count -eq 0 ]; then
 				echo "Creating database $db_name"
 				$mysql -e "CREATE DATABASE IF NOT EXISTS $db_name"
+				new_install=1
 			fi
 			# Always set privileges (to be on the extra safe side)
 			$mysql -e \
@@ -100,6 +102,30 @@ db_setup ()
 					$mysql -f $db_name < $f 2>&1 >>/tmp/merlin-sql-upgrade.log
 					ver=$nextver
 				done
+			fi
+			if [ $new_install -eq 1 ]; then
+				for index in $src_dir/sql/mysql/*-indexes.sql; do
+					$mysql -f $db_name < $index 2>&1 >>/tmp/merlin-sql-upgrade.log
+				done
+			else
+				# only check for indexes in report_data. sloppy, yes, but should be sufficient
+				idx=$($mysql $db_name -N -s -e "SHOW INDEX IN report_data" | wc -l);
+				if [ $idx -eq '1' ]; then
+					cat <<EOF
+***************
+*** WARNING ***
+***************
+
+Some of your tables lack indexes, which might cause bad performance.
+Installing indexes might take quite some time (several hours for big installations), so I'm going
+to let you install them when it's convenient for you.
+
+To install them manually, run:
+
+    mon db fixindexes
+
+EOF
+				fi
 			fi
 			;;
 		*)
