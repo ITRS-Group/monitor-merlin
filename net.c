@@ -85,7 +85,7 @@ static int net_complete_connection(merlin_node *node)
 int net_try_connect(merlin_node *node)
 {
 	struct sockaddr *sa = (struct sockaddr *)&node->sain;
-	int should_log = 0;
+	int connected = 0, should_log = 0;
 	struct timeval connect_timeout = { 10, 0 };
 
 	/* don't log obsessively */
@@ -116,7 +116,7 @@ int net_try_connect(merlin_node *node)
 	 * don't try to connect to a node if an attempt is already pending,
 	 * but do check if the connection has completed successfully
 	 */
-	if (node->state == STATE_PENDING) {
+	if (node->state == STATE_PENDING || node->state == STATE_CONNECTED) {
 		if (net_is_connected(node->sock))
 			node_set_state(node, STATE_CONNECTED);
 		return 0;
@@ -148,8 +148,7 @@ int net_try_connect(merlin_node *node)
 		if (errno == EINPROGRESS || errno == EALREADY) {
 			node_set_state(node, STATE_PENDING);
 		} else if (errno == EISCONN) {
-			node_set_state(node, STATE_CONNECTED);
-			return 0;
+			connected = 1;
 		} else {
 			if (should_log) {
 				lerr("connect() failed to node '%s' (%s:%d): %s",
@@ -161,7 +160,7 @@ int net_try_connect(merlin_node *node)
 		}
 	}
 
-	if (net_is_connected(node->sock)) {
+	if (connected || net_is_connected(node->sock)) {
 		linfo("Successfully connected to %s %s@%s:%d",
 			  node_type(node), node->name, inet_ntoa(node->sain.sin_addr),
 			  ntohs(node->sain.sin_port));
