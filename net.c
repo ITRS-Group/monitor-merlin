@@ -574,13 +574,22 @@ int net_send_ipc_data(merlin_event *pkt)
 	if (!num_nodes)
 		return 0;
 
-	/* nocs and peers always get all data */
-	for (i = 0; i < num_nocs + num_peers; i++) {
-		net_sendto(node_table[i], pkt);
+	/* peers always get all data */
+	for (i = 0; i < num_peers; i++) {
+		net_sendto(peer_table[i], pkt);
+	}
+
+	/* nocs get everything except global commands */
+	if (pkt->hdr.selection == CTRL_GENERIC && pkt->hdr.type == NEBCALLBACK_EXTERNAL_COMMAND_DATA) {
+		all_pollers = 1;
+	} else {
+		for (i = 0; i < num_nocs; i++) {
+			net_sendto(noc_table[i], pkt);
+		}
 	}
 
 	/* general control packets are for everyone */
-	if (pkt->hdr.selection == 0xffff && pkt->hdr.type == CTRL_PACKET) {
+	if (pkt->hdr.selection == CTRL_GENERIC && pkt->hdr.type == CTRL_PACKET) {
 		all_pollers = 1;
 	}
 

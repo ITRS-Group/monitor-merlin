@@ -602,6 +602,21 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		 */
 		pkt->hdr.selection = get_cmd_selection(ds->command_args);
 		break;
+
+	default:
+		/*
+		 * global commands get filtered in the daemon so only
+		 * peers and pollers get them, but we block them right
+		 * here if we have neither of those
+		 */
+		if (!(num_peers + num_pollers)) {
+			ldebug("No peers or pollers. Blocking global command %d",
+			       ds->command_type);
+			return 0;
+		}
+
+		pkt->hdr.selection = CTRL_GENERIC;
+		break;
 	}
 
 	return send_generic(pkt, data);
