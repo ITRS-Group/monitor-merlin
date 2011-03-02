@@ -414,10 +414,28 @@ static int hook_downtime(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
+static int get_cmd_selection(char *cmd)
+{
+	char *semi_colon;
+	int ret;
+
+	/* only global commands have no arguments at all */
+	if (!cmd)
+		return CTRL_GENERIC;
+
+	semi_colon = strchr(cmd, ';');
+	if (semi_colon)
+		*semi_colon = '\0';
+	ret = get_selection(cmd);
+	if (semi_colon)
+		*semi_colon = ';';
+
+	return ret;
+}
+
 static int hook_external_command(merlin_event *pkt, void *data)
 {
 	nebstruct_external_command_data *ds = (nebstruct_external_command_data *)data;
-	char *semi_colon;
 
 	/*
 	 * all comments generate two events, but we only want to
@@ -576,18 +594,13 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_CHANGE_CONTACT_SVC_NOTIFICATION_TIMEPERIOD:
 	case CMD_CHANGE_HOST_MODATTR:
 	case CMD_CHANGE_SVC_MODATTR:
-		if (!ds->command_args || !(semi_colon = strchr(ds->command_args, ';')))
-			return send_generic(pkt, data);
-
 		/*
 		 * looks like we have everything we need, so get the
 		 * selection based on the hostname so the daemon knows
 		 * which node(s) to send the command to (could very well
 		 * be 'nowhere')
 		 */
-		*semi_colon = '\0';
-		pkt->hdr.selection = get_selection(ds->command_args);
-		*semi_colon = ';';
+		pkt->hdr.selection = get_cmd_selection(ds->command_args);
 		break;
 	}
 
