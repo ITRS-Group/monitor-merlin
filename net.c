@@ -86,6 +86,7 @@ int net_try_connect(merlin_node *node)
 {
 	struct sockaddr *sa = (struct sockaddr *)&node->sain;
 	int should_log = 0;
+	struct timeval connect_timeout = { 10, 0 };
 
 	/* don't log obsessively */
 	if (node->last_conn_attempt_logged + 30 <= time(NULL)) {
@@ -130,6 +131,18 @@ int net_try_connect(merlin_node *node)
 
 	if (fcntl(node->sock, F_SETFL, O_NONBLOCK) < 0) {
 		lwarn("Failed to set socket for %s non-blocking: %s", node->name, strerror(errno));
+	}
+	if (setsockopt(node->sock, SOL_SOCKET, SO_RCVTIMEO,
+	               &connect_timeout, sizeof(connect_timeout)) < 0)
+	{
+		ldebug("Failed to set receive timeout for node %s: %s",
+		       node->name, strerror(errno));
+	}
+	if (setsockopt(node->sock, SOL_SOCKET, SO_SNDTIMEO,
+	               &connect_timeout, sizeof(connect_timeout)) < 0)
+	{
+		ldebug("Failed to set send timeout for node %s: %s",
+		       node->name, strerror(errno));
 	}
 	if (connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
 		if (errno == EINPROGRESS || errno == EALREADY) {
