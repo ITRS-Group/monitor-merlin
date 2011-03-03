@@ -462,19 +462,22 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_DEL_HOST_COMMENT:
 	case CMD_ADD_SVC_COMMENT:
 	case CMD_DEL_SVC_COMMENT:
+		/*
+		 * comments are handled by comment events and will cause
+		 * ping-pong action with duplicate comment entries in the
+		 * database if we don't filter them out.
+		 */
+		return 0;
+
 	case CMD_ACKNOWLEDGE_HOST_PROBLEM:
 	case CMD_ACKNOWLEDGE_SVC_PROBLEM:
 	case CMD_SEND_CUSTOM_HOST_NOTIFICATION:
 	case CMD_SEND_CUSTOM_SVC_NOTIFICATION:
 		/*
-		 * comments are handled by comment events and will cause
-		 * ping-pong action with duplicate comment entries in the
-		 * database if we don't filter them out.
-		 *
-		 * Notification-triggering events must be blocked to avoid
-		 * sending multiple notifications for the same event.
+		 * Notifications are blocked for all nodes except the one
+		 * supposed to handle checks for that node, so we mustn't
+		 * special-case those commands here.
 		 */
-		return 0;
 
 	case CMD_ENABLE_SVC_CHECK:
 	case CMD_DISABLE_SVC_CHECK:
