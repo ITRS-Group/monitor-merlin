@@ -195,6 +195,13 @@ static int get_selection(const char *key)
 	return sel ? sel->id & 0xffff : CTRL_GENERIC;
 }
 
+static int get_hostgroup_selection(const char *key)
+{
+	node_selection *sel = node_selection_by_name(key);
+
+	return sel ? sel->id & 0xffff : CTRL_GENERIC;
+}
+
 static int send_host_status(merlin_event *pkt, struct host_struct *obj)
 {
 	merlin_host_status st_obj;
@@ -414,7 +421,7 @@ static int hook_downtime(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
-static int get_cmd_selection(char *cmd)
+static int get_cmd_selection(char *cmd, int hostgroup)
 {
 	char *semi_colon;
 	int ret;
@@ -426,7 +433,11 @@ static int get_cmd_selection(char *cmd)
 	semi_colon = strchr(cmd, ';');
 	if (semi_colon)
 		*semi_colon = '\0';
-	ret = get_selection(cmd);
+	if (!hostgroup) {
+		ret = get_selection(cmd);
+	} else {
+		ret = get_hostgroup_selection(cmd);
+	}
 	if (semi_colon)
 		*semi_colon = ';';
 
@@ -506,12 +517,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_DISABLE_HOST_FLAP_DETECTION:
 	case CMD_ENABLE_SVC_FLAP_DETECTION:
 	case CMD_DISABLE_SVC_FLAP_DETECTION:
-	case CMD_ENABLE_HOSTGROUP_SVC_NOTIFICATIONS:
-	case CMD_DISABLE_HOSTGROUP_SVC_NOTIFICATIONS:
-	case CMD_ENABLE_HOSTGROUP_HOST_NOTIFICATIONS:
-	case CMD_DISABLE_HOSTGROUP_HOST_NOTIFICATIONS:
-	case CMD_ENABLE_HOSTGROUP_SVC_CHECKS:
-	case CMD_DISABLE_HOSTGROUP_SVC_CHECKS:
 	case CMD_CANCEL_HOST_DOWNTIME:
 	case CMD_CANCEL_SVC_DOWNTIME:
 	case CMD_CANCEL_ACTIVE_HOST_DOWNTIME:
@@ -522,9 +527,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_CANCEL_PENDING_HOST_SVC_DOWNTIME:
 	case CMD_DEL_HOST_DOWNTIME:
 	case CMD_DEL_SVC_DOWNTIME:
-	case CMD_SCHEDULE_HOSTGROUP_HOST_DOWNTIME:
-	case CMD_SCHEDULE_HOSTGROUP_SVC_DOWNTIME:
-	case CMD_SCHEDULE_HOST_SVC_DOWNTIME:
 	case CMD_PROCESS_HOST_CHECK_RESULT:
 	case CMD_START_EXECUTING_HOST_CHECKS:
 	case CMD_STOP_EXECUTING_HOST_CHECKS:
@@ -536,12 +538,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_STOP_OBSESSING_OVER_HOST_CHECKS:
 	case CMD_SCHEDULE_HOST_CHECK:
 	case CMD_SCHEDULE_FORCED_HOST_CHECK:
-	case CMD_ENABLE_HOSTGROUP_HOST_CHECKS:
-	case CMD_DISABLE_HOSTGROUP_HOST_CHECKS:
-	case CMD_ENABLE_HOSTGROUP_PASSIVE_SVC_CHECKS:
-	case CMD_DISABLE_HOSTGROUP_PASSIVE_SVC_CHECKS:
-	case CMD_ENABLE_HOSTGROUP_PASSIVE_HOST_CHECKS:
-	case CMD_DISABLE_HOSTGROUP_PASSIVE_HOST_CHECKS:
 	case CMD_ENABLE_SERVICEGROUP_SVC_NOTIFICATIONS:
 	case CMD_DISABLE_SERVICEGROUP_SVC_NOTIFICATIONS:
 	case CMD_ENABLE_SERVICEGROUP_HOST_NOTIFICATIONS:
@@ -600,7 +596,28 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		 * which node(s) to send the command to (could very well
 		 * be 'nowhere')
 		 */
-		pkt->hdr.selection = get_cmd_selection(ds->command_args);
+		pkt->hdr.selection = get_cmd_selection(ds->command_args, 0);
+		break;
+
+	case CMD_ENABLE_HOSTGROUP_SVC_NOTIFICATIONS:
+	case CMD_DISABLE_HOSTGROUP_SVC_NOTIFICATIONS:
+	case CMD_ENABLE_HOSTGROUP_HOST_NOTIFICATIONS:
+	case CMD_DISABLE_HOSTGROUP_HOST_NOTIFICATIONS:
+	case CMD_ENABLE_HOSTGROUP_SVC_CHECKS:
+	case CMD_DISABLE_HOSTGROUP_SVC_CHECKS:
+	case CMD_SCHEDULE_HOSTGROUP_HOST_DOWNTIME:
+	case CMD_SCHEDULE_HOSTGROUP_SVC_DOWNTIME:
+	case CMD_ENABLE_HOSTGROUP_HOST_CHECKS:
+	case CMD_DISABLE_HOSTGROUP_HOST_CHECKS:
+	case CMD_ENABLE_HOSTGROUP_PASSIVE_SVC_CHECKS:
+	case CMD_DISABLE_HOSTGROUP_PASSIVE_SVC_CHECKS:
+	case CMD_ENABLE_HOSTGROUP_PASSIVE_HOST_CHECKS:
+	case CMD_DISABLE_HOSTGROUP_PASSIVE_HOST_CHECKS:
+		/*
+		 * hostgroup commands should sometimes be passed to a particular
+		 * (group of) poller(s).
+		 */
+		pkt->hdr.selection = get_cmd_selection(ds->command_args, 1);
 		break;
 
 	default:
