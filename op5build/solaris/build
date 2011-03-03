@@ -21,7 +21,7 @@ cp *.sh $buildroot/opt/monitor/op5/merlin/
 cp *.sql $buildroot/opt/monitor/op5/merlin/
 cp -r sql $buildroot/opt/monitor/op5/merlin/
 
-gsed '1s,.*,#!/opt/csw/bin/python,' apps/mon.py > $buildroot/usr/bin/mon
+gsed '1s,.*,#!/opt/csw/bin/python -Wignore::DeprecationWarning,' apps/mon.py > $buildroot/usr/bin/mon
 chown root:bin $buildroot/usr/bin/mon
 chown root:sys $buildroot/opt
 chmod 755 $buildroot/usr/bin/mon
