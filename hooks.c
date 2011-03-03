@@ -763,14 +763,51 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
+/*
+ * Called when a notification chain starts. This is used to
+ * avoid sending notifications from a node that isn't supposed
+ * to send it
+ */
 static int hook_notification(merlin_event *pkt, void *data)
 {
 	nebstruct_notification_data *ds = (nebstruct_notification_data *)data;
 
-	if (ds->type != NEBTYPE_NOTIFICATION_END)
+	/* if we have no pollers and no peers we won't block the notification */
+	if (!num_peers && !num_pollers)
 		return 0;
 
-	return send_generic(pkt, data);
+	if (ds->type == NEBTYPE_NOTIFICATION_START) {
+		char *what = "host";
+		char *host_name, *sdesc = NULL;
+
+		if (ds->notification_type == SERVICE_NOTIFICATION) {
+			service *s = (service *)ds->object_ptr;
+			host_name = s->host_name;
+			sdesc = s->description;
+
+			what = "service";
+			if (!ctrl_should_run_service_check(host_name, s->description)) {
+				ldebug("Blocked notification for %s %s;%s. A peer is supposed to send it.",
+					   what, host_name, sdesc);
+				return NEBERROR_CALLBACKCANCEL;
+			}
+		} else {
+			host *h = (host *)ds->object_ptr;
+			host_name = h->name;
+			if (!ctrl_should_run_host_check(host_name)) {
+				ldebug("Blocked notification for %s %s. A peer is supposed to send it",
+					   what, host_name);
+				return NEBERROR_CALLBACKCANCEL;
+			}
+		}
+		if (has_active_poller(host_name)) {
+			ldebug("Blocked notification for %s %s%s%s. A poller is supposed to send it",
+				   what, host_name, sdesc ? ";" : "", sdesc ? sdesc : "");
+			return NEBERROR_CALLBACKCANCEL;
+		}
+	}
+
+	return 0;
 }
 
 int merlin_mod_hook(int cb, void *data)
@@ -871,12 +908,13 @@ static struct callback_struct {
 	char *hook_name;
 } callback_table[] = {
 /*
-	CB_ENTRY(1, NEBCALLBACK_PROCESS_DATA, post_config_init),
+	CB_ENTRY(0, NEBCALLBACK_PROCESS_DATA, post_config_init),
 	CB_ENTRY(0, NEBCALLBACK_LOG_DATA, hook_generic),
-	CB_ENTRY(1, NEBCALLBACK_SYSTEM_COMMAND_DATA, hook_generic),
-	CB_ENTRY(1, NEBCALLBACK_EVENT_HANDLER_DATA, hook_generic),
-	CB_ENTRY(0, NEBCALLBACK_NOTIFICATION_DATA, hook_notification),
-	CB_ENTRY(0, NEBCALLBACK_CONTACT_NOTIFICATION_DATA, hook_contact_notification),
+	CB_ENTRY(0, NEBCALLBACK_SYSTEM_COMMAND_DATA, hook_generic),
+	CB_ENTRY(0, NEBCALLBACK_EVENT_HANDLER_DATA, hook_generic),
+*/
+	CB_ENTRY(1, NEBCALLBACK_NOTIFICATION_DATA, hook_notification),
+/*	CB_ENTRY(0, NEBCALLBACK_CONTACT_NOTIFICATION_DATA, hook_contact_notification),
  */
 	CB_ENTRY(0, NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, hook_contact_notification_method),
 
