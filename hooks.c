@@ -462,13 +462,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_DEL_HOST_COMMENT:
 	case CMD_ADD_SVC_COMMENT:
 	case CMD_DEL_SVC_COMMENT:
-		/*
-		 * comments are handled by comment events and will cause
-		 * ping-pong action with duplicate comment entries in the
-		 * database if we don't filter them out.
-		 */
-		return 0;
-
 	case CMD_ACKNOWLEDGE_HOST_PROBLEM:
 	case CMD_ACKNOWLEDGE_SVC_PROBLEM:
 	case CMD_SEND_CUSTOM_HOST_NOTIFICATION:
