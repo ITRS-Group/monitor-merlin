@@ -406,6 +406,8 @@ static int hook_comment(merlin_event *pkt, void *data)
 	if (ds->type == NEBTYPE_COMMENT_ADD)
 		return 0;
 
+	pkt->hdr.selection = get_selection(ds->host_name);
+
 	return send_generic(pkt, data);
 }
 
