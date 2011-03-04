@@ -963,6 +963,10 @@ int deregister_merlin_hooks(void)
 
 	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
 		struct callback_struct *cb = &callback_table[i];
+
+		if (!num_nodes && cb->network_only)
+			continue;
+
 		if (event_mask & (1 << cb->type))
 			neb_deregister_callback(cb->type, merlin_mod_hook);
 	}
