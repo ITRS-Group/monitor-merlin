@@ -4,6 +4,7 @@
 #include "nagios/statusdata.h"
 #include "nagios/macros.h"
 #include "nagios/perfdata.h"
+#include "nagios/comments.h"
 #include <pthread.h>
 
 time_t merlin_should_send_paths = 1;
@@ -105,6 +106,11 @@ static int handle_external_command(merlin_header *hdr, void *buf)
 	return 1;
 }
 
+static int handle_comment_data(merlin_header *hdr, void *buf)
+{
+	return 0;
+}
+
 /* events that require status updates return 1, others return 0 */
 int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 {
@@ -156,6 +162,8 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 		return handle_service_status(&pkt->hdr, pkt->body);
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
 		return handle_external_command(&pkt->hdr, pkt->body);
+	case NEBCALLBACK_COMMENT_DATA:
+		return handle_comment_data(&pkt->hdr, pkt->body);
 	default:
 		lwarn("Ignoring unrecognized/unhandled callback type: %d (%s)",
 		      pkt->hdr.type, callback_name(pkt->hdr.type));
