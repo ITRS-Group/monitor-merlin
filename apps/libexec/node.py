@@ -63,7 +63,7 @@ Command overview
  show <name1> [name2] [nameN...]
    Show named nodes. eval'able from shell if only one node is chosen.
 
- ctrl <name1> <name2> [--all|--type=<peer|poller|master>] -- <command>
+ ctrl <name1> <name2> [--self] [--all|--type=<peer|poller|master>] -- <command>
    Execute <command> on the remote node(s) named. --all means run it on
    all configured nodes, as does making the first argument '--'.
    --type=<types> means to run the command on all configured nodes of
@@ -374,6 +374,8 @@ def cmd_ctrl(args):
 		print("Control without commands seems quite pointless. I'm going home")
 		print("Try 'mon node help' for some assistance")
 		sys.exit(1)
+
+	run_on_self = False
 	nodes = {}
 	cmd_args = []
 	i = -1
@@ -381,6 +383,9 @@ def cmd_ctrl(args):
 		i += 1
 		if arg == '--all':
 			wanted_names = mconf.configured_nodes.keys()
+			continue
+		elif arg == '--self':
+			run_on_self = True
 			continue
 		elif arg == '--':
 			# double dashes means "here's the command"
@@ -410,11 +415,14 @@ def cmd_ctrl(args):
 		if node.ntype in wanted_types:
 			nodes[name] = node
 
-	if not len(nodes) or not len(cmd_args):
+	if (not len(nodes) or not len(cmd_args)) and not run_on_self:
 		print("No nodes, or no commands to send. Aborting")
 		sys.exit(1)
 
 	cmd = ' '.join(cmd_args)
+	if run_on_self:
+		os.spawnvp(os.P_WAIT, "/bin/sh", ["/bin/sh", "-c", cmd])
+
 	for name, node in nodes.items():
 		node.ctrl(cmd)
 
