@@ -1,4 +1,5 @@
 #include "nagios/broker.h"
+#include "nagios/comments.h"
 #include "daemon.h"
 
 #define STATUS_QUERY(type) \
@@ -369,8 +370,7 @@ static int handle_flapping(const nebstruct_flapping_data *p)
 	sql_quote(p->service_description, &service_description);
 
 	if (p->type == NEBTYPE_FLAPPING_STOP) {
-		sql_query("DELETE FROM comment_tbl WHERE comment_id = '%lu'",
-				  p->comment_id);
+		/* comments are deleted by a separate broker event */
 		comment_id = 0;
 	} else {
 		comment_id = p->comment_id;
@@ -404,27 +404,41 @@ static int handle_comment(const nebstruct_comment_data *p)
 	int result;
 	char *host_name, *author_name, *comment_data, *service_description;
 
-	if (p->type == NEBTYPE_COMMENT_DELETE) {
-		result = sql_query
-			("DELETE FROM comment_tbl WHERE comment_id = %lu", p->comment_id);
-		return result;
-	}
-
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->author_name, &author_name);
 	sql_quote(p->comment_data, &comment_data);
 	sql_quote(p->service_description, &service_description);
 
-	result = sql_query
-		("INSERT INTO comment_tbl(comment_type, host_name, "
-		 "service_description, entry_time, author_name, comment_data, "
-		 "persistent, source, entry_type, expires, expire_time, "
-		 "comment_id) "
-		 "VALUES(%d, %s, %s, %lu, %s, %s, %d, %d, %d, %d, %lu, %lu)",
-		 p->comment_type, host_name,
-		 safe_str(service_description), p->entry_time,
-		 author_name, comment_data, p->persistent, p->source,
-		 p->entry_type, p->expires, p->expire_time, p->comment_id);
+	/*
+	 * Deleting comments is trickier than normal. Since each
+	 * Nagios instance uses its own comment_id we're forced to
+	 * use other means of uniquely identifying the comment.
+	 * author_name, host and service_description, comment_data
+	 * and entry_time does the trick. This means we'll delete
+	 * all identical comments for the same object when we're
+	 * asked to delete one such comment, but that really can't
+	 * be helped.
+	 */
+	if (p->type == NEBTYPE_COMMENT_DELETE) {
+		result = sql_query
+			("DELETE FROM comment_tbl WHERE entry_time = %lu AND "
+			 "host_name = %s AND service_description %s %s AND "
+			 "author_name = %s AND comment_data = %s",
+			 p->entry_time, host_name, service_description ? "=" : "IS",
+			 safe_str(service_description),
+			 author_name, comment_data);
+	} else {
+		result = sql_query
+			("INSERT INTO comment_tbl(comment_type, host_name, "
+			 "service_description, entry_time, author_name, comment_data, "
+			 "persistent, source, entry_type, expires, expire_time, "
+			 "comment_id) "
+			 "VALUES(%d, %s, %s, %lu, %s, %s, %d, %d, %d, %d, %lu, %lu)",
+			 p->comment_type, host_name,
+			 safe_str(service_description), p->entry_time,
+			 author_name, comment_data, p->persistent, p->source,
+			 p->entry_type, p->expires, p->expire_time, p->comment_id);
+	}
 
 	free(host_name);
 	free(author_name);
