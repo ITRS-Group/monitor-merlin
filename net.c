@@ -489,13 +489,8 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 	switch (pkt->hdr.type) {
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
-	case NEBCALLBACK_COMMENT_DATA:
 		/*
 		 * PROGRAM_STATUS_DATA can't sanely be transferred
-		 * COMMENT is in part handled by EXTERNAL_COMMAND, and is
-		 * extremely tricky to get right without some sort of
-		 * identifier in the comment itself to denote where it
-		 * came from
 		 * CONTACT_NOTIFICATION_METHOD is left as-is, since we by
 		 * default want pollers to send notifications for their
 		 * respective contacts. This is by customer request, since
