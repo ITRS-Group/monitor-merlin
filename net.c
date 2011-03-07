@@ -488,15 +488,12 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 	/* not all packets get delivered to the merlin module */
 	switch (pkt->hdr.type) {
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
-	case NEBCALLBACK_FLAPPING_DATA:
 	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
 		mrm_db_update(node, pkt);
 		/* fallthrough */
 	case NEBCALLBACK_COMMENT_DATA:
 		/*
 		 * PROGRAM_STATUS_DATA can't sanely be transferred
-		 * FLAPPING is handled just fine by the* host and service
-		 * status updates.
 		 * COMMENT is in part handled by EXTERNAL_COMMAND, and is
 		 * extremely tricky to get right without some sort of
 		 * identifier in the comment itself to denote where it
