@@ -97,7 +97,7 @@ static int handle_service_status(merlin_header *hdr, void *buf)
 	return 0;
 }
 
-int handle_external_command(merlin_header *hdr, void *buf)
+static int handle_external_command(merlin_header *hdr, void *buf)
 {
 	nebstruct_external_command_data *ds = (nebstruct_external_command_data *)buf;
 
