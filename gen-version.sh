@@ -1,6 +1,6 @@
 #!/bin/sh
 
-DEF_VER=v1.1.0
+DEF_VER=v1.1.3-beta
 revision= patches= version= ver= beta= dirty=
 
 # First see if we can use git-describe, then check for a version file
