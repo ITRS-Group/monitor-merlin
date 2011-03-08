@@ -504,6 +504,14 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 	/* and not all packets get sent to the database */
 	case CTRL_PACKET:
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
+	case NEBCALLBACK_COMMENT_DATA:
+		/*
+		 * COMMENT events will always hit the module and return
+		 * to us with the MAGIC_NONET code set, which is handled
+		 * properly in daemon.c::handle_ipc_event().
+		 * The others we can't do anything about in the database
+		 * layer.
+		 */
 		return ipc_send_event(pkt);
 
 	default:
