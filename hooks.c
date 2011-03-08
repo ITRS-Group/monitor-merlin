@@ -417,8 +417,9 @@ static int hook_comment(merlin_event *pkt, void *data)
 	 * for now, we'll need to block that comment from being sent
 	 * to the daemon to avoid pingpong action.
 	 */
-	if (block_comment && block_comment->entry_type == ds->type &&
-		block_comment->comment_type == ds->type &&
+	if (block_comment &&
+		block_comment->entry_type == ds->entry_type &&
+		block_comment->comment_type == ds->comment_type &&
 		block_comment->expires == ds->expires &&
 		block_comment->persistent == ds->persistent &&
 		!strcmp(block_comment->host_name, ds->host_name) &&
