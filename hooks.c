@@ -429,10 +429,10 @@ static int hook_comment(merlin_event *pkt, void *data)
 		(block_comment->service_description == ds->service_description ||
 		 !strcmp(block_comment->service_description, ds->service_description)))
 	{
-		ldebug("Blocked a comment according to block_comment rules");
-		return 0;
+		pkt->hdr.code = MAGIC_NONET;
+	} else {
+		pkt->hdr.selection = get_selection(ds->host_name);
 	}
-	pkt->hdr.selection = get_selection(ds->host_name);
 
 	return send_generic(pkt, data);
 }
