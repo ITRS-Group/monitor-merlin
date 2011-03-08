@@ -136,6 +136,8 @@ static int matching_comment(comment *cmnt, nebstruct_comment_data *ds)
 			   cmnt->comment_data, ds->comment_data);
 		return 1;
 	}
+
+	return 0;
 }
 
 static int handle_comment_data(merlin_node *node, void *buf)
