@@ -188,7 +188,6 @@ struct old_net2mod_data {
 	nag->scheduled_downtime_depth = mrln.scheduled_downtime_depth; \
 	nag->pending_flex_downtime = mrln.pending_flex_downtime; \
 	nag->is_flapping = mrln.is_flapping; \
-	nag->flapping_comment_id = mrln.flapping_comment_id; \
 	nag->percent_state_change = mrln.percent_state_change; \
 	/* when all is done, we free the old state variables */ \
 	safe_free(old.plugin_output); \

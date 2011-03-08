@@ -136,8 +136,47 @@ static int handle_comment_data(merlin_node *node, void *buf)
 	return 0;
 }
 
-static int handle_flapping_data(merlin_header *hdr, void *buf)
+#define otype_agnostic_flapping_handling(obj) \
+	do { \
+		if (!obj) \
+			return 0; \
+		obj->is_flapping = starting; \
+		if (starting) { \
+			obj->flapping_comment_id = node->flap_comment_id; \
+		} else { \
+			comment_id = obj->flapping_comment_id; \
+		} \
+	} while (0)
+
+static int handle_flapping_data(merlin_node *node, void *buf)
 {
+	nebstruct_flapping_data *ds = (nebstruct_flapping_data *)buf;
+	unsigned long comment_id = 0;
+	host *hst = NULL;
+	service *srv = NULL;
+	int starting, comment_type;
+
+	if (!node) {
+		lerr("handle_flapping_data() with NULL node? Weird stuff");
+		return 0;
+	}
+
+	starting = ds->type == NEBTYPE_FLAPPING_START;
+
+	if (ds->flapping_type == SERVICE_FLAPPING) {
+		srv = find_service(ds->host_name, ds->service_description);
+		otype_agnostic_flapping_handling(srv);
+		comment_type = SERVICE_COMMENT;
+	} else {
+		hst = find_host(ds->host_name);
+		otype_agnostic_flapping_handling(hst);
+		comment_type = HOST_COMMENT;
+	}
+
+	if (!starting && comment_id) {
+		delete_comment(comment_type, comment_id);
+	}
+
 	return 1;
 }
 
@@ -195,7 +234,7 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	case NEBCALLBACK_COMMENT_DATA:
 		return handle_comment_data(node, pkt->body);
 	case NEBCALLBACK_FLAPPING_DATA:
-		return handle_flapping_data(&pkt->hdr, pkt->body);
+		return handle_flapping_data(node, pkt->body);
 	default:
 		lwarn("Ignoring unrecognized/unhandled callback type: %d (%s)",
 		      pkt->hdr.type, callback_name(pkt->hdr.type));

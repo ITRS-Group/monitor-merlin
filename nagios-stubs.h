@@ -17,6 +17,7 @@ int add_new_comment(int comment_type, int entry_type, char *host_name, time_t en
 {
 	return 0;
 }
+int delete_comment(int type, unsigned long comment_type) { return 0; }
 nagios_macros *get_global_macros(void)
 {
 	return &global_macros;
