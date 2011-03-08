@@ -15,6 +15,7 @@ time_t merlin_should_send_paths = 1;
  * member of the Nagios core team has its benefits. Mwhahahahaha
  */
 extern int xodtemplate_grab_config_info(char *main_config_file);
+extern comment *comment_list;
 
 
 /** code start **/
@@ -106,6 +107,37 @@ static int handle_external_command(merlin_header *hdr, void *buf)
 	return 1;
 }
 
+static int matching_comment(comment *cmnt, nebstruct_comment_data *ds)
+{
+	/*
+	 * hash collisions can cause comments from other objects
+	 * (and other types of objects) to be listed here, so we
+	 * must match on host_name and service_description as
+	 * well and skip comments that don't match the type
+	 */
+	if (cmnt->comment_type == ds->comment_type &&
+		cmnt->entry_type == ds->entry_type &&
+		cmnt->source == ds->source &&
+		cmnt->expires == ds->expires &&
+		cmnt->expire_time == ds->expire_time &&
+		cmnt->entry_time == ds->entry_time &&
+		cmnt->persistent == ds->persistent &&
+		!strcmp(cmnt->author, ds->author_name) &&
+		!strcmp(cmnt->comment_data, ds->comment_data) &&
+		!strcmp(cmnt->host_name, ds->host_name) &&
+		(cmnt->service_description == ds->service_description ||
+		 !strcmp(cmnt->service_description, ds->service_description)))
+	{
+		ldebug("CMNT: cmnt->host_name: %s; ds->host_name: %s",
+			   cmnt->host_name, ds->host_name);
+		ldebug("CMNT: cmnt->author: %s; ds->author_name: %s",
+			   cmnt->author, ds->author_name);
+		ldebug("CMNT: cmnt->comment_data: %s; ds->comment_data: %s",
+			   cmnt->comment_data, ds->comment_data);
+		return 1;
+	}
+}
+
 static int handle_comment_data(merlin_node *node, void *buf)
 {
 	nebstruct_comment_data *ds = (nebstruct_comment_data *)buf;
@@ -116,11 +148,30 @@ static int handle_comment_data(merlin_node *node, void *buf)
 	}
 
 	if (ds->type == NEBTYPE_COMMENT_DELETE) {
-		/*
-		 * FIXME: we need to handle this later by looking up the
-		 * right comment based on object name, entry time, author
-		 * name and comment_data, but for now we ignore it
-		 */
+		comment *cmnt, *next_cmnt;
+
+		if (ds->comment_type == HOST_COMMENT) {
+			cmnt = get_first_comment_by_host(ds->host_name);
+			for (; cmnt; cmnt = next_cmnt) {
+				next_cmnt = cmnt->nexthash;
+				if (matching_comment(cmnt, ds)) {
+					merlin_set_block_comment(ds);
+					delete_comment(cmnt->comment_type, cmnt->comment_id);
+					merlin_set_block_comment(NULL);
+				}
+			}
+		} else {
+			/* this is *really* expensive. Sort of wtf? */
+			for (cmnt = comment_list; cmnt; cmnt = next_cmnt) {
+				next_cmnt = cmnt->next;
+
+				if (matching_comment(cmnt, ds)) {
+					merlin_set_block_comment(ds);
+					delete_comment(cmnt->comment_type, cmnt->comment_id);
+					merlin_set_block_comment(NULL);
+				}
+			}
+		}
 		return 0;
 	}
 

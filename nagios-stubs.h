@@ -1,6 +1,8 @@
 /* variables provided by Nagios and required by module */
 #include "nagios/macros.h"
+#include "nagios/comments.h"
 char *config_file = "/opt/monitor/etc/nagios.cfg";
+comment *comment_list = NULL;
 service *service_list = NULL;
 hostgroup *hostgroup_list = NULL;
 host *host_list = NULL;
@@ -13,7 +15,15 @@ sched_info scheduling_info;
 int __nagios_object_structure_version = CURRENT_OBJECT_STRUCTURE_VERSION;
 
 static nagios_macros global_macros;
-int add_new_comment(int comment_type, int entry_type, char *host_name, time_t entry_time, char *author_name, char *comment_data, int persistent, int source, int expires, time_t expire_time, unsigned long *comment_id)
+int add_new_comment(int comment_type, int entry_type, char *host_name, char *service_description, time_t entry_time, char *author_name, char *comment_data, int persistent, int source, int expires, time_t expire_time, unsigned long *comment_id)
+{
+	return 0;
+}
+comment *get_first_comment_by_host(char *host_name)
+{
+	return 0;
+}
+comment *get_first_comment_by_service(char *host_name, char *service_description)
 {
 	return 0;
 }
