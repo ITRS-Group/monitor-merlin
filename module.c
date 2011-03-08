@@ -143,6 +143,7 @@ static int matching_comment(comment *cmnt, nebstruct_comment_data *ds)
 static int handle_comment_data(merlin_node *node, void *buf)
 {
 	nebstruct_comment_data *ds = (nebstruct_comment_data *)buf;
+	unsigned long comment_id = 0;
 
 	if (!node) {
 		lerr("handle_comment_data() with NULL node? Impossible...");
@@ -177,15 +178,18 @@ static int handle_comment_data(merlin_node *node, void *buf)
 		return 0;
 	}
 
+	/* we're adding a comment */
+	merlin_set_block_comment(ds);
+	add_new_comment(ds->comment_type, ds->entry_type,
+	                ds->host_name, ds->service_description,
+	                ds->entry_time, ds->author_name,
+	                ds->comment_data, ds->persistent,
+	                ds->source, ds->expires,
+	                ds->expire_time, &comment_id);
+	merlin_set_block_comment(NULL);
+
 	if (ds->entry_type == FLAPPING_COMMENT) {
-		merlin_set_block_comment(ds);
-		add_new_comment(ds->comment_type, ds->entry_type,
-		                ds->host_name, ds->service_description,
-		                ds->entry_time, ds->author_name,
-		                ds->comment_data, ds->persistent,
-		                ds->source, ds->expires,
-		                ds->expire_time, &node->flap_comment_id);
-		merlin_set_block_comment(NULL);
+		node->flap_comment_id = comment_id;
 	}
 
 	return 0;
