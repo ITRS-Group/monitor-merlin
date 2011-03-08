@@ -428,6 +428,7 @@ static int hook_comment(merlin_event *pkt, void *data)
 		(block_comment->service_description == ds->service_description ||
 		 !strcmp(block_comment->service_description, ds->service_description)))
 	{
+		ldebug("CMNT: Marking event with MAGIC_NONET");
 		pkt->hdr.code = MAGIC_NONET;
 	} else {
 		if (block_comment) {
