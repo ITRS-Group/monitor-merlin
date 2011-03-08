@@ -417,12 +417,10 @@ static int hook_comment(merlin_event *pkt, void *data)
 	 * for now, we'll need to block that comment from being sent
 	 * to the daemon to avoid pingpong action.
 	 */
-	if (block_comment && block_comment->entry_type == ds->type
-		&& block_comment->entry_time == ds->entry_time &&
-		block_comment->source == ds->source &&
+	if (block_comment && block_comment->entry_type == ds->type &&
 		block_comment->comment_type == ds->type &&
 		block_comment->expires == ds->expires &&
-		block_comment->expire_time == ds->expire_time &&
+		block_comment->persistent == ds->persistent &&
 		!strcmp(block_comment->host_name, ds->host_name) &&
 		!strcmp(block_comment->author_name, ds->author_name) &&
 		!strcmp(block_comment->comment_data, ds->comment_data) &&
@@ -431,6 +429,9 @@ static int hook_comment(merlin_event *pkt, void *data)
 	{
 		pkt->hdr.code = MAGIC_NONET;
 	} else {
+		if (block_comment) {
+			ldebug("We have a block_comment, but it doesn't match");
+		}
 		pkt->hdr.selection = get_selection(ds->host_name);
 	}
 
