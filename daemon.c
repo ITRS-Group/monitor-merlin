@@ -630,9 +630,11 @@ static int handle_ipc_event(merlin_event *pkt)
 	/*
 	 * we must send to the network before we run mrm_db_update(),
 	 * since the latter deblockifies the packet and makes it
-	 * unusable in network transfers without repacking
+	 * unusable in network transfers without repacking, but only
+	 * if this isn't magically marked as a NONET event
 	 */
-	result = net_send_ipc_data(pkt);
+	if (pkt->hdr.type == CTRL_PACKET || pkt->hdr.code != MAGIC_NONET)
+		result = net_send_ipc_data(pkt);
 
 	/* skip sending control packets to database */
 	if (use_database && pkt->hdr.type != CTRL_PACKET)

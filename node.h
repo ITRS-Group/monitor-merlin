@@ -45,6 +45,12 @@
 #define CTRL_STOP     7 /* exit() immediately (only accepted via ipc) */
 #define CTRL_GENERIC  0xffff  /* generic control packet */
 
+/*
+ * if "type" is NOT CTRL_PACKET, the following magic entries can be
+ * used for the "code" entry
+ */
+#define MAGIC_NONET 0xffff /* don't forward to the network */
+
 #define HDR_SIZE (sizeof(merlin_header))
 #define PKT_SIZE (sizeof(merlin_event))
 #define BODY_SIZE (TOTAL_PKT_SIZE - sizeof(merlin_header))
