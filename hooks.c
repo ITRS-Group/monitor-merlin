@@ -166,6 +166,11 @@ static int send_generic(merlin_event *pkt, void *data)
 {
 	int result;
 
+	/* avoid sending events that won't cause action in the daemon */
+	if (!use_database && pkt->hdr.code == MAGIC_NONET && pkt->hdr.type != CTRL_PACKET) {
+		return 0;
+	}
+
 	pkt->hdr.len = merlin_encode_event(pkt, data);
 	if (!pkt->hdr.len) {
 		lerr("Header len is 0 for callback %d. Update offset in hookinfo.h", pkt->hdr.type);
