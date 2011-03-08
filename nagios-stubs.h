@@ -13,6 +13,10 @@ sched_info scheduling_info;
 int __nagios_object_structure_version = CURRENT_OBJECT_STRUCTURE_VERSION;
 
 static nagios_macros global_macros;
+int add_new_comment(int comment_type, int entry_type, char *host_name, time_t entry_time, char *author_name, char *comment_data, int persistent, int source, int expires, time_t expire_time, unsigned long *comment_id)
+{
+	return 0;
+}
 nagios_macros *get_global_macros(void)
 {
 	return &global_macros;

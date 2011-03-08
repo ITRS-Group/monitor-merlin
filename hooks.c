@@ -13,6 +13,7 @@
 #include "nagios/neberrors.h"
 #include "nagios/common.h"
 
+static nebstruct_comment_data *block_comment;
 static int check_dupes;
 static merlin_event last_pkt;
 static unsigned long long dupes, dupe_bytes;
@@ -406,6 +407,25 @@ static int hook_comment(merlin_event *pkt, void *data)
 	if (ds->type == NEBTYPE_COMMENT_ADD)
 		return 0;
 
+	/*
+	 * if the module is adding the comment we're getting an event
+	 * for now, we'll need to block that comment from being sent
+	 * to the daemon to avoid pingpong action.
+	 */
+	if (block_comment && block_comment->entry_type == ds->type
+		&& block_comment->entry_time == ds->entry_time &&
+		block_comment->source == ds->source &&
+		block_comment->comment_type == ds->type &&
+		block_comment->expires == ds->expires &&
+		block_comment->expire_time == ds->expire_time &&
+		!strcmp(block_comment->host_name, ds->host_name) &&
+		!strcmp(block_comment->author_name, ds->author_name) &&
+		!strcmp(block_comment->comment_data, ds->comment_data) &&
+		(block_comment->service_description == ds->service_description ||
+		 !strcmp(block_comment->service_description, ds->service_description)))
+	{
+		return 0;
+	}
 	pkt->hdr.selection = get_selection(ds->host_name);
 
 	return send_generic(pkt, data);
@@ -974,4 +994,9 @@ int deregister_merlin_hooks(void)
 	}
 
 	return 0;
+}
+
+void merlin_set_block_comment(nebstruct_comment_data *cmnt)
+{
+	block_comment = cmnt;
 }

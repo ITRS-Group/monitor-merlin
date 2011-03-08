@@ -106,8 +106,33 @@ static int handle_external_command(merlin_header *hdr, void *buf)
 	return 1;
 }
 
-static int handle_comment_data(merlin_header *hdr, void *buf)
+static int handle_comment_data(merlin_node *node, void *buf)
 {
+	nebstruct_comment_data *ds = (nebstruct_comment_data *)buf;
+
+	if (!node) {
+		lerr("handle_comment_data() with NULL node? Impossible...");
+		return 0;
+	}
+
+	if (ds->type == NEBTYPE_COMMENT_DELETE) {
+		/*
+		 * FIXME: we need to handle this later by looking up the
+		 * right comment based on object name, entry time, author
+		 * name and comment_data, but for now we ignore it
+		 */
+		return 0;
+	}
+
+	if (ds->entry_type == FLAPPING_COMMENT) {
+		add_new_comment(ds->comment_type, ds->entry_type,
+		                ds->host_name, ds->service_description,
+		                ds->entry_time, ds->author_name,
+		                ds->comment_data, ds->persistent,
+		                ds->source, ds->expires,
+		                ds->expire_time, &node->flap_comment_id);
+	}
+
 	return 0;
 }
 
@@ -168,7 +193,7 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
 		return handle_external_command(&pkt->hdr, pkt->body);
 	case NEBCALLBACK_COMMENT_DATA:
-		return handle_comment_data(&pkt->hdr, pkt->body);
+		return handle_comment_data(node, pkt->body);
 	case NEBCALLBACK_FLAPPING_DATA:
 		return handle_flapping_data(&pkt->hdr, pkt->body);
 	default:
