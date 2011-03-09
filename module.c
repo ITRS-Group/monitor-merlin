@@ -99,9 +99,12 @@ static int handle_service_status(merlin_header *hdr, void *buf)
 	return 0;
 }
 
-static int handle_external_command(merlin_header *hdr, void *buf)
+static int handle_external_command(merlin_node *node, void *buf)
 {
 	nebstruct_external_command_data *ds = (nebstruct_external_command_data *)buf;
+
+	ldebug("EXTCMD: from %s: [%ld] %d;%s",
+		   node->name, ds->entry_time, ds->command_type, ds->command_args);
 
 	process_external_command2(ds->command_type, ds->entry_time, ds->command_args);
 	return 1;
@@ -289,7 +292,7 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
 		return handle_service_status(&pkt->hdr, pkt->body);
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
-		return handle_external_command(&pkt->hdr, pkt->body);
+		return handle_external_command(node, pkt->body);
 	case NEBCALLBACK_COMMENT_DATA:
 		return handle_comment_data(node, pkt->body);
 	case NEBCALLBACK_FLAPPING_DATA:
