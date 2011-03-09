@@ -418,13 +418,9 @@ static int hook_comment(merlin_event *pkt, void *data)
 	if (ds->type == NEBTYPE_COMMENT_ADD)
 		return 0;
 
-	/*
-	 * if the module is adding the comment we're getting an event
-	 * for now, we'll need to block that comment from being sent
-	 * to the daemon to avoid pingpong action.
-	 */
-	if (ds->entry_type == ACKNOWLEDGEMENT_COMMENT ||
-		ds->entry_type == DOWNTIME_COMMENT)
+	if (ds->type != NEBTYPE_COMMENT_DELETE &&
+	    (ds->entry_type == ACKNOWLEDGEMENT_COMMENT ||
+	     ds->entry_type == DOWNTIME_COMMENT))
 	{
 		/*
 		 * ACKNOWLEDGEMENTs are sent as commands to get around
@@ -433,6 +429,8 @@ static int hook_comment(merlin_event *pkt, void *data)
 		 * DOWNTIME commands are also forwarded normally, so
 		 * we must take care not to send such events beyond our
 		 * own daemon also.
+		 * DELETE events are always forwarded though, unless
+		 * they're dupes of what we already sent.
 		 */
 		pkt->hdr.code = MAGIC_NONET;
 	} else if (block_comment &&
@@ -446,6 +444,11 @@ static int hook_comment(merlin_event *pkt, void *data)
 		(block_comment->service_description == ds->service_description ||
 		 !strcmp(block_comment->service_description, ds->service_description)))
 	{
+		/*
+		 * if the module is adding the comment we're getting an event
+		 * for now, we'll need to block that comment from being sent
+		 * to the daemon to avoid pingpong action.
+		 */
 		/*
 		 * This avoids USER_COMMENT and FLAPPING_COMMENT entry_type
 		 * comments from bouncing back and forth indefinitely
