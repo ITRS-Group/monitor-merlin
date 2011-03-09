@@ -391,8 +391,9 @@ def cmd_ctrl(args):
 			# double dashes means "here's the command"
 			cmd_args = args[i + 1:]
 			# if it's the first argument we got, the user wants
-			# to run the command on all configured nodes
-			if not i:
+			# to run the command on all configured nodes, possibly
+			# including --self
+			if not len(wanted_names):
 				wanted_names = mconf.configured_nodes.keys()
 			break
 
