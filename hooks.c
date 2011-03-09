@@ -423,12 +423,16 @@ static int hook_comment(merlin_event *pkt, void *data)
 	 * for now, we'll need to block that comment from being sent
 	 * to the daemon to avoid pingpong action.
 	 */
-	if (ds->entry_type == ACKNOWLEDGEMENT_COMMENT)
+	if (ds->entry_type == ACKNOWLEDGEMENT_COMMENT ||
+		ds->entry_type == DOWNTIME_COMMENT)
 	{
 		/*
 		 * ACKNOWLEDGEMENTs are sent as commands to get around
 		 * the tricky notification business, so never forward
 		 * them to the network.
+		 * DOWNTIME commands are also forwarded normally, so
+		 * we must take care not to send such events beyond our
+		 * own daemon also.
 		 */
 		pkt->hdr.code = MAGIC_NONET;
 	} else if (block_comment &&
