@@ -12,12 +12,16 @@
 #include "nagios/objects.h"
 #include "nagios/neberrors.h"
 #include "nagios/common.h"
+#include "nagios/comments.h"
 
 static nebstruct_comment_data *block_comment;
 static int check_dupes;
 static merlin_event last_pkt;
 static unsigned long long dupes, dupe_bytes;
 static uint32_t event_mask;
+static host *unblocked_host;
+static service *unblocked_service;
+
 /*
  * used for blocking host and service status events after a
  * PRECHECK type NEBCALLBACK_{HOST,SERVICE}_CHECK_DATA has been
@@ -398,7 +402,9 @@ static int hook_host_result(merlin_event *pkt, void *data)
 
 /*
  * Comments are buggy as hell from Nagios, so we must block
- * some of them
+ * some of them and make others cause object status events
+ * pass through unmolested, even if they're being checked
+ * by a poller.
  */
 static int hook_comment(merlin_event *pkt, void *data)
 {
@@ -435,6 +441,14 @@ static int hook_comment(merlin_event *pkt, void *data)
 			ldebug("We have a block_comment, but it doesn't match");
 		}
 		pkt->hdr.selection = get_selection(ds->host_name);
+	}
+
+	if (ds->entry_type != USER_COMMENT) {
+		if (!ds->service_description) {
+			unblocked_host = find_host(ds->host_name);
+		} else {
+			unblocked_service = find_service(ds->host_name, ds->service_description);
+		}
 	}
 
 	return send_generic(pkt, data);
@@ -724,18 +738,23 @@ static int hook_host_status(merlin_event *pkt, void *data)
 
 	log_blocked("host", &h_block);
 
-	if (h_block.obj == h && h_block.when + 1 >= time(NULL)) {
-		h_block.safe++;
-		return 0;
-	}
+	if (h == unblocked_host) {
+		/* unblocking a host is only ever good for one spell */
+		unblocked_host = NULL;
+	} else {
+		if (h_block.obj == h && h_block.when + 1 >= time(NULL)) {
+			h_block.safe++;
+			return 0;
+		}
 
-	if (has_active_poller(h->name)) {
-		h_block.poller++;
-		return 0;
-	}
-	if (!ctrl_should_run_host_check(h->name)) {
-		h_block.peer++;
-		return 0;
+		if (has_active_poller(h->name)) {
+			h_block.poller++;
+			return 0;
+		}
+		if (!ctrl_should_run_host_check(h->name)) {
+			h_block.peer++;
+			return 0;
+		}
 	}
 
 	h_block.sent++;
@@ -749,18 +768,22 @@ static int hook_service_status(merlin_event *pkt, void *data)
 	struct service_struct *srv = (struct service_struct *)ds->object_ptr;
 
 	log_blocked("service", &s_block);
-	if (s_block.obj == srv && s_block.when + 1 >= time(NULL)) {
-		s_block.safe++;
-		return 0;
-	}
+	if (srv == unblocked_service) {
+		unblocked_service = NULL;
+	} else {
+		if (s_block.obj == srv && s_block.when + 1 >= time(NULL)) {
+			s_block.safe++;
+			return 0;
+		}
 
-	if (has_active_poller(srv->host_name)) {
-		s_block.poller++;
-		return 0;
-	}
-	if (!ctrl_should_run_service_check(srv->host_name, srv->description)) {
-		s_block.peer++;
-		return 0;
+		if (has_active_poller(srv->host_name)) {
+			s_block.poller++;
+			return 0;
+		}
+		if (!ctrl_should_run_service_check(srv->host_name, srv->description)) {
+			s_block.peer++;
+			return 0;
+		}
 	}
 
 	s_block.sent++;
