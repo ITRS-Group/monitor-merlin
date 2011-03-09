@@ -5,6 +5,7 @@
 #include "nagios/macros.h"
 #include "nagios/perfdata.h"
 #include "nagios/comments.h"
+#include "nagios/common.h"
 #include <pthread.h>
 
 time_t merlin_should_send_paths = 1;
@@ -105,6 +106,28 @@ static int handle_external_command(merlin_node *node, void *buf)
 
 	ldebug("EXTCMD: from %s: [%ld] %d;%s",
 		   node->name, ds->entry_time, ds->command_type, ds->command_args);
+
+	switch (ds->command_type) {
+	case CMD_RESTART_PROCESS:
+	case CMD_SHUTDOWN_PROCESS:
+		/*
+		 * These two are slightly dangerous, as they allow one
+		 * compromised node to cause the shutdown of every
+		 * node in the chain, so we simply ignore them here on
+		 * the final receiving end.
+		 */
+		return 0;
+
+	case CMD_DEL_HOST_COMMENT:
+	case CMD_DEL_SVC_COMMENT:
+		/*
+		 * these we block entirely to prevent deleting the wrong
+		 * comment in case the comment_id's are not in sync between
+		 * nodes. COMMENT_DELETE events and the info they contain
+		 * are used instead.
+		 */
+		return 0;
+	}
 
 	process_external_command2(ds->command_type, ds->entry_time, ds->command_args);
 	return 1;
