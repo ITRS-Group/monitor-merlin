@@ -423,7 +423,15 @@ static int hook_comment(merlin_event *pkt, void *data)
 	 * for now, we'll need to block that comment from being sent
 	 * to the daemon to avoid pingpong action.
 	 */
-	if (block_comment &&
+	if (ds->entry_type == ACKNOWLEDGEMENT_COMMENT)
+	{
+		/*
+		 * ACKNOWLEDGEMENTs are sent as commands to get around
+		 * the tricky notification business, so never forward
+		 * them to the network.
+		 */
+		pkt->hdr.code = MAGIC_NONET;
+	} else if (block_comment &&
 		block_comment->entry_type == ds->entry_type &&
 		block_comment->comment_type == ds->comment_type &&
 		block_comment->expires == ds->expires &&
@@ -434,6 +442,10 @@ static int hook_comment(merlin_event *pkt, void *data)
 		(block_comment->service_description == ds->service_description ||
 		 !strcmp(block_comment->service_description, ds->service_description)))
 	{
+		/*
+		 * This avoids USER_COMMENT and FLAPPING_COMMENT entry_type
+		 * comments from bouncing back and forth indefinitely
+		 */
 		ldebug("CMNT: Marking event with MAGIC_NONET");
 		pkt->hdr.code = MAGIC_NONET;
 	} else {
@@ -441,14 +453,6 @@ static int hook_comment(merlin_event *pkt, void *data)
 			ldebug("We have a block_comment, but it doesn't match");
 		}
 		pkt->hdr.selection = get_selection(ds->host_name);
-	}
-
-	if (ds->entry_type != USER_COMMENT) {
-		if (!ds->service_description) {
-			unblocked_host = find_host(ds->host_name);
-		} else {
-			unblocked_service = find_service(ds->host_name, ds->service_description);
-		}
 	}
 
 	return send_generic(pkt, data);
@@ -507,10 +511,10 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_DEL_SVC_COMMENT:
 	case CMD_ADD_HOST_COMMENT:
 	case CMD_ADD_SVC_COMMENT:
-	case CMD_ACKNOWLEDGE_HOST_PROBLEM:
-	case CMD_ACKNOWLEDGE_SVC_PROBLEM:
 		return 0;
 
+	case CMD_ACKNOWLEDGE_HOST_PROBLEM:
+	case CMD_ACKNOWLEDGE_SVC_PROBLEM:
 	case CMD_SEND_CUSTOM_HOST_NOTIFICATION:
 	case CMD_SEND_CUSTOM_SVC_NOTIFICATION:
 		/*
