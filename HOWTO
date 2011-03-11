@@ -1,12 +1,14 @@
 Introduction
 ------------
-This HOWTO describes the requirements for setting up a loadbalanced
-and redundant network monitoring system using op5 Monitor. Note that
+This HOWTO describes how to set up a loadbalanced, redundant and
+distributed network monitoring system using op5 Monitor. Note that
 Merlin is a part of op5 Monitor. Non-customers will have to adjust
 paths etc used throughout this guide in order to be able to use it.
 Replacing "op5 Monitor" with "nagios + merlin" will be a good start
 for those of you venturing into the unknown without the aid of our
-rather excellent support services.
+rather excellent support services. For those wishing to configure
+only distributed network monitoring, or only loadbalanced or
+redundant, this is still a good guide.
 
 The guide will assume that we're installing two redundant and
 loadbalanced master-servers ("yoda" and "obi1"), with three
