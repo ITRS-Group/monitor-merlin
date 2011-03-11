@@ -108,9 +108,16 @@ struct merlin_nodeinfo {
 } __attribute__((packed));
 typedef struct merlin_nodeinfo merlin_nodeinfo;
 
+struct merlin_child {
+	char *cmd;
+	int pid;
+};
+typedef struct merlin_child merlin_child;
+
 struct merlin_confsync {
-	char *push;
-	char *fetch;
+	merlin_child push;
+	merlin_child fetch;
+	int pid;
 };
 typedef struct merlin_confsync merlin_confsync;
 

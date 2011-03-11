@@ -11,7 +11,7 @@ unsigned short default_port = 15551;
 unsigned int default_addr = 0;
 static int importer_pid;
 static char *merlin_conf;
-merlin_confsync csync = { NULL, NULL };
+static merlin_confsync csync;
 static int num_children;
 static int killing;
 
@@ -293,7 +293,7 @@ static int grok_config(char *path)
  */
 static void reap_child_process(void)
 {
-	int status, pid;
+	int status, pid, i;
 
 	if (!num_children)
 		return;
@@ -334,6 +334,34 @@ static void reap_child_process(void)
 		/* successfully reaped, so reset and resume */
 		importer_pid = 0;
 		ipc_send_ctrl(CTRL_RESUME, CTRL_GENERIC);
+		return;
+	}
+
+	/* not the importer program, so it must be an oconf push or fetch */
+	if (pid == csync.push.pid) {
+		linfo("CSYNC: global push finished. Resuming");
+		csync.push.pid = 0;
+		return;
+	} else if (pid == csync.fetch.pid) {
+		linfo("CSYNC: global fetch finished. Resuming");
+		csync.fetch.pid = 0;
+		return;
+	}
+
+	for (i = 0; i < num_nodes; i++) {
+		merlin_node *node = node_table[i];
+		if (!node->csync)
+			continue;
+
+		if (pid == node->csync->push.pid) {
+			linfo("CSYNC: push finished for %s", node->name);
+			node->csync->push.pid = 0;
+			return;
+		} else if (pid == node->csync->fetch.pid) {
+			linfo("CSYNC: fetch finished from %s", node->name);
+			node->csync->fetch.pid = 0;
+			return;
+		}
 	}
 }
 
@@ -534,14 +562,14 @@ static int csync_config_cmp(merlin_node *node)
  */
 void csync_node_active(merlin_node *node)
 {
-	int val = 0, pid = 0;
+	int val = 0;
 	merlin_confsync *cs = NULL;
-	char *cmd = NULL;
+	merlin_child *child = NULL;
 
 	ldebug("CSYNC: %s: Checking...", node->name);
 	/* bail early if we have no push/fetch configuration */
 	cs = node->csync ? node->csync : &csync;
-	if (!cs->push && !cs->fetch) {
+	if (!cs->push.cmd && !cs->fetch.cmd) {
 		ldebug("CSYNC: %s: No config sync configured.", node->name);
 		return;
 	}
@@ -551,18 +579,37 @@ void csync_node_active(merlin_node *node)
 		return;
 
 	if (val < 0) {
-		cmd = cs->push;
-		ldebug("CSYNC: We'll try to push");
+		if (cs->push.cmd) {
+			child = &cs->push;
+			ldebug("CSYNC: We'll try to push");
+		} else {
+			ldebug("CSYNC: Should have pushed, but push not configured for %s", node->name);
+		}
 	} else if (val > 0) {
-		cmd = cs->fetch;
-		ldebug("CSYNC: We'll try to fetch");
+		if (cs->fetch.cmd) {
+			child = &cs->fetch;
+			ldebug("CSYNC: We'll try to fetch");
+		} else {
+			ldebug("CSYNC: Should have fetched, but fetch not configured for %s", node->name);
+		}
 	}
 
-	if (cmd) {
-		ldebug("CSYNC: node %s; val: %d; sync-command: [%s]", node->name, val, cmd);
-		run_program("csync", cmd, &pid);
-		if (pid > 0)
-			ldebug("CSYNC: command has pid %d", pid);
+	if (child->pid) {
+		ldebug("CSYNC: '%s' already running for %s, or globally", child->cmd, node->name);
+		child = NULL;
+	}
+
+	if (!child) {
+		ldebug("CSYNC: No action required for %s", node->name);
+		return;
+	}
+
+	ldebug("CSYNC: node %s; val: %d; sync-command: [%s]", node->name, val, child->cmd);
+	run_program("csync", child->cmd, &child->pid);
+	if (child->pid > 0) {
+		ldebug("CSYNC: command has pid %d", child->pid);
+	} else {
+		child->pid = 0;
 	}
 }
 

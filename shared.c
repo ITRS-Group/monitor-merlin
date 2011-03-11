@@ -444,11 +444,11 @@ int grok_confsync_compound(struct cfg_comp *comp, merlin_confsync *csync)
 	for (i = 0; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
 		if (!strcmp(v->key, "push")) {
-			csync->push = strdup(v->value);
+			csync->push.cmd = strdup(v->value);
 			continue;
 		}
 		if (!strcmp(v->key, "fetch") || !strcmp(v->key, "pull")) {
-			csync->fetch = strdup(v->value);
+			csync->fetch.cmd = strdup(v->value);
 			continue;
 		}
 		/*
