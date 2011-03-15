@@ -39,6 +39,8 @@ static int dbiw_option_get(db_wrap * self, char const * key, void * val);
 static int dbiw_cleanup(db_wrap * self);
 static char dbiw_is_connected(db_wrap * self);
 static int dbiw_finalize(db_wrap * self);
+static int dbiw_commit(db_wrap * self);
+static int dbiw_set_auto_commit(db_wrap * self, int set);
 
 /*
   db_wrap_result_api member implementations...
@@ -82,8 +84,8 @@ dbiw_option_get,
 dbiw_is_connected,
 dbiw_cleanup,
 dbiw_finalize,
-NULL,
-NULL,
+dbiw_commit,
+dbiw_set_auto_commit,
 };
 
 static const db_wrap db_wrap_libdbi = {
@@ -333,6 +335,34 @@ int dbiw_finalize(db_wrap * self)
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	self->api->cleanup(self);
 	free(self);
+	return 0;
+}
+
+int dbiw_commit(db_wrap * self)
+{
+	dbi_result dbir;
+
+	DB_DECL(DB_WRAP_E_BAD_ARG);
+	dbir = dbi_conn_query(conn, "COMMIT");
+	if (dbir)
+		dbi_result_free(dbir);
+
+	return 0;
+}
+
+int dbiw_set_auto_commit(db_wrap * self, int set)
+{
+	dbi_result dbir;
+	DB_DECL(DB_WRAP_E_BAD_ARG);
+	if (set) {
+		dbir = dbi_conn_query(conn, "SET AUTOCOMMIT = 1");
+	} else {
+		dbir = dbi_conn_query(conn, "SET AUTOCOMMIT = 0");
+	}
+
+	if (dbir)
+		dbi_result_free(dbir);
+
 	return 0;
 }
 
