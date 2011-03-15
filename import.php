@@ -170,10 +170,6 @@ if ($status_log) {
 	if (!$dry_run)
 		$imp->import_objects_from_cache($status_log, false);
 }
-if (!$dry_run) {
-	echo "Enabling indexes\n";
-	$imp->enable_indexes();
-}
 
 if (!$dry_run) {
 	$imp->finalize_import();

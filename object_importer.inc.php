@@ -390,6 +390,7 @@ class nagios_object_importer
 	{
 		$this->purge_old_objects();
 		$this->cache_access_rights();
+		$this->enable_indexes();
 		$this->sql_commit();
 	}
 
