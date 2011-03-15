@@ -1067,6 +1067,8 @@ int main(int argc, char **argv)
 		t_fail("post_config_init not set (fatal)");
 		exit(1);
 	} else {
+		sql_config("commit_interval", "0");
+		sql_config("commit_queries", "0");
 		sql_init();
 		sql_query("TRUNCATE TABLE host");
 		sql_query("TRUNCATE TABLE service");
