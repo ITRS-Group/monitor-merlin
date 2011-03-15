@@ -416,7 +416,7 @@ class nagios_object_importer
 		$ret = array();
 		while ($row = $result->fetch(PDO::FETCH_NUM)) {
 			if (empty($cg_members[$row[1]])) {
-				echo "Un-cached contactgroup $row[1] assigned to $otype $row[0]\n";
+				# empty contactgroup most likely
 				continue;
 			}
 			if (!empty($ret[$row[0]])) {
