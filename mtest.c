@@ -56,23 +56,29 @@
 */
 static void zzz()
 {
-    static int doneThat = 0;
-    static char const * env = NULL;
-    if (0 == doneThat) {
-        doneThat = 1;
-        env = getenv("MTEST_SLOW");
-    }
+	static int slow = -2;
+	static char const * env = NULL;
 
-    if (env && *env && ('0' != *env)) {
-		if('1' == *env) {
-			sleep(3);
-		} else {
-			puts("!!! WAITING FOR SIGNAL BEFORE CONTINUING. !!!");
-			pause();
+	if (slow == -2) {
+		env = getenv("MTEST_SLOW");
+		if (!env) {
+			slow = 0;
+		} else if (*env == 'p' || *env == '0' || *env == 'P')
+			slow = -1;
+		else {
+			slow = atoi(env);
 		}
-    } else {
-        usleep(999999);
-    }
+	}
+
+	if (slow == -1 && isatty(fileno(stdin))) {
+		char lbuf[4096];
+		puts("!!! PRESS ENTER TO CONTINUE !!!");
+		fgets(lbuf, sizeof(lbuf) - 1, stdin);
+	} else if (slow > 0) {
+		sleep(slow);
+	} else {
+		usleep(999999);
+	}
 }
 
 static host *hosts;
