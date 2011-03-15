@@ -56,6 +56,7 @@ class nagios_object_importer
 	public $instance_id = 0;
 	public $db_quote_special = false;
 
+	protected $total_queries = 0;
 	public $db_type = 'mysql';
 	public $db_host = 'localhost';
 	public $db_user = '@@DBUSER@@';
@@ -392,6 +393,7 @@ class nagios_object_importer
 		$this->cache_access_rights();
 		$this->enable_indexes();
 		$this->sql_commit();
+		echo "Import finalized. Total queries: $this->total_queries\n";
 	}
 
 	private function get_contactgroup_members()
@@ -1064,6 +1066,8 @@ class nagios_object_importer
 	{
 		if(empty($query))
 			return(false);
+
+		$this->total_queries++;
 
 		# workaround for now
 		if($this->db === false) {
