@@ -326,6 +326,15 @@ class nagios_object_importer
 		}
 	}
 
+	function sql_commit()
+	{
+		if ($this->is_oracle()) {
+			$this->db->commit();
+		} else {
+			$this->db->query("COMMIT");
+		}
+	}
+
 	/**
 	 * Invoked when we encounter a new type of object in objects.cache
 	 * Since objects are grouped by type in that file, this means we're
@@ -336,9 +345,7 @@ class nagios_object_importer
 		if ($obj_type === false || empty($obj_array))
 			return true;
 
-		if ($this->is_oracle()) {
-			$this->db->commit();
-		}
+		$this->sql_commit();
 
 		switch ($obj_type) {
 		 case 'host': case 'timeperiod':
@@ -370,15 +377,20 @@ class nagios_object_importer
 		# that's what we have yet. Shouldn't hurt too much.
 		$this->preload_object_index('contact', 'SELECT id, contact_name FROM contact');
 		$this->preload_object_index('timeperiod', 'SELECT id, timeperiod_name FROM timeperiod');
+
+		if (!$this->is_oracle()) {
+			# this has no effect on MyISAM tables but works
+			# wonders for performance on InnoDB tables.
+			# postgres might not support it though.
+			$this->sql_exec_query("SET autocommit = 0");
+		}
 	}
 
 	public function finalize_import()
 	{
 		$this->purge_old_objects();
 		$this->cache_access_rights();
-		if ($this->is_oracle()) {
-			$this->db->commit();
-		}
+		$this->sql_commit();
 	}
 
 	private function get_contactgroup_members()
@@ -480,9 +492,7 @@ class nagios_object_importer
 				')';
 
 			$result = $this->sql_exec_query($query);
-			if ($this->is_oracle()) {
-				$this->db->commit();
-			}
+			$this->sql_commit();
 		}
 	}
 
