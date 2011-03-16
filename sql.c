@@ -124,10 +124,15 @@ void sql_try_commit(int query)
 	if (!db.conn || !use_database || !db.conn->api->commit)
 		return;
 
-	queries += query;
+	if (query > 0)
+		queries += query;
+
 	if (queries &&
-	    ((commit_interval && last_commit + commit_interval <= now) ||
-	    (commit_queries && queries >= commit_queries)))
+	    (query == -1 ||
+	     (commit_interval && last_commit + commit_interval <= now) ||
+	     (commit_queries && queries >= commit_queries)
+	    )
+	   )
 	{
 		int result;
 
