@@ -138,3 +138,15 @@ void slist_release(slist *sl)
 		free(sl->list);
 	sl->list = NULL;
 }
+
+void slist_walk(slist *sl, void *arg, int (*cb)(void *, void *))
+{
+	int i;
+
+	if (!sl || !sl->list || !sl->pos)
+		return;
+
+	for (i = 0; i < sl->pos; i++) {
+		cb(arg, sl->list[i]);
+	}
+}

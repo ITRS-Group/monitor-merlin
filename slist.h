@@ -86,4 +86,13 @@ extern int slist_set_list(slist *sl, void **list, uint items, int sorted);
  * @param sl The sorted list object
  */
 extern void slist_release(slist *sl);
+
+/**
+ * Runs the given callback function for each element of the sorted
+ * list.
+ * @param sl The sorted list object
+ * @param arg Any random argument passed as first argument to the callback
+ * @param cb The callback function to call for each element
+ */
+extern void slist_walk(slist *sl, void *arg, int (*cb)(void *, void *));
 #endif /* include_slist_h__ */
