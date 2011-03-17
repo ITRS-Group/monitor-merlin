@@ -657,7 +657,6 @@ PROMPT Creating Table hostescalation ...
 CREATE TABLE hostescalation (
   instance_id NUMBER(10,0) DEFAULT '0' NOT NULL,
   id NUMBER(10,0) NOT NULL,
-  template NUMBER(10,0),
   host_name NUMBER(10,0) NOT NULL,
   first_notification NUMBER(10,0),
   last_notification NUMBER(10,0),

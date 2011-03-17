@@ -534,7 +534,6 @@ DROP TABLE IF EXISTS hostescalation;
 CREATE TABLE hostescalation(
 	instance_id						int NOT NULL DEFAULT 0,
 	id								INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	template						INT,
 	host_name						INT NOT NULL,
 	first_notification				INT,
 	last_notification				INT,
