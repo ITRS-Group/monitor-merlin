@@ -40,7 +40,7 @@ int slist_find_pos(slist *sl, const void *key)
 
 		value = sl->compare(&key, &sl->list[mid]);
 		if (value > 0) {
-			low = mid;
+			low = mid + 1;
 			continue;
 		} else if (value < 0) {
 			high = mid;
