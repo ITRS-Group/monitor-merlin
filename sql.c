@@ -8,6 +8,7 @@
 char *host_perf_table = NULL;
 char *service_perf_table = NULL;
 static long int commit_interval, commit_queries;
+static time_t last_commit;
 
 #define FIXME(X)
 
@@ -117,7 +118,6 @@ db_wrap_result * sql_get_result(void)
 
 void sql_try_commit(int query)
 {
-	static time_t last_commit;
 	static int queries;
 	time_t now = time(NULL);
 
@@ -364,13 +364,25 @@ int sql_init(void)
 	 * Drivers that doesn't support it or doesn't need it shouldn't
 	 * have the "set_auto_commit()" function.
 	 */
-	if (!commit_interval && !commit_queries && db.conn->api->set_auto_commit) {
-		if (db.conn->api->set_auto_commit(db.conn, 1) != 0) {
-			if (log_attempt) {
-				lwarn("DB: Failed to set auto-commit. Using commit_queries = 1 as workaround");
+	if (db.conn->api->set_auto_commit) {
+		int set = !(commit_interval | commit_queries);
+
+		if (db.conn->api->set_auto_commit(db.conn, set) < 0) {
+			if (set) {
+				/* fake auto-commit with commit_queries = 1 */
 				commit_queries = 1;
 			}
+			if (log_attempt) {
+				lwarn("DB: set_auto_commit(%d) failed.", set);
+				if (set) {
+					lwarn("DB: setting commit_interval = 1 as workaround");
+				}
+			}
+		} else if (log_attempt) {
+			ldebug("DB: commit_queries: %ld; commit_interval: %ld",
+				  commit_queries, commit_interval);
 		}
+		last_commit = time(NULL);
 	}
 
 	last_logged = 0;
