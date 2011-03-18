@@ -9,6 +9,8 @@ char *host_perf_table = NULL;
 char *service_perf_table = NULL;
 static long int commit_interval, commit_queries;
 static time_t last_commit;
+unsigned long total_queries = 0;
+
 
 #define FIXME(X)
 
@@ -139,6 +141,7 @@ void sql_try_commit(int query)
 		ldebug("Committing %d queries", queries);
 		result = db.conn->api->commit(db.conn);
 		last_commit = now;
+		total_queries += queries;
 		queries = 0;
 	}
 }
