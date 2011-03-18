@@ -86,7 +86,7 @@ IMPORT_OBJS = $(APP_OBJS) import.o $(DBWRAP_OBJS)
 SHOWLOG_OBJS = $(APP_OBJS) showlog.o auth.o
 NEBTEST_OBJS = $(TEST_OBJS) nebtest.o
 DEPS = Makefile cfgfile.h ipc.h logging.h shared.h
-APPS = showlog import oconf
+APPS = showlog import oconf ocimp
 MOD_LDFLAGS = -shared -ggdb3 -fPIC $(PTHREAD_LDFLAGS)
 DAEMON_LIBS = $(LIB_NET)
 DAEMON_LDFLAGS = $(DAEMON_LIBS) $(DB_LDFLAGS) -ggdb3
@@ -138,6 +138,9 @@ mtest: mtest.o $(DBWRAP_OBJS) $(TEST_OBJS) $(TEST_DEPS) $(MODULE_OBJS)
 
 test-lparse: test-lparse.o lparse.o logutils.o hash.o test_utils.o
 	$(QUIET_LINK)$(CC) $^ -o $@
+
+ocimp: ocimp.o $(DBWRAP_OBJS) $(TEST_OBJS) sha1.o slist.o
+	$(QUIET_LINK)$(CC) -ggdb3 $(DB_LDFLAGS) $^ -o $@
 
 import: $(IMPORT_OBJS)
 	$(QUIET_LINK)$(CC) $(LIB_NET) $(DB_LDFLAGS) $^ -o $@
@@ -203,6 +206,7 @@ endpoint.o: test/endpoint.c $(DEPS)
 
 ipc.o net.o: node.h
 mtest.o nebtest.o: nagios-stubs.h
+ocimp.o: ocimp.c ocimp.h
 
 $(COMMON_OBJS): $(DEPS)
 module.o: module.c $(MODULE_DEPS) $(DEPS) hash.h
