@@ -137,6 +137,33 @@ void slist_release(slist *sl)
 	if (sl->list)
 		free(sl->list);
 	sl->list = NULL;
+	sl->pos = sl->alloc = 0;
+	sl->is_sorted = 1;
+}
+
+void slist_free_items(slist *sl)
+{
+	uint i;
+
+	if (!sl || !sl->list)
+		return;
+	for (i = 0; i < sl->pos; i++)
+		free(sl->list[i]);
+	sl->pos = 0;
+}
+
+void *slist_destroy(slist *sl, int items_too)
+{
+	if (!sl)
+		return NULL;
+
+	if (items_too)
+		slist_free_items(sl);
+
+	slist_release(sl);
+	free(sl);
+
+	return NULL;
 }
 
 uint slist_entries(slist *sl)

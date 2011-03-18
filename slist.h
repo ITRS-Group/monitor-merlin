@@ -88,14 +88,37 @@ extern int slist_set_list(slist *sl, void **list, uint items, int sorted);
 extern void slist_release(slist *sl);
 
 /**
- * Returns the current number of entries in the given slist
+ * free()'s each list entry of the object, leaving the allocated list
+ * entries intact and making it reusable for other objects.
+ *
+ * Don't use this on statically allocated lists.
+ *
  * @param sl The sorted list object
+ */
+extern void slist_free_items(slist *sl);
+
+/**
+ * free()'s the list itself and the sorted list object. This function
+ * returns NULL for convenience to assign it to the slist pointer in
+ * the caller. If items_too is non-zero, each list entry is also free()'d.
+ *
+ * @param sl The sorted list object
+ * @return NULL
+ */
+extern void *slist_destroy(slist *sl, int items_too);
+
+/**
+ * Get the current number of entries in the given slist
+ *
+ * @param sl The sorted list object
+ * @return The current number of entries in the given list object
  */
 extern uint slist_entries(slist *sl);
 
 /**
  * Returns the list pointer of the given slist
  * @param sl The sorted list object
+ * @return The list pointer
  */
 extern void *slist_get_list(slist *sl);
 
