@@ -923,6 +923,7 @@ static void parse_contact(struct cfg_comp *comp)
 	name = comp->vlist[i++]->value;
 	obj = ocimp_find_contact(name);
 	if (!obj) {
+		/* this will happen when new contacts are added */
 		obj = calloc(1, sizeof(*obj));
 		if (!obj) {
 			lerr("Failed to calloc() %d bytes: %s", sizeof(*obj), strerror(errno));
@@ -930,6 +931,7 @@ static void parse_contact(struct cfg_comp *comp)
 		}
 
 		obj->id = idt_next(&cid);
+		slist_add(contact_slist, obj);
 	}
 
 	num_contacts++;
