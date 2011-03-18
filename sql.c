@@ -192,7 +192,6 @@ int sql_vquery(const char *fmt, va_list ap)
 		return 0;
 
 	if (!use_database) {
-		lerr("Not using a database, but daemon still issued a query");
 		return -1;
 	}
 
