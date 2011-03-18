@@ -139,6 +139,22 @@ void slist_release(slist *sl)
 	sl->list = NULL;
 }
 
+uint slist_entries(slist *sl)
+{
+	if (!sl)
+		return 0;
+
+	return sl->pos;
+}
+
+void *slist_get_list(slist *sl)
+{
+	if (!sl)
+		return 0;
+
+	return sl->list;
+}
+
 void slist_walk(slist *sl, void *arg, int (*cb)(void *, void *))
 {
 	int i;

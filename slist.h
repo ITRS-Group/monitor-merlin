@@ -88,6 +88,18 @@ extern int slist_set_list(slist *sl, void **list, uint items, int sorted);
 extern void slist_release(slist *sl);
 
 /**
+ * Returns the current number of entries in the given slist
+ * @param sl The sorted list object
+ */
+extern uint slist_entries(slist *sl);
+
+/**
+ * Returns the list pointer of the given slist
+ * @param sl The sorted list object
+ */
+extern void *slist_get_list(slist *sl);
+
+/**
  * Runs the given callback function for each element of the sorted
  * list.
  * @param sl The sorted list object
