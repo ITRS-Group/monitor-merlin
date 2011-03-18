@@ -1481,10 +1481,17 @@ static void load_instance_ids(void)
 	const char *host_name;
 	size_t len;
 
-	ldebug("Loading instance id's for hosts and services");
+	if (!use_database)
+		return;
+
+	ldebug("Loading instance id's and id's for hosts and services");
 
 	sql_query("SELECT instance_id, host_name FROM host");
 	result = sql_get_result();
+	if (!result) {
+		lwarn("Failed to grab instance id's and id's from database");
+		return;
+	}
 	while (result->api->step(result) == 0) {
 		result->api->get_string_ndx(result, 1, &host_name, &len);
 		obj = ocimp_find_status(host_name, NULL);
@@ -1499,6 +1506,10 @@ static void load_instance_ids(void)
 
 	sql_query("SELECT instance_id, host_name, service_description FROM service");
 	result = sql_get_result();
+	if (!result) {
+		lwarn("Failed to grab service id's and instance id's from database");
+		return;
+	}
 	while (result->api->step(result) == 0) {
 		const char *service_description;
 		result->api->get_string_ndx(result, 1, &host_name, &len);
@@ -1605,9 +1616,14 @@ int main(int argc, char **argv)
 	log_grok_var("log_file", "stdout");
 	log_init();
 
-	use_database = 1;
-	sql_config("commit_interval", "0");
-	sql_init();
+	use_database = use_sql;
+	if (use_sql) {
+		sql_config("commit_interval", "0");
+		if (sql_init() < 0) {
+			lerr("Failed to connect to database. Aborting");
+			exit(1);
+		}
+	}
 
 	/* we overallocate quite wildly for most customers' uses here */
 	host_slist = slist_init(2000, alpha_cmp_host);
