@@ -20,6 +20,31 @@ static int skip_contact_access;
 static uint dodged_queries;
 extern unsigned long total_queries;
 
+struct id_tracker {
+	int min, max, cur;
+};
+typedef struct id_tracker id_tracker;
+static id_tracker cid, hid, sid;
+
+static inline int idt_next(id_tracker *id)
+{
+	/* try re-using lower contact id's first */
+	if (++id->cur >= id->min)
+		return ++id->max;
+
+	return id->cur;
+}
+
+static inline void idt_update(id_tracker *id, unsigned int cur)
+{
+	if (cur > id->max)
+		id->max = cur;
+	/* can't use else here since id->min is initialized to "huge" */
+	if (cur < id->min)
+		id->min = cur;
+}
+
+
 static int nsort_contact(const void *a_, const void *b_)
 {
 	const ocimp_contact_object *a = *((ocimp_contact_object **)a_);
@@ -388,7 +413,6 @@ static int parse_status(struct cfg_comp *comp)
 	state_object *obj = NULL;
 	char *host_name, *service_description = NULL;
 	int located = 0, i = 0;
-	static int host_id = 0, service_id = 0;
 
 	if (!comp || !comp->vars)
 		return -1;
@@ -416,20 +440,22 @@ static int parse_status(struct cfg_comp *comp)
 			lerr("Failed to calloc(1, %d): %s", sizeof(*obj), strerror(errno));
 			return -1;
 		}
-		if (!service_description) {
-			obj->ido.id = ++host_id;
-		} else {
-			obj->ido.id = ++service_id;
-		}
 		obj->ido.host_name = host_name;
 		obj->ido.service_description = service_description;
 	} else {
 		located = 1;
-//		printf("Located %s object %s%s%s\n",
-//			   obj->ido.service_description ? "service" : "host",
-//			   obj->ido.host_name,
-//			   obj->ido.service_description ? ";" : "",
-//			   obj->ido.service_description ? obj->ido.service_description : "");
+		/*
+		 * some (most) of these should their id's preloaded
+		 * from before. For those that don't, we generate one
+		 * that we know is safe
+		 */
+		if (!obj->ido.id) {
+			if (!service_description) {
+				obj->ido.id = idt_next(&hid);
+			} else {
+				obj->ido.id = idt_next(&sid);
+			}
+		}
 	}
 
 	for (; i < comp->vars; i++) {
@@ -840,28 +866,6 @@ static struct tbl_info {
  * or already logged in users may change user id and get different
  * rights. This code makes it so
  */
-struct id_tracker {
-	int min, max, cur;
-};
-static inline int get_next_id(struct id_tracker *id)
-{
-	/* try re-using lower contact id's first */
-	if (++id->cur >= id->min)
-		return ++id->max;
-
-	return id->cur;
-}
-
-static inline void update_id_tracker(struct id_tracker *id, unsigned int cur)
-{
-	if (cur > id->max)
-		id->max = cur;
-	/* can't use else here since id->min is initialized to "huge" */
-	if (cur < id->min)
-		id->min = cur;
-}
-
-static struct id_tracker cid;
 static void preload_contact_ids(void)
 {
 	if (!use_database)
@@ -884,7 +888,7 @@ static void preload_contact_ids(void)
 		db_wrap_result_string_copy_ndx(result, 1, &obj->name, NULL);
 		slist_add(contact_slist, obj);
 
-		update_id_tracker(&cid, obj->id);
+		idt_update(&cid, obj->id);
 	}
 
 	slist_sort(contact_slist);
@@ -925,7 +929,7 @@ static void parse_contact(struct cfg_comp *comp)
 			exit(1);
 		}
 
-		obj->id = get_next_id(&cid);
+		obj->id = idt_next(&cid);
 	}
 
 	num_contacts++;
@@ -1508,19 +1512,20 @@ static void load_instance_ids(void)
 	const char *host_name;
 	size_t len;
 
+	hid.min = sid.min = INT_MAX;
 	if (!use_database)
 		return;
 
 	ldebug("Loading instance id's and id's for hosts and services");
 
-	sql_query("SELECT instance_id, host_name FROM host");
+	sql_query("SELECT instance_id, id, host_name FROM host");
 	result = sql_get_result();
 	if (!result) {
 		lwarn("Failed to grab instance id's and id's from database");
 		return;
 	}
 	while (result->api->step(result) == 0) {
-		result->api->get_string_ndx(result, 1, &host_name, &len);
+		result->api->get_string_ndx(result, 2, &host_name, &len);
 		obj = ocimp_find_status(host_name, NULL);
 
 		/* this can happen normally if hosts have been removed */
@@ -1529,9 +1534,11 @@ static void load_instance_ids(void)
 		}
 
 		result->api->get_int32_ndx(result, 0, &obj->ido.instance_id);
+		result->api->get_int32_ndx(result, 1, &obj->ido.id);
+		idt_update(&hid, obj->ido.id);
 	}
 
-	sql_query("SELECT instance_id, host_name, service_description FROM service");
+	sql_query("SELECT instance_id, id, host_name, service_description FROM service");
 	result = sql_get_result();
 	if (!result) {
 		lwarn("Failed to grab service id's and instance id's from database");
@@ -1548,6 +1555,8 @@ static void load_instance_ids(void)
 			continue;
 
 		result->api->get_int32_ndx(result, 0, &obj->ido.instance_id);
+		result->api->get_int32_ndx(result, 1, &obj->ido.id);
+		idt_update(&sid, obj->ido.id);
 	}
 
 	ldebug("Done loading instance id's");
