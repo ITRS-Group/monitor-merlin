@@ -16,6 +16,7 @@
 static slist *contact_slist, *host_slist, *service_slist;
 static slist *sg_slist, *cg_slist, *hg_slist;
 static int num_contacts = 0;
+static int skip_contact_access;
 static uint dodged_queries;
 extern unsigned long total_queries;
 
@@ -1486,10 +1487,12 @@ static void fix_junctions(void)
 	ocimp_truncate("service_servicegroup");
 	slist_walk(sg_slist, NULL, fix_sg_members);
 
-	/* this is the heaviest part, really */
-	ocimp_truncate("contact_access");
-	slist_walk(host_slist, "host", cache_contact_access);
-	slist_walk(service_slist, "service", cache_contact_access);
+	if (!skip_contact_access) {
+		/* this is the heaviest part, really */
+		ocimp_truncate("contact_access");
+		slist_walk(host_slist, "host", cache_contact_access);
+		slist_walk(service_slist, "service", cache_contact_access);
+	}
 
 	ldebug("Done fixing junctions");
 }
@@ -1594,6 +1597,9 @@ int main(int argc, char **argv)
 		if (!prefixcmp(arg, "--no-sql")) {
 			use_sql = 0;
 			continue;
+		}
+		if (!prefixcmp(arg, "--no-ca") || !prefixcmp(arg, "--no-contact-cache")) {
+			skip_contact_access = 1;
 		}
 
 		if (!opt) {
