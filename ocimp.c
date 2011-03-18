@@ -839,13 +839,42 @@ static struct tbl_info {
  * or already logged in users may change user id and get different
  * rights. This code makes it so
  */
-static unsigned int max_contact_id = 0, min_contact_id = INT_MAX;
-static unsigned int contact_id = 0;
+struct id_tracker {
+	int min, max, cur;
+};
+static inline int get_next_id(struct id_tracker *id)
+{
+	/* try re-using lower contact id's first */
+	if (++id->cur >= id->min)
+		return ++id->max;
+
+	return id->cur;
+}
+
+static inline void update_id_tracker(struct id_tracker *id, unsigned int cur)
+{
+	if (cur > id->max)
+		id->max = cur;
+	/* can't use else here since id->min is initialized to "huge" */
+	if (cur < id->min)
+		id->min = cur;
+}
+
+static struct id_tracker cid;
 static void preload_contact_ids(void)
 {
+	if (!use_database)
+		return;
+
+	cid.min = INT_MAX;
+
 	db_wrap_result *result;
 	sql_query("SELECT id, contact_name FROM contact");
 	result = sql_get_result();
+	if (!result) {
+		lerr("Failed to preload contact id's from database");
+		return;
+	}
 
 	while (result->api->step(result) == 0) {
 		ocimp_contact_object *obj = NULL;
@@ -854,11 +883,7 @@ static void preload_contact_ids(void)
 		db_wrap_result_string_copy_ndx(result, 1, &obj->name, NULL);
 		slist_add(contact_slist, obj);
 
-		/* make sure all contacts get unique id's */
-		if (obj->id > max_contact_id)
-			max_contact_id = obj->id;
-		if (obj->id < min_contact_id)
-			min_contact_id = obj->id;
+		update_id_tracker(&cid, obj->id);
 	}
 
 	slist_sort(contact_slist);
@@ -899,11 +924,7 @@ static void parse_contact(struct cfg_comp *comp)
 			exit(1);
 		}
 
-		/* try re-using lower contact id's first */
-		contact_id++;
-		if (contact_id >= min_contact_id)
-			contact_id = ++max_contact_id;
-		obj->id = contact_id;
+		obj->id = get_next_id(&cid);
 	}
 
 	num_contacts++;
