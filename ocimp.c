@@ -372,10 +372,8 @@ static state_object *ocimp_find_status(const char *hst, const char *svc)
 static int ocimp_stash_status(state_object *obj)
 {
 	if (!obj->ido.service_description) {
-	//	printf("Adding host '%s' to sorted list\n", obj->ido.host_name);
 		slist_add(host_slist, obj);
 	} else {
-	//	printf("Adding service '%s;%s' to sorted list\n", obj->ido.service_description);
 		slist_add(service_slist, obj);
 	}
 	return 0;
@@ -1428,6 +1426,7 @@ static int cache_contact_access(void *what_ptr, void *base_obj)
 		sql_query("INSERT INTO contact_access(%s, contact) "
 				  "VALUES(%d, %d)", what, o->ido.id, co->id);
 	}
+
 	return 0;
 }
 
@@ -1459,6 +1458,7 @@ static void fix_junctions(void)
 
 	ocimp_truncate("host_hostgroup");
 	slist_walk(hg_slist, NULL, fix_hg_members);
+
 	ocimp_truncate("service_servicegroup");
 	slist_walk(sg_slist, NULL, fix_sg_members);
 
