@@ -132,6 +132,8 @@ static int insert_host(state_object *p)
 			  safe_str(address), safe_str(alias),
 			  INSERT_VALUES());
 
+	free(address);
+	free(alias);
 	status_free();
 
 	return 0;
@@ -147,6 +149,7 @@ static int insert_service(state_object *p)
 			  service_description,
 			  INSERT_VALUES());
 
+	free(service_description);
 	status_free();
 
 	return 0;
