@@ -2,9 +2,9 @@ default: all
 uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo nope')
 CC = gcc
 ifeq ($(uname_S),SunOS)
-	CFLAGS = -pipe $(WARN_FLAGS) -ggdb3 -fPIC -fno-strict-aliasing
+	SYS_CFLAGS = -pipe $(WARN_FLAGS) -ggdb3 -fPIC -fno-strict-aliasing
 else
-	CFLAGS = -pipe $(WARN_FLAGS) -ggdb3 -fPIC -fno-strict-aliasing -rdynamic
+	SYS_CFLAGS = -pipe $(WARN_FLAGS) -ggdb3 -fPIC -fno-strict-aliasing -rdynamic
 endif
 
 PTHREAD_LDFLAGS = -pthread
@@ -36,7 +36,7 @@ ifeq ($(uname_S),SunOS)
 endif
 
 # CFLAGS, CPPFLAGS and LDFLAGS are for users to modify
-ALL_CFLAGS = $(CFLAGS) $(TWEAK_CPPFLAGS) $(CPPFLAGS) $(PTHREAD_CFLAGS)
+ALL_CFLAGS = $(CFLAGS) $(TWEAK_CPPFLAGS) $(SYS_CFLAGS) $(CPPFLAGS) $(PTHREAD_CFLAGS)
 ALL_LDFLAGS = $(LDFLAGS) $(TWEAK_LDFLAGS) $(PTHREAD_LDFLAGS)
 WARN_FLAGS = -Wall -Wno-unused-parameter
 #WARN_FLAGS += -Wextra# is not supported on older gcc versions.
