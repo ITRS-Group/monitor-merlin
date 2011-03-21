@@ -1270,6 +1270,12 @@ static void fix_contactgroups(const char *what, state_object *o)
 			ocimp_contact_object *cont;
 			cont = (ocimp_contact_object *)grp->strv->str[x];
 
+			if (!cont) {
+				lerr("Failed to locate contactgroup '%s' member '%s'",
+					 grp->name, grp->strv->str[x]);
+				continue;
+			}
+
 			slist_add(o->contact_slist, cont);
 		}
 	}
@@ -1345,6 +1351,11 @@ static int fix_cg_members(void *discard, void *base_obj)
 
 		if (!obj->strv) {
 			cont = ocimp_find_contact(strv->str[i]);
+			if (!cont) {
+				lerr("Failed to find contactgroup '%s' member '%s'",
+					 obj->name, strv->str[i]);
+				continue;
+			}
 			/*
 			 * ugly trick, but we reuse the pointers to the contact
 			 * names to stash the contact objects instead
