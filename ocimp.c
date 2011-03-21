@@ -63,8 +63,10 @@ static void grok_merlin_config(const char *path)
 
 static void ocimp_truncate(const char *table)
 {
-	sql_query("TRUNCATE TABLE %s", table);
-	ldebug("Truncating table %s", table);
+	if (use_database) {
+		sql_query("TRUNCATE TABLE %s", table);
+		ldebug("Truncating table %s", table);
+	}
 }
 
 static int alpha_cmp_group(const void *a_, const void *b_)
