@@ -394,8 +394,6 @@ static state_object *ocimp_find_status(const char *hst, const char *svc)
 			printf("slist error: %s != %s\n", svc, ret->ido.service_description);
 			exit(1);
 		}
-		//printf("Found %s %s%s%s in slist\n", svc ? "service" : "host",
-		//	   hst, svc ? ";" : "", svc ? svc : "");
 	}
 	return ret;
 }
@@ -1233,8 +1231,6 @@ static void fix_contacts(const char *what, state_object *o)
 		 * we cache contact access junk while we've got
 		 * everything lined up properly here
 		 */
-		//sql_query("INSERT INTO contact_access(%s, contact) "
-		//		  "VALUES(%d, %d)", what, o->ido.id, cont->id);
 		slist_add(o->contact_slist, cont);
 	}
 	free(contacts);
@@ -1275,8 +1271,6 @@ static void fix_contactgroups(const char *what, state_object *o)
 			cont = (ocimp_contact_object *)grp->strv->str[x];
 
 			slist_add(o->contact_slist, cont);
-			//sql_query("INSERT INTO contact_access(%s, contact) "
-			//		  "VALUES(%d, %d)", what, o->ido.id, cont->id);
 		}
 	}
 
@@ -1581,7 +1575,6 @@ static void usage(const char *fmt, ...)
 
 int main(int argc, char **argv)
 {
-//	blk_SHA_CTX ctx;
 	struct cfg_comp *cache, *status;
 	char *cache_path = "atlas/objects.cache";
 	char *status_path = "atlas/status.log";
@@ -1677,7 +1670,6 @@ int main(int argc, char **argv)
 	contact_slist = slist_init(500, alpha_cmp_contact);
 	preload_contact_ids();
 
-	//puts(INSERT_QUERY("service", "host_name, service_description", "%s, %s"));
 	status = cfg_parse_file(status_path);
 	parse_status_log(status);
 
@@ -1692,7 +1684,9 @@ int main(int argc, char **argv)
 	fix_junctions();
 
 	/* commit the last transaction, in case we're not using autocommit */
-	sql_try_commit(-1);
+	if (use_database) {
+		sql_try_commit(-1);
+	}
 
 	gettimeofday(&stop, NULL);
 	linfo("Total queries executed: %lu. Queries dodged: %u",
