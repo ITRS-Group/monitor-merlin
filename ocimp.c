@@ -881,14 +881,13 @@ static void parse_command(struct cfg_comp *comp)
 	free(line);
 }
 
-static void parse_group(slist *sl, struct cfg_comp *comp)
+static void parse_group(int *gid, slist *sl, struct cfg_comp *comp)
 {
 	ocimp_group_object *obj;
 
 	int i = 0;
 	char *name, *alias;
 	char *notes = NULL, *notes_url = NULL, *action_url = NULL;
-	static int id = 0;
 
 	obj = calloc(1, sizeof(*obj));
 	if (!obj) {
@@ -896,7 +895,7 @@ static void parse_group(slist *sl, struct cfg_comp *comp)
 		exit(1);
 	}
 
-	obj->id = ++id;
+	obj->id = ++(*gid);
 	obj->name = comp->vlist[i++]->value;
 	sql_quote(obj->name, &name);
 	sql_quote(comp->vlist[i++]->value, &alias);
@@ -962,11 +961,12 @@ static void parse_group(slist *sl, struct cfg_comp *comp)
 #define OCIMPT_timeperiod 12
 
 #define OCIMPT_ENTRY(type, always) \
-	0, OCIMPT_##type, always, #type, NULL
+	0, OCIMPT_##type, always, 0, #type, NULL
 static struct tbl_info {
 	int truncated;
 	int code;
 	int always;
+	int id;
 	char *name;
 	slist *sl;
 } table_info[] = {
@@ -1156,10 +1156,9 @@ static void parse_contact(struct cfg_comp *comp)
 	safe_free(address6);
 }
 
-static int parse_escalation(struct cfg_comp *comp)
+static int parse_escalation(int *oid, struct cfg_comp *comp)
 {
-	int i = 0, id;
-	static int hostesc_id = 0, serviceesc_id = 0;
+	int i = 0;
 	char *hname, *sdesc = NULL;
 	int first_notification, last_notification, notification_interval;
 	char *escalation_period = NULL;
@@ -1173,11 +1172,9 @@ static int parse_escalation(struct cfg_comp *comp)
 	if (*comp->name == 's') {
 		sdesc = comp->vlist[i++]->value;
 		wkey = what = "service";
-		id = ++serviceesc_id;
 	} else {
 		what = "host";
 		wkey = "host_name";
-		id = ++hostesc_id;
 	}
 
 	first_notification = atoi(comp->vlist[i++]->value);
@@ -1192,10 +1189,11 @@ static int parse_escalation(struct cfg_comp *comp)
 		return 0;
 	}
 
+	(*oid)++;
 	for (; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
 
-		handle_custom_var(id);
+		handle_custom_var(*oid);
 
 		if (!strcmp(v->key, "escalation_period")) {
 			sql_quote(v->value, &escalation_period);
@@ -1222,7 +1220,7 @@ static int parse_escalation(struct cfg_comp *comp)
 			  "%d, %d, %d, "
 			  "%s, %s)",
 			  what, wkey,
-			  id, obj->ido.id,
+			  *oid, obj->ido.id,
 			  first_notification, last_notification, notification_interval,
 			  safe_str(escalation_period), safe_str(escalation_options));
 
@@ -1317,10 +1315,9 @@ static int parse_escalation(struct cfg_comp *comp)
 	return 0;
 }
 
-static int parse_dependency(struct cfg_comp *comp)
+static int parse_dependency(int *oid, struct cfg_comp *comp)
 {
-	int i = 0, id;
-	static int host_id = 0, service_id = 0;
+	int i = 0;
 	state_object *obj, *dep_obj;
 	char *what;
 	char *hname, *dep_hname;
@@ -1332,11 +1329,9 @@ static int parse_dependency(struct cfg_comp *comp)
 
 	hname = comp->vlist[i++]->value;
 	if (*comp->name == 's') {
-		id = ++service_id;
 		sdesc = comp->vlist[i++]->value;
 		what = "service";
 	} else {
-		id = ++host_id;
 		what = "host";
 	}
 	dep_hname = comp->vlist[i++]->value;
@@ -1358,10 +1353,11 @@ static int parse_dependency(struct cfg_comp *comp)
 		return 0;
 	}
 
+	(*oid)++;
 	for (; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
 
-		handle_custom_var(id);
+		handle_custom_var(*oid);
 
 		if (!strcmp(v->key, "dependency_period")) {
 			sql_quote(v->value, &dependency_period);
@@ -1381,12 +1377,12 @@ static int parse_dependency(struct cfg_comp *comp)
 		}
 	}
 
-	sql_query("INSERT INTO %sdependency(id, %s, dependent_%s "
+	sql_query("INSERT INTO %sdependency(instance_id, id, %s, dependent_%s "
 	          "dependency_period, inherits_parent, "
 	          "execution_failure_options, notification_failure_options) "
-	          "VALUES(%d, %d, %d, %s, %c, %s, %s)", what,
+	          "VALUES(0, %d, %d, %d, %s, %c, %s, %s)", what,
 	          sdesc ? "service" : "host_name", sdesc ? "service" : "host_name",
-			  id, obj->ido.id, dep_obj->ido.id,
+			  *oid, obj->ido.id, dep_obj->ido.id,
 	          safe_str(dependency_period), inherits_parent,
 	          safe_str(execution_failure_options),
 	          safe_str(notification_failure_options));
@@ -1459,7 +1455,7 @@ static int parse_object_cache(struct cfg_comp *comp)
 		case OCIMPT_contactgroup:
 		case OCIMPT_hostgroup:
 		case OCIMPT_servicegroup:
-			parse_group(table->sl, c);
+			parse_group(&table->id, table->sl, c);
 			break;
 
 		case OCIMPT_contact:
@@ -1468,12 +1464,12 @@ static int parse_object_cache(struct cfg_comp *comp)
 
 		case OCIMPT_hostescalation:
 		case OCIMPT_serviceescalation:
-			parse_escalation(c);
+			parse_escalation(&table->id, c);
 			break;
 
 		case OCIMPT_hostdependency:
 		case OCIMPT_servicedependency:
-			parse_dependency(c);
+			parse_dependency(&table->id, c);
 			break;
 
 		default:
