@@ -20,6 +20,7 @@ static int ocache_unchanged, skip_contact_access;
 static uint dodged_queries;
 extern unsigned long total_queries;
 static unsigned char ocache_hash[20];
+static char *cache_path, *status_path;
 
 struct id_tracker {
 	int min, max, cur;
@@ -54,12 +55,76 @@ static int nsort_contact(const void *a_, const void *b_)
 	return a->id - b->id;
 }
 
+/*
+ * Grab some variables from nagios.cfg
+ */
 static void grok_nagios_config(const char *path)
 {
+	int i;
+	struct cfg_comp *ncfg;
+
+	if (!path)
+		return;
+
+	ncfg = cfg_parse_file(path);
+	if (!ncfg || !ncfg->vars)
+		return;
+
+	for (i = 0; i < ncfg->vars; i++) {
+		struct cfg_var *v = ncfg->vlist[i];
+		if (!strcmp(v->key, "status_file")) {
+			status_path = strdup(v->value);
+			continue;
+		}
+		if (!strcmp(v->key, "object_cache_file")) {
+			cache_path = strdup(v->value);
+			continue;
+		}
+	}
+
+	cfg_destroy_compound(ncfg);
+}
+
+/*
+ * Recursively make sense of config compounds from merlin.conf
+ */
+static void grok_merlin_compound(struct cfg_comp *comp)
+{
+	int i;
+	struct cfg_var *v;
+
+	if (!comp || (!comp->nested && !comp->vars))
+		return;
+
+	if (!strcmp(comp->name, "database")) {
+		for (i = 0; i < comp->vars; i++) {
+			v = comp->vlist[i];
+			if (!strcmp(v->key, "commit_interval"))
+				continue;
+			if (!strcmp(v->key, "commit_queries")) {
+				sql_config(v->key, "10000");
+				continue;
+			}
+			sql_config(v->key, v->value);
+		}
+		return;
+	}
+
+	/* might want to put special import parameters here later */
+	if (!strcmp(comp->name, "import")) {
+		return;
+	}
 }
 
 static void grok_merlin_config(const char *path)
 {
+	struct cfg_comp *mconf;
+
+	if (!path)
+		return;
+
+	mconf = cfg_parse_file(path);
+	grok_merlin_compound(mconf);
 }
 
 static void ocimp_truncate(const char *table)
@@ -1701,8 +1766,6 @@ static void load_ocache_hash(const char *ocache_path)
 int main(int argc, char **argv)
 {
 	struct cfg_comp *cache, *status;
-	char *cache_path = "atlas/objects.cache";
-	char *status_path = "atlas/status.log";
 	char *nagios_cfg_path = "/opt/monitor/etc/nagios.cfg";
 	char *merlin_cfg_path = "/opt/monitor/op5/merlin/merlin.conf";
 	int i, use_sql = 1;
