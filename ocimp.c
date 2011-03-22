@@ -1787,7 +1787,7 @@ int main(int argc, char **argv)
 	struct cfg_comp *cache, *status;
 	char *nagios_cfg_path = "/opt/monitor/etc/nagios.cfg";
 	char *merlin_cfg_path = "/opt/monitor/op5/merlin/merlin.conf";
-	int i, use_sql = 1;
+	int i, use_sql = 1, force = 0;
 	struct timeval start, stop;
 
 	gettimeofday(&start, NULL);
@@ -1813,6 +1813,10 @@ int main(int argc, char **argv)
 		}
 		if (!prefixcmp(arg, "--no-ca") || !prefixcmp(arg, "--no-contact-cache")) {
 			skip_contact_access = 1;
+			continue;
+		}
+		if (!strcmp(arg, "--force")) {
+			force = 1;
 			continue;
 		}
 
@@ -1879,6 +1883,9 @@ int main(int argc, char **argv)
 	preload_contact_ids();
 
 	load_ocache_hash(cache_path);
+	if (force) {
+		ocache_unchanged = 0;
+	}
 
 	status = cfg_parse_file(status_path);
 	parse_status_log(status);
