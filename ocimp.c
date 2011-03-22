@@ -1114,8 +1114,7 @@ static int parse_escalation(struct cfg_comp *comp)
 	int first_notification, last_notification, notification_interval;
 	char *escalation_period = NULL;
 	char *escalation_options = NULL;
-	char *cgroups;
-	char *contacts;
+	char *cgroups = NULL, *contacts = NULL;
 	state_object *obj = NULL;
 	const char *what, *wkey;
 	strvec *sv;
