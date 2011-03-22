@@ -1785,8 +1785,7 @@ static void load_ocache_hash(const char *ocache_path)
 int main(int argc, char **argv)
 {
 	struct cfg_comp *cache, *status;
-	char *nagios_cfg_path = "/opt/monitor/etc/nagios.cfg";
-	char *merlin_cfg_path = "/opt/monitor/op5/merlin/merlin.conf";
+	char *nagios_cfg_path = NULL, *merlin_cfg_path = NULL;
 	int i, use_sql = 1, force = 0;
 	struct timeval start, stop;
 
@@ -1856,7 +1855,11 @@ int main(int argc, char **argv)
 	if (merlin_cfg_path) {
 		grok_merlin_config(merlin_cfg_path);
 	}
-	if (nagios_cfg_path) {
+
+	if (!cache_path && !status_path) {
+		if (!nagios_cfg_path)
+			nagios_cfg_path = "/opt/monitor/etc/nagios.cfg";
+
 		grok_nagios_config(nagios_cfg_path);
 	}
 
