@@ -1177,6 +1177,15 @@ static int parse_escalation(struct cfg_comp *comp)
 	safe_free(escalation_period);
 	safe_free(escalation_options);
 
+	if (!obj->contact_slist) {
+		obj->contact_slist = slist_init(num_contacts, nsort_contact);
+		if (!obj->contact_slist) {
+			lerr("Failed to init escalation slist with %d entries: %s",
+				 num_contacts, strerror(errno));
+			return 0;
+		}
+	}
+
 	if (contacts) {
 		sv = str_explode(contacts, ',');
 
@@ -1426,9 +1435,13 @@ static int fix_host_junctions(void *discard, void *obj)
 	host_name = o->ido.host_name;
 	parents = str_explode(o->parents, ',');
 
-	o->contact_slist = slist_init(num_contacts, nsort_contact);
+	/* slist might be initialized while parsing escalations */
 	if (!o->contact_slist) {
-		lerr("Failed to initialize obj->contact_slist");
+		o->contact_slist = slist_init(num_contacts, nsort_contact);
+
+		if (!o->contact_slist) {
+			lerr("Failed to initialize obj->contact_slist");
+		}
 	}
 
 	for (i = 0; parents && i < parents->entries; i++) {
@@ -1452,9 +1465,13 @@ static int fix_service_junctions(void *discard, void *obj)
 {
 	state_object *o = (state_object *)obj;
 
-	o->contact_slist = slist_init(num_contacts, nsort_contact);
+	/* slist might be initialized while parsing escalations */
 	if (!o->contact_slist) {
-		lerr("Failed to initialize obj->contact_slist");
+		o->contact_slist = slist_init(num_contacts, nsort_contact);
+
+		if (!o->contact_slist) {
+			lerr("Failed to initialize obj->contact_slist");
+		}
 	}
 
 	fix_contacts("service", o);
