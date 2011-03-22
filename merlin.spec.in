@@ -156,6 +156,7 @@ sh /etc/init.d/monitor start || :
 %defattr(-,root,root)
 %mod_path/import
 %mod_path/showlog
+%mod_path/ocimp
 /usr/libexec/merlin/*
 /usr/bin/mon
 %_sysconfdir/cron.d/*
