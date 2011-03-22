@@ -187,7 +187,7 @@ install_apps ()
 
 install_files ()
 {
-	execs="import showlog merlind install-merlin.sh init.sh"
+	execs="import showlog merlind ocimp install-merlin.sh init.sh"
 	files="$execs merlin.so example.conf"
 	missing=
 	for i in $files; do
