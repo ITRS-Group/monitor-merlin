@@ -188,12 +188,6 @@ struct id_object {
 };
 typedef struct id_object id_object;
 
-struct strvec {
-	unsigned int entries;
-	char **str;
-};
-typedef struct strvec strvec;
-
 struct ocimp_group_object {
 	char *name;
 	int id;

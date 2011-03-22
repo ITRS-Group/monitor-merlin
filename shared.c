@@ -27,6 +27,35 @@ char *next_word(char *str)
 }
 
 /*
+ * Crack a string into several pieces based on the delimiter
+ */
+strvec *str_explode(char *str, int delim)
+{
+	int i = 0, entries = 1;
+	char *p;
+	struct strvec *ret = NULL;
+
+	if (!str || !*str)
+		return NULL;
+
+	p = str;
+	while ((p = strchr(p + 1, delim))) {
+		entries++;
+	}
+
+	ret = malloc(sizeof(*ret));
+	ret->entries = entries;
+	ret->str = malloc(entries * sizeof(char *));
+	ret->str[i++] = p = str;
+	while ((p = strchr(p, delim))) {
+		*p++ = 0;
+		ret->str[i++] = p;
+	}
+
+	return ret;
+}
+
+/*
  * "yes", "true", "on" and any non-zero integer makes us return 1
  * For every other case, we return 0.
  */

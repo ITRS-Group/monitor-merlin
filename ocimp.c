@@ -1188,32 +1188,6 @@ static int parse_object_cache(struct cfg_comp *comp)
 	return 0;
 }
 
-static struct strvec *str_explode(char *str, int delim)
-{
-	int i = 0, entries = 1;
-	char *p;
-	struct strvec *ret = NULL;
-
-	if (!str || !*str)
-		return NULL;
-
-	p = str;
-	while ((p = strchr(p + 1, delim))) {
-		entries++;
-	}
-
-	ret = malloc(sizeof(*ret));
-	ret->entries = entries;
-	ret->str = malloc(entries * sizeof(char *));
-	ret->str[i++] = p = str;
-	while ((p = strchr(p, delim))) {
-		*p++ = 0;
-		ret->str[i++] = p;
-	}
-
-	return ret;
-}
-
 static void fix_contacts(const char *what, state_object *o)
 {
 	int i;

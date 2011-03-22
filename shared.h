@@ -95,6 +95,12 @@ extern uint num_nocs, num_peers, num_pollers;
 extern int use_database;
 extern merlin_nodeinfo self;
 
+struct strvec {
+	unsigned int entries;
+	char **str;
+};
+typedef struct strvec strvec;
+
 /** event structures where Nagios' doesn't provide good ones */
 struct monitored_object_state {
 	int initial_state;
@@ -172,6 +178,7 @@ typedef struct merlin_service_status merlin_service_status;
 #define ISOTIME_PREC_MAX     ISOTIME_PREC_USECOND
 
 /** prototypes **/
+extern strvec *str_explode(char *str, int delim);
 extern int strtobool(const char *str);
 extern int grok_seconds(const char *p, long *result);
 extern const char *isotime(struct timeval *tv, int precision);
