@@ -252,12 +252,12 @@ static int insert_service(state_object *p)
 	return 0;
 }
 
-static inline void cfg_indent(int depth)
+static inline void cfg_indent(FILE *fp, int depth)
 {
 	int i;
 
 	for (i = 0; i < depth; i++) {
-		printf("  ");
+		fprintf(fp, "  ");
 	}
 }
 
@@ -270,18 +270,18 @@ void cfg_fprintr_comp(FILE *fp, struct cfg_comp *comp, int depth)
 
 	for (i = 0; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
-		cfg_indent(depth);
+		cfg_indent(fp, depth);
 		fprintf(fp, "%s = %s\n", v->key, v->value);
 	}
 
 	for (i = 0; i < comp->nested; i++) {
 		struct cfg_comp *nc = comp->nest[i];
 
-		cfg_indent(depth);
+		cfg_indent(fp, depth);
 		fprintf(fp, "%s {\n", nc->name);
 		cfg_fprintr_comp(fp, nc, depth + 1);
 
-		cfg_indent(depth);
+		cfg_indent(fp, depth);
 		fprintf(fp, "}\n\n");
 	}
 }
@@ -391,7 +391,7 @@ static int parse_comment(struct cfg_comp *comp)
 	if (*comp->name == 's') {
 		sql_quote(comp->vlist[i++]->value, &service_description);
 	} else if (*comp->name != 'h') {
-		printf("Assumption fuckup. Get your act straight, you retard!\n");
+		lerr("Assumption fuckup. Get your act straight, you retard!\n");
 		exit(1);
 	}
 	sql_quote(comp->vlist[i + 7]->value, &author);
@@ -456,11 +456,11 @@ static state_object *ocimp_find_status(const char *hst, const char *svc)
 	ret = slist_find(sl, &obj);
 	if (ret) {
 		if (strcmp(hst, ret->ido.host_name)) {
-			printf("slist error: bleh %s != %s\n", hst, ret->ido.host_name);
+			lerr("slist error: bleh %s != %s\n", hst, ret->ido.host_name);
 			exit(1);
 		}
 		if (svc && strcmp(svc, ret->ido.service_description)) {
-			printf("slist error: %s != %s\n", svc, ret->ido.service_description);
+			lerr("slist error: %s != %s\n", svc, ret->ido.service_description);
 			exit(1);
 		}
 	}
@@ -1750,7 +1750,6 @@ static void load_ocache_hash(const char *ocache_path)
 	get_file_hash(&ctx, ocache_path);
 	blk_SHA1_Final(ocache_hash, &ctx);
 
-	printf("ocache hash: %s\n", tohex(ocache_hash, 20));
 	sprintf(path, "%s.lastimport", ocache_path);
 	fd = open(path, O_RDONLY);
 	if (fd < 0) {
@@ -1768,10 +1767,10 @@ static void load_ocache_hash(const char *ocache_path)
 
 	oc_hash = tohex(ocache_hash, 20);
 	if (!errors && !memcmp(last_hash, oc_hash, sizeof(last_hash))) {
-		linfo("%s is unchanged. Goodie.", ocache_path);
+		linfo("%s is unchanged.", ocache_path);
 		ocache_unchanged = 1;
 	} else {
-		linfo("%s has changed. Running complete import", ocache_path);
+		linfo("%s has changed. Forcing complete import.", ocache_path);
 		fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0660);
 		if (fd < 0) {
 			lerr("Failed to open %s for writing ocache hash: %s", path, strerror(errno));
