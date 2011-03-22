@@ -21,6 +21,7 @@ hostgroups = []
 hosts = []
 nagios_objects = {}
 obj_files = []
+force_include_commands = {}
 
 # These keeps track of which and how many objects we've
 # written and must be wiped between each file we create
@@ -47,7 +48,10 @@ def recurse_grab_object_cfg_files(v):
 
 	return obj_files
 
-def grab_object_cfg_files(nagios_cfg_path):
+def grab_nagios_cfg(nagios_cfg_path):
+	global force_include_commands
+
+	print("Grabbing nagios-config from %s" % nagios_cfg_path)
 	obj_files = []
 	comp = parse_conf(nagios_cfg_path)
 	for (k, v) in comp.params:
@@ -55,6 +59,8 @@ def grab_object_cfg_files(nagios_cfg_path):
 			obj_files.append(v)
 		elif k == 'cfg_dir':
 			obj_files += recurse_grab_object_cfg_files(v)
+		elif k.endswith("_command"):
+			force_include_commands[k] = v;
 
 	return obj_files
 
@@ -550,6 +556,14 @@ def write_hg_list(path, hg_list):
 	blocked_writes = 0
 
 	f = open(path, "w")
+	cmdlist = nagios_objects.get('command')
+	for ctype, command_name in force_include_commands.items():
+		cmd = cmdlist.get(command_name, False)
+		if not cmd:
+			print("Failed to locate '%s' command '%s'" % (ctype, command_name))
+		else:
+			cmd.write_linked(f)
+
 	include_all = []
 	for otype in include_all:
 		olist = nagios_objects.get(otype)
@@ -663,6 +677,7 @@ def cmd_split(args):
 		usage("'split' requires arguments")
 
 	argparams = []
+	grab_nagios_cfg(nagios_cfg)
 
 	for arg in args:
 		# Ignore global arguments
@@ -711,6 +726,8 @@ def cmd_nodesplit(args):
 
 	config_dir = cache_dir + '/config'
 	mkdir_p(config_dir)
+
+	grab_nagios_cfg(nagios_cfg)
 
 	# now that the potentially failing calls have been made, we
 	# parse the object configuration from the objects.cache file
