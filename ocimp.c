@@ -1617,6 +1617,7 @@ int main(int argc, char **argv)
 		}
 		if (!prefixcmp(arg, "--no-ca") || !prefixcmp(arg, "--no-contact-cache")) {
 			skip_contact_access = 1;
+			continue;
 		}
 
 		if (!opt) {
