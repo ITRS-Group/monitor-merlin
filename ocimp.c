@@ -1312,6 +1312,86 @@ static int parse_escalation(struct cfg_comp *comp)
 	return 0;
 }
 
+static int parse_dependency(struct cfg_comp *comp)
+{
+	int i = 0, id;
+	static int host_id = 0, service_id = 0;
+	state_object *obj, *dep_obj;
+	char *what;
+	char *hname, *dep_hname;
+	char *sdesc = NULL, *dep_sdesc = NULL;
+	char *dependency_period = NULL;
+	char *notification_failure_options = NULL;
+	char *execution_failure_options = NULL;
+	int inherits_parent = '0';
+
+	hname = comp->vlist[i++]->value;
+	if (*comp->name == 's') {
+		id = ++service_id;
+		sdesc = comp->vlist[i++]->value;
+		what = "service";
+	} else {
+		id = ++host_id;
+		what = "host";
+	}
+	dep_hname = comp->vlist[i++]->value;
+	if (*comp->name == 's')
+		dep_sdesc = comp->vlist[i++]->value;
+
+	obj = ocimp_find_status(hname, sdesc);
+	dep_obj = ocimp_find_status(dep_hname, dep_sdesc);
+	if (!obj) {
+		lerr("Failed to find dependency on %s %s%s%s from %s%s%s", what,
+			 hname, sdesc ? ";" : "", sdesc ? sdesc : "",
+			 dep_hname, sdesc ? ";" : "", dep_sdesc ? dep_sdesc : "");
+		return 0;
+	}
+	if (!dep_obj) {
+		lerr("Failed to find dependent %s %s%s%s from %s%s%s", what,
+			 dep_hname, sdesc ? ";" : "", dep_sdesc ? dep_sdesc : "",
+			 hname, sdesc ? ";" : "", sdesc ? sdesc : "");
+		return 0;
+	}
+
+	for (; i < comp->vars; i++) {
+		struct cfg_var *v = comp->vlist[i];
+
+		handle_custom_var(id);
+
+		if (!strcmp(v->key, "dependency_period")) {
+			sql_quote(v->value, &dependency_period);
+			continue;
+		}
+		if (!strcmp(v->key, "inherits_parent")) {
+			inherits_parent = *v->value;
+			continue;
+		}
+		if (!strcmp(v->key, "execution_failure_options")) {
+			sql_quote(v->value, &execution_failure_options);
+			continue;
+		}
+		if (!strcmp(v->key, "notification_failure_options")) {
+			sql_quote(v->value, &notification_failure_options);
+			continue;
+		}
+	}
+
+	sql_query("INSERT INTO %sdependency(id, %s, dependent_%s "
+	          "dependency_period, inherits_parent, "
+	          "execution_failure_options, notification_failure_options) "
+	          "VALUES(%d, %d, %d, %s, %c, %s, %s)", what,
+	          sdesc ? "service" : "host_name", sdesc ? "service" : "host_name",
+			  id, obj->ido.id, dep_obj->ido.id,
+	          safe_str(dependency_period), inherits_parent,
+	          safe_str(execution_failure_options),
+	          safe_str(notification_failure_options));
+
+	safe_free(dependency_period);
+	safe_free(execution_failure_options);
+	safe_free(notification_failure_options);
+	return 0;
+}
+
 static int parse_object_cache(struct cfg_comp *comp)
 {
 	int i;
@@ -1384,6 +1464,11 @@ static int parse_object_cache(struct cfg_comp *comp)
 		case OCIMPT_hostescalation:
 		case OCIMPT_serviceescalation:
 			parse_escalation(c);
+			break;
+
+		case OCIMPT_hostdependency:
+		case OCIMPT_servicedependency:
+			parse_dependency(c);
 			break;
 
 		default:
