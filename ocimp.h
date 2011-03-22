@@ -158,6 +158,7 @@
 #define CFG_retain_status_information 224
 #define CFG_stalking_options 225
 #define CFG_statusmap_image CFG_IGNORE
+#define CFG_icon_image_alt 227
 
 /* for contacts. We should probably optimize this somewhat */
 #define CFG_service_notification_options 227
@@ -224,6 +225,7 @@ struct state_object
 	char *stalking_options;
 	char *flap_detection_options;
 	char *icon_image;
+	char *icon_image_alt;
 	char *notes;
 	char *notes_url;
 	char *notification_options;
@@ -408,6 +410,7 @@ static cfg_code slog_options[] = {
 	{ OCIMP_CFG_ENTRY(freshness_threshold) },
 	{ OCIMP_CFG_ENTRY(high_flap_threshold) },
 	{ OCIMP_CFG_ENTRY(icon_image) },
+	{ OCIMP_CFG_ENTRY(icon_image_alt) },
 	{ OCIMP_CFG_ENTRY(initial_state) },
 	{ OCIMP_CFG_ENTRY(is_volatile) },
 	{ OCIMP_CFG_ENTRY(low_flap_threshold) },
@@ -465,7 +468,8 @@ static cfg_code slog_options[] = {
 	"scheduled_downtime_depth, pending_flex_downtime,\n" \
 	"is_flapping, flapping_comment_id,\n"                   /* 50 */ \
 	"percent_state_change,\n" \
-	"output, long_output, perf_data, action_url)\n"         /* 55 */ \
+	"output, long_output, perf_data, action_url,\n"         /* 55 */ \
+	"icon_image_alt)\n" /* 56 */ \
 	"VALUES(" valsf ",\n" \
 	"%d, %d,\n" \
 	"%s, %s, %s,\n"   /* 5 */   \
@@ -496,7 +500,7 @@ static cfg_code slog_options[] = {
 	"%d, %lu,\n" \
 	"%f,\n" \
 	"%s, %s, %s,\n" \
-	"%s)"
+	"%s, %s)"
 
 #define INSERT_VALUES() \
 	p->ido.id, p->ido.instance_id, \
@@ -528,7 +532,7 @@ static cfg_code slog_options[] = {
 	p->state.is_flapping, p->state.flapping_comment_id, \
 	p->state.percent_state_change, \
 	safe_str(output), safe_str(long_output), safe_str(perf_data),\
-	safe_str(action_url)
+	safe_str(action_url), safe_str(icon_image_alt)
 
 
 #endif

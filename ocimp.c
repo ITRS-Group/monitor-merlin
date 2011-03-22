@@ -180,6 +180,7 @@ static int alpha_cmp_service(const void *a_, const void *b_)
 	char *stalking_options; \
 	char *flap_detection_options; \
 	char *icon_image; \
+	char *icon_image_alt; \
 	char *notes; \
 	char *notes_url; \
 	char *notification_options; \
@@ -191,6 +192,7 @@ static int alpha_cmp_service(const void *a_, const void *b_)
 	qquote(stalking_options); \
 	qquote(flap_detection_options); \
 	qquote(icon_image); \
+	qquote(icon_image_alt); \
 	qquote(notes); \
 	qquote(notes_url); \
 	qquote(notification_options); \
@@ -206,6 +208,7 @@ static int alpha_cmp_service(const void *a_, const void *b_)
 	safe_free(stalking_options); \
 	safe_free(flap_detection_options); \
 	safe_free(icon_image); \
+	safe_free(icon_image_alt); \
 	safe_free(notes); \
 	safe_free(notes_url); \
 	safe_free(notification_options); \
@@ -599,6 +602,7 @@ static int parse_status(struct cfg_comp *comp)
 			ccode_str_case(alias);
 			ccode_str_case(stalking_options);
 			ccode_str_case(icon_image);
+			ccode_str_case(icon_image_alt);
 			ccode_str_case(display_name);
 			ccode_str_case(parents);
 			ccode_str_case(contacts);
