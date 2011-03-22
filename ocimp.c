@@ -477,6 +477,47 @@ static int ocimp_stash_status(state_object *obj)
 	return 0;
 }
 
+/*
+ * Insert a custom variable into its proper place. comp and v always
+ * exist where we want to use this, but the name of the id variable
+ * differs.
+ */
+#define handle_custom_var(id) \
+	if (!ocache_unchanged && *v->key == '_') { \
+		handle_custom_variable(comp->name, id, v); \
+		continue; \
+	} else do { \
+		/* nothing */ ; \
+	} while (0)
+
+static int handle_custom_variable(const char *otype, int id, struct cfg_var *v)
+{
+	char *key, *value, *ot;
+
+	if (ocache_unchanged)
+		return 0;
+
+	if (!v || !otype)
+		return 0;
+
+	if (!id) {
+		lerr("handle_custom_variable(%s, 0, %s = %s) is retarded. Set the id!",
+			 otype, v->key, v->value);
+		return 0;
+	}
+	sql_quote(otype, &ot);
+	sql_quote(v->key, &key);
+	sql_quote(v->value, &value);
+
+	sql_query("INSERT INTO(custom_vars(obj_type, obj_id, variable, value) "
+			  "VALUES(%s, %d, %s, %s", ot, id, key, value);
+	safe_free(ot);
+	safe_free(key);
+	safe_free(value);
+
+	return 0;
+}
+
 static int parse_status(struct cfg_comp *comp)
 {
 	state_object *obj = NULL;
@@ -529,8 +570,11 @@ static int parse_status(struct cfg_comp *comp)
 
 	for (; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
-		cfg_code *ccode = get_cfg_code(v, slog_options);
+		cfg_code *ccode;
 
+		handle_custom_var(obj->ido.id);
+
+		ccode = get_cfg_code(v, slog_options);
 		if (!ccode) {
 			printf("%s: unknown variable '%s'\n", comp->name, v->key);
 			continue;
@@ -853,6 +897,9 @@ static void parse_group(slist *sl, struct cfg_comp *comp)
 	sql_quote(comp->vlist[i++]->value, &alias);
 	for (; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
+
+		handle_custom_var(obj->id);
+
 		if (!strcmp(v->key, "members")) {
 			obj->members = v->value;
 			continue;
@@ -1028,9 +1075,7 @@ static void parse_contact(struct cfg_comp *comp)
 			continue;
 		}
 
-		/* skip custom vars */
-		if (*v->key == '_')
-			continue;
+		handle_custom_var(obj->id);
 
 		ccode = get_cfg_code(v, slog_options);
 
@@ -1144,6 +1189,9 @@ static int parse_escalation(struct cfg_comp *comp)
 
 	for (; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
+
+		handle_custom_var(id);
+
 		if (!strcmp(v->key, "escalation_period")) {
 			sql_quote(v->value, &escalation_period);
 			continue;
