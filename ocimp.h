@@ -199,6 +199,7 @@ typedef struct ocimp_group_object ocimp_group_object;
 struct ocimp_contact_object {
 	char *name;
 	int id;
+	int login_enabled;
 };
 typedef struct ocimp_contact_object ocimp_contact_object;
 

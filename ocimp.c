@@ -933,6 +933,8 @@ static void parse_contact(struct cfg_comp *comp)
 		}
 
 		obj->id = idt_next(&cid);
+		/* enable logins by default */
+		obj->login_enabled = 1;
 		slist_add(contact_slist, obj);
 	}
 
@@ -951,6 +953,11 @@ static void parse_contact(struct cfg_comp *comp)
 	for (; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
 		cfg_code *ccode;
+
+		if (!strcmp(v->key, "_login")) {
+			obj->login_enabled = strtobool(v->value);
+			continue;
+		}
 
 		/* skip custom vars */
 		if (*v->key == '_')
@@ -1140,7 +1147,8 @@ static int parse_escalation(struct cfg_comp *comp)
 		if (cg->strv) {
 			for (x = 0; x < cg->strv->entries; x++) {
 				ocimp_contact_object *cont = (ocimp_contact_object *)cg->strv->str[x];
-				slist_add(obj->contact_slist, cont);
+				if (cont->login_enabled)
+					slist_add(obj->contact_slist, cont);
 			}
 			continue;
 		}
@@ -1164,7 +1172,8 @@ static int parse_escalation(struct cfg_comp *comp)
 			 * a strv variable in the group object
 			 */
 			members->str[x] = (char *)cont;
-			slist_add(obj->contact_slist, cont);
+			if (cont->login_enabled)
+				slist_add(obj->contact_slist, cont);
 		}
 
 		if (members) {
@@ -1284,7 +1293,8 @@ static void fix_contacts(const char *what, state_object *o)
 		 * we cache contact access junk while we've got
 		 * everything lined up properly here
 		 */
-		slist_add(o->contact_slist, cont);
+		if (cont->login_enabled)
+			slist_add(o->contact_slist, cont);
 	}
 	free(contacts);
 }
@@ -1329,7 +1339,8 @@ static void fix_contactgroups(const char *what, state_object *o)
 				continue;
 			}
 
-			slist_add(o->contact_slist, cont);
+			if (cont->login_enabled)
+				slist_add(o->contact_slist, cont);
 		}
 	}
 
@@ -1509,7 +1520,7 @@ static int cache_contact_access(void *what_ptr, void *base_obj)
 
 	for (i = 0; i < entries; i++) {
 		co = co_list[i];
-		if (co == last_co) {
+		if (co == last_co || !co->login_enabled) {
 			dodged_queries++;
 			continue;
 		}
