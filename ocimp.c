@@ -757,6 +757,11 @@ static int is_valid_timedecl(const char *str)
 	return 0;
 }
 
+/*
+ * Make a half-educated guess at what constitutes the variable
+ * and what constitutes the key. timeperiods are decidedly
+ * bizarre when configured from Nagios.
+ */
 static int handle_custom_timeperiod_var(int id, struct cfg_var *v)
 {
 	int i, fkey = 0;
