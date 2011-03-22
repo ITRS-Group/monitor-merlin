@@ -16,9 +16,10 @@
 static slist *contact_slist, *host_slist, *service_slist;
 static slist *sg_slist, *cg_slist, *hg_slist;
 static int num_contacts = 0;
-static int skip_contact_access;
+static int ocache_unchanged, skip_contact_access;
 static uint dodged_queries;
 extern unsigned long total_queries;
+static unsigned char ocache_hash[20];
 
 struct id_tracker {
 	int min, max, cur;
@@ -839,26 +840,27 @@ static void parse_group(slist *sl, struct cfg_comp *comp)
 #define OCIMPT_hostdependency 11
 #define OCIMPT_timeperiod 12
 
-#define OCIMPT_ENTRY(type) \
-	0, OCIMPT_##type, #type
+#define OCIMPT_ENTRY(type, always) \
+	0, OCIMPT_##type, always, #type, NULL
 static struct tbl_info {
 	int truncated;
 	int code;
+	int always;
 	char *name;
 	slist *sl;
 } table_info[] = {
-	{ OCIMPT_ENTRY(service) },
-	{ OCIMPT_ENTRY(host) },
-	{ OCIMPT_ENTRY(command) },
-	{ OCIMPT_ENTRY(hostgroup) },
-	{ OCIMPT_ENTRY(servicegroup) },
-	{ OCIMPT_ENTRY(contactgroup) },
-	{ OCIMPT_ENTRY(contact) },
-	{ OCIMPT_ENTRY(serviceescalation) },
-	{ OCIMPT_ENTRY(servicedependency) },
-	{ OCIMPT_ENTRY(hostescalation) },
-	{ OCIMPT_ENTRY(hostdependency) },
-	{ OCIMPT_ENTRY(timeperiod) },
+	{ OCIMPT_ENTRY(service, 1) },
+	{ OCIMPT_ENTRY(host, 1) },
+	{ OCIMPT_ENTRY(command, 0) },
+	{ OCIMPT_ENTRY(hostgroup, 0) },
+	{ OCIMPT_ENTRY(servicegroup, 0) },
+	{ OCIMPT_ENTRY(contactgroup, 0) },
+	{ OCIMPT_ENTRY(contact, 0) },
+	{ OCIMPT_ENTRY(serviceescalation, 0) },
+	{ OCIMPT_ENTRY(servicedependency, 0) },
+	{ OCIMPT_ENTRY(hostescalation, 0) },
+	{ OCIMPT_ENTRY(hostdependency, 0) },
+	{ OCIMPT_ENTRY(timeperiod, 0) },
 };
 
 /*
@@ -1138,6 +1140,11 @@ static int parse_object_cache(struct cfg_comp *comp)
 		}
 		if (!table) {
 			printf("Unknown (and unhandled) object type: %s\n", c->name);
+			continue;
+		}
+
+		/* skip even parsing most object types if config is unchanged */
+		if (!table->always && ocache_unchanged) {
 			continue;
 		}
 		if (!table->truncated) {
@@ -1470,6 +1477,9 @@ static int cache_contact_access(void *what_ptr, void *base_obj)
 
 static void fix_junctions(void)
 {
+	if (ocache_unchanged)
+		return;
+
 	ldebug("Fixing junctions");
 
 	slist_sort(cg_slist);
@@ -1584,6 +1594,53 @@ static void usage(const char *fmt, ...)
 	exit(1);
 }
 
+#ifndef PATH_MAX
+# define PATH_MAX 4096
+#endif
+static void load_ocache_hash(const char *ocache_path)
+{
+	blk_SHA_CTX ctx;
+	char path[PATH_MAX];
+	char last_hash[40], *oc_hash;
+	int ret, fd, errors = 0;
+
+	blk_SHA1_Init(&ctx);
+	get_file_hash(&ctx, ocache_path);
+	blk_SHA1_Final(ocache_hash, &ctx);
+
+	printf("ocache hash: %s\n", tohex(ocache_hash, 20));
+	sprintf(path, "%s.lastimport", ocache_path);
+	fd = open(path, O_RDONLY);
+	if (fd < 0) {
+		lerr("Failed to open %s for reading: %s", path, strerror(errno));
+		errors++;
+	} else {
+		ret = read(fd, last_hash, sizeof(last_hash));
+		if (ret != sizeof(last_hash)) {
+			lerr("Read %d bytes from %s, but expected %d",
+				 ret, path, sizeof(last_hash));
+			errors++;
+		}
+		close(fd);
+	}
+
+	oc_hash = tohex(ocache_hash, 20);
+	if (!errors && !memcmp(last_hash, oc_hash, sizeof(last_hash))) {
+		linfo("%s is unchanged. Goodie.", ocache_path);
+		ocache_unchanged = 1;
+	} else {
+		linfo("%s has changed. Running complete import", ocache_path);
+		fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0660);
+		if (fd < 0) {
+			lerr("Failed to open %s for writing ocache hash: %s", path, strerror(errno));
+			return;
+		}
+		write(fd, tohex(ocache_hash, 20), 41);
+		write(fd, "\n", 1);
+		close(fd);
+	}
+}
+
 int main(int argc, char **argv)
 {
 	struct cfg_comp *cache, *status;
@@ -1681,6 +1738,8 @@ int main(int argc, char **argv)
 	sg_slist = slist_init(200, alpha_cmp_group);
 	contact_slist = slist_init(500, alpha_cmp_contact);
 	preload_contact_ids();
+
+	load_ocache_hash(cache_path);
 
 	status = cfg_parse_file(status_path);
 	parse_status_log(status);
