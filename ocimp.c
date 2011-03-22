@@ -1042,6 +1042,7 @@ static int parse_escalation(struct cfg_comp *comp)
 	char *contacts;
 	state_object *obj = NULL;
 	const char *what, *wkey;
+	strvec *sv;
 
 	hname = comp->vlist[i++]->value;
 	if (*comp->name == 's') {
@@ -1097,12 +1098,83 @@ static int parse_escalation(struct cfg_comp *comp)
 			  first_notification, last_notification, notification_interval,
 			  safe_str(escalation_period), safe_str(escalation_options));
 
-	/*
-	 * XXX TODO: should handle contacts and contactgroups here, as
-	 * well as contact_access stuff
-	 */
+
 	safe_free(escalation_period);
 	safe_free(escalation_options);
+
+	if (contacts) {
+		sv = str_explode(contacts, ',');
+
+		for (i = 0; sv && i < sv->entries; i++) {
+			ocimp_contact_object *cont = ocimp_find_contact(sv->str[i]);
+			if (!cont) {
+				lerr("Failed to find contact '%s' for %sescalation for %s%s%s",
+					 sv->str[i], sdesc ? "service" : "host",
+					 hname, sdesc ? ";" : "", sdesc ? sdesc : "");
+				continue;
+			}
+			slist_add(obj->contact_slist, cont);
+		}
+
+		if (sv)
+			free(sv);
+	}
+
+	if (!cgroups || !(sv = str_explode(cgroups, ',')))
+		return 0;
+
+	for (i = 0; i < sv->entries; i++) {
+		int x, errors = 0;
+		ocimp_group_object *cg;
+		strvec *members;
+
+		cg = ocimp_find_group(cg_slist, sv->str[i]);
+		if (!cg) {
+			lerr("Failed to find contactgroup '%s' for %sescalation for %s%s%s",
+				 sv->str[i],
+				 sdesc ? "service" : "host",
+				 hname, sdesc ? ";" : "", sdesc ? sdesc : "");
+			continue;
+		}
+
+		if (cg->strv) {
+			for (x = 0; x < cg->strv->entries; x++) {
+				ocimp_contact_object *cont = (ocimp_contact_object *)cg->strv->str[x];
+				slist_add(obj->contact_slist, cont);
+			}
+			continue;
+		}
+
+		if (!cg->members)
+			continue;
+
+		members = str_explode(cg->members, ',');
+		for (x = 0; x < members->entries; x++) {
+			ocimp_contact_object *cont = ocimp_find_contact(members->str[x]);
+			if (!cont) {
+				lerr("Failed to find contact '%s' as member of group %s for %sescalation for %s%s%s",
+					 members->str[x], cg->name,
+					 sdesc ? "service" : "host",
+					 hname, sdesc ? ";" : "", sdesc ? sdesc : "");
+				errors = 1;
+				continue;
+			}
+			/*
+			 * prepare for stashing contact pointers as
+			 * a strv variable in the group object
+			 */
+			members->str[x] = (char *)cont;
+			slist_add(obj->contact_slist, cont);
+		}
+
+		if (members) {
+			if (!errors)
+				cg->strv = members;
+			else
+				free(members);
+		}
+	}
+
 	return 0;
 }
 
