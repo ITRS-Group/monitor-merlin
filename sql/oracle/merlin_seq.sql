@@ -1239,6 +1239,7 @@ DROP TABLE servicedependency CASCADE CONSTRAINTS;
 
 PROMPT Creating Table servicedependency ...
 CREATE TABLE servicedependency (
+  instance_id NUMBER(10,0) DEFAULT '0' NOT NULL,
   id NUMBER(10,0) NOT NULL,
   service NUMBER(10,0) NOT NULL,
   dependent_service NUMBER(10,0) NOT NULL,

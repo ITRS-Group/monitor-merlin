@@ -480,6 +480,7 @@ CREATE UNIQUE INDEX s_servicegroup_name ON servicegroup(servicegroup_name);
 
 DROP TABLE IF EXISTS servicedependency;
 CREATE TABLE servicedependency(
+	instance_id						INT NOT NULL DEFAULT 0,
 	id								INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	service							INT NOT NULL,
 	dependent_service				INT NOT NULL,
