@@ -1890,6 +1890,10 @@ int main(int argc, char **argv)
 		ocache_unchanged = 0;
 	}
 
+	if (!ocache_unchanged) {
+		ocimp_truncate("custom_vars");
+	}
+
 	status = cfg_parse_file(status_path);
 	parse_status_log(status);
 
