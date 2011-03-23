@@ -3,6 +3,8 @@
 #include <fcntl.h>
 #include "daemon.h"
 
+#define MERLIN_CONNECT_TIMEOUT 20 /* the (hardcoded) connect timeout we use */
+
 static int net_sock = -1; /* listening sock descriptor */
 
 /* do a node lookup based on name *or* ip-address + port */
@@ -24,37 +26,43 @@ merlin_node *find_node(struct sockaddr_in *sain, const char *name)
  * of the remote host.
  * Returns 1 if connected and 0 if not.
  */
-static int net_is_connected(int sock)
+static int net_is_connected(merlin_node *node)
 {
 	struct sockaddr_in sain;
 	socklen_t slen = sizeof(struct sockaddr_in);
 	int optval;
-	if (sock < 0)
+
+	if (!node || node->sock < 0)
+		return 0;
+
+	if (node->state != STATE_CONNECTED && node->state != STATE_PENDING)
 		return 0;
 
 	errno = 0;
-	if (getpeername(sock, (struct sockaddr *)&sain, &slen) < 0) {
-		switch (errno) {
-		case EBADF:
-		case ENOBUFS:
-		case EFAULT:
-		case ENOTSOCK:
-			lerr("getpeername(%d): system error %d: %s", sock, errno, strerror(errno));
-			close(sock);
-			/* fallthrough */
-		case ENOTCONN:
-			return 0;
-		default:
-			lerr("Unknown error(%d): %s", errno, strerror(errno));
-			break;
+	if (getpeername(node->sock, (struct sockaddr *)&sain, &slen) < 0) {
+		if (errno != ENOTCONN) {
+			lerr("getpeername(%d) for %s: system error %d: %s",
+			     node->sock, node->name, errno, strerror(errno));
 		}
 
+		/*
+		 * if a connection is in progress, we should be getting
+		 * ENOTCONN, but we need to give it time to complete
+		 * first. 30 seconds should be enough.
+		 */
+		if (errno != ENOTCONN || node->state != STATE_PENDING ||
+		    node->last_conn_attempt + MERLIN_CONNECT_TIMEOUT < time(NULL))
+		{
+			node_disconnect(node);
+		}
 		return 0;
 	}
 
 	slen = sizeof(optval);
-	if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &optval, &slen) < 0) {
-		lerr("getsockopt() failed: %s", strerror(errno));
+	if (getsockopt(node->sock, SOL_SOCKET, SO_ERROR, &optval, &slen) < 0) {
+		lerr("getsockopt(%d) failed for %s: %s",
+		     node->sock, node->name, strerror(errno));
+		node_disconnect(node);
 		return 0;
 	}
 
@@ -70,7 +78,7 @@ static int net_is_connected(int sock)
  */
 int net_complete_connection(merlin_node *node)
 {
-	if (net_is_connected(node->sock)) {
+	if (net_is_connected(node)) {
 		node_set_state(node, STATE_CONNECTED);
 	}
 	return 0;
@@ -87,7 +95,7 @@ int net_try_connect(merlin_node *node)
 {
 	struct sockaddr *sa = (struct sockaddr *)&node->sain;
 	int connected = 0, should_log = 0;
-	struct timeval connect_timeout = { 10, 0 };
+	struct timeval connect_timeout = { MERLIN_CONNECT_TIMEOUT, 0 };
 
 	/* don't log obsessively */
 	if (node->last_conn_attempt_logged + 30 <= time(NULL)) {
@@ -119,7 +127,7 @@ int net_try_connect(merlin_node *node)
 	 * but do check if the connection has completed successfully
 	 */
 	if (node->state == STATE_PENDING || node->state == STATE_CONNECTED) {
-		if (net_is_connected(node->sock))
+		if (net_is_connected(node))
 			node_set_state(node, STATE_CONNECTED);
 		return 0;
 	}
@@ -146,6 +154,9 @@ int net_try_connect(merlin_node *node)
 		ldebug("Failed to set send timeout for node %s: %s",
 		       node->name, strerror(errno));
 	}
+
+	/* mark the time so we can time it out ourselves if need be */
+	node->last_conn_attempt = time(NULL);
 	if (connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
 		if (errno == EINPROGRESS || errno == EALREADY) {
 			node_set_state(node, STATE_PENDING);
@@ -162,7 +173,7 @@ int net_try_connect(merlin_node *node)
 		}
 	}
 
-	if (connected || net_is_connected(node->sock)) {
+	if (connected || net_is_connected(node)) {
 		linfo("Successfully connected to %s %s@%s:%d",
 			  node_type(node), node->name, inet_ntoa(node->sain.sin_addr),
 			  ntohs(node->sain.sin_port));

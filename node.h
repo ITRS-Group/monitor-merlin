@@ -182,6 +182,7 @@ struct merlin_node {
 	time_t last_recv;       /* last time node sent something to us */
 	time_t last_sent;       /* when we sent something last */
 	time_t last_conn_attempt_logged; /* when we last logged a connect attempt */
+	time_t last_conn_attempt; /* when we last tried initiating a connection */
 	merlin_nodeinfo info;   /* node info */
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
 	binlog *binlog;         /* binary backlog for this node */
