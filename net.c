@@ -612,18 +612,16 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 		if (node->sock < 0 || node->state == STATE_NONE)
 			continue;
 
-		if (node->state == STATE_PENDING)
-			FD_SET(node->sock, wr);
-		else if (node->state == STATE_CONNECTED) {
+		if (net_is_connected(node)) {
+			FD_SET(node->sock, rd);
+
 			/*
-			 * if the node has unsent entries, we check if we
-			 * can write to it so the polling loop can send the
-			 * logged events
+			 * if this node's binlog has entries we check
+			 * for writability as well, so we can send it
+			 * from the outer polling loop.
 			 */
 			if (binlog_has_entries(node->binlog))
 				FD_SET(node->sock, wr);
-
-			FD_SET(node->sock, rd);
 		}
 
 		if (node->sock > sel_val)
@@ -651,10 +649,14 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 		if (node->sock < 0)
 			continue;
 
-		/* handle new connections and binlogs come first */
+		/* handle new connections first */
 		if (FD_ISSET(node->sock, wr)) {
 			if (net_is_connected(node)) {
 				node_set_state(node, STATE_CONNECTED);
+
+				if (binlog_has_entries(node->binlog)) {
+					node_send_binlog(node, NULL);
+				}
 			}
 			continue;
 		}
