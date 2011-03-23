@@ -512,6 +512,17 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 {
 	int result;
 
+	/*
+	 * we skip stashing some packet types in the binlog. Typically
+	 * those that get generated immediately upon reconnect anyway
+	 * since they would just cause unnecessary overhead and might
+	 * trigger a lot of unnecessary actions if stashed.
+	 */
+	if (pkt->hdr.type == CTRL_PACKET) {
+		if (pkt->hdr.code == CTRL_ACTIVE || pkt->hdr.code == CTRL_INACTIVE)
+			return 0;
+	}
+
 	if (!node->binlog) {
 		char *path;
 
