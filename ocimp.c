@@ -1910,7 +1910,7 @@ static void load_ocache_hash(const char *ocache_path)
 			lerr("Failed to open %s for writing ocache hash: %s", path, strerror(errno));
 			return;
 		}
-		write(fd, tohex(ocache_hash, 20), 41);
+		write(fd, tohex(ocache_hash, 20), 40);
 		write(fd, "\n", 1);
 		close(fd);
 	}
