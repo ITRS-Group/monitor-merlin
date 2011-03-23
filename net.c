@@ -182,25 +182,6 @@ int net_try_connect(merlin_node *node)
 }
 
 /*
- * Check if a node is connected. Return 1 if yes and 0 if not.
- * Attempting to connect is handled from the main polling loop
- */
-static int node_is_connected(merlin_node *node)
-{
-	if (!node || node->sock < 0)
-		return 0;
-
-	if (net_is_connected(node)) {
-		return 1;
-	}
-
-	net_try_connect(node);
-
-	return node->state == STATE_CONNECTED;
-}
-
-
-/*
  * Negotiate which socket to use for communication when the remote
  * host has accepted a connection attempt from us while we have
  * accepted one from the remote host. This shouldn't happen very
@@ -402,8 +383,6 @@ static int net_sendto(merlin_node *node, merlin_event *pkt)
 		lerr("net_sendto() called with neither node nor pkt");
 		return -1;
 	}
-
-	node_is_connected(node);
 
 	return node_send_event(node, pkt, 100);
 }
