@@ -10,16 +10,27 @@ static char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 
 void node_set_state(merlin_node *node, int state)
 {
+	int prev_state;
+
 	if (!node)
 		return;
 
 	if (node->state == state)
 		return;
 
-	if (node->action)
-		node->action(node, state);
+	ldebug("NODESTATE: %s: %s -> %s", node->name,
+	       node_state_name(node->state), node_state_name(state));
 
-	if (state == STATE_CONNECTED && node->sock >= 0) {
+	prev_state = node->state;
+	node->state = state;
+
+	if (node->state != STATE_CONNECTED && prev_state != STATE_CONNECTED)
+		return;
+
+	if (node->action)
+		node->action(node, prev_state);
+
+	if (node->state == STATE_CONNECTED && node->sock >= 0) {
 		int snd, rcv;
 		socklen_t size = sizeof(int);
 
@@ -29,7 +40,6 @@ void node_set_state(merlin_node *node, int state)
 		ldebug("send / receive buffers are %s / %s for node %s",
 			   human_bytes(snd), human_bytes(rcv), node->name);
 	}
-	node->state = state;
 }
 
 node_selection *node_selection_by_name(const char *name)
@@ -502,9 +512,9 @@ void node_disconnect(merlin_node *node)
 	/* avoid spurious close() errors while strace/valgrind debugging */
 	if (node->sock >= 0)
 		close(node->sock);
+	node->sock = -1;
 	node_set_state(node, STATE_NONE);
 	node->last_recv = 0;
-	node->sock = -1;
 	node->ioc.ioc_buflen = node->ioc.ioc_offset = 0;
 }
 

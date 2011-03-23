@@ -235,12 +235,8 @@ static void assign_peer_ids(void)
  * packet. node is the originating node. state is the new state we
  * should set the node to (STATE_CONNECTED et al).
  */
-static int node_action(merlin_node *node, int state)
+static int node_action(merlin_node *node, int prev_state)
 {
-	if (!node || node->state == state)
-		return 0;
-
-	node->state = state;
 	if (node->type == MODE_PEER) {
 		assign_peer_ids();
 	}

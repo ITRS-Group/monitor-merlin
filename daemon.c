@@ -55,16 +55,9 @@ void db_mark_node_inactive(merlin_node *node)
 }
 
 /* node connect/disconnect handlers */
-static int node_action_handler(merlin_node *node, int action)
+static int node_action_handler(merlin_node *node, int prev_state)
 {
-	/* don't send the same event twice */
-	if (node->state == action)
-		return 0;
-
-	ldebug("Running action handler for %s with action %d",
-		   node->name, action);
-
-	switch (action) {
+	switch (node->state) {
 	case STATE_CONNECTED:
 		/*
 		 * If we've received the timestamp marker from our module,
@@ -80,7 +73,7 @@ static int node_action_handler(merlin_node *node, int action)
 	case STATE_NEGOTIATING:
 	case STATE_NONE:
 		/* only send INACTIVE if we haven't already */
-		if (node->state == STATE_CONNECTED) {
+		if (prev_state == STATE_CONNECTED) {
 			db_mark_node_inactive(node);
 			ldebug("Sending IPC control INACTIVE for '%s'", node->name);
 			return ipc_send_ctrl(CTRL_INACTIVE, node->id);
@@ -90,13 +83,11 @@ static int node_action_handler(merlin_node *node, int action)
 	return 1;
 }
 
-static int ipc_action_handler(merlin_node *node, int state)
+static int ipc_action_handler(merlin_node *node, int prev_state)
 {
 	uint i;
 
-	if (node != &ipc || ipc.state == state)
-		return 0;
-	switch (state) {
+	switch (node->state) {
 	case STATE_CONNECTED:
 		if (use_database) {
 			sql_reinit();
@@ -124,8 +115,9 @@ static int ipc_action_handler(merlin_node *node, int state)
 	case STATE_NEGOTIATING:
 	case STATE_NONE:
 		/* if ipc wasn't connected before, we return early */
-		if (ipc.state != STATE_CONNECTED)
+		if (prev_state != STATE_CONNECTED)
 			return 0;
+
 		/* make sure the gui knows the module isn't running any more */
 		db_mark_node_inactive(&ipc);
 
