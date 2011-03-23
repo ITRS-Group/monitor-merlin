@@ -1841,8 +1841,8 @@ static void load_instance_ids(void)
 	}
 	while (result->api->step(result) == 0) {
 		const char *service_description;
-		result->api->get_string_ndx(result, 1, &host_name, &len);
-		result->api->get_string_ndx(result, 2, &service_description, &len);
+		result->api->get_string_ndx(result, 2, &host_name, &len);
+		result->api->get_string_ndx(result, 3, &service_description, &len);
 		obj = ocimp_find_status(host_name, service_description);
 
 		/* service might have been deleted */
