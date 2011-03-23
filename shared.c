@@ -334,6 +334,18 @@ const char *ctrl_name(uint code)
 	return control_names[code];
 }
 
+const char *node_state_name(int state)
+{
+	switch (state) {
+	case STATE_NONE: return "STATE_NONE";
+	case STATE_PENDING: return "STATE_PENDING";
+	case STATE_NEGOTIATING: return "STATE_NEGOTIATING";
+	case STATE_CONNECTED: return "STATE_CONNECTED";
+	}
+
+	return "STATE_unknown_voodoo";
+}
+
 #if (defined(__GLIBC__) && (__GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1))
 #include <execinfo.h>
 void bt_scan(const char *mark, int count)
