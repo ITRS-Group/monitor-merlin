@@ -55,6 +55,7 @@ static int net_is_connected(int sock)
 	slen = sizeof(optval);
 	if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &optval, &slen) < 0) {
 		lerr("getsockopt() failed: %s", strerror(errno));
+		return 0;
 	}
 
 	if (!optval)
@@ -104,6 +105,7 @@ int net_try_connect(merlin_node *node)
 
 	/* create the socket if necessary */
 	if (node->sock < 0) {
+		node_disconnect(node);
 		node->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (node->sock < 0) {
 			lerr("Failed to obtain socket for node %s: %s", node->name, strerror(errno));
