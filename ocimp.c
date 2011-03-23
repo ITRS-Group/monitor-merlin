@@ -783,7 +783,8 @@ static int handle_custom_timeperiod_var(int id, struct cfg_var *v)
 		 * variable that isn't part of the timespec.
 		 */
 		fkey = 1;
-		value[-1] = 0;
+		if (value)
+			value[-1] = 0;
 		key = malloc(v->value_len + v->key_len + 2);
 		sprintf(key, "%s %s", v->key, v->value);
 		for (i = strlen(key); i; i++) {
