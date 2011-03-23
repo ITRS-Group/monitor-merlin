@@ -633,6 +633,12 @@ int node_send(merlin_node *node, void *data, int len, int flags)
 		return sent;
 	}
 
+	/*
+	 * partial writes and complete failures can only be handled
+	 * by disconnecting and re-syncing the stream
+	 */
+	node_disconnect(node);
+
 	if (sent < 0) {
 		/* if we would have blocked, we simply return 0 */
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -641,7 +647,6 @@ int node_send(merlin_node *node, void *data, int len, int flags)
 		/* otherwise we log the error and disconnect the node */
 		lerr("Failed to send(%d, %p, %d, %d) to %s: %s",
 			 node->sock, data, len, flags, node->name, strerror(errno));
-		node_disconnect(node);
 		return sent;
 	}
 
@@ -776,7 +781,7 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 	if (result <= 0 && !node_binlog_add(node, pkt))
 		return 0;
 
-	/* possibly mark the node as out of sync here */
+	/* node_send will have marked the node as out of sync now */
 	return -1;
 }
 
