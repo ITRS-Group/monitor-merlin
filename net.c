@@ -684,10 +684,8 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 
 		/* handle new connections and binlogs come first */
 		if (FD_ISSET(node->sock, wr)) {
-			if (node->state == STATE_PENDING) {
+			if (net_is_connected(node)) {
 				node_set_state(node, STATE_CONNECTED);
-			} else if (binlog_has_entries(node->binlog)) {
-				node_send_binlog(node, NULL);
 			}
 			continue;
 		}
