@@ -68,7 +68,7 @@ static int net_is_connected(int sock)
 /*
  * Completes a connection to a node we've attempted to connect to
  */
-static int net_complete_connection(merlin_node *node)
+int net_complete_connection(merlin_node *node)
 {
 	if (net_is_connected(node->sock)) {
 		node_set_state(node, STATE_CONNECTED);
