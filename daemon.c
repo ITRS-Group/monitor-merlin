@@ -799,12 +799,8 @@ static void polling_loop(void)
 		 */
 		for (i = 0; i < num_nodes; i++) {
 			merlin_node *node = node_table[i];
-			/* first try completing connections */
-			if (node->state == STATE_PENDING) {
-				net_complete_connection(node);
-			}
-			/* then we try to connect if completing it didn't work */
-			if (node->state != STATE_CONNECTED) {
+			/* try connecting if we're not already */
+			if (!net_is_connected(node)) {
 				net_try_connect(node);
 			}
 		}

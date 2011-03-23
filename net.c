@@ -26,7 +26,7 @@ merlin_node *find_node(struct sockaddr_in *sain, const char *name)
  * of the remote host.
  * Returns 1 if connected and 0 if not.
  */
-static int net_is_connected(merlin_node *node)
+int net_is_connected(merlin_node *node)
 {
 	struct sockaddr_in sain;
 	socklen_t slen = sizeof(struct sockaddr_in);
@@ -66,21 +66,11 @@ static int net_is_connected(merlin_node *node)
 		return 0;
 	}
 
-	if (!optval)
-		return 1;
-
-	return 0;
-}
-
-
-/*
- * Completes a connection to a node we've attempted to connect to
- */
-int net_complete_connection(merlin_node *node)
-{
-	if (net_is_connected(node)) {
+	if (!optval) {
 		node_set_state(node, STATE_CONNECTED);
+		return 1;
 	}
+
 	return 0;
 }
 
@@ -200,11 +190,11 @@ static int node_is_connected(merlin_node *node)
 	if (!node || node->sock < 0)
 		return 0;
 
-	if (node->state == STATE_PENDING) {
-		net_complete_connection(node);
-	} else if (node->state == STATE_NONE) {
-		net_try_connect(node);
+	if (net_is_connected(node)) {
+		return 1;
 	}
+
+	net_try_connect(node);
 
 	return node->state == STATE_CONNECTED;
 }
