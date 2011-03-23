@@ -35,7 +35,10 @@ int net_is_connected(merlin_node *node)
 	if (!node || node->sock < 0)
 		return 0;
 
-	if (node->state != STATE_CONNECTED && node->state != STATE_PENDING)
+	if (node->state == STATE_CONNECTED)
+		return 1;
+
+	if (node->state != STATE_PENDING)
 		return 0;
 
 	errno = 0;
