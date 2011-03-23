@@ -767,7 +767,7 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 		return -1;
 	}
 
-	if (node->sock < 0 || node->state == STATE_NONE) {
+	if (node->sock < 0 || node->state != STATE_CONNECTED) {
 		return node_binlog_add(node, pkt);
 	}
 
