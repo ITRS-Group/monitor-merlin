@@ -427,7 +427,7 @@ static void check_node_activity(merlin_node *node)
 		return;
 
 	if (node->last_recv && node->last_recv < now - (pulse_interval * 2))
-		node_set_state(node, STATE_NONE);
+		node_disconnect(node);
 }
 
 
