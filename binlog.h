@@ -56,6 +56,7 @@ extern binlog *binlog_create(const char *path, unsigned int msize, unsigned int 
  */
 extern unsigned int binlog_num_entries(binlog *bl);
 #define binlog_has_entries(bl) binlog_num_entries(bl)
+#define binlog_entries(bl) binlog_num_entries(bl)
 
 /**
  * Wipes a binary log, freeing all memory associated with it and
