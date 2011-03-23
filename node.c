@@ -631,10 +631,22 @@ int node_recv(merlin_node *node, int flags)
  */
 int node_send(merlin_node *node, void *data, int len, int flags)
 {
+	merlin_event *pkt = (merlin_event *)data;
 	int sent;
 
 	if (!node || node->sock < 0)
 		return 0;
+
+	if (len >= HDR_SIZE && pkt->hdr.type == CTRL_PACKET) {
+		ldebug("Sending %s to %s", ctrl_name(pkt->hdr.code), node->name);
+		if (pkt->hdr.code == CTRL_ACTIVE) {
+			merlin_nodeinfo *info = (merlin_nodeinfo *)&pkt->body;
+			ldebug("   start time: %lu.%lu",
+			       info->start.tv_sec, info->start.tv_usec);
+			ldebug("  config hash: %s", tohex(info->config_hash, 20));
+			ldebug(" config mtime: %lu", info->last_cfg_change);
+		}
+	}
 
 	sent = io_send_all(node->sock, data, len);
 	/* success. Should be the normal case */
@@ -739,17 +751,6 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 	int result;
 
 	node_log_event_count(node, 0);
-
-	if (pkt->hdr.type == CTRL_PACKET) {
-		ldebug("Sending %s to %s", ctrl_name(pkt->hdr.code), node->name);
-		if (pkt->hdr.code == CTRL_ACTIVE) {
-			merlin_nodeinfo *info = (merlin_nodeinfo *)&pkt->body;
-			ldebug("   start time: %lu.%lu",
-			       info->start.tv_sec, info->start.tv_usec);
-			ldebug("  config hash: %s", tohex(info->config_hash, 20));
-			ldebug(" config mtime: %lu", info->last_cfg_change);
-		}
-	}
 
 	if (packet_size(pkt) > TOTAL_PKT_SIZE) {
 		lerr("header is invalid, or packet is too large. aborting");
