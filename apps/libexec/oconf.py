@@ -668,7 +668,7 @@ def cmd_changed(args):
 	oconf_helper(['last-changed'] + args)
 
 def cmd_files(args):
-	sob_files = sorted(grab_object_cfg_files(nagios_cfg))
+	sob_files = sorted(grab_nagios_cfg(nagios_cfg))
 	for cfile in sob_files:
 		print(cfile)
 
@@ -1019,7 +1019,7 @@ def _cmd_t_randomize(args):
 
 def parse_object_config(files = False):
 	if not files:
-		files = grab_object_cfg_files(nagios_cfg)
+		files = grab_nagios_cfg(nagios_cfg)
 
 	map(parse_nagios_objects, files)
 	post_parse()
