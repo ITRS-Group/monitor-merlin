@@ -13,7 +13,7 @@
 #include <malloc.h>
 #endif
 
-static slist *contact_slist, *host_slist, *service_slist;
+static slist *contact_slist, *host_slist, *service_slist, *timeperiod_slist;
 static slist *sg_slist, *cg_slist, *hg_slist;
 static int num_contacts = 0;
 static int ocache_unchanged, skip_contact_access;
@@ -170,6 +170,14 @@ static int alpha_cmp_service(const void *a_, const void *b_)
 		return strcmp(a->ido.service_description, b->ido.service_description);
 
 	return ret;
+}
+
+static int alpha_cmp_timeperiod(const void *a_, const void *b_)
+{
+	const ocimp_timeperiod_object *a = *((ocimp_timeperiod_object **)a_);
+	const ocimp_timeperiod_object *b = *((ocimp_timeperiod_object **)b_);
+
+	return strcmp(a->name, b->name);
 }
 
 #define qquote(key) sql_quote(p->key, &key)
@@ -464,6 +472,16 @@ static state_object *ocimp_find_status(const char *hst, const char *svc)
 			exit(1);
 		}
 	}
+	return ret;
+}
+
+static ocimp_timeperiod_object *ocimp_find_timeperiod(char *name)
+{
+	ocimp_timeperiod_object obj, *ret;
+	obj.name = name;
+	ret = slist_find(timeperiod_slist, &obj);
+	if (!ret || strcmp(ret->name, obj.name))
+		return NULL;
 	return ret;
 }
 
@@ -813,11 +831,14 @@ static int parse_timeperiod(struct cfg_comp *comp)
 	char *sunday = NULL, *monday = NULL, *tuesday = NULL, *wednesday = NULL;
 	char *thursday = NULL, *friday = NULL, *saturday = NULL;
 	int i = 0;
+	ocimp_timeperiod_object *obj;
+	obj = calloc(1, sizeof(*obj));
 
-	sql_quote(comp->vlist[i++]->value, &name);
+	obj->name = comp->vlist[i++]->value;
+	sql_quote(obj->name, &name);
 	sql_quote(comp->vlist[i++]->value, &alias);
 
-	id++;
+	obj->id = ++id;
 
 	for (; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
@@ -836,6 +857,8 @@ static int parse_timeperiod(struct cfg_comp *comp)
 			sql_quote(v->value, &friday);
 		} else if (!saturday && !strcmp(v->key, "saturday")) {
 			sql_quote(v->value, &saturday);
+		} else if (!strcmp(v->key, "exclude")) {
+			obj->exclude = v->value;
 		} else {
 			/* custom variable */
 			if (handle_custom_timeperiod_var(id, v) < 0) {
@@ -843,6 +866,8 @@ static int parse_timeperiod(struct cfg_comp *comp)
 			}
 		}
 	}
+
+	slist_add(timeperiod_slist, obj);
 
 	sql_query("INSERT INTO timeperiod(instance_id, id, "
 			  "timeperiod_name, alias, "
@@ -1719,6 +1744,32 @@ static int fix_sg_members(void *discard, void *base_obj)
 	return 0;
 }
 
+
+static int fix_timeperiod_excludes(void *discard, void *base_obj)
+{
+	int i = 0;
+	ocimp_timeperiod_object *obj = (ocimp_timeperiod_object *)base_obj;
+	strvec *strv;
+
+	if (!obj || !obj->exclude)
+		return 0;
+	
+	strv = str_explode(obj->exclude, ',');
+	for (i = 0; i < strv->entries; i++) {
+		ocimp_timeperiod_object *t = ocimp_find_timeperiod(strv->str[i]);
+		if (!t) {
+			lerr("Failed to find id of timeperiod '%s' for '%s'",
+				 strv->str[i], obj->name);
+			continue;
+		}
+
+		sql_query("INSERT INTO timeperiod_exclude(timeperiod, exclude) "
+		          "VALUES(%d, %d)", obj->id, t->id);
+	}
+	free(strv);
+	return 0;
+}
+
 static int cache_contact_access(void *what_ptr, void *base_obj)
 {
 	state_object *o = (state_object *)base_obj;
@@ -1786,6 +1837,9 @@ static void fix_junctions(void)
 
 	ocimp_truncate("service_servicegroup");
 	slist_walk(sg_slist, NULL, fix_sg_members);
+
+	ocimp_truncate("timeperiod_exclude");
+	slist_walk(timeperiod_slist, NULL, fix_timeperiod_excludes);
 
 	if (!skip_contact_access) {
 		/* this is the heaviest part, really */
@@ -2018,6 +2072,7 @@ int main(int argc, char **argv)
 	hg_slist = slist_init(200, alpha_cmp_group);
 	sg_slist = slist_init(200, alpha_cmp_group);
 	contact_slist = slist_init(500, alpha_cmp_contact);
+	timeperiod_slist = slist_init(100, alpha_cmp_timeperiod);
 	preload_contact_ids();
 
 	load_ocache_hash(cache_path);

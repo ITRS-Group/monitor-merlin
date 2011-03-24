@@ -204,6 +204,13 @@ struct ocimp_contact_object {
 };
 typedef struct ocimp_contact_object ocimp_contact_object;
 
+struct ocimp_timeperiod_object {
+	char *name;
+	int id;
+	char *exclude;
+};
+typedef struct ocimp_timeperiod_object ocimp_timeperiod_object;
+
 struct state_object
 {
 	monitored_object_state state;
