@@ -194,7 +194,7 @@ extern const char *callback_name(int id);
 extern int callback_id(const char *orig_name);
 extern const char *ctrl_name(uint code);
 extern const char *node_state_name(int state);
-extern const char *tv_delta(struct timeval *start, struct timeval *stop);
+extern const char *tv_delta(const struct timeval *start, const struct timeval *stop);
 extern int handle_ctrl_active(merlin_node *node, merlin_event *pkt);
 
 /* data encoding/decoding routines */

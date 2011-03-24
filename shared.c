@@ -430,13 +430,27 @@ linked_item *add_linked_item(linked_item *list, void *item)
 	return entry;
 }
 
-const char *tv_delta(struct timeval *start, struct timeval *stop)
+const char *tv_delta(const struct timeval *start, const struct timeval *stop)
 {
-	static char buf[30];
-	double secs;
-	unsigned int days, hours, mins;
+	static char buf[50];
+	unsigned long weeks, days, hours, mins, secs, usecs;
+	unsigned long stop_usec;
+	double seconds;
 
 	secs = stop->tv_sec - start->tv_sec;
+	stop_usec = stop->tv_usec;
+	if (stop_usec < start->tv_usec) {
+		secs--;
+		stop_usec += 1000000;
+	}
+	usecs = stop_usec - start->tv_usec;
+
+	/* we only want 2 decimals */
+	while (usecs > 1000)
+		usecs /= 1000;
+
+	weeks = secs / 604800;
+	secs -= weeks * 604800;
 	days = secs / 86400;
 	secs -= days * 86400;
 	hours = secs / 3600;
@@ -444,20 +458,17 @@ const char *tv_delta(struct timeval *start, struct timeval *stop)
 	mins = secs / 60;
 	secs -= mins * 60;
 
-	/* add the micro-seconds */
-	secs *= 1000000;
-	secs += stop->tv_usec;
-	secs -= start->tv_usec;
-	secs /= 1000000;
-
 	if (!mins && !hours && !days) {
-		sprintf(buf, "%.3lfs", secs);
+		sprintf(buf, "%lu.%03lus", secs, usecs);
 	} else if (!hours && !days) {
-		sprintf(buf, "%um %.3lfs", mins, secs);
+		sprintf(buf, "%um %lu.%03lus", mins, secs, usecs);
 	} else if (!days) {
-		sprintf(buf, "%uh %um %.3lfs", hours, mins, secs);
+		sprintf(buf, "%uh %um %lu.%03lus", hours, mins, secs, usecs);
+	} else if (!weeks){
+		sprintf(buf, "%ud %uh %um %lu.%03lus", days, hours, mins, secs, usecs);
 	} else {
-		sprintf(buf, "%ud %uh %um %.3lfs", days, hours, mins, secs);
+		sprintf(buf, "%luw %lud %luh %lum %lu.%03lus",
+				weeks, days, hours, mins, secs, usecs);
 	}
 
 	return buf;
