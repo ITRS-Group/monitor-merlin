@@ -435,7 +435,6 @@ const char *tv_delta(const struct timeval *start, const struct timeval *stop)
 	static char buf[50];
 	unsigned long weeks, days, hours, mins, secs, usecs;
 	unsigned long stop_usec;
-	double seconds;
 
 	secs = stop->tv_sec - start->tv_sec;
 	stop_usec = stop->tv_usec;
@@ -461,11 +460,11 @@ const char *tv_delta(const struct timeval *start, const struct timeval *stop)
 	if (!mins && !hours && !days) {
 		sprintf(buf, "%lu.%03lus", secs, usecs);
 	} else if (!hours && !days) {
-		sprintf(buf, "%um %lu.%03lus", mins, secs, usecs);
+		sprintf(buf, "%lum %lu.%03lus", mins, secs, usecs);
 	} else if (!days) {
-		sprintf(buf, "%uh %um %lu.%03lus", hours, mins, secs, usecs);
+		sprintf(buf, "%luh %lum %lu.%03lus", hours, mins, secs, usecs);
 	} else if (!weeks){
-		sprintf(buf, "%ud %uh %um %lu.%03lus", days, hours, mins, secs, usecs);
+		sprintf(buf, "%lud %luh %lum %lu.%03lus", days, hours, mins, secs, usecs);
 	} else {
 		sprintf(buf, "%luw %lud %luh %lum %lu.%03lus",
 				weeks, days, hours, mins, secs, usecs);
