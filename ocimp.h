@@ -189,13 +189,18 @@ struct id_object {
 };
 typedef struct id_object id_object;
 
+/* we reuse these for timeperiods */
 struct ocimp_group_object {
 	char *name;
 	int id;
-	char *members;
+	union {
+		char *exclude;
+		char *members;
+	};
 	strvec *strv;
 };
 typedef struct ocimp_group_object ocimp_group_object;
+typedef struct ocimp_group_object ocimp_timeperiod_object;
 
 struct ocimp_contact_object {
 	char *name;
@@ -203,13 +208,6 @@ struct ocimp_contact_object {
 	int login_enabled;
 };
 typedef struct ocimp_contact_object ocimp_contact_object;
-
-struct ocimp_timeperiod_object {
-	char *name;
-	int id;
-	char *exclude;
-};
-typedef struct ocimp_timeperiod_object ocimp_timeperiod_object;
 
 struct state_object
 {
