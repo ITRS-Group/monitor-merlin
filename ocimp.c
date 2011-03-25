@@ -430,6 +430,16 @@ static ocimp_group_object *ocimp_find_group(slist *sl, char *name)
 	return ret;
 }
 
+static int ocimp_timeperiod_id(char *name)
+{
+	ocimp_group_object *obj = ocimp_find_group(timeperiod_slist, name);
+
+	if (!obj)
+		return 0;
+
+	return obj->id;
+}
+
 static ocimp_contact_object *ocimp_find_contact(char *name)
 {
 	ocimp_contact_object obj, *ret;
@@ -1036,8 +1046,8 @@ static void parse_contact(struct cfg_comp *comp)
 	ocimp_contact_object *obj = NULL;
 	char *name = NULL;
 	char *alias = NULL;
-	char *service_notification_period = NULL;
-	char *host_notification_period = NULL;
+	int service_notification_period;
+	int host_notification_period;
 	char *service_notification_options = NULL;
 	char *host_notification_options = NULL;
 	char *service_notification_commands = NULL;
@@ -1077,8 +1087,8 @@ static void parse_contact(struct cfg_comp *comp)
 	obj->name = name;
 	sql_quote(obj->name, &name);
 	sql_quote(comp->vlist[i++]->value, &alias);
-	sql_quote(comp->vlist[i++]->value, &service_notification_period);
-	sql_quote(comp->vlist[i++]->value, &host_notification_period);
+	service_notification_period = ocimp_timeperiod_id(comp->vlist[i++]->value);
+	host_notification_period = ocimp_timeperiod_id(comp->vlist[i++]->value);
 	sql_quote(comp->vlist[i++]->value, &service_notification_options);
 	sql_quote(comp->vlist[i++]->value, &host_notification_options);
 	sql_quote(comp->vlist[i++]->value, &service_notification_commands);
@@ -1128,18 +1138,21 @@ static void parse_contact(struct cfg_comp *comp)
 			  "host_notification_options, service_notification_options, "
 			  "host_notification_commands, service_notification_commands, "
 			  "retain_status_information, retain_nonstatus_information, "
-			  "email, pager, address1, "
-			  "address2, address3, address4, "
-			  "address5, address6) "
+			  "email, pager, "
+			  "address1, address2, address3, "
+			  "address4, address5, address6, "
+			  "last_host_notification, last_service_notification) "
 			  "VALUES(0, %d, %s, %s, "
 			  "%d, %d, "
 			  "%d, "
-			  "%s, %s, "
+			  "%d, %d, "
 			  "%s, %s, "
 			  "%s, %s, "
 			  "%d, %d, "
-			  "%s, %s, %s, %s, %s, "
-			  "%s, %s, %s)",
+			  "%s, %s, "
+			  "%s, %s, %s, "
+			  "%s, %s, %s, "
+			  "0, 0)",
 			  obj->id, name, alias,
 			  host_notifications_enabled, service_notifications_enabled,
 			  can_submit_commands,
@@ -1153,8 +1166,6 @@ static void parse_contact(struct cfg_comp *comp)
 
 	free(name);
 	free(alias);
-	free(host_notification_period);
-	free(service_notification_period);
 	free(host_notification_options);
 	free(service_notification_options);
 	free(host_notification_commands);
