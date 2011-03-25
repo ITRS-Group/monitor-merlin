@@ -399,10 +399,25 @@ static int handle_flapping(const nebstruct_flapping_data *p)
 	return result;
 }
 
-static int handle_comment(const nebstruct_comment_data *p)
+static int handle_comment(merlin_node *node, const nebstruct_comment_data *p)
 {
 	int result;
 	char *host_name, *author_name, *comment_data, *service_description;
+
+	/*
+	 * The simple case of deleting comments is when the event
+	 * comes from our local node. In that case we needn't bother
+	 * with matching the comment by variable. Since we bounce
+	 * COMMENT_DELETE events from remote nodes against our module
+	 * before we actually delete them, this code should be the
+	 * one exercised every time we delete a comment
+	 */
+	if (node == &ipc) {
+		sql_query("DELETE FROM comment_tbl WHERE comment_id = %lu",
+		          p->comment_id);
+		if (p->type == NEBTYPE_COMMENT_DELETE)
+			return 0;
+	}
 
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->author_name, &author_name);
@@ -583,7 +598,7 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 		errors |= rpt_process_data(pkt->body);
 		break;
 	case NEBCALLBACK_COMMENT_DATA:
-		errors = handle_comment((void *)pkt->body);
+		errors = handle_comment(node, (void *)pkt->body);
 		break;
 	case NEBCALLBACK_DOWNTIME_DATA:
 		errors = handle_downtime((void *)pkt->body);
