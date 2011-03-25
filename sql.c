@@ -9,7 +9,12 @@ char *service_perf_table = NULL;
 static long int commit_interval, commit_queries;
 static time_t last_commit;
 unsigned long total_queries = 0;
+static int db_type;
 
+#define MERLIN_DBT_MYSQL 0
+#define MERLIN_DBT_ORACLE 1
+#define MERLIN_DBT_PGSQL 2
+#define MERLIN_DBT_SQLITE 3
 
 /*
  * File-scoped definition of the database settings we've tried
@@ -213,33 +218,36 @@ int sql_vquery(const char *fmt, va_list ap)
 	if (run_query(query, len, 0) != 0) {
 		const char *error_msg;
 		int db_error = sql_error(&error_msg);
+		int reconnect = 0;
 
 		lerr("Failed to run query [%s] due to error-code %d: %s",
 		     query, db_error, error_msg);
-#if 0 //FIXME("Refactor/rework the following for the new db layer..."); Current code can endlessly loop
-		/*
-		 * if we failed because the connection has gone away, we try
-		 * reconnecting once and rerunning the query before giving up.
-		 */
-		switch (db_error) {
-#if 0
-		case DBI_ERROR_USER:
-		case DBI_ERROR_BADTYPE:
-		case DBI_ERROR_BADIDX:
-		case DBI_ERROR_BADNAME:
-		case DBI_ERROR_UNSUPPORTED:
-		case DBI_ERROR_NONE:
-			break;
-#endif
-			    /*
-			      These values are only for MySQL. Oracle might use
-			      these to mean different things!
-			    */
-		case 1062: /* 'duplicate key' with MySQL. don't rerun */
-		case 1146: /* 'table missing' with MySQL. don't rerun */
-			if (!strstr(db.type, "mysql"))
+#ifdef ENABLE_LIBDBI
+		if (db_type == MERLIN_DBT_MYSQL) {
+			/*
+			 * if we failed because the connection has gone away, we try
+			 * reconnecting once and rerunning the query before giving up.
+			 * Otherwise we just ignore it and go on
+			 */
+			switch (db_error) {
+			case 1062: /* duplicate key */
+			case 1068: /* duplicate primary key */
+			case 1146: /* table missing */
+			case 2029: /* null pointer */
 				break;
-		default:
+
+			default:
+				reconnect = 1;
+				break;
+			}
+		}
+#endif
+#ifdef ENABLE_OCILIB
+		if (db_type == MERLIN_DBT_ORACLE) {
+			reconnect = 0;
+		}
+#endif
+		if (reconnect) {
 			lwarn("Attempting to reconnect to database and re-run the query");
 			if (!sql_reinit()) {
 				if (!run_query(query, len, 1))
@@ -247,7 +255,6 @@ int sql_vquery(const char *fmt, va_list ap)
 				/* database backlog code goes here */
 			}
 		}
-#endif
 	}
 
 	free(query);
@@ -313,6 +320,16 @@ int sql_init(void)
 	db.table = sql_table_name();
 	if (!db.type) {
 		db.type = "mysql";
+	}
+
+	if (!strcmp(db.type, "mysql") || !strcmp(db.type, "dbi:mysql")) {
+		db_type = MERLIN_DBT_MYSQL;
+	} else if (!strcmp(db.type, "oci") || !strcmp(db.type, "oracle") || !strcmp(db.type, "ocilib")) {
+		db_type = MERLIN_DBT_ORACLE;
+	} else if (!strcmp(db.type, "psql") || !strcmp(db.type, "postgresql") || !strcmp(db.type, "pgsql")) {
+		db_type = MERLIN_DBT_PGSQL;
+	} else if (!strcmp(db.type, "sqlite")) {
+		db_type = MERLIN_DBT_SQLITE;
 	}
 
 	db_wrap_conn_params connparam = db_wrap_conn_params_empty;

@@ -57,7 +57,7 @@ ifeq ($(ENABLE_OCILIB),1)
 OCILIB_PREFIX ?= /usr/local
 OCILIB_CFLAGS := -I$(OCILIB_PREFIX)/include -DDB_WRAP_CONFIG_ENABLE_OCILIB=1
 OCILIB_LDFLAGS = -L$(OCILIB_PREFIX)/lib -locilib $(ORACLE_LDFLAGS)
-DB_CFLAGS += $(OCILIB_CFLAGS)
+DB_CFLAGS += $(OCILIB_CFLAGS) -DENABLE_OCILIB=1
 DB_LDFLAGS += $(OCILIB_LDFLAGS)
 db_wrap.o: db_wrap_ocilib.c
 endif
@@ -67,11 +67,11 @@ ifeq ($(ENABLE_LIBDBI),1)
 LIBDBI_PREFIX ?= /usr/local
 LIBDBI_CFLAGS := -I$(LIBDBI_PREFIX)/include -DDB_WRAP_CONFIG_ENABLE_LIBDBI=1
 LIBDBI_LDFLAGS := -L$(LIBDBI_PREFIX)/lib -ldbi
-DB_CFLAGS += $(LIBDBI_CFLAGS)
+DB_CFLAGS += $(LIBDBI_CFLAGS) -DENABLE_LIBDBI=1
 DB_LDFLAGS += $(LIBDBI_LDFLAGS)
 db_wrap.o: db_wrap_dbi.c
 endif
-test-dbwrap.o db_wrap.o: CFLAGS+=$(DB_CFLAGS)
+sql.o test-dbwrap.o db_wrap.o: CFLAGS+=$(DB_CFLAGS)
 
 COMMON_OBJS = cfgfile.o shared.o hash.o version.o logging.o
 SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o
