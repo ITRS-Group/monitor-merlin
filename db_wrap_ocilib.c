@@ -136,15 +136,6 @@ static void oci_err_handler(OCI_Error *err)
 		OCI_ErrorGetString(err);
 	ociw_error_info_kludge.ociCode =
 		OCI_ErrorGetOCICode(err);
-
-	/* OCI_ErrorGetString() returns a string with a newline */
-	lerr("code  : ORA-%05d\n"
-		 "msg   : %s"
-		 "sql   : %s\n",
-		 ociw_error_info_kludge.ociCode,
-		 ociw_error_info_kludge.errorString,
-		 ociw_error_info_kludge.sql ? ociw_error_info_kludge.sql : "(null)"
-		);
 }
 
 static void ociw_atexit()
@@ -349,7 +340,6 @@ int ociw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_resu
 #if 1
 	if (! OCI_ExecuteStmt(st, sql))
 	{
-		lerr("Execution of OCI_Statement failed: [%s]\n",OCI_GetSql(st));
 		wres->api->finalize(wres);
 		/*
 		  i don't quite know why, but fetching the OCI error state after this
