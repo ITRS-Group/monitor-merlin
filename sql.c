@@ -2,7 +2,6 @@
 #include "daemon.h"
 
 #include <stdio.h> /* debuggering only. */
-#define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
 
 /* where to (optionally) stash performance data */
 char *host_perf_table = NULL;
@@ -11,8 +10,6 @@ static long int commit_interval, commit_queries;
 static time_t last_commit;
 unsigned long total_queries = 0;
 
-
-#define FIXME(X)
 
 /*
  * File-scoped definition of the database settings we've tried
@@ -26,9 +23,9 @@ static struct {
 	char const *table;
 	char const *type;
 	char const *encoding;
-		int port /* need to be signed int for compatibility with dbi_conn_set_option_numeric() (and similar)*/;
-		db_wrap * conn;
-		db_wrap_result * result;
+	int port; /* signed int for compatibility with dbi_conn_set_option_numeric() (and similar)*/
+	db_wrap *conn;
+	db_wrap_result * result;
 	int logSQL;
 } db = {
 NULL/*host*/,
@@ -160,9 +157,9 @@ static int run_query(char *query, size_t len, int rerunIGNORED)
 	rc = db.conn->api->query_result(db.conn, query, len, &res);
 
 	if (db.logSQL) {
-		fprintf(stderr, "MERLIN SQL: [%s]\n\tResult code: %d, result object @%p\n", query, rc, res);
+		ldebug("MERLIN SQL: [%s]\n\tResult code: %d, result object @%p\n", query, rc, res);
 		if (rc) {
-			fprintf(stderr, "\tError code: %d\n", rc);
+			ldebug("Error code: %d\n", rc);
 			/*
 			 * Reminder: the OCI driver adds a newline of its own to
 			 * error text.
@@ -215,12 +212,10 @@ int sql_vquery(const char *fmt, va_list ap)
 
 	if (run_query(query, len, 0) != 0) {
 		const char *error_msg;
-		FIXME("db_wrap API currently only returns error string, not error code.");
-		FIXME("Add db_error int back in once db_wrap API can do it.");
 		int db_error = sql_error(&error_msg);
 
-		lwarn("dbi_conn_query_null(): Failed to run [%s]: %s. Error-code is %d.)",
-			  query, error_msg, db_error);
+		lerr("Failed to run query [%s] due to error-code %d: %s",
+		     query, db_error, error_msg);
 #if 0 //FIXME("Refactor/rework the following for the new db layer..."); Current code can endlessly loop
 		/*
 		 * if we failed because the connection has gone away, we try
@@ -317,7 +312,7 @@ int sql_init(void)
 	db.pass = sql_db_pass();
 	db.table = sql_table_name();
 	if (!db.type) {
-		db.type = "dbi:mysql";
+		db.type = "mysql";
 	}
 
 	db_wrap_conn_params connparam = db_wrap_conn_params_empty;
@@ -328,9 +323,7 @@ int sql_init(void)
 	if (db.port)
 		connparam.port = db.port;
 
-	result = db_wrap_driver_init(db.type, &connparam, &db.conn)
-		/* FIXME: use driver-independent init function, instead of dbi directly */
-		;
+	result = db_wrap_driver_init(db.type, &connparam, &db.conn);
 	if (result) {
 		if (log_attempt) {
 			lerr("Failed to connect to db '%s' at host '%s':'%d' as user %s using driver %s.",
@@ -343,7 +336,7 @@ int sql_init(void)
 	result = db.conn->api->option_set(db.conn, "encoding", db.encoding ? db.encoding : "latin1");
 
 	if (result && log_attempt) {
-		lerr("Warning: Failed to set one or more database connection options");
+		lwarn("Warning: Failed to set one or more database connection options");
 	}
 
 	result = db.conn->api->connect(db.conn);
@@ -351,13 +344,13 @@ int sql_init(void)
 		if (log_attempt) {
 			const char *error_msg;
 			sql_error(&error_msg);
-			lerr("Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
+			lerr("DB: Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
 				 db.name, db.host, db.port, db.user, db.pass, error_msg);
 		}
 		sql_close();
 		return -1;
 	} else if (log_attempt) {
-		ldebug("MERLIN DB: Connected to db [%s] using driver [%s]",
+		ldebug("DB: Connected to db [%s] using driver [%s]",
 			   db.name, db.type);
 	}
 
@@ -463,7 +456,6 @@ int sql_config(const char *key, const char *value)
 
 	value_cpy = value ? strdup(value) : NULL;
 
-		FIXME("we leak these copied values if we set a particular value more than once.");
 	if (!prefixcmp(key, "name") || !prefixcmp(key, "database"))
 		db.name = value_cpy;
 	else if (!prefixcmp(key, "logsql")) {
@@ -511,6 +503,3 @@ int sql_config(const char *key, const char *value)
 
 	return 0;
 }
-
-#undef FIXME
-#undef MARKER
