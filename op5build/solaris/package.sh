@@ -38,7 +38,7 @@ if [ -f build ]; then
 fi
 ####
 
-for i in pkginfo checkinstall preinstall postinstall; do
+for i in pkginfo checkinstall preinstall postinstall preremove; do
 	test -f $i || continue
 	echo "i $i" >> prototype
 done
