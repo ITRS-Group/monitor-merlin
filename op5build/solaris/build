@@ -26,9 +26,9 @@ chown root:bin $buildroot/usr/bin/mon
 chown root:sys $buildroot/opt
 chmod 755 $buildroot/usr/bin/mon
 gsed -i 's#/etc/init.d/merlind#/opt/monitor/svc/svc-merlin#' apps/libexec/start.sh
-gsed -i 's#/etc/init.d/merlind#/opt/monitor/svc/svc-merlin#' apps/libexec/sop.sh
+gsed -i 's#/etc/init.d/merlind#/opt/monitor/svc/svc-merlin#' apps/libexec/stop.sh
 gsed -i 's#/etc/init.d/monitor#/opt/monitor/svc/svc-monitor#' apps/libexec/start.sh
-gsed -i 's#/etc/init.d/monitor#/opt/monitor/svc/svc-monitor#' apps/libexec/sop.sh
+gsed -i 's#/etc/init.d/monitor#/opt/monitor/svc/svc-monitor#' apps/libexec/stop.sh
 cp -r apps/libexec $buildroot/usr/libexec/merlin
 cp oconf $buildroot/usr/libexec/merlin/-oconf
 
