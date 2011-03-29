@@ -29,6 +29,7 @@ gsed -i 's#/etc/init.d/merlind#/opt/monitor/svc/svc-merlin#' apps/libexec/start.
 gsed -i 's#/etc/init.d/merlind#/opt/monitor/svc/svc-merlin#' apps/libexec/stop.sh
 gsed -i 's#/etc/init.d/monitor#/opt/monitor/svc/svc-monitor#' apps/libexec/start.sh
 gsed -i 's#/etc/init.d/monitor#/opt/monitor/svc/svc-monitor#' apps/libexec/stop.sh
+gsed -i 's/^import MySQLdb/# import MySQLdb/' apps/libexec/db.py
 cp -r apps/libexec $buildroot/usr/libexec/merlin
 cp oconf $buildroot/usr/libexec/merlin/-oconf
 
