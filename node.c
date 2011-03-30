@@ -381,7 +381,7 @@ void node_grok_config(struct cfg_comp *config)
 {
 	uint i;
 	int node_i = 0;
-	merlin_node *table;
+	static merlin_node *table = NULL;
 
 	if (!config)
 		return;
@@ -391,6 +391,8 @@ void node_grok_config(struct cfg_comp *config)
 	 * happily waste a bit to make up for the other valid compounds
 	 * so we can keep nodes linear in memory
 	 */
+	if (table)
+		free(table);
 	table = calloc(config->nested, sizeof(merlin_node));
 
 	for (i = 0; i < config->nested; i++) {
