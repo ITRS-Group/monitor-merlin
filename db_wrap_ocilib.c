@@ -262,11 +262,7 @@ size_t ociw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest
 	if (! dest) return DB_WRAP_E_BAD_ARG;
 	if (!sql || !*sql || !len)
 	{
-#if 0
 		*dest = NULL;
-#else
-		*dest = strdup(sql ? "''" : "NULL");
-#endif
 		return 0;
 	}
 	else
