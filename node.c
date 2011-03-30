@@ -869,6 +869,7 @@ int node_send_binlog(merlin_node *node, merlin_event *pkt)
 		 * so this node is now out of sync. We must wipe the binlog
 		 * and possibly mark this node as being out of sync.
 		 */
+		lerr("Wiping binlog for %s node %s", node_type(node), node->name);
 		binlog_wipe(node->binlog, BINLOG_UNLINK);
 		if (pkt) {
 			node->stats.events.dropped += node->stats.events.logged + 1;
