@@ -1564,12 +1564,13 @@ int main(int argc, char **argv)
 		sql_config("db_database", db_name);
 		sql_config("db_user", db_user);
 		sql_config("db_pass", db_pass);
+		sql_config("commit_interval", "0");
+		sql_config("commit_queries", "10000");
 
 		if (sql_init() < 0) {
-
-			        crash("sql_init() failed. db=%s, table=%s, user=%s, db msg=[%s]",
-			              db_name, db_table, db_user, sql_error_msg());
-			    }
+			crash("sql_init() failed. db=%s, table=%s, user=%s, db msg=[%s]",
+				  db_name, db_table, db_user, sql_error_msg());
+		}
 		if (truncate_db)
 			sql_query("TRUNCATE %s", db_table);
 
@@ -1587,14 +1588,14 @@ int main(int argc, char **argv)
 			 * database. We shouldn't crash in that case
 			 */
 			if (0 == result->api->step(result)) {
-			                /* reminder: incremental is time_t and may be either uint32_t or uint64.
-			                   Thus we use an extra int object here to avoid passing an invalid pointer
-			                   to (&incremental) on platforms where time_t is not uint32_t.
-			                */
-			                int32_t inctime = 0;
-			                result->api->get_int32_ndx(result, 0, &inctime);
-			                incremental = inctime;
-			            }
+				/* reminder: incremental is time_t and may be either uint32_t or uint64.
+				 Thus we use an extra int object here to avoid passing an invalid pointer
+				 to (&incremental) on platforms where time_t is not uint32_t.
+				 */
+				int32_t inctime = 0;
+				result->api->get_int32_ndx(result, 0, &inctime);
+				incremental = inctime;
+			}
 			sql_free_result();
 		}
 	}
