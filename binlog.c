@@ -236,7 +236,8 @@ static int binlog_mem_read(binlog *bl, void **buf, unsigned int *len)
 	}
 
 	if (!bl->cache[bl->read_index]) {
-		binlog_wipe(bl);
+		/* this might cause leaks! */
+		bl->read_index = bl->write_index = 0;
 		return BINLOG_EINVALID;
 	}
 
