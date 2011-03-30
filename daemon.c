@@ -89,8 +89,7 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 
 	switch (node->state) {
 	case STATE_CONNECTED:
-		if (use_database) {
-			sql_reinit();
+		if (sql_is_connected(1)) {
 			sql_query("UPDATE program_status SET "
 			          "is_running = 1, last_alive = %lu "
 			          "WHERE instance_id = 0", time(NULL));
