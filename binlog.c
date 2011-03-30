@@ -230,27 +230,34 @@ static int binlog_file_read(binlog *bl, void **buf, unsigned int *len)
 
 static int binlog_mem_read(binlog *bl, void **buf, unsigned int *len)
 {
-	if (bl->cache && bl->read_index < bl->write_index) {
-		*buf = bl->cache[bl->read_index]->data;
-		*len = bl->cache[bl->read_index]->size;
-
-		/* free the entry and mark it as empty */
-		free(bl->cache[bl->read_index]);
-		bl->cache[bl->read_index] = NULL;
-		bl->read_index++;
-
-		/*
-		 * reset the read and write index in case we've read
-		 * all entries. This lets us re-use the entry slot
-		 * later and not just steadily increase the array
-		 * size
-		 */
-		if (bl->read_index >= bl->write_index)
-			bl->read_index = bl->write_index = 0;
-		return 0;
+	if (!bl->cache || bl->read_index >= bl->write_index) {
+		bl->read_index = bl->write_index = 0;
+		return BINLOG_EMPTY;
 	}
 
-	return BINLOG_EMPTY;
+	if (!bl->cache[bl->read_index]) {
+		binlog_wipe(bl);
+		return BINLOG_EINVALID;
+	}
+
+	*buf = bl->cache[bl->read_index]->data;
+	*len = bl->cache[bl->read_index]->size;
+
+	/* free the entry and mark it as empty */
+	free(bl->cache[bl->read_index]);
+	bl->cache[bl->read_index] = NULL;
+	bl->read_index++;
+
+	/*
+	 * reset the read and write index in case we've read
+	 * all entries. This lets us re-use the entry slot
+	 * later and not just steadily increase the array
+	 * size
+	 */
+	if (bl->read_index >= bl->write_index)
+		bl->read_index = bl->write_index = 0;
+
+	return 0;
 }
 
 int binlog_read(binlog *bl, void **buf, unsigned int *len)
