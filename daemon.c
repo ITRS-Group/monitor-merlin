@@ -468,6 +468,7 @@ static int read_nagios_paths(merlin_event *pkt)
 	}
 
 	import_objects_and_status(npath[0], npath[1], npath[2]);
+	free(nagios_paths_arena);
 	/*
 	 * we don't need to do this until we're merging the reports-module
 	 * into merlin

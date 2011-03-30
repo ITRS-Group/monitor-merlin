@@ -511,6 +511,7 @@ int sql_config(const char *key, const char *value)
 		char *endp;
 		commit_queries = strtoul(value, &endp, 0);
 		ldebug("DB: commit_queries set to %ld queries", commit_queries);
+		free(value_cpy);
 	}
 	else {
 		if (value_cpy)
