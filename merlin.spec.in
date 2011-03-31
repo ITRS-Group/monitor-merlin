@@ -65,7 +65,7 @@ network monitoring setup.
 %setup -q
 
 %build
-sed -i 's/^DEF_VER=.*/DEF_VER=%{version}-%{release}" gen-version.sh
+sed -i 's/^DEF_VER=.*/DEF_VER=%{version}-%{release}/' gen-version.sh
 make ENABLE_OCILIB=1 ENABLE_LIBDBI=1
 make ENABLE_OCILIB=1 ENABLE_LIBDBI=1 test
 
