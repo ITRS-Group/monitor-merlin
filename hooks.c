@@ -21,6 +21,7 @@ static unsigned long long dupes, dupe_bytes;
 static uint32_t event_mask;
 static host *unblocked_host;
 static service *unblocked_service;
+static pthread_mutex_t mod_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /*
  * used for blocking host and service status events after a
@@ -870,6 +871,30 @@ static int hook_notification(merlin_event *pkt, void *data)
 	return 0;
 }
 
+static int merlin_lock(void)
+{
+	int ret;
+	struct timespec ts;
+
+	ts.tv_sec = 2;
+	ts.tv_nsec = 0;
+
+	ret = pthread_mutex_timedlock(&mod_lock, &ts);
+	if (ret) {
+		lerr("PTH: Failed to lock hook entry point: %s", strerror(ret));
+	}
+	return ret;
+}
+
+static int merlin_unlock(void)
+{
+	int ret = pthread_mutex_unlock(&mod_lock);
+	if (ret) {
+		lerr("PTH: Failed to unlock hook entry point: %s", strerror(ret));
+	}
+	return ret;
+}
+
 int merlin_mod_hook(int cb, void *data)
 {
 	merlin_event pkt;
@@ -881,6 +906,18 @@ int merlin_mod_hook(int cb, void *data)
 	} else if (cb < 0 || cb > NEBCALLBACK_NUMITEMS) {
 		lerr("merlin_mod_hook() called with invalid callback id");
 		return -1;
+	}
+
+	/*
+	 * Multiple threads trying to send data at the same time
+	 * can cause crashes if the binlog has entries and both
+	 * threads try to empty the binlog at the same time.
+	 * Locking the hook entry point to a single thread should
+	 * work well though.
+	 */
+	if (merlin_lock()) {
+		lerr("PTH: Dropping %s event", callback_name(cb));
+		return 0;
 	}
 
 	/*
@@ -954,6 +991,10 @@ int merlin_mod_hook(int cb, void *data)
 	if (result < 0) {
 		lwarn("Daemon is flooded and backlogging failed. Staying dormant for %d seconds", MERLIN_SENDPATH_INTERVAL);
 		merlin_should_send_paths = time(NULL) + MERLIN_SENDPATH_INTERVAL;
+	}
+
+	if (merlin_unlock()) {
+		lwarn("PTH: Oops. are we blocked forever now?");
 	}
 
 	return result;
