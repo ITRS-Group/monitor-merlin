@@ -726,9 +726,13 @@ static int io_poll_sockets(void)
 	FD_ZERO(&wr);
 	if (ipc.sock >= 0)
 		FD_SET(ipc.sock, &rd);
-	FD_SET(ipc_listen_sock, &rd);
+	if (ipc_listen_sock >= 0)
+		FD_SET(ipc_listen_sock, &rd);
 
 	sel_val = net_polling_helper(&rd, &wr, sel_val);
+	if (sel_val < 0)
+		return 0;
+
 	nfound = select(sel_val + 1, &rd, &wr, NULL, &tv);
 	if (nfound < 0) {
 		lerr("select() returned %d (errno = %d): %s", nfound, errno, strerror(errno));
