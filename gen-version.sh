@@ -31,6 +31,7 @@ cat << EOF > version.c
 #include "shared.h"
 const char *merlin_version = "$version";
 EOF
+echo "version.c created with merlin_version = $version"
 exit 0
 echo "beta=$beta"
 echo "patches=$patches"
