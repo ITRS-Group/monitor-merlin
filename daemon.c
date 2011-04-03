@@ -593,7 +593,7 @@ void csync_node_active(merlin_node *node)
 
 	if (child->pid) {
 		ldebug("CSYNC: '%s' already running for %s, or globally", child->cmd, node->name);
-		child = NULL;
+		return;
 	}
 
 	ldebug("CSYNC: node %s; val: %d; sync-command: [%s]", node->name, val, child->cmd);
