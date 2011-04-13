@@ -472,9 +472,9 @@ static cfg_code slog_options[] = {
 	"check_flapping_recovery_notifi,\n" \
 	"scheduled_downtime_depth, pending_flex_downtime,\n" \
 	"is_flapping, flapping_comment_id,\n"                   /* 50 */ \
-	"percent_state_change,\n" \
-	"output, long_output, perf_data, action_url,\n"         /* 55 */ \
-	"icon_image_alt)\n" /* 56 */ \
+	"max_attempts, max_check_attempts,\n" \
+	"percent_state_change, output, long_output,\n"          /* 55 */ \
+	"perf_data, action_url, icon_image_alt)\n" /* 58 */ \
 	"VALUES(" valsf ",\n" \
 	"%d, %d,\n" \
 	"%s, %s, %s,\n"   /* 5 */   \
@@ -503,9 +503,9 @@ static cfg_code slog_options[] = {
 	"%d,\n" \
 	"%d, %d,\n" \
 	"%d, %lu,\n" \
-	"%f,\n" \
-	"%s, %s, %s,\n" \
-	"%s, %s)"
+	"%d, %d,\n" \
+	"%f, %s, %s,\n" \
+	"%s, %s, %s)"
 
 #define INSERT_VALUES() \
 	p->ido.id, p->ido.instance_id, \
@@ -535,9 +535,9 @@ static cfg_code slog_options[] = {
 	p->state.check_flapping_recovery_notification, \
 	p->state.scheduled_downtime_depth, p->state.pending_flex_downtime, \
 	p->state.is_flapping, p->state.flapping_comment_id, \
-	p->state.percent_state_change, \
-	safe_str(output), safe_str(long_output), safe_str(perf_data),\
-	safe_str(action_url), safe_str(icon_image_alt)
+	p->max_attempts, p->max_attempts, \
+	p->state.percent_state_change, safe_str(output), safe_str(long_output), \
+	safe_str(perf_data), safe_str(action_url), safe_str(icon_image_alt)
 
 
 #endif
