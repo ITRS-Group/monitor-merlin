@@ -278,7 +278,7 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 	}
 	switch (pkt->hdr.code) {
 	case CTRL_INACTIVE:
-		node_action(node, STATE_NONE);
+		node_set_state(node, STATE_NONE, "Received CTRL_INACTIVE");
 		break;
 	case CTRL_ACTIVE:
 		/*
@@ -286,7 +286,7 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 		 * checks out properly and the info is new
 		 */
 		if (!handle_ctrl_active(node, pkt)) {
-			node_action(node, STATE_CONNECTED);
+			node_set_state(node, STATE_CONNECTED, "Received CTRL_ACTIVE");
 		}
 		break;
 	case CTRL_STALL:
