@@ -56,7 +56,7 @@ int net_is_connected(merlin_node *node)
 		if (errno != ENOTCONN || node->state != STATE_PENDING ||
 		    node->last_conn_attempt + MERLIN_CONNECT_TIMEOUT < time(NULL))
 		{
-			node_disconnect(node);
+			node_disconnect(node, "connect() timed out");
 		}
 		return 0;
 	}
@@ -65,12 +65,12 @@ int net_is_connected(merlin_node *node)
 	if (getsockopt(node->sock, SOL_SOCKET, SO_ERROR, &optval, &slen) < 0) {
 		lerr("getsockopt(%d) failed for %s: %s",
 		     node->sock, node->name, strerror(errno));
-		node_disconnect(node);
+		node_disconnect(node, "getsockopt() failed");
 		return 0;
 	}
 
 	if (!optval) {
-		node_set_state(node, STATE_CONNECTED);
+		node_set_state(node, STATE_CONNECTED, "connect() attempt completed successfully");
 		return 1;
 	}
 
@@ -106,7 +106,7 @@ int net_try_connect(merlin_node *node)
 
 	/* create the socket if necessary */
 	if (node->sock < 0) {
-		node_disconnect(node);
+		node_disconnect(node, "struct reset (no real disconnect)");
 		node->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (node->sock < 0) {
 			lerr("Failed to obtain socket for node %s: %s", node->name, strerror(errno));
@@ -121,7 +121,7 @@ int net_try_connect(merlin_node *node)
 	 */
 	if (node->state == STATE_PENDING || node->state == STATE_CONNECTED) {
 		if (net_is_connected(node))
-			node_set_state(node, STATE_CONNECTED);
+			node_set_state(node, STATE_CONNECTED, "Attempted connect completed");
 		return 0;
 	}
 
@@ -152,7 +152,7 @@ int net_try_connect(merlin_node *node)
 	node->last_conn_attempt = time(NULL);
 	if (connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
 		if (errno == EINPROGRESS || errno == EALREADY) {
-			node_set_state(node, STATE_PENDING);
+			node_set_state(node, STATE_PENDING, "connect() already in progress");
 		} else if (errno == EISCONN) {
 			connected = 1;
 		} else {
@@ -160,8 +160,10 @@ int net_try_connect(merlin_node *node)
 				lerr("connect() failed to node '%s' (%s:%d): %s",
 				     node->name, inet_ntoa(node->sain.sin_addr),
 				     ntohs(node->sain.sin_port), strerror(errno));
+				node_disconnect(node, "connect() failed");
+			} else {
+				node_disconnect(node, NULL);
 			}
-			node_disconnect(node);
 			return -1;
 		}
 	}
@@ -170,7 +172,7 @@ int net_try_connect(merlin_node *node)
 		linfo("Successfully connected to %s %s@%s:%d",
 			  node_type(node), node->name, inet_ntoa(node->sain.sin_addr),
 			  ntohs(node->sain.sin_port));
-		node_set_state(node, STATE_CONNECTED);
+		node_set_state(node, STATE_CONNECTED, "connect() successful");
 	} else {
 		if (should_log) {
 			linfo("Connection pending to %s %s@%s:%d",
@@ -178,7 +180,7 @@ int net_try_connect(merlin_node *node)
 			      inet_ntoa(node->sain.sin_addr),
 			      ntohs(node->sain.sin_port));
 		}
-		node_set_state(node, STATE_PENDING);
+		node_set_state(node, STATE_PENDING, "connect() in progress");
 	}
 
 	return 0;
@@ -252,7 +254,7 @@ static int net_negotiate_socket(merlin_node *node, int lis)
 
 	ldebug("negotiate: con and lis are equal. killing both");
 	node->last_conn_attempt_logged = 0;
-	node_disconnect(node);
+	node_disconnect(node, "socket negotiation failed");
 	close(lis);
 
 	return -1;
@@ -308,7 +310,7 @@ int net_accept_one(void)
 		 * we must close it unconditionally or we'll leak fd's
 		 * for reconnecting nodes that were previously connected
 		 */
-		node_disconnect(node);
+		node_disconnect(node, "fd leak prevention for connecting nodes");
 		node->sock = sock;
 		break;
 
@@ -317,7 +319,7 @@ int net_accept_one(void)
 		break;
 	}
 
-	node_set_state(node, STATE_CONNECTED);
+	node_set_state(node, STATE_CONNECTED, "Inbound connection accepted or negotiated");
 	node->last_sent = node->last_recv = time(NULL);
 
 	return sock;
@@ -331,7 +333,7 @@ int net_deinit(void)
 	uint i;
 
 	for (i = 0; i < num_nodes; i++) {
-		node_disconnect(node_table[i]);
+		node_disconnect(node_table[i], "Deinitializing networking");
 	}
 
 	if (node_table)
@@ -409,7 +411,7 @@ static void check_node_activity(merlin_node *node)
 		return;
 
 	if (node->last_recv && node->last_recv < now - (pulse_interval * 2))
-		node_disconnect(node);
+		node_disconnect(node, "Too long since last action");
 }
 
 
@@ -655,7 +657,7 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 		/* handle new connections first */
 		if (FD_ISSET(node->sock, wr)) {
 			if (net_is_connected(node)) {
-				node_set_state(node, STATE_CONNECTED);
+				node_set_state(node, STATE_CONNECTED, "select()'ed for writing");
 
 				if (binlog_has_entries(node->binlog)) {
 					node_send_binlog(node, NULL);

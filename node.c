@@ -8,7 +8,7 @@ static node_selection *selection_table;
 
 static char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 
-void node_set_state(merlin_node *node, int state)
+void node_set_state(merlin_node *node, int state, const char *reason)
 {
 	int prev_state;
 
@@ -18,8 +18,10 @@ void node_set_state(merlin_node *node, int state)
 	if (node->state == state)
 		return;
 
-	ldebug("NODESTATE: %s: %s -> %s", node->name,
-	       node_state_name(node->state), node_state_name(state));
+	if (reason) {
+		linfo("NODESTATE: %s: %s -> %s: %s", node->name,
+		      node_state_name(node->state), node_state_name(state), reason);
+	}
 
 	prev_state = node->state;
 	node->state = state;
@@ -506,7 +508,7 @@ const char *node_type(merlin_node *node)
 }
 
 /* close down the connection to a node and mark it as down */
-void node_disconnect(merlin_node *node)
+void node_disconnect(merlin_node *node, const char *reason)
 {
 	if (node->state == STATE_CONNECTED)
 		node_log_event_count(node, 1);
@@ -515,7 +517,7 @@ void node_disconnect(merlin_node *node)
 	if (node->sock >= 0)
 		close(node->sock);
 	node->sock = -1;
-	node_set_state(node, STATE_NONE);
+	node_set_state(node, STATE_NONE, reason);
 	node->last_recv = 0;
 	node->ioc.ioc_buflen = node->ioc.ioc_offset = 0;
 }
@@ -632,7 +634,7 @@ int node_recv(merlin_node *node, int flags)
 			   node->sock, ioc->ioc_buf, ioc->ioc_buflen, ioc->ioc_offset, ioc->ioc_bufsize);
 			   
 	}
-	node_disconnect(node);
+	node_disconnect(node, "recv() failed");
 	return -1;
 }
 
@@ -672,7 +674,7 @@ int node_send(merlin_node *node, void *data, int len, int flags)
 	 * partial writes and complete failures can only be handled
 	 * by disconnecting and re-syncing the stream
 	 */
-	node_disconnect(node);
+	node_disconnect(node, "Partial or failed write()");
 
 	if (sent < 0) {
 		/* if we would have blocked, we simply return 0 */
@@ -745,7 +747,7 @@ merlin_event *node_get_event(merlin_node *node)
 
 	if (pkt->hdr.sig.id != MERLIN_SIGNATURE) {
 		lerr("Invalid signature on packet from '%s'. Disconnecting node", node->name);
-		node_disconnect(node);
+		node_disconnect(node, "Invalid signature");
 		return NULL;
 	}
 	node->stats.events.read++;

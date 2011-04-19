@@ -55,7 +55,7 @@ int ipc_accept(void)
 		return -1;
 	}
 
-	node_set_state(&ipc, STATE_CONNECTED);
+	node_set_state(&ipc, STATE_CONNECTED, "Accepted");
 
 	return ipc.sock;
 }
@@ -235,7 +235,7 @@ int ipc_init(void)
 
 	/* module connected successfully */
 	ipc.sock = listen_sock;
-	node_set_state(&ipc, STATE_CONNECTED);
+	node_set_state(&ipc, STATE_CONNECTED, "Connected");
 
 	return 0;
 }
@@ -243,7 +243,7 @@ int ipc_init(void)
 
 void ipc_deinit(void)
 {
-	node_disconnect(&ipc);
+	node_disconnect(&ipc, "Deinitializing");
 
 	/* avoid spurious valgrind/strace warnings */
 	if (listen_sock >= 0)
@@ -262,7 +262,7 @@ int ipc_is_connected(int msec)
 		if (ipc.sock < 0)
 			return ipc_reinit() == 0;
 
-		node_set_state(&ipc, STATE_CONNECTED);
+		node_set_state(&ipc, STATE_CONNECTED, "Connected");
 		return 1;
 	}
 
@@ -272,7 +272,7 @@ int ipc_is_connected(int msec)
 			lerr("ipc: accept() failed: %s", strerror(errno));
 			return 0;
 		}
-		node_set_state(&ipc, STATE_CONNECTED);
+		node_set_state(&ipc, STATE_CONNECTED, "Connected");
 	}
 
 	return ipc.sock != -1;

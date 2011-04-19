@@ -283,7 +283,7 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 		 * but warn about nodes with empty info that's sending
 		 * us data.
 		 */
-		node_set_state(node, STATE_CONNECTED);
+		node_set_state(node, STATE_CONNECTED, "Data received");
 		if (!node->info.byte_order) {
 			lwarn("STATE: %s is sending event data but hasn't sent %s",
 				  node->name, ctrl_name(CTRL_ACTIVE));
