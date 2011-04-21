@@ -723,6 +723,10 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 	 */
 	memcpy(&node->info, pkt->body, len);
 	ldebug("Received CTRL_ACTIVE from %s", node->name);
+	ldebug("      version: %u", info->version);
+	ldebug("    word_size: %u", info->word_size);
+	ldebug("   byte_order: %u", info->byte_order);
+	ldebug("object struct: %u", info->object_structure_version);
 	ldebug("   start time: %lu.%lu",
 	       info->start.tv_sec, info->start.tv_usec);
 	ldebug("  config hash: %s", tohex(info->config_hash, 20));
