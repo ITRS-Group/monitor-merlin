@@ -11,10 +11,13 @@ module_dir = libexec_dir + '/modules'
 if not libexec_dir in sys.path:
 	sys.path.insert(0, libexec_dir)
 import node
+from merlin_apps_utils import *
 
 if not module_dir in sys.path:
 	sys.path.append(module_dir)
 import merlin_conf as mconf
+
+color = ansi_color()
 
 # run a generic helper from the libexec dir
 def run_helper(helper, args):
@@ -148,6 +151,8 @@ categories = {}
 help_helpers = []
 helpers = {}
 init_funcs = {}
+command_mod_load_fail = {}
+
 
 def load_command_module(path):
 	global commands, init_funcs
@@ -157,7 +162,12 @@ def load_command_module(path):
 		sys.path.append(libexec_dir)
 
 	modname = os.path.basename(path)[:-3]
-	module = __import__(os.path.basename(path)[:-3])
+	try:
+		module = __import__(os.path.basename(path)[:-3])
+	except BaseException, ex:
+		# catch-all, primarily for development purposes
+		command_mod_load_fail[os.path.basename(path)] = ex
+		return -1
 
 	if getattr(module, "pure_script", False):
 		return False
@@ -199,7 +209,11 @@ if os.access(libexec_dir, os.X_OK):
 			if ary[-1] == 'pyc':
 				continue
 			if len(ary) == 2 and ary[-1] == 'py':
-				if load_command_module(libexec_dir + '/' + rh):
+				if load_command_module(libexec_dir + '/' + rh) == True:
+					continue
+				# if we failed to load due to syntax error, don't
+				# bother presenting it as a standalone helper
+				if command_mod_load_fail.get(rh, False) != -1:
 					continue
 
 			helper = '.'.join(ary[:-1])
@@ -258,6 +272,11 @@ Where category is sometimes optional.\n''')
 Some commands accept a --help flag to print some helptext, and some
 categories have a help-command associated with them.
 ''')
+
+	for mod, msg in command_mod_load_fail.items():
+		print("(nonfatal) %sFailed to load command module %s%s%s%s:\n   %s%s%s%s\n" %
+			(color.red, color.yellow, color.bright, mod, color.reset,
+			color.red, color.bright, msg, color.reset))
 	sys.exit(1)
 
 if len(sys.argv) < 2 or sys.argv[1] == '--help' or sys.argv[1] == 'help':
