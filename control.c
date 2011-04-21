@@ -143,12 +143,23 @@ static int cmp_peer(const void *a_, const void *b_)
 	const merlin_node *a = *(const merlin_node **)a_;
 	const merlin_node *b = *(const merlin_node **)b_;
 
+	/* make sure disconnected nodes are sorted last */
 	if (a->state != b->state) {
 		if (a->state == STATE_CONNECTED)
 			return -1;
 		if (b->state == STATE_CONNECTED)
 			return 1;
 	}
+
+	/*
+	 * also make sure nodes that haven't sent a CTRL_ACTIVE
+	 * are sorted after the ones that have, and discarded in
+	 * the id assignment dance
+	 */
+	if (a->info.start.tv_sec && !b->info.start.tv_sec)
+		return -1;
+	if (b->info.start.tv_sec && !a->info.start.tv_sec)
+		return 1;
 
 	return timeval_comp(&a->info.start, &b->info.start);
 }
@@ -190,7 +201,7 @@ static void assign_peer_ids(void)
 		 * end up with all peers having the same id.
 		 */
 		node->peer_id = i + inc;
-		if (node->state == STATE_CONNECTED)
+		if (node->state == STATE_CONNECTED && node->info.start.tv_sec)
 			active_peers++;
 
 		/* already adding +1, so move on */
@@ -278,6 +289,13 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 	}
 	switch (pkt->hdr.code) {
 	case CTRL_INACTIVE:
+		/*
+		 * must memset() node->info before the disconnect handler
+		 * so we discard it in the peer id calculation dance if
+		 * we get data from it before it sends us a CTRL_ACTIVE
+		 * packet
+		 */
+		memset(&node->info, 0, sizeof(node->info));
 		node_set_state(node, STATE_NONE, "Received CTRL_INACTIVE");
 		break;
 	case CTRL_ACTIVE:
