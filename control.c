@@ -283,10 +283,12 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 	case CTRL_ACTIVE:
 		/*
 		 * Only mark the node as connected if the CTRL_ACTIVE packet
-		 * checks out properly and the info is new
+		 * checks out properly and the info is new. If it *is* new,
+		 * we must re-do the peer assignment thing.
 		 */
 		if (!handle_ctrl_active(node, pkt)) {
 			node_set_state(node, STATE_CONNECTED, "Received CTRL_ACTIVE");
+			assign_peer_ids();
 		}
 		break;
 	case CTRL_STALL:

@@ -585,14 +585,13 @@ int set_socket_options(int sd, int bufsize)
  * to 'hood', and never from network to 'hood', we know this
  * packet originated from the module at 'node'.
  *
- * Returns 0 if everything is fine and dandy
+ * Returns 0 if everything is fine and dandy and info is new
  * Returns -1 on general muppet errors
  * Returns < -1 if node is incompatible with us.
  * Returns 1 if node is compatible in word and byte alignment
  *   but has more features than we do.
  * Returns 1 if node is compatible, but info isn't new
- * Returns > 1 if node is compatible but lacks features we
- *   have
+ * Returns > 1 if node is compatible but lacks features we have
  */
 int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 {
