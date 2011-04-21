@@ -185,8 +185,12 @@ if os.access(libexec_dir, os.X_OK):
 		if rh[0] == '.' or rh[0] == '-':
 			continue
 
-		# also ignore non-executables and directories
-		if os.path.isdir(path) or not os.access(path, os.X_OK):
+		# ignore directories
+		if os.path.isdir(path):
+			continue
+
+		# ignore non-executables, unless they're python scriptlets
+		if not os.access(path, os.X_OK) and not rh.endswith('.py'):
 			continue
 
 		# remove script suffixes
