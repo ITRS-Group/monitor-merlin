@@ -268,6 +268,13 @@ CREATE INDEX ca_ch ON contact_access
 )
 ;
 
+DROP TABLE merlin_importer CASCADE CONSTRAINTS;
+CREATE TABLE merlin_importer
+(
+  pid NUMBER(10,0) DEFAULT NULL
+);
+
+
 DROP TABLE contact_contactgroup CASCADE CONSTRAINTS;
 
 

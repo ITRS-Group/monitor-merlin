@@ -643,3 +643,14 @@ CREATE TABLE IF NOT EXISTS perfdata(
 	service_description varchar(200),
 	perfdata TEXT NOT NULL
 );
+
+--
+-- When doing a yum upgrade, there are usually two restarts of merlin with the
+-- db wipe inbetween. Thus, don't recreate this, as that would render this
+-- table useless.
+--
+-- Use a memory table, as it should be emptied on, say, power outages.
+--
+CREATE TABLE IF NOT EXISTS merlin_importer(
+  pid int DEFAULT NULL
+) ENGINE=MEMORY;

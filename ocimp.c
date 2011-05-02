@@ -1980,6 +1980,71 @@ static void load_ocache_hash(const char *ocache_path)
 	}
 }
 
+/**
+ * It's possible that an import is already running. Best case scenario, they'll
+ * just fight for IO and it'll take twice as long. Worst case scenario, this
+ * import will truncate and start to write to a table before the other import
+ * is done with it, causing duplicate entries.
+ */
+static void make_unique_instance(int kill_previous)
+{
+	pid_t mypid = getpid();
+	db_wrap_result *result;
+
+	sql_query("INSERT INTO merlin_importer VALUES(%i)", mypid);
+	sql_try_commit(-1);
+
+	// wait until current process is the one with the lowest pid to avoid races
+	while (1) {
+		sql_query("SELECT pid FROM merlin_importer ORDER BY pid ASC");
+		result = sql_get_result();
+		if (!result) {
+			break;
+		}
+		if (result->api->step(result) == 0) {
+			pid_t old_pid;
+			int ret;
+			result->api->get_int32_ndx(result, 0, &old_pid);
+			if (old_pid == mypid) {
+				// lock acquired
+				break;
+			}
+			ldebug("Ocimp already running. %s process %i", (kill_previous ? "Killing" : "Waiting for"), old_pid);
+
+			if (kill_previous) {
+				kill(old_pid, SIGTERM);
+				sleep(1);
+				kill(old_pid, SIGKILL);
+			} else {
+				int i = 0;
+				ret = kill(old_pid, 0);
+				// Don't wait forever - the old pid might not even be an ocimp
+				// instance any longer. After 10 minutes, assume it's ok to
+				// start.
+				while (ret != -1 && errno != ESRCH && ++i < 600000) {
+					usleep(500);
+					ret = kill(old_pid, 0);
+				}
+			}
+			sql_query("DELETE FROM merlin_importer WHERE pid=%i", old_pid);
+			sql_try_commit(-1);
+		} else {
+			// as we inserted our own pid at the top, we should always
+			// have one line in the db, but in case weird things happen, we
+			// should give up rather than busy-waiting.
+			break;
+		}
+		sql_free_result();
+	}
+}
+
+static void clean_exit(int sig)
+{
+	sql_query("DELETE FROM merlin_importer WHERE pid=%i", getpid());
+	sql_try_commit(-1);
+	_exit(!!sig);
+}
+
 int main(int argc, char **argv)
 {
 	struct cfg_comp *cache, *status;
@@ -2089,6 +2154,14 @@ int main(int argc, char **argv)
 		ocache_unchanged = 0;
 	}
 
+	if (use_sql) {
+		// when ocache is unchanged, wait, otherwise kill
+		make_unique_instance(!ocache_unchanged);
+	}
+
+	signal(SIGINT, clean_exit);
+	signal(SIGTERM, clean_exit);
+
 	if (!ocache_unchanged) {
 		ocimp_truncate("custom_vars");
 	}
@@ -2119,6 +2192,9 @@ int main(int argc, char **argv)
 #ifdef __GLIBC__
 	malloc_stats();
 #endif
+
+	clean_exit(0);
+
 	//wait_for_input();
 	return 0;
 }
