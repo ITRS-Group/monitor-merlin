@@ -1,5 +1,8 @@
 import time, os, sys
-import sha
+try:
+	import hashlib
+except ImportError:
+	import sha as hashlib
 import random
 import posix
 import signal
@@ -265,7 +268,7 @@ def cmd_pasv(args):
 		# We get fresh ones for each iteration
 		counters = _generate_counters(num_counters)
 		cnt_string = "%s" % " ".join(counters)
-		cnt_hash = sha.sha(cnt_string).hexdigest()
+		cnt_hash = hashlib.sha(cnt_string).hexdigest()
 
 		# why we have to disconnect from db and re-open the
 		# command pipe is beyond me, but that's the way it is, it
@@ -285,7 +288,7 @@ def cmd_pasv(args):
 		for t in test_objs:
 			cmd = _pasv_build_cmd(t, status)
 			cmd += "%s|%s\n" % (cnt_hash, cnt_string)
-			t.cmd_hash = sha.sha(cmd).hexdigest()
+			t.cmd_hash = hashlib.sha(cmd).hexdigest()
 			t.submit_time = time.time()
 			result = os.write(cmd_fd, cmd)
 			test(result, len(cmd), "%d of %d bytes written for %s" % (result, len(cmd), t.name))
