@@ -134,16 +134,16 @@ check_latency: check_latency.o cfgfile.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(ALL_LDFLAGS)
 
 mtest: mtest.o $(DBWRAP_OBJS) $(TEST_OBJS) $(TEST_DEPS) $(MODULE_OBJS)
-	$(QUIET_LINK)$(CC) $(MTEST_LDFLAGS) $^ -o $@
+	$(QUIET_LINK)$(CC) $(LDFLAGS) $(MTEST_LDFLAGS) $^ -o $@
 
 test-lparse: test-lparse.o lparse.o logutils.o hash.o test_utils.o
 	$(QUIET_LINK)$(CC) $^ -o $@
 
 ocimp: ocimp.o $(DBWRAP_OBJS) $(TEST_OBJS) sha1.o slist.o
-	$(QUIET_LINK)$(CC) -ggdb3 $(DB_LDFLAGS) $^ -o $@
+	$(QUIET_LINK)$(CC) -ggdb3 $(DB_LDFLAGS) $(LDFLAGS) $^ -o $@
 
 import: $(IMPORT_OBJS)
-	$(QUIET_LINK)$(CC) $(LIB_NET) $(DB_LDFLAGS) $^ -o $@
+	$(QUIET_LINK)$(CC) $(LDFLAGS) $(LIB_NET) $(DB_LDFLAGS) $^ -o $@
 
 showlog: $(SHOWLOG_OBJS)
 	$(QUIET_LINK)$(CC) $(LIB_NET) $^ -o $@
