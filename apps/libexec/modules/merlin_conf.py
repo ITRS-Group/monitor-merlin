@@ -178,10 +178,9 @@ def parse():
 
 			for dobj in comp.objects:
 				dobj.name.strip()
-				if dobj.name != 'database':
-					continue
-				for k, v in dobj.params:
-					dbopt[k] = v
+				if dobj.name == 'database':
+					for dk, dv in dobj.params:
+						dbopt[dk] = dv
 			continue
 
 		if comp.name == 'module':
