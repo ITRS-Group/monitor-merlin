@@ -25,3 +25,5 @@ import
 showlog
 *.pyc
 oconf
+test-dbwrap
+ocimp
