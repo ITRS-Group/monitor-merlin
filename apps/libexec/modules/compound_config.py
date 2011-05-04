@@ -60,6 +60,7 @@ def parse_conf(path, splitchar='='):
 
 		kv = line.split(splitchar)
 		if len(kv) != 2:
+			cur.add(line, True)
 			continue
 		key, value = kv
 		key = key.rstrip()
