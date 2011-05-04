@@ -807,14 +807,14 @@ def cmd_push(args):
 		if arg == '--no-restart':
 			restart = False
 
+	# Copy recursively in 'archive' mode
+	base_rsync_args = ['rsync', '-aotz', '--delete']
+	base_rsync_args += ['-b', '--backup-dir=/var/cache/merlin/backups']
+
 	for name, node in mconf.configured_nodes.items():
 		# we don't push to master nodes
 		if node.ntype == 'master':
 			continue
-
-		# Copy recursively in 'archive' mode
-		rsync_args = ['rsync', '-aotz', '--delete']
-		rsync_args += ['-b', '--backup-dir=/var/cache/merlin/backups']
 
 		# Use compression by default
 		ssh_cmd = 'ssh -C'
@@ -839,6 +839,8 @@ def cmd_push(args):
 
 		oconf_dest = node.options.get('oconf_dest', default_dest)
 		ssh_user = node.options.get('oconf_ssh_user', 'root')
+
+		# XXX rewrite this to node.ssh_key(), always returning a path
 		ssh_key = get_ssh_key(node)
 		if ssh_key and ssh_key != True:
 			if not os.path.isfile(ssh_key):
@@ -853,10 +855,12 @@ def cmd_push(args):
 			ssh_cmd += ' -o KbdInteractiveAuthentication=no'
 
 		ssh_cmd += ' -l ' + ssh_user
-		user_address_dest = "%s@%s:%s" % (ssh_user, node.address, oconf_dest)
+		node.ssh_cmd = ssh_cmd
+
+		# XXX rewrite this to node.rsync_send(list(source), dest)
+		host_dest = "%s:%s" % (node.address, oconf_dest)
 		address_dest = node.address + ':' + oconf_dest
-		rsync_args += [source, '-e', ssh_cmd, address_dest]
-#		scp_args += [source, user_address_dest]
+		rsync_args = base_rsync_args + [source, '-e', ssh_cmd, address_dest]
 		ret = os.spawnvp(os.P_WAIT, 'rsync', rsync_args)
 		if ret != 0:
 			print("rsync returned %d. Breakage?" % ret)
@@ -865,6 +869,21 @@ def cmd_push(args):
 			continue
 
 		restart_nodes[name] = node
+
+	# now sync additional paths. We do them one by one and always
+	# to identical directories so we know where we're heading
+	for name, node in mconf.configured_nodes.items():
+		if node.paths_to_sync:
+			for src, dest in node.paths_to_sync.items():
+				if dest == True:
+					dest = src
+				address_dest = "%s:%s" % (node.address, dest)
+				rsync_args = base_rsync_args + [src, '-e', node.ssh_cmd, address_dest]
+				ret = os.spawnvp(os.P_WAIT, 'rsync', rsync_args)
+
+			if node.sync_requires_restart:
+				restart_nodes[name] = node
+
 
 	# we restart all nodes after having pushed configuration to all
 	# of them, or we might trigger an avalanche of config pushes
