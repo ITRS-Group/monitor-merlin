@@ -21,6 +21,8 @@ class merlin_node:
 		self.in_db = False
 		self.in_config = False
 		self.assignment_conflicts = {}
+		self.paths_to_sync = {}
+		self.sync_requires_restart = False
 
 		# the compound object has info we will need, so
 		# prepare a storage area for it
@@ -205,10 +207,15 @@ def parse():
 		for (k, v) in comp.params:
 			node.set(k, v)
 		for sc in comp.objects:
-			if sc.name != 'object_config':
-				continue
-			for (sk, sv) in sc.params:
-				node.set('oconf_' + sk, sv)
+			if sc.name == 'object_config':
+				for (sk, sv) in sc.params:
+					node.set('oconf_' + sk, sv)
+			elif sc.name == 'sync':
+				for sk, sv in sc.params:
+					if sk == 'restart':
+						node.sync_requires_restart = strtobool(sv)
+						continue
+					node.paths_to_sync[sk] = sv
 
 
 	# check and store how many peers each node has.

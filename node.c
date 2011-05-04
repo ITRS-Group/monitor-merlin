@@ -369,6 +369,10 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			grok_confsync_compound(comp, node->csync);
 			continue;
 		}
+		/* this is for 'mon oconf push' only */
+		if (!strcmp(comp->name, "sync")) {
+			continue;
+		}
 
 		cfg_error(comp, NULL, "Unknown compound statement in node object");
 	}
