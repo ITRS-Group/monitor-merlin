@@ -44,6 +44,18 @@ def time_delta(then, now=time.time()):
 	ret += '%ds' % seconds
 	return ret
 
+
+def strtobool(str):
+	str = str.lower()
+	if str == 'yes' or str == 'true' or str == 'on':
+		return True
+
+	if str.isdigit():
+		return int(str) != 0
+
+	return False
+
+
 def mkdir_p(dirname, mode=0777):
 	try:
 		os.makedirs(dirname, mode)
