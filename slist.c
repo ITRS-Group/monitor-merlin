@@ -13,7 +13,8 @@ struct sorted_list {
 
 void slist_sort(slist *sl)
 {
-	if (sl->is_sorted) {
+	/* ignore empty and already sorted lists */
+	if (!sl || !sl->list || !sl->pos || sl->is_sorted) {
 		return;
 	}
 
