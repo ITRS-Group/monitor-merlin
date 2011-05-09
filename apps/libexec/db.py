@@ -1,4 +1,9 @@
 import os.path, glob, sys
+try:
+	import hashlib
+except ImportError:
+	import sha as hashlib
+
 modpath = os.path.dirname(__file__) + '/modules'
 if not modpath in sys.path:
 	sys.path.insert(0, modpath)
@@ -36,6 +41,27 @@ def cmd_fixindexes(args):
 		print '\nMessages:'
 		for msg in log:
 			print '  %s' % msg
+
+def cmd_cahash(args):
+	conn = merlin_db.connect(mconf)
+	dbc = conn.cursor()
+	hash = hashlib.sha1()
+	dbc.execute("SELECT contact, host FROM contact_access "
+		"WHERE service IS NULL "
+		"ORDER BY contact, host")
+	rows = 0
+	for row in dbc.fetchall():
+		rows += 1
+		hash.update("%d %d" % (row[0], row[1]))
+
+	dbc.execute("SELECT contact, service FROM contact_access "
+		"WHERE host IS NULL "
+		"ORDER BY contact, service")
+	for row in dbc.fetchall():
+		rows += 1
+		hash.update("%d %d" % (row[0], row[1]))
+
+	print("rows: %d; hash: %s" % (rows, hash.hexdigest()))
 
 def module_init(args):
 	return args
