@@ -21,6 +21,7 @@ static uint dodged_queries;
 extern unsigned long total_queries;
 static unsigned char ocache_hash[20];
 static char *cache_path, *status_path;
+static int have_escalations;
 
 struct id_tracker {
 	int min, max, cur;
@@ -1192,6 +1193,8 @@ static int parse_escalation(int *oid, struct cfg_comp *comp)
 	const char *what, *wkey;
 	strvec *sv;
 
+	have_escalations = 1;
+
 	hname = comp->vlist[i++]->value;
 	if (*comp->name == 's') {
 		sdesc = comp->vlist[i++]->value;
@@ -1612,8 +1615,11 @@ static int fix_host_junctions(void *discard, void *obj)
 		sql_query("INSERT INTO host_parents(host, parents) "
 				  "VALUES(%d, %d)", host_id, parent->ido.id);
 	}
-	fix_contacts("host", o);
-	fix_contactgroups("host", o);
+
+	if (have_escalations) {
+		fix_contacts("host", o);
+		fix_contactgroups("host", o);
+	}
 
 	free(parents);
 	return 0;
@@ -1632,8 +1638,10 @@ static int fix_service_junctions(void *discard, void *obj)
 		}
 	}
 
-	fix_contacts("service", o);
-	fix_contactgroups("service", o);
+	if (have_escalations) {
+		fix_contacts("service", o);
+		fix_contactgroups("service", o);
+	}
 
 	return 0;
 }
@@ -1778,6 +1786,34 @@ static int fix_timeperiod_excludes(void *discard, void *base_obj)
 	return 0;
 }
 
+static void q1_cache_contact_access(void)
+{
+	/*
+	 * someone authorized for a host is
+	 * always authorized for its services
+	 */
+	sql_query("INSERT INTO contact_access (contact, host, service) "
+			  "(SELECT contact, host, NULL FROM host_contact) UNION "
+			  "(SELECT ccg.contact, hcg.host, NULL "
+			      "FROM contact_contactgroup ccg "
+			      "INNER JOIN host_contactgroup hcg "
+			           "ON ccg.contactgroup = hcg.contactgroup) UNION "
+			  "(SELECT contact, NULL, service from service_contact) UNION "
+			  "(SELECT ccg.contact, NULL, scg.service "
+			      "FROM contact_contactgroup ccg "
+			      "INNER JOIN service_contactgroup scg "
+			           "ON ccg.contactgroup = scg.contactgroup) UNION "
+			  "(SELECT hc.contact, NULL, s.id "
+			      "FROM host_contact hc "
+			      "INNER JOIN service s "
+			           "ON hc.host = s.host_name) UNION "
+			  "(SELECT ccg.contact, NULL, service.id "
+			      "FROM contact_contactgroup ccg "
+			      "INNER JOIN host_contactgroup hcg "
+			           "ON ccg.contactgroup = hcg.contactgroup "
+			      "INNER JOIN service ON service.host_name = hcg.host)");
+}
+
 static int cache_contact_access(void *what_ptr, void *base_obj)
 {
 	state_object *o = (state_object *)base_obj;
@@ -1853,8 +1889,18 @@ static void fix_junctions(void)
 	if (!skip_contact_access) {
 		/* this is the heaviest part, really */
 		ocimp_truncate("contact_access");
-		slist_walk(host_slist, "host", cache_contact_access);
-		slist_walk(service_slist, "service", cache_contact_access);
+		/*
+		 * The Query is a lot faster than caching manually, but
+		 * it doesn't take hostescalation contact settings into
+		 * account, so we can't use it when any such things are
+		 * configured.
+		 */
+		if (!have_escalations) {
+			q1_cache_contact_access();
+		} else {
+			slist_walk(host_slist, "host", cache_contact_access);
+			slist_walk(service_slist, "service", cache_contact_access);
+		}
 	}
 
 	ldebug("Done fixing junctions");
