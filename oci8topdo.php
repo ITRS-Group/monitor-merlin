@@ -3,8 +3,11 @@
 class OciException extends PdoException {}
 
 class Oci8ToPdo extends PDO {
-	function __construct($host, $name, $user, $password, $port=false) {
-		$this->link = oci_connect($user, $password, "//$host".($port?":$port":'')."/$name");
+	function __construct($host, $name, $user, $password, $port=false, $description=false) {
+		if ($description)
+			$this->link = oci_connect($user, $password, $description);
+		else
+			$this->link = oci_connect($user, $password, "//$host".($port?":$port":'')."/$name");
 
 		if (!$this->link) {
 			$this->throw_exception();

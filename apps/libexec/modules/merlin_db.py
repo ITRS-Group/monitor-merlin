@@ -15,6 +15,7 @@ def connect(mconf):
 	db_pass = mconf.dbopt.get('pass', 'merlin')
 	db_type = mconf.dbopt.get('type', 'mysql')
 	db_port = mconf.dbopt.get('port', False)
+	db_conn_str = mconf.dbopt.get('conn_str', False)
 
 	# now we load whatever database driver is appropriate
 	if db_type == 'mysql':
@@ -40,11 +41,14 @@ def connect(mconf):
 			print("Failed to import cx_Oracle")
 			print("Install oracle-python to make this command work")
 			sys.exit(1)
-		if db_port:
-			dsn = "//%s:%s" % (db_host, db_port)
+		if db_conn_str:
+			dsn = db_conn_str
 		else:
-			dsn = "//%s" % (db_host)
-		dsn += "/" + db_name
+			if db_port:
+				dsn = "//%s:%s" % (db_host, db_port)
+			else:
+				dsn = "//%s" % (db_host)
+			dsn += "/" + db_name
 		db_user = db_user.encode('latin1')
 		db_pass = db_pass.encode('latin1')
 		dsn = dsn.encode('latin1')

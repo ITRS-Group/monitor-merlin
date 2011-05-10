@@ -28,6 +28,7 @@ static struct {
 	char const *table;
 	char const *type;
 	char const *encoding;
+	char const *conn_str;
 	int port; /* signed int for compatibility with dbi_conn_set_option_numeric() (and similar)*/
 	db_wrap *conn;
 	db_wrap_result * result;
@@ -40,6 +41,7 @@ NULL/*pass*/,
 NULL/*table*/,
 NULL/*type*/,
 NULL/*encoding*/,
+NULL/*conn_str*/,
 0U/*port*/,
 NULL/*conn*/,
 NULL/*result*/,
@@ -318,6 +320,7 @@ int sql_init(void)
 	db.user = sql_db_user();
 	db.pass = sql_db_pass();
 	db.table = sql_table_name();
+	db.conn_str = sql_db_conn_str();
 	if (!db.type) {
 		db.type = "mysql";
 	}
@@ -337,6 +340,7 @@ int sql_init(void)
 	connparam.dbname = db.name;
 	connparam.username = db.user;
 	connparam.password = db.pass;
+	connparam.conn_str = db.conn_str;
 	if (db.port)
 		connparam.port = db.port;
 
@@ -458,6 +462,11 @@ const char *sql_table_name(void)
 	return db.table ? db.table : "report_data";
 }
 
+const char *sql_db_conn_str(void)
+{
+	return db.conn_str ? db.conn_str : "";
+}
+
 
 /*
  * Config parameters from the "database" section end up here.
@@ -487,6 +496,8 @@ int sql_config(const char *key, const char *value)
 		db.host = value_cpy;
 	else if (!prefixcmp(key, "type"))
 		db.type = value_cpy;
+	else if (!prefixcmp(key, "conn_str"))
+		db.conn_str = value_cpy;
 	else if (!prefixcmp(key, "port") && value) {
 		char *endp;
 		free(value_cpy);

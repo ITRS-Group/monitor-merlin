@@ -223,7 +223,12 @@ int ociw_connect(db_wrap * self)
 		return DB_WRAP_E_BAD_ARG;
 	}
 	memset(tnsname, 0, sizeof(tnsname));
-	if (!param->port) {
+	if (param->conn_str && *param->conn_str) {
+		int len = strlen(param->conn_str);
+		if (len >= 1024)
+			len = 1023;
+		memcpy(&tnsname, param->conn_str, len);
+	} else if (!param->port) {
 		snprintf(tnsname, sizeof(tnsname) - 1, "//%s/%s",
 				 param->host, param->dbname);
 	} else {

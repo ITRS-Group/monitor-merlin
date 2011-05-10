@@ -70,7 +70,7 @@ class PDOProvider
 		}
 		$attr = array(PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION);
 		if (strncmp($dsn, 'oci', 3) == 0) {
-			self::$db = new Oci8ToPdo($c['host'], $c['name'], $c['user'], $c['passwd'], $c['port']);
+			self::$db = new Oci8ToPdo($c['host'], $c['name'], $c['user'], $c['passwd'], $c['port'], $c['conn_str']);
 		} else {
 			self::$db = new PDO($dsn, $c['user'], $c['passwd'], $attr);
 		}
@@ -128,7 +128,7 @@ class MerlinPDO
 {
 	private static $pdo = NULL;
 	const DBKEY = 'merlin';
-	public static function db($type = 'mysql', $name = 'merlin', $user = 'merlin', $passwd = 'merlin', $host = 'localhost', $port = 3306)
+	public static function db($type = 'mysql', $name = 'merlin', $user = 'merlin', $passwd = 'merlin', $host = 'localhost', $port = 3306, $conn_str=false)
 	{
 		if (NULL != self::$pdo)
 			return $pdo;
@@ -144,6 +144,7 @@ class MerlinPDO
 		$c['user'] = $user;
 		$c['passwd'] = $passwd;
 		$c['port'] = $port;
+		$c['conn_str'] = $conn_str;
 		//print_r( $c );
 		self::$pdo = PDOProvider::db(self::DBKEY)
 			/* set up initial connection. will throw if a connection cannot be established. */;

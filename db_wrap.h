@@ -415,6 +415,7 @@ struct db_wrap_conn_params
 	char const * username;
 	char const * password;
 	char const * dbname;
+	char const * conn_str;
 };
 typedef struct db_wrap_conn_params db_wrap_conn_params;
 /** Empty-initialized db_wrap_conn_params object. */
