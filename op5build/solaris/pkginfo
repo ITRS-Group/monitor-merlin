@@ -1,5 +1,5 @@
 PKG="op5-merlin"
-ARCH="i386"
+ARCH="sparc"
 VERSION="@@VERSION@@"
 NAME="merlin"
 CATEGORY="op5"
