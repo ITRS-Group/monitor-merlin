@@ -1801,13 +1801,16 @@ static void q1_cache_contact_access(void)
 			           "ON ccg.contactgroup = scg.contactgroup) UNION "
 			  "(SELECT hc.contact, NULL, s.id "
 			      "FROM host_contact hc "
+			      "INNER JOIN host h "
+			           "ON h.id = hc.host "
 			      "INNER JOIN service s "
-			           "ON hc.host = s.host_name) UNION "
+			           "ON h.host_name = s.host_name) UNION "
 			  "(SELECT ccg.contact, NULL, service.id "
 			      "FROM contact_contactgroup ccg "
 			      "INNER JOIN host_contactgroup hcg "
 			           "ON ccg.contactgroup = hcg.contactgroup "
-			      "INNER JOIN service ON service.host_name = hcg.host)");
+			      "INNER JOIN host h ON h.id = hcg.host "
+			      "INNER JOIN service ON service.host_name = h.host_name)");
 }
 
 static int cache_contact_access(void *what_ptr, void *base_obj)
