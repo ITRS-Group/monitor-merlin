@@ -347,8 +347,12 @@ int sql_init(void)
 	result = db_wrap_driver_init(db.type, &connparam, &db.conn);
 	if (result) {
 		if (log_attempt) {
-			lerr("Failed to connect to db '%s' at host '%s':'%d' as user %s using driver %s.",
-				 db.name, db.host, db.port, db.user, db.type );
+			if (db.conn_str)
+				lerr("Failed to connect to db '%s' using connection string '%s' as user %s using driver %s",
+					 db.name, db.conn_str, db.user, db.type);
+			else
+				lerr("Failed to connect to db '%s' at host '%s':'%d' as user %s using driver %s.",
+					 db.name, db.host, db.port, db.user, db.type );
 			lerr("result: %d; errno: %d (%s)", result, errno, strerror(errno));
 		}
 		return -1;
@@ -365,8 +369,12 @@ int sql_init(void)
 		if (log_attempt) {
 			const char *error_msg;
 			sql_error(&error_msg);
-			lerr("DB: Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
-				 db.name, db.host, db.port, db.user, db.pass, error_msg);
+			if (db.conn_str)
+				lerr("DB: Failed to connect to '%s' using connection string '%s' as %s:%s: %s",
+					 db.name, db.conn_str, db.user, db.pass, error_msg);
+			else
+				lerr("DB: Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
+					 db.name, db.host, db.port, db.user, db.pass, error_msg);
 		}
 		sql_close();
 		return -1;
