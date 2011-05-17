@@ -246,7 +246,15 @@ int sql_vquery(const char *fmt, va_list ap)
 #endif
 #ifdef ENABLE_OCILIB
 		if (db_type == MERLIN_DBT_ORACLE) {
-			reconnect = 0;
+			switch (db_error) {
+			// connection gone - needed for failover
+			case 3135: // connection lost contact
+				reconnect = 1;
+				break;
+			default:
+				reconnect = 0;
+				break;
+			}
 		}
 #endif
 		if (reconnect) {
