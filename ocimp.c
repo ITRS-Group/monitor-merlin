@@ -1528,10 +1528,10 @@ static void fix_contacts(const char *what, state_object *o)
 				  "VALUES(%d, %d)", what, what, o->ido.id, cont->id);
 
 		/*
-		 * we cache contact access junk while we've got
+		 * if we must, we cache contact access junk while we've got
 		 * everything lined up properly here
 		 */
-		if (cont->login_enabled)
+		if (cont->login_enabled && have_escalations)
 			slist_add(o->contact_slist, cont);
 	}
 	free(contacts);
@@ -1560,11 +1560,11 @@ static void fix_contactgroups(const char *what, state_object *o)
 		}
 
 		/*
-		 * now we cache contact_access stuff assigned by
-		 * contact_groups. Note that fix_cg_members() must be
-		 * run before this for this to work properly
+		 * if we have escalations we cache contact_access stuff
+		 * assigned by contact_groups. Note that fix_cg_members()
+		 * must be run before this for this to work properly
 		 */
-		if (!grp->strv)
+		if (!grp->strv || !have_escalations)
 			continue;
 
 		for (x = 0; x < grp->strv->entries; x++) {
@@ -1616,10 +1616,8 @@ static int fix_host_junctions(void *discard, void *obj)
 				  "VALUES(%d, %d)", host_id, parent->ido.id);
 	}
 
-	if (have_escalations) {
-		fix_contacts("host", o);
-		fix_contactgroups("host", o);
-	}
+	fix_contacts("host", o);
+	fix_contactgroups("host", o);
 
 	free(parents);
 	return 0;
@@ -1638,10 +1636,8 @@ static int fix_service_junctions(void *discard, void *obj)
 		}
 	}
 
-	if (have_escalations) {
-		fix_contacts("service", o);
-		fix_contactgroups("service", o);
-	}
+	fix_contacts("service", o);
+	fix_contactgroups("service", o);
 
 	return 0;
 }
