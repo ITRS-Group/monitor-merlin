@@ -368,7 +368,7 @@ static int parse_comment(struct cfg_comp *comp)
 {
 	comment_object cmt, *obj;
 	int i = 0;
-	static int truncated = 0, internal_id = 0;
+	static int internal_id = 0;
 	char *author = NULL, *comment_data = NULL;
 	char *host_name, *service_description = NULL;
 
@@ -376,10 +376,6 @@ static int parse_comment(struct cfg_comp *comp)
 		return -1;
 
 	obj = &cmt;
-	if (!truncated) {
-		ocimp_truncate("comment_tbl");
-		truncated = 1;
-	}
 
 	/*
 	 * host_name is always the first variable for status objects.
@@ -717,6 +713,7 @@ static int parse_status_log(struct cfg_comp *comp)
 	if (!comp)
 		return -1;
 
+	ocimp_truncate("comment_tbl");
 	for (i = 0; i < comp->nested; i++) {
 		struct cfg_comp *c = comp->nest[i];
 
