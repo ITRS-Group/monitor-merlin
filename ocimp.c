@@ -717,11 +717,16 @@ static int parse_status_log(struct cfg_comp *comp)
 	for (i = 0; i < comp->nested; i++) {
 		struct cfg_comp *c = comp->nest[i];
 
-		/*
-		 * first check for the two most common types
-		 */
+		/* check for types in roughly estimated order of commonality */
 		if (!strcmp(c->name, "servicestatus") || !strcmp(c->name, "hoststatus")) {
 			parse_status(c);
+			continue;
+		}
+		if (!strcmp(c->name, "servicecomment") || !strcmp(c->name, "hostcomment")) {
+			parse_comment(c);
+			continue;
+		}
+		if (!strcmp(c->name, "servicedowntime") || !strcmp(c->name, "hostdowntime")) {
 			continue;
 		}
 		if (!strcmp(c->name, "info") || !strcmp(c->name, "programstatus")) {
@@ -729,14 +734,6 @@ static int parse_status_log(struct cfg_comp *comp)
 		}
 		if (!strcmp(c->name, "contactstatus"))
 			continue;
-		if (!strcmp(c->name, "servicedowntime"))
-			continue;
-		if (!strcmp(c->name, "hostdowntime"))
-			continue;
-		if (!strcmp(c->name, "servicecomment") || !strcmp(c->name, "hostcomment")) {
-			parse_comment(c);
-			continue;
-		}
 
 		printf("Unhandled status.log compound type: %s\n", c->name);
 	}
