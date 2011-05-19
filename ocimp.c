@@ -413,6 +413,47 @@ static int parse_comment(struct cfg_comp *comp)
 	return 0;
 }
 
+static int parse_downtime(struct cfg_comp *comp)
+{
+	static int internal_id = 0;
+	int i = 0, dt_type = HOST_DOWNTIME;
+	char *author = NULL, *comment_data = NULL;
+	char *host_name, *service_description = NULL;
+
+	if (!comp || !comp->vars)
+		return -1;
+
+	sql_quote(comp->vlist[i++]->value, &host_name);
+	if (*comp->name == 's') {
+		sql_quote(comp->vlist[i++]->value, &service_description);
+		dt_type = SERVICE_DOWNTIME;
+	}
+	sql_quote(comp->vlist[i + 7]->value, &author);
+	sql_quote(comp->vlist[i + 8]->value, &comment_data);
+
+	sql_query("INSERT INTO scheduled_downtime(instance_id, id, "
+			  "host_name, service_description, "
+			  "downtime_id, entry_time, "
+			  "start_time, end_time, "
+			  "triggered_by, fixed, "
+			  "duration,"
+			  "author_name, comment_data) "
+			  "VALUES(0, %d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+			  ++internal_id,
+			  host_name, safe_str(service_description),
+			  comp->vlist[i]->value, comp->vlist[i + 1]->value,
+			  comp->vlist[i + 2]->value, comp->vlist[i + 3]->value,
+			  comp->vlist[i + 4]->value, comp->vlist[i + 5]->value,
+			  comp->vlist[i + 6]->value,
+			  safe_str(author), safe_str(comment_data));
+
+	free(host_name);
+	safe_free(service_description);
+	safe_free(author);
+	safe_free(comment_data);
+	return 0;
+}
+
 static ocimp_group_object *ocimp_find_group(slist *sl, char *name)
 {
 	ocimp_group_object obj, *ret;
@@ -709,7 +750,13 @@ static int parse_status_log(struct cfg_comp *comp)
 	if (!comp)
 		return -1;
 
+	/*
+	 * these two always get truncated, since we must
+	 * wipe them completely if there are none
+	 */
 	ocimp_truncate("comment_tbl");
+	ocimp_truncate("scheduled_downtime");
+
 	for (i = 0; i < comp->nested; i++) {
 		struct cfg_comp *c = comp->nest[i];
 
@@ -723,6 +770,7 @@ static int parse_status_log(struct cfg_comp *comp)
 			continue;
 		}
 		if (!strcmp(c->name, "servicedowntime") || !strcmp(c->name, "hostdowntime")) {
+			parse_downtime(c);
 			continue;
 		}
 		if (!strcmp(c->name, "info") || !strcmp(c->name, "programstatus")) {
