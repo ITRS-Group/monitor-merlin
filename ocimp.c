@@ -100,12 +100,8 @@ static void grok_merlin_compound(struct cfg_comp *comp)
 	if (!strcmp(comp->name, "database")) {
 		for (i = 0; i < comp->vars; i++) {
 			v = comp->vlist[i];
-			if (!strcmp(v->key, "commit_interval"))
+			if (!prefixcmp(v->key, "commit"))
 				continue;
-			if (!strcmp(v->key, "commit_queries")) {
-				sql_config(v->key, "10000");
-				continue;
-			}
 			sql_config(v->key, v->value);
 		}
 		return;
@@ -2172,6 +2168,7 @@ int main(int argc, char **argv)
 	use_database = use_sql;
 	if (use_sql) {
 		sql_config("commit_interval", "0");
+		sql_config("commit_queries", "10000");
 		if (sql_init() < 0) {
 			lerr("Failed to connect to database. Aborting");
 			exit(1);
