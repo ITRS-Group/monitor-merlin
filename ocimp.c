@@ -754,6 +754,7 @@ static int parse_status_log(struct cfg_comp *comp)
 	if (!comp)
 		return -1;
 
+	linfo("Parsing status log");
 	/*
 	 * these always get truncated, since we must
 	 * wipe them completely if there are no objects of
@@ -1472,6 +1473,8 @@ static int parse_object_cache(struct cfg_comp *comp)
 
 	if (!comp)
 		return -1;
+
+	linfo("Parsing object cache");
 
 	/*
 	 * Some tables have to be forcibly truncated to make sure
@@ -2278,11 +2281,25 @@ int main(int argc, char **argv)
 		ocimp_truncate("custom_vars");
 	}
 
+	/*
+	 * order matters greatly here. We must first parse status.log
+	 * so we load all currently active hosts and services.
+	 */
 	status = cfg_parse_file(status_path);
 	parse_status_log(status);
 
+	/*
+	 * Now we can load the id's and instance_id's for hosts and
+	 * services so we preserve the "who ran the check last" info.
+	 */
 	load_instance_ids();
 
+	/*
+	 * And finally we parse objects.cache. Since object and
+	 * instance id's are now properly parsed, we know that
+	 * all of the objects linking to other objects by id get
+	 * the right value.
+	 */
 	cache = cfg_parse_file(cache_path);
 	if (parse_object_cache(cache) < 0) {
 		fprintf(stderr, "Failed to parse %s: %s\n", cache_path, strerror(errno));
