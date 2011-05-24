@@ -635,8 +635,7 @@ int node_recv(merlin_node *node, int flags)
 		lerr("Failed to recv() %d bytes from %s node %s: %s",
 		     to_read, node_type(node), node->name, strerror(errno));
 		ldebug("sock: %d; buf: %p; buflen: %lu; offset: %lu; bufsize: %lu",
-			   node->sock, ioc->ioc_buf, ioc->ioc_buflen, ioc->ioc_offset, ioc->ioc_bufsize);
-			   
+		       node->sock, ioc->ioc_buf, ioc->ioc_buflen, ioc->ioc_offset, ioc->ioc_bufsize);
 	}
 	node_disconnect(node, "recv() failed");
 	return -1;
