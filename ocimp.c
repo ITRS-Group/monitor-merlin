@@ -1124,6 +1124,7 @@ static void parse_contact(struct cfg_comp *comp)
 			exit(1);
 		}
 
+		obj->name = name;
 		obj->id = idt_next(&cid);
 		/* enable logins by default */
 		obj->login_enabled = 1;
