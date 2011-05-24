@@ -751,8 +751,9 @@ static int parse_status_log(struct cfg_comp *comp)
 		return -1;
 
 	/*
-	 * these two always get truncated, since we must
-	 * wipe them completely if there are none
+	 * these always get truncated, since we must
+	 * wipe them completely if there are no objects of
+	 * these types in the config
 	 */
 	ocimp_truncate("comment_tbl");
 	ocimp_truncate("scheduled_downtime");
@@ -1024,6 +1025,9 @@ static void parse_group(int *gid, slist *sl, struct cfg_comp *comp)
 
 #define OCIMPT_ENTRY(type, always) \
 	0, OCIMPT_##type, always, 0, #type, NULL
+/* for objects that get pre-truncated */
+#define OCIMPV_ENTRY(type) \
+	0, OCIMPT_##type, 0, 1, #type, NULL
 static struct tbl_info {
 	int truncated;
 	int code;
@@ -1034,15 +1038,15 @@ static struct tbl_info {
 } table_info[] = {
 	{ OCIMPT_ENTRY(service, 1) },
 	{ OCIMPT_ENTRY(host, 1) },
-	{ OCIMPT_ENTRY(command, 0) },
-	{ OCIMPT_ENTRY(hostgroup, 0) },
-	{ OCIMPT_ENTRY(servicegroup, 0) },
-	{ OCIMPT_ENTRY(contactgroup, 0) },
+	{ OCIMPT_ENTRY(command, 1) },
+	{ OCIMPV_ENTRY(hostgroup) },
+	{ OCIMPV_ENTRY(servicegroup) },
+	{ OCIMPV_ENTRY(contactgroup) },
 	{ OCIMPT_ENTRY(contact, 0) },
-	{ OCIMPT_ENTRY(serviceescalation, 0) },
-	{ OCIMPT_ENTRY(servicedependency, 0) },
-	{ OCIMPT_ENTRY(hostescalation, 0) },
-	{ OCIMPT_ENTRY(hostdependency, 0) },
+	{ OCIMPV_ENTRY(serviceescalation) },
+	{ OCIMPV_ENTRY(servicedependency) },
+	{ OCIMPV_ENTRY(hostescalation) },
+	{ OCIMPV_ENTRY(hostdependency) },
 	{ OCIMPT_ENTRY(timeperiod, 0) },
 };
 
@@ -1464,6 +1468,26 @@ static int parse_object_cache(struct cfg_comp *comp)
 
 	if (!comp)
 		return -1;
+
+	/*
+	 * Some tables have to be forcibly truncated to make sure
+	 * no previously configured objects remain in the database
+	 * in case the user has removed all of them from the config.
+	 *
+	 * NOTE: Services should be here too, but the chances
+	 * anyone uses a Nagios system without services are
+	 * quite slim, to say the least.
+	 */
+	ocimp_truncate("hostgroup");
+	ocimp_truncate("servicegroup");
+	ocimp_truncate("hostdependency");
+	ocimp_truncate("hostescalation");
+	ocimp_truncate("hostescalation_contact");
+	ocimp_truncate("hostescalation_contactgroup");
+	ocimp_truncate("servicedependency");
+	ocimp_truncate("serviceescalation");
+	ocimp_truncate("serviceescalation_contact");
+	ocimp_truncate("serviceescalation_contactgroup");
 
 	for (i = 0; i < ARRAY_SIZE(table_info); i++) {
 		struct tbl_info *table = &table_info[i];
