@@ -111,6 +111,10 @@ static void grok_merlin_compound(struct cfg_comp *comp)
 	if (!strcmp(comp->name, "import")) {
 		return;
 	}
+
+	for (i = 0; i < comp->nested; i++) {
+		grok_merlin_compound(comp->nest[i]);
+	}
 }
 
 static void grok_merlin_config(const char *path)
