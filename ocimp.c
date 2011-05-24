@@ -1926,6 +1926,7 @@ static void fix_junctions(void)
 	slist_sort(cg_slist);
 	slist_sort(hg_slist);
 	slist_sort(sg_slist);
+	slist_sort(contact_slist);
 	slist_sort(timeperiod_slist);
 
 	ocimp_truncate("timeperiod_exclude");
