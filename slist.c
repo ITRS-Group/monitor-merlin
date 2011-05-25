@@ -84,8 +84,18 @@ int slist_push(slist *sl, void *item)
 		return -1;
 	}
 
-	sl->list[sl->pos++] = item;
-	sl->is_sorted = 0;
+	/*
+	 * No sorting is required when there's either only
+	 * one item in the list, or when the list is added
+	 * to in sequential order.
+	 */
+	sl->list[sl->pos] = item;
+	if (sl->is_sorted && sl->pos
+	    && sl->compare(&sl->list[sl->pos - 1], &sl->list[sl->pos]) > 0)
+	{
+		sl->is_sorted = 0;
+	}
+	sl->pos++;
 	return 0;
 }
 
