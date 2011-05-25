@@ -35,6 +35,9 @@ int slist_find_pos(slist *sl, const void *key)
 		return -1;
 	}
 
+	if (!sl->is_sorted)
+		slist_sort(sl);
+
 	high = sl->pos;
 	while (high - low > 0) {
 		uint mid = low + ((high - low) / 2);
