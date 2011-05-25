@@ -2333,6 +2333,9 @@ int main(int argc, char **argv)
 	 */
 	status = cfg_parse_file(status_path);
 	parse_status_log(status);
+	linfo("Sorting host and service lists for binary search");
+	slist_sort(host_slist);
+	slist_sort(service_slist);
 
 	/*
 	 * Now we can load the id's and instance_id's for hosts and
