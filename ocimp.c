@@ -1309,7 +1309,7 @@ static int parse_escalation(int *oid, struct cfg_comp *comp)
 	safe_free(escalation_period);
 	safe_free(escalation_options);
 
-	if (!obj->contact_slist) {
+	if (!obj->contact_slist && no_ca_query) {
 		obj->contact_slist = slist_init(num_contacts, nsort_contact);
 		if (!obj->contact_slist) {
 			lerr("Failed to init escalation slist with %d entries: %s",
@@ -1329,7 +1329,8 @@ static int parse_escalation(int *oid, struct cfg_comp *comp)
 					 hname, sdesc ? ";" : "", sdesc ? sdesc : "");
 				continue;
 			}
-			slist_add(obj->contact_slist, cont);
+			if (no_ca_query)
+				slist_add(obj->contact_slist, cont);
 			sql_query("INSERT INTO %sescalation_contact(%sescalation, contact) "
 			          "VALUES(%d, %d)", what, what, *oid, cont->id);
 		}
@@ -1360,17 +1361,17 @@ static int parse_escalation(int *oid, struct cfg_comp *comp)
 		if (cg->strv) {
 			for (x = 0; x < cg->strv->entries; x++) {
 				ocimp_contact_object *cont = (ocimp_contact_object *)cg->strv->str[x];
-				if (cont->login_enabled) {
+				if (cont->login_enabled && no_ca_query) {
 					slist_add(obj->contact_slist, cont);
-					/*
-					 * XXX escalation-hack
-					 * we really shouldn't do this, but it makes the
-					 * final contact_access caching query sooo much
-					 * simpler.
-					 */
-					sql_query("INSERT INTO %sescalation_contact(%sescalation, contact) "
-					          "VALUES(%d, %d)", what, what, *oid, cont->id);
 				}
+				/*
+				 * XXX escalation-hack
+				 * we really shouldn't do this, but it makes the
+				 * final contact_access caching query sooo much
+				 * simpler.
+				 */
+				sql_query("INSERT INTO %sescalation_contact(%sescalation, contact) "
+				          "VALUES(%d, %d)", what, what, *oid, cont->id);
 			}
 			continue;
 		}
@@ -1394,7 +1395,7 @@ static int parse_escalation(int *oid, struct cfg_comp *comp)
 			 * a strv variable in the group object
 			 */
 			members->str[x] = (char *)cont;
-			if (cont->login_enabled)
+			if (cont->login_enabled && no_ca_query)
 				slist_add(obj->contact_slist, cont);
 		}
 
@@ -1644,17 +1645,16 @@ static void fix_contactgroups(const char *what, state_object *o)
 		}
 		sql_query("INSERT INTO %s_contactgroup(%s, contactgroup) "
 				  "VALUES(%d, %d) ", what, what, o->ido.id, grp->id);
-		if (!grp->strv) {
-			continue;
-		}
 
 		/*
-		 * if we have escalations we cache contact_access stuff
-		 * assigned by contact_groups. Note that fix_cg_members()
-		 * must be run before this for this to work properly
+		 * if we use old school contact_access caching we cache
+		 * contacts stuff assigned by contact_groups here. Note that
+		 * fix_cg_members() must be run before this for this to work
+		 * properly
 		 */
-		if (!grp->strv || !no_ca_query)
+		if (!grp->strv || !no_ca_query) {
 			continue;
+		}
 
 		for (x = 0; x < grp->strv->entries; x++) {
 			ocimp_contact_object *cont;
@@ -1686,7 +1686,7 @@ static int fix_host_junctions(void *discard, void *obj)
 	parents = str_explode(o->parents, ',');
 
 	/* slist might be initialized while parsing escalations */
-	if (!o->contact_slist) {
+	if (!o->contact_slist && no_ca_query) {
 		o->contact_slist = slist_init(num_contacts, nsort_contact);
 
 		if (!o->contact_slist) {
