@@ -2309,11 +2309,11 @@ int main(int argc, char **argv)
 	}
 
 	/* we overallocate quite wildly for most customers' uses here */
-	host_slist = slist_init(2000, alpha_cmp_host);
-	service_slist = slist_init(20000, alpha_cmp_service);
-	cg_slist = slist_init(100, alpha_cmp_group);
-	hg_slist = slist_init(200, alpha_cmp_group);
-	sg_slist = slist_init(200, alpha_cmp_group);
+	host_slist = slist_init(5000, alpha_cmp_host);
+	service_slist = slist_init(50000, alpha_cmp_service);
+	cg_slist = slist_init(500, alpha_cmp_group);
+	hg_slist = slist_init(500, alpha_cmp_group);
+	sg_slist = slist_init(500, alpha_cmp_group);
 	timeperiod_slist = slist_init(100, alpha_cmp_group);
 	contact_slist = slist_init(500, alpha_cmp_contact);
 	preload_contact_ids();
