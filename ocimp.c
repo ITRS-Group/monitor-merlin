@@ -15,7 +15,7 @@
 
 static slist *contact_slist, *host_slist, *service_slist, *timeperiod_slist;
 static slist *sg_slist, *cg_slist, *hg_slist;
-static int num_contacts = 0;
+static int num_contacts;
 static int ocache_unchanged, skip_contact_access;
 static uint dodged_queries;
 extern unsigned long total_queries;
