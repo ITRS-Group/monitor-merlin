@@ -21,7 +21,7 @@ static uint dodged_queries;
 extern unsigned long total_queries;
 static unsigned char ocache_hash[20];
 static char *cache_path, *status_path;
-static int have_escalations;
+static int no_ca_query;
 
 struct id_tracker {
 	int min, max, cur;
@@ -1241,8 +1241,6 @@ static int parse_escalation(int *oid, struct cfg_comp *comp)
 	const char *what, *wkey;
 	strvec *sv;
 
-	have_escalations = 1;
-
 	hname = comp->vlist[i++]->value;
 	if (*comp->name == 's') {
 		sdesc = comp->vlist[i++]->value;
@@ -1324,6 +1322,8 @@ static int parse_escalation(int *oid, struct cfg_comp *comp)
 				continue;
 			}
 			slist_add(obj->contact_slist, cont);
+			sql_query("INSERT INTO %sescalation_contact(%sescalation, contact) "
+			          "VALUES(%d, %d)", what, what, *oid, cont->id);
 		}
 
 		if (sv)
@@ -1346,12 +1346,23 @@ static int parse_escalation(int *oid, struct cfg_comp *comp)
 				 hname, sdesc ? ";" : "", sdesc ? sdesc : "");
 			continue;
 		}
+		sql_query("INSERT INTO %sescalation_contactgroup(%sescalation, contactgroup) "
+		          "VALUES(%d, %d)", what, what, *oid, cg->id);
 
 		if (cg->strv) {
 			for (x = 0; x < cg->strv->entries; x++) {
 				ocimp_contact_object *cont = (ocimp_contact_object *)cg->strv->str[x];
-				if (cont->login_enabled)
+				if (cont->login_enabled) {
 					slist_add(obj->contact_slist, cont);
+					/*
+					 * XXX escalation-hack
+					 * we really shouldn't do this, but it makes the
+					 * final contact_access caching query sooo much
+					 * simpler.
+					 */
+					sql_query("INSERT INTO %sescalation_contact(%sescalation, contact) "
+					          "VALUES(%d, %d)", what, what, *oid, cont->id);
+				}
 			}
 			continue;
 		}
@@ -1601,7 +1612,7 @@ static void fix_contacts(const char *what, state_object *o)
 		 * if we must, we cache contact access junk while we've got
 		 * everything lined up properly here
 		 */
-		if (cont->login_enabled && have_escalations)
+		if (cont->login_enabled && no_ca_query)
 			slist_add(o->contact_slist, cont);
 	}
 	free(contacts);
@@ -1634,7 +1645,7 @@ static void fix_contactgroups(const char *what, state_object *o)
 		 * assigned by contact_groups. Note that fix_cg_members()
 		 * must be run before this for this to work properly
 		 */
-		if (!grp->strv || !have_escalations)
+		if (!grp->strv || !no_ca_query)
 			continue;
 
 		for (x = 0; x < grp->strv->entries; x++) {
@@ -1880,7 +1891,34 @@ static void q1_cache_contact_access(void)
 			      "INNER JOIN host_contactgroup hcg "
 			           "ON ccg.contactgroup = hcg.contactgroup "
 			      "INNER JOIN host h ON h.id = hcg.host "
-			      "INNER JOIN service ON service.host_name = h.host_name)");
+			      "INNER JOIN service ON service.host_name = h.host_name) "
+			  /*
+			   * contact_access through escalations relies on the
+			   * quite hackish thing we do up above to put all
+			   * contacts for an escalation into the
+			   * {host,service}escalation_contact table. Otherwise
+			   * these queries would *really* be nightmarish
+			   *
+			   * XXX escalation-hack
+			   */
+			  /* serviceescalations */
+			  "UNION (SELECT sec.contact, NULL, se.service "
+			      "FROM serviceescalation_contact sec, serviceescalation se "
+			      "WHERE sec.serviceescalation = se.id)"
+			  /*
+			   * hostescalations. Contacts for any host through
+			   * escalations also get access to all its services
+			   */
+			  "UNION (SELECT hec.contact, he.host_name, NULL "
+			      "FROM hostescalation_contact hec, hostescalation he "
+			      "WHERE hec.hostescalation = he.id) "
+			  "UNION (SELECT hec.contact, NULL, s.id "
+			      "FROM hostescalation_contact hec "
+			      "INNER JOIN hostescalation he "
+			           "ON hec.hostescalation = he.id "
+			      "INNER JOIN host h ON h.id = he.host_name "
+			      "INNER JOIN service s ON s.host_name = h.host_name)"
+			 );
 }
 
 static int cache_contact_access(void *what_ptr, void *base_obj)
@@ -1961,15 +1999,17 @@ static void fix_junctions(void)
 		ocimp_truncate("contact_access");
 		/*
 		 * The Query is a lot faster than caching manually, but
-		 * it doesn't take hostescalation contact settings into
-		 * account, so we can't use it when any such things are
-		 * configured.
+		 * we retain the old behaviour if people request it
+		 * explicitly, even though we know it's flawed as contacts
+		 * don't automatically become contacts for all services on
+		 * hosts they're contacts for.
 		 */
-		if (!have_escalations) {
-			q1_cache_contact_access();
-		} else {
+		if (no_ca_query) {
+			ldebug("Using oldschool contact access caching");
 			slist_walk(host_slist, "host", cache_contact_access);
 			slist_walk(service_slist, "service", cache_contact_access);
+		} else {
+			q1_cache_contact_access();
 		}
 	}
 
@@ -2187,6 +2227,10 @@ int main(int argc, char **argv)
 		}
 		if (!prefixcmp(arg, "--no-sql")) {
 			use_sql = 0;
+			continue;
+		}
+		if (!strcmp(arg, "--no-ca-query")) {
+			no_ca_query = 1;
 			continue;
 		}
 		if (!prefixcmp(arg, "--no-ca") || !prefixcmp(arg, "--no-contact-cache")) {
