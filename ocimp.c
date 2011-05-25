@@ -14,6 +14,7 @@
 #endif
 
 static slist *contact_slist, *host_slist, *service_slist, *timeperiod_slist;
+static slist *contact_id_slist;
 static slist *sg_slist, *cg_slist, *hg_slist;
 static int num_contacts;
 static int ocache_unchanged, skip_contact_access;
@@ -478,15 +479,18 @@ static int ocimp_timeperiod_id(char *name)
 	return obj->id;
 }
 
-static ocimp_contact_object *ocimp_find_contact(char *name)
+static ocimp_contact_object *ocimp_locate_contact(char *name, slist *sl)
 {
 	ocimp_contact_object obj, *ret;
 	obj.name = name;
-	ret = slist_find(contact_slist, &obj);
+	ret = slist_find(sl, &obj);
 	if (!ret || strcmp(ret->name, obj.name))
 		return NULL;
+
 	return ret;
 }
+#define ocimp_find_contact(name) ocimp_locate_contact(name, contact_slist)
+#define ocimp_find_contact_id(name) ocimp_locate_contact(name, contact_id_slist)
 
 static state_object *ocimp_find_status(const char *hst, const char *svc)
 {
@@ -1075,17 +1079,19 @@ static void preload_contact_ids(void)
 		return;
 	}
 
+	contact_id_slist = slist_init(500, alpha_cmp_contact);
+
 	while (result->api->step(result) == 0) {
 		ocimp_contact_object *obj = NULL;
 		obj = malloc(sizeof(*obj));
 		result->api->get_int32_ndx(result, 0, &obj->id);
 		db_wrap_result_string_copy_ndx(result, 1, &obj->name, NULL);
-		slist_add(contact_slist, obj);
+		slist_add(contact_id_slist, obj);
 
 		idt_update(&cid, obj->id);
 	}
 
-	slist_sort(contact_slist);
+	slist_sort(contact_id_slist);
 }
 
 static void parse_contact(struct cfg_comp *comp)
@@ -1115,7 +1121,7 @@ static void parse_contact(struct cfg_comp *comp)
 	char *address6 = NULL;
 
 	name = comp->vlist[i++]->value;
-	obj = ocimp_find_contact(name);
+	obj = ocimp_find_contact_id(name);
 	if (!obj) {
 		/* this will happen when new contacts are added */
 		obj = calloc(1, sizeof(*obj));
@@ -1127,9 +1133,11 @@ static void parse_contact(struct cfg_comp *comp)
 		obj->name = name;
 		obj->id = idt_next(&cid);
 		/* enable logins by default */
-		obj->login_enabled = 1;
-		slist_add(contact_slist, obj);
 	}
+
+	/* now add it to the proper contact list */
+	obj->login_enabled = 1;
+	slist_add(contact_slist, obj);
 
 	num_contacts++;
 
