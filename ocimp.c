@@ -754,7 +754,7 @@ static int parse_status_log(struct cfg_comp *comp)
 	if (!comp)
 		return -1;
 
-	linfo("Parsing status log");
+	linfo("Parsing %s", status_path);
 	/*
 	 * these always get truncated, since we must
 	 * wipe them completely if there are no objects of
@@ -1475,7 +1475,7 @@ static int parse_object_cache(struct cfg_comp *comp)
 	if (!comp)
 		return -1;
 
-	linfo("Parsing object cache");
+	linfo("Parsing %s", cache_path);
 
 	/*
 	 * Some tables have to be forcibly truncated to make sure
