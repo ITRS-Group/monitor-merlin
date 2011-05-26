@@ -1032,33 +1032,6 @@ static void parse_group(int *gid, slist *sl, struct cfg_comp *comp)
 #define OCIMPT_hostdependency 11
 #define OCIMPT_timeperiod 12
 
-#define OCIMPT_ENTRY(type, always) \
-	0, OCIMPT_##type, always, 0, #type, NULL
-/* for objects that get pre-truncated */
-#define OCIMPV_ENTRY(type) \
-	0, OCIMPT_##type, 0, 1, #type, NULL
-static struct tbl_info {
-	int truncated;
-	int code;
-	int always;
-	int id;
-	char *name;
-	slist *sl;
-} table_info[] = {
-	{ OCIMPT_ENTRY(service, 1) },
-	{ OCIMPT_ENTRY(host, 1) },
-	{ OCIMPT_ENTRY(command, 1) },
-	{ OCIMPV_ENTRY(hostgroup) },
-	{ OCIMPV_ENTRY(servicegroup) },
-	{ OCIMPV_ENTRY(contactgroup) },
-	{ OCIMPT_ENTRY(contact, 0) },
-	{ OCIMPV_ENTRY(serviceescalation) },
-	{ OCIMPV_ENTRY(servicedependency) },
-	{ OCIMPV_ENTRY(hostescalation) },
-	{ OCIMPV_ENTRY(hostdependency) },
-	{ OCIMPT_ENTRY(timeperiod, 0) },
-};
-
 /*
  * contacts must maintain their id's (if possible) between reloads,
  * or already logged in users may change user id and get different
@@ -1488,6 +1461,29 @@ static int parse_dependency(int *oid, struct cfg_comp *comp)
 	return 0;
 }
 
+#define OCIMPT_ENTRY(type, always) \
+	OCIMPT_##type, always, 0, #type, NULL
+static struct tbl_info {
+	int code;
+	int always;
+	int id;
+	char *name;
+	slist *sl;
+} table_info[] = {
+	{ OCIMPT_ENTRY(service, 1) },
+	{ OCIMPT_ENTRY(host, 1) },
+	{ OCIMPT_ENTRY(command, 0) },
+	{ OCIMPT_ENTRY(hostgroup, 0) },
+	{ OCIMPT_ENTRY(servicegroup, 0) },
+	{ OCIMPT_ENTRY(contactgroup, 0) },
+	{ OCIMPT_ENTRY(contact, 0) },
+	{ OCIMPT_ENTRY(serviceescalation, 0) },
+	{ OCIMPT_ENTRY(servicedependency, 0) },
+	{ OCIMPT_ENTRY(hostescalation, 0) },
+	{ OCIMPT_ENTRY(hostdependency, 0) },
+	{ OCIMPT_ENTRY(timeperiod, 0) },
+};
+
 static int parse_object_cache(struct cfg_comp *comp)
 {
 	int i;
@@ -1506,16 +1502,29 @@ static int parse_object_cache(struct cfg_comp *comp)
 	 * anyone uses a Nagios system without services are
 	 * quite slim, to say the least.
 	 */
-	ocimp_truncate("hostgroup");
-	ocimp_truncate("servicegroup");
-	ocimp_truncate("hostdependency");
-	ocimp_truncate("hostescalation");
-	ocimp_truncate("hostescalation_contact");
-	ocimp_truncate("hostescalation_contactgroup");
-	ocimp_truncate("servicedependency");
-	ocimp_truncate("serviceescalation");
-	ocimp_truncate("serviceescalation_contact");
-	ocimp_truncate("serviceescalation_contactgroup");
+	if (!ocache_unchanged) {
+		ocimp_truncate("timeperiod");
+		ocimp_truncate("command");
+		ocimp_truncate("contact");
+		ocimp_truncate("contactgroup");
+		ocimp_truncate("hostgroup");
+		ocimp_truncate("servicegroup");
+		ocimp_truncate("hostdependency");
+		ocimp_truncate("hostescalation");
+		ocimp_truncate("servicedependency");
+		ocimp_truncate("serviceescalation");
+		ocimp_truncate("host_hostgroup");
+		ocimp_truncate("service_servicegroup");
+		ocimp_truncate("contact_contactgroup");
+		ocimp_truncate("host_contact");
+		ocimp_truncate("service_contact");
+		ocimp_truncate("host_contactgroup");
+		ocimp_truncate("service_contactgroup");
+		ocimp_truncate("hostescalation_contact");
+		ocimp_truncate("hostescalation_contactgroup");
+		ocimp_truncate("serviceescalation_contact");
+		ocimp_truncate("serviceescalation_contactgroup");
+	}
 
 	for (i = 0; i < ARRAY_SIZE(table_info); i++) {
 		struct tbl_info *table = &table_info[i];
@@ -1524,6 +1533,13 @@ static int parse_object_cache(struct cfg_comp *comp)
 		case OCIMPT_servicegroup: table->sl = sg_slist; break;
 		case OCIMPT_hostgroup: table->sl = hg_slist; break;
 		}
+
+		/*
+		 * always truncate tables for objects that always
+		 * get updated (only hosts and services for now)
+		 */
+		if (table->always)
+			ocimp_truncate(table->name);
 	}
 
 	for (i = 0; i < comp->nested; i++) {
@@ -1550,10 +1566,6 @@ static int parse_object_cache(struct cfg_comp *comp)
 		/* skip even parsing most object types if config is unchanged */
 		if (!table->always && ocache_unchanged) {
 			continue;
-		}
-		if (!table->truncated) {
-			ocimp_truncate(table->name);
-			table->truncated = 1;
 		}
 
 		switch (table->code) {
