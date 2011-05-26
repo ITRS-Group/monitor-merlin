@@ -782,6 +782,18 @@ If caveat 3 bites your ass, check in /var/cache/merlin/backups (or
 
 This is sort-of supported as of merlin-1.1.7, but see caveat 1.
 
+
+Problem: After a restart, Ninja hangs/is empty for a loong time!
+Answer:
+If you have a large system, you should be using ocimp instead of
+import.php to run the initial import of your configuration. It's
+well more than 10 times as fast and will cause the waiting period
+to be that much shorter. This will also most likely help if you're
+seeing an empty UI from time to time. It makes the largest difference
+in large environments, ofcourse, but even smaller ones should benefit
+from it. ocimp was considered "stable beta" as of merlin-1.1.8-beta2.
+
+
 Problem: I want feature X!
 Answer:
 I want icecream.
