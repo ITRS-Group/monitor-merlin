@@ -744,6 +744,44 @@ This removes the config sync command from the master nodes,
 so Merlin won't try to push configuration around.
 
 
+Problem: My extra files/plugins/whatever aren't being synced!
+Answer:
+In order to sync files outside of the object configuration one can add
+an extra compound to the node-configuration of the node one wants to
+sync paths to. The config should look something like this:
+
+poller solo {
+	hostgroups = hyperdrive
+	address = solo
+	port = 15551
+	sync {
+		/path/to/file/to/sync = yes
+		/path/to/file2/to/sync = /path/on/remote/system
+	}
+}
+
+This will cause /path/to/file/to/sync to be sent to the same path on
+the remote system, and the file /path/to/file2/to/sync to be sent to
+/path/on/remote/system on the remote system. It should be possible to
+list directories and not only files, but that is untested.
+
+Caveat 1: This is not well tested, but what sparse tests I've done
+worked out well.
+Caveat 2: Peers normally send all of /opt/monitor/etc to each other,
+so for those no extra configuration should be necessary in a normal
+setup.
+Caveat 3: Only the sha1 checksum of the object config, coupled with
+the timestamp of the same, is used to determine which file to sync
+where. There's no checking done to make sure a newer version of the
+file on the other end is being overwritten.
+Caveat 4: This will run as the same user as the merlin daemon. I
+have no idea if file ownership and permissions will be preserved.
+
+If caveat 3 bites your ass, check in /var/cache/merlin/backups (or
+/var/cache/merlin/backup) for the original files.
+
+This is sort-of supported as of merlin-1.1.7, but see caveat 1.
+
 Problem: I want feature X!
 Answer:
 I want icecream.
