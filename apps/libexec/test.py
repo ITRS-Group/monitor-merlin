@@ -3,6 +3,8 @@ try:
 	import hashlib
 except ImportError:
 	import sha as hashlib
+if not hasattr(hashlib, 'sha'):
+	import sha as hashlib
 import random
 import posix
 import signal
