@@ -19,6 +19,7 @@ import merlin_db
 import compound_config as cconf
 config = {}
 verbose = False
+send_host_checks = True
 
 def module_init(args):
 	rem_args = []
@@ -164,6 +165,7 @@ def cmd_pasv(args):
 	interval = 1800
 	delay = 25
 	cmd_pipe = False
+	global send_host_checks
 
 	for arg in args:
 		if arg.startswith('--nagios-cfg='):
@@ -184,6 +186,8 @@ def cmd_pasv(args):
 			_pasv_help()
 		elif arg == '--verbose' or arg == '-v':
 			verbose = True
+		elif arg == '--nohostchecks':
+			send_host_checks = False
 		else:
 			print("Unknown argument: %s" % arg)
 			sys.exit(1)
@@ -231,7 +235,8 @@ def cmd_pasv(args):
 		if hi < num_hosts:
 			obj = pasv_test_host(row[0])
 			host_list.append(obj)
-			test_objs.append(obj)
+			if send_host_checks:
+				test_objs.append(obj)
 		hi += 1
 
 	for host in host_list:
