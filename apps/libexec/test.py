@@ -291,7 +291,7 @@ def cmd_pasv(args):
 		status = loops % 3
 
 		loop_start = time.time()
-		print("Submitting passive check results")
+		print("Submitting passive check results (%s) @ %s" % (cnt_hash, time.time()))
 		for t in test_objs:
 			cmd = _pasv_build_cmd(t, status)
 			cmd += "%s|%s\n" % (cnt_hash, cnt_string)
