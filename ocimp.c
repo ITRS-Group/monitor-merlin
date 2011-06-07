@@ -1024,12 +1024,13 @@ static void parse_group(int *gid, slist *sl, struct cfg_comp *comp)
  */
 static void preload_contact_ids(void)
 {
+	db_wrap_result *result;
+
 	if (!use_database)
 		return;
 
 	cid.min = INT_MAX;
 
-	db_wrap_result *result;
 	sql_query("SELECT id, contact_name FROM contact");
 	result = sql_get_result();
 	if (!result) {
