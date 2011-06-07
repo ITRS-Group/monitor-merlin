@@ -2338,6 +2338,10 @@ int main(int argc, char **argv)
 	 * so we load all currently active hosts and services.
 	 */
 	status = cfg_parse_file(status_path);
+	if (!status) {
+		lerr("Failed to parse '%s'", status_path);
+		exit(1);
+	}
 	parse_status_log(status);
 	linfo("Sorting host and service lists for binary search");
 	slist_sort(host_slist);
