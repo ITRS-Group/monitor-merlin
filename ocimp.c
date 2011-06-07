@@ -133,7 +133,7 @@ static void ocimp_truncate(const char *table)
 {
 	if (use_database) {
 		sql_query("TRUNCATE TABLE %s", table);
-		ldebug("Truncating table %s", table);
+		/* ldebug("Truncating table %s", table); */
 	}
 }
 
