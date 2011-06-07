@@ -743,7 +743,10 @@ static int parse_status_log(struct cfg_comp *comp)
 	if (!comp)
 		return -1;
 
-	linfo("Parsing %s", status_path);
+	linfo("Parsing %s with %d compounds", status_path, comp->nested);
+	if (!comp->nested)
+		return -1;
+
 	/*
 	 * these always get truncated, since we must
 	 * wipe them completely if there are no objects of
@@ -1024,6 +1027,7 @@ static void parse_group(int *gid, slist *sl, struct cfg_comp *comp)
  */
 static void preload_contact_ids(void)
 {
+	int loops = 0;
 	db_wrap_result *result;
 
 	if (!use_database)
@@ -1031,6 +1035,7 @@ static void preload_contact_ids(void)
 
 	cid.min = INT_MAX;
 
+	linfo("Preloading contact id's from database");
 	sql_query("SELECT id, contact_name FROM contact");
 	result = sql_get_result();
 	if (!result) {
@@ -1048,7 +1053,9 @@ static void preload_contact_ids(void)
 		slist_add(contact_id_slist, obj);
 
 		idt_update(&cid, obj->id);
+		loops++;
 	}
+	linfo("Loaded %d contacts from database", loops);
 
 	slist_sort(contact_id_slist);
 }
@@ -1477,7 +1484,9 @@ static int parse_object_cache(struct cfg_comp *comp)
 	if (!comp)
 		return -1;
 
-	linfo("Parsing %s", cache_path);
+	linfo("Parsing %s with %d compounds", cache_path, comp->nested);
+	if (!comp->nested)
+		return -1;
 
 	/*
 	 * Some tables have to be forcibly truncated to make sure
@@ -2028,6 +2037,7 @@ static void fix_junctions(void)
  */
 static void load_instance_ids(void)
 {
+	int loops = 0;
 	db_wrap_result *result;
 	state_object *obj;
 	const char *host_name;
@@ -2046,6 +2056,7 @@ static void load_instance_ids(void)
 		return;
 	}
 	while (result->api->step(result) == 0) {
+		loops++;
 		result->api->get_string_ndx(result, 2, &host_name, &len);
 		obj = ocimp_find_status(host_name, NULL);
 
@@ -2058,6 +2069,7 @@ static void load_instance_ids(void)
 		result->api->get_int32_ndx(result, 1, &obj->ido.id);
 		idt_update(&hid, obj->ido.id);
 	}
+	linfo("Preloaded %d host entries", loops);
 
 	sql_query("SELECT instance_id, id, host_name, service_description FROM service");
 	result = sql_get_result();
@@ -2065,7 +2077,9 @@ static void load_instance_ids(void)
 		lwarn("Failed to grab service id's and instance id's from database");
 		return;
 	}
+	loops = 0;
 	while (result->api->step(result) == 0) {
+		loops++;
 		const char *service_description;
 		result->api->get_string_ndx(result, 2, &host_name, &len);
 		result->api->get_string_ndx(result, 3, &service_description, &len);
@@ -2079,6 +2093,7 @@ static void load_instance_ids(void)
 		result->api->get_int32_ndx(result, 1, &obj->ido.id);
 		idt_update(&sid, obj->ido.id);
 	}
+	linfo("Preloaded %d service entries", loops);
 
 	ldebug("Done loading instance id's");
 }
