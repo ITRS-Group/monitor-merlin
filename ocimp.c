@@ -590,17 +590,18 @@ static int parse_status(struct cfg_comp *comp)
 		obj->ido.service_description = service_description;
 	} else {
 		located = 1;
-		/*
-		 * some (most) of these should their id's preloaded
-		 * from before. For those that don't, we generate one
-		 * that we know is safe
-		 */
-		if (!obj->ido.id) {
-			if (!service_description) {
-				obj->ido.id = idt_next(&hid);
-			} else {
-				obj->ido.id = idt_next(&sid);
-			}
+	}
+
+	/*
+	 * some (most) of these should get their id's preloaded
+	 * from before. For those that don't, we generate one
+	 * that we know is safe
+	 */
+	if (!obj->ido.id) {
+		if (!service_description) {
+			obj->ido.id = idt_next(&hid);
+		} else {
+			obj->ido.id = idt_next(&sid);
 		}
 	}
 
