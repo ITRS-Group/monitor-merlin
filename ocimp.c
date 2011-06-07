@@ -288,19 +288,6 @@ void cfg_fprintr_comp(FILE *fp, struct cfg_comp *comp, int depth)
 	}
 }
 
-int wait_for_input(void)
-{
-	char lbuf[4096];
-
-	if (!isatty(fileno(stdin))) {
-		return 0;
-	}
-
-	fprintf(stderr, "### AWAITING INPUT ###\n");
-	fgets(lbuf, sizeof(lbuf) - 1, stdin);
-	return lbuf[0];
-}
-
 static int get_file_hash(blk_SHA_CTX *ctx, const char *path)
 {
 	struct stat st;
@@ -367,7 +354,6 @@ static cfg_code *real_get_cfg_code(struct cfg_var *v, cfg_code *ary, int entries
 
 static int parse_comment(struct cfg_comp *comp)
 {
-	comment_object cmt, *obj;
 	int i = 0;
 	static int internal_id = 0;
 	char *author = NULL, *comment_data = NULL;
@@ -375,8 +361,6 @@ static int parse_comment(struct cfg_comp *comp)
 
 	if (!comp || !comp->vars)
 		return -1;
-
-	obj = &cmt;
 
 	/*
 	 * host_name is always the first variable for status objects.
@@ -2393,6 +2377,5 @@ int main(int argc, char **argv)
 
 	clean_exit(0);
 
-	//wait_for_input();
 	return 0;
 }
