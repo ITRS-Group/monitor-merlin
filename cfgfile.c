@@ -99,6 +99,9 @@ static struct cfg_comp *close_compound(struct cfg_comp *comp, unsigned line)
 {
 	if (comp) {
 		comp->end = line;
+		if (!comp->parent) {
+			cfg_error(comp, NULL, "Returning NULL from close_compound on line %d", line);
+		}
 		return comp->parent;
 	}
 
@@ -107,6 +110,8 @@ static struct cfg_comp *close_compound(struct cfg_comp *comp, unsigned line)
 
 static void add_var(struct cfg_comp *comp, struct cfg_var *v)
 {
+	if (!comp)
+		cfg_error(NULL, v, "Adding variable to NULL compound. Weird that...\n");
 	if (comp->vars >= comp->vlist_len) {
 		comp->vlist_len += 5;
 		comp->vlist = realloc(comp->vlist, sizeof(struct cfg_var *) * comp->vlist_len);
@@ -169,7 +174,7 @@ static struct cfg_comp *parse_file(const char *path, struct cfg_comp *parent, un
 		if (end == '\n')
 			lnum++;
 
-		/* skipe whitespace */
+		/* skip whitespace */
 		while(ISSPACE(buf[i]))
 			i++;
 
