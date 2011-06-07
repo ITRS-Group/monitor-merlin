@@ -1,3 +1,4 @@
+#define _GNU_SOURCE 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -126,27 +127,18 @@ static void add_var(struct cfg_comp *comp, struct cfg_var *v)
 	memcpy(comp->vlist[comp->vars++], v, sizeof(struct cfg_var));
 }
 
-static inline char *end_of_line(char *s)
+#ifndef __GLIBC__
+static inline char *strchrnul(const char *s, int c)
 {
-	char last = 0;
+	int i = 0, last = 0;
 
-	for (; *s; s++) {
-		if (*s == '\n')
-			return s;
-		if (last != '\\') {
-			if (*s == ';') {
-				*s = '\0';
-			}
-			else {
-				if (*s == '{' || *s == '}')
-					return s;
-			}
-		}
-		last = *s;
+	for (i = 0;; i++) {
+		if (s[i] == 0 || s[i] == c)
+			break;
 	}
-
-	return NULL;
+	return &s[i];
 }
+#endif
 
 static struct cfg_comp *parse_file(const char *path, struct cfg_comp *parent, unsigned line)
 {
@@ -194,14 +186,31 @@ static struct cfg_comp *parse_file(const char *path, struct cfg_comp *parent, un
 			continue;
 		}
 
-		next = lend = end_of_line(&buf[i]);
-		end = *lend;
+		/* check for compound closure */
+		if (buf[i] == '}') {
+			v.key = v.value = NULL;
+			comp = close_compound(comp, lnum);
+			end = 0;
+			continue;
+		}
+
+		/* we have a real line, so set the starting point */
 		lstart = &buf[i];
 
-		/* nul-terminate and strip space from end of line */
-		*lend-- = '\0';
-		while(ISSPACE(*lend))
-			lend--;
+		/* locate next newline */
+		next = lend = strchrnul(&buf[i], '\n');
+		end = *lend;
+		while ((ISSPACE(*lend) || *lend == '\n') && lend > lstart)
+			*lend-- = 0;
+
+		if (*lend == '}' || *lend == '{' || (*lend == ';' && lend[-1] != '\\')) {
+			end = *lend;
+			*lend-- = 0;
+
+			/* nul-terminate and strip space from end of line */
+			while(ISSPACE(*lend) && lend > lstart)
+				*lend-- = 0;
+		}
 
 		/* check for start of compound */
 		if (end == '{') {
@@ -289,6 +298,7 @@ char *cfg_copy_value(struct cfg_var *v)
 	if ((ptr = calloc(v->value_len + 1, 1)))
 		return memcpy(ptr, v->value, v->value_len);
 
+	fprintf(stderr, "Failed to calloc() for a var\n");
 	return NULL;
 }
 
