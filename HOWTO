@@ -794,6 +794,43 @@ in large environments, ofcourse, but even smaller ones should benefit
 from it. ocimp was considered "stable beta" as of merlin-1.1.8-beta2.
 
 
+Problem: One of my nodes can't connect to the others!
+Answer:
+On the node that can't connect to other nodes you need to add a
+node-option to prevent it from attempting to connect to the nodes
+it can't connect to. This is useful if you know there is a firewall
+that you won't be allowing new connections through in one direction,
+and especially if you're using a tripwire-rigged firewall. An
+example config would look like this:
+
+  master behind-firewall-we-cant-connect-through {
+    address = master.behind.firewall.example.com
+    connect = no
+  }
+
+This will cause the merlin daemon on this node to never attempt to
+connect to master.behind.firewall.example.com. Normally, both nodes
+attempt to connect at startup and every so often so long as the
+connection is down.
+This feature was introduced in Merlin 1.1.0
+
+
+Problem: My poller is monitoring a network behind a firewall which
+         the master can't see through!
+Answer:
+There's a node-option you can use on the master-node which only
+works when configuring poller nodes. Here's what it would look
+like
+
+  poller watching-network-behind-firewall-where-master-cant-see {
+    address = admin-net-poller.example.com
+    port = 15551
+	takeover = no
+  }
+
+This feature was introduced in Merlin 0.9.1.
+
+
 Problem: I want feature X!
 Answer:
 I want icecream.
