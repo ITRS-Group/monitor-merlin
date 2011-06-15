@@ -1,6 +1,6 @@
 working_dir=`pwd`
 buildroot=$working_dir/temp
-cd ../..
+
 make clean
 make ENABLE_OCILIB=1 ENABLE_LIBDBI=0
 mkdir -p $buildroot/opt/monitor/op5/merlin/logs
