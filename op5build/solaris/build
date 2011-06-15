@@ -1,4 +1,5 @@
-working_dir=`pwd`
+curdir=`pwd`
+working_dir=`dirname $curdir`
 buildroot=$working_dir/temp
 
 make clean
