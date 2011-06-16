@@ -1043,11 +1043,9 @@ int main(int argc, char **argv)
 	}
 	for (i = 1; i < argc; i++) {
 		char *opt, *arg = argv[i];
-		int eq_opt = 0;
 
 		if ((opt = strchr(arg, '='))) {
 			*opt++ = '\0';
-			eq_opt = 1;
 		} else if (i < argc - 1) {
 			opt = argv[i + 1];
 		}

@@ -56,17 +56,15 @@ int lparse_fd(int fd, uint64_t size, int (*parse)(char *, uint))
 
 int lparse_rev_fd(int fd, uint64_t size, int (*parse)(char *, uint))
 {
-	uint64_t tot_rd = 0, parsed = 0, reads = 0, expected_reads = 0;
+	uint64_t tot_rd = 0, parsed = 0, reads = 0;
 
 	if (!buf && !(buf = calloc(1, MAX_BUF + 1)))
 		return -1;
 
-	expected_reads = size / MAX_BUF + 1;
 	while (tot_rd < size) {
 		char *cur, *first, *eol, *last;
 		int blkparsed, bytes_rd;
 		size_t to_read;
-		off_t pos;
 
 		/*
 		 * First we figure out where to start reading
@@ -78,7 +76,7 @@ int lparse_rev_fd(int fd, uint64_t size, int (*parse)(char *, uint))
 		} else {
 			to_read = size - tot_rd;
 		}
-		pos = lseek(fd, size - tot_rd - to_read, SEEK_SET);
+		lseek(fd, size - tot_rd - to_read, SEEK_SET);
 		reads++;
 		bytes_rd = read(fd, buf, to_read);
 		if (bytes_rd < 0)
