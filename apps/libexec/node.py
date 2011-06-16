@@ -82,12 +82,14 @@ Command overview
    enough program_status updates.
 """)
 
-def get_min_avg_max(table, column, iid=False):
-	query = 'SELECT min(%s), avg(%s), max(%s) FROM %s' % \
+def get_min_avg_max(table, column, iid=None):
+	query = 'SELECT min(%s), avg(%s), max(%s) FROM %s WHERE ' % \
 		(column, column, column, table)
 
-	if iid != False:
-		query += ' WHERE instance_id = %d' % iid
+	if iid != None:
+		query += 'instance_id = %d AND ' % iid
+
+	query += 'active_checks_enabled = 1'
 
 	dbc.execute(query)
 	row = dbc.fetchone()
