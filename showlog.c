@@ -33,11 +33,13 @@ static int hide_state_dupes; /* if set, we hide duplicate state messages */
 #define EVT_EHANDLER (1 << 8)
 #define EVT_START    (1 << 9)
 #define EVT_STOP     (1 << 10)
+#define EVT_LIVESTATUS (1 << 11)
 
 #define EVT_HOST    (1 << 20)
 #define EVT_SERVICE (1 << 21)
 
-static uint event_filter = ~0;
+/* show everything but livestatus by default */
+static uint event_filter = ~(EVT_LIVESTATUS);
 static int host_state_filter = -1;
 static int service_state_filter = -1;
 static int statetype_filter = (1 << HARD_STATE) | (1 << SOFT_STATE);
@@ -55,6 +57,7 @@ static struct string_code event_codes[] = {
 	add_event("SERVICE EVENT HANDLER", EVT_EHANDLER | EVT_SERVICE),
 	add_event("LOG VERSION", EVT_PROCESS),
 	add_event("EXTERNAL COMMAND", EVT_COMMAND),
+	add_event("livestatus", EVT_LIVESTATUS),
 
 	add_code(5, "HOST ALERT", EVT_ALERT | EVT_HOST),
 	add_code(5, "INITIAL HOST STATE", EVT_STATE | EVT_HOST),
@@ -703,6 +706,8 @@ int show_hide(char *arg, char *opt)
 			filter |= EVT_NOTIFY;
 		} else if (!prefixcmp(arg, "logrotat")) {
 			filter |= EVT_LROTATE;
+		} else if (!prefixcmp(arg, "livestatus")) {
+			filter |= EVT_LIVESTATUS;
 		} else if (!prefixcmp(arg, "initial")) {
 			filter |= EVT_STATE;
 			show_filter |= (EVT_HOST | EVT_SERVICE);
