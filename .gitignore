@@ -27,3 +27,6 @@ showlog
 oconf
 test-dbwrap
 ocimp
+entries.sh
+ca-debug.py
+.lock*
