@@ -81,6 +81,7 @@ static struct string_code event_codes[] = {
 	add_ignored("SERVICE EVENT HANDLER"),
 	add_ignored("HOST EVENT HANDLER"),
 	add_ignored("LOG VERSION"),
+	add_ignored("livestatus"),
 
 	add_code(5, "HOST NOTIFICATION", NEBTYPE_NOTIFICATION_END + CONCERNS_HOST),
 	add_code(6, "SERVICE NOTIFICATION", NEBTYPE_NOTIFICATION_END + CONCERNS_SERVICE),
