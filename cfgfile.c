@@ -99,9 +99,10 @@ static struct cfg_comp *start_compound(const char *name, struct cfg_comp *cur, u
 static struct cfg_comp *close_compound(struct cfg_comp *comp, unsigned line)
 {
 	if (comp) {
+		//printf("Closing compound '%s' on line %d\n", comp->name, line);
 		comp->end = line;
 		if (!comp->parent) {
-			cfg_error(comp, NULL, "Returning NULL from close_compound on line %d", line);
+			cfg_error(comp, NULL, "Returning NULL from close_compound on line %d, started on line %d", line, comp->start);
 		}
 		return comp->parent;
 	}
@@ -146,7 +147,6 @@ static struct cfg_comp *parse_file(const char *path, struct cfg_comp *parent, un
 	char *buf;
 	struct cfg_var v;
 	struct cfg_comp *comp;
-	char end = '\n'; /* count like cat -n */
 
 	if (!(comp = start_compound(path, parent, 0)))
 		return NULL;
@@ -162,35 +162,32 @@ static struct cfg_comp *parse_file(const char *path, struct cfg_comp *parent, un
 	memset(&v, 0, sizeof(v));
 	for (i = 0; i < buflen; i++) {
 		char *next, *lstart, *lend;
-
-		if (end == '\n')
-			lnum++;
+		lnum++;
 
 		/* skip whitespace */
-		while(ISSPACE(buf[i]))
+		while (ISSPACE(buf[i]))
 			i++;
 
-		/* skip comments */
-		if (buf[i] == '#') {
-			while(buf[i] != '\n')
-				i++;
-
-			end = '\n';
+		/* skip empty lines */
+		if (buf[i] == '\n') {
+			v.key = v.value = NULL;
 			continue;
 		}
 
-		/* hop empty lines */
-		if (buf[i] == '\n') {
-			v.key = v.value = NULL;
-			end = '\n';
+		/* skip comments */
+		if (buf[i] == '#') {
+			i++;
+			while(buf[i] != '\n')
+				i++;
+
 			continue;
 		}
 
 		/* check for compound closure */
 		if (buf[i] == '}') {
 			v.key = v.value = NULL;
+			i++;
 			comp = close_compound(comp, lnum);
-			end = 0;
 			continue;
 		}
 
@@ -199,26 +196,26 @@ static struct cfg_comp *parse_file(const char *path, struct cfg_comp *parent, un
 
 		/* locate next newline */
 		next = lend = strchrnul(&buf[i], '\n');
-		end = *lend;
 		while ((ISSPACE(*lend) || *lend == '\n') && lend > lstart)
 			*lend-- = 0;
 
-		if (*lend == '}' || *lend == '{' || (*lend == ';' && lend[-1] != '\\')) {
-			end = *lend;
+		/* check for start of compound */
+		if (*lend == '{') {
 			*lend-- = 0;
 
 			/* nul-terminate and strip space from end of line */
 			while(ISSPACE(*lend) && lend > lstart)
 				*lend-- = 0;
-		}
 
-		/* check for start of compound */
-		if (end == '{') {
 			v.key = v.value = NULL;
 			compound_depth++;
 			comp = start_compound(lstart, comp, lnum);
 			i = next - buf;
 			continue;
+		} else if (*lend == ';' && lend[-1] != '\\') {
+			*lend-- = 0;
+			while (ISSPACE(*lend) && lend > lstart)
+				*lend-- = 0;
 		}
 
 		if (!v.key) {
@@ -248,11 +245,6 @@ static struct cfg_comp *parse_file(const char *path, struct cfg_comp *parent, un
 				v.value_len = 1 + lend - v.value;
 			add_var(comp, &v);
 			memset(&v, 0, sizeof(v));
-		}
-
-		if (end == '}') {
-			comp = close_compound(comp, lnum);
-			compound_depth--;
 		}
 
 		i = next - buf;
