@@ -475,7 +475,13 @@ static cfg_code slog_options[] = {
 	"max_attempts, max_check_attempts,\n" \
 	"percent_state_change, output, long_output,\n"          /* 55 */ \
 	"perf_data, action_url, icon_image_alt,\n" \
-	"check_command, check_period\n"                         /* 60 */ \
+	"check_command, check_period,\n"                        /* 60 */ \
+	"notification_period, retry_interval,\n" \
+	"check_interval, first_notification_delay,\n" \
+	"is_volatile,\n"                                        /* 65 */ \
+	"next_notification, notification_interval,\n" \
+	"parallelize_check,\n" \
+	"retain_nonstatus_information, retain_status_information\n"  /* 70 */ \
 	") VALUES(" valsf ",\n" \
 	"%d, %d,\n" \
 	"%s, %s, %s,\n"   /* 5 */   \
@@ -483,32 +489,37 @@ static cfg_code slog_options[] = {
 	"%s, %s,\n"       /* 10 */  \
 	"%d, %d,\n" \
 	"%f, %f,\n" \
-	"%d, %d,\n" \
+	"%d, %d,\n"       /* 16 */ \
 	"%d,\n" \
 	"%d, %d,\n" \
-	"%d,\n" \
+	"%d,\n"           /* 20 */ \
 	"%d, %d,\n" \
 	"%d, %d,\n" \
+	"%d, %d,\n"       /* 26 */ \
 	"%d, %d,\n" \
-	"%d, %d,\n" \
-	"%d, %lu,\n" \
+	"%d, %lu,\n"      /* 30 */ \
 	"%lu, %lu,\n" \
 	"%lu,\n" \
-	"%f, %lf,\n" \
+	"%f, %lf,\n"      /* 35 */ \
 	"%d,\n" \
 	"%lu,\n" \
-	"%lu, %d, %lu,\n" \
+	"%lu, %d, %lu,\n" /* 40 */ \
 	"%lu, %lu,\n" \
 	"%d,\n" \
 	"%d, %lu,\n" \
 	"%d,\n" \
 	"%d, %d,\n" \
-	"%d, %lu,\n" \
+	"%d, %lu,\n"      /* 50 */ \
 	"%d, %d,\n" \
 	"%f, %s, %s,\n" \
 	"%s, %s, %s,\n" \
-	"%s, %s,\n" \
-	"%s" \
+	"%s, %s,\n"       /* 60 */ \
+	"%s, %d,\n" \
+	"%d, %d,\n" \
+	"%d,\n"          /* 65 */ \
+	"%lu, %d,\n" \
+	"%d,\n" \
+	"%d, %d\n"      /* 70 */ \
 	")"
 
 #define INSERT_VALUES() \
@@ -543,7 +554,11 @@ static cfg_code slog_options[] = {
 	p->state.percent_state_change, safe_str(output), safe_str(long_output), \
 	safe_str(perf_data), safe_str(action_url), safe_str(icon_image_alt), \
 	safe_str(check_command), safe_str(check_period), \
-	safe_str(notification_period)
-
+	safe_str(notification_period), p->retry_interval, \
+	p->check_interval, p->first_notification_delay, \
+	p->is_volatile, \
+	p->state.next_notification, p->notification_interval, \
+	p->parallelize_check, \
+	p->retain_nonstatus_information, p->retain_status_information
 
 #endif
