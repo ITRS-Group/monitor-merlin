@@ -507,7 +507,8 @@ static cfg_code slog_options[] = {
 	"%d, %d,\n" \
 	"%f, %s, %s,\n" \
 	"%s, %s, %s,\n" \
-	"%s, %s\n" \
+	"%s, %s,\n" \
+	"%s" \
 	")"
 
 #define INSERT_VALUES() \
@@ -541,7 +542,8 @@ static cfg_code slog_options[] = {
 	p->max_attempts, p->max_attempts, \
 	p->state.percent_state_change, safe_str(output), safe_str(long_output), \
 	safe_str(perf_data), safe_str(action_url), safe_str(icon_image_alt), \
-	safe_str(check_command), safe_str(check_period)
+	safe_str(check_command), safe_str(check_period), \
+	safe_str(notification_period)
 
 
 #endif
