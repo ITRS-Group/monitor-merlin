@@ -474,8 +474,9 @@ static cfg_code slog_options[] = {
 	"is_flapping, flapping_comment_id,\n"                   /* 50 */ \
 	"max_attempts, max_check_attempts,\n" \
 	"percent_state_change, output, long_output,\n"          /* 55 */ \
-	"perf_data, action_url, icon_image_alt)\n" /* 58 */ \
-	"VALUES(" valsf ",\n" \
+	"perf_data, action_url, icon_image_alt,\n" \
+	"check_command, check_period\n"                         /* 60 */ \
+	") VALUES(" valsf ",\n" \
 	"%d, %d,\n" \
 	"%s, %s, %s,\n"   /* 5 */   \
 	"%s, %s, %s,\n" \
@@ -505,7 +506,9 @@ static cfg_code slog_options[] = {
 	"%d, %lu,\n" \
 	"%d, %d,\n" \
 	"%f, %s, %s,\n" \
-	"%s, %s, %s)"
+	"%s, %s, %s,\n" \
+	"%s, %s\n" \
+	")"
 
 #define INSERT_VALUES() \
 	p->ido.id, p->ido.instance_id, \
@@ -537,7 +540,8 @@ static cfg_code slog_options[] = {
 	p->state.is_flapping, p->state.flapping_comment_id, \
 	p->max_attempts, p->max_attempts, \
 	p->state.percent_state_change, safe_str(output), safe_str(long_output), \
-	safe_str(perf_data), safe_str(action_url), safe_str(icon_image_alt)
+	safe_str(perf_data), safe_str(action_url), safe_str(icon_image_alt), \
+	safe_str(check_command), safe_str(check_period)
 
 
 #endif

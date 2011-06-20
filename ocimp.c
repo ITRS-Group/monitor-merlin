@@ -221,11 +221,13 @@ static int alpha_cmp_service(const void *a_, const void *b_)
 
 static int insert_host(state_object *p)
 {
-	char *address;
-	char *alias;
+	char *address, *alias;
+	char *check_command = NULL, *check_period = NULL;
 	status_prep();
 	sql_quote(p->address, &address);
 	sql_quote(p->alias, &alias);
+	sql_quote(p->check_command, &check_command);
+	sql_quote(p->check_period, &check_period);
 
 	sql_query(INSERT_QUERY("host", "address, alias", "%s, %s"),
 			  safe_str(address), safe_str(alias),
@@ -241,7 +243,10 @@ static int insert_host(state_object *p)
 static int insert_service(state_object *p)
 {
 	char *service_description;
+	char *check_command = NULL, *check_period = NULL;
 	status_prep();
+	sql_quote(p->check_command, &check_command);
+	sql_quote(p->check_period, &check_period);
 	sql_quote(p->ido.service_description, &service_description);
 
 	sql_query(INSERT_QUERY("service", "service_description", "%s"),
