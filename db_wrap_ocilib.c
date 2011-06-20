@@ -280,6 +280,13 @@ size_t ociw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest
 		   all single-quote characters with two single-quote chars.
 		*/
 		char const q = '\'';
+		/* 
+		 * Since oracle do not handle strings longer then 4000 bytes (when not using prepared statements)
+		 * we terminate the string after 4000 bytes. 
+		 */
+		if (len >= 4000) {
+			len = 4000;
+		}
 		const size_t sz = (len * 2) /* large enough for a malicious all-quotes string.*/
 			+ 2 /* open/closing quotes */
 			+ 1 /* NULL pad */
