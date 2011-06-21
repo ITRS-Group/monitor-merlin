@@ -478,10 +478,8 @@ static cfg_code slog_options[] = {
 	"check_command, check_period,\n"                        /* 60 */ \
 	"notification_period, retry_interval,\n" \
 	"check_interval, first_notification_delay,\n" \
-	"is_volatile,\n"                                        /* 65 */ \
-	"next_notification, notification_interval,\n" \
-	"parallelize_check,\n" \
-	"retain_nonstatus_information, retain_status_information\n"  /* 70 */ \
+	"notification_interval,\n" \
+	"retain_nonstatus_information, retain_status_information\n"  /* 67 */ \
 	") VALUES(" valsf ",\n" \
 	"%d, %d,\n" \
 	"%s, %s, %s,\n"   /* 5 */   \
@@ -516,10 +514,8 @@ static cfg_code slog_options[] = {
 	"%s, %s,\n"       /* 60 */ \
 	"%s, %d,\n" \
 	"%d, %d,\n" \
-	"%d,\n"          /* 65 */ \
-	"%lu, %d,\n" \
-	"%d,\n" \
-	"%d, %d\n"      /* 70 */ \
+	"%d,\n"           /* 65 */ \
+	"%d, %d\n"      /* 67 */ \
 	")"
 
 #define INSERT_VALUES() \
@@ -556,9 +552,7 @@ static cfg_code slog_options[] = {
 	safe_str(check_command), safe_str(check_period), \
 	safe_str(notification_period), p->retry_interval, \
 	p->check_interval, p->first_notification_delay, \
-	p->is_volatile, \
-	p->state.next_notification, p->notification_interval, \
-	p->parallelize_check, \
+	p->notification_interval, \
 	p->retain_nonstatus_information, p->retain_status_information
 
 #endif

@@ -253,9 +253,12 @@ static int insert_service(state_object *p)
 	sql_quote(p->ido.service_description, &service_description);
 	sql_quote(p->notification_period, &notification_period);
 
-	sql_query(INSERT_QUERY("service", "service_description", "%s"),
-			  service_description,
-			  INSERT_VALUES());
+	sql_query(INSERT_QUERY("service", "service_description, is_volatile, "
+	                       "parallelize_check, next_notification",
+	                       "%s, %d, %d, %ld"),
+	          service_description, p->is_volatile, p->parallelize_check,
+	          p->state.next_notification,
+	          INSERT_VALUES());
 
 	free(service_description);
 	status_free();
