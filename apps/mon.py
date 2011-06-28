@@ -181,7 +181,7 @@ def load_command_module(path):
 		ret = True
 		func = getattr(module, f)
 		callname = modname + '.' + func.__name__[4:]
-		commands[callname] = func
+		commands[callname.replace('_', '-')] = func
 		init_funcs[callname] = init_func
 
 	return ret
