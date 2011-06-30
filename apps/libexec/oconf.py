@@ -390,13 +390,6 @@ class nagios_contact(nagios_group_member):
 		}
 
 class nagios_slave_object(nagios_object):
-	def link_to_master(self):
-		if nagios_objects[self.master_type].has_key(self.name):
-			master = nagios_objects[self.master_type]
-			master.slaves[self.otype].append(self)
-			return True
-		return False
-
 	def member_dict(self, ltype, s):
 		members = {}
 		ary = re.split('[\t ]*,[\t ]', s)
@@ -914,124 +907,6 @@ def cmd_hglist(args):
 	parse_object_config([object_cache])
 	for k in sorted(nagios_objects['hostgroup'].keys()):
 		print("  %s" % k)
-
-def import_usage():
-	print """
-Usage: mon oconf import <options>
-
---db-name    name of database to import to
---db-user    database username
---db-host    database host
---db-pass    database password
---db-type    database type (mysql is the only supported for now)
---cache      path to the objects.cache file to import
---status-log path to the status.log file to import
---nagios-cfg path to nagios' main configuration file
---help       print this text and exit
-"""
-
-#def cmd_import(args):
-#	db_type = 'mysql'
-#	db_host = 'localhost'
-#	db_user = 'merlin'
-#	db_pass = 'merlin'
-#	db_name = 'merlin'
-#	cache = None
-#	status_log = None
-#	nagios_cfg = None
-#	dry_run = False
-#	verbose = False
-#
-#	i = 0;
-#	nargs = len(args)
-#	try:
-#		while i < nargs:
-#			if args[i].startswith('--db-name'):
-#				db_name = args[i][len('--db-name='):]
-#			elif args[i].startswith('--db-user'):
-#				db_user = args[i][len('--db-user='):]
-#			elif args[i].startswith('--db-host'):
-#				db_host = args[i][len('--db-host='):]
-#			elif args[i].startswith('--db-pass'):
-#				db_pass = args[i][len('--db-pass='):]
-#			elif args[i].startswith('--db-type'):
-#				db_type = args[i][len('--db-type='):]
-#			elif args[i].startswith('--cache'):
-#				cache = args[i][len('--cache='):]
-#			elif args[i].startswith('--status-log'):
-#				status_log = args[i][len('--status-log='):]
-#			elif args[i].startswith('--nagios-cfg'):
-#				nagios_cfg = args[i][len('--nagios-cfg='):]
-#			elif args[i] == '--dry-run':
-#				dry_run = True
-#			elif args[i] == '--verbose':
-#				verbose = True
-#			elif args[i] == '--help':
-#				import_usage()
-#				return
-#			else:
-#				print "Error: Unknown argument '%s'" % args[i]
-#				import_usage()
-#				return
-#			i += 1
-#	except IndexError:
-#		print "Error: option '%s' requires an argument" % args[i][2:]
-#		import_usage()
-#		return
-#
-#	if not (nagios_cfg or cache or status_log):
-#		nagios_cfg = '/opt/monitor/etc/nagios.cfg'
-#
-#	oi = ObjectImporter(db_type, db_host, db_name, db_user, db_pass)
-#
-#	if nagios_cfg:
-#		try:
-#			config = parse_conf(nagios_cfg)
-#			if config:
-#				if not cache and config['object_cache_file']:
-#					cache = config['object_cache_file']
-#				if not status_log:
-#					if config['status_file']:
-#						status_log = config['status_file']
-#					elif config['xsddefault_status_file']:
-#						status_log = config['xsddefault_status_file']
-#		except IOError:
-#			print "Error: Couldn't open file '%s'." % (nagios_cfg),
-#			if not cache or not status_log:
-#				print "Not using config to find cache or status_log."
-#			else:
-#				print '\n'
-#	
-#	oi.prepare_import()
-#
-#	if not cache and not status_log:
-#		print 'Neither --cache nor --status-log given.\nImporting nothing'
-#		import_usage()
-#		return
-#
-#	
-#	if not dry_run:
-#		print 'Disabling indexes'
-#		oi.disable_indexes()
-#
-#	print 'Importing objects to database ' + db_name
-#	if cache:
-#		print 'Importing objects from ' + cache
-#		if not dry_run:
-#			oi.import_objects_from_cache(cache, True, verbose)
-#	
-#	if status_log:
-#		print 'Importing status from ' + status_log
-#		if not dry_run:
-#			oi.import_objects_from_cache(status_log, False, verbose)
-#
-#	if not dry_run:
-#		oi.commit_objects()
-#	
-#	if not dry_run:
-#		print 'Enabling indexes'
-#		oi.enable_indexes()
-#		oi.finalize_import()
 
 def _cmd_t_randomize(args):
 	global nagios_objects, interesting
