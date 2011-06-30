@@ -23,6 +23,15 @@ from object_importer import ObjectImporter
 from merlin_apps_utils import *
 import merlin_conf as mconf
 
+obj_index = {}
+def idx_get(otype):
+	global obj_index
+	if not has_key(obj_index, otype):
+		obj_index[otype] = 0
+	obj_index[otype] += 1
+	return obj_index[otype]
+
+
 # when whatever config file we're reading was last changed
 last_changed = 0
 nagios_cfg = '/opt/monitor/etc/nagios.cfg'
@@ -389,6 +398,9 @@ class nagios_contact(nagios_group_member):
 		'service_notification_commands': 'command',
 		}
 
+# we cheat quite heavily here and just assign host and service
+# slave objects to hosts, since they'll get printed just the
+# same no matter which object they're enslaved to.
 class nagios_slave_object(nagios_object):
 	def member_dict(self, ltype, s):
 		members = {}
@@ -405,8 +417,33 @@ class nagios_slave_object(nagios_object):
 		objs = [nagios_objects[ltype][o] for o in ary]
 		return objs
 
-class nagios_servicedependency(nagios_object):
-	otype = 'servicedependency'
+	def close(self):
+		self.name = "%s #%d" % (self.otype, idx_get(self.otype))
+
+	def parse(self):
+		hie = self.incex(self.master_var)
+		gie = self.incex_members('hostgroup', self.master_group_var)
+		inc = self.incex2inc('host', hie[0] | gie[0], hie[1] | gie[1])
+		if not len(inc):
+			return False
+		# remove hostgroup references and replace with host refs
+		self.obj.pop('hostgroup_name', False)
+		self.obj.pop('host_name', False)
+		self.obj['host_name'] = ','.join(inc)
+
+		hosts = self.list2objs('host', inc)
+		for h in hosts.values():
+			if not h.slaves.has_key(self.otype):
+				h.slaves[self.otype] = {}
+
+			# must use copy.deepcopy() here
+			h.slaves[self.otype][self.obj['service_description']] = copy.deepcopy(self)
+
+
+# only small differences between this and the other kind of thing
+class nagios_dependency_object(nagios_slave_object):
+	master_var = 'dependent_host_name'
+	master_group_var = 'dependent_hostgroup_name'
 
 
 class nagios_host(nagios_group_member):
@@ -449,24 +486,6 @@ class nagios_service(nagios_slave_object, nagios_group_member):
 		self.name = self.obj['host_name'] + ';' + self.obj['service_description']
 		return True
 
-	def parse(self):
-		hie = self.incex('host_name')
-		gie = self.incex_members('hostgroup', 'hostgroup_name')
-		inc = self.incex2inc('host', hie[0] | gie[0], hie[1] | gie[1])
-		# remove hostgroup references and replace with host refs
-		self.obj.pop('hostgroup_name', False)
-		self.obj.pop('host_name', False)
-		self.obj['host_name'] = ','.join(inc)
-
-		if not len(inc):
-			return False
-		hosts = self.list2objs('host', inc)
-		for h in hosts.values():
-			if not h.slaves.has_key(self.otype):
-				h.slaves[self.otype] = {}
-
-			# must use copy.deepcopy() here
-			h.slaves[self.otype][self.obj['service_description']] = copy.deepcopy(self)
 
 def parse_nagios_objects(path):
 	global last_changed
@@ -497,9 +516,9 @@ def parse_nagios_objects(path):
 				obj = nagios_servicegroup(otype)
 			elif otype.endswith('group'):
 				obj = nagios_group(otype)
-			elif otype.startswith('host'):
-				obj = nagios_slave_object(otype)
-			elif otype.startswith('service'):
+			elif otype.endswith('dependency'):
+				obj = nagios_dependency_object(otype)
+			elif otype.startswith('host') or otype.startswith('service'):
 				obj = nagios_slave_object(otype)
 			elif otype == 'timeperiod':
 				obj = nagios_timeperiod(otype)
