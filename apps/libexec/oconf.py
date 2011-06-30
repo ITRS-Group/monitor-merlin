@@ -1,4 +1,16 @@
 #!/usr/bin/env python
+#
+# Object function run-order is:
+#  __init__()
+#  add()   - params are being added as they're read from file
+#  close() - when the closing curly brace is encountered
+#            Typically used to set the 'name' of the object
+#  parse() - when all objects are read and are being parsed in their
+#            proper order. Typically used to link slave objects with
+#            their masters.
+#  write() - when objects are being written to their destination file
+#            Typically overridden to remove certain variables
+
 
 import os, sys, posix, re, copy, random
 import itertools
