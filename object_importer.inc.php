@@ -104,7 +104,6 @@ class nagios_object_importer
 		 'custom_vars' => 1,
 		 'scheduled_downtime' => 1,
 		 'comment_tbl' => 1,
-		 'contact_access' => 1,
 		 );
 
 	# conversion table for variable names
@@ -455,6 +454,7 @@ class nagios_object_importer
 	public function cache_access_rights()
 	{
 		echo "Caching contact access rights\n";
+		$this->sql_exec_query('TRUNCATE TABLE contact_access');
 		$cg_members = $this->get_contactgroup_members();
 		$ary['host'] = $this->cache_cg_object_access_rights($cg_members, 'host');
 		$ary['service'] = $this->cache_cg_object_access_rights($cg_members, 'service');
