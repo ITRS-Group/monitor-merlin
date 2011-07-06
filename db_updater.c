@@ -78,7 +78,7 @@ static int handle_host_status(merlin_node *node, int cb, const merlin_host_statu
 
 	/* this check is only done when we have new checkresults */
 	if (cb == NEBCALLBACK_HOST_CHECK_DATA) {
-		if (host_has_new_state(p->name, p->state.current_state, p->state.state_type)) {
+		if (db_log_reports && host_has_new_state(p->name, p->state.current_state, p->state.state_type)) {
 			result = sql_query
 				("INSERT INTO %s(timestamp, event_type, host_name, state, "
 				 "hard, retry, output) "
@@ -133,7 +133,7 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 		 host_name, service_description);
 
 	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA) {
-		if (service_has_new_state(p->host_name, p->service_description, p->state.current_state, p->state.state_type)) {
+		if (db_log_reports && service_has_new_state(p->host_name, p->service_description, p->state.current_state, p->state.state_type)) {
 			result = sql_query
 				("INSERT INTO %s(timestamp, event_type, host_name, "
 				 "service_description, state, hard, retry, output) "
@@ -144,6 +144,7 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 				 p->state.state_type == HARD_STATE,
 				 p->state.current_attempt, output);
 		}
+
 		/*
 		 * Stash service performance data separately, in case
 		 * people people are using Merlin with Nagiosgrapher or
@@ -175,6 +176,9 @@ static int rpt_downtime(void *data)
 	nebstruct_downtime_data *ds = (nebstruct_downtime_data *)data;
 	int depth, result;
 	char *host_name;
+
+	if (!db_log_reports)
+		return 0;
 
 	switch (ds->type) {
 	case NEBTYPE_DOWNTIME_START:
@@ -224,6 +228,9 @@ static int rpt_downtime(void *data)
 static int rpt_process_data(void *data)
 {
 	nebstruct_process_data *ds = (nebstruct_process_data *)data;
+
+	if (!db_log_reports)
+		return 0;
 
 	switch(ds->type) {
 	case NEBTYPE_PROCESS_START:

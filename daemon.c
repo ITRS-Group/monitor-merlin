@@ -14,6 +14,7 @@ static char *merlin_conf;
 static merlin_confsync csync;
 static int num_children;
 static int killing;
+int db_log_reports = 1;
 
 static void usage(char *fmt, ...)
 	__attribute__((format(printf,1,2)));
@@ -182,7 +183,11 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 			use_database = 1;
 			for (vi = 0; vi < c->vars; vi++) {
 				struct cfg_var *v = c->vlist[vi];
-				sql_config(v->key, v->value);
+				if (!strcmp(v->key, "log_report_data")) {
+					db_log_reports = strtobool(v->value);
+				} else {
+					sql_config(v->key, v->value);
+				}
 			}
 			continue;
 		}
