@@ -476,6 +476,9 @@ static int handle_contact_notification(const nebstruct_contact_notification_data
 	char *contact_name, *host_name, *service_description;
 	char *output, *ack_author, *ack_data;
 
+	if (!db_log_notifications)
+		return 0;
+
 	sql_quote(p->contact_name, &contact_name);
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->service_description, &service_description);
