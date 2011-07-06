@@ -72,7 +72,6 @@ def recurse_grab_object_cfg_files(v):
 def grab_nagios_cfg(nagios_cfg_path):
 	global force_include_commands
 
-	print("Grabbing nagios-config from %s" % nagios_cfg_path)
 	obj_files = []
 	comp = parse_conf(nagios_cfg_path)
 	for (k, v) in comp.params:
