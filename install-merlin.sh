@@ -127,6 +127,11 @@ To install them manually, run:
 EOF
 				fi
 			fi
+			# now we drop the 'id' field from report_data unconditionally
+			# It hasn't been used in a long time and causes trouble on
+			# very large systems where the 32-bit counter may wrap, causing
+			# new entries to the table to be dropped.
+			$mysql $db_name 'ALTER TABLE report_data DROP COLUMN id'
 			;;
 		*)
 			echo "Unknown database type '$db_type'"

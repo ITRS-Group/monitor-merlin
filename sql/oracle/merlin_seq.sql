@@ -83,13 +83,6 @@ PROMPT Creating Sequence host_id_SEQ ...
 CREATE SEQUENCE  host_id_SEQ
   MINVALUE 1 MAXVALUE 999999999999999999999999 INCREMENT BY 1  NOCYCLE ;
 
-DROP SEQUENCE report_data_id_SEQ;
-
-
-PROMPT Creating Sequence report_data_id_SEQ ...
-CREATE SEQUENCE  report_data_id_SEQ
-  MINVALUE 1 MAXVALUE 999999999999999999999999 INCREMENT BY 1  NOCYCLE ;
-
 DROP SEQUENCE contactgroup_id_SEQ;
 
 
@@ -880,7 +873,6 @@ DROP TABLE report_data CASCADE CONSTRAINTS;
 
 PROMPT Creating Table report_data ...
 CREATE TABLE report_data (
-  id NUMBER(10,0) NOT NULL,
   timestamp NUMBER(10,0) DEFAULT '0' NOT NULL,
   event_type NUMBER(10,0) DEFAULT '0' NOT NULL,
   flags NUMBER(10,0),
@@ -895,14 +887,6 @@ CREATE TABLE report_data (
 );
 
 
-PROMPT Creating Primary Key Constraint PRIMARY_14 on table report_data ...
-ALTER TABLE report_data
-ADD CONSTRAINT PRIMARY_14 PRIMARY KEY
-(
-  id
-)
-ENABLE
-;
 PROMPT Creating Index rd_timestamp on report_data ...
 CREATE INDEX rd_timestamp ON report_data
 (

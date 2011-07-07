@@ -617,7 +617,6 @@ CREATE TABLE IF NOT EXISTS notification(
 -- This table is not automagically recreated every time we upgrade
 --
 CREATE TABLE IF NOT EXISTS report_data (
-  id int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
   timestamp int(11) NOT NULL default '0',
   event_type int(11) NOT NULL default '0',
   flags int(11),
