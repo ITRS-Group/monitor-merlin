@@ -127,8 +127,77 @@ def cmd_distribution(args):
 	print("|%s" % pdata.lstrip())
 	sys.exit(state)
 
+
+def check_min_avg_max(args, col, defaults=False, filter=False):
+	order = ['min', 'avg', 'max']
+	thresh = {}
+	otype = False
+
+	if filter == False:
+		filter = 'should_be_scheduled = 1 AND active_checks_enabled = 1'
+
+	for arg in args:
+		if arg.startswith('--warning=') or arg.startswith('--critical'):
+			(what, thvals) = arg[2:].split('=')
+			thvals = thvals.split(',')
+			if len(thvals) != 3:
+				nplug.unknown("Bad argument: %s" % arg)
+
+			thresh[what] = []
+			for th in thvals:
+				thresh[what].append(float(th))
+
+		elif arg == 'host' or arg == 'service':
+			otype = arg
+		else:
+			nplug.unknown("Unknown argument: %s" % arg)
+
+	for t in ['critical', 'warning']:
+		if not thresh.get(t, False) and defaults.get(t, False) != False:
+			thresh[t] = defaults[t]
+
+	if not otype:
+		nplug.unknown("Need 'host' or 'service' as argument")
+
+	state = nplug.STATE_OK
+	values = mst.min_avg_max(otype, col, filter)
+	output = []
+	for thresh_type in ['critical', 'warning']:
+		if state != nplug.STATE_OK:
+			break
+		thr = threst[thresh_type]
+		i = 0
+		for th in thr:
+			what = order[i]
+			if values[what] >= th:
+				# since we set state for critical first, we can
+				# just overwrite it here as we'll never get here for
+				# warnings if we already have a critical issue
+				state = nplug.state_code(thresh_type)
+				output.append()
+
+	print(values, thresh['critical'])
+
+
 def cmd_exectime(args=False):
-	print("stub")
+	"""[host|service] --warning=<min,max,avg> --critical=<min,max,avg>
+	Checks execution time of active checks
+	"""
+	thresh = {
+		'warning': [5, 20, 50],
+		'critical': [15, 45, 90]
+	}
+	check_min_avg_max(args, 'execution_time', thresh)
+
+def cmd_latency(args=False):
+	"""[host|service] --warning=<min,max,avg> --critical=<min,max,avg>
+	Checks latency of active checks
+	"""
+	thresh = {
+		'warning': [30, 60, 90],
+		'critical': [60, 90, 120]
+	}
+	check_min_avg_max(args, 'latency', thresh)
 
 def cmd_orphans(args=False):
 	query = "SELECT"
