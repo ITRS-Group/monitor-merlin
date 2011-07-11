@@ -9,9 +9,17 @@ import nagios_plugin as nplug
 import merlin_conf as mconf
 import merlin_db
 
+dbc = False
+mst = False
+wanted_types = False
+wanted_names = False
+have_type_arg = False
+have_name_arg = False
+
 def module_init(args):
 	global wanted_types, wanted_names
 	global have_type_arg, have_name_arg
+	global dbc, mst
 
 	rem_args = []
 	i = -1
@@ -37,48 +45,16 @@ def module_init(args):
 
 	# load the merlin configuration, and thus all nodes
 	mconf.parse()
-	return rem_args
-
-def cmd_help(args=False):
-	print("""
-usage: mon node <command> [options]
-
-Command overview
-----------------
- orphans
-   Checks for apparently orphaned checks
-
- stale
-   Checks for apparently stale checks
-
- nodes
-   Checks for offline peers, pollers and masters
-
- configsync
-   Checks configuration synchronization between all peers and
-   pollers in a very basic way. Pollers are only checked to make
-   sure the config have a later timestamp than its master
-
- distribution
-   Checks to make sure configuration distribution works ok. Note
-   that it's not expected to work properly the first couple of
-   minutes after a new machine has been brought online or taken
-   offline
-
- latency
-   Checks for unnaturally high latency values in active checks
-
- exectime
-   Checks for unnaturally long execution time in active checks
-""")
-
-dbc = False
-
-def cmd_distribution(args):
-	global dbc
 	dbc = merlin_db.connect(mconf).cursor()
 	mst = merlin_status(dbc)
+	return rem_args
 
+def cmd_distribution(args):
+	"""
+	Checks to make sure work distribution works ok. Note that it's
+	not expected to work properly the first couple of minutes after
+	a new machine has been brought online or taken offline
+	"""
 	# min and max number of checks
 	total_checks = {
 		'host': mst.num_entries('host'),
