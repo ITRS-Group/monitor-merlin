@@ -152,6 +152,7 @@ help_helpers = []
 helpers = {}
 init_funcs = {}
 command_mod_load_fail = {}
+docstrings = {}
 
 
 def load_command_module(path):
@@ -163,7 +164,7 @@ def load_command_module(path):
 
 	modname = os.path.basename(path)[:-3]
 	try:
-		module = __import__(os.path.basename(path)[:-3])
+		module = __import__(modname)
 	except BaseException, ex:
 		# catch-all, primarily for development purposes
 		command_mod_load_fail[os.path.basename(path)] = ex
@@ -171,6 +172,8 @@ def load_command_module(path):
 
 	if getattr(module, "pure_script", False):
 		return False
+
+	docstrings[modname] = {}
 	# we grab the init function here, but delay running it
 	# until we know which module we'll be using.
 	init_func = getattr(module, "module_init", False)
@@ -180,8 +183,11 @@ def load_command_module(path):
 			continue
 		ret = True
 		func = getattr(module, f)
-		callname = modname + '.' + func.__name__[4:]
-		commands[callname.replace('_', '-')] = func
+		funcname = func.__name__[4:].replace('_', '-')
+		callname = modname + '.' + funcname
+		if func.__doc__:
+			docstrings[modname][funcname] = func.__doc__
+		commands[callname] = func
 		init_funcs[callname] = init_func
 
 	return ret
@@ -303,13 +309,19 @@ else:
 if not cmd in commands:
 	print("")
 	if not cat in categories.keys():
-		print("No category '%s' available, and it's not a raw command" % cat)
+		print("No category '%s' available, and it's not a raw command\n" % cat)
 	elif autohelp == True:
-		print("Category '%s' has no help overview." % cat)
-		print("Available commands: %s" % ', '.join(categories[cat]))
+		if not len(docstrings[cat]):
+			print("Category '%s' has no help overview." % cat)
+		print("Available commands: %s\n" % ', '.join(categories[cat]))
+		doc_keys = docstrings[cat].keys()
+		doc_keys.sort()
+		for cmd in doc_keys:
+			hlp = docstrings[cat][cmd].replace('\n\t', '\n').rstrip()
+			hlp = hlp.replace('\n', '\n   ')
+			print(" %s%s%s %s\n" % (color.green, cmd, color.reset, hlp))
 	else:
 		print("Bad category/command: %s" % cmd.replace('.', ' '))
-	print("")
 	sys.exit(1)
 
 if commands[cmd] == run_helper:
