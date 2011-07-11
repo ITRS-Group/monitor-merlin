@@ -124,19 +124,25 @@ static void load_state_file(const char *path)
 	}
 }
 
-static float parse_latency(struct cfg_comp *c)
+static int parse_latency(struct cfg_comp *c, float *latency)
 {
-	int i;
+	int i, vars = 3;
 
-	for (i = 0; i < c->vars; i++) {
+	for (i = 0; i < c->vars && vars; i++) {
 		struct cfg_var *v = c->vlist[i];
 
-		if (!strcmp(v->key, "check_latency")) {
-			return (float)strtod(v->value, NULL);
+		if (!strcmp(v->key, "should_be_scheduled") || !strcmp(v->key, "active_checks_enabled"))
+		{
+			vars--;
+			if (*v->value == '0')
+				return 1;
+		} else if (!strcmp(v->key, "check_latency")) {
+			vars--;
+			*latency = (float)strtod(v->value, NULL);
 		}
 	}
 
-	return 0.0;
+	return 0;
 }
 
 static int get_latency(const char *path)
@@ -164,8 +170,11 @@ static int get_latency(const char *path)
 		struct cfg_comp *c = statuslog->nest[i];
 
 		if (!strcmp(c->name, "servicestatus")) {
+			if (parse_latency(c, &lat))
+				continue;
+
 			services++;
-			lat = parse_latency(c);
+
 			stot += lat;
 			if (lat < smin)
 				smin = lat;
@@ -174,8 +183,11 @@ static int get_latency(const char *path)
 			continue;
 		}
 		if (!strcmp(c->name, "hoststatus")) {
+			if (parse_latency(c, &lat))
+				continue;
+
 			hosts++;
-			lat = parse_latency(c);
+
 			htot += lat;
 			if (lat < hmin)
 				hmin = lat;
@@ -201,13 +213,14 @@ static void usage(const char *fmt, ...)
 		va_start(ap, fmt);
 		vfprintf(stderr, fmt, ap);
 		va_end(ap);
+		fputc('\n', stderr);
 	}
 
 	printf("usage: check_latency [options]\n");
-	printf("*  --statefile=</path/to/latency.state>  where we read and stash our state\n");
-	printf("*  --status-log=</path/to/status.log>    status.log file to parse");
-	printf("   -w,--warning <threshold string>       set warning thresholds\n");
-	printf("   -c,--critical <threshold string>      set critical thresholds\n");
+	printf("  --statefile=</path/to/latency.state>  where we read and stash our state\n");
+	printf("  --status-log=</path/to/status.log>    status.log file to parse\n");
+	printf("  -w,--warning=<threshold string>       set warning thresholds\n");
+	printf("  -c,--critical=<threshold string>      set critical thresholds\n");
 	printf("\n");
 	printf("A threshold string has the format\n");
 	printf("      A,B,C.C,D.D\n");
@@ -301,39 +314,34 @@ static void check_thresholds(void)
 	if (h_inc && h_inc >= critical.host_increase &&
 		h_low && h_low->host.avg + h_inc >= current.host.avg)
 	{
-		push_error("Host check latency has increased the past %d times",
-				   h_inc);
+		push_error("Host latency has increased the past %d times", h_inc);
 	}
 	if (s_inc && s_inc >= critical.service_increase &&
 		s_low && s_low->service.avg + h_inc >= current.service.avg)
 	{
-		push_error("Service check latency has increased the past %d times",
-				   s_inc);
+		push_error("Service latency has increased the past %d times", s_inc);
 	}
 	if (current.host.avg >= critical.host_maxavg) {
-		push_error("Current host check latency is critically high. %f > %f",
+		push_error("Current host latency is critically high. %f > %f",
 				   current.host.avg, critical.host_maxavg);
 	}
 	if (current.service.avg >= critical.service_maxavg) {
-		push_error("Current service check latency is critically high. %f > %f",
+		push_error("Current service latency is critically high. %f > %f",
 				   current.service.avg, critical.service_maxavg);
 	}
 
-	
 	if (h_inc && h_inc >= warning.host_increase) {
-		push_warning("Host check latency has increased the past %d times",
-					 h_inc);
+		push_warning("Host latency has increased the past %d times", h_inc);
 	}
 	if (s_inc && s_inc >= warning.service_increase) {
-		push_warning("Service check latency has increased the past %d times",
-					 s_inc);
+		push_warning("Service latency has increased the past %d times", s_inc);
 	}
 	if (current.host.avg >= warning.host_maxavg) {
-		push_warning("Current host check latency alarmingly high. %f > %f",
+		push_warning("Current host latency alarmingly high. %f > %f",
 					 current.host.avg, warning.host_maxavg);
 	}
 	if (current.service.avg >= warning.service_maxavg) {
-		push_warning("Current service check latency alarmingly high. %f > %f",
+		push_warning("Current service latency alarmingly high. %f > %f",
 					 current.service.avg, warning.service_maxavg);
 	}
 }
@@ -405,7 +413,7 @@ int main(int argc, char **argv)
 
 	smin = hmin = 100000.0;
 	if (get_latency(statuslog) < 0) {
-		printf("Monitor appears to be stopped. How odd!\n");
+		usage("%s doesn't exist. Is op5 Monitor really running?\n", statuslog);
 		return 0;
 	}
 
@@ -423,7 +431,7 @@ int main(int argc, char **argv)
 		for (i = 0; i < warning_idx; i++)
 			printf("%s. ", warnings[i]);
 	} else {
-		printf("OK: Host check latency: %.3fs. Service check latency: %.3fs",
+		printf("OK: Host latency: %.3fs. Service latency: %.3fs",
 			   current.host.avg, current.service.avg);
 	}
 
