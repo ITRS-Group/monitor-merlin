@@ -11,16 +11,21 @@ class merlin_status:
 	def __init__(self, dbc):
 		self.dbc = dbc
 
-	def min_avg_max(self, table, col, iid=None):
+	def min_avg_max(self, table, col, filter=None, iid=None):
 		"""
 		Fetch min, average and max from 'table',
 		optionally filtering on instance_id, passed as 'iid'
 		"""
+		where = 'WHERE'
 		query = 'SELECT min(%s), avg(%s), max(%s) FROM %s' % \
 			(col, col, col, table)
 
 		if iid != None:
 			query += ' WHERE instance_id = %d' % iid
+			where = 'AND'
+
+		if filter and len(filter):
+			query = "%s %s %s" % (query, where, filter)
 
 		self.dbc.execute(query)
 		row = self.dbc.fetchone()
@@ -44,12 +49,12 @@ class merlin_status:
 	def node_status(self, iid=False):
 		ret = {
 			'checks_run': {
-				'host': self.num_entries('host', iid),
-				'service': self.num_entries('service', iid),
+				'host': self.num_entries('host', '', iid),
+				'service': self.num_entries('service', '', iid),
 			},
 			'latency': {
-				'host': self.min_avg_max('host', iid),
-				'service': self.min_avg_max('service', iid),
+				'host': self.min_avg_max('host', '', iid),
+				'service': self.min_avg_max('service', '', iid),
 			}
 		}
 		return ret
