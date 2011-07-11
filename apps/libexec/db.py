@@ -17,6 +17,11 @@ merlin_dir = '/opt/monitor/op5/merlin'
 log_file = '/tmp/merlin-sql-upgrade.log'
 
 def cmd_fixindexes(args):
+	"""
+	Fixes indexes on merlin tables containing historical data.
+	Don't run this tool unless you're asked to by op5 support staff
+	or told to do so by a message during an rpm or yum upgrade.
+	"""
 	print 'Adding indexes...'
 	print '(if this takes forever, aborting this and running'
 	print '\tmon log import --truncate-db'
@@ -43,6 +48,11 @@ def cmd_fixindexes(args):
 			print '  %s' % msg
 
 def cmd_cahash(args):
+	"""
+	Calculates a hash of all entries in the contact_access table.
+	This is really only useful for debugging purposes, but doesn't
+	block execution of anything, so run it if you feel like it.
+	"""
 	conn = merlin_db.connect(mconf)
 	dbc = conn.cursor()
 	hash = hashlib.sha1()

@@ -42,46 +42,6 @@ def module_init(args):
 	mconf.parse()
 	return rem_args
 
-def cmd_help(args=False):
-	print("""
-usage: mon node <command> [options]
-
-Command overview
-----------------
- add <name> type=[peer|poller|master] [var1=value] [varN=value]
-   Adds a node with the designated type and variables
-
- remove <name1> [name2] [nameN]
-   Removes a set of pollers
-
- list [--type=poller,peer,master]
-   Lists all nodes of the (optionally) specified type
-
- show [--type=poller,peer,master]]
-   Show all nodes of the selected type(s) in a shell-friendly fashion.
-
- show <name1> [name2] [nameN...]
-   Show named nodes. eval'able from shell if only one node is chosen.
-
- ctrl <name1> <name2> [--self] [--all|--type=<peer|poller|master>] -- <command>
-   Execute <command> on the remote node(s) named. --all means run it on
-   all configured nodes, as does making the first argument '--'.
-   --type=<types> means to run the command on all configured nodes of
-   the given type(s).
-   The first not understood argument marks the start of the command,
-   but always using double dashes is recommended. Use single-quotes
-   to execute commands with shell variables, output redirection or
-   scriptlets, like so:
-       mon node ctrl -- '(for x in 1 2 3; do echo $x; done) > /tmp/foo'
-       mon node ctrl -- cat /tmp/foo
-
- status
-   Show status of all nodes configured in the running Merlin daemon
-   Red text points to problem areas, such as high latency or the node
-   being inactive, not handling any checks,  or not sending regular
-   enough program_status updates.
-""")
-
 def get_min_avg_max(table, column, iid=None):
 	query = 'SELECT min(%s), avg(%s), max(%s) FROM %s WHERE ' % \
 		(column, column, column, table)
@@ -157,6 +117,12 @@ def fmt_min_avg_max(lat, thresh={}):
 
 dbc = False
 def cmd_status(args):
+	"""
+	Show status of all nodes configured in the running Merlin daemon
+	Red text points to problem areas, such as high latency or the node
+	being inactive, not handling any checks,  or not sending regular
+	enough program_status updates.
+	"""
 	global dbc
 
 	high_latency = {}
@@ -274,6 +240,9 @@ def cmd_status(args):
 ## node commands ##
 # list configured nodes, capable of filtering by type
 def cmd_list(args):
+	"""[--type=poller,peer,master]
+	Lists all nodes of the (optionally) specified type
+	"""
 	global wanted_types
 	for node in mconf.configured_nodes.values():
 		if not node.ntype in wanted_types:
@@ -281,10 +250,14 @@ def cmd_list(args):
 		print("  %s" % node.name)
 
 
-# display all variables for all nodes, or for one node in a fashion
-# suitable for being used as "eval $(mon node show nodename)" from
-# shell scripts
 def cmd_show(args):
+	"""[--type=poller,peer,master]
+	Display all variables for all nodes, or for one node in a fashion
+	suitable for being used as
+	  eval $(mon node show nodename)
+	from shell scripts and scriptlets
+	"""
+
 	if len(mconf.configured_nodes) == 0:
 		print("No nodes configured")
 		return
@@ -312,6 +285,9 @@ def cmd_show(args):
 
 
 def cmd_add(args):
+	"""<name> type=[peer|poller|master] [var1=value] [varN=value]
+	Adds a node with the designated type and variables
+	"""
 	if len(args) < 1:
 		return False
 	name = args[0]
@@ -354,6 +330,9 @@ def _cmd_edit(args):
 
 
 def cmd_remove(args):
+	"""<name1> [name2] [nameN]
+	Removes one or more nodes from the merlin configuration.
+	"""
 	if len(args) == 0:
 		print("Which node do you want to remove? Try the 'list' command")
 		return
@@ -370,6 +349,19 @@ def cmd_remove(args):
 
 
 def cmd_ctrl(args):
+	"""<name1> <name2> [--self] [--all|--type=<peer|poller|master>] -- <command>
+	Execute <command> on the remote node(s) named. --all means run it on
+	all configured nodes, as does making the first argument '--'.
+	--type=<types> means to run the command on all configured nodes of
+	the given type(s).
+	The first not understood argument marks the start of the command,
+	but always using double dashes is recommended. Use single-quotes
+	to execute commands with shell variables, output redirection or
+	scriptlets, like so:
+	  mon node ctrl -- '(for x in 1 2 3; do echo $x; done) > /tmp/foo'
+	  mon node ctrl -- cat /tmp/foo
+	"""
+
 	global wanted_names
 
 	if len(args) == 0:
