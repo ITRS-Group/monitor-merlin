@@ -200,6 +200,18 @@ def cmd_latency(args=False):
 	check_min_avg_max(args, 'latency', thresh)
 
 def cmd_orphans(args=False):
-	query = "SELECT"
-	print("stub")
+	"""
+	Checks for checks that haven't been run in too long a time
+	"""
+	now = time.time()
+	orphans = {'host': 0, 'service': 0}
+	for table in ['host', 'service']:
+		query = ("""SELECT COUNT(1) FROM %s WHERE
+			should_be_scheduled = 1 AND check_period = '24x7' AND
+			next_check < %s""" % (table, now - 1800))
+		dbc.execute(query)
+		row = dbc.fetchone()
+		orphans[table] = row[0]
+
+	print(orphans)
 	sys.exit(0)
