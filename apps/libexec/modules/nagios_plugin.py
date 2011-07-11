@@ -1,3 +1,5 @@
+import sys
+
 STATE_OK = 0
 OK = STATE_OK
 STATE_WARNING = 1
@@ -30,3 +32,18 @@ def state_name(state):
 	if state == UNKNOWN:
 		return "UNKNOWN"
 	return "Unknown status %d" % state
+
+def state_code(state_name):
+	str = state_name.tolower()
+	if str.startswith('c'):
+		return CRITICAL
+	if str.startswith('w'):
+		return WARNING
+	if str.startswith('o'):
+		return OK
+
+	return UNKNOWN
+
+def unknown(msg):
+	print("%s: %s" % (state_name(STATE_UNKNOWN), msg))
+	sys.exit(STATE_UNKNOWN)
