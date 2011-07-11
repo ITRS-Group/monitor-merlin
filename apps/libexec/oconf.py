@@ -644,39 +644,7 @@ def usage(msg = False):
 	if msg:
 		print(msg)
 
-	print("""
-usage: mon oconf <command> [options]
-
-Command overview
-----------------
- split <outfile:hostgroup1,hostgroup2,hostgroupN>
-   write config for hostgroup1,hostgroup2 and hostgroupN into outfile
-
- nodesplit
-   same as above, but use merlin's config to split config
-
- hash
-   print sha1 hash of running configuration
-
- changed
-   print last modification time of all files
-
- files
-   print the configuration files in alphabetical order
-
- hglist
-   print a sorted list of all configured hostgroups
-
- push
-   Split configuration based on merlin's peer and poller configuration
-   and send object configuration to all peers and pollers, restarting
-   those that receive a configuration update. ssh keys need to be set
-   up for this to be usable without admin supervision.
-""")
 	sys.exit(1)
-
-def cmd_help(args):
-	usage()
 
 def oconf_helper(args):
 	app = os.path.dirname(__file__) + '/-oconf'
@@ -685,19 +653,33 @@ def oconf_helper(args):
 		print("Helper %s was killed by signal %d" (app, ret))
 
 def cmd_hash(args):
+	"""
+	Print sha1 hash of running configuration
+	"""
 	oconf_helper(['hash'] + args)
 
 def cmd_changed(args):
+	"""
+	Print last modification time of all object configuration files
+	"""
 	oconf_helper(['last-changed'] + args)
 
 def cmd_files(args):
+	"""
+	Print the configuration files in alphabetical order
+	"""
 	sob_files = sorted(grab_nagios_cfg(nagios_cfg))
 	for cfile in sob_files:
 		print(cfile)
 
 def cmd_split(args):
+	"""<outfile:hostgroup1,hostgroup2,hostgroupN>
+	write config for hostgroup1,hostgroup2 and hostgroupN into outfile
+	"""
+
+	usg = "\n\nusage: split %s" % cmd_split.__doc__.split('\n', 1)[0]
 	if len(args) == 0:
-		usage("'split' requires arguments")
+		usage("'split' requires arguments%s" % usg)
 
 	argparams = []
 	grab_nagios_cfg(nagios_cfg)
@@ -710,7 +692,7 @@ def cmd_split(args):
 		# default case. outfile:hg1,hg2,hgN... argument
 		ary = arg.split(':')
 		if len(ary) != 2:
-			usage("Unknown argument: %s" % arg)
+			usage("Unknown argument for split: %s%s" % (arg, usg))
 
 		hgs = re.split('[\t ]*,[\t ]*', ary[1])
 		argparams.append({'file': ary[0], 'hostgroups': hgs})
@@ -726,8 +708,11 @@ def cmd_split(args):
 cache_dir = '/var/cache/merlin'
 config_dir = cache_dir + '/config'
 def cmd_nodesplit(args):
+	"""
+	Same as 'split', but use merlin's config to split config into
+	configuration files suitable for poller consumption
 	global cache_dir, config_dir
-
+	"""
 	wanted_nodes = {}
 	force = False
 	for arg in args:
@@ -821,6 +806,13 @@ def get_ssh_key(node):
 
 
 def cmd_push(args):
+	"""
+	Split configuration based on merlin's peer and poller configuration
+	and send object configuration to all peers and pollers, restarting
+	those that receive a configuration update. ssh keys need to be set
+	up for this to be usable without admin supervision.
+	This command uses 'nodesplit' as its backend.
+	"""
 	errors = 0
 	cmd_nodesplit(args)
 	restart_nodes = {}
@@ -922,6 +914,9 @@ def cmd_push(args):
 		sys.exit(1)
 
 def cmd_hglist(args):
+	"""
+	Print a sorted list of all configured hostgroups
+	"""
 	parse_object_config([object_cache])
 	for k in sorted(nagios_objects['hostgroup'].keys()):
 		print("  %s" % k)

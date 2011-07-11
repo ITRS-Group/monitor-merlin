@@ -7,6 +7,9 @@ from merlin_apps_utils import *
 import merlin_conf as mconf
 
 def cmd_merlin(discard):
+	"""
+	Draw the Merlin logo in ascii art
+	"""
 	print(color)
 	print("""%s%s
   ... . ...   . .   .  .   ..        .=M7        .   ..   .
@@ -50,6 +53,9 @@ def cmd_merlin(discard):
 (color.blue, color.bright, color.reset))
 
 def cmd_ninja(discard):
+	"""
+	Draw the Ninja logo in ascii art"
+	"""
 	print("""%s%s%s%s                                                                   
              ..     ...::::::::::::::::::::...     ..                
             .8$, .:MMMMMMMMMMMMMMMMMMMMMMMMMMMM:. .$8=.              
