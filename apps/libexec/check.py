@@ -165,7 +165,7 @@ def check_min_avg_max(args, col, defaults=False, filter=False):
 	for thresh_type in ['critical', 'warning']:
 		if state != nplug.STATE_OK:
 			break
-		thr = threst[thresh_type]
+		thr = thresh[thresh_type]
 		i = 0
 		for th in thr:
 			what = order[i]
