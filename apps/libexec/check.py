@@ -203,15 +203,48 @@ def cmd_orphans(args=False):
 	"""
 	Checks for checks that haven't been run in too long a time
 	"""
+	state = nplug.OK
+	otype = 'service'
+	unit = ''
+	warning = critical = 0
+	for arg in args:
+		if arg.startswith('--warning='):
+			val = arg.split('=', 1)[1]
+			if '%' in val:
+				unit = '%'
+				val = val.replace('%', '')
+			warning = float(val)
+		elif arg.startswith('--critical='):
+			val = arg.split('=', 1)[1]
+			if '%' in val:
+				unit = '%'
+				val = val.replace('%', '')
+			critical = float(val)
+		elif arg == 'host' or arg == 'service':
+			otype = arg
+
 	now = time.time()
 	orphans = {'host': 0, 'service': 0}
-	for table in ['host', 'service']:
-		query = ("""SELECT COUNT(1) FROM %s WHERE
-			should_be_scheduled = 1 AND check_period = '24x7' AND
-			next_check < %s""" % (table, now - 1800))
-		dbc.execute(query)
-		row = dbc.fetchone()
-		orphans[table] = row[0]
+	# Todo: Check things that are in their checking period
+	query = ("""SELECT COUNT(1) FROM %s WHERE
+		should_be_scheduled = 1 AND check_period = '24x7' AND
+		next_check < %d""" % (otype, now - 1800))
+	dbc.execute(query)
+	row = dbc.fetchone()
+	orphans = int(row[0])
+	total = mst.num_entries(otype, "check_period = '24x7'")
+	# by default, critical is at 1% and warning at 0.5%
+	if not warning and not critical:
+		critical = total * 0.01
+		warning = total * 0.005
+	if not warning and not critical:
+		warning = critical = 1
 
-	print(orphans)
-	sys.exit(0)
+	if orphans > critical:
+		state = nplug.CRITICAL
+	elif orphans > warning:
+		state = nplug.WARNING
+
+	sys.stdout.write("%s: Orphaned %s checks: %d / %d" % (nplug.state_name(state), otype, orphans, total))
+	print("|'orphans'=%d;%d;%d;0;%d" % (orphans, warning, critical, total))
+	sys.exit(state)
