@@ -33,15 +33,21 @@ class merlin_status:
 		return ret
 
 
-	def num_entries(self, table, iid=None):
+	def num_entries(self, table, filter=None, iid=None):
 		"""
 		Fetch the number of entries in 'table', optionally
 		filtering on instance_id, passed as 'iid'	
 		"""
+		where = 'WHERE'
 		query = 'SELECT count(1) FROM %s' % table
 
 		if iid != None:
 			query += ' WHERE instance_id = %d' % iid
+			where = 'AND'
+
+		if filter:
+			query = "%s %s %s" % (query, where, filter)
+
 		self.dbc.execute(query)
 		return self.dbc.fetchone()[0]
 
@@ -53,8 +59,8 @@ class merlin_status:
 				'service': self.num_entries('service', '', iid),
 			},
 			'latency': {
-				'host': self.min_avg_max('host', '', iid),
-				'service': self.min_avg_max('service', '', iid),
+				'host': self.min_avg_max('host', 'latency', '', iid),
+				'service': self.min_avg_max('service', 'latency', '', iid),
 			}
 		}
 		return ret
