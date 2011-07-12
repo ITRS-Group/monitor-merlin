@@ -401,6 +401,10 @@ class nagios_contact(nagios_group_member):
 # slave objects to hosts, since they'll get printed just the
 # same no matter which object they're enslaved to.
 class nagios_slave_object(nagios_object):
+	# these get overridden for dependencies
+	master_var = 'hostname'
+	master_group_var = 'hostgroup_name'
+
 	def member_dict(self, ltype, s):
 		members = {}
 		ary = re.split('[\t ]*,[\t ]', s)
