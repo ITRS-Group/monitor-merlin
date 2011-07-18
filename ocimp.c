@@ -1450,7 +1450,7 @@ static int parse_dependency(int *oid, struct cfg_comp *comp)
 		}
 	}
 
-	sql_query("INSERT INTO %sdependency(instance_id, id, %s, dependent_%s "
+	sql_query("INSERT INTO %sdependency(instance_id, id, %s, dependent_%s, "
 	          "dependency_period, inherits_parent, "
 	          "execution_failure_options, notification_failure_options) "
 	          "VALUES(0, %d, %d, %d, %s, %c, %s, %s)", what,
