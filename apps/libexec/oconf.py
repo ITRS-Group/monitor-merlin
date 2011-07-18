@@ -402,7 +402,7 @@ class nagios_contact(nagios_group_member):
 # same no matter which object they're enslaved to.
 class nagios_slave_object(nagios_object):
 	# these get overridden for dependencies
-	master_var = 'hostname'
+	master_var = 'host_name'
 	master_group_var = 'hostgroup_name'
 
 	def member_dict(self, ltype, s):
