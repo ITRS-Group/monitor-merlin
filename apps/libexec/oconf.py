@@ -489,6 +489,9 @@ class nagios_service(nagios_slave_object, nagios_group_member):
 		self.name = self.obj['host_name'] + ';' + self.obj['service_description']
 		return True
 
+	def parse(self):
+		nagios_slave_object.parse(self)
+		nagios_group_member.parse(self)
 
 def parse_nagios_objects(path):
 	global last_changed
