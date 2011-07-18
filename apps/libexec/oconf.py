@@ -715,8 +715,9 @@ def cmd_nodesplit(args):
 	"""
 	Same as 'split', but use merlin's config to split config into
 	configuration files suitable for poller consumption
-	global cache_dir, config_dir
 	"""
+	global cache_dir, config_dir
+
 	wanted_nodes = {}
 	force = False
 	for arg in args:
