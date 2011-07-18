@@ -26,7 +26,7 @@ import merlin_conf as mconf
 obj_index = {}
 def idx_get(otype):
 	global obj_index
-	if not has_key(obj_index, otype):
+	if not otype in obj_index.keys():
 		obj_index[otype] = 0
 	obj_index[otype] += 1
 	return obj_index[otype]
