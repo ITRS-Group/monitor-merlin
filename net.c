@@ -614,20 +614,26 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
 
-		if (node->sock < 0 || node->state == STATE_NONE)
+		if (!net_is_connected(node) || node->state == STATE_NONE)
 			continue;
 
-		if (net_is_connected(node)) {
-			FD_SET(node->sock, rd);
+		/*
+		 * safeguard against bugs in net_is_connected() or any of
+		 * the system and library calls it makes. node->sock has to
+		 * be >= 0 for FD_SET() not to cause segfaults
+		 */
+		if (node->sock < 0)
+			continue;
 
-			/*
-			 * if this node's binlog has entries we check
-			 * for writability as well, so we can send it
-			 * from the outer polling loop.
-			 */
-			if (binlog_has_entries(node->binlog))
-				FD_SET(node->sock, wr);
-		}
+		/* the node is connected, so we can poll it for readability */
+		FD_SET(node->sock, rd);
+
+		/*
+		 * if this node's binlog has entries we check for writability
+		 * as well, so we can send it from the outer polling loop.
+		 */
+		if (binlog_has_entries(node->binlog))
+			FD_SET(node->sock, wr);
 
 		if (node->sock > sel_val)
 			sel_val = node->sock;
