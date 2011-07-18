@@ -1,13 +1,19 @@
 conn = False
 
-def connect(mconf):
-	""" Connects to the merlin database configured by the 'mconf'
-	object passed as its only argument and returns a cursor suitable
-	for running queries against that database."""
+def connect(mconf, reuse_conn=True):
+	"""
+	Connects to the merlin database configured by the 'mconf'
+	object passed as its only argument and returns a connection handle
+	suitable for running queries against that database.
+	"""
 	global conn
 
-	if conn:
+	if conn and reuse_conn:
 		return conn
+
+	dbopts = getattr(mconf, 'dbopt', False)
+	if dbopts == False:
+		dbopts = mconf
 
 	db_host = mconf.dbopt.get('host', 'localhost')
 	db_name = mconf.dbopt.get('name', 'merlin')
