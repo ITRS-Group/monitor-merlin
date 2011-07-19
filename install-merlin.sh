@@ -131,7 +131,7 @@ EOF
 			# It hasn't been used in a long time and causes trouble on
 			# very large systems where the 32-bit counter may wrap, causing
 			# new entries to the table to be dropped.
-			$mysql $db_name -e 'ALTER TABLE report_data DROP COLUMN id'
+			$mysql $db_name -e 'ALTER TABLE report_data DROP COLUMN id' &> /dev/null || :
 			;;
 		*)
 			echo "Unknown database type '$db_type'"
