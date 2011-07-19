@@ -212,17 +212,17 @@ int auth_init(const char *path)
 		exit(1);
 	}
 
-	grok_object(conf, "define contactgroup ", grok_contactgroup);
+	grok_object(conf, "define contactgroup", grok_contactgroup);
 	if (!is_host_root) {
 		host_buckets = conf->nested / 10;
 		auth_hosts = hash_init(host_buckets);
-		grok_object(conf, "define host ", grok_host);
+		grok_object(conf, "define host", grok_host);
 	}
 
 	if (!is_service_root) {
 		service_buckets = conf->nested / 2;
 		auth_services = hash_init(service_buckets);
-		grok_object(conf, "define service ", grok_service);
+		grok_object(conf, "define service", grok_service);
 	}
 	return 0;
 }
