@@ -90,7 +90,7 @@ db_setup ()
 			# we always run the default schema, since it drops all
 			# non-persistent tables. This must come AFTER we fetch
 			# $db_version
-			$mysql -f $db_name < $src_dir/sql/mysql/merlin.sql >& /tmp/merlin-sql-upgrade.log
+			$mysql -f $db_name < $src_dir/sql/mysql/merlin.sql > /tmp/merlin-sql-upgrade.log 2>&1
 
 			# Check for upgrade scripts
 			ver=$db_version
