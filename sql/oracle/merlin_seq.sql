@@ -111,7 +111,7 @@ PROMPT Creating Table command ...
 CREATE TABLE command (
   instance_id NUMBER(10,0) DEFAULT '0' NOT NULL,
   id NUMBER(10,0) NOT NULL,
-  command_name VARCHAR2(75 CHAR) NOT NULL,
+  command_name VARCHAR2(1024 CHAR) NOT NULL,
   command_line CLOB NOT NULL
 );
 
@@ -754,7 +754,7 @@ CREATE TABLE notification (
   contact_name VARCHAR2(255 CHAR),
   host_name VARCHAR2(255 CHAR),
   service_description VARCHAR2(255 CHAR),
-  command_name VARCHAR2(255 CHAR),
+  command_name VARCHAR2(1024 CHAR),
   reason_type NUMBER(10,0),
   state NUMBER(10,0),
   output CLOB,
