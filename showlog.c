@@ -738,6 +738,7 @@ int main(int argc, char **argv)
 	int i, show_ltime_skews = 0, list_files = 0;
 	unsigned long long tot_lines = 0;
 	const char *nagios_cfg = NULL, *cgi_cfg = NULL, *object_cache = NULL;
+	int hosts_are_interesting = 0;
 
 	progname = strrchr(argv[0], '/');
 	progname = progname ? progname + 1 : argv[0];
@@ -842,11 +843,14 @@ int main(int argc, char **argv)
 		}
 		if (!strcmp(arg, "--host")) {
 			event_filter |= EVT_HOST;
+			hosts_are_interesting = 1;
 			add_interesting_object(opt);
 			continue;
 		}
 		if (!strcmp(arg, "--service")) {
 			event_filter |= EVT_SERVICE;
+			if (!hosts_are_interesting)
+				event_filter &= ~(EVT_HOST);
 			add_interesting_object(opt);
 			continue;
 		}
@@ -884,6 +888,7 @@ int main(int argc, char **argv)
 		}
 		if (!strcmp(arg, "--host-states")) {
 			event_filter |= EVT_HOST;
+			hosts_are_interesting = 1;
 			parse_host_state_filter(opt);
 			continue;
 		}
