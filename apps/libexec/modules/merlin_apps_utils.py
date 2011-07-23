@@ -63,6 +63,16 @@ def mkdir_p(dirname, mode=0777):
 		else:
 			raise
 
+def str_to_seconds(str):
+	multipliers = {'m': 60, 'h': 3600, 'd': 86400, 'w': 86400 * 7}
+	if str.isdigit():
+		return int(str)
+	suffix = str[-1].tolower()
+	multiplier = multipliers.get(suffix.tolower(), None)
+	if not str[:-1].isdigit() or multiplier == None:
+		return None
+	return int(str[:-1]) * multiplier
+
 def find_in_path(basename):
 	path_ary = os.getenv(PATH).split(':')
 	for p in path_ary:
