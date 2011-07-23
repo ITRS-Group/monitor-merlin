@@ -248,3 +248,89 @@ def cmd_orphans(args=False):
 	sys.stdout.write("%s: Orphaned %s checks: %d / %d" % (nplug.state_name(state), otype, orphans, total))
 	print("|'orphans'=%d;%d;%d;0;%d" % (orphans, warning, critical, total))
 	sys.exit(state)
+
+
+def get_files(dir, regex=False, result=[]):
+	"""
+	Fetches files from dir matching regex and stashes them in result.
+	Used by fe 'mon check cores'.
+	"""
+	if dir[-1] == '/':
+		dir = dir[:-1]
+
+	for d in os.listdir(dir):
+		path = "%s/%s" % (dir, d)
+		if regex == False or re.match(regex, d):
+			result.append(path)
+
+	return result
+
+def cmd_spool(args=False):
+	"""[--maxage=<seconds>] [--warning=X] [--critical=X] <path> [--delete]
+	Checks a certain spool directory for files (and files only) that
+	are older than 'maxage'. It's intended to prevent buildup of
+	checkresult files and unprocessed performance-data files in the
+	various spool directories used by op5 Monitor.
+	  --delete causes this check to always return OK, stating that X
+	  files were removed.
+	  --maxage is given in seconds and defaults to 300 (5 minutes).
+	  <path> may be 'perfdata' or 'checks', in which case directory
+	  names will be taken from op5 defaults
+	  --warning and --critical have no effect if '--delete' is given
+	  and will otherwise specify threshold values.
+
+	Only one directory at a time may be checked.
+	"""
+	maxage = 300
+	warning = 5
+	critical = 10
+	path = False
+	delete = False
+	for arg in args:
+		if arg.startswith('--maxage='):
+			maxage = str_to_seconds(arg.split('=', 1)[1])
+		elif arg.startswith('--warning='):
+			warning = int(arg.split('=', 1)[1])
+		elif arg.startswith('--critical='):
+			critical = int(arg.split('=', 1)[1])
+		elif arg == '--delete':
+			delete = True
+		elif path == False:
+			path = arg
+
+	if path == False:
+		nplug.unknown("'path' is a required argument")
+
+	if path == 'checks':
+		path = '/opt/monitor/var/spool/checkresults'
+	elif path == 'perfdata':
+		path = '/opt/monitor/var/spool/perfdata'
+
+	bad = 0
+	bad_paths = []
+	now = int(time.time())
+	result = get_files(path)
+	for p in result:
+		st = os.stat(p)
+		if st.st_mtime < (now - maxage):
+			bad_paths.append(p)
+			bad += 1
+
+	# if we're supposed to just clean up, remove all bad files
+	if delete:
+		try:
+			for p in bad_paths:
+				os.unlink(p)
+		except OSError, e:
+			pass
+		nplug.ok("Removed %d files" % bad)
+
+	state = nplug.STATE_OK
+	if bad >= critical:
+		state = nplug.STATE_CRITICAL
+	elif bad >= warning:
+		state = nplug.STATE_WARNING
+
+	print("%s: %d files too old|old_files=%d;%d;%d;;" %
+		(nplug.state_name(state), bad, bad, warning, critical))
+	sys.exit(state)
