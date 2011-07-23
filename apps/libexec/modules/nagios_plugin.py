@@ -47,3 +47,7 @@ def state_code(state_name):
 def unknown(msg):
 	print("%s: %s" % (state_name(STATE_UNKNOWN), msg))
 	sys.exit(STATE_UNKNOWN)
+
+def ok(msg):
+	print("%s: %s" % (state_name(STATE_OK), msg))
+	sys.exit(STATE_OK)
