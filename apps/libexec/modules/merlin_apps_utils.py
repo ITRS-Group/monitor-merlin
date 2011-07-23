@@ -1,5 +1,3 @@
-#!/usr/bin/python -tt
-
 import sys, os, time, errno
 
 class ansi_color:
@@ -64,3 +62,12 @@ def mkdir_p(dirname, mode=0777):
 			pass
 		else:
 			raise
+
+def find_in_path(basename):
+	path_ary = os.getenv(PATH).split(':')
+	for p in path_ary:
+		path = "%s/%s" % (p, basename)
+		if os.access(path, os.X_OK) and os.isfile(path):
+			return path
+
+	return False
