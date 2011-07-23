@@ -1,6 +1,7 @@
 *.o
 *.so
-core*
+core.[0-9]*
+core
 mod.log
 junk
 monitor
