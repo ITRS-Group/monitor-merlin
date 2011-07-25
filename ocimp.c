@@ -226,7 +226,11 @@ static int insert_host(state_object *p)
 	char *notification_period = NULL;
 	status_prep();
 	sql_quote(p->address, &address);
-	sql_quote(p->alias, &alias);
+	if (p->alias) {
+		sql_quote(p->alias, &alias);
+	} else {
+		alias = host_name;
+	}
 	sql_quote(p->check_command, &check_command);
 	sql_quote(p->check_period, &check_period);
 	sql_quote(p->notification_period, &notification_period);
@@ -236,7 +240,8 @@ static int insert_host(state_object *p)
 			  INSERT_VALUES());
 
 	free(address);
-	free(alias);
+	if (alias != host_name)
+		free(alias);
 	status_free();
 
 	return 0;
