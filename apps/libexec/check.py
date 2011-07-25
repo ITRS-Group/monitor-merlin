@@ -8,6 +8,7 @@ from merlin_status import *
 import nagios_plugin as nplug
 import merlin_conf as mconf
 import merlin_db
+from coredump import *
 
 dbc = False
 mst = False
@@ -334,3 +335,17 @@ def cmd_spool(args=False):
 	print("%s: %d files too old|old_files=%d;%d;%d;;" %
 		(nplug.state_name(state), bad, bad, warning, critical))
 	sys.exit(state)
+
+def cmd_cores(args=False):
+	"""
+	Checks for memory dumps resulting from segmentation violation from
+	core parts of op5 Monitor. Detected core-files are moved to
+	/tmp/mon-cores in order to keep working directories clean.
+	"""
+	result = []
+	get_files("/opt/monitor", 'core\..*', result)
+	get_files("/opt/monitor/op5/merlin", 'core\..*', result)
+	get_files("/root", 'core\..*', result)
+	for corefile in result:
+		core = coredump(corefile)
+		core.examine()
