@@ -26,8 +26,6 @@ def module_init(args):
 	i = -1
 	for arg in args:
 		i += 1
-		# stop parsing immediately if we hit double-dashes, or we
-		# may well break recursive commands sent with mon node ctrl.
 		if arg == '--':
 			rem_args += args[i:]
 			break
@@ -90,8 +88,8 @@ def cmd_distribution(args):
 
 		# get the actual data immediately
 		runs_checks = {
-			'host': mst.num_entries('host', info['basic']['iid']),
-			'service': mst.num_entries('service', info['basic']['iid']),
+			'host': mst.num_entries('host', None, info['basic']['iid']),
+			'service': mst.num_entries('service', None, info['basic']['iid']),
 		}
 		for ctype, num in total_checks.items():
 			# see if we should add one to the OK count
