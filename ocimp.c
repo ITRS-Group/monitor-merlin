@@ -539,6 +539,8 @@ static int ocimp_stash_status(state_object *obj)
 	if (!ocache_unchanged && *v->key == '_') { \
 		handle_custom_variable(comp->name, id, v); \
 		continue; \
+	} else if (*v->key == '_') { \
+		continue; \
 	} else do { \
 		/* nothing */ ; \
 	} while (0)
@@ -562,8 +564,8 @@ static int handle_custom_variable(const char *otype, int id, struct cfg_var *v)
 	sql_quote(v->key, &key);
 	sql_quote(v->value, &value);
 
-	sql_query("INSERT INTO(custom_vars(obj_type, obj_id, variable, value) "
-			  "VALUES(%s, %d, %s, %s", ot, id, key, value);
+	sql_query("INSERT INTO custom_vars(obj_type, obj_id, variable, value) "
+			  "VALUES(%s, %d, %s, %s)", ot, id, key, value);
 	safe_free(ot);
 	safe_free(key);
 	safe_free(value);
