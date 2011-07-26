@@ -542,7 +542,7 @@ static int csync_config_cmp(merlin_node *node)
 	 * to save the config exactly the same second on both nodes.
 	 */
 	lerr("CSYNC: %s: Can't determine confsync action", node->name);
-	lerr("CSYNC: %s: hash mismatch but mtime matche", node->name);
+	lerr("CSYNC: %s: hash mismatch but mtime matches", node->name);
 	lerr("CSYNC: %s: User intervention required.", node->name);
 
 	return 0;
