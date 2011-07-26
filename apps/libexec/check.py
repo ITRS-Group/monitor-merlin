@@ -352,15 +352,53 @@ def cmd_spool(args=False):
 	sys.exit(state)
 
 def cmd_cores(args=False):
-	"""
+	"""--warning=X --critical=X [--dir=]
 	Checks for memory dumps resulting from segmentation violation from
 	core parts of op5 Monitor. Detected core-files are moved to
 	/tmp/mon-cores in order to keep working directories clean.
+	  --warning default is 0
+	  --critical default is 1 (any corefile results in a critical alert)
+	  --dir lets you specify more paths to search for corefiles. This
+	    option can be given multiple times.
 	"""
+	warn = 0
+	crit = 1
+	dirs = ['/opt/monitor', '/opt/monitor/op5/merlin', '/root']
+	for arg in args:
+		if arg.startswith('--warning='):
+			warn = int(arg.split('=', 1)[1])
+		elif arg.startswith('--critical='):
+			crit = int(arg.split('=', 1)[1])
+		elif arg.startswith('--dir='):
+			dirs.append(arg.split('=', 1)[1])
+		else:
+			nplug.unknown("Unknown argument: %s" % arg)
+
+	core_pattern = '^core\..*'
 	result = []
-	get_files("/opt/monitor", 'core\..*', result)
-	get_files("/opt/monitor/op5/merlin", 'core\..*', result)
-	get_files("/root", 'core\..*', result)
+	for d in dirs:
+		get_files(d, core_pattern, result)
+	cores = 0
 	for corefile in result:
 		core = coredump(corefile)
 		core.examine()
+		if core.invalid:
+			try:
+				os.unlink(corefile)
+			except OSError:
+				pass
+			continue
+		cores += 1
+	if not cores:
+		valid = ''
+		if len(result):
+			valid = '(valid) '
+		nplug.ok("No %scorefiles found|cores=0;%d;%d;;" % (valid, warn, crit))
+
+	state = nplug.STATE_OK
+	if cores >= crit:
+		state = nplug.STATE_CRITICAL
+	elif cores >= warn:
+		state = nplug.STATE_WARNING
+	print("%s: %d corefiles found" % (nplug.state_name(state), cores))
+	sys.exit(state)
