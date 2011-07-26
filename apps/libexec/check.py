@@ -175,7 +175,24 @@ def check_min_avg_max(args, col, defaults=False, filter=False):
 				state = nplug.state_code(thresh_type)
 				output.append()
 
-	print(values, thresh['critical'])
+	i = 0
+	state = nplug.STATE_OK
+	perfdata_prefix = "%s_%s_" % (otype, col)
+	perfdata = ''
+	for o in order:
+		cval = thresh['critical'][i]
+		wval = thresh['warning'][i]
+		i += 1
+		value = values[o]
+		perfdata = "%s '%s%s'=%.3f;%.3f;%.3f;0;" % (
+			perfdata, perfdata_prefix, o, value, wval, cval)
+		if value >= cval:
+			state = nplug.STATE_CRITICAL
+		elif value >= wval and state != nplug.STATE_CRITICAL:
+			state = nplug.STATE_WARNING
+	print("%s: %s %s min/avg/max = %.2f/%.2f/%.2f|%s" %
+		(nplug.state_name(state), otype, col, values['min'], values['avg'], values['max'], perfdata))
+	sys.exit(state)
 
 
 def cmd_exectime(args=False):
