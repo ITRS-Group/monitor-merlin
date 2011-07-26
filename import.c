@@ -361,7 +361,7 @@ static void enable_indexes(void)
 	if (!indexes_disabled)
 		return;
 
-	sql_query("SELECT id FROM %s ORDER BY id DESC LIMIT 1", db_table);
+	sql_query("SELECT count(1) FROM %s", db_table);
 	if (!(result = sql_get_result()))
 		entries = 0;
 	else {
