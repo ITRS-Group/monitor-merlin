@@ -149,7 +149,8 @@ class nagios_object_importer
 		$this->obj_rel['host'] =
 			array('parents' => 'host',
 				  'contacts' => 'contact',
-				  'contact_groups' => 'contactgroup'
+				  'contact_groups' => 'contactgroup',
+				  'event_handler' => 'command',
 				  );
 
 		$this->obj_rel['contact'] =
@@ -163,6 +164,7 @@ class nagios_object_importer
 		$this->obj_rel['service'] =
 			array('contacts' => 'contact',
 				  'contact_groups' => 'contactgroup',
+				  'event_handler' => 'command',
 				  );
 
 		$this->obj_rel['contactgroup'] =
