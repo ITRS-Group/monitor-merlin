@@ -61,8 +61,6 @@ class coredump:
 			else:
 				self.invalid = self.INV_ESRCH_EXEC
 
-		print(self.executable)
-
 
 	def get_backtrace(self):
 		if not self.executable or not self.path:
@@ -73,12 +71,6 @@ class coredump:
 		(self.gdb_stdout, self.gdb_stderr) = stuff.communicate()
 		self.gdb_stdout = self.gdb_stdout.strip()
 		self.gdb_stderr = self.gdb_stderr.strip()
-		print("GDB STDERR START")
-		print(self.gdb_stderr)
-		print("GDB STDERR END")
-		print("GDB STDOUT START")
-		print(self.gdb_stdout)
-		print("GDB STDOUT END")
 		for l in self.gdb_stderr.split('\n'):
 			if not len(l):
 				continue
@@ -99,6 +91,5 @@ class coredump:
 		executable or any of its on-demand loaded modules lack
 		debugging symbols, the backtrace will be sparse.
 		"""
-		print("Examining %s" % self.path)
 		self.get_executable()
 		self.get_backtrace()
