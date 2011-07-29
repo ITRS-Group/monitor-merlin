@@ -614,9 +614,9 @@ static int parse_status(struct cfg_comp *comp)
 	/*
 	 * some (most) of these should get their id's preloaded
 	 * from before. For those that don't, we generate one
-	 * that we know is safe
+	 * at the very end that we know is safe
 	 */
-	if (!obj->ido.id) {
+	if (!obj->ido.id && located) {
 		if (!service_description) {
 			obj->ido.id = idt_next(&hid);
 		} else {
@@ -628,7 +628,12 @@ static int parse_status(struct cfg_comp *comp)
 		struct cfg_var *v = comp->vlist[i];
 		cfg_code *ccode;
 
-		handle_custom_var(obj->ido.id);
+		if (!ocache_unchanged && located && *v->key == '_') {
+			handle_custom_variable(comp->name, obj->ido.id, v);
+			continue;
+		} else if (*v->key == '_') {
+			continue;
+		}
 
 		ccode = get_cfg_code(v, slog_options);
 		if (!ccode) {
