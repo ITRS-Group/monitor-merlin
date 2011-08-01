@@ -440,7 +440,7 @@ class nagios_slave_object(nagios_object):
 				h.slaves[self.otype] = {}
 
 			# must use copy.deepcopy() here
-			h.slaves[self.otype][self.obj['service_description']] = copy.deepcopy(self)
+			h.slaves[self.otype][self.name] = copy.deepcopy(self)
 
 
 # only small differences between this and the other kind of thing
