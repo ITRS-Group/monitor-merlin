@@ -87,7 +87,15 @@ def grab_nagios_cfg(nagios_cfg_path):
 
 class nagios_object:
 	otype = ''
-	slave_keys = {}
+	slave_keys = {
+		'check_command': 'command',
+		'event_handler': 'command',
+		'check_period': 'timeperiod',
+		'notification_period': 'timeperiod',
+		'contact_groups': 'Mcontactgroup',
+		'contacts': 'Mcontact',
+		'escalation_period': 'timeperiod',
+	}
 	preserve = {}
 
 	def __init__(self, otype = ''):
@@ -451,16 +459,6 @@ class nagios_dependency_object(nagios_slave_object):
 
 class nagios_host(nagios_group_member):
 	otype = 'host'
-	slave_keys = {
-		'notification_period': 'timeperiod',
-		'check_period': 'timeperiod',
-		'check_command': 'command',
-		# we ignore the parents key here, since all interesting
-		# hosts will be printed anyway
-		#'parents': 'host',
-		'contact_groups': 'Mcontactgroup',
-		'contacts': 'Mcontact',
-		}
 	preserve = {'hostgroups': 'hostgroup', 'parents': 'host'}
 
 	def parse(self):
@@ -469,14 +467,6 @@ class nagios_host(nagios_group_member):
 
 class nagios_service(nagios_slave_object, nagios_group_member):
 	otype = 'service'
-	slave_keys = {
-		'check_command': 'command',
-		'event_handler': 'command',
-		'check_period': 'timeperiod',
-		'notification_period': 'timeperiod',
-		'contact_groups': 'Mcontactgroup',
-		'contacts': 'Mcontact',
-	}
 
 	def close(self):
 		if self.obj.has_key('name'):
