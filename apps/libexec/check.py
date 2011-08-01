@@ -1,4 +1,4 @@
-import os, sys, re, time, copy
+import os, sys, re, time, copy, errno
 
 modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
 if not modpath in sys.path:
@@ -327,7 +327,15 @@ def cmd_spool(args=False):
 	now = int(time.time())
 	result = get_files(path)
 	for p in result:
-		st = os.stat(p)
+		try:
+			st = os.stat(p)
+		except OSError, e:
+			# since it's a spool directory it's quite normal
+			# for files to disappear from it while we're
+			# scanning it.
+			if e.errno == errno.ESRCH:
+				pass
+
 		if st.st_mtime < (now - maxage):
 			bad_paths.append(p)
 			bad += 1
