@@ -142,13 +142,13 @@ CREATE TABLE timeperiod(
 	id						INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	timeperiod_name			VARCHAR(75) NOT NULL,
 	alias					VARCHAR(160) NOT NULL,
-	sunday					VARCHAR(50),
-	monday					VARCHAR(50),
-	tuesday					VARCHAR(50),
-	wednesday				VARCHAR(50),
-	thursday				VARCHAR(50),
-	friday					VARCHAR(50),
-	saturday				VARCHAR(50)
+	sunday					VARCHAR(255),
+	monday					VARCHAR(255),
+	tuesday					VARCHAR(255),
+	wednesday				VARCHAR(255),
+	thursday				VARCHAR(255),
+	friday					VARCHAR(255),
+	saturday				VARCHAR(255)
 ) COLLATE latin1_general_cs;
 CREATE UNIQUE INDEX t_timeperiod_name ON timeperiod(timeperiod_name);
 

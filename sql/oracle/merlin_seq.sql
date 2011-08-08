@@ -1350,13 +1350,13 @@ CREATE TABLE timeperiod (
   id NUMBER(10,0) NOT NULL,
   timeperiod_name VARCHAR2(75 CHAR) NOT NULL,
   alias VARCHAR2(160 CHAR) NOT NULL,
-  sunday VARCHAR2(50 CHAR),
-  monday VARCHAR2(50 CHAR),
-  tuesday VARCHAR2(50 CHAR),
-  wednesday VARCHAR2(50 CHAR),
-  thursday VARCHAR2(50 CHAR),
-  friday VARCHAR2(50 CHAR),
-  saturday VARCHAR2(50 CHAR)
+  sunday VARCHAR2(255 CHAR),
+  monday VARCHAR2(255 CHAR),
+  tuesday VARCHAR2(255 CHAR),
+  wednesday VARCHAR2(255 CHAR),
+  thursday VARCHAR2(255 CHAR),
+  friday VARCHAR2(255 CHAR),
+  saturday VARCHAR2(255 CHAR)
 );
 
 
