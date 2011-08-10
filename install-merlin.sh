@@ -183,7 +183,7 @@ install_apps ()
 {
 	mkdir -p $root_path/$bindir
 	mkdir -p $root_path/$libexecdir
-	cp apps/mon.py $root_path/usr/bin/mon
+	cp apps/mon.py $root_path/$bindir/mon
 	cp -a apps/libexec/* $root_path/$libexecdir
 	cp oconf $root_path/$libexecdir/-oconf
 	chmod 755 $root_path/$bindir/mon
