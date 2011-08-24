@@ -253,11 +253,19 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 	char *global_host_event_handler;
 	char *global_service_event_handler;
 	int result, node_id;
+	merlin_nodeinfo *info;
 
 	sql_quote(p->global_host_event_handler, &global_host_event_handler);
 	sql_quote(p->global_service_event_handler, &global_service_event_handler);
 
-	node_id = node == &ipc ? 0 : node->id + 1;
+	if (node == &ipc) {
+		info = &self;
+		node_id = 0;
+	} else {
+		info = &node->info;
+		node_id = node->id + 1;
+	}
+
 	result = sql_query
 		("UPDATE program_status SET is_running = 1, "
 		 "last_alive = %lu, program_start = %lu, pid = %d, daemon_mode = %d, "
@@ -269,7 +277,12 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 		 "failure_prediction_enabled = %d, process_performance_data = %d, "
 		 "obsess_over_hosts = %d, obsess_over_services = %d, "
 		 "modified_host_attributes = %lu, modified_service_attributes = %lu, "
-		 "global_host_event_handler = %s, global_service_event_handler = %s "
+		 "global_host_event_handler = %s, global_service_event_handler = %s, "
+		 "peer_id = %u, self_assigned_peer_id = %u, "
+		 "active_peers = %u, configured_peers = %u, "
+		 "active_pollers = %u, configured_pollers = %u, "
+		 "active_masters = %u, configured_masters = %u, "
+		 "host_checks_handled = %u, service_checks_handled = %u, "
 		 "WHERE instance_id = %d",
 		 time(NULL), p->program_start, p->pid, p->daemon_mode,
 		 p->last_command_check, p->last_log_rotation,
@@ -281,6 +294,11 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 		 p->obsess_over_hosts, p->obsess_over_services,
 		 p->modified_host_attributes, p->modified_service_attributes,
 		 safe_str(global_host_event_handler), safe_str(global_service_event_handler),
+		 node->peer_id, info->peer_id,
+		 info->active_peers, info->configured_peers,
+		 info->active_pollers, info->configured_pollers,
+		 info->active_masters, info->configured_masters,
+		 info->host_checks_handled, info->service_checks_handled,
 		 node_id);
 
 	free(global_host_event_handler);
