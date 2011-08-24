@@ -455,13 +455,13 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 			ldebug("Module @ %s is INACTIVE", node->name);
 			db_mark_node_inactive(node);
 		}
-	} else if (node->type == MODE_POLLER && num_nocs) {
+	} else if (node->type == MODE_POLLER && num_masters) {
 		uint i;
 
 		ldebug("Passing on event from poller %s to %d masters",
-		       node->name, num_nocs);
+		       node->name, num_masters);
 
-		for (i = 0; i < num_nocs; i++) {
+		for (i = 0; i < num_masters; i++) {
 			merlin_node *noc = noc_table[i];
 			net_sendto(noc, pkt);
 		}
@@ -562,7 +562,7 @@ int net_send_ipc_data(merlin_event *pkt)
 		return 0;
 
 	/* peers and masters always get all data */
-	for (i = 0; i < num_nocs + num_peers; i++) {
+	for (i = 0; i < num_masters + num_peers; i++) {
 		net_sendto(node_table[i], pkt);
 	}
 

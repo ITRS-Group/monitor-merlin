@@ -90,8 +90,10 @@ extern int is_module;
 extern int pulse_interval;
 extern int debug;
 
-#define num_nodes (num_nocs + num_pollers + num_peers)
-extern uint num_nocs, num_peers, num_pollers;
+#define num_masters self.configured_masters
+#define num_peers self.configured_peers
+#define num_pollers self.configured_pollers
+#define num_nodes (num_masters + num_pollers + num_peers)
 extern int use_database;
 extern merlin_nodeinfo self;
 

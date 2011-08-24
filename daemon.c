@@ -123,7 +123,7 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 		db_mark_node_inactive(&ipc);
 
 		/* also tell our peers and masters */
-		for (i = 0; i < num_nocs + num_peers; i++) {
+		for (i = 0; i < num_masters + num_peers; i++) {
 			merlin_node *node = node_table[i];
 			node_send_ctrl_inactive(node, CTRL_GENERIC, 100);
 		}
@@ -207,7 +207,7 @@ static void post_process_nodes(void)
 	uint i;
 
 	ldebug("post processing %d masters, %d pollers, %d peers",
-	       num_nocs, num_pollers, num_peers);
+	       num_masters, num_pollers, num_peers);
 
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];

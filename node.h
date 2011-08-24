@@ -105,6 +105,16 @@ struct merlin_nodeinfo {
 	struct timeval start;   /* module (or daemon) start time */
 	time_t last_cfg_change; /* when config was last changed */
 	unsigned char config_hash[20];   /* SHA1 hash of object config hash */
+	uint32_t peer_id;       /* self-assigned peer-id */
+	uint32_t active_peers;
+	uint32_t configured_peers;
+	uint32_t active_pollers;
+	uint32_t configured_pollers;
+	uint32_t active_masters;
+	uint32_t configured_masters;
+	uint32_t host_checks_handled;
+	uint32_t service_checks_handled;
+	/* new entries have to come LAST */
 } __attribute__((packed));
 typedef struct merlin_nodeinfo merlin_nodeinfo;
 
@@ -175,7 +185,7 @@ struct merlin_node {
 	int sock;               /* the socket */
 	int type;               /* server type (master, slave, peer) */
 	int state;              /* state of this node (down, pending, active) */
-	int peer_id;            /* peer id, used to distribute checks */
+	uint32_t peer_id;       /* peer id, used to distribute checks */
 	int flags;              /* flags for this node */
 	struct sockaddr *sa;    /* should always point to sain */
 	struct sockaddr_in sain;

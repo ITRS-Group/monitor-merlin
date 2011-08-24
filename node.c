@@ -239,7 +239,7 @@ static void create_node_tree(merlin_node *table, unsigned n)
 		merlin_node *node = &table[i];
 		switch (node->type) {
 		case MODE_NOC:
-			num_nocs++;
+			num_masters++;
 			break;
 		case MODE_POLLER:
 			num_pollers++;
@@ -257,8 +257,8 @@ static void create_node_tree(merlin_node *table, unsigned n)
 	 */
 	node_table = calloc(num_nodes, sizeof(merlin_node *));
 	noc_table = node_table;
-	peer_table = &node_table[num_nocs];
-	poller_table = &node_table[num_nocs + num_peers];
+	peer_table = &node_table[num_masters];
+	poller_table = &node_table[num_masters + num_peers];
 
 	xnoc = xpeer = xpoll = 0;
 	for (i = 0; i < n; i++) {
@@ -270,11 +270,11 @@ static void create_node_tree(merlin_node *table, unsigned n)
 			noc_table[xnoc++] = node;
 			break;
 		case MODE_PEER:
-			node->id = num_nocs + xpeer;
+			node->id = num_masters + xpeer;
 			peer_table[xpeer++] = node;
 			break;
 		case MODE_POLLER:
-			node->id = num_nocs + num_peers + xpoll;
+			node->id = num_masters + num_peers + xpoll;
 			poller_table[xpoll++] = node;
 			break;
 		}

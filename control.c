@@ -8,7 +8,6 @@
 
 static time_t stall_start;
 static merlin_node **peerid_table;
-static int active_peers, peer_id;
 static slist *host_sl, *service_sl;
 extern sched_info scheduling_info;
 extern host *host_list;
@@ -63,7 +62,7 @@ static int should_run_check(slist *sl, const void *key)
 {
 	int pos;
 
-	if (!active_peers || !sl)
+	if (!self.active_peers || !sl)
 		return 1;
 
 	pos = slist_find_pos(sl, key);
@@ -73,7 +72,7 @@ static int should_run_check(slist *sl, const void *key)
 		return -1;
 	}
 
-	return (pos % (active_peers + 1)) == peer_id;
+	return (pos % (self.active_peers + 1)) == self.peer_id;
 }
 
 int ctrl_should_run_host_check(char *host_name)
@@ -182,8 +181,8 @@ static void assign_peer_ids(void)
 	/* sort peerid_table with earliest started first */
 	ldebug("Sorting peerid_table with %d entries", num_peers);
 	qsort(peerid_table, num_peers, sizeof(merlin_node *), cmp_peer);
-	active_peers = 0;
-	peer_id = -1;
+	self.active_peers = 0;
+	self.peer_id = (int)-1;
 
 	/*
 	 * this could be done with a binary search, but since we expect
@@ -202,7 +201,7 @@ static void assign_peer_ids(void)
 		 */
 		node->peer_id = i + inc;
 		if (node->state == STATE_CONNECTED && node->info.start.tv_sec)
-			active_peers++;
+			self.active_peers++;
 
 		/* already adding +1, so move on */
 		if (inc)
@@ -224,21 +223,24 @@ static void assign_peer_ids(void)
 		 * so we take over this peer's id and start adding 1 to the peer
 		 * ids
 		 */
-		peer_id = node->peer_id;
+		self.peer_id = node->peer_id;
 		inc = 1;
 		node->peer_id += inc;
 	}
 
-	if (peer_id == -1)
-		peer_id = active_peers;
+	if (self.peer_id == (int)-1)
+		self.peer_id = self.active_peers;
 
-	linfo("We're now peer #%d out of %d active ones", peer_id,
-		  active_peers + 1);
-	h_extra = (scheduling_info.total_hosts % (active_peers + 1)) > peer_id;
-	s_extra = (scheduling_info.total_services % (active_peers + 1)) > peer_id;
-	h_checks = (scheduling_info.total_hosts / (active_peers + 1)) + h_extra;
-	s_checks = (scheduling_info.total_services / (active_peers + 1)) + s_extra;
-	linfo("Handling %u host and %u service checks", h_checks, s_checks);
+	linfo("We're now peer #%d out of %d active ones", self.peer_id,
+		  self.active_peers + 1);
+	h_extra = (scheduling_info.total_hosts % (self.active_peers + 1)) > self.peer_id;
+	s_extra = (scheduling_info.total_services % (self.active_peers + 1)) > self.peer_id;
+	h_checks = (scheduling_info.total_hosts / (self.active_peers + 1));
+	s_checks = (scheduling_info.total_services / (self.active_peers + 1));
+	self.host_checks_handled = h_checks + h_extra;
+	self.service_checks_handled = s_checks + s_extra;
+	linfo("Handling %u host and %u service checks",
+		  self.host_checks_handled, self.service_checks_handled);
 }
 
 /*
