@@ -58,7 +58,7 @@ extern void *slist_pop(slist *sl);
  *            items in the sorted list
  * @return An initialized slist object on success. NULL on errors
  */
-extern slist *slist_init(uint hint, int (*cmp)(const void *, const void *));
+extern slist *slist_init(unsigned int hint, int (*cmp)(const void *, const void *));
 
 /**
  * Set the list of items to operate on
@@ -74,7 +74,7 @@ extern slist *slist_init(uint hint, int (*cmp)(const void *, const void *));
  * @param sorted Should be 0 if the list needs sorting and 1 otherwise
  * @return 0 on success, -1 if sl is NULL, -2 if sl already has a list
  */
-extern int slist_set_list(slist *sl, void **list, uint items, int sorted);
+extern int slist_set_list(slist *sl, void **list, unsigned int items, int sorted);
 
 /**
  * free()'s memory associated with the slist table.
@@ -113,7 +113,7 @@ extern void *slist_destroy(slist *sl, int items_too);
  * @param sl The sorted list object
  * @return The current number of entries in the given list object
  */
-extern uint slist_entries(slist *sl);
+extern unsigned int slist_entries(slist *sl);
 
 /**
  * Returns the list pointer of the given slist

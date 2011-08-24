@@ -7,7 +7,7 @@
 struct sorted_list {
 	int (*compare)(const void *, const void *);
 	void **list;
-	uint alloc, pos;
+	unsigned int alloc, pos;
 	int is_sorted;
 };
 
@@ -29,7 +29,7 @@ void slist_sort(slist *sl)
 int slist_find_pos(slist *sl, const void *key)
 {
 	int value;
-	uint high, low = 0;
+	unsigned int high, low = 0;
 
 	if (!sl || !sl->pos || !sl->list) {
 		return -1;
@@ -40,7 +40,7 @@ int slist_find_pos(slist *sl, const void *key)
 
 	high = sl->pos;
 	while (high - low > 0) {
-		uint mid = low + ((high - low) / 2);
+		unsigned int mid = low + ((high - low) / 2);
 
 		value = sl->compare(&key, &sl->list[mid]);
 		if (value > 0) {
@@ -66,7 +66,7 @@ void *slist_find(slist *sl, const void *key)
 	return sl->list[slot];
 }
 
-static int slist_grow(slist *sl, uint hint)
+static int slist_grow(slist *sl, unsigned int hint)
 {
 	void *ptr;
 
@@ -114,7 +114,7 @@ void *slist_pop(slist *sl)
 	return item;
 }
 
-slist *slist_init(uint hint, int (*cmp)(const void *, const void *))
+slist *slist_init(unsigned int hint, int (*cmp)(const void *, const void *))
 {
 	slist *sl;
 
@@ -129,7 +129,7 @@ slist *slist_init(uint hint, int (*cmp)(const void *, const void *))
 	return sl;
 }
 
-int slist_set_list(slist *sl, void **list, uint items, int sorted)
+int slist_set_list(slist *sl, void **list, unsigned int items, int sorted)
 {
 	if (!sl || !list || !items)
 		return -1;
@@ -157,7 +157,7 @@ void slist_release(slist *sl)
 
 void slist_free_items(slist *sl)
 {
-	uint i;
+	unsigned int i;
 
 	if (!sl || !sl->list)
 		return;
@@ -180,7 +180,7 @@ void *slist_destroy(slist *sl, int items_too)
 	return NULL;
 }
 
-uint slist_entries(slist *sl)
+unsigned int slist_entries(slist *sl)
 {
 	if (!sl)
 		return 0;
