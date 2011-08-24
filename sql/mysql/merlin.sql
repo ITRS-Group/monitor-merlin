@@ -40,7 +40,15 @@ CREATE TABLE program_status(
 	modified_host_attributes		int,
 	modified_service_attributes		int,
 	global_host_event_handler		text,
-	global_service_event_handler	text
+	global_service_event_handler	text,
+	peer_id                         int,
+	self_assigned_peer_id           int,
+	active_peers                    int,
+	configured_peers                int,
+	active_pollers                  int,
+	configured_pollers              int,
+	active_masters                  int,
+	configured_masters              int
 ) COLLATE latin1_general_cs;
 
 -- removed. scheduled_downtime is the one we use

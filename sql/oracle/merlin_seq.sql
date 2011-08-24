@@ -855,7 +855,15 @@ CREATE TABLE program_status (
   modified_host_attributes NUMBER(10,0),
   modified_service_attributes NUMBER(10,0),
   global_host_event_handler CLOB,
-  global_service_event_handler CLOB
+  global_service_event_handler CLOB,
+  peer_id NUMBER(10,0),
+  self_assigned_peer_id NUMBER(10,0),
+  active_peers NUMBER(10,0),
+  configured_peers NUMBER(10,0),
+  active_pollers NUMBER(10,0),
+  configured_pollers NUMBER(10,0),
+  active_masters NUMBER(10,0),
+  configured_masters NUMBER(10,0)
 );
 
 
