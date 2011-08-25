@@ -863,7 +863,9 @@ CREATE TABLE program_status (
   active_pollers NUMBER(10,0),
   configured_pollers NUMBER(10,0),
   active_masters NUMBER(10,0),
-  configured_masters NUMBER(10,0)
+  configured_masters NUMBER(10,0),
+  host_checks_handled NUMBER(10,0),
+  service_checks_handled NUMBER(10,0)
 );
 
 

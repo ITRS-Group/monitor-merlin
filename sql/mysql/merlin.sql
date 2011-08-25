@@ -48,7 +48,9 @@ CREATE TABLE program_status(
 	active_pollers                  int,
 	configured_pollers              int,
 	active_masters                  int,
-	configured_masters              int
+	configured_masters              int,
+	host_checks_handled             int,
+	service_checks_handled          int
 ) COLLATE latin1_general_cs;
 
 -- removed. scheduled_downtime is the one we use
