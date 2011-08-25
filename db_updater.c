@@ -259,12 +259,12 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 	sql_quote(p->global_service_event_handler, &global_service_event_handler);
 
 	if (node == &ipc) {
-		info = &self;
 		node_id = 0;
 	} else {
-		info = &node->info;
 		node_id = node->id + 1;
 	}
+
+	info = &node->info;
 
 	result = sql_query
 		("UPDATE program_status SET is_running = 1, "
