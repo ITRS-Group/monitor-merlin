@@ -282,7 +282,7 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 		 "active_peers = %u, configured_peers = %u, "
 		 "active_pollers = %u, configured_pollers = %u, "
 		 "active_masters = %u, configured_masters = %u, "
-		 "host_checks_handled = %u, service_checks_handled = %u, "
+		 "host_checks_handled = %u, service_checks_handled = %u "
 		 "WHERE instance_id = %d",
 		 time(NULL), p->program_start, p->pid, p->daemon_mode,
 		 p->last_command_check, p->last_log_rotation,
