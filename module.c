@@ -818,6 +818,12 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	neb_handle = (void *)handle;
 
 	/*
+	 * this must be zero'd out before we enter the node
+	 * config parsing, or we'll clobber the values collected
+	 * there and think we have no nodes configured
+	 */
+	memset(&self, 0, sizeof(self));
+	/*
 	 * Solaris (among others) don't have MSG_NOSIGNAL, so we
 	 * ignore SIGPIPE globally instead.
 	 */
@@ -855,7 +861,6 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	 * now we collect info about ourselves. Somewhat akin to a
 	 * capabilities and attributes list.
 	 */
-	memset(&self, 0, sizeof(self));
 	self.version = MERLIN_NODEINFO_VERSION;
 	self.word_size = COMPAT_WORDSIZE;
 	self.byte_order = endianness();
