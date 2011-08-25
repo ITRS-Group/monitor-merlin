@@ -245,8 +245,8 @@ static void assign_peer_ids(void)
 
 /*
  * This gets run whenever we receive a CTRL_ACTIVE or CTRL_INACTIVE
- * packet. node is the originating node. state is the new state we
- * should set the node to (STATE_CONNECTED et al).
+ * packet. node is the originating node. prev_state is the previous
+ * state of the node (STATE_CONNECTED fe).
  */
 static int node_action(merlin_node *node, int prev_state)
 {
