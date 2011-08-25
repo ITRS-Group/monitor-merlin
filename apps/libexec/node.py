@@ -4,10 +4,9 @@ modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
 if not modpath in sys.path:
 	sys.path.append(modpath)
 from merlin_apps_utils import *
-import merlin_conf as mconf
 import merlin_db
 
-wanted_types = mconf.merlin_node.valid_types
+wanted_types = []
 wanted_names = []
 have_type_arg = False
 have_name_arg = False
@@ -16,6 +15,7 @@ def module_init(args):
 	global wanted_types, wanted_names
 	global have_type_arg, have_name_arg
 
+	wanted_types = mconf.merlin_node.valid_types
 	rem_args = []
 	i = -1
 	for arg in args:

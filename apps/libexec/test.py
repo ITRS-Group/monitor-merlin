@@ -13,7 +13,6 @@ modpath = os.path.dirname(__file__) + '/modules'
 if not modpath in sys.path:
 	sys.path.insert(0, modpath)
 from merlin_apps_utils import *
-import merlin_conf as mconf
 import merlin_db
 
 import compound_config as cconf

@@ -8,12 +8,8 @@ modpath = os.path.dirname(__file__) + '/modules'
 if not modpath in sys.path:
 	sys.path.insert(0, modpath)
 
-import merlin_conf as mconf
 import merlin_db
 
-# We should have a common config file for the mon suite, so this module could
-# use the same merlin_dir var that mon.py uses. We don't have that yet.
-merlin_dir = '/opt/monitor/op5/merlin'
 log_file = '/tmp/merlin-sql-upgrade.log'
 
 def cmd_fixindexes(args):

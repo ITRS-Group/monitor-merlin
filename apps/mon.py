@@ -43,7 +43,7 @@ docstrings = {}
 
 
 def load_command_module(path):
-	global commands, init_funcs
+	global commands, init_funcs, mconf
 	ret = False
 
 	if not libexec_dir in sys.path:
@@ -59,6 +59,11 @@ def load_command_module(path):
 
 	if getattr(module, "pure_script", False):
 		return False
+
+	# this is a command module, so pass on some sensible defaults
+	module.mconf = mconf
+	module.merlin_dir = merlin_dir
+	module.module_dir = module_dir
 
 	docstrings[modname] = {}
 	# we grab the init function here, but delay running it

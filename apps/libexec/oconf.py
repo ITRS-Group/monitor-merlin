@@ -21,7 +21,6 @@ if not modpath in sys.path:
 from compound_config import *
 from object_importer import ObjectImporter
 from merlin_apps_utils import *
-import merlin_conf as mconf
 
 obj_index = {}
 def idx_get(otype):

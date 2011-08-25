@@ -1,7 +1,5 @@
 import os, sys, subprocess, tempfile
 
-merlin_dir = "/opt/monitor/op5/merlin"
-
 ## log commands ##
 # force running push_logs on poller and peer systems
 def cmd_fetch(args):
