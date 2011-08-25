@@ -29,7 +29,7 @@ def cmd_fixindexes(args):
 		queries = file(table)
 		try:
 			cursor.execute(queries.read())
-		except BaseException, ex:
+		except Exception, ex:
 			log.append('%s: %s' % (os.path.basename(table), ex[1]))
 		queries.close()
 	conn.commit()
