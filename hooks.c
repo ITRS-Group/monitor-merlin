@@ -419,9 +419,8 @@ static int hook_comment(merlin_event *pkt, void *data)
 	if (ds->type == NEBTYPE_COMMENT_ADD)
 		return 0;
 
-	if (ds->type != NEBTYPE_COMMENT_DELETE &&
-	    (ds->entry_type == ACKNOWLEDGEMENT_COMMENT ||
-	     ds->entry_type == DOWNTIME_COMMENT))
+	if (ds->entry_type == ACKNOWLEDGEMENT_COMMENT ||
+	    ds->entry_type == DOWNTIME_COMMENT)
 	{
 		/*
 		 * ACKNOWLEDGEMENTs are sent as commands to get around
@@ -430,8 +429,8 @@ static int hook_comment(merlin_event *pkt, void *data)
 		 * DOWNTIME commands are also forwarded normally, so
 		 * we must take care not to send such events beyond our
 		 * own daemon also.
-		 * DELETE events are always forwarded though, unless
-		 * they're dupes of what we already sent.
+		 * DELETE events are also blocked, as they are scheduled by all peers
+		 * to be deleted automatically, and forwarding them creates races.
 		 */
 		pkt->hdr.code = MAGIC_NONET;
 	} else if (block_comment &&
