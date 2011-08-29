@@ -423,6 +423,9 @@ static void check_node_activity(merlin_node *node)
  */
 static int handle_network_event(merlin_node *node, merlin_event *pkt)
 {
+	nebstruct_comment_data *comment_data;
+	nebstruct_downtime_data *downtime_data;
+
 	if (pkt->hdr.type == CTRL_PACKET) {
 		/*
 		 * if this is a CTRL_ALIVE packet from a remote module, we
@@ -491,6 +494,18 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 	/* and not all packets get sent to the database */
 	case CTRL_PACKET:
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
+		return ipc_send_event(pkt);
+
+	case NEBCALLBACK_DOWNTIME_DATA:
+		ipc_send_event(pkt);
+		downtime_data = (nebstruct_downtime_data *)&pkt->body;
+		if (downtime_data->type == NEBTYPE_DOWNTIME_DELETE ||
+		    downtime_data->type == NEBTYPE_DOWNTIME_STOP)
+		{
+			mrm_db_update(node, pkt);
+		}
+		return 0;
+
 	case NEBCALLBACK_COMMENT_DATA:
 		/*
 		 * COMMENT events will always hit the module and return
@@ -499,7 +514,11 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		 * The others we can't do anything about in the database
 		 * layer.
 		 */
-		return ipc_send_event(pkt);
+		ipc_send_event(pkt);
+		comment_data = (nebstruct_comment_data *)&pkt->body;
+		if (comment_data->type == NEBTYPE_COMMENT_DELETE)
+			mrm_db_update(node, pkt);
+		return 0;
 
 	default:
 		/*

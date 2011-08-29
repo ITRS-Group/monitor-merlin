@@ -306,85 +306,6 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 	return result;
 }
 
-static int handle_downtime(const nebstruct_downtime_data *p)
-{
-	int result = 0;
-	char *host_name = NULL, *service_description = NULL;
-	char *comment_data = NULL, *author_name = NULL;
-
-	/*
-	 * If we stop downtime that's already started, we'll get a
-	 * downtime stop event, but no downtime delete event (weird,
-	 * but true).
-	 * Since we can't retroactively upgrade all Nagios instances
-	 * in the world, we have to make sure STOP also means DELETE
-	 */
-	if (p->type == NEBTYPE_DOWNTIME_DELETE ||
-		p->type == NEBTYPE_DOWNTIME_STOP)
-	{
-		result = sql_query("DELETE FROM scheduled_downtime "
-						   "WHERE downtime_id = %lu", p->downtime_id);
-
-		/* NEBTYPE_DOWNTIME_STOP has further actions to take */
-		if (p->type == NEBTYPE_DOWNTIME_DELETE)
-			return result;
-	}
-
-	sql_quote(p->host_name, &host_name);
-	sql_quote(p->service_description, &service_description);
-
-	switch (p->type) {
-	case NEBTYPE_DOWNTIME_START:
-	case NEBTYPE_DOWNTIME_STOP:
-		if (!service_description) {
-			result = sql_query
-				("UPDATE host SET "
-				 "scheduled_downtime_depth = scheduled_downtime_depth %c 1 "
-				 "WHERE host_name = %s",
-				 p->type == NEBTYPE_DOWNTIME_START ? '+' : '-', host_name);
-		} else {
-			result = sql_query
-				("UPDATE service SET "
-				 "scheduled_downtime_depth = scheduled_downtime_depth %c 1 "
-				 "WHERE host_name = %s AND service_description = %s",
-				 p->type == NEBTYPE_DOWNTIME_START ? '+' : '-',
-				 host_name, service_description);
-		}
-		break;
-	case NEBTYPE_DOWNTIME_LOAD:
-		result = sql_query
-			("DELETE FROM scheduled_downtime WHERE downtime_id = %lu",
-			 p->downtime_id);
-		/* fallthrough */
-	case NEBTYPE_DOWNTIME_ADD:
-		sql_quote(p->author_name, &author_name);
-		sql_quote(p->comment_data, &comment_data);
-		result = sql_query
-			("INSERT INTO scheduled_downtime "
-			 "(downtime_type, host_name, service_description, entry_time, "
-			 "author_name, comment_data, start_time, end_time, fixed, "
-			 "duration, triggered_by, downtime_id) "
-			 "VALUES(%d, %s, %s, %lu, "
-			 "       %s, %s, %lu, %lu, %d, "
-			 "       %lu, %lu, %lu)",
-			 p->downtime_type, host_name, safe_str(service_description),
-			 p->entry_time, author_name, comment_data, p->start_time,
-			 p->end_time, p->fixed, p->duration, p->triggered_by,
-			 p->downtime_id);
-		free(author_name);
-		free(comment_data);
-		break;
-	default:
-		linfo("Unknown downtime type %d", p->type);
-		break;
-	}
-
-	free(host_name);
-	safe_free(service_description);
-
-	return result;
-}
-
 static int handle_flapping(const nebstruct_flapping_data *p)
 {
 	int result;
@@ -420,6 +341,100 @@ static int handle_flapping(const nebstruct_flapping_data *p)
 	}
 
 	free(host_name);
+
+	return result;
+}
+
+static int handle_downtime(merlin_node *node, const nebstruct_downtime_data *p)
+{
+	int result = 0;
+	char *host_name = NULL, *service_description = NULL;
+	char *comment_data = NULL, *author_name = NULL;
+
+	/*
+	 * If we stop downtime that's already started, we'll get a
+	 * downtime stop event, but no downtime delete event (weird,
+	 * but true).
+	 * Since we can't retroactively upgrade all Nagios instances
+	 * in the world, we have to make sure STOP also means DELETE
+	 */
+	if (p->type == NEBTYPE_DOWNTIME_DELETE ||
+		p->type == NEBTYPE_DOWNTIME_STOP)
+	{
+		/*
+		 * for local delete events, we can use the downtime_id,
+		 * which is properly indexed and quick to search for.
+		 * If not, we'll have to use other heuristics to find
+		 * the proper entry to delete.
+		 * Note that this will remove all identical downtime
+		 * entries, but as with comments, that just can't be
+		 * helped.
+		 */
+		if (node == &ipc) {
+			result = sql_query("DELETE FROM scheduled_downtime "
+			                   "WHERE downtime_id = %lu", p->downtime_id);
+		} else {
+			sql_quote(p->host_name, &host_name);
+			sql_quote(p->service_description, &service_description);
+			sql_quote(p->comment_data, &comment_data);
+			sql_quote(p->author_name, &author_name);
+			result = sql_query("DELETE FROM scheduled_downtime "
+							   "WHERE downtime_type = %d AND "
+							   "end_time = %d AND fixed = %d AND "
+							   "host_name = %s AND service_description %s %s "
+							   "AND author_name = %s AND comment_data = %s",
+							   p->downtime_type, p->end_time, p->fixed,
+							   host_name, service_description ? "=" : " IS ",
+							   safe_str(service_description),
+							   author_name, comment_data);
+			safe_free(host_name);
+			safe_free(service_description);
+			safe_free(comment_data);
+			safe_free(author_name);
+		}
+
+		return result;
+	}
+
+	if (node != &ipc)
+		return 0;
+
+	switch (p->type) {
+	case NEBTYPE_DOWNTIME_START:
+	case NEBTYPE_DOWNTIME_STOP:
+		/* this gets updated by the host and/or service status event */
+		break;
+	case NEBTYPE_DOWNTIME_LOAD:
+		result = sql_query
+			("DELETE FROM scheduled_downtime WHERE downtime_id = %lu",
+			 p->downtime_id);
+		/* fallthrough */
+	case NEBTYPE_DOWNTIME_ADD:
+		sql_quote(p->host_name, &host_name);
+		sql_quote(p->service_description, &service_description);
+		sql_quote(p->author_name, &author_name);
+		sql_quote(p->comment_data, &comment_data);
+		result = sql_query
+			("INSERT INTO scheduled_downtime "
+			 "(downtime_type, host_name, service_description, entry_time, "
+			 "author_name, comment_data, start_time, end_time, fixed, "
+			 "duration, triggered_by, downtime_id) "
+			 "VALUES(%d, %s, %s, %lu, "
+			 "       %s, %s, %lu, %lu, %d, "
+			 "       %lu, %lu, %lu)",
+			 p->downtime_type, host_name, safe_str(service_description),
+			 p->entry_time, author_name, comment_data, p->start_time,
+			 p->end_time, p->fixed, p->duration, p->triggered_by,
+			 p->downtime_id);
+		free(host_name);
+		safe_free(service_description);
+		free(author_name);
+		free(comment_data);
+		break;
+	default:
+		linfo("Unknown downtime type %d", p->type);
+		break;
+	}
 
 	return result;
 }
@@ -629,7 +644,7 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 		errors = handle_comment(node, (void *)pkt->body);
 		break;
 	case NEBCALLBACK_DOWNTIME_DATA:
-		errors = handle_downtime((void *)pkt->body);
+		errors = handle_downtime(node, (void *)pkt->body);
 		errors |= rpt_downtime((void *)pkt->body);
 		break;
 	case NEBCALLBACK_FLAPPING_DATA:
