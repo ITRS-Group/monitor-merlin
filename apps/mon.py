@@ -54,7 +54,7 @@ def load_command_module(path):
 		module = __import__(modname)
 	except BaseException, ex:
 		# catch-all, primarily for development purposes
-		command_mod_load_fail[os.path.basename(path)] = ex
+		command_mod_load_fail[modname] = ex
 		return -1
 
 	if getattr(module, "pure_script", False):
@@ -151,6 +151,12 @@ for raw_cmd in commands:
 	if not cmd in categories[cat]:
 		categories[cat].append(cmd)
 
+def mod_fail_print(text, mod):
+	msg = command_mod_load_fail.get(mod)
+	print("%s %sFailed to load command module %s%s%s%s:\n   %s%s%s%s\n" %
+		(text, color.red, color.yellow, color.bright, mod, color.reset,
+		color.red, color.bright, msg, color.reset))
+
 def show_usage():
 	print('''usage: mon [category] <command> [options]
 
@@ -171,14 +177,13 @@ Some commands accept a --help flag to print some helptext, and some
 categories have a help-command associated with them.
 ''')
 
-	for mod, msg in command_mod_load_fail.items():
-		print("(nonfatal) %sFailed to load command module %s%s%s%s:\n   %s%s%s%s\n" %
-			(color.red, color.yellow, color.bright, mod, color.reset,
-			color.red, color.bright, msg, color.reset))
+	for mod in command_mod_load_fail.keys():
+		mod_fail_print("(nonfatal)", mod)
 	sys.exit(1)
 
 if len(sys.argv) < 2 or sys.argv[1] == '--help' or sys.argv[1] == 'help':
 	show_usage()
+
 
 args = []
 autohelp = False
@@ -197,6 +202,12 @@ else:
 	# Take it to mean 'help' for that category
 	cmd = cat + '.help'
 	autohelp = True
+
+# if a dev's managed to hack in a bug in a command module, we
+# should tell the user so politely and not just fail to do anything
+if cat in command_mod_load_fail.keys():
+	mod_fail_print('%sfatal%s:' % (color.yellow, color.reset), cat)
+	sys.exit(1)
 
 if not cmd in commands:
 	print("")
