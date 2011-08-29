@@ -13,6 +13,7 @@ modpath = os.path.dirname(__file__) + '/modules'
 if not modpath in sys.path:
 	sys.path.insert(0, modpath)
 from merlin_apps_utils import *
+from merlin_test_utils import *
 import merlin_db
 
 import compound_config as cconf
@@ -33,20 +34,6 @@ def module_init(args):
 	mconf.parse()
 	return rem_args
 
-
-failed = 0
-passed = 0
-def test(a, b, msg):
-	global passed, failed
-
-	if a == b:
-		if verbose:
-			print("  %sok%s   %s" % (color.green, color.reset, msg))
-		passed += 1
-	else:
-		print("  %sfail%s %s" % (color.red, color.reset, msg))
-		print(a, b)
-		failed += 1
 
 def test_cmd(cmd_fd, cmd, msg=False):
 	if msg != False:
