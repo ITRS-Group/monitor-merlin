@@ -875,7 +875,7 @@ static int merlin_lock(void)
 	int ret;
 	struct timespec ts;
 
-	ts.tv_sec = 2;
+	ts.tv_sec = time(NULL) + 2;
 	ts.tv_nsec = 0;
 
 	ret = pthread_mutex_timedlock(&mod_lock, &ts);
