@@ -203,14 +203,14 @@ static int get_selection(const char *key)
 {
 	node_selection *sel = node_selection_by_hostname(key);
 
-	return sel ? sel->id & 0xffff : CTRL_GENERIC;
+	return sel ? sel->id & 0xffff : DEST_BROADCAST;
 }
 
 static int get_hostgroup_selection(const char *key)
 {
 	node_selection *sel = node_selection_by_name(key);
 
-	return sel ? sel->id & 0xffff : CTRL_GENERIC;
+	return sel ? sel->id & 0xffff : DEST_BROADCAST;
 }
 
 static int send_host_status(merlin_event *pkt, struct host_struct *obj)
@@ -686,7 +686,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 			return 0;
 		}
 
-		pkt->hdr.selection = CTRL_GENERIC;
+		pkt->hdr.selection = DEST_BROADCAST;
 		break;
 	}
 

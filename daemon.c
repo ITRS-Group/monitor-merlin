@@ -680,7 +680,7 @@ static int handle_ipc_event(merlin_event *pkt)
 	 * unusable in network transfers without repacking, but only
 	 * if this isn't magically marked as a NONET event
 	 */
-	if (pkt->hdr.type == CTRL_PACKET || pkt->hdr.code != MAGIC_NONET)
+	if (pkt->hdr.code != MAGIC_NONET)
 		result = net_send_ipc_data(pkt);
 
 	/* skip sending control packets to database */

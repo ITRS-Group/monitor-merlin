@@ -36,6 +36,7 @@
 #define NAK_PACKET    0xfffd  /* NAK ("I don't understand") (not used) */
 
 /* If "type" is CTRL_PACKET, then "code" is one of the following */
+#define CTRL_GENERIC  0 /* generic control packet */
 #define CTRL_PULSE    1 /* keep-alive signal */
 #define CTRL_INACTIVE 2 /* signals that a slave went offline */
 #define CTRL_ACTIVE   3 /* signals that a slave went online */
@@ -43,13 +44,11 @@
 #define CTRL_STALL    5 /* signal that we can't accept events for a while */
 #define CTRL_RESUME   6 /* now we can accept events again */
 #define CTRL_STOP     7 /* exit() immediately (only accepted via ipc) */
-#define CTRL_GENERIC  0xffff  /* generic control packet */
-
-/*
- * if "type" is NOT CTRL_PACKET, the following magic entries can be
- * used for the "code" entry
- */
+/* the following magic entries can be used for the "code" entry */
 #define MAGIC_NONET 0xffff /* don't forward to the network */
+
+/* Mark "selection" with this to generate broadcast events */
+#define DEST_BROADCAST 0xffff
 
 #define HDR_SIZE (sizeof(merlin_header))
 #define PKT_SIZE (sizeof(merlin_event))
