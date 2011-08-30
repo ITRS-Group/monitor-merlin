@@ -730,6 +730,10 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 	       info->start.tv_sec, info->start.tv_usec);
 	ldebug("  config hash: %s", tohex(info->config_hash, 20));
 	ldebug(" config mtime: %lu", info->last_cfg_change);
+	ldebug("      peer id: %u", node->peer_id);
+	ldebug(" self peer id: %u", info->peer_id);
+	ldebug(" active peers: %u", info->active_peers);
+	ldebug(" confed peers: %u", info->configured_peers);
 
 	return 0;
 }
