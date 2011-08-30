@@ -199,7 +199,6 @@ struct merlin_node {
 	merlin_node_stats stats; /* event/data statistics */
 	merlin_iocache ioc;     /* I/O cache for bulk reads */
 	merlin_confsync *csync; /* config synchronization configuration */
-	unsigned long flap_comment_id; /* tracks comment ids for flapping events */
 	int (*action)(struct merlin_node *, int); /* (daemon) action handler */
 };
 typedef struct merlin_node merlin_node;

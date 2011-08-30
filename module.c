@@ -214,9 +214,6 @@ static int handle_comment_data(merlin_node *node, void *buf)
 	                ds->expire_time, &comment_id);
 	merlin_set_block_comment(NULL);
 
-	if (ds->entry_type == FLAPPING_COMMENT) {
-		node->flap_comment_id = comment_id;
-	}
 
 	return 0;
 }
@@ -226,9 +223,7 @@ static int handle_comment_data(merlin_node *node, void *buf)
 		if (!obj) \
 			return 0; \
 		obj->is_flapping = starting; \
-		if (starting) { \
-			obj->flapping_comment_id = node->flap_comment_id; \
-		} else { \
+		if (!starting) { \
 			comment_id = obj->flapping_comment_id; \
 		} \
 	} while (0)
