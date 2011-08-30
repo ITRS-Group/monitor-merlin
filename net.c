@@ -497,29 +497,13 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		return ipc_send_event(pkt);
 
 	case NEBCALLBACK_DOWNTIME_DATA:
-		ipc_send_event(pkt);
-		downtime_data = (nebstruct_downtime_data *)&pkt->body;
-		if (downtime_data->type == NEBTYPE_DOWNTIME_DELETE ||
-		    downtime_data->type == NEBTYPE_DOWNTIME_STOP)
-		{
-			mrm_db_update(node, pkt);
-		}
-		return 0;
-
 	case NEBCALLBACK_COMMENT_DATA:
 		/*
-		 * COMMENT events will always hit the module and return
-		 * to us with the MAGIC_NONET code set, which is handled
-		 * properly in daemon.c::handle_ipc_event().
-		 * The others we can't do anything about in the database
-		 * layer.
+		 * These two used to be handled specially here, but
+		 * we've moved it to the database update layer instead,
+		 * which will discard queries it can't run properly
+		 * without bouncing the data against the module.
 		 */
-		ipc_send_event(pkt);
-		comment_data = (nebstruct_comment_data *)&pkt->body;
-		if (comment_data->type == NEBTYPE_COMMENT_DELETE)
-			mrm_db_update(node, pkt);
-		return 0;
-
 	default:
 		/*
 		 * IMPORTANT NOTE:
