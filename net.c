@@ -556,11 +556,7 @@ static int net_input(merlin_node *node)
 
 	while ((pkt = node_get_event(node))) {
 		events++;
-		if (pkt->hdr.type == CTRL_PACKET && pkt->hdr.code == CTRL_PULSE) {
-			/* noop. we've already updated the last_recv time */
-		} else {
-			handle_network_event(node, pkt);
-		}
+		handle_network_event(node, pkt);
 	}
 	ldebug("Read %d events in %s from %s node %s",
 		   events, human_bytes(len), node_type(node), node->name);
