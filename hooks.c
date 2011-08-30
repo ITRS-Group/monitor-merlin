@@ -879,6 +879,12 @@ static int merlin_lock(void)
 	ts.tv_nsec = 0;
 
 	ret = pthread_mutex_timedlock(&mod_lock, &ts);
+	/* we might already own the mutex. If so, log a bug warning */
+	if (ret == EDEADLK) {
+		lwarn("Programming error: merlin_lock() would have caused deadlock");
+		return 0;
+	}
+
 	if (ret) {
 		lerr("PTH: Failed to lock hook entry point: %s", strerror(ret));
 	}
