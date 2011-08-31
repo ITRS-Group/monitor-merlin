@@ -419,21 +419,22 @@ static int hook_comment(merlin_event *pkt, void *data)
 	if (ds->type == NEBTYPE_COMMENT_ADD)
 		return 0;
 
-	if (ds->entry_type == ACKNOWLEDGEMENT_COMMENT ||
-	    ds->entry_type == DOWNTIME_COMMENT)
-	{
-		/*
-		 * ACKNOWLEDGEMENTs are sent as commands to get around
-		 * the tricky notification business, so never forward
-		 * them to the network.
-		 * DOWNTIME commands are also forwarded normally, so
-		 * we must take care not to send such events beyond our
-		 * own daemon also.
-		 * DELETE events are also blocked, as they are scheduled by all peers
-		 * to be deleted automatically, and forwarding them creates races.
-		 */
+	/*
+	 * Downtime is notoriously tricky to handle since there are so many
+	 * commands for scheduling it. We propagate downtime commands, but
+	 * not downtime comments (since commands generate comments).
+	 */
+	if (ds->entry_type == DOWNTIME_COMMENT && ds->type != NEBTYPE_COMMENT_DELETE) {
 		pkt->hdr.code = MAGIC_NONET;
-	} else if (block_comment &&
+	}
+
+	/*
+	 * if the reaper thread is adding the comment we're getting an
+	 * event for now, we'll need to block that comment from being
+	 * sent to the daemon to avoid pingpong action and duplicate
+	 * entries in the database.
+	 */
+	if (pkt->hdr.code != MAGIC_NONET && block_comment &&
 		block_comment->entry_type == ds->entry_type &&
 		block_comment->comment_type == ds->comment_type &&
 		block_comment->expires == ds->expires &&
@@ -444,11 +445,6 @@ static int hook_comment(merlin_event *pkt, void *data)
 		(block_comment->service_description == ds->service_description ||
 		 !strcmp(block_comment->service_description, ds->service_description)))
 	{
-		/*
-		 * if the module is adding the comment we're getting an event
-		 * for now, we'll need to block that comment from being sent
-		 * to the daemon to avoid pingpong action.
-		 */
 		/*
 		 * This avoids USER_COMMENT and FLAPPING_COMMENT entry_type
 		 * comments from bouncing back and forth indefinitely
@@ -473,6 +469,17 @@ static int hook_downtime(merlin_event *pkt, void *data)
 	 * set the poller id properly for downtime packets
 	 */
 	pkt->hdr.selection = get_selection(ds->host_name);
+
+	/*
+	 * Downtime delete and stop events are transferred.
+	 * Adding is done on all nodes from the downtime command
+	 * that always gets transferred, but if a user cancels
+	 * downtime early, we get a "stop" event that we must
+	 * transfer properly, or the other node (which might be
+	 * notifying) will think the node is still in downtime.
+	 */
+	if (ds->type != NEBTYPE_DOWNTIME_DELETE && ds->type != NEBTYPE_DOWNTIME_STOP)
+		pkt->hdr.code = MAGIC_NONET;
 
 	return send_generic(pkt, data);
 }
@@ -536,7 +543,28 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		return 0;
 
 		/*
+		 * downtime is a troll of its own. For now, downtime
+		 * commands aren't blocked, but their comments are.
+		 * We keep them stashed here though, in case we
+		 * want to modify how we handle them later.
 		 */
+	case CMD_SCHEDULE_HOST_DOWNTIME:
+	case CMD_SCHEDULE_SVC_DOWNTIME:
+	case CMD_CANCEL_HOST_DOWNTIME:
+	case CMD_CANCEL_SVC_DOWNTIME:
+	case CMD_CANCEL_ACTIVE_HOST_DOWNTIME:
+	case CMD_CANCEL_PENDING_HOST_DOWNTIME:
+	case CMD_CANCEL_ACTIVE_SVC_DOWNTIME:
+	case CMD_CANCEL_PENDING_SVC_DOWNTIME:
+	case CMD_CANCEL_ACTIVE_HOST_SVC_DOWNTIME:
+	case CMD_CANCEL_PENDING_HOST_SVC_DOWNTIME:
+	case CMD_DEL_HOST_DOWNTIME:
+	case CMD_DEL_SVC_DOWNTIME:
+	case CMD_SCHEDULE_SERVICEGROUP_HOST_DOWNTIME:
+	case CMD_SCHEDULE_SERVICEGROUP_SVC_DOWNTIME:
+	case CMD_SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME:
+	case CMD_SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME:
+		/* fallthrough */
 
 	case CMD_ENABLE_SVC_CHECK:
 	case CMD_DISABLE_SVC_CHECK:
@@ -573,22 +601,10 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_REMOVE_SVC_ACKNOWLEDGEMENT:
 	case CMD_SCHEDULE_FORCED_HOST_SVC_CHECKS:
 	case CMD_SCHEDULE_FORCED_SVC_CHECK:
-	case CMD_SCHEDULE_HOST_DOWNTIME:
-	case CMD_SCHEDULE_SVC_DOWNTIME:
 	case CMD_ENABLE_HOST_FLAP_DETECTION:
 	case CMD_DISABLE_HOST_FLAP_DETECTION:
 	case CMD_ENABLE_SVC_FLAP_DETECTION:
 	case CMD_DISABLE_SVC_FLAP_DETECTION:
-	case CMD_CANCEL_HOST_DOWNTIME:
-	case CMD_CANCEL_SVC_DOWNTIME:
-	case CMD_CANCEL_ACTIVE_HOST_DOWNTIME:
-	case CMD_CANCEL_PENDING_HOST_DOWNTIME:
-	case CMD_CANCEL_ACTIVE_SVC_DOWNTIME:
-	case CMD_CANCEL_PENDING_SVC_DOWNTIME:
-	case CMD_CANCEL_ACTIVE_HOST_SVC_DOWNTIME:
-	case CMD_CANCEL_PENDING_HOST_SVC_DOWNTIME:
-	case CMD_DEL_HOST_DOWNTIME:
-	case CMD_DEL_SVC_DOWNTIME:
 	case CMD_PROCESS_HOST_CHECK_RESULT:
 	case CMD_START_EXECUTING_HOST_CHECKS:
 	case CMD_STOP_EXECUTING_HOST_CHECKS:
@@ -612,8 +628,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_DISABLE_SERVICEGROUP_PASSIVE_SVC_CHECKS:
 	case CMD_ENABLE_SERVICEGROUP_PASSIVE_HOST_CHECKS:
 	case CMD_DISABLE_SERVICEGROUP_PASSIVE_HOST_CHECKS:
-	case CMD_SCHEDULE_SERVICEGROUP_HOST_DOWNTIME:
-	case CMD_SCHEDULE_SERVICEGROUP_SVC_DOWNTIME:
 	case CMD_CHANGE_GLOBAL_HOST_EVENT_HANDLER:
 	case CMD_CHANGE_GLOBAL_SVC_EVENT_HANDLER:
 	case CMD_CHANGE_HOST_EVENT_HANDLER:
@@ -625,10 +639,8 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_CHANGE_RETRY_SVC_CHECK_INTERVAL:
 	case CMD_CHANGE_MAX_HOST_CHECK_ATTEMPTS:
 	case CMD_CHANGE_MAX_SVC_CHECK_ATTEMPTS:
-	case CMD_SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME:
 	case CMD_ENABLE_HOST_AND_CHILD_NOTIFICATIONS:
 	case CMD_DISABLE_HOST_AND_CHILD_NOTIFICATIONS:
-	case CMD_SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME:
 	case CMD_ENABLE_HOST_FRESHNESS_CHECKS:
 	case CMD_DISABLE_HOST_FRESHNESS_CHECKS:
 	case CMD_SET_HOST_NOTIFICATION_NUMBER:
@@ -661,14 +673,15 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		pkt->hdr.selection = get_cmd_selection(ds->command_args, 0);
 		break;
 
+	/* XXX downtime stuff on top */
+	case CMD_SCHEDULE_HOSTGROUP_HOST_DOWNTIME:
+	case CMD_SCHEDULE_HOSTGROUP_SVC_DOWNTIME:
 	case CMD_ENABLE_HOSTGROUP_SVC_NOTIFICATIONS:
 	case CMD_DISABLE_HOSTGROUP_SVC_NOTIFICATIONS:
 	case CMD_ENABLE_HOSTGROUP_HOST_NOTIFICATIONS:
 	case CMD_DISABLE_HOSTGROUP_HOST_NOTIFICATIONS:
 	case CMD_ENABLE_HOSTGROUP_SVC_CHECKS:
 	case CMD_DISABLE_HOSTGROUP_SVC_CHECKS:
-	case CMD_SCHEDULE_HOSTGROUP_HOST_DOWNTIME:
-	case CMD_SCHEDULE_HOSTGROUP_SVC_DOWNTIME:
 	case CMD_ENABLE_HOSTGROUP_HOST_CHECKS:
 	case CMD_DISABLE_HOSTGROUP_HOST_CHECKS:
 	case CMD_ENABLE_HOSTGROUP_PASSIVE_SVC_CHECKS:
