@@ -514,20 +514,28 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		return 0;
 
 	switch (ds->command_type) {
+		/*
+		 * Comments are handled by their respective comment
+		 * events, so we mustn't forward them.
+		 */
 	case CMD_DEL_HOST_COMMENT:
 	case CMD_DEL_SVC_COMMENT:
 	case CMD_ADD_HOST_COMMENT:
 	case CMD_ADD_SVC_COMMENT:
 		return 0;
 
+		/*
+		 * Notifications triggered by external commands are
+		 * always sent from the node generating the command,
+		 * so we must make sure to block them here.
+		 */
 	case CMD_ACKNOWLEDGE_HOST_PROBLEM:
 	case CMD_ACKNOWLEDGE_SVC_PROBLEM:
 	case CMD_SEND_CUSTOM_HOST_NOTIFICATION:
 	case CMD_SEND_CUSTOM_SVC_NOTIFICATION:
+		return 0;
+
 		/*
-		 * Notifications are blocked for all nodes except the one
-		 * supposed to handle checks for that node, so we mustn't
-		 * special-case those commands here.
 		 */
 
 	case CMD_ENABLE_SVC_CHECK:
@@ -835,6 +843,18 @@ static int hook_notification(merlin_event *pkt, void *data)
 	/* if we have no pollers and no peers we won't block the notification */
 	if (!num_peers && !num_pollers)
 		return 0;
+
+	/*
+	 * Acknowledgement and "custom" (user-triggered) notifications
+	 * are sent from the node that received the command. This is to
+	 * prevent notifications going missing in the merlin network in
+	 * case a node dies and it gets lost in a crashed backlog.
+	 */
+	if (ds->reason_type == NOTIFICATION_ACKNOWLEDGEMENT ||
+	    ds->reason_type == NOTIFICATION_CUSTOM)
+	{
+		return 0;
+	}
 
 	if (ds->type == NEBTYPE_NOTIFICATION_START) {
 		char *what = "host";
