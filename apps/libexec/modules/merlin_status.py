@@ -96,7 +96,7 @@ class merlin_status:
 			)""" % (what, hg_str, where)
 		return query
 
-	def hostgroup_servicechecks_query(self, hg_str):
+	def hostgroup_servicechecks_query(self, hg_str, what="COUNT(1)", where=False):
 		"""
 		Creates a query searching for 'what' among all services on
 		all hosts in the listed hostgroups. This handles hosts
@@ -122,7 +122,7 @@ class merlin_status:
 
 		hg_str = "'%s'" % "', '".join(hglist)
 
-		query = self.hostgroup_hostchecks_query(hg_str, 'COUNT(1)', False)
+		query = self.hostgroup_hostchecks_query(hg_str)
 		self.dbc.execute(query)
 		row = self.dbc.fetchone()
 		ret['host'] = row[0]
