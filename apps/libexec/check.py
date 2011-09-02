@@ -70,7 +70,7 @@ def cmd_distribution(args):
 	# strings we'll want to print later
 	for (name, info) in nodes.items():
 		node = info['node']
-		should[name] = ac = mst.assigned_checks(node)
+		should[name] = ac = mst.assigned_checks(node, info)
 		if node.ntype == 'master':
 			cmax = cmin = {'host': 0, 'service': 0}
 		elif node.num_peers:
