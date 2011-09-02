@@ -200,7 +200,7 @@ def cmd_exectime(args=False):
 	Checks execution time of active checks
 	"""
 	thresh = {
-		'warning': [5, 20, 50],
+		'warning': [5, 30, 65],
 		'critical': [15, 45, 90]
 	}
 	check_min_avg_max(args, 'execution_time', thresh)
