@@ -41,6 +41,7 @@ CREATE TABLE program_status(
 	modified_service_attributes		int,
 	global_host_event_handler		text,
 	global_service_event_handler	text,
+	node_type                       int,
 	peer_id                         int,
 	self_assigned_peer_id           int,
 	active_peers                    int,
