@@ -77,6 +77,44 @@ class merlin_status:
 		return row[0]
 
 
+	def hostgroup_hostchecks_query(self, hg_str, what="COUNT(1)", where=False):
+		"""
+		Creates a query searching for 'what' among all hosts in
+		the listed hostgroups. This handles hosts sitting in multiple
+		hostgroups.
+		"""
+		if where != False:
+			where = " AND %s" % where
+		else:
+			where = ""
+		query = """
+			SELECT %s FROM host h WHERE h.id IN(
+				SELECT DISTINCT host
+					FROM host_hostgroup hhg, hostgroup hg
+					WHERE hg.hostgroup_name IN(%s) AND hhg.hostgroup = hg.id
+					%s
+			)""" % (what, hg_str, where)
+		return query
+
+	def hostgroup_servicechecks_query(self, hg_str):
+		"""
+		Creates a query searching for 'what' among all services on
+		all hosts in the listed hostgroups. This handles hosts
+		sitting in multiple hostgroups.
+		"""
+		if where != False:
+			where = " AND %s" % where
+		else:
+			where = ''
+		query = """
+			SELECT %s FROM service s WHERE s.host_name IN(
+				SELECT DISTINCT host_name
+					FROM host h, hostgroup hg, host_hostgroup AS hhg
+					WHERE h.id = hhg.host AND hhg.hostgroup = hg.id
+						AND hg.hostgroup_name IN(%s) %s
+			)""" % (what, hg_str, where)
+		return query
+
 	def hostgroup_checks(self, hglist):
 		ret = {'host': 0, 'service': 0}
 		if not hglist:
@@ -84,27 +122,12 @@ class merlin_status:
 
 		hg_str = "'%s'" % "', '".join(hglist)
 
-		# these queries need to handle one host sitting in multiple
-		# hostgroups, so they're a bit trixier than one would casually
-		# assume at a first glance.
-		query = """
-			SELECT COUNT(1) FROM host h WHERE h.id IN(
-				SELECT host
-					FROM host_hostgroup hhg, hostgroup hg
-					WHERE hg.hostgroup_name IN(%s) AND hhg.hostgroup = hg.id
-			)""" % hg_str
-			
+		query = self.hostgroup_hostchecks_query(hg_str, 'COUNT(1)', False)
 		self.dbc.execute(query)
 		row = self.dbc.fetchone()
 		ret['host'] = row[0]
 
-		query = """
-			SELECT COUNT(1) FROM service s WHERE s.host_name IN(
-				SELECT host_name
-					FROM host h, hostgroup hg, host_hostgroup AS hhg
-					WHERE h.id = hhg.host AND hhg.hostgroup = hg.id
-						AND hg.hostgroup_name IN(%s)
-			)""" % hg_str
+		query = self.hostgroup_servicechecks_query(hg_str)
 		self.dbc.execute(query)
 		row = self.dbc.fetchone()
 		ret['service'] = row[0]
