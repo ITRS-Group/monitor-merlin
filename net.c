@@ -423,9 +423,6 @@ static void check_node_activity(merlin_node *node)
  */
 static int handle_network_event(merlin_node *node, merlin_event *pkt)
 {
-	nebstruct_comment_data *comment_data;
-	nebstruct_downtime_data *downtime_data;
-
 	if (pkt->hdr.type == CTRL_PACKET) {
 		/*
 		 * if this is a CTRL_ALIVE packet from a remote module, we
