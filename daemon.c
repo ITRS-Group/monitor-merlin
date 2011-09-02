@@ -577,6 +577,19 @@ void csync_node_active(merlin_node *node)
 	val = csync_config_cmp(node);
 	if (!val)
 		return;
+	/*
+	 * The most common setup is that configuration is done on a master
+	 * node and then pushed to the pollers, so if a master has older
+	 * config than we do, a node-specific "push" command is required
+	 * to make us push to that master.
+	 * This is to prevent normal setup behaviour from engaging in
+	 * pingpong action with config-files when config-files take more
+	 * than 1 second to generate
+	 */
+	if (val < 0 && node->type == MODE_MASTER && cs == &csync) {
+		ldebug("CSYNC: Refusing to run global sync to a master node");
+		return;
+	}
 
 	if (val < 0) {
 		if (cs->push.cmd) {
