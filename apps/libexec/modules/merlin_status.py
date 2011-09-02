@@ -183,8 +183,12 @@ class merlin_status:
 
 	def status(self, node_name=None):
 		ret = {'total': self.node_status()}
-		query = "SELECT instance_id, instance_name, last_alive, is_running " \
-			"FROM program_status"
+		query = """SELECT instance_id, instance_name, last_alive,
+			is_running, self_assigned_peer_id,
+			configured_masters,	active_masters,
+			configured_peers, active_peers,
+			configured_pollers, active_pollers
+			FROM program_status"""
 
 		if node_name:
 			query += " WHERE instance_name = '%s'" % node_name
@@ -198,6 +202,13 @@ class merlin_status:
 				name = '_local.ipc'
 			nodes[name] = {}
 			res = {'iid': row[0], 'name': name, 'last_alive': row[2], 'active': row[3]}
+			res['self_assigned_peer_id'] = row[4]
+			res['configured_masters'] = row[5]
+			res['active_masters'] = row[6]
+			res['configured_peers'] = row[7]
+			res['active_peers'] = row[8]
+			res['configured_pollers'] = row[9]
+			res['active_pollers'] = row[10]
 			nodes[name]['basic'] = res
 			node = mconf.configured_nodes.get(name, False)
 			# we read ourselves, or an unconfigured node
