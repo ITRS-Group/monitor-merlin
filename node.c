@@ -10,7 +10,7 @@ static char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 
 void node_set_state(merlin_node *node, int state, const char *reason)
 {
-	int prev_state;
+	int prev_state, add;
 
 	if (!node)
 		return;
@@ -22,6 +22,28 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 		linfo("NODESTATE: %s: %s -> %s: %s", node->name,
 		      node_state_name(node->state), node_state_name(state), reason);
 	}
+
+	/*
+	 * Keep track of active nodes. Setting 'add' to the proper
+	 * value means we needn't bother with an insane chain of
+	 * if()'s later.
+	 * add = +1 if state changes TO 'STATE_CONNECTED'.
+	 * add = -1 if state changes FROM 'STATE_CONNECTED'
+	 * add remains zero for all other cases
+	 */
+	if (state == STATE_CONNECTED) {
+		add = 1;
+	} else if (node->state == STATE_CONNECTED) {
+		add = -1;
+	} else {
+		add = 0;
+	}
+	if (node->type == MODE_POLLER)
+		self.active_pollers += add;
+	else if (node->type == MODE_PEER)
+		self.active_peers += add;
+	else if (node->type == MODE_MASTER)
+		self.active_masters += add;
 
 	prev_state = node->state;
 	node->state = state;
