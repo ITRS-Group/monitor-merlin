@@ -134,7 +134,7 @@ class merlin_status:
 		return ret
 
 
-	def assigned_checks(self, node):
+	def assigned_checks(self, node, info):
 		"""
 		Calculates how many checks of each type 'node' is supposed
 		to run, with a min/max value for both.
@@ -183,22 +183,43 @@ class merlin_status:
 
 		# otherwise things get more complicated and we need to query
 		# the database to see how many checks there are that aren't
-		# handled by any poller
+		# handled by any poller and whose alphabetical sorting happens
+		# to co-incide with which peer
 		poller_hgs = []
 		for n in mconf.configured_nodes.values():
 			if n.ntype != 'poller':
 				continue
 			poller_hgs += n.options.get('hostgroup')
 
+		sa_peer_id = info['basic']['self_assigned_peer_id']
 		poller_hgs = set(poller_hgs)
-		poller_checks = self.hostgroup_checks(poller_hgs)
-		remaining_checks = {
-			'host': self.num_entries('host') - poller_checks['host'],
-			'service': self.num_entries('service') - poller_checks['service'],
-		}
+		poller_hgstr = "'%s'" % ("', '".join(poller_hgs))
+
+		# we must decrement database id's with 1, since the
+		# indexes in merlin are zero based but the ones in
+		# the database start at 1
+		query_suffix = "AND (id - 1) %% %d = %d""" % (
+			mconf.num_nodes['peer'] + 1, sa_peer_id
+		)
+
+		# first hosts
+		query = "SELECT COUNT(1) FROM host WHERE id NOT IN(%s) %s" % (
+			self.hostgroup_hostchecks_query(poller_hgstr, "id"),
+			query_suffix
+		)
+		self.dbc.execute(query)
+		host_row = self.dbc.fetchone()
+
+		# and then services
+		query = "SELECT COUNT(1) FROM service WHERE id NOT IN(%s) %s" % (
+			self.hostgroup_servicechecks_query(poller_hgstr, 'id'),
+			query_suffix
+		)
+		self.dbc.execute(query)
+		service_row = self.dbc.fetchone()
 		node.assigned_checks = {
-			'host': remaining_checks['host'] / (node.num_peers + 1),
-			'service': remaining_checks['service'] / (node.num_peers + 1)
+			'host': host_row[0],
+			'service': service_row[0]
 		}
 
 		return node.assigned_checks
