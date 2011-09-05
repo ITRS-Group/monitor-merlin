@@ -370,6 +370,7 @@ def cmd_ctrl(args):
 		sys.exit(1)
 
 	run_on_self = False
+	by_name = False
 	nodes = {}
 	cmd_args = []
 	i = -1
@@ -396,6 +397,7 @@ def cmd_ctrl(args):
 			cmd_args = args[i:]
 			break
 		wanted_names += [node.name]
+		by_name = True
 
 	if have_type_arg and not len(wanted_names):
 		wanted_names = mconf.configured_nodes.keys()
@@ -420,6 +422,9 @@ def cmd_ctrl(args):
 
 	for name, node in nodes.items():
 		node.ctrl(cmd)
+
+	if by_name and len(wanted_names) == 1:
+		sys.exit(node.get_exit_code())
 
 def _cmd_rename(args):
 	if len(args) != 2 or not args[0] in mconf.configured_nodes.keys():

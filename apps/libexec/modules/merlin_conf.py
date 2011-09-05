@@ -4,6 +4,7 @@ from merlin_apps_utils import *
 
 class merlin_node:
 	valid_types = ['poller', 'master', 'peer']
+	exit_code = False
 
 	def __init__(self, name, ntype = 'poller'):
 		self.options = {'type': 'poller', 'port': 15551}
@@ -152,6 +153,7 @@ class merlin_node:
 		ret = os.spawnvp(os.P_WAIT, "ssh", all_args)
 		sys.stdout.flush()
 		print("%s#--- REMOTE OUTPUT DONE ----%s" % (col, reset))
+		self.exit_code = ret
 
 		if ret < 0:
 			print("ssh was killed by signal %d" % ret)
@@ -160,6 +162,9 @@ class merlin_node:
 			print("ssh exited with return code %d" % ret)
 			return False
 		return True
+
+	def get_exit_code(self):
+		return self.exit_code
 
 config_file = '/opt/monitor/op5/merlin/merlin.conf'
 num_nodes = {'poller': 0, 'peer': 0, 'master': 0}
