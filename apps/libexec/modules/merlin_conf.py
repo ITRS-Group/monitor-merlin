@@ -146,8 +146,11 @@ class merlin_node:
 		all_args = prefix_args + [command]
 		print("Connecting to '%s' with the following command:\n  %s"
 			  % (self.name, ' '.join(all_args)))
+		sys.stdout.flush()
 		print("%s#--- REMOTE OUTPUT START ---%s" % (col, reset))
+		sys.stdout.flush()
 		ret = os.spawnvp(os.P_WAIT, "ssh", all_args)
+		sys.stdout.flush()
 		print("%s#--- REMOTE OUTPUT DONE ----%s" % (col, reset))
 
 		if ret < 0:
