@@ -108,8 +108,8 @@ def cmd_distribution(args):
 				bad[name] = copy.deepcopy(runs_checks)
 
 			absmax = total_checks[ctype]
-			ok_str = "@%d:%d" % (cmin[ctype], cmax[ctype] + plus)
-			pdata += (" '%s_%ss'=%dchecks;%s;%s;0;%d" %
+			ok_str = "%d:%d" % (cmin[ctype], cmax[ctype] + plus)
+			pdata += (" '%s_%ss'=%d;%s;%s;0;%d" %
 				(name, ctype, run, ok_str, ok_str, ctot[ctype] + plus))
 
 	for name, b in bad.items():
