@@ -340,7 +340,7 @@ def cmd_spool(args=False):
 			bad_paths.append(p)
 			bad += 1
 
-	perfdata = "old_files=%d;%d;%d;;" % (bad, bad, warning, critical)
+	perfdata = "old_files=%d;%d;%d;;" % (bad, warning, critical)
 	# if we're supposed to just clean up, remove all bad files
 	if delete:
 		try:
