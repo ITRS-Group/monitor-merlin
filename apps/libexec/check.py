@@ -340,6 +340,7 @@ def cmd_spool(args=False):
 			bad_paths.append(p)
 			bad += 1
 
+	perfdata = "old_files=%d;%d;%d;;" % (bad, bad, warning, critical)
 	# if we're supposed to just clean up, remove all bad files
 	if delete:
 		try:
@@ -347,7 +348,7 @@ def cmd_spool(args=False):
 				os.unlink(p)
 		except OSError, e:
 			pass
-		nplug.ok("Removed %d files" % bad)
+		nplug.ok("Removed %d files|%s" % perfdata)
 
 	state = nplug.STATE_OK
 	if bad >= critical:
@@ -355,8 +356,7 @@ def cmd_spool(args=False):
 	elif bad >= warning:
 		state = nplug.STATE_WARNING
 
-	print("%s: %d files too old|old_files=%d;%d;%d;;" %
-		(nplug.state_name(state), bad, bad, warning, critical))
+	print("%s: %d files too old|%s" % nplug.state_name(state), perfdata)
 	sys.exit(state)
 
 def cmd_cores(args=False):
