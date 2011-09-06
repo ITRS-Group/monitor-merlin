@@ -241,9 +241,11 @@ class merlin_status:
 
 		nodes = {}
 		for row in self.dbc.fetchall():
-			instance_id = row[0]
+			instance_id = int(row[0])
 			if instance_id == 0:
 				name = '_local.ipc'
+			else:
+				name = row[1]
 			nodes[name] = {}
 			res = {'iid': row[0], 'name': name, 'last_alive': row[2], 'active': row[3]}
 			res['self_assigned_peer_id'] = row[4]
