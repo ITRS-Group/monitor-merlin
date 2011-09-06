@@ -372,7 +372,7 @@ def cmd_cores(args=False):
 	"""
 	warn = 0
 	crit = 1
-	dirs = ['/opt/monitor', '/opt/monitor/op5/merlin', '/root']
+	dirs = ['/opt/monitor', '/opt/monitor/op5/merlin']
 	delete = False
 	debug = False
 	for arg in args:
