@@ -241,8 +241,8 @@ class merlin_status:
 
 		nodes = {}
 		for row in self.dbc.fetchall():
-			name = row[1]
-			if name == 'Local Nagios/Merlin instance':
+			instance_id = row[0]
+			if instance_id == 0:
 				name = '_local.ipc'
 			nodes[name] = {}
 			res = {'iid': row[0], 'name': name, 'last_alive': row[2], 'active': row[3]}
