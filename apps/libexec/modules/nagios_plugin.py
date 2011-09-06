@@ -16,11 +16,13 @@ def worst_state(a, b):
 		return WARNING
 	return max(a, b)
 
+
 def best_state(a, b):
 	val = worst_state(a, b)
 	if val == a:
 		return b
 	return a
+
 
 def state_name(state):
 	if state == OK:
@@ -33,6 +35,7 @@ def state_name(state):
 		return "UNKNOWN"
 	return "Unknown status %d" % state
 
+
 def state_code(state_name):
 	str = state_name.tolower()
 	if str.startswith('c'):
@@ -44,10 +47,15 @@ def state_code(state_name):
 
 	return UNKNOWN
 
+
 def unknown(msg):
-	print("%s: %s" % (state_name(STATE_UNKNOWN), msg))
-	sys.exit(STATE_UNKNOWN)
+	die(UNKNOWN, msg)
+
 
 def ok(msg):
-	print("%s: %s" % (state_name(STATE_OK), msg))
-	sys.exit(STATE_OK)
+	die(OK, msg)
+
+
+def die(state, msg):
+	print("%s: %s" % (state_name(state), msg))
+	sys.exit(state)
