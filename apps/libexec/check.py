@@ -364,14 +364,17 @@ def cmd_cores(args=False):
 	Checks for memory dumps resulting from segmentation violation from
 	core parts of op5 Monitor. Detected core-files are moved to
 	/tmp/mon-cores in order to keep working directories clean.
-	  --warning default is 0
+	  --warning  default is 0
 	  --critical default is 1 (any corefile results in a critical alert)
-	  --dir lets you specify more paths to search for corefiles. This
-	    option can be given multiple times.
+	  --dir      lets you specify more paths to search for corefiles. This
+	             option can be given multiple times.
+	  --delete   deletes corefiles not coming from 'merlind' or 'monitor'
 	"""
 	warn = 0
 	crit = 1
 	dirs = ['/opt/monitor', '/opt/monitor/op5/merlin', '/root']
+	delete = False
+	debug = False
 	for arg in args:
 		if arg.startswith('--warning='):
 			warn = int(arg.split('=', 1)[1])
@@ -379,6 +382,10 @@ def cmd_cores(args=False):
 			crit = int(arg.split('=', 1)[1])
 		elif arg.startswith('--dir='):
 			dirs.append(arg.split('=', 1)[1])
+		elif arg == '--delete' or arg == '-D':
+			delete = True
+		elif arg == '--debug' or arg == '-d':
+			debug = True
 		else:
 			nplug.unknown("Unknown argument: %s" % arg)
 
@@ -391,10 +398,13 @@ def cmd_cores(args=False):
 		core = coredump(corefile)
 		core.examine()
 		if core.invalid:
-			try:
-				os.unlink(corefile)
-			except OSError:
-				pass
+			if debug:
+				print("Core is invalid: %s" % core.invalid_str())
+			elif delete:
+				try:
+					os.unlink(corefile)
+				except OSError:
+					pass
 			continue
 		cores += 1
 	if not cores:
