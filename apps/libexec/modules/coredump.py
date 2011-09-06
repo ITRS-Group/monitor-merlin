@@ -24,6 +24,22 @@ class coredump:
 	def __init__(self, path):
 		self.path = path
 
+
+	def invalid_str(self):
+		if self.invalid == 0:
+			return "Corefile is valid"
+
+		if self.invalid == self.INV_EMPTY:
+			return "Empty corefile"
+		if self.invalid == self.INV_EXEC_IS_NEWER:
+			return "Executable is newer than corefile"
+		if self.invalid == self.FILE_CMD:
+			return "'file' command failed"
+		if self.invalid == ESRCH_EXEC:
+			return "Failed to locate %s" % self.basename
+
+		return "Unknown reason %d" % self.invalid
+
 	def get_executable(self):
 		"""
 		Tries to determine the executable name of the program producing
