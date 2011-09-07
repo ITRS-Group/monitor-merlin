@@ -184,16 +184,6 @@ static int rpt_downtime(void *data)
 	case NEBTYPE_DOWNTIME_START:
 	case NEBTYPE_DOWNTIME_STOP:
 		break;
-	case NEBTYPE_DOWNTIME_DELETE:
-		/*
-		 * if we're deleting a downtime that hasn't started yet, nothing
-		 * should be added to the database. Otherwise, transform it to a
-		 * NEBTYPE_DOWNTIME_STOP event to mark the downtime as stopped.
-		 */
-		if (ds->start_time > time(NULL))
-			return 0;
-		ds->type = NEBTYPE_DOWNTIME_STOP;
-		break;
 	default:
 		return 0;
 	}
