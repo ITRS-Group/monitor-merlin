@@ -137,20 +137,27 @@ static inline void service_mod2net(merlin_service_status *st_obj, service *obj)
  * Updating data inside the running Nagios is a bit trickier and
  * some care must be taken for this to work
  */
-struct old_net2mod_data {
-	char *plugin_output;
-	char *long_plugin_output;
-	char *perf_data;
+struct tmp_net2mod_data {
+	char *old_plugin_output;
+	char *old_long_plugin_output;
+	char *old_perf_data;
+	char *new_plugin_output;
+	char *new_long_plugin_output;
+	char *new_perf_data;
 };
-#define NET2MOD_STATE_VARS(old, nag, mrln) \
-	/* first we must copy the variables so we don't overwrite them */ \
-	old.plugin_output = nag->plugin_output; \
-	old.long_plugin_output = nag->long_plugin_output; \
-	old.perf_data = nag->perf_data; \
+#define NET2MOD_STATE_VARS(tmp, nag, mrln) \
+	/* generate new strings before we even start assignments */ \
+	tmp.new_plugin_output = safe_strdup(mrln.plugin_output); \
+	tmp.new_long_plugin_output = safe_strdup(mrln.long_plugin_output); \
+	tmp.new_perf_data = safe_strdup(mrln.perf_data); \
+	/* then we must copy the variables so we don't overwrite them */ \
+	tmp.old_plugin_output = nag->plugin_output; \
+	tmp.old_long_plugin_output = nag->long_plugin_output; \
+	tmp.old_perf_data = nag->perf_data; \
 	/* next we copy the new data. assignment is atomic */ \
-	nag->plugin_output = safe_strdup(mrln.plugin_output); \
-	nag->long_plugin_output = safe_strdup(mrln.long_plugin_output); \
-	nag->perf_data = safe_strdup(mrln.perf_data); \
+	nag->plugin_output = tmp.new_plugin_output; \
+	nag->long_plugin_output = tmp.new_long_plugin_output; \
+	nag->perf_data = tmp.new_perf_data; \
 	/* then we assign variables (again, this is atomic) */ \
 	nag->initial_state = mrln.initial_state; \
 	nag->flap_detection_enabled = mrln.flap_detection_enabled; \
@@ -190,8 +197,8 @@ struct old_net2mod_data {
 	nag->is_flapping = mrln.is_flapping; \
 	nag->percent_state_change = mrln.percent_state_change; \
 	/* when all is done, we free the old state variables */ \
-	safe_free(old.plugin_output); \
-	safe_free(old.long_plugin_output); \
-	safe_free(old.perf_data);
+	safe_free(tmp.old_plugin_output); \
+	safe_free(tmp.old_long_plugin_output); \
+	safe_free(tmp.old_perf_data);
 
 #endif /* MRM_MOD_H */

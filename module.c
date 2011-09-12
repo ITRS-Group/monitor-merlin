@@ -52,7 +52,7 @@ static int handle_host_status(merlin_header *hdr, void *buf)
 {
 	struct host_struct *obj;
 	merlin_host_status *st_obj = (merlin_host_status *)buf;
-	struct old_net2mod_data old;
+	struct tmp_net2mod_data tmp;
 
 	obj = find_host(st_obj->name);
 	if (!obj) {
@@ -61,7 +61,7 @@ static int handle_host_status(merlin_header *hdr, void *buf)
 		return -1;
 	}
 
-	NET2MOD_STATE_VARS(old, obj, st_obj->state);
+	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
 	obj->last_host_notification = st_obj->state.last_notification;
 	obj->next_host_notification = st_obj->state.next_notification;
 	obj->accept_passive_host_checks = st_obj->state.accept_passive_checks;
@@ -77,7 +77,7 @@ static int handle_service_status(merlin_header *hdr, void *buf)
 {
 	service *obj;
 	merlin_service_status *st_obj = (merlin_service_status *)buf;
-	struct old_net2mod_data old;
+	struct tmp_net2mod_data tmp;
 
 	obj = find_service(st_obj->host_name, st_obj->service_description);
 	if (!obj) {
@@ -88,7 +88,7 @@ static int handle_service_status(merlin_header *hdr, void *buf)
 		return -1;
 	}
 
-	NET2MOD_STATE_VARS(old, obj, st_obj->state);
+	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
 	obj->last_notification = st_obj->state.last_notification;
 	obj->next_notification = st_obj->state.next_notification;
 	obj->accept_passive_service_checks = st_obj->state.accept_passive_checks;
