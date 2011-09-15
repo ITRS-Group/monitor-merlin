@@ -371,10 +371,11 @@ static int handle_downtime(merlin_node *node, const nebstruct_downtime_data *p)
 			sql_quote(p->author_name, &author_name);
 			result = sql_query("DELETE FROM scheduled_downtime "
 							   "WHERE downtime_type = %d AND "
-							   "end_time = %d AND fixed = %d AND "
+							   "end_time = %lu AND fixed = %d AND "
 							   "host_name = %s AND service_description %s %s "
 							   "AND author_name = %s AND comment_data = %s",
-							   p->downtime_type, p->end_time, p->fixed,
+							   p->downtime_type,
+							   (unsigned long)p->end_time, p->fixed,
 							   host_name, service_description ? "=" : " IS ",
 							   safe_str(service_description),
 							   author_name, comment_data);
