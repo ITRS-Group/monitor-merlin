@@ -28,6 +28,7 @@ static struct {
 	char const *table;
 	char const *type;
 	char const *encoding;
+	char const *conn_str;
 	int port; /* signed int for compatibility with dbi_conn_set_option_numeric() (and similar)*/
 	db_wrap *conn;
 	db_wrap_result * result;
@@ -40,6 +41,7 @@ NULL/*pass*/,
 NULL/*table*/,
 NULL/*type*/,
 NULL/*encoding*/,
+NULL/*conn_str*/,
 0U/*port*/,
 NULL/*conn*/,
 NULL/*result*/,
@@ -244,7 +246,15 @@ int sql_vquery(const char *fmt, va_list ap)
 #endif
 #ifdef ENABLE_OCILIB
 		if (db_type == MERLIN_DBT_ORACLE) {
-			reconnect = 0;
+			switch (db_error) {
+			// connection gone - needed for failover
+			case 3135: // connection lost contact
+				reconnect = 1;
+				break;
+			default:
+				reconnect = 0;
+				break;
+			}
 		}
 #endif
 		if (reconnect) {
@@ -318,6 +328,7 @@ int sql_init(void)
 	db.user = sql_db_user();
 	db.pass = sql_db_pass();
 	db.table = sql_table_name();
+	db.conn_str = sql_db_conn_str();
 	if (!db.type) {
 		db.type = "mysql";
 	}
@@ -337,14 +348,19 @@ int sql_init(void)
 	connparam.dbname = db.name;
 	connparam.username = db.user;
 	connparam.password = db.pass;
+	connparam.conn_str = db.conn_str;
 	if (db.port)
 		connparam.port = db.port;
 
 	result = db_wrap_driver_init(db.type, &connparam, &db.conn);
 	if (result) {
 		if (log_attempt) {
-			lerr("Failed to connect to db '%s' at host '%s':'%d' as user %s using driver %s.",
-				 db.name, db.host, db.port, db.user, db.type );
+			if (db.conn_str)
+				lerr("Failed to connect to db '%s' using connection string '%s' as user %s using driver %s",
+					 db.name, db.conn_str, db.user, db.type);
+			else
+				lerr("Failed to connect to db '%s' at host '%s':'%d' as user %s using driver %s.",
+					 db.name, db.host, db.port, db.user, db.type );
 			lerr("result: %d; errno: %d (%s)", result, errno, strerror(errno));
 		}
 		return -1;
@@ -361,8 +377,12 @@ int sql_init(void)
 		if (log_attempt) {
 			const char *error_msg;
 			sql_error(&error_msg);
-			lerr("DB: Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
-				 db.name, db.host, db.port, db.user, db.pass, error_msg);
+			if (db.conn_str)
+				lerr("DB: Failed to connect to '%s' using connection string '%s' as %s:%s: %s",
+					 db.name, db.conn_str, db.user, db.pass, error_msg);
+			else
+				lerr("DB: Failed to connect to '%s' at '%s':'%d' as %s:%s: %s",
+					 db.name, db.host, db.port, db.user, db.pass, error_msg);
 		}
 		sql_close();
 		return -1;
@@ -458,6 +478,11 @@ const char *sql_table_name(void)
 	return db.table ? db.table : "report_data";
 }
 
+const char *sql_db_conn_str(void)
+{
+	return db.conn_str ? db.conn_str : "";
+}
+
 
 /*
  * Config parameters from the "database" section end up here.
@@ -487,6 +512,8 @@ int sql_config(const char *key, const char *value)
 		db.host = value_cpy;
 	else if (!prefixcmp(key, "type"))
 		db.type = value_cpy;
+	else if (!prefixcmp(key, "conn_str"))
+		db.conn_str = value_cpy;
 	else if (!prefixcmp(key, "port") && value) {
 		char *endp;
 		free(value_cpy);

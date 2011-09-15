@@ -30,4 +30,5 @@ extern const char *sql_db_user(void);
 extern const char *sql_db_pass(void);
 extern const char *sql_db_host(void);
 extern const char *sql_db_type(void);
+extern const char *sql_db_conn_str(void);
 #endif

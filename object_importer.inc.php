@@ -63,6 +63,7 @@ class nagios_object_importer
 	public $db_pass = '@@DBPASS@@';
 	public $db_database = '@@DBNAME@@';
 	public $db_port = 3306;
+	public $db_conn_str = false;
 	protected $db = false;
 
 	public $errors = 0;
@@ -1127,7 +1128,7 @@ class nagios_object_importer
 	function gui_db_connect()
 	{
 		if (!$this->db) {
-			$this->db = MerlinPDO::db($this->db_type, $this->db_database, $this->db_user, $this->db_pass, $this->db_host, $this->db_port);
+			$this->db = MerlinPDO::db($this->db_type, $this->db_database, $this->db_user, $this->db_pass, $this->db_host, $this->db_port, $this->db_conn_str);
 		}
 		return $this->db;
 	}

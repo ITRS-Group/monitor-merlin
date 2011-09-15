@@ -11,6 +11,7 @@ $imp->db_user = 'merlin';
 $imp->db_pass = 'merlin';
 $imp->db_database = 'merlin';
 $imp->db_port = false;
+$imp->db_conn_str = false;
 #$imp->debug = TRUE;
 
 if (PHP_SAPI !== 'cli') {
@@ -108,6 +109,7 @@ for ($i = 1; $i < $argc; $i++) {
 	 case 'db-type': $imp->db_type = $opt; break;
 	 case 'db-host': $imp->db_host = $opt; break;
 	 case 'db-port': $imp->db_port = $opt; break;
+	 case 'db-conn_str': $imp->db_conn_str = $opt; break;
 	 case 'cache': $cache = $opt; break;
 	 case 'status-log': $status_log = $opt; break;
 	 case 'nagios-cfg': $nagios_cfg = $opt; break;
