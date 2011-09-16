@@ -249,6 +249,7 @@ int sql_vquery(const char *fmt, va_list ap)
 			switch (db_error) {
 			// connection gone - needed for failover
 			case 3135: // connection lost contact
+			case 3114: // not connected
 				reconnect = 1;
 				break;
 			default:
