@@ -474,7 +474,7 @@ static int handle_comment(merlin_node *node, const nebstruct_comment_data *p)
 			 p->entry_time, host_name, service_description ? "=" : "IS",
 			 safe_str(service_description),
 			 author_name, comment_data);
-	} else {
+	} else if (node == &ipc) {
 		result = sql_query
 			("INSERT INTO comment_tbl(comment_type, host_name, "
 			 "service_description, entry_time, author_name, comment_data, "
