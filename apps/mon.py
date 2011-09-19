@@ -4,8 +4,6 @@ import os, sys, subprocess, tempfile
 
 merlin_dir = "/opt/monitor/op5/merlin"
 libexec_dir = "/usr/libexec/merlin"
-pushed_logs = "/opt/monitor/pushed_logs"
-archive_dir = "/opt/monitor/var/archives"
 
 module_dir = libexec_dir + '/modules'
 if not libexec_dir in sys.path:
@@ -17,6 +15,7 @@ if not module_dir in sys.path:
 	sys.path.append(module_dir)
 import merlin_conf as mconf
 
+mconf.config_file = '%s/merlin.conf' % merlin_dir
 color = ansi_color()
 
 # run a generic helper from the libexec dir
@@ -43,7 +42,8 @@ docstrings = {}
 
 
 def load_command_module(path):
-	global commands, init_funcs, mconf
+	global commands, init_funcs, mconf, docstrings
+	global command_mod_load_fail
 	ret = False
 
 	if not libexec_dir in sys.path:
@@ -84,72 +84,77 @@ def load_command_module(path):
 
 	return ret
 
-if os.access(libexec_dir, os.X_OK):
-	raw_helpers = os.listdir(libexec_dir)
-	for rh in raw_helpers:
-		path = libexec_dir + '/' + rh
+def load_all_commands():
+	global commands, categories, helpers, help_helpers
 
-		# ignore entries starting with dot or dash
-		if rh[0] == '.' or rh[0] == '-':
-			continue
+	if os.access(libexec_dir, os.X_OK):
+		raw_helpers = os.listdir(libexec_dir)
+		for rh in raw_helpers:
+			path = libexec_dir + '/' + rh
 
-		# ignore directories
-		if os.path.isdir(path):
-			continue
-
-		# ignore non-executables, unless they're python scriptlets
-		if not os.access(path, os.X_OK) and not rh.endswith('.py'):
-			continue
-
-		# remove script suffixes
-		ary = rh.split('.')
-		if len(ary) > 1 and ary[-1] in ['sh', 'php', 'pl', 'py', 'pyc']:
-			if ary[-1] == 'pyc':
+			# ignore entries starting with dot or dash
+			if rh[0] == '.' or rh[0] == '-':
 				continue
-			if len(ary) == 2 and ary[-1] == 'py':
-				if load_command_module(libexec_dir + '/' + rh) == True:
-					continue
-				# if we failed to load due to syntax error, don't
-				# bother presenting it as a standalone helper
-				if command_mod_load_fail.get(rh, False) != -1:
-					continue
 
-			helper = '.'.join(ary[:-1])
-		else:
-			helper = '.'.join(ary)
-
-		cat_cmd = helper.split('.', 1)
-		if len(cat_cmd) == 2:
-			(cat, cmd) = cat_cmd
-			helper = cat + '.' + cmd
-			if not cat in categories:
-				categories[cat] = []
-			if cmd in categories[cat]:
-				print("Can't override builtin category+command with helper %s" % helper)
+			# ignore directories
+			if os.path.isdir(path):
 				continue
+
+			# ignore non-executables, unless they're python scriptlets
+			if not os.access(path, os.X_OK) and not rh.endswith('.py'):
+				continue
+
+			# remove script suffixes
+			ary = rh.split('.')
+			if len(ary) > 1 and ary[-1] in ['sh', 'php', 'pl', 'py', 'pyc']:
+				if ary[-1] == 'pyc':
+					continue
+				if len(ary) == 2 and ary[-1] == 'py':
+					if load_command_module(libexec_dir + '/' + rh) == True:
+						continue
+					# if we failed to load due to syntax error, don't
+					# bother presenting it as a standalone helper
+					if command_mod_load_fail.get(rh, False) != -1:
+						continue
+
+				helper = '.'.join(ary[:-1])
+			else:
+				helper = '.'.join(ary)
+
+			cat_cmd = helper.split('.', 1)
+			if len(cat_cmd) == 2:
+				(cat, cmd) = cat_cmd
+				helper = cat + '.' + cmd
+				if not cat in categories:
+					categories[cat] = []
+				if cmd in categories[cat]:
+					print("Can't override builtin category+command with helper %s" % helper)
+					continue
+				categories[cat].append(cmd)
+			else:
+				help_helpers.append(helper)
+
+			if helper in commands:
+				print("Can't override builtin command with helper '%s'" % helper)
+				continue
+
+			commands[helper] = run_helper
+			helpers[helper] = rh
+
+	# we break things down to categories and subcommands
+	for raw_cmd in commands:
+		if not '.' in raw_cmd:
+			if not raw_cmd in help_helpers:
+				help_helpers.append(raw_cmd)
+			continue
+
+		(cat, cmd) = raw_cmd.split('.')
+		if not cat in categories:
+			categories[cat] = []
+		if not cmd in categories[cat]:
 			categories[cat].append(cmd)
-		else:
-			help_helpers.append(helper)
 
-		if helper in commands:
-			print("Can't override builtin command with helper '%s'" % helper)
-			continue
 
-		commands[helper] = run_helper
-		helpers[helper] = rh
-
-# we break things down to categories and subcommands
-for raw_cmd in commands:
-	if not '.' in raw_cmd:
-		if not raw_cmd in help_helpers:
-			help_helpers.append(raw_cmd)
-		continue
-
-	(cat, cmd) = raw_cmd.split('.')
-	if not cat in categories:
-		categories[cat] = []
-	if not cmd in categories[cat]:
-		categories[cat].append(cmd)
 
 def mod_fail_print(text, mod):
 	msg = command_mod_load_fail.get(mod)
@@ -181,9 +186,11 @@ categories have a help-command associated with them.
 		mod_fail_print("(nonfatal)", mod)
 	sys.exit(1)
 
+# now we load all the commands so we can actually do things
+load_all_commands()
+
 if len(sys.argv) < 2 or sys.argv[1] == '--help' or sys.argv[1] == 'help':
 	show_usage()
-
 
 args = []
 autohelp = False
@@ -202,6 +209,25 @@ else:
 	# Take it to mean 'help' for that category
 	cmd = cat + '.help'
 	autohelp = True
+
+i = 0
+rem_args = []
+for arg in args:
+	i += 1
+	if arg.startswith('--merlin-cfg='):
+		mconf.config_file = arg.split('=', 1)[1]
+	elif arg.startswith('--nagios-cfg='):
+		nagios_cfg = arg.split('=', 1)[1]
+	elif arg.startswith('--object-cache='):
+		object_cache = arg.split('=', 1)[1]
+	else:
+		print("Adding '%s' to rem_args" % arg)
+		rem_args.append(arg)
+		continue
+
+# now we parse the merlin config file and stash remaining args
+mconf.parse()
+args = rem_args
 
 # if a dev's managed to hack in a bug in a command module, we
 # should tell the user so politely and not just fail to do anything
