@@ -1404,7 +1404,7 @@ int main(int argc, char **argv)
 
 	use_database = 1;
 	db_name = db_user = db_pass = NULL;
-	db_conn_str = db_host = db_port NULL;
+	db_conn_str = db_host = db_port = NULL;
 
 	do_progress = isatty(fileno(stdout));
 
