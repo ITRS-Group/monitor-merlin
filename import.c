@@ -1378,6 +1378,7 @@ static void usage(const char *fmt, ...)
 	printf("  --db-pass                          database password\n");
 	printf("  --db-host                          database host\n");
 	printf("  --db-port                          database port\n");
+	printf("  --db-type                          database type\n");
 	printf("  --db-conn-str                      database connection string\n");
 	printf("  --incremental[=<when>]             do an incremental import (since $when)\n");
 	printf("  --truncate-db                      truncate database before importing\n");
@@ -1397,14 +1398,14 @@ int main(int argc, char **argv)
 	int i, truncate_db = 0;
 	const char *nagios_cfg = NULL;
 	char *db_name, *db_user, *db_pass;
-	char *db_conn_str, *db_host, *db_port;
+	char *db_conn_str, *db_host, *db_port, *db_type;
 
 	progname = strrchr(argv[0], '/');
 	progname = progname ? progname + 1 : argv[0];
 
 	use_database = 1;
 	db_name = db_user = db_pass = NULL;
-	db_conn_str = db_host = db_port = NULL;
+	db_conn_str = db_host = db_port = db_type = NULL;
 
 	do_progress = isatty(fileno(stdout));
 
@@ -1544,6 +1545,13 @@ int main(int argc, char **argv)
 				i++;
 			continue;
 		}
+		if (!prefixcmp(arg, "--db-type")) {
+			if (!opt || !*opt)
+				crash("%s requires a database type as an argument", arg);
+			db_type = opt;
+			if (opt && !eq_opt)
+				i++;
+			continue;
 		if (!prefixcmp(arg, "--interesting") || !prefixcmp(arg, "-i")) {
 			if (!opt || !*opt)
 				crash("%s requires a filename as argument", arg);
