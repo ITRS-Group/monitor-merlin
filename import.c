@@ -1631,7 +1631,7 @@ int main(int argc, char **argv)
 				  db_name, db_table, db_user, sql_error_msg());
 		}
 		if (truncate_db)
-			sql_query("TRUNCATE %s", db_table);
+			sql_query("TRUNCATE TABLE %s", db_table);
 
 		if (incremental == 1) {
 			db_wrap_result * result = NULL;
