@@ -1552,6 +1552,7 @@ int main(int argc, char **argv)
 			if (opt && !eq_opt)
 				i++;
 			continue;
+		}
 		if (!prefixcmp(arg, "--interesting") || !prefixcmp(arg, "-i")) {
 			if (!opt || !*opt)
 				crash("%s requires a filename as argument", arg);
