@@ -328,6 +328,10 @@ static void disable_indexes(void)
 	if (indexes_disabled)
 		return;
 
+	/* We don't disable indexes on Oracle */
+	if (sql_is_oracle())
+		return;
+
 	/*
 	 * if we're more than 95% done before inserting anything,
 	 * such as might be the case when running an incremental
@@ -354,11 +358,16 @@ static void disable_indexes(void)
 
 static void enable_indexes(void)
 {
-		db_wrap_result * result = NULL;
+	db_wrap_result *result = NULL;
 	int64_t entries;
 	time_t start;
 
-	/* if we haven't disabled the indexes we can quit early */
+	/*
+	 * if we haven't disabled the indexes we can quit early.
+	 * No checking needs to be done for non-lockable database types,
+	 * since they won't get their indexes disabled anyway and thus
+	 * won't need them re-enabled anyway.
+	 */
 	if (!indexes_disabled)
 		return;
 
@@ -366,8 +375,8 @@ static void enable_indexes(void)
 	if (!(result = sql_get_result()))
 		entries = 0;
 	else {
-			    if (0 == result->api->step(result)) {
-			        result->api->get_int64_ndx(result, 0, &entries);
+		if (0 == result->api->step(result)) {
+			result->api->get_int64_ndx(result, 0, &entries);
 		} else {
 		    entries = 0;
 		}
