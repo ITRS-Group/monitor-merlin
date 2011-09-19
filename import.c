@@ -1635,10 +1635,9 @@ int main(int argc, char **argv)
 
 		if (incremental == 1) {
 			db_wrap_result * result = NULL;
-			sql_query("SELECT %s FROM %s.%s ORDER BY %s DESC LIMIT 1",
+			sql_query("SELECT max(%s) FROM %s",
 					  only_notifications ? "end_time" : "timestamp",
-					  db_name, db_table,
-					  only_notifications ? "end_time" : "timestamp");
+					  db_table);
 
 			if (!(result = sql_get_result()))
 				crash("Failed to get last timestamp: %s\n", sql_error_msg());
