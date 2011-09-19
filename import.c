@@ -1599,17 +1599,21 @@ int main(int argc, char **argv)
 	if (use_database) {
 		db_user = db_user ? db_user : "merlin";
 		db_pass = db_pass ? db_pass : "merlin";
+		db_type = db_type ? db_type : "mysql";
+		sql_config("user", db_user);
+		sql_config("pass", db_pass);
+		sql_config("type", db_type);
 		if (db_conn_str) {
+			printf("Setting conn_str to %s", db_conn_str);
 			sql_config("conn_str", db_conn_str);
 		} else {
+			printf("Not using conn_str for connection\n");
 			db_name = db_name ? db_name : "merlin";
 			db_table = db_table ? db_table : "report_data";
 			db_host = db_host ? db_host : "localhost";
-			sql_config("db_database", db_name);
-			sql_config("db_user", db_user);
-			sql_config("db_pass", db_pass);
-			sql_config("db_host", db_host);
-			sql_config("db_port", db_port);
+			sql_config("database", db_name);
+			sql_config("host", db_host);
+			sql_config("port", db_port);
 		}
 
 		sql_config("commit_interval", "0");
