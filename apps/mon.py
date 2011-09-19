@@ -221,7 +221,6 @@ for arg in args:
 	elif arg.startswith('--object-cache='):
 		object_cache = arg.split('=', 1)[1]
 	else:
-		print("Adding '%s' to rem_args" % arg)
 		rem_args.append(arg)
 		continue
 
