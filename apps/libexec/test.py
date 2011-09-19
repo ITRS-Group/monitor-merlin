@@ -21,19 +21,6 @@ config = {}
 verbose = False
 send_host_checks = True
 
-def module_init(args):
-	rem_args = []
-
-	for arg in args:
-		if arg.startswith('--merlin-cfg=') or arg.startswith('--merlin-conf='):
-			mconf.config_file = arg.split('=', 1)[1]
-		else:
-			rem_args.append(arg)
-			continue
-
-	mconf.parse()
-	return rem_args
-
 
 def test_cmd(cmd_fd, cmd, msg=False):
 	if msg != False:
