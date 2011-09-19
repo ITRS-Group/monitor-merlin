@@ -1604,10 +1604,8 @@ int main(int argc, char **argv)
 		sql_config("pass", db_pass);
 		sql_config("type", db_type);
 		if (db_conn_str) {
-			printf("Setting conn_str to %s", db_conn_str);
 			sql_config("conn_str", db_conn_str);
 		} else {
-			printf("Not using conn_str for connection\n");
 			db_name = db_name ? db_name : "merlin";
 			db_table = db_table ? db_table : "report_data";
 			db_host = db_host ? db_host : "localhost";
