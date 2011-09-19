@@ -10,6 +10,7 @@ extern char *service_perf_table;
 
 /*typedef dbi_result SQL_RESULT;*/
 
+extern int sql_is_oracle(void);
 extern int sql_config(const char *key, const char *value);
 extern int sql_is_connected(int reconnect);
 extern int sql_init(void);

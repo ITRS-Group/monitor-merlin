@@ -50,6 +50,12 @@ NULL/*result*/,
 
 
 
+int sql_is_oracle(void)
+{
+	/* only oracle begins with an 'o' */
+	return *db.type == 'o';
+}
+
 /*
  * Quotes a string and escapes all meta-characters inside the string.
  * If src is NULL or !*src then 0 is returned and *dest is not modified.
