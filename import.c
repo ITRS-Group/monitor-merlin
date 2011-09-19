@@ -1376,6 +1376,9 @@ static void usage(const char *fmt, ...)
 	printf("  --db-table                         database table name\n");
 	printf("  --db-user                          database user\n");
 	printf("  --db-pass                          database password\n");
+	printf("  --db-host                          database host\n");
+	printf("  --db-port                          database port\n");
+	printf("  --db-conn-str                      database connection string\n");
 	printf("  --incremental[=<when>]             do an incremental import (since $when)\n");
 	printf("  --truncate-db                      truncate database before importing\n");
 	printf("  --only-notifications               only import notifications\n");
@@ -1394,12 +1397,14 @@ int main(int argc, char **argv)
 	int i, truncate_db = 0;
 	const char *nagios_cfg = NULL;
 	char *db_name, *db_user, *db_pass;
+	char *db_conn_str, *db_host, *db_port;
 
 	progname = strrchr(argv[0], '/');
 	progname = progname ? progname + 1 : argv[0];
 
 	use_database = 1;
 	db_name = db_user = db_pass = NULL;
+	db_conn_str = db_host = db_port NULL;
 
 	do_progress = isatty(fileno(stdout));
 
@@ -1515,6 +1520,30 @@ int main(int argc, char **argv)
 				i++;
 			continue;
 		}
+		if (!prefixcmp(arg, "--db-conn-str")) {
+			if (!opt || !*opt)
+				crash("%s requires a connection string as argument", arg);
+			db_conn_str = opt;
+			if (opt && !eq_opt)
+				i++;
+			continue;
+		}
+		if (!prefixcmp(arg, "--db-host")) {
+			if (!opt || !*opt)
+				crash("%s requires a host as argument", arg);
+			db_host = opt;
+			if (opt && !eq_opt)
+				i++;
+			continue;
+		}
+		if (!prefixcmp(arg, "--db-port")) {
+			if (!opt || !*opt)
+				crash("%s requires a port as argument", arg);
+			db_port = opt;
+			if (opt && !eq_opt)
+				i++;
+			continue;
+		}
 		if (!prefixcmp(arg, "--interesting") || !prefixcmp(arg, "-i")) {
 			if (!opt || !*opt)
 				crash("%s requires a filename as argument", arg);
@@ -1559,13 +1588,21 @@ int main(int argc, char **argv)
 	}
 
 	if (use_database) {
-		db_name = db_name ? db_name : "merlin";
 		db_user = db_user ? db_user : "merlin";
 		db_pass = db_pass ? db_pass : "merlin";
-		db_table = db_table ? db_table : "report_data";
-		sql_config("db_database", db_name);
-		sql_config("db_user", db_user);
-		sql_config("db_pass", db_pass);
+		if (db_conn_str) {
+			sql_config("conn_str", db_conn_str);
+		} else {
+			db_name = db_name ? db_name : "merlin";
+			db_table = db_table ? db_table : "report_data";
+			db_host = db_host ? db_host : "localhost";
+			sql_config("db_database", db_name);
+			sql_config("db_user", db_user);
+			sql_config("db_pass", db_pass);
+			sql_config("db_host", db_host);
+			sql_config("db_port", db_port);
+		}
+
 		sql_config("commit_interval", "0");
 		sql_config("commit_queries", "10000");
 
