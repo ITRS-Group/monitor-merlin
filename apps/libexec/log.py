@@ -103,18 +103,23 @@ def cmd_import(args):
 		i += 1
 
 	if not '--list-files' in args:
-		db_host = mconf.dbopt.get('host', 'localhost')
-		db_name = mconf.dbopt.get('name', 'merlin')
 		db_user = mconf.dbopt.get('user', 'merlin')
 		db_pass = mconf.dbopt.get('pass', 'merlin')
-		db_type = mconf.dbopt.get('type', 'mysql')
-		db_port = mconf.dbopt.get('port', False)
-		args.append('--db-host=%s' % db_host)
-		args.append('--db-name=%s' % db_name)
 		args.append('--db-user=%s' % db_user)
 		args.append('--db-pass=%s' % db_pass)
-		args.append('--db-type=%s' % db_type)
-		args.append('--db-port=%s' % db_port)
+		conn_str = mconf.dbopt.get('conn_str', False)
+		if conn_str != False:
+			args.append('--db-conn-str=%s' % mconf.dbopt.get('conn_str', False))
+		else:
+			db_name = mconf.dbopt.get('name', 'merlin')
+			db_host = mconf.dbopt.get('host', 'localhost')
+			db_type = mconf.dbopt.get('type', 'mysql')
+			db_port = mconf.dbopt.get('port', False)
+			args.append('--db-host=%s' % db_host)
+			args.append('--db-name=%s' % db_name)
+			args.append('--db-type=%s' % db_type)
+			if db_port != False:
+				args.append('--db-port=%s' % db_port)
 
 		if mconf.num_nodes['poller'] or mconf.num_nodes['peer']:
 			if fetch == True:
