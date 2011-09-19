@@ -132,8 +132,6 @@ def cmd_import(args):
 				import_args = [merlin_dir + '/import', tmpname] + args
 			else:
 				import_args = [merlin_dir + '/import'] + args
-			print(args)
-			print(import_args)
 			try:
 				subprocess.check_call(import_args, stdout=sys.stdout.fileno())
 			except subprocess.CalledProcessError, e:
