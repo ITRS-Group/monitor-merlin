@@ -1,5 +1,8 @@
 import os, sys, subprocess, tempfile
 
+pushed_logs = "/opt/monitor/pushed_logs"
+archive_dir = "/opt/monitor/var/archives"
+
 ## log commands ##
 # force running push_logs on poller and peer systems
 def cmd_fetch(args):
@@ -106,28 +109,35 @@ def cmd_import(args):
 		db_user = mconf.dbopt.get('user', 'merlin')
 		db_pass = mconf.dbopt.get('pass', 'merlin')
 		db_type = mconf.dbopt.get('type', 'mysql')
-		args.append('--db-user=%s' % db_user)
-		args.append('--db-pass=%s' % db_pass)
-		args.append('--db-type=%s' % db_type)
+		args.insert(0, '--db-user=%s' % db_user)
+		args.insert(0, '--db-pass=%s' % db_pass)
+		args.insert(0, '--db-type=%s' % db_type)
 		conn_str = mconf.dbopt.get('conn_str', False)
 		if conn_str != False:
-			args.append('--db-conn-str=%s' % mconf.dbopt.get('conn_str', False))
+			args.insert(0, '--db-conn-str=%s' % mconf.dbopt.get('conn_str', False))
 		else:
 			db_name = mconf.dbopt.get('name', 'merlin')
 			db_host = mconf.dbopt.get('host', 'localhost')
 			db_port = mconf.dbopt.get('port', False)
-			args.append('--db-host=%s' % db_host)
-			args.append('--db-name=%s' % db_name)
+			args.insert(0, '--db-host=%s' % db_host)
+			args.insert(0, '--db-name=%s' % db_name)
 			if db_port != False:
-				args.append('--db-port=%s' % db_port)
+				args.insert(0, '--db-port=%s' % db_port)
 
 		if mconf.num_nodes['poller'] or mconf.num_nodes['peer']:
 			if fetch == True:
 				cmd_fetch(since)
-			tmpname = cmd_sortmerge(['--since=' + since])
-			print("importing from %s" % tmpname)
-			import_args = [merlin_dir + '/import', tmpname] + args
-			subprocess.check_call(import_args, stdout=sys.stdout.fileno())
+				tmpname = cmd_sortmerge(['--since=' + since])
+				print("importing from %s" % tmpname)
+				import_args = [merlin_dir + '/import', tmpname] + args
+			else:
+				import_args = [merlin_dir + '/import'] + args
+			print(args)
+			print(import_args)
+			try:
+				subprocess.check_call(import_args, stdout=sys.stdout.fileno())
+			except subprocess.CalledProcessError, e:
+				print(e)
 			return True
 
 	app = merlin_dir + "/import"
