@@ -349,14 +349,15 @@ int sql_init(void)
 	connparam.dbname = db.name;
 	connparam.username = db.user;
 	connparam.password = db.pass;
-	connparam.conn_str = db.conn_str;
+	if (db.conn_str && *db.conn_str)
+		connparam.conn_str = db.conn_str;
 	if (db.port)
 		connparam.port = db.port;
 
 	result = db_wrap_driver_init(db.type, &connparam, &db.conn);
 	if (result) {
 		if (log_attempt) {
-			if (db.conn_str)
+			if (db.conn_str && *db.conn_str)
 				lerr("Failed to connect to db '%s' using connection string '%s' as user %s using driver %s",
 					 db.name, db.conn_str, db.user, db.type);
 			else
