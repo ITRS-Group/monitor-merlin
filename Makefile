@@ -84,9 +84,10 @@ DAEMON_DEPS = net.h sql.h daemon.h hash.h
 APP_OBJS = $(COMMON_OBJS) state.o logutils.o lparse.o test_utils.o
 IMPORT_OBJS = $(APP_OBJS) import.o $(DBWRAP_OBJS)
 SHOWLOG_OBJS = $(APP_OBJS) showlog.o auth.o
+RENAME_OBJS = $(APP_OBJS) rename.o logutils.o lparse.o $(DBWRAP_OBJS)
 NEBTEST_OBJS = $(TEST_OBJS) nebtest.o
 DEPS = Makefile cfgfile.h ipc.h logging.h shared.h
-APPS = showlog import oconf ocimp
+APPS = showlog import oconf ocimp rename
 MOD_LDFLAGS = -shared -ggdb3 -fPIC $(PTHREAD_LDFLAGS)
 DAEMON_LIBS = $(LIB_NET)
 DAEMON_LDFLAGS = $(DAEMON_LIBS) $(DB_LDFLAGS) -ggdb3
@@ -159,6 +160,9 @@ merlin.so: $(MODULE_OBJS)
 
 oconf: oconf.o sha1.o misc.o
 	$(QUIET_LINK)$(CC) $(LDFLAGS) $^ -o $@
+
+rename: $(RENAME_OBJS)
+	$(QUIET_LINK)$(CC) -ggdb3 $(DB_LDFLAGS) $(LDFLAGS) $^ -o $@
 
 %.o: %.c
 	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@

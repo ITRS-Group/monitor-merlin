@@ -664,3 +664,17 @@ CREATE TABLE IF NOT EXISTS perfdata(
 CREATE TABLE IF NOT EXISTS merlin_importer(
   pid int DEFAULT NULL
 ) ENGINE=MEMORY;
+
+--
+-- Funky table for keeping track of renames. We'll want to do this during
+-- scheduled monitoring downtimes, as it could take an eternity, and we'll
+-- want this to be done in bulk to save time.
+--
+
+CREATE TABLE IF NOT EXISTS rename_log(
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  from_host_name VARCHAR(255),
+  from_service_description VARCHAR(255) DEFAULT NULL,
+  to_host_name VARCHAR(255),
+  to_service_description VARCHAR(255) DEFAULT NULL
+) COLLATE latin1_general_cs;

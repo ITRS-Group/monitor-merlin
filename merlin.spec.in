@@ -93,7 +93,8 @@ done
 mkdir -p %buildroot%_sysconfdir/cron.d
 cp apps/*.cron %buildroot%_sysconfdir/cron.d/
 
-
+mkdir -p %buildroot/opt/monitor/op5/nacoma/hooks/save/
+install -m 0755 op5build/nacoma_hook.py %buildroot/opt/monitor/op5/nacoma/hooks/save/merlin_hook.py
 
 %post
 # Verify that mysql-server is installed and running before executing sql scripts
@@ -172,10 +173,12 @@ sh /etc/init.d/monitor start || :
 %mod_path/import
 %mod_path/showlog
 %mod_path/ocimp
+%mod_path/rename
 /usr/libexec/merlin/*
 /usr/bin/mon
 %_sysconfdir/cron.d/*
 /opt/plugins/*
+/opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
 
 %clean
 rm -rf %buildroot
