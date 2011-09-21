@@ -815,12 +815,12 @@ static int is_valid_timedecl(const char *str)
 	/*
 	 * a valid nagios time declaration is identical to that given
 	 * by a digital watch with minute precision, followed by either
-	 * a comma, a space or the nul char.
+	 * a comma, a space, a dash, or the nul char.
 	 */
 	if (str[0] >= '0' && str[0] <= '9' && str[1] >= '0' && str[1] <= '9'
 		&& str[2] == ':'
 		&& str[3] >= '0' && str[3] <= '9' && str[4] >= '0' && str[4] <= '9'
-		&& (str[5] == 0 || str[5] == ' ' || str[5] == ','))
+		&& (str[5] == 0 || str[5] == ' ' || str[5] == ',' || str[5] == '-'))
 	{
 		return 1;
 	}
