@@ -122,8 +122,10 @@ static int
 rename_log(renames *renames, char *log_dir, char *log_file)
 {
 	int i;
-	add_naglog_path(log_dir);
-	add_naglog_path(log_file);
+	if (log_dir)
+		add_naglog_path(log_dir);
+	if (log_file)
+		add_naglog_path(log_file);
 	for(i = 0; i < num_nfile; i++) {
 		char new_path[512];
 		struct naglog_file *nf = &nfile[i];
@@ -223,19 +225,20 @@ usage(char *name)
 	       "log files and database tables.\n");
 	printf("Remember: you should shut down monitor while fixing logs!\n\n"
 	       "Options:\n");
-	printf("  --rename-log     Do rename everything in log files\n"
-	       "  --rename-db      Do rename everything in database\n"
-	       "                   If neither is given, default to doing both\n");
-	printf("  --log-archive    Use the given directory for parsing archived logs. Default:\n"
-	       "                   %s\n", DEFAULT_LOG_ARCHIVE_PATH);
-	printf("  --log-file       Parse the given log file. Default:\n"
-	       "                   %s\n", DEFAULT_LOG_FILE);
-	printf("  --db-type        Database type\n"
-	       "  --db-host        Database host\n"
-	       "  --db-name        Database name\n"
-	       "  --db-user        Database username\n"
-	       "  --db-pass        Database password\n"
-	       "  --help           Show this text and exit\n");
+	printf("  --rename-archived Rename in all archived log files\n"
+	       "  --rename-log      Rename current log file\n"
+	       "  --rename-db       Rename everything in database\n"
+	       "  --save-renames    Do the same renames on next execution\n");
+	printf("  --log-archive     Use the given directory for parsing archived logs. Default:\n"
+	       "                    %s\n", DEFAULT_LOG_ARCHIVE_PATH);
+	printf("  --log-file        Parse the given log file. Default:\n"
+	       "                    %s\n", DEFAULT_LOG_FILE);
+	printf("  --db-type         Database type\n"
+	       "  --db-host         Database host\n"
+	       "  --db-name         Database name\n"
+	       "  --db-user         Database username\n"
+	       "  --db-pass         Database password\n"
+	       "  --help            Show this text and exit\n");
 	exit(0);
 }
 
@@ -244,7 +247,8 @@ main(int argc, char **argv)
 {
 	int errs = 0;
 	int i;
-	int do_rename_log = 0, do_rename_db = 0;
+	int do_rename_log = 0, do_rename_db = 0, do_rename_archived = 0;
+	int save_renames = 0;
 	char *log_dir = NULL, *log_file = NULL;
 	char *db_type = NULL, *db_name = NULL, *db_user = NULL, *db_pass = NULL, *db_host = NULL;
 	renames *renames = NULL;
@@ -263,8 +267,14 @@ main(int argc, char **argv)
 		else if (!strcmp(argv[i], "--rename-log")) {
 			do_rename_log = 1;
 		}
+		else if (!strcmp(argv[i], "--rename-archived")) {
+			do_rename_archived = 1;
+		}
 		else if (!strcmp(argv[i], "--rename-db")) {
 			do_rename_db = 1;
+		}
+		else if (!strcmp(argv[i], "--save-renames")) {
+			save_renames = 1;
 		}
 		else if (!prefixcmp(argv[i], "--db-type=")) {
 			db_type = strdup(argv[i] + strlen("--db-type="));
@@ -297,11 +307,6 @@ main(int argc, char **argv)
 	if (log_file == NULL)
 		log_file = strdup(DEFAULT_LOG_FILE);
 
-	if (!do_rename_db && !do_rename_log) {
-		do_rename_db = 1;
-		do_rename_log = 1;
-	}
-
 	use_database = 1;
 	if (db_user)
 		sql_config("user", db_user);
@@ -315,8 +320,16 @@ main(int argc, char **argv)
 		sql_config("type", db_type);
 	sql_init();
 
+	if (!do_rename_db && !do_rename_log && !do_rename_archived)
+		usage(argv[0]);
+
 	linfo("Getting objects to rename.");
 	errs = find_renames(&renames);
+	linfo("Found %i renames.", rename_len);
+	if (!rename_len) {
+		linfo("Nothing to do. Exiting.");
+		exit(0);
+	}
 	if (errs) {
 		lerr("There was an error. Aborting.");
 	}
@@ -325,12 +338,12 @@ main(int argc, char **argv)
 		linfo("Renaming database entries...");
 		errs += rename_db(renames);
 	}
-	if (!errs && do_rename_log) {
+	if (!errs && (do_rename_log || do_rename_archived)) {
 		linfo("Renaming logs...");
-		errs += rename_log(renames, log_dir, log_file);
+		errs += rename_log(renames, (do_rename_archived ? log_dir : NULL), (do_rename_log ? log_file : NULL));
 	}
 
-	if (!errs) {
+	if (!errs && !save_renames) {
 		linfo("Deleting rename backlog.");
 		errs += clear_renames(renames);
 	}
