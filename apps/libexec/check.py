@@ -287,8 +287,7 @@ def cmd_spool(args=False):
 	are older than 'maxage'. It's intended to prevent buildup of
 	checkresult files and unprocessed performance-data files in the
 	various spool directories used by op5 Monitor.
-	  --delete causes this check to always return OK, stating that X
-	  files were removed.
+	  --delete causes too old files to be removed.
 	  --maxage is given in seconds and defaults to 300 (5 minutes).
 	  <path> may be 'perfdata' or 'checks', in which case directory
 	  names will be taken from op5 defaults
@@ -348,7 +347,6 @@ def cmd_spool(args=False):
 				os.unlink(p)
 		except OSError, e:
 			pass
-		nplug.ok("Removed %d files|%s" % perfdata)
 
 	state = nplug.STATE_OK
 	if bad >= critical:
