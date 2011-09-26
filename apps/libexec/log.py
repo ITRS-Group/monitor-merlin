@@ -159,3 +159,9 @@ def cmd_show(args):
 	if ret < 0:
 		print("The showlog helper was killed by signal %d" % ret)
 	return ret
+
+def cmd_purge(args):
+	"""
+	Remove log files that are no longer in use
+	Currently only deletes stale RRD files."""
+	subprocess.call(['find', '/opt/monitor/op5/pnp/perfdata/.trash', '-mindepth', '1', '-delete'])
