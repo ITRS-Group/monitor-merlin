@@ -1,4 +1,4 @@
-import sys, os, re
+import sys, os, re, locale
 from compound_config import *
 from merlin_apps_utils import *
 
@@ -138,6 +138,8 @@ class merlin_node:
 	def ctrl(self, command):
 		col = color.yellow + color.bright
 		reset = color.reset
+
+		command = command.decode(locale.getpreferredencoding())
 
 		if not self.ssh_user:
 			self.ssh_user = 'root'
