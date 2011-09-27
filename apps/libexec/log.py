@@ -3,6 +3,9 @@ import os, sys, subprocess, tempfile
 pushed_logs = "/opt/monitor/pushed_logs"
 archive_dir = "/opt/monitor/var/archives"
 
+class SubcommandException(Exception):
+    pass
+
 ## log commands ##
 # force running push_logs on poller and peer systems
 def cmd_fetch(args):
@@ -79,7 +82,9 @@ def cmd_sortmerge(args):
 
 	print("sort-merging %d files. This could take a while" % (len(sort_args) - 1))
 	(fileno, tmpname) = tempfile.mkstemp()
-	subprocess.check_call(sort_args, stdout=fileno)
+	retno = subprocess.call(sort_args, stdout=fileno)
+	if retno:
+		raise SubcommandException()
 	print("Logs sorted into temporary file %s" % tmpname)
 	return tmpname
 
@@ -132,12 +137,9 @@ def cmd_import(args):
 				import_args = [merlin_dir + '/import', tmpname] + args
 			else:
 				import_args = [merlin_dir + '/import'] + args
-			print(args)
-			print(import_args)
-			try:
-				subprocess.check_call(import_args, stdout=sys.stdout.fileno())
-			except subprocess.CalledProcessError, e:
-				print(e)
+			retcode = subprocess.call(import_args, stdout=sys.stdout.fileno())
+			if retcode:
+				raise SubcommandException()
 			return True
 
 	app = merlin_dir + "/import"
