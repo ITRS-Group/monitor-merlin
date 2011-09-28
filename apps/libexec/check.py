@@ -115,7 +115,7 @@ def cmd_distribution(args):
 	for name, b in bad.items():
 		if not len(b):
 			continue
-		state_str += ("%s runs %d / %d checks (should be %d / %d). " %
+		state_str += ("%s runs %d / %d checks (should be %d / %d).\n" %
 			(name, bad[name]['host'], bad[name]['service'],
 			should[name]['host'], should[name]['service']))
 
