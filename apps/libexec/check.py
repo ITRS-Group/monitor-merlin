@@ -42,8 +42,6 @@ def module_init(args):
 			rem_args += [arg]
 			continue
 
-	# load the merlin configuration, and thus all nodes
-	mconf.parse()
 	dbc = merlin_db.connect(mconf).cursor()
 	mst = merlin_status(dbc)
 	return rem_args
