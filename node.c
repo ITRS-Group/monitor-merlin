@@ -304,7 +304,7 @@ static void create_node_tree(merlin_node *table, unsigned n)
 }
 
 #define MRLN_ADD_NODE_FLAG(word) { MERLIN_NODE_##word, #word }
-struct {
+static struct {
 	int code;
 	const char *key;
 } node_config_flags[] = {
