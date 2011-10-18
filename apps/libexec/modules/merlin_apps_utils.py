@@ -81,3 +81,10 @@ def find_in_path(basename):
 			return path
 
 	return False
+
+def prettyprint_docstring(cmd, str, extra=False):
+	hlp = str.replace('\n\t', '\n').rstrip()
+	hlp = hlp.replace('\n', '\n   ')
+	print(" %s%s%s %s\n" % (color.green, cmd, color.reset, hlp))
+	if extra != False:
+		print("%s%s*** %s%s" % (color.yellow, color.bright, extra, color.reset))

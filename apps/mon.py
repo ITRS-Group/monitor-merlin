@@ -245,9 +245,7 @@ if not cmd in commands:
 		doc_keys = docstrings[cat].keys()
 		doc_keys.sort()
 		for cmd in doc_keys:
-			hlp = docstrings[cat][cmd].replace('\n\t', '\n').rstrip()
-			hlp = hlp.replace('\n', '\n   ')
-			print(" %s%s%s %s\n" % (color.green, cmd, color.reset, hlp))
+			prettyprint_docstring(cmd, docstrings[cat][cmd])
 	else:
 		print("Bad category/command: %s" % cmd.replace('.', ' '))
 	sys.exit(1)
