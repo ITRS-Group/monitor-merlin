@@ -49,7 +49,6 @@ static uint dt_start, dt_stop, dt_skip;
 static hash_table *host_downtime;
 static hash_table *service_downtime;
 static int downtime_id;
-static time_t probably_ignore_downtime;
 
 struct downtime_entry {
 	int id;
@@ -1001,16 +1000,6 @@ static int insert_downtime(struct string_code *sc)
 
 	switch (type) {
 	case NEBTYPE_DOWNTIME_START:
-		if (dt) {
-			if (!probably_ignore_downtime)
-				dt_print("ALRDY", ltime, dt);
-			return 0;
-		}
-
-		if (probably_ignore_downtime)
-			debug("Should probably ignore this downtime: %lu : %lu %s;%s\n",
-				  probably_ignore_downtime, ltime, host, service);
-
 		if (ltime - last_downtime_start > 1)
 			downtime_id++;
 
@@ -1122,7 +1111,7 @@ static inline void handle_start_event(void)
 	if (!daemon_is_running)
 		insert_process_event(NEBTYPE_PROCESS_START);
 
-	probably_ignore_downtime = daemon_start = ltime;
+	daemon_start = ltime;
 	daemon_is_running = 1;
 }
 
@@ -1188,9 +1177,6 @@ static int parse_line(char *line, uint len)
 
 	if (next_dt_purge && ltime >= next_dt_purge)
 		purge_expired_downtime();
-
-	if (probably_ignore_downtime && ltime - probably_ignore_downtime > 1)
-		probably_ignore_downtime = 0;
 
 	while (*ptr == ']' || *ptr == ' ')
 		ptr++;
