@@ -223,6 +223,9 @@ static int rpt_process_data(void *data)
 		return 0;
 
 	switch(ds->type) {
+	case NEBTYPE_PROCESS_EVENTLOOPSTART:
+		ds->type = NEBTYPE_PROCESS_START;
+		break;
 	case NEBTYPE_PROCESS_START:
 	case NEBTYPE_PROCESS_SHUTDOWN:
 		break;
@@ -630,7 +633,9 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 	switch (pkt->hdr.type) {
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 		errors = handle_program_status(node, (void *)pkt->body);
-		errors |= rpt_process_data(pkt->body);
+		break;
+	case NEBCALLBACK_PROCESS_DATA:
+		errors = rpt_process_data(pkt->body);
 		break;
 	case NEBCALLBACK_COMMENT_DATA:
 		errors = handle_comment(node, (void *)pkt->body);

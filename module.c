@@ -775,6 +775,12 @@ static int post_config_init(int cb, void *ds)
 	}
 	send_paths();
 
+	/*
+	 * this is the last event related to startup, so the regular mod hook
+	 * must see it to be able to shove startup info into the database.
+	 */
+	merlin_mod_hook(cb, ds);
+
 	return 0;
 }
 

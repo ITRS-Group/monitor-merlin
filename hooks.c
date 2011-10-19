@@ -1021,6 +1021,10 @@ int merlin_mod_hook(int cb, void *data)
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
 		result = hook_service_status(&pkt, data);
 		break;
+	
+	case NEBCALLBACK_PROCESS_DATA:
+		result = send_generic(&pkt, data);
+		break;
 
 	default:
 		lerr("Unhandled callback '%s' in merlin_hook()", callback_name(cb));
@@ -1046,8 +1050,8 @@ static struct callback_struct {
 	char *name;
 	char *hook_name;
 } callback_table[] = {
+	CB_ENTRY(0, NEBCALLBACK_PROCESS_DATA, hook_generic),
 /*
-	CB_ENTRY(0, NEBCALLBACK_PROCESS_DATA, post_config_init),
 	CB_ENTRY(0, NEBCALLBACK_LOG_DATA, hook_generic),
 	CB_ENTRY(0, NEBCALLBACK_SYSTEM_COMMAND_DATA, hook_generic),
 	CB_ENTRY(0, NEBCALLBACK_EVENT_HANDLER_DATA, hook_generic),
