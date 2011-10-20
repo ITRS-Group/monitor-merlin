@@ -1397,8 +1397,6 @@ CREATE TABLE timeperiod_exclude (
 
 
 
-connect merlin/merlin;
-
 CREATE OR REPLACE TRIGGER comment_tbl_id_TRG BEFORE INSERT OR UPDATE ON comment_tbl
 FOR EACH ROW
 DECLARE
@@ -1819,7 +1817,7 @@ END;
 
 /
 
--- DISCONNECT;
+DISCONNECT;
 SPOOL OFF;
 -- exit
 ;
