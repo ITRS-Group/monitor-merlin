@@ -142,6 +142,9 @@ if [ $1 -eq 0 ]; then
 fi
 
 %post -n monitor-merlin
+grep -q "/usr/lib/oracle/11.2/client/lib" /etc/ld.so.conf || \
+	echo "/usr/lib/oracle/11.2/client/lib" >> /etc/ld.so.conf
+ldconfig
 %mod_path/install-merlin.sh --batch --install=config \
 	--nagios-cfg=%nagios_cfg --dest-dir=%mod_path
 sh /etc/init.d/monitor start || :
