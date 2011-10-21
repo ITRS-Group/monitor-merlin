@@ -31,7 +31,11 @@ def connect(mconf, reuse_conn=True):
 			print("Failed to import MySQLdb")
 			print("Install mysqldb-python or MySQLdb-python to make this command work")
 			sys.exit(1)
-		conn = db.connect(host=db_host, user=db_user, passwd=db_pass, db=db_name)
+		if db_pass == False:
+			conn = db.connect(host=db_host, user=db_user, db=db_name)
+		else:
+			conn = db.connect(host=db_host, user=db_user, passwd=db_pass, db=db_name)
+
 	elif db_type in ['postgres', 'psql', 'pgsql']:
 		try:
 			import pgdb as db
