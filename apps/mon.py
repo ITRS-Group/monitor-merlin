@@ -242,10 +242,11 @@ if not cmd in commands:
 		if not len(docstrings[cat]):
 			print("Category '%s' has no help overview." % cat)
 		print("Available commands: %s\n" % ', '.join(categories[cat]))
-		doc_keys = docstrings[cat].keys()
-		doc_keys.sort()
-		for cmd in doc_keys:
-			prettyprint_docstring(cmd, docstrings[cat][cmd])
+		cat_keys = categories[cat]
+		cat_keys.sort()
+		for cmd in cat_keys:
+			doc_string = docstrings[cat].get(cmd, '\n(documentation missing)')
+			prettyprint_docstring(cmd, doc_string)
 	else:
 		print("Bad category/command: %s" % cmd.replace('.', ' '))
 	sys.exit(1)
