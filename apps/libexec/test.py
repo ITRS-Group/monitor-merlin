@@ -107,18 +107,7 @@ def _pasv_open_cmdpipe(cmd_pipe):
 	signal.alarm(0)
 	return cmd_fd
 
-def _pasv_help():
-	print("""Available options for 'mon test pasv'
 
-  --nagios-cfg=<file>   default /opt/monitor/var/etc/nagios.cfg
-  --counters=<int>      number of counters per object (default 30)
-  --hosts=<int>         number of hosts (default 1)
-  --services=<int>      number of services (default 5)
-  --loops=<int>         number of loops (default 1)
-  --interval=<int>      interval in seconds between loops (def 1800)
-  --delay=<int>         delay between submitting and checking (def 25)
-	""")
-	sys.exit(0)
 
 
 def cmd_pasv(args):
@@ -126,6 +115,15 @@ def cmd_pasv(args):
 	Submits passive checkresults to the nagios.cmd pipe and
 	verifies that the data gets written to database correctly
 	and in a timely manner.
+	Available options for 'mon test pasv'
+
+	  --nagios-cfg=<file>   default /opt/monitor/var/etc/nagios.cfg
+	  --counters=<int>      number of counters per object (default 30)
+	  --hosts=<int>         number of hosts (default 1)
+	  --services=<int>      number of services (default 5)
+	  --loops=<int>         number of loops (default 1)
+	  --interval=<int>      interval in seconds between loops (def 1800)
+	  --delay=<int>         delay between submitting and checking (def 25)
 	"""
 	global verbose
 	nagios_cfg = False
@@ -153,15 +151,16 @@ def cmd_pasv(args):
 			interval = int(arg.split('=')[1])
 		elif arg.startswith('--delay='):
 			delay = int(arg.split('=')[1])
-		elif arg == '--help' or arg == 'help' or arg == '-h':
-			_pasv_help()
 		elif arg == '--verbose' or arg == '-v':
 			verbose = True
 		elif arg == '--nohostchecks':
 			send_host_checks = False
 		else:
-			print("Unknown argument: %s" % arg)
-			sys.exit(1)
+			prettyprint_docstring("pasv", cmd_pasv.__doc__, "Unknown argument: %s" % arg)
+			if arg == '--help' or arg == 'help':
+				sys.exit(0)
+			else:
+				sys.exit(1)
 
 	if nagios_cfg:
 		comp = cconf.parse_conf(nagios_cfg)
