@@ -13,3 +13,4 @@ def test(a, b, msg):
 		print("  %sfail%s %s" % (color.red, color.reset, msg))
 		print(a, b)
 		failed += 1
+	return a == b
