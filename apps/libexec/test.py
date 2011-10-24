@@ -1,11 +1,11 @@
 import time, os, sys
+import random
+import posix
+import signal
 try:
 	import hashlib
 except ImportError:
 	import sha as hashlib
-import random
-import posix
-import signal
 
 modpath = os.path.dirname(__file__) + '/modules'
 if not modpath in sys.path:
