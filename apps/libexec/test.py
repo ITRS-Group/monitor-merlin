@@ -165,7 +165,6 @@ class fake_instance:
 		self.group_id = 0
 		self.db = False
 		self.pids = {}
-		self.node_config = ''
 
 
 	def start_daemons(self, nagios_binary, merlin_binary):
@@ -177,13 +176,6 @@ class fake_instance:
 		print("merlin_cmd: %s" % merlin_cmd)
 		self.pids['nagios'] = subprocess.Popen(nagios_cmd, stdout=subprocess.PIPE)
 		self.pids['merlin'] = subprocess.Popen(merlin_cmd, stdout=subprocess.PIPE)
-		#self.pids['nagios'] = os.spawnvp(os.P_NOWAIT, '/bin/sh',
-		#		['/bin/sh', '-c', nagios_cmd]
-		#	)
-		#self.pids['merlin'] = os.spawnvp(os.P_NOWAIT, '/bin/sh',
-		#		['/bin/sh', '-c', merlin_cmd]
-		#	)
-		print(self.pids)
 
 
 	def signal_daemons(self, sig):
@@ -213,28 +205,20 @@ class fake_instance:
 		if not self.nodes.get(node_type, False):
 			self.nodes[node_type] = {}
 		self.nodes[node_type][node_name] = node_port
-		self.node_config += ("%s %s {\n\taddress = 127.0.0.1\n\tport = %d\n" %
-			(node_type, node_name, node_port))
-		if node_type == 'poller':
-			group_name = node_name.split('-', 1)[0]
-			self.node_config += "\thostgroup = %s\n" % group_name
-		self.node_config += '}\n'
-		#print("Added %s %s to %s (%s)" % (node_type, node_name, self.name, self))
 
 
 	def create_core_config(self):
-		#print("Writing core config for %s" % self)
+		print("Writing core config for %s" % self.name)
 		configs = {}
 		conode_types = self.nodes.keys()
 		conode_types.sort()
 		for ntype in conode_types:
-			continue
 			nodes = self.nodes[ntype]
 			node_names = self.nodes[ntype].keys()
 			node_names.sort()
 			for name in node_names:
 				port = nodes[name]
-				nconf = ("%s %s {\n\taddress = localhost\n\tport = %d\n" %
+				nconf = ("%s %s {\n\taddress = 127.0.0.1\n\tport = %d\n" %
 					(ntype, name, port))
 				if ntype == 'poller':
 					group_name = name.split('-', 1)[0]
@@ -242,7 +226,7 @@ class fake_instance:
 				self.merlin_config += "%s}\n" % nconf
 
 		configs[self.nagios_cfg_path] = self.nagios_config
-		configs[self.merlin_conf_path] = self.merlin_config + self.node_config
+		configs[self.merlin_conf_path] = self.merlin_config
 		for (path, buf) in configs.items():
 			for (key, value) in self.substitutions.items():
 				buf = buf.replace(key, value)
