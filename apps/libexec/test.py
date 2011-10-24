@@ -108,6 +108,16 @@ def _pasv_open_cmdpipe(cmd_pipe):
 	return cmd_fd
 
 
+class mconf_mockup:
+	"""
+	Mockup of merlin configuration object, used to handle multiple
+	database connections from a single program
+	"""
+	dbopt = {}
+	def __init__(self, **kwargs):
+		self.dbopt = {}
+		for k, v in kwargs.items():
+			self.dbopt[k.replace('db', '')] = v
 
 
 def cmd_pasv(args):
