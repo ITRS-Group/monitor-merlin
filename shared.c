@@ -326,7 +326,7 @@ static const char *control_names[] = {
 };
 const char *ctrl_name(uint code)
 {
-	if (code > ARRAY_SIZE(control_names))
+	if (code >= ARRAY_SIZE(control_names))
 		return "(invalid/unknown)";
 	if (code == CTRL_GENERIC)
 		return "CTRL_GENERIC";
