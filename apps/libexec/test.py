@@ -201,7 +201,6 @@ def cmd_pasv(args):
 	# arbitrary (very) large value
 	min_services = 100123098
 	min_services_host = ''
-	host_names = []
 	for row in dbc.fetchall():
 		if hi < num_hosts:
 			obj = pasv_test_host(row[0])
@@ -231,7 +230,7 @@ def cmd_pasv(args):
 			min_services = services
 
 	if num_hosts > host_list:
-		print("Can't run tests for %d hosts when only %d are configured" % (num_hosts, host_list.count()))
+		print("Can't run tests for %d hosts when only %d are configured" % (num_hosts, len(host_list)))
 
 	if num_services > min_services:
 		print("Can't run tests for %d services / host when %s has only %d configured"
