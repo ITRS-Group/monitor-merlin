@@ -2,6 +2,10 @@ import time, os, sys
 import random
 import posix
 import signal
+import re
+import copy
+import subprocess
+
 try:
 	import hashlib
 except ImportError:
@@ -18,6 +22,390 @@ import compound_config as cconf
 config = {}
 verbose = False
 send_host_checks = True
+
+class fake_peer_group:
+	"""
+	Represents one fake group of peered nodes, sharing the same
+	object configuration
+	"""
+	def __init__(self, basepath, group_name, num_nodes=3, port=16000):
+		self.nodes = []
+		self.num_nodes = num_nodes
+		self.group_name = group_name
+		self.config_written = False
+		self.master_groups = {}
+		self.poller_groups = {}
+		self.oconf_buf = False
+		self.poller_oconf = ''
+		i = 0
+		while i < num_nodes:
+			i += 1
+			inst = fake_instance(basepath, "%s-%02d" % (group_name, i), port)
+			self.nodes.append(inst)
+			port += 1
+
+		# add them as peers to each other
+		for n in self.nodes:
+			for node in self.nodes:
+				if n == node:
+					continue
+				n.add_node('peer', node.name, node.port)
+
+		print("Created peer group '%s' with %d nodes and base-port %d" %
+			(group_name, num_nodes, port))
+		return None
+
+	def _add_oconf_object(self, otype, params):
+		self.oconf_buf = 'define %s {\n' % otype
+		for (k, v) in params.items():
+			self.oconf_buf = "%s %s" % (k, v)
+
+
+	def create_object_config(self, num_hosts=10, num_services_per_host=5):
+		# master groups will call this for their pollers when
+		# asked to create their own object configuration
+		if self.oconf_buf:
+			return True
+		hostgroup = {
+			'hostgroup_name': self.group_name,
+			'alias': 'Alias for %s' % self.group_name
+		}
+		host = {
+			'use': 'default-host-template',
+			'host_name': '%s.@@host_num@@' % self.group_name,
+			'alias': 'Just a stupid alias',
+			'address': '127.0.0.1',
+		}
+		service = {
+			'use': 'default-service',
+			'service_description': 'lala-service.@@service_num@@',
+		}
+
+		new_objects = {
+			'hostgroup': [hostgroup],
+			'host': [],
+			'service': [],
+		}
+		sdesc = copy.deepcopy(service['service_description'])
+		hname = copy.deepcopy(host['host_name'])
+		i = 0
+		self.oconf_buf = ''
+		while i < num_hosts:
+			i += 1
+			hobj = host
+			hobj['host_name'] = hname.replace('@@host_num@@', "%04d" % i)
+			self.oconf_buf += "define host{\n"
+			for (k, v) in hobj.items():
+				self.oconf_buf += "%s %s\n" % (k, v)
+			if i < 5:
+				self.oconf_buf += "hostgroups host%d_hosts\n" % i
+			self.oconf_buf += "}\n"
+			x = 0
+			while x < num_services_per_host:
+				x += 1
+				sobj = service
+				sobj['host_name'] = hobj['host_name']
+				sobj['service_description'] = sdesc.replace('@@service_num@@', "%04d" % x)
+				self.oconf_buf += "define service{\n"
+				for (k, v) in sobj.items():
+					self.oconf_buf += "%s %s\n" % (k, v)
+				if x < 5:
+					self.oconf_buf += 'service_groups service%d_services\n' % x
+				self.oconf_buf += "}\n"
+
+		poller_oconf_buf = ''
+		pgroup_names = self.poller_groups.keys()
+		pgroup_names.sort()
+		for pgroup_name in pgroup_names:
+			pgroup = self.poller_groups[pgroup_name]
+			print("Generating config for poller group %s" % pgroup.group_name)
+			pgroup.create_object_config(num_hosts, num_services_per_host)
+			poller_oconf_buf += pgroup.oconf_buf
+
+		self.oconf_buf = "%s\n%s" % (self.oconf_buf, poller_oconf_buf)
+		for node in self.nodes:
+			node.write_file('etc/oconf/generated.cfg', self.oconf_buf)
+			node.write_file('etc/oconf/shared.cfg',
+				test_config_in.shared_object_config)
+
+		return True
+
+
+	def add_master_group(self, mgroup):
+		mgroup.poller_groups[self.group_name] = self
+		self.master_groups[mgroup.group_name] = mgroup
+		for poller in self.nodes:
+			for master in mgroup.nodes:
+				poller.add_node('master', master.name, master.port)
+				master.add_node('poller', poller.name, poller.port)
+		return True
+
+
+class fake_instance:
+	"""
+	Represents one fake installation of Nagios, Merlin and mk_Livestatus
+	and is responsible for creating directories and configurations for
+	all of the above.
+	"""
+	def __init__(self, basepath, name, port=15551):
+		self.name = name
+		self.port = port
+		self.home = "%s/%s" % (basepath, name)
+		self.nodes = {}
+		self.db_name = 'mdtest_%s' % name.replace('-', '_')
+		self.substitutions = {
+			'@@DIR@@': self.home,
+			'@@NETWORK_PORT@@': "%d" % port,
+			'@@DB_NAME@@': self.db_name,
+		}
+		self.merlin_config = test_config_in.merlin_config_in
+		self.nagios_config = test_config_in.nagios_config_in
+		self.nagios_cfg_path = "%s/etc/nagios.cfg" % self.home
+		self.merlin_conf_path = "%s/merlin/merlin.conf" % self.home
+		self.group_id = 0
+		self.db = False
+		self.pids = {}
+		self.node_config = ''
+
+
+	def start_daemons(self, nagios_binary, merlin_binary):
+		nagios_cmd = '%s %s/etc/nagios.cfg > /dev/null' % (nagios_binary, self.home)
+		merlin_cmd = '%s -d -c %s/merlin/merlin.conf > /dev/null' % (merlin_binary, self.home)
+		nagios_cmd = [nagios_binary, '%s/etc/nagios.cfg' % self.home]
+		merlin_cmd = [merlin_binary, '-d', '-c', '%s/merlin/merlin.conf' % self.home]
+		print("nagios_cmd: %s" % nagios_cmd)
+		print("merlin_cmd: %s" % merlin_cmd)
+		self.pids['nagios'] = subprocess.Popen(nagios_cmd, stdout=subprocess.PIPE)
+		self.pids['merlin'] = subprocess.Popen(merlin_cmd, stdout=subprocess.PIPE)
+		#self.pids['nagios'] = os.spawnvp(os.P_NOWAIT, '/bin/sh',
+		#		['/bin/sh', '-c', nagios_cmd]
+		#	)
+		#self.pids['merlin'] = os.spawnvp(os.P_NOWAIT, '/bin/sh',
+		#		['/bin/sh', '-c', merlin_cmd]
+		#	)
+		print(self.pids)
+
+
+	def signal_daemons(self, sig):
+		for name, proc in self.pids.items():
+			proc.send_signal(sig)
+
+
+	def shutdown_daemons(self):
+		self.signal_daemons(signal.SIGTERM)
+
+
+	def slay_daemons(self):
+		self.signal_daemons(signal.SIGKILL)
+
+
+	def add_subst(self, key, value):
+		"""
+		Key and value must both be strings, or weird things will happen
+		"""
+		self.substitutions[key] = value
+
+
+	def add_node(self, node_type, node_name, node_port):
+		"""
+		Register a companion node, be it master, poller or peer
+		"""
+		if not self.nodes.get(node_type, False):
+			self.nodes[node_type] = {}
+		self.nodes[node_type][node_name] = node_port
+		self.node_config += ("%s %s {\n\taddress = 127.0.0.1\n\tport = %d\n" %
+			(node_type, node_name, node_port))
+		if node_type == 'poller':
+			group_name = node_name.split('-', 1)[0]
+			self.node_config += "\thostgroup = %s\n" % group_name
+		self.node_config += '}\n'
+		#print("Added %s %s to %s (%s)" % (node_type, node_name, self.name, self))
+
+
+	def create_core_config(self):
+		#print("Writing core config for %s" % self)
+		configs = {}
+		conode_types = self.nodes.keys()
+		conode_types.sort()
+		for ntype in conode_types:
+			continue
+			nodes = self.nodes[ntype]
+			node_names = self.nodes[ntype].keys()
+			node_names.sort()
+			for name in node_names:
+				port = nodes[name]
+				nconf = ("%s %s {\n\taddress = localhost\n\tport = %d\n" %
+					(ntype, name, port))
+				if ntype == 'poller':
+					group_name = name.split('-', 1)[0]
+					nconf += "\thostgroup = %s\n" % group_name
+				self.merlin_config += "%s}\n" % nconf
+
+		configs[self.nagios_cfg_path] = self.nagios_config
+		configs[self.merlin_conf_path] = self.merlin_config + self.node_config
+		for (path, buf) in configs.items():
+			for (key, value) in self.substitutions.items():
+				buf = buf.replace(key, value)
+			self.write_file(path, buf)
+		return True
+
+
+	def write_file(self, path, contents, mode=0644):
+		if path[0] != '/':
+			path = "%s/%s" % (self.home, path)
+		f = open(path, 'w', mode)
+		f.write(contents)
+		f.close()
+		return True
+
+	def db_connect(self):
+		if self.db:
+			return True
+		self.db = merlin_db.connect(self.mconf, False)
+		self.dbc = self.db.cursor()
+
+
+	def create_directories(self):
+		dirs = [
+			'etc/oconf', 'var/rw', 'var/archives',
+			'var/spool/checkresults', 'var/spool/perfdata',
+			'merlin/logs',
+		]
+		for d in dirs:
+			mkdir_p("%s/%s" % (self.home, d))
+
+
+def create_database(dbc, inst, schema_paths):
+	try:
+		dbc.execute('DROP DATABASE %s' % inst.db_name)
+	except Exception, e:
+		pass
+
+	try:
+		dbc.execute("CREATE DATABASE %s" % inst.db_name)
+		dbc.execute("GRANT ALL ON %s.* TO merlin@'%%' IDENTIFIED BY 'merlin'" % inst.db_name)
+		dbc.execute("USE merlin")
+		dbc.execute('SHOW TABLES')
+		for row in dbc.fetchall():
+			# this isn't portable, but brings along indexes
+			query = ('CREATE TABLE %s.%s LIKE %s' %
+				(inst.db_name, row[0], row[0]))
+			#query = ('CREATE TABLE %s.%s AS SELECT * FROM %s LIMIT 0' %
+			#	(inst.db_name, row[0], row[0]))
+			#print("Running query %s" % query)
+			dbc.execute(query)
+		print("Database %s for %s created properly" % (inst.db_name, inst.name))
+	except Exception, e:
+		print(e)
+		sys.exit(1)
+		return False
+
+
+def cmd_dist(args):
+	"""--basepath=<basepath>
+	Tests various aspects of event forwarding with any number of
+	hosts, services, peers and pollers, generating config and
+	creating databases for the various instances and checking
+	event distribution among them.
+	"""
+	basepath = '/tmp/merlin-dtest'
+	merlin_mod_path = posix.getcwd()
+	ocimp_path = "%s/ocimp" % merlin_mod_path
+	livestatus_o = '/home/exon/git/monitor/livestatus/livestatus/src/livestatus.o'
+	db_admin_user = 'exon'
+	db_admin_password = False
+	sql_schema_paths = []
+	num_masters = 1
+	poller_groups = 1
+	pollers_per_group = 2
+	merlin_binary = '%s/merlind' % merlin_mod_path
+	nagios_binary = '/opt/monitor/bin/monitor'
+	for arg in args:
+		if arg.startswith('--basepath='):
+			basepath = arg.split('=', 1)[1]
+		elif arg.endswith('.sql'):
+			sql_schema_paths.append(arg)
+		elif arg.startswith('--sql-user='):
+			db_admin_user = arg.split('=', 1)[1]
+		elif arg.startswith('--sql-pass=') or arg.startswith('--sql-passwd='):
+			db_admin_password = arg.split('=', 1)[1]
+		elif arg.startswith('--masters='):
+			num_masters = int(arg.split('=', 1)[1])
+		elif arg.startswith('--poller-groups='):
+			poller_groups = int(arg.split('=', 1)[1])
+		elif arg.startswith('--pollers-per-group='):
+			pollers_per_group = int(arg.split('=', 1)[1])
+		elif arg.startswith('--merlin-binary='):
+			merlin_binary = arg.split('=', 1)[1]
+		elif arg.startswith('--nagios-binary=') or arg.startswith('--monitor-binary='):
+			nagios_binary = arg.split('=', 1)[1]
+		else:
+			prettyprint_docstring('dist', cmd_dist.__doc__,
+				'Unknown argument: %s' % arg)
+			sys.exit(1)
+
+	# done parsing arguments, so get real paths to merlin and nagios
+	if nagios_binary[0] != '/':
+		nagios_binary = os.path.abspath(nagios_binary)
+	if merlin_binary[0] != '/':
+		merlin_binary = os.path.abspath(merlin_binary)
+
+	# clear out playpen first
+	os.system("rm -rf %s" % basepath)
+
+	i = 1
+	base_port = 16000
+	port = base_port
+	masters = fake_peer_group(basepath, 'master', num_masters, base_port)
+	base_port += num_masters
+
+	i = 0
+	pgroups = []
+	while i < poller_groups:
+		i += 1
+		group_name = "pg%d" % i
+		pgroups.append(fake_peer_group(basepath, group_name, pollers_per_group, base_port))
+		base_port += pollers_per_group
+
+	instances = []
+	for inst in masters.nodes:
+		instances.append(inst)
+
+	for pgroup in pgroups:
+		pgroup.add_master_group(masters)
+		for inst in pgroup.nodes:
+			instances.append(inst)
+
+	peer_groups = pgroups + [masters]
+
+	mock_conf = mconf_mockup(host='localhost', user='exon', dbname='merlin', dbpass=False)
+	db = merlin_db.connect(mock_conf)
+	dbc = db.cursor()
+	for inst in instances:
+		inst.add_subst('@@OCIMP_PATH@@', ocimp_path)
+		inst.add_subst('@@MODULE_PATH@@', merlin_mod_path)
+		inst.add_subst('@@LIVESTATUS_O@@', livestatus_o)
+		inst.create_directories()
+		inst.create_core_config()
+		create_database(dbc, inst, sql_schema_paths)
+
+	masters.create_object_config()
+
+	for inst in instances:
+		inst.start_daemons(nagios_binary, merlin_binary)
+
+	# tests go here
+	buf = sys.stdin.readline()
+
+	for inst in instances:
+		inst.shutdown_daemons()
+		#dbc.execute("DROP DATABASE %s" % inst.db_name)
+
+	# final round to nuke all remaining daemons
+	for inst in instances:
+		inst.slay_daemons()
+
+	db.close()
 
 
 def test_cmd(cmd_fd, cmd, msg=False):
