@@ -168,12 +168,8 @@ class fake_instance:
 
 
 	def start_daemons(self, nagios_binary, merlin_binary):
-		nagios_cmd = '%s %s/etc/nagios.cfg > /dev/null' % (nagios_binary, self.home)
-		merlin_cmd = '%s -d -c %s/merlin/merlin.conf > /dev/null' % (merlin_binary, self.home)
 		nagios_cmd = [nagios_binary, '%s/etc/nagios.cfg' % self.home]
 		merlin_cmd = [merlin_binary, '-d', '-c', '%s/merlin/merlin.conf' % self.home]
-		print("nagios_cmd: %s" % nagios_cmd)
-		print("merlin_cmd: %s" % merlin_cmd)
 		self.pids['nagios'] = subprocess.Popen(nagios_cmd, stdout=subprocess.PIPE)
 		self.pids['merlin'] = subprocess.Popen(merlin_cmd, stdout=subprocess.PIPE)
 
