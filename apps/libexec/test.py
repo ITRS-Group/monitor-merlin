@@ -312,6 +312,7 @@ def cmd_dist(args):
 	pollers_per_group = 2
 	merlin_binary = '%s/merlind' % merlin_mod_path
 	nagios_binary = '/opt/monitor/bin/monitor'
+	confgen_only = False
 	for arg in args:
 		if arg.startswith('--basepath='):
 			basepath = arg.split('=', 1)[1]
@@ -331,6 +332,8 @@ def cmd_dist(args):
 			merlin_binary = arg.split('=', 1)[1]
 		elif arg.startswith('--nagios-binary=') or arg.startswith('--monitor-binary='):
 			nagios_binary = arg.split('=', 1)[1]
+		elif arg == '--confgen-only':
+			confgen_only = True
 		else:
 			prettyprint_docstring('dist', cmd_dist.__doc__,
 				'Unknown argument: %s' % arg)
@@ -379,9 +382,12 @@ def cmd_dist(args):
 		inst.add_subst('@@LIVESTATUS_O@@', livestatus_o)
 		inst.create_directories()
 		inst.create_core_config()
-		create_database(dbc, inst, sql_schema_paths)
+		if not confgen_only:
+			create_database(dbc, inst, sql_schema_paths)
 
 	masters.create_object_config()
+	if confgen_only:
+		sys.exit(0)
 
 	for inst in instances:
 		inst.start_daemons(nagios_binary, merlin_binary)
