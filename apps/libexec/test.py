@@ -49,7 +49,7 @@ class fake_peer_group:
 			for node in self.nodes:
 				if n == node:
 					continue
-				n.add_node('peer', node.name, node.port)
+				n.add_node('peer', node.name, port=node.port)
 
 		print("Created peer group '%s' with %d nodes and base-port %d" %
 			(group_name, num_nodes, port))
@@ -136,8 +136,8 @@ class fake_peer_group:
 		self.master_groups[mgroup.group_name] = mgroup
 		for poller in self.nodes:
 			for master in mgroup.nodes:
-				poller.add_node('master', master.name, master.port)
-				master.add_node('poller', poller.name, poller.port)
+				poller.add_node('master', master.name, port=master.port)
+				master.add_node('poller', poller.name, port=poller.port)
 		return True
 
 
@@ -194,13 +194,24 @@ class fake_instance:
 		self.substitutions[key] = value
 
 
-	def add_node(self, node_type, node_name, node_port):
+	def add_node(self, node_type, node_name, **kwargs):
 		"""
 		Register a companion node, be it master, poller or peer
 		"""
 		if not self.nodes.get(node_type, False):
 			self.nodes[node_type] = {}
-		self.nodes[node_type][node_name] = node_port
+		if not self.nodes[node_type].get(node_name, False):
+			self.nodes[node_type][node_name] = {}
+
+		for (k, v) in kwargs.items():
+			self.nodes[node_type][node_name][k] = v
+		if not self.nodes[node_type][node_name].get('address', False):
+			self.nodes[node_type][node_name]['address'] = '127.0.0.1'
+		port = kwargs.get('port', False)
+		# lalalala stupid workaround for socket negotiation bug
+		# inside the merlin daemon
+		if port and port > self.port:
+			self.nodes[node_type][node_name]['connect'] = 'no'
 
 
 	def create_core_config(self):
@@ -213,9 +224,10 @@ class fake_instance:
 			node_names = self.nodes[ntype].keys()
 			node_names.sort()
 			for name in node_names:
-				port = nodes[name]
-				nconf = ("%s %s {\n\taddress = 127.0.0.1\n\tport = %d\n" %
-					(ntype, name, port))
+				nconf = ("%s %s {\n" % (ntype, name))
+				node_vars = self.nodes[ntype][name]
+				for (k, v) in node_vars.items():
+					nconf += "\t%s = %s\n" % (k, v)
 				if ntype == 'poller':
 					group_name = name.split('-', 1)[0]
 					nconf += "\thostgroup = %s\n" % group_name
