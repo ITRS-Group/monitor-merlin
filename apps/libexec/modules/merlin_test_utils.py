@@ -62,7 +62,7 @@ check_result_path=@@DIR@@/var/spool/checkresults
 max_check_result_file_age=3600
 host_inter_check_delay_method=s
 max_host_check_spread=30
-interval_length=60
+interval_length=15
 auto_reschedule_checks=0
 auto_rescheduling_interval=30
 auto_rescheduling_window=180
@@ -193,7 +193,7 @@ define host{
     name                           default-host-template
     check_command                  check-host-alive
     max_check_attempts             3
-    check_interval                 5
+    check_interval                 1
     retry_interval                 0
     active_checks_enabled          1
     passive_checks_enabled         1
@@ -216,7 +216,7 @@ define service{
     name                           default-service
     is_volatile                    0
     max_check_attempts             3
-    check_interval                 5
+    check_interval                 2
     retry_interval                 1
     active_checks_enabled          1
     passive_checks_enabled         1
