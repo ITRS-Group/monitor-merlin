@@ -89,7 +89,10 @@ class fake_peer_group:
 		sdesc = copy.deepcopy(service['service_description'])
 		hname = copy.deepcopy(host['host_name'])
 		i = 0
-		self.oconf_buf = ''
+		self.oconf_buf = 'define hostgroup {\n'
+		for (k, v) in hostgroup.items():
+			self.oconf_buf += '\t%s %s\n' % (k, v)
+		self.oconf_buf += '}\n'
 		while i < num_hosts:
 			i += 1
 			hobj = host
@@ -98,7 +101,9 @@ class fake_peer_group:
 			for (k, v) in hobj.items():
 				self.oconf_buf += "%s %s\n" % (k, v)
 			if i < 5:
-				self.oconf_buf += "hostgroups host%d_hosts\n" % i
+				self.oconf_buf += "hostgroups host%d_hosts,%s\n" % (i, self.group_name)
+			else:
+				self.oconf_buf += 'hostgroups %s\n' % self.group_name
 			self.oconf_buf += "}\n"
 			x = 0
 			while x < num_services_per_host:
