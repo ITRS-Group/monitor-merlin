@@ -215,8 +215,12 @@ int ipc_init(void)
 			return -1;
 		}
 
-		if (listen(listen_sock, 1) < 0)
+		if (listen(listen_sock, 1) < 0) {
 			lerr("listen(%d, 1) failed: %s", listen_sock, strerror(errno));
+			close(listen_sock);
+			listen_sock = -1;
+			return -1;
+		}
 
 		return 0;
 	}
