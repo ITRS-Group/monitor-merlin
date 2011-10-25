@@ -148,43 +148,34 @@ class merlin_status:
 		number of checks it should do. The caller will have to add 1
 		to get the max amount of checks it's OK for this node to run.
 		"""
-
 		# use cached values if available
-		sr = getattr(node, 'assigned_checks', False)
+		attr_name = 'assigned_checks'
+		sr = getattr(node, attr_name, False)
 		if sr:
 			return sr
 
-		sr = {}
-		attr_name = 'assigned_checks'
 		setattr(node, attr_name, {})
+
+		# masters should never run any checks
 		if node.ntype == 'master':
 			node.assigned_checks = {'host': 0, 'service': 0}
 			return node.assigned_checks
-		if node.ntype == 'poller':
-			sr = self.hostgroup_checks(node.options.get('hostgroup'))
-			node.assigned_checks = {
-				'host': sr['host'] / (node.num_peers + 1),
-				'service': sr['service'] / (node.num_peers + 1)
-			}
-			# cache the 'assigned_checks' info for all peers
-			for n in node.peer_nodes.values():
-				setattr(n, attr_name, node.assigned_checks)
-			return node.assigned_checks
 
-		# This is a peer. That means it should have the same pollers
-		# as we do. If there are no pollers, we just divide up the
-		# total checks between the total number of peers
-		if not mconf.num_nodes['poller']:
+		# pollers should always run the number of checks they
+		# think they should, since we never know anything about
+		# their pollers. The same goes for peers without
+		# configured pollers
+		if node.ntype == 'poller' or not mconf.num_nodes['poller']:
 			node.assigned_checks = {
-				'host': self.num_entries('host') / (node.num_peers + 1),
-				'service': self.num_entries('service') / (node.num_peers + 1),
+				'host': node.basic['host_checks_handled'],
+				'service': node.basic['service_checks_handled']
 			}
 			return node.assigned_checks
 
-		# otherwise things get more complicated and we need to query
-		# the database to see how many checks there are that aren't
-		# handled by any poller and whose alphabetical sorting happens
-		# to co-incide with which peer
+		# for peer nodes with pollers, things get more complicated and
+		# we need to query the database to see how many checks there
+		# are that aren't handled by any poller and whose alphabetical
+		# sorting happens to co-incide with which peer
 		poller_hgs = []
 		for n in mconf.configured_nodes.values():
 			if n.ntype != 'poller':
@@ -231,7 +222,8 @@ class merlin_status:
 			is_running, self_assigned_peer_id,
 			configured_masters,	active_masters,
 			configured_peers, active_peers,
-			configured_pollers, active_pollers
+			configured_pollers, active_pollers,
+			host_checks_handled, service_checks_handled
 			FROM program_status"""
 
 		if node_name:
@@ -255,6 +247,8 @@ class merlin_status:
 			res['active_peers'] = row[8]
 			res['configured_pollers'] = row[9]
 			res['active_pollers'] = row[10]
+			res['host_checks_handled'] = row[11]
+			res['service_checks_handled'] = row[12]
 			nodes[name]['basic'] = res
 			node = mconf.configured_nodes.get(name, False)
 			# we read ourselves, or an unconfigured node
@@ -264,6 +258,7 @@ class merlin_status:
 				node.ntype = 'peer'
 				node.num_peers = mconf.num_nodes['peer']
 
+			setattr(node, 'basic', res)
 			node.in_db = True
 			nodes[name]['node'] = node
 
