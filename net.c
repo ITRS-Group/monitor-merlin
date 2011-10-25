@@ -7,17 +7,33 @@
 
 static int net_sock = -1; /* listening sock descriptor */
 
+static unsigned short net_source_port(merlin_node *node)
+{
+	return ntohs(node->sain.sin_port) + default_port;
+}
+
 /* do a node lookup based on name *or* ip-address + port */
 merlin_node *find_node(struct sockaddr_in *sain, const char *name)
 {
 	uint i;
+	merlin_node *first = NULL;
 
-	if (sain) for (i = 0; i < num_nodes; i++) {
+	if (!sain)
+		return NULL;
+
+	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
-		if (node->sain.sin_addr.s_addr == sain->sin_addr.s_addr)
-			return node;
+		unsigned short source_port = ntohs(sain->sin_port);
+		unsigned short in_port = net_source_port(node);
+		if (node->sain.sin_addr.s_addr == sain->sin_addr.s_addr) {
+			if (source_port == in_port) /* perfect match */
+				return node;
+			if (!first)
+				node = first;
+		}
 	}
-	return NULL;
+
+	return first;
 }
 
 
@@ -86,9 +102,11 @@ int net_is_connected(merlin_node *node)
  */
 int net_try_connect(merlin_node *node)
 {
+	int sockopt = 1;
 	struct sockaddr *sa = (struct sockaddr *)&node->sain;
 	int connected = 0, should_log = 0;
 	struct timeval connect_timeout = { MERLIN_CONNECT_TIMEOUT, 0 };
+	struct sockaddr_in sain;
 
 	/* don't log obsessively */
 	if (node->last_conn_attempt_logged + 30 <= time(NULL)) {
@@ -130,6 +148,18 @@ int net_try_connect(merlin_node *node)
 		linfo("Connecting to %s %s@%s:%d", node_type(node), node->name,
 		      inet_ntoa(node->sain.sin_addr),
 		      ntohs(node->sain.sin_port));
+	}
+	/*
+	 * first we bind() to a local port calculated by our own
+	 * listening port + the target port.
+	 */
+	sain.sin_family = AF_INET;
+	sain.sin_port = htons(net_source_port(node));
+	sain.sin_addr.s_addr = 0;
+	(void)setsockopt(node->sock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int));
+	if (bind(node->sock, (struct sockaddr *)&sain, sizeof(sain))) {
+		lerr("Failed to bind() outgoing socket for node %s to port %d: %s",
+			 node->name, ntohs(sain.sin_port), strerror(errno));
 	}
 
 	if (fcntl(node->sock, F_SETFL, O_NONBLOCK) < 0) {
