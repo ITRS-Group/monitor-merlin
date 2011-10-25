@@ -47,11 +47,16 @@ def module_init(args):
 	return rem_args
 
 def cmd_distribution(args):
-	"""
+	"""[--no-perfdata]
 	Checks to make sure work distribution works ok. Note that it's
 	not expected to work properly the first couple of minutes after
 	a new machine has been brought online or taken offline
 	"""
+	print_perfdata = True
+	for arg in args:
+		if arg == '--no-perfdata':
+			print_perfdata = False
+
 	# min and max number of checks
 	total_checks = {
 		'host': mst.num_entries('host'),
@@ -121,7 +126,10 @@ def cmd_distribution(args):
 	if not state_str:
 		state_str = "All %d nodes run their assigned checks." % len(nodes)
 	sys.stdout.write("%s" % state_str.rstrip())
-	print("|%s" % pdata.lstrip())
+	if print_perfdata:
+		print("|%s" % pdata.lstrip())
+	else:
+		sys.stdout.write("\n")
 	sys.exit(state)
 
 
