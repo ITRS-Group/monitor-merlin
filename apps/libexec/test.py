@@ -333,6 +333,8 @@ def cmd_dist(args):
 			poller_groups = int(arg.split('=', 1)[1])
 		elif arg.startswith('--pollers-per-group='):
 			pollers_per_group = int(arg.split('=', 1)[1])
+		elif arg.startswith('--masters='):
+			num_masters = int(arg.split('=', 1)[1])
 		elif arg.startswith('--merlin-binary='):
 			merlin_binary = arg.split('=', 1)[1]
 		elif arg.startswith('--nagios-binary=') or arg.startswith('--monitor-binary='):
