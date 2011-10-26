@@ -19,6 +19,14 @@ from merlin_test_utils import *
 import merlin_db
 
 import compound_config as cconf
+
+__doc__ = """  %s%s!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!%s
+
+%sAll commands in this category can potentially overwrite configuration,
+enable or disable monitoring and generate notifications. Do *NOT* use
+these commands in a production environment.%s
+""" % (color.yellow, color.bright, color.reset, color.red, color.reset)
+
 config = {}
 verbose = False
 send_host_checks = True
@@ -527,7 +535,9 @@ def cmd_pasv(args):
 	  --loops=<int>         number of loops (default 1)
 	  --interval=<int>      interval in seconds between loops (def 1800)
 	  --delay=<int>         delay between submitting and checking (def 25)
-	"""
+
+	%s%s!!! WARNING !!!%s This command will disble active checks on your system.
+	""" % (color.yellow, color.bright, color.reset)
 	global verbose
 	nagios_cfg = False
 	num_hosts = 1
