@@ -100,6 +100,9 @@ install -m 0755 op5build/nacoma_hook.py %buildroot/opt/monitor/op5/nacoma/hooks/
 mkdir -p %buildroot%_sysconfdir/kad.conf.d
 cp kad.conf %buildroot%_sysconfdir/kad.conf.d/merlin.kad
 
+mkdir -p %buildroot%_sysconfdir/nrpe.d
+cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
+
 
 %post
 # Verify that mysql-server is installed and running before executing sql scripts
@@ -127,8 +130,10 @@ if [[ $? -eq 0 || $1 -eq 2 ]]; then
   /etc/init.d/merlind restart
 fi
 
-# restart op5kad if installed
-test -f /etc/init.d/op5kad && /etc/init.d/op5kad restart
+# restart axuilliary daemons
+for $daemon in op5kad nrpe; do
+	test -f /etc/init.d/$daemon && /etc/init.d/$daemon restart
+done
 
 
 %pre -n monitor-merlin
@@ -170,13 +175,16 @@ sh /etc/init.d/monitor start || :
 %mod_path/init.sh
 %_sysconfdir/logrotate.d/merlin
 %_sysconfdir/kad.conf.d/merlin.kad
+%_sysconfdir/nrpe.d/nrpe-merlin.cfg
 /etc/init.d/merlind
 %dir %mod_path/logs
 %mod_path/binlogs
 
+
 %files -n monitor-merlin
 %defattr(-,root,root)
 %mod_path/merlin.so
+
 
 %files apps
 %defattr(-,root,root)
