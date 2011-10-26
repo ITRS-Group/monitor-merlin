@@ -221,10 +221,6 @@ class fake_instance:
 		if not self.nodes[node_type][node_name].get('address', False):
 			self.nodes[node_type][node_name]['address'] = '127.0.0.1'
 		port = kwargs.get('port', False)
-		# lalalala stupid workaround for socket negotiation bug
-		# inside the merlin daemon
-		if port and port > self.port:
-			self.nodes[node_type][node_name]['connect'] = 'no'
 
 
 	def create_core_config(self):
