@@ -97,8 +97,8 @@ cp apps/*.cron %buildroot%_sysconfdir/cron.d/
 mkdir -p %buildroot/opt/monitor/op5/nacoma/hooks/save/
 install -m 0755 op5build/nacoma_hook.py %buildroot/opt/monitor/op5/nacoma/hooks/save/merlin_hook.py
 
-mkdir -p %buildroot%_sysconfdir/kad.conf.d
-cp kad.conf %buildroot%_sysconfdir/kad.conf.d/merlin.kad
+mkdir -p %buildroot%_sysconfdir/op5kad/conf.d
+cp kad.conf %buildroot%_sysconfdir/op5kad/conf.d/merlin.kad
 
 mkdir -p %buildroot%_sysconfdir/nrpe.d
 cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
@@ -174,7 +174,7 @@ sh /etc/init.d/monitor start || :
 %mod_path/example.conf
 %mod_path/init.sh
 %_sysconfdir/logrotate.d/merlin
-%_sysconfdir/kad.conf.d/merlin.kad
+%_sysconfdir/op5kad/conf.d/merlin.kad
 %_sysconfdir/nrpe.d/nrpe-merlin.cfg
 /etc/init.d/merlind
 %dir %mod_path/logs
