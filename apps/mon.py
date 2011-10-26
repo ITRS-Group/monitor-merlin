@@ -65,7 +65,8 @@ def load_command_module(path):
 	module.merlin_dir = merlin_dir
 	module.module_dir = module_dir
 
-	docstrings[modname] = {}
+	docstrings[modname] = {'__doc__': module.__doc__}
+
 	# we grab the init function here, but delay running it
 	# until we know which module we'll be using.
 	init_func = getattr(module, "module_init", False)
@@ -241,6 +242,8 @@ if not cmd in commands:
 	elif autohelp == True:
 		if not len(docstrings[cat]):
 			print("Category '%s' has no help overview." % cat)
+		if docstrings[cat]['__doc__']:
+			print(docstrings[cat]['__doc__'])
 		cat_keys = categories[cat]
 		cat_keys.sort()
 		print("Available commands in category %s%s%s%s:" %
