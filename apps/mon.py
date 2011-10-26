@@ -241,9 +241,10 @@ if not cmd in commands:
 	elif autohelp == True:
 		if not len(docstrings[cat]):
 			print("Category '%s' has no help overview." % cat)
-		print("Available commands: %s\n" % ', '.join(categories[cat]))
 		cat_keys = categories[cat]
 		cat_keys.sort()
+		print("Available commands in category %s%s%s%s:" %
+			(color.blue, color.bright, cat, color.reset))
 		for cmd in cat_keys:
 			doc_string = docstrings[cat].get(cmd, '\n(documentation missing)')
 			prettyprint_docstring(cmd, doc_string)
