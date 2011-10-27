@@ -1,7 +1,7 @@
 import sys, os, time, errno
 
 class ansi_color:
-	_color_names = "grey red green yellow blue magenta cyan white"
+	_color_names = "grey red green brown blue magenta cyan white"
 	_attr_names = "none bold faint italic underline blink fast reverse concealed"
 	esc = '%s[' % chr(27)
 	def __init__(self, f=sys.stdout.fileno()):
@@ -24,8 +24,21 @@ class ansi_color:
 				setattr(self, name, '%s0;4%dm' % (self.esc, i))
 				i += 1
 
+		for name in self._color_names.split():
+			col = getattr(self, name)
+			setattr(self, 'bright_%s' % name, '%s%s' % (col, self.bright))
+		self.yellow = self.bright_brown
+		self.grey = self.bright_grey
+
+	def print_colors(self):
+		for name in self._color_names.split():
+			col = getattr(self, name)
+			print("%s%s\t%sbright_%s%s" % (col, name, self.bright, name, self.reset))
+		print("%syellow%s" % (self.yellow, self.reset))
+
 
 color = ansi_color()
+
 
 def time_delta(then, now=time.time()):
 	dvals = [('w', 604800), ('d', 86400), ('h', 3600), ('m', 60)]
