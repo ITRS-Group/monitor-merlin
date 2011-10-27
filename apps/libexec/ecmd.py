@@ -84,7 +84,6 @@ def cmd_submit(args):
 				print("You can't mix positional arguments and key=value pairs")
 				sys.exit(1)
 			param_dict[ary[0]] = ary[1]
-		print(param_dict)
 		params = param_dict
 	if cmd.set_params(params) == False:
 		print("Failed to set parameters for command %s" % cmd.name)

@@ -984,8 +984,6 @@ class nagios_command:
 		# + 1 since the template_ary contains the command name
 
 		if len(template_ary) != len(params) + 1:
-			print("False #1: %d != %d" % (len(template_ary), len(params)))
-			print(template_ary, params)
 			return False
 
 		# commands without parameters are more or less done here
