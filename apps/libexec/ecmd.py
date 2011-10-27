@@ -64,7 +64,7 @@ def cmd_submit(args):
 			if not cmd:
 				cmd = nagios_command(arg)
 				if not cmd.info:
-					print("Failed to find command '%s'" % args[0])
+					print("Failed to find command '%s'" % arg)
 					search(args[0])
 					sys.exit(1)
 			else:
@@ -74,6 +74,7 @@ def cmd_submit(args):
 		prettyprint_docstring('submit', cmd_submit.__doc__, 'Not enough arguments')
 		sys.exit(1)
 
+	cmd.set_pipe_path(pipe_path)
 	if len(params) and len(params[0].split('=')) != 1:
 		# dictionary-based parameters
 		param_dict = {}

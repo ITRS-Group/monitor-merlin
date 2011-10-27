@@ -10,7 +10,6 @@ def _cmd_pipe_sighandler(one, two):
 
 
 class nagios_command:
-	pipe_path = '/opt/monitor/var/rw/nagios.cmd'
 	command_info = {
 		'ADD_HOST_COMMENT': {
 			'nagios_id': 1,
@@ -955,14 +954,14 @@ class nagios_command:
 			'template': 'CHANGE_CONTACT_MODSATTR;contact_name;value',
 		},
 	}
-	name = False
-	info = False
-	params = False
-	command_string = False
-	pipe_fd = -1
 
 	def __init__(self, name=False):
+		self.info = False
 		self.use_command(name)
+		self.params = False
+		self.command_string = False
+		self.pipe_fd = -1
+		self.pipe_path = False
 
 
 	def use_command(self, name=False):
@@ -1002,7 +1001,7 @@ class nagios_command:
 			return False
 
 		cmd_string = self.name
-		for k in template_list:
+		for k in template_ary[1:]:
 			v = params.get(k, False)
 			if v == False:
 				print("No value for parameter %s" % k)
@@ -1012,6 +1011,8 @@ class nagios_command:
 		return True
 
 	def open_pipe(self, reopen=False):
+		if self.pipe_path == False:
+			return False
 		if self.pipe_fd >= 0 and reopen == False:
 			return True
 
