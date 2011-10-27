@@ -34,17 +34,20 @@ def cmd_search(args):
 def cmd_submit(args):
 	"""[options] command <parameters>
 	Submits a command to the monitoring engine using the supplied values.
+	Available options:
+	  --pipe-path=</path/to/nagios.cmd>
+
 	An example command to add a new service comment for the service PING
 	on the host foo would look something like this:
 
-	  mon nagcmd submit add_svc_comment service='foo;PING' persistent=1 \
+	  mon ecmd submit add_svc_comment service='foo;PING' persistent=1 \\
 	         author='John Doe' comment='the comment'
 
 	Note how services are written. You can also use positional arguments,
 	in which case the arguments have to be in the correct order for the
 	command's syntactic template. The above example would then look thus:
 
-	  mon nagcmd submit add_svc_comment 'foo;PING' 1 'John Doe' 'the comment'
+	  mon ecmd submit add_svc_comment 'foo;PING' 1 'John Doe' 'the comment'
 	"""
 
 	cname = False
