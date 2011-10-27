@@ -16,7 +16,6 @@ if not module_dir in sys.path:
 import merlin_conf as mconf
 
 mconf.config_file = '%s/merlin.conf' % merlin_dir
-color = ansi_color()
 
 # run a generic helper from the libexec dir
 def run_helper(helper, args):
