@@ -131,7 +131,7 @@ if [[ $? -eq 0 || $1 -eq 2 ]]; then
 fi
 
 # restart axuilliary daemons
-for $daemon in op5kad nrpe; do
+for daemon in op5kad nrpe; do
 	test -f /etc/init.d/$daemon && /etc/init.d/$daemon restart
 done
 
