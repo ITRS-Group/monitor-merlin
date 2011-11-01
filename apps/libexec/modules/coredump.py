@@ -72,7 +72,7 @@ class coredump:
 				self.executable = '/opt/monitor/bin/monitor'
 			elif basename == 'ocimp':
 				self.executable = '/opt/monitor/op5/merlin/ocimp'
-			elif baseneme == 'check_nt':
+			elif basename == 'check_nt':
 				self.executable = '/opt/plugins/check_nt'
 			else:
 				self.invalid = self.INV_ESRCH_EXEC
