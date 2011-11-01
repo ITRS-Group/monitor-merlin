@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import sys
-import inspect
 from nacoma.hooks import Change
 reportable_types = ['host', 'service']
 
@@ -13,7 +12,13 @@ import merlin_db
 conn = merlin_db.connect(mconf)
 cursor = conn.cursor()
 
-paramstyle = inspect.getmodule(type(conn)).paramstyle
+# this terrible kludge is required because merlin_db gives us no way to access the database module
+mysqlparamstyle = 'format'
+oracleparamstyle = 'named'
+if 'Oracle' in str(type(conn)):
+    paramstyle = oracleparamstyle
+else:
+    mysqlparamstyle
 
 for line in sys.stdin:
     change = Change(line)
