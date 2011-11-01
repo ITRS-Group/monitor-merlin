@@ -7,6 +7,7 @@ reportable_types = ['host', 'service']
 libexec_dir = "/usr/libexec/merlin/modules"
 sys.path.insert(0, libexec_dir)
 import merlin_conf as mconf
+mconf.parse()
 import merlin_db
 conn = merlin_db.connect(mconf)
 cursor = conn.cursor()
