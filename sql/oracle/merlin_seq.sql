@@ -104,6 +104,11 @@ PROMPT Creating Sequence hostdependency_id_SEQ ...
 CREATE SEQUENCE  hostdependency_id_SEQ
   MINVALUE 1 MAXVALUE 999999999999999999999999 INCREMENT BY 1  NOCYCLE ;
 
+DROP SEQUENCE rename_log_id_SEQ;
+PROMPT Creating Sequence rename_log_id_SEQ ...
+CREATE SEQUENCE rename_log_id_SEQ
+  MINVALUE 1 MAXVALUE 999999999999999999999999 INCREMENT BY 1  NOCYCLE ;
+
 DROP TABLE command CASCADE CONSTRAINTS;
 
 
@@ -1396,6 +1401,24 @@ CREATE TABLE timeperiod_exclude (
 );
 
 
+DROP TABLE rename_log CASCADE CONSTRAINTS;
+PROMPT Creating Table rename_log ...
+CREATE TABLE rename_log (
+  id NUMBER(10,0) NOT NULL,
+  from_host_name VARCHAR2(255 CHAR),
+  from_service_description VARCHAR2(255 CHAR) DEFAULT NULL,
+  to_host_name VARCHAR2(255 CHAR),
+  to_service_description VARCHAR2(255 CHAR) DEFAULT NULL
+);
+
+PROMPT Creating Primary Key Constraint rename_log_pk on table rename_log ...
+ALTER TABLE rename_log
+ADD CONSTRAINT rename_log_pk PRIMARY KEY
+(
+  id
+)
+ENABLE
+;
 
 connect merlin/merlin;
 
@@ -1786,6 +1809,28 @@ BEGIN
     --mysql_utilities.identity := v_newVal;
    -- assign the value from the sequence to emulate the identity column
    :new.id := v_newVal;
+  END IF;
+END;
+
+/
+
+CREATE OR REPLACE TRIGGER rename_log_id_TRG BEFORE INSERT OR UPDATE ON rename_log
+FOR EACH ROW
+DECLARE
+v_newVal NUMBER(12) := 0;
+v_incVal NUMBER(12) := 0;
+BEGIN
+  IF INSERTING AND :new.id IS NULL THEN
+    SELECT  rename_log_id_SEQ.NEXTVAL INTO v_newVal FROM DUAL;
+    IF v_newVal = 1 THEN
+      SELECT NVL(max(id),0) INTO v_newVal FROM rename_log;
+      v_newVal := v_newVal + 1;
+      LOOP
+        EXIT WHEN v_incval>=v_newVal;
+        SELECT rename_log_id_SEQ.nextval INTO v_incval FROM dual;
+      END LOOP;
+    END IF;
+    :new.id := v_newVal;
   END IF;
 END;
 
