@@ -147,12 +147,24 @@ find_renames(renames **rename_ptr)
 	rename_len = 0;
 	renames *renames;
 
+	sql_query("SELECT COUNT(1) FROM rename_log");
+	result = sql_get_result();
+	if (!result) {
+		return 1;
+	} else {
+		if (result->api->step(result) == 0) {
+			result->api->get_int64_ndx(result, 0, &rename_len);
+		} else {
+			return 1;
+		}
+		sql_free_result();
+	}
+
 	sql_query("SELECT id, from_host_name, from_service_description, to_host_name, to_service_description FROM rename_log ORDER BY id ASC");
 	result = sql_get_result();
 	if (!result)
 		return 1;
 
-	result->api->num_rows(result, &rename_len);
 	*rename_ptr = calloc(1, sizeof(**rename_ptr) * rename_len);
 	renames = *rename_ptr;
 	i = 0;
@@ -302,6 +314,9 @@ main(int argc, char **argv)
 			usage(argv[0]);
 		}
 	}
+	if (!do_rename_db && !do_rename_log && !do_rename_archived)
+		usage(argv[0]);
+
 	if (log_dir == NULL)
 		log_dir = strdup(DEFAULT_LOG_ARCHIVE_PATH);
 	if (log_file == NULL)
@@ -313,25 +328,30 @@ main(int argc, char **argv)
 	if (db_pass)
 		sql_config("pass", db_pass);
 	if (db_name)
-		sql_config("name", db_name);
+		sql_config("database", db_name);
 	if (db_host)
 		sql_config("host", db_host);
 	if (db_type)
 		sql_config("type", db_type);
-	sql_init();
 
-	if (!do_rename_db && !do_rename_log && !do_rename_archived)
-		usage(argv[0]);
+	sql_config("commit_interval", "0");
+	sql_config("commit_queries", "10000");
+
+	if (sql_init()) {
+		lerr("Couldn't connect to database. Aborting.");
+		exit(1);
+	}
 
 	linfo("Getting objects to rename.");
 	errs = find_renames(&renames);
+	if (errs) {
+		lerr("There was an error. Aborting.");
+		exit(1);
+	}
 	linfo("Found %i renames.", rename_len);
 	if (!rename_len) {
 		linfo("Nothing to do. Exiting.");
 		exit(0);
-	}
-	if (errs) {
-		lerr("There was an error. Aborting.");
 	}
 
 	if (!errs && do_rename_db) {
@@ -347,6 +367,7 @@ main(int argc, char **argv)
 		linfo("Deleting rename backlog.");
 		errs += clear_renames(renames);
 	}
+	sql_try_commit(-1);
 	sql_close();
 	if (!errs)
 		linfo("Done.");
