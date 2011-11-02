@@ -237,7 +237,8 @@ usage(char *name)
 	       "log files and database tables.\n");
 	printf("Remember: you should shut down monitor while fixing logs!\n\n"
 	       "Options:\n");
-	printf("  --rename-archived Rename in all archived log files\n"
+	printf("  --rename-all      Rename in database, and in current and archived log files\n"
+	       "  --rename-archived Rename in all archived log files\n"
 	       "  --rename-log      Rename current log file\n"
 	       "  --rename-db       Rename everything in database\n"
 	       "  --save-renames    Do the same renames on next execution\n");
@@ -275,6 +276,11 @@ main(int argc, char **argv)
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "--help")) {
 			usage(argv[0]);
+		}
+		else if (!strcmp(argv[i], "--rename-all")) {
+			do_rename_log = 1;
+			do_rename_archived = 1;
+			do_rename_db = 1;
 		}
 		else if (!strcmp(argv[i], "--rename-log")) {
 			do_rename_log = 1;
