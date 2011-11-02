@@ -18,7 +18,7 @@ oracleparamstyle = 'named'
 if 'Oracle' in str(type(conn)):
     paramstyle = oracleparamstyle
 else:
-    mysqlparamstyle
+    paramstyle = mysqlparamstyle
 
 for line in sys.stdin:
     change = Change(line)
