@@ -3,7 +3,7 @@ working_dir=`dirname $curdir`
 buildroot=$working_dir/temp
 
 make clean
-make ENABLE_OCILIB=1 ENABLE_LIBDBI=0
+LDFLAGS="-lnsl -lsocket -lresolv" make ENABLE_OCILIB=1 ENABLE_LIBDBI=0
 mkdir -p $buildroot/opt/monitor/op5/merlin/logs
 mkdir -p $buildroot/usr/bin
 mkdir -p $buildroot/usr/libexec
