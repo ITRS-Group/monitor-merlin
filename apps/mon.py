@@ -239,16 +239,16 @@ if not cmd in commands:
 	if not cat in categories.keys():
 		print("No category '%s' available, and it's not a raw command\n" % cat)
 	elif autohelp == True:
-		if not len(docstrings[cat]):
+		if not docstrings.get(cat):
 			print("Category '%s' has no help overview." % cat)
-		if docstrings[cat]['__doc__']:
+		if docstrings.get(cat, {}).get('__doc__'):
 			print(docstrings[cat]['__doc__'])
 		cat_keys = categories[cat]
 		cat_keys.sort()
 		print("Available commands in category %s%s%s%s:" %
 			(color.blue, color.bright, cat, color.reset))
 		for cmd in cat_keys:
-			doc_string = docstrings[cat].get(cmd, '\n(documentation missing)')
+			doc_string = docstrings.get(cat, {}).get(cmd, '\n(documentation missing)')
 			prettyprint_docstring(cmd, doc_string)
 	else:
 		print("Bad category/command: %s" % cmd.replace('.', ' '))
