@@ -51,7 +51,7 @@ def load_command_module(path):
 	modname = os.path.basename(path)[:-3]
 	try:
 		module = __import__(modname)
-	except BaseException, ex:
+	except Exception, ex:
 		# catch-all, primarily for development purposes
 		command_mod_load_fail[modname] = ex
 		return -1
