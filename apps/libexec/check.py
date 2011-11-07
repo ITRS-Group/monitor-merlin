@@ -330,7 +330,11 @@ def cmd_spool(args=False):
 	bad = 0
 	bad_paths = []
 	now = int(time.time())
-	result = get_files(path)
+	try:
+		result = get_files(path)
+	except OSError, e:
+		nplug.die(nplug.STATE_UNKNOWN, "Spool directory \"%s\" doesn't exist" % (path,))
+
 	for p in result:
 		try:
 			st = os.stat(p)
