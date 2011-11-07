@@ -168,9 +168,6 @@ static void assign_peer_ids(void)
 	uint i, inc = 0;
 	uint h_extra, s_extra, h_checks, s_checks;
 
-	if (!num_peers)
-		return;
-
 	if (!peerid_table) {
 		peerid_table = malloc(num_peers * sizeof(merlin_node *));
 		for (i = 0; i < num_peers; i++) {
@@ -316,6 +313,7 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 		break;
 	case CTRL_RESUME:
 		ctrl_stall_stop();
+		assign_peer_ids();
 		break;
 	case CTRL_STOP:
 		linfo("Received (and ignoring) CTRL_STOP event. What voodoo is this?");
