@@ -99,7 +99,7 @@ def cmd_distribution(args):
 			plus = 0
 			if node.ntype != 'master' and node.num_peers:
 				if cmax[ctype] % (node.num_peers + 1):
-					cmax[ctype] += 1
+					cmax[ctype] = cmax[ctype] + 1
 
 			# we now how many checks the node should run, so
 			# construct performance-data, check our state and

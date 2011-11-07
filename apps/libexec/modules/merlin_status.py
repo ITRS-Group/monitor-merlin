@@ -167,8 +167,8 @@ class merlin_status:
 		# configured pollers
 		if node.ntype == 'poller' or not mconf.num_nodes['poller']:
 			node.assigned_checks = {
-				'host': node.basic['host_checks_handled'],
-				'service': node.basic['service_checks_handled']
+				'host': node.basic['host_checks_handled'] or 0,
+				'service': node.basic['service_checks_handled'] or 0
 			}
 			return node.assigned_checks
 
@@ -209,8 +209,8 @@ class merlin_status:
 		self.dbc.execute(query)
 		service_row = self.dbc.fetchone()
 		node.assigned_checks = {
-			'host': host_row[0],
-			'service': service_row[0]
+			'host': host_row[0] or 0,
+			'service': service_row[0] or 0
 		}
 
 		return node.assigned_checks
