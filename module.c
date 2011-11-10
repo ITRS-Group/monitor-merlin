@@ -759,6 +759,12 @@ static int post_config_init(int cb, void *ds)
 	setup_host_hash_tables();
 
 	/*
+	 * it's safe to send the hash of the config we're using now that
+	 * we know the local host could parse it properly.
+	 */
+	send_pulse(NULL);
+
+	/*
 	 * now we register the hooks we're interested in, avoiding
 	 * the huge initial burst of events Nagios otherwise spews
 	 * at us when it's reading its status back in from the
@@ -890,7 +896,6 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	ctrl_set_node_actions();
 
 	linfo("Merlin module %s initialized successfully", merlin_version);
-	send_pulse(NULL);
 
 	return 0;
 }
