@@ -135,7 +135,7 @@ fi
 
 # restart all daemons
 for daemon in merlind op5kad nrpe; do
-	test -f /etc/init.d/$daemon && /etc/init.d/$daemon restart
+	test -f /etc/init.d/$daemon && /etc/init.d/$daemon restart || :
 done
 
 
