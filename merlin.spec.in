@@ -105,6 +105,10 @@ cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
 
 
 %post
+# we must stop the merlin deamon so it doesn't interfere with any
+# database upgrades, logfile imports and whatnot
+/etc/init.d/merlind stop >/dev/null || :
+
 # Verify that mysql-server is installed and running before executing sql scripts
 $(mysql -Be "quit" 2>/dev/null)
 if [ $? -eq 0 ]; then
@@ -127,11 +131,10 @@ if [[ $? -eq 0 || $1 -eq 2 ]]; then
   mon log import --incremental
   echo "Importing notifications from logfiles to database"
   mon log import --only-notifications --incremental
-  /etc/init.d/merlind restart
 fi
 
-# restart axuilliary daemons
-for daemon in op5kad nrpe; do
+# restart all daemons
+for daemon in merlind op5kad nrpe; do
 	test -f /etc/init.d/$daemon && /etc/init.d/$daemon restart
 done
 
