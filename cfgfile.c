@@ -360,6 +360,8 @@ void cfg_destroy_compound(struct cfg_comp *comp)
 
 struct cfg_comp *cfg_parse_file(const char *path)
 {
+	if (path == NULL)
+		return NULL;
 	struct cfg_comp *comp = parse_file(path, NULL, 0);
 
 	/* this is the public API, so make sure all compounds are closed */
