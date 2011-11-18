@@ -438,7 +438,7 @@ class fake_mesh:
 		master = self.masters.nodes[0]
 		for cmd in raw_commands:
 			ret = master.submit_raw_command(cmd)
-		self.tap.test(ret, True, "Should be able to submit %s" % cmd)
+			self.tap.test(ret, True, "Should be able to submit %s" % cmd)
 		print("Sleeping to let commands spread")
 		time.sleep(14 + len(self.instances))
 		i = 0
