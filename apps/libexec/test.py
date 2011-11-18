@@ -16,6 +16,7 @@ if not modpath in sys.path:
 	sys.path.insert(0, modpath)
 from merlin_apps_utils import *
 from merlin_test_utils import *
+from nagios_command import nagios_command
 import merlin_db
 
 import compound_config as cconf
@@ -45,6 +46,11 @@ class fake_peer_group:
 		self.poller_groups = {}
 		self.oconf_buf = False
 		self.poller_oconf = ''
+		self.expect_entries = {}
+		self.objects = {
+			'host': [], 'service': [],
+			'hostgroup': [], 'servicegroup': [],
+		}
 		i = 0
 		while i < num_nodes:
 			i += 1
@@ -63,10 +69,18 @@ class fake_peer_group:
 			(group_name, num_nodes, port))
 		return None
 
+
 	def _add_oconf_object(self, otype, params):
 		self.oconf_buf = 'define %s {\n' % otype
 		for (k, v) in params.items():
 			self.oconf_buf = "%s %s" % (k, v)
+
+	def add_object(self, otype, name):
+		if not name in self.objects[otype]:
+			self.objects[otype].append(name)
+		# this way objects will filter up to master groups as well
+		for mg in self.master_groups.values():
+			mg.add_object(otype, name)
 
 
 	def create_object_config(self, num_hosts=10, num_services_per_host=5):
@@ -74,6 +88,8 @@ class fake_peer_group:
 		# asked to create their own object configuration
 		if self.oconf_buf:
 			return True
+		self.objects['hostgroup'].append(self.group_name)
+
 		hostgroup = {
 			'hostgroup_name': self.group_name,
 			'alias': 'Alias for %s' % self.group_name
@@ -86,7 +102,7 @@ class fake_peer_group:
 		}
 		service = {
 			'use': 'default-service',
-			'service_description': 'lala-service.@@service_num@@',
+			'service_description': 'service.@@service_num@@',
 		}
 
 		new_objects = {
@@ -105,11 +121,14 @@ class fake_peer_group:
 			i += 1
 			hobj = host
 			hobj['host_name'] = hname.replace('@@host_num@@', "%04d" % i)
+			self.add_object('host', hobj['host_name'])
 			self.oconf_buf += "define host{\n"
 			for (k, v) in hobj.items():
 				self.oconf_buf += "%s %s\n" % (k, v)
 			if i < 5:
-				self.oconf_buf += "hostgroups host%d_hosts,%s\n" % (i, self.group_name)
+				hg_name = 'host%d_hosts' % i
+				self.oconf_buf += "hostgroups %s,%s\n" % (hg_name, self.group_name)
+				self.add_object('hostgroup', hg_name)
 			else:
 				self.oconf_buf += 'hostgroups %s\n' % self.group_name
 			self.oconf_buf += "}\n"
@@ -119,11 +138,17 @@ class fake_peer_group:
 				sobj = service
 				sobj['host_name'] = hobj['host_name']
 				sobj['service_description'] = sdesc.replace('@@service_num@@', "%04d" % x)
+				sname = "%s;%s" % (sobj['host_name'], sobj['service_description'])
+				self.add_object('service', sname)
 				self.oconf_buf += "define service{\n"
 				for (k, v) in sobj.items():
 					self.oconf_buf += "%s %s\n" % (k, v)
 				if x < 5:
-					self.oconf_buf += 'service_groups service%d_services\n' % x
+					sg_name = 'service%d_services' % x
+					self.oconf_buf += 'service_groups %s\n' % sg_name
+					# only add each servicegroup once
+					if i == 1:
+						self.add_object('servicegroup', sg_name)
 				self.oconf_buf += "}\n"
 
 		poller_oconf_buf = ''
@@ -141,6 +166,11 @@ class fake_peer_group:
 			node.write_file('etc/oconf/shared.cfg',
 				test_config_in.shared_object_config)
 
+		print("Peer group %s objects:" % self.group_name)
+		print("        hosts: %d" % len(self.objects['host']))
+		print("     services: %d" % len(self.objects['service']))
+		print("   hostgroups: %d" % len(self.objects['hostgroup']))
+		print("servicegroups: %d" % len(self.objects['servicegroup']))
 		return True
 
 
@@ -178,21 +208,69 @@ class fake_instance:
 		self.group_id = 0
 		self.db = False
 		self.pids = {}
+		self.cmd_pipe = '%s/var/rw/nagios.cmd' % self.home
+		self.cmd_object = nagios_command()
+		self.cmd_object.set_pipe_path(self.cmd_pipe)
 
+
+	def test_connections(self):
+		"""
+		Test to make sure all systems supposed to connect to this
+		node have actually done so. This is fundamental in order
+		to get all other tests to fly and does some initial setup
+		which means it has to be run before all other tests.
+		"""
+		self.db_connect()
+		self.dbc.execute('SELECT COUNT(1) FROM program_status WHERE is_running = 0')
+		row = self.dbc.fetchall()
+		return row[0][0]
+
+
+	def submit_raw_command(self, cmd):
+		if self.cmd_object.submit_raw(cmd) == False:
+			print("Failed to submit command to %s" % self.cmd_pipe)
+			return False
+		return True
+
+	def submit_command(self, name, **kwargs):
+		if self.cmd_object.submit(name, kwargs) == False:
+			print("Failed to submit %s to %s" % (name, self.cmd_pipe))
+			return False
+		return True
 
 	def start_daemons(self, nagios_binary, merlin_binary):
-		nagios_cmd = [nagios_binary, '%s/etc/nagios.cfg' % self.home]
-		merlin_cmd = [merlin_binary, '-d', '-c', '%s/merlin/merlin.conf' % self.home]
+		print("Launching daemons for instance %s" % self.name)
+		nagios_cmd = [nagios_binary, '-d', '%s/etc/nagios.cfg' % self.home]
+		merlin_cmd = [merlin_binary, '-c', '%s/merlin/merlin.conf' % self.home]
 		self.pids['nagios'] = subprocess.Popen(nagios_cmd, stdout=subprocess.PIPE)
 		self.pids['merlin'] = subprocess.Popen(merlin_cmd, stdout=subprocess.PIPE)
 
 
+	def load_pids(self):
+		if self.pids:
+			return True
+		paths = {
+			'nagios': '%s/var/nagios.lock' % self.home,
+			'merlin': '%s/merlin/merlind.pid' % self.home
+		}
+		for program, path in paths.items():
+			f = open(path, 'r')
+			buf = f.read().strip()
+			self.pids[program] = int(buf)
+		return True
+
+
 	def signal_daemons(self, sig):
-		for name, proc in self.pids.items():
-			proc.send_signal(sig)
+		self.load_pids()
+		for name, pid in self.pids.items():
+			try:
+				os.kill(pid, sig)
+			except OSError, e:
+				if e.errno == errno.ESRCH:
+					pass
 
 
-	def shutdown_daemons(self):
+	def stop_daemons(self):
 		self.signal_daemons(signal.SIGTERM)
 
 
@@ -262,75 +340,456 @@ class fake_instance:
 	def db_connect(self):
 		if self.db:
 			return True
+		self.mconf = mconf_mockup(
+			host='localhost', user='merlin',
+			dbname=self.db_name, dbpass='merlin'
+		)
 		self.db = merlin_db.connect(self.mconf, False)
 		self.dbc = self.db.cursor()
 
 
-	def create_directories(self):
+	def create_directories(self, extras=[]):
 		dirs = [
 			'etc/oconf', 'var/rw', 'var/archives',
 			'var/spool/checkresults', 'var/spool/perfdata',
 			'merlin/logs',
 		]
-		for d in dirs:
+		for d in set(dirs + extras):
 			mkdir_p("%s/%s" % (self.home, d))
 
 
-def create_database(dbc, inst, schema_paths):
-	try:
-		dbc.execute('DROP DATABASE %s' % inst.db_name)
-	except Exception, e:
-		pass
+class fake_mesh:
+	"""
+	A set of peer groups that together constitute an entire network
+	of nagios + merlin nodes, cooperating to do fake monitoring of
+	a fake network for the sake of testing event propagation in
+	different setups.
+	"""
+	def __init__(self, basepath, **kwargs):
+		self.basepath = basepath
+		self.baseport = 16000
+		self.num_masters = 3
+		self.poller_groups = 1
+		self.pollers_per_group = 3
+		self.instances = []
+		self.db = False
+		self.pgroups = []
+		self.masters = []
+		self.tap = tap("Merlin distribution tests")
 
-	try:
-		dbc.execute("CREATE DATABASE %s" % inst.db_name)
-		dbc.execute("GRANT ALL ON %s.* TO merlin@'%%' IDENTIFIED BY 'merlin'" % inst.db_name)
-		dbc.execute("USE merlin")
-		dbc.execute('SHOW TABLES')
-		for row in dbc.fetchall():
-			# this isn't portable, but brings along indexes
-			query = ('CREATE TABLE %s.%s LIKE %s' %
-				(inst.db_name, row[0], row[0]))
-			#query = ('CREATE TABLE %s.%s AS SELECT * FROM %s LIMIT 0' %
-			#	(inst.db_name, row[0], row[0]))
-			#print("Running query %s" % query)
-			dbc.execute(query)
-		print("Database %s for %s created properly" % (inst.db_name, inst.name))
-	except Exception, e:
-		print(e)
-		sys.exit(1)
-		return False
+		for (k, v) in kwargs.items():
+			setattr(self, k, v)
+
+
+	##############################################################
+	#
+	# Actual tests start here
+	#
+	# These first couple of tests must be run in the proper order,
+	# and if one of them fails, we must break out early and print
+	# an error, since the rest of the tests will be in unknown
+	# state.
+	#
+	def test_connections(self):
+		status = True
+		for inst in self.instances:
+			ret = inst.test_connections()
+			if ret != 0:
+				status = False
+				self.tap.fail("%s has %d unconnected systems" % (inst.name, ret))
+			else:
+				self.tap.ok("%s is fully connected" % (inst.name))
+
+		return status
+
+
+	def test_global_commands(self):
+		"""
+		Sends a series of global commands to each master and makes
+		sure they alter parameters on all connected peers and
+		pollers.
+		This is part of the setup, responsible for disabling active
+		checks so we can control the state of all monitored objects
+		ourselves, so it must be run first thing after we that all
+		nodes are connected to each other.
+		"""
+		raw_commands = [
+			'DISABLE_FLAP_DETECTION',
+			'DISABLE_FAILURE_PREDICTION',
+			'STOP_EXECUTING_HOST_CHECKS',
+			'STOP_EXECUTING_SVC_CHECKS',
+			'STOP_OBSESSING_OVER_HOST_CHECKS',
+			'STOP_OBSESSING_OVER_SVC_CHECKS',
+			'START_ACCEPTING_PASSIVE_HOST_CHECKS',
+			'START_ACCEPTING_PASSIVE_SVC_CHECKS',
+		]
+		# queries get 'SELECT COUNT(1) FROM program_status WHERE' prepended
+		# and expect to get 0 as a proper answer
+		queries = [
+			'flap_detection_enabled = 1',
+			'failure_prediction_enabled = 1',
+			'active_host_checks_enabled = 1',
+			'active_service_checks_enabled = 1',
+			'obsess_over_hosts = 1',
+			'obsess_over_services = 1',
+			'passive_host_checks_enabled = 0',
+			'passive_service_checks_enabled = 0',
+		]
+		master = self.masters.nodes[0]
+		for cmd in raw_commands:
+			ret = master.submit_raw_command(cmd)
+		self.tap.test(ret, True, "Should be able to submit %s" % cmd)
+		print("Sleeping to let commands spread")
+		time.sleep(14 + len(self.instances))
+		i = 0
+		for query in queries:
+			cmd = raw_commands[i]
+			i += 1
+			for inst in self.instances:
+				inst.dbc.execute('SELECT COUNT(1) FROM program_status WHERE %s' % query)
+				value = inst.dbc.fetchall()[0][0]
+				self.tap.test(value, 0, "%s should spread and bounce to %s" % (cmd, inst.name))
+		return None
+
+
+	def test_passive_checks(self):
+		"""
+		Submits a passive checkresult with status 2 (CRITICAL) for
+		services and 1 (DOWN) for hosts.
+		"""
+		status = True
+		master = self.masters.nodes[0]
+		for host in self.masters.objects['host']:
+			ret = master.submit_raw_command('PROCESS_HOST_CHECK_RESULT;%s;1;Plugin output for host %s' % (host, host))
+			self.tap.test(ret, True, "Setting status of host %s" % host)
+			if ret == False:
+				status = False
+		for srv in self.masters.objects['service']:
+			ret = master.submit_raw_command('PROCESS_SERVICE_CHECK_RESULT;%s;1;Plugin output for service %s' % (srv, srv))
+			self.tap.test(ret, True, "Setting status of service %s" % srv)
+			if ret == False:
+				status = False
+
+		queries = [
+			'SELECT COUNT(1) FROM host WHERE current_state != 1',
+			'SELECT COUNT(1) FROM service WHERE current_state != 2',
+		]
+		for inst in self.instances:
+			for query in queries:
+				inst.dbc.execute(query)
+				value = inst.dbc.fetchall()[0][0]
+				if self.tap.test(value, 0, 'Passive checks should propagate to %s' % inst.name) == False:
+					status = False
+
+		return status
+
+
+	def test_acks(self):
+		"""
+		Adds acknowledgement commands to various nodes in the network
+		and makes sure they get propagated to the nodes that need to
+		know about them.
+		XXX: Should also spawn notifications and check for them
+		"""
+		master = self.masters.nodes[0]
+		for host in self.masters.objects['host']:
+			ret = master.submit_raw_command(
+				'ACKNOWLEDGE_HOST_PROBLEM;%s;0;0;0;mon testsuite;ack comment for host %s'
+				% (host, host)
+			)
+			self.tap.test(ret, True, "Acking %s on %s" % (host, master.name))
+		for srv in self.masters.objects['service']:
+			ret = master.submit_raw_command(
+				'ACKNOWLEDGE_SVC_PROBLEM;%s;0;0;0;mon testsuite;ack comment for service %s'
+				% (srv, srv)
+			)
+
+		# give all nodes some time before we check to make
+		# sure the ack has spread
+		time.sleep(14 + len(self.instances))
+		for inst in self.instances:
+			inst.dbc.execute("SELECT COUNT(1) FROM host WHERE problem_has_been_acknowledged = 0")
+			value = inst.dbc.fetchall()[0][0]
+			self.tap.test(value, 0, "All host acks should register on %s" % inst.name)
+			inst.dbc.execute('SELECT COUNT(1) FROM service WHERE problem_has_been_acknowledged = 0')
+			value = inst.dbc.fetchall()[0][0]
+			self.tap.test(value, 0, 'All service acks should register on %s' % inst.name)
+
+		return None
+
+
+	def test_downtime(self):
+		"""
+		Adds downtime scheduling commands to various nodes in the
+		network and makes sure they get propagated to the nodes that
+		need to know about them.
+		"""
+		print("test_downtime() is a stub")
+		return None
+
+
+	def test_comments(self):
+		"""
+		Adds comment adding commands to various nodes in the network
+		and makes sure they get propagated to the nodes that need to
+		know about them.
+		"""
+		print("test_comments() is a stub")
+		return None
+	#
+	# Actual tests end here
+	#
+	##########################################################
+
+	def test_finalize(self):
+		if self.tap.failed:
+			print("passed: %s%d%s" % (color.green, self.tap.passed, color.reset))
+			print("failed: %s%d%s" % (color.red, self.tap.failed, color.reset))
+			return False
+		print("All %s%d%s tests passed. Yay! :)" % (color.green, self.tap.passed, color.reset))
+		return self.tap.failed == 0
+
+
+	def start_daemons(self):
+		try:
+			pid = os.fork()
+		except OSError, e:
+			pid = -1
+			pass
+
+		if pid < 0:
+			print("Failed to fork(): %s" % (os.strerror(os.errno)))
+			return False
+
+		if pid > 0:
+			print("master has pid %d. child has pid %d. sid=%d; childsid=%d" %
+				(os.getpid(), pid, os.getsid(os.getpid()), os.getsid(pid)))
+			(ret, status) = os.waitpid(pid, 0)
+			print("ret: %d; status: %d" % (ret, status))
+			return True
+
+		if not pid:
+			print("in child. pid=%d; pgid=%d; sid=%d" %
+				(os.getpid(), os.getpgid(os.getpid()), os.getsid(os.getpid())))
+			# child becomes process group leader, starts a new session
+			# and then starts the deamons
+			os.setsid()
+			for inst in self.instances:
+				inst.start_daemons(self.nagios_binary, self.merlin_binary)
+			sys.exit(0)
+
+
+	def stop_daemons(self):
+		for inst in self.instances:
+			inst.stop_daemons()
+		time.sleep(1)
+		for inst in self.instances:
+			inst.slay_daemons()
+
+
+	def destroy_playground(self):
+		time.sleep(1)
+		os.system("rm -rf %s" % self.basepath)
+
+
+	def destroy(self):
+		"""
+		Shuts down and removes all traces of the fake mesh
+		"""
+		self.stop_daemons()
+		self.destroy_databases()
+		self.destroy_playground()
+
+
+	def create_playground(self):
+		"""
+		Sets up the directories and configuration required for testing
+		"""
+		port = self.baseport
+		self.masters = fake_peer_group(self.basepath, 'master', self.num_masters, port)
+		port += self.num_masters
+		i = 0
+		self.pgroups = []
+		while i < self.poller_groups:
+			i += 1
+			group_name = "pg%d" % i
+			self.pgroups.append(fake_peer_group(self.basepath, group_name, self.pollers_per_group, port))
+			port += self.pollers_per_group
+
+		for inst in self.masters.nodes:
+			self.instances.append(inst)
+
+		for pgroup in self.pgroups:
+			pgroup.add_master_group(self.masters)
+			for inst in pgroup.nodes:
+				self.instances.append(inst)
+
+		self.groups = self.pgroups + [self.masters]
+
+		for inst in self.instances:
+			inst.add_subst('@@OCIMP_PATH@@', self.ocimp_path)
+			inst.add_subst('@@MODULE_PATH@@', self.merlin_mod_path)
+			inst.add_subst('@@LIVESTATUS_O@@', self.livestatus_o)
+			inst.create_directories()
+			inst.create_core_config()
+
+		self.masters.create_object_config()
+
+
+	def _destroy_database(self, inst, verbose=False):
+		try:
+			self.dbc.execute('DROP DATABASE %s' % inst.db_name)
+		except Exception, e:
+			if verbose:
+				print("Failed to drop db %s for instance %s: %s" %
+					(inst.db_name, inst.name, e))
+			pass
+
+
+	def destroy_databases(self, verbose=False):
+		self.close_db()
+		self.db = False
+		self.connect_to_db()
+		for inst in self.instances:
+			self._destroy_database(inst, verbose)
+
+
+	def _create_database(self, inst):
+		self._destroy_database(inst)
+		ret = []
+		try:
+			self.dbc.execute("CREATE DATABASE %s" % inst.db_name)
+			self.dbc.execute("GRANT ALL ON %s.* TO merlin@'%%' IDENTIFIED BY 'merlin'" % inst.db_name)
+			self.dbc.execute("USE merlin")
+			self.dbc.execute('SHOW TABLES')
+			for row in self.dbc.fetchall():
+				tname = row[0]
+				# indicates an autogenerated testing table
+				if len(tname) >= 50 or tname[0] == tname[0].upper():
+					continue
+				# ninja tables aren't interesting, so skip those too
+				if tname.startswith('ninja'):
+					continue
+				ret.append(tname)
+				# this isn't portable, but brings along indexes
+				query = ('CREATE TABLE %s.%s LIKE %s' %
+					(inst.db_name, tname, tname))
+				#query = ('CREATE TABLE %s.%s AS SELECT * FROM %s LIMIT 0' %
+				#	(inst.db_name, tname, tname))
+				#print("Running query %s" % query)
+				self.dbc.execute(query)
+			print("Database %s for %s created properly" % (inst.db_name, inst.name))
+
+		except Exception, e:
+			print(e)
+			sys.exit(1)
+			return False
+
+		return ret
+
+
+	def connect_to_db(self):
+		"""Self-explanatory, really"""
+		if self.db:
+			return True
+		mock_conf = mconf_mockup(host=self.db_host, user=self.db_user, dbname=self.db_name, dbpass=self.db_pass)
+		self.db = merlin_db.connect(mock_conf)
+		if not self.db:
+			return False
+		self.dbc = self.db.cursor()
+		return True
+
+
+	def create_databases(self):
+		"""Sets up databases for all nodes in the mesh"""
+		self.connect_to_db()
+		for inst in self.instances:
+			self._create_database(inst)
+
+
+	def close_db(self):
+		if not self.db:
+			return True
+		try:
+			self.db.close()
+			self.dbc = False
+			self.db = False
+		except Exception, e:
+			pass
+
+
+def _dist_shutdown(mesh, destroy_databases):
+	mesh.test_finalize()
+	print("When done testing and examining, just press enter")
+	# when we're done testing, just press enter
+	buf = sys.stdin.readline()
+
+	print("Stopping daemons")
+	mesh.stop_daemons()
+	if destroy_databases:
+		print("Destroying databases")
+		mesh.destroy_databases(True)
+	print("Destroying on-disk mesh")
+	mesh.destroy()
+	print("Closing database connection")
+	mesh.close_db()
+
+	if mesh.tap.failed == 0:
+		sys.exit(0)
+	sys.exit(1)
 
 
 def cmd_dist(args):
-	"""--basepath=<basepath>
+	"""[options]
+	Where options can be any of the following:
+	  --basepath=<basepath>     basepath to use
+	  --sleeptime=<int>         seconds to sleep before testing
+	  --masters=<int>           number of masters to create
+	  --poller-groups=<int>     number of poller groups to create
+	  --pollers-per-group=<int> number of pollers per created group
+	  --merlin-binary=<path>    path to merlin daemon binary
+	  --nagios-binary=<path>    path to nagios daemon binary
+	  --destroy-databases       only destroy databases
+	  --confgen-only            only generate configuration
+	  --sql-admin-user=<user>   administrator user for MySQL
+	  --sql-db-name=<db name>   name of database to use as template
+	  --sql-host=<host>         ip-address or dns name of db host
+
 	Tests various aspects of event forwarding with any number of
 	hosts, services, peers and pollers, generating config and
 	creating databases for the various instances and checking
 	event distribution among them.
 	"""
+	setup = True
+	destroy = True
 	basepath = '/tmp/merlin-dtest'
 	merlin_mod_path = posix.getcwd()
 	ocimp_path = "%s/ocimp" % merlin_mod_path
 	livestatus_o = '/home/exon/git/monitor/livestatus/livestatus/src/livestatus.o'
 	db_admin_user = 'exon'
 	db_admin_password = False
+	db_name = 'merlin'
+	db_host = 'localhost'
 	sql_schema_paths = []
-	num_masters = 1
+	num_masters = 3
 	poller_groups = 1
-	pollers_per_group = 2
+	pollers_per_group = 3
 	merlin_binary = '%s/merlind' % merlin_mod_path
 	nagios_binary = '/opt/monitor/bin/monitor'
 	confgen_only = False
+	destroy_databases = False
+	sleeptime = False
 	for arg in args:
 		if arg.startswith('--basepath='):
 			basepath = arg.split('=', 1)[1]
-		elif arg.endswith('.sql'):
-			sql_schema_paths.append(arg)
-		elif arg.startswith('--sql-user='):
+		elif arg.startswith('--sql-admin-user='):
 			db_admin_user = arg.split('=', 1)[1]
 		elif arg.startswith('--sql-pass=') or arg.startswith('--sql-passwd='):
 			db_admin_password = arg.split('=', 1)[1]
+		elif arg.startswith('--sql-db-name='):
+			db_name = arg.split('=', 1)[1]
+		elif arg.startswith('--sql-host='):
+			db_host = arg.split('=', 1)[1]
 		elif arg.startswith('--masters='):
 			num_masters = int(arg.split('=', 1)[1])
 		elif arg.startswith('--poller-groups='):
@@ -343,12 +802,28 @@ def cmd_dist(args):
 			merlin_binary = arg.split('=', 1)[1]
 		elif arg.startswith('--nagios-binary=') or arg.startswith('--monitor-binary='):
 			nagios_binary = arg.split('=', 1)[1]
+		elif arg == '--destroy-databases':
+			destroy_databases = True
 		elif arg == '--confgen-only':
 			confgen_only = True
+		elif arg.startswith('--sleeptime='):
+			sleeptime = arg.split('=', 1)[1]
+			sleeptime = int(sleeptime)
 		else:
 			prettyprint_docstring('dist', cmd_dist.__doc__,
 				'Unknown argument: %s' % arg)
 			sys.exit(1)
+
+	if sleeptime == False:
+		sleeptime = 3 + (num_masters + (poller_groups * pollers_per_group))
+
+	if not poller_groups or not pollers_per_group:
+		print("Can't run tests with zero pollers")
+		sys.exit(1)
+
+	if num_masters < 2:
+		print("Can't run proper tests with less than two masters")
+		sys.exit(1)
 
 	# done parsing arguments, so get real paths to merlin and nagios
 	if nagios_binary[0] != '/':
@@ -356,65 +831,47 @@ def cmd_dist(args):
 	if merlin_binary[0] != '/':
 		merlin_binary = os.path.abspath(merlin_binary)
 
-	# clear out playpen first
-	os.system("rm -rf %s" % basepath)
+	mesh = fake_mesh(
+		basepath,
+		nagios_binary=nagios_binary,
+		merlin_binary=merlin_binary,
+		num_masters=num_masters,
+		poller_groups=poller_groups,
+		pollers_per_group=pollers_per_group,
+		merlin_mod_path=merlin_mod_path,
+		ocimp_path=ocimp_path,
+		livestatus_o=livestatus_o,
+		db_user=db_admin_user,
+		db_pass=db_admin_password,
+		db_name=db_name,
+		db_host=db_host,
+	)
+	mesh.create_playground()
 
-	i = 1
-	base_port = 16000
-	port = base_port
-	masters = fake_peer_group(basepath, 'master', num_masters, base_port)
-	base_port += num_masters
-
-	i = 0
-	pgroups = []
-	while i < poller_groups:
-		i += 1
-		group_name = "pg%d" % i
-		pgroups.append(fake_peer_group(basepath, group_name, pollers_per_group, base_port))
-		base_port += pollers_per_group
-
-	instances = []
-	for inst in masters.nodes:
-		instances.append(inst)
-
-	for pgroup in pgroups:
-		pgroup.add_master_group(masters)
-		for inst in pgroup.nodes:
-			instances.append(inst)
-
-	peer_groups = pgroups + [masters]
-
-	mock_conf = mconf_mockup(host='localhost', user='exon', dbname='merlin', dbpass=False)
-	db = merlin_db.connect(mock_conf)
-	dbc = db.cursor()
-	for inst in instances:
-		inst.add_subst('@@OCIMP_PATH@@', ocimp_path)
-		inst.add_subst('@@MODULE_PATH@@', merlin_mod_path)
-		inst.add_subst('@@LIVESTATUS_O@@', livestatus_o)
-		inst.create_directories()
-		inst.create_core_config()
-		if not confgen_only:
-			create_database(dbc, inst, sql_schema_paths)
-
-	masters.create_object_config()
 	if confgen_only:
 		sys.exit(0)
 
-	for inst in instances:
-		inst.start_daemons(nagios_binary, merlin_binary)
+
+	mesh.create_databases()
+	mesh.start_daemons()
 
 	# tests go here
-	buf = sys.stdin.readline()
+	print("Sleeping %d seconds before running tests" % sleeptime)
+	time.sleep(sleeptime)
+	if mesh.test_connections() == False:
+		print("Connection tests failed. Bailing out")
+		_dist_shutdown(mesh, destroy_databases)
+	if mesh.test_global_commands() == False:
+		print("Global commands tests failed. Bailing out")
+		_dist_shutdown(mesh, destroy_databases)
 
-	for inst in instances:
-		inst.shutdown_daemons()
-		#dbc.execute("DROP DATABASE %s" % inst.db_name)
+	# we only test acks if passive checks distribute properly
+	if mesh.test_passive_checks() == True:
+		mesh.test_acks()
+	mesh.test_downtime()
+	mesh.test_comments()
 
-	# final round to nuke all remaining daemons
-	for inst in instances:
-		inst.slay_daemons()
-
-	db.close()
+	_dist_shutdown(mesh, destroy_databases)
 
 
 def test_cmd(cmd_fd, cmd, msg=False):
