@@ -1,5 +1,35 @@
 from merlin_apps_utils import *
 
+class tap:
+	"""Nifty class for testing particular subsystems"""
+	def __init__(self, name, master=False):
+		self.passed = 0
+		self.failed = 0
+		self.verbose = 1
+
+	def test(self, a, b, msg):
+		if a == b:
+			return self.ok(msg)
+
+		self.fail(msg, a, b)
+
+
+	def ok(self, msg):
+		if self.verbose:
+			print("  %sok%s   %s" % (color.green, color.reset, msg))
+		self.passed += 1
+		return True
+
+
+	def fail(self, msg, a=False, b=False):
+		if self.verbose:
+			print("  %sfail%s %s" % (color.red, color.reset, msg))
+			if a != b:
+				print(a, b)
+		self.failed += 1
+		return False
+
+
 failed = 0
 passed = 0
 def test(a, b, msg):
