@@ -121,7 +121,7 @@ module {
 }
 
 daemon {
-	pidfile = @@DIR@@/merlin/pidfile;
+	pidfile = @@DIR@@/merlin/merlind.pid;
 	log_file = @@DIR@@/daemon.log;
 	import_program = @@OCIMP_PATH@@
 	port = @@NETWORK_PORT@@;
