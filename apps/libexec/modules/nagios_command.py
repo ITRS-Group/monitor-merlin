@@ -965,8 +965,10 @@ class nagios_command:
 
 
 	def use_command(self, name=False):
-		name = name.upper()
 		self.name = name
+		if name == False:
+			return False
+		name = name.upper()
 		self.info = self.command_info.get(name, False)
 		if self.info == False:
 			return False
