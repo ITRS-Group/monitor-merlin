@@ -592,6 +592,11 @@ int net_send_ipc_data(merlin_event *pkt)
 		net_sendto(node_table[i], pkt);
 	}
 
+	/* global commands and whatnot should be marked with this */
+	if (pkt->hdr.selection == DEST_BROADCAST) {
+		all_pollers = 1;
+	}
+
 	/* general control packets are for everyone */
 	if (pkt->hdr.selection == CTRL_GENERIC && pkt->hdr.type == CTRL_PACKET) {
 		all_pollers = 1;
