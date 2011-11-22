@@ -515,7 +515,8 @@ class fake_mesh:
 
 		# give all nodes some time before we check to make
 		# sure the ack has spread
-		time.sleep(14 + len(self.instances))
+		print("Sleeping to let acks spread")
+		time.sleep(10)
 		for inst in self.instances:
 			inst.dbc.execute("SELECT COUNT(1) FROM host WHERE problem_has_been_acknowledged = 0")
 			value = inst.dbc.fetchall()[0][0]
@@ -523,6 +524,13 @@ class fake_mesh:
 			inst.dbc.execute('SELECT COUNT(1) FROM service WHERE problem_has_been_acknowledged = 0')
 			value = inst.dbc.fetchall()[0][0]
 			self.tap.test(value, 0, 'All service acks should register on %s' % inst.name)
+			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE comment_type = 1')
+			value = inst.dbc.fetchall()[0][0]
+			self.tap.test(value, len(inst.group.objects['host']), "Host acks should generate one comment each on %s" % inst.name)
+			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE comment_type = 2')
+			value = inst.dbc.fetchall()[0][0]
+			self.tap.test(value, len(inst.group.objects['service']), 'Service acks should generate one comment each on %s' % inst.name)
+
 
 		return None
 
