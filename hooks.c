@@ -429,6 +429,13 @@ static int hook_comment(merlin_event *pkt, void *data)
 	}
 
 	/*
+	 * same for acknowledgements
+	 */
+	if (ds->entry_type == ACKNOWLEDGEMENT_COMMENT && ds->type != NEBTYPE_COMMENT_DELETE) {
+		pkt->hdr.code = MAGIC_NONET;
+	}
+
+	/*
 	 * if the reaper thread is adding the comment we're getting an
 	 * event for now, we'll need to block that comment from being
 	 * sent to the daemon to avoid pingpong action and duplicate
