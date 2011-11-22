@@ -442,15 +442,19 @@ class fake_mesh:
 			ret = master.submit_raw_command(cmd)
 			self.tap.test(ret, True, "Should be able to submit %s" % cmd)
 		print("Sleeping to let commands spread")
-		time.sleep(14 + len(self.instances))
+		time.sleep(5)
 		i = 0
 		for query in queries:
 			cmd = raw_commands[i]
 			i += 1
 			for inst in self.instances:
-				inst.dbc.execute('SELECT COUNT(1) FROM program_status WHERE %s' % query)
-				value = inst.dbc.fetchall()[0][0]
-				self.tap.test(value, 0, "%s should spread and bounce to %s" % (cmd, inst.name))
+				inst.dbc.execute('SELECT node_type, instance_name FROM program_status WHERE %s' % query)
+				rows = inst.dbc.fetchall()
+				self.tap.test(len(rows), 0, "%s should spread and bounce to %s" % (cmd, inst.name))
+				if len(rows) != 0:
+					print("  On '%s', command failed for the following systems:" % inst.name)
+					for row in rows:
+						print("    type: %d; name: %s" % (row[0], row[1]))
 		return None
 
 
