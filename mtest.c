@@ -516,7 +516,7 @@ static void test_broken_packets(void)
 	ds = calloc(1, sizeof(*ds));
 	ds->type = NEBTYPE_SERVICECHECK_PROCESSED;
 	pkt.hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
-	pkt.hdr.selection = 0xffff;
+	pkt.hdr.selection = DEST_BROADCAST;
 
 	for (seed = 0; seed < 1; seed += 8237) {
 		srand(seed);
