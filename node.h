@@ -47,8 +47,20 @@
 /* the following magic entries can be used for the "code" entry */
 #define MAGIC_NONET 0xffff /* don't forward to the network */
 
-/* Mark "selection" with this to generate broadcast events */
-#define DEST_BROADCAST 0xffff
+/*
+ * Mark "selection" with this to generate broadcast-ish
+ * events for various classes of merlin-nodes
+ */
+#define DEST_BROADCAST  0xffff /* all nodes */
+#define DEST_MAGIC (0xfff0)
+#define DEST_POLLERS (DEST_MAGIC + (1 << 1)) /* all pollers */
+#define DEST_PEERS   (DEST_MAGIC + (1 << 2)) /* all peers */
+#define DEST_MASTERS (DEST_MAGIC + (1 << 3)) /* all masters */
+#define DEST_PEERS_POLLERS (DEST_POLLERS | DEST_PEERS)
+#define DEST_PEERS_MASTERS (DEST_PEERS | DEST_MASTERS)
+#define DEST_POLLERS_MASTERS (DEST_POLLERS | DEST_MASTERS)
+#define magic_destination(pkt) ((pkt->hdr.selection & 0xfff0) == 0xfff0)
+
 
 #define HDR_SIZE (sizeof(merlin_header))
 #define PKT_SIZE (sizeof(merlin_event))
