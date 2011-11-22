@@ -55,6 +55,7 @@ class fake_peer_group:
 		while i < num_nodes:
 			i += 1
 			inst = fake_instance(basepath, "%s-%02d" % (group_name, i), port)
+			inst.group = self
 			self.nodes.append(inst)
 			port += 1
 
@@ -191,6 +192,7 @@ class fake_instance:
 	all of the above.
 	"""
 	def __init__(self, basepath, name, port=15551):
+		self.group = False
 		self.name = name
 		self.port = port
 		self.home = "%s/%s" % (basepath, name)
