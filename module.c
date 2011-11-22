@@ -6,7 +6,6 @@
 #include "nagios/perfdata.h"
 #include "nagios/comments.h"
 #include "nagios/common.h"
-#include <pthread.h>
 
 time_t merlin_should_send_paths = 1;
 
@@ -22,7 +21,7 @@ extern comment *comment_list;
 /** code start **/
 extern hostgroup *hostgroup_list;
 static int mrm_reap_interval = 2;
-static pthread_t reaper_thread;
+pthread_t reaper_thread;
 static int cancel_reaping;
 static int merlin_sendpath_interval = MERLIN_SENDPATH_INTERVAL;
 static int cancel_threads = 1;

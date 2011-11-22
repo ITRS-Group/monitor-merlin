@@ -10,6 +10,7 @@
 # define USE_EVENT_BROKER 1
 #endif
 
+#include <pthread.h>
 #include "shared.h"
 #include "hash.h"
 
@@ -29,6 +30,7 @@ typedef struct file_list {
 } file_list;
 
 
+extern pthread_t reaper_thread;
 #define MERLIN_PULSE_INTERVAL 10
 extern hash_table *host_hash_table;
 extern node_selection *node_selection_by_hostname(const char *name);
