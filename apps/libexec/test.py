@@ -425,8 +425,8 @@ class fake_mesh:
 			'START_ACCEPTING_PASSIVE_HOST_CHECKS',
 			'START_ACCEPTING_PASSIVE_SVC_CHECKS',
 		]
-		# queries get 'SELECT COUNT(1) FROM program_status WHERE' prepended
-		# and expect to get 0 as a proper answer
+		# queries get 'SELECT COUNT(1) FROM program_status WHERE'
+		# prepended and expect to get 0 as a proper answer
 		queries = [
 			'flap_detection_enabled = 1',
 			'failure_prediction_enabled = 1',
@@ -467,20 +467,22 @@ class fake_mesh:
 			if ret == False:
 				status = False
 		for srv in self.masters.objects['service']:
-			ret = master.submit_raw_command('PROCESS_SERVICE_CHECK_RESULT;%s;1;Plugin output for service %s' % (srv, srv))
+			ret = master.submit_raw_command('PROCESS_SERVICE_CHECK_RESULT;%s;2;Service plugin output' % (srv))
 			self.tap.test(ret, True, "Setting status of service %s" % srv)
 			if ret == False:
 				status = False
 
-		queries = [
-			'SELECT COUNT(1) FROM host WHERE current_state != 1',
-			'SELECT COUNT(1) FROM service WHERE current_state != 2',
-		]
+		print("Sleeping to let passive results spread")
+		time.sleep(10)
+		queries = {
+			'host': 'SELECT COUNT(1) FROM host WHERE current_state != 1',
+			'service': 'SELECT COUNT(1) FROM service WHERE current_state != 2',
+		}
 		for inst in self.instances:
-			for query in queries:
+			for otype, query in queries.items():
 				inst.dbc.execute(query)
 				value = inst.dbc.fetchall()[0][0]
-				if self.tap.test(value, 0, 'Passive checks should propagate to %s' % inst.name) == False:
+				if self.tap.test(value, 0, 'Passive %s checks should propagate to %s' % (otype, inst.name)) == False:
 					status = False
 
 		return status
