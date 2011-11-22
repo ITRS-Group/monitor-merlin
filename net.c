@@ -581,53 +581,66 @@ static int net_input(merlin_node *node)
  */
 int net_send_ipc_data(merlin_event *pkt)
 {
-	uint i;
-	int all_pollers = 0;
+	uint i, ntable_stop = num_masters + num_peers;
+	linked_item *li;
 
 	if (!num_nodes)
 		return 0;
 
-	/* peers and masters always get all data */
-	for (i = 0; i < num_masters + num_peers; i++) {
-		net_sendto(node_table[i], pkt);
-	}
-
-	/* global commands and whatnot should be marked with this */
-	if (pkt->hdr.selection == DEST_BROADCAST) {
-		all_pollers = 1;
-	}
-
-	/* general control packets are for everyone */
-	if (pkt->hdr.selection == CTRL_GENERIC && pkt->hdr.type == CTRL_PACKET) {
-		all_pollers = 1;
-	}
-
 	/*
-	 * pollers might be used as ui-servers too, so we should
-	 * send PROGRAM_STATUS_DATA to it so users at that end can
-	 * know whether or not the master server is online
+	 * The module can mark certain packets with a magic destination.
+	 * Such packets avoid all other inspection and get sent to where
+	 * the module wants us to.
 	 */
-	if (pkt->hdr.type == NEBCALLBACK_PROGRAM_STATUS_DATA) {
-		all_pollers = 1;
-	}
+	if (magic_destination(pkt)) {
+		if ((pkt->hdr.selection & DEST_MASTERS) == DEST_MASTERS) {
+			for (i = 0; i < num_masters; i++) {
+				net_sendto(node_table[i], pkt);
+			}
+		}
+		if ((pkt->hdr.selection & DEST_PEERS) == DEST_PEERS) {
+			for (i = 0; i < num_peers; i++) {
+				net_sendto(peer_table[i], pkt);
+			}
+		}
+		if ((pkt->hdr.selection & DEST_POLLERS) == DEST_POLLERS) {
+			for (i = 0; i < num_pollers; i++) {
+				net_sendto(poller_table[i], pkt);
+			}
+		}
 
-	/* packets designated for everyone get sent immediately */
-	if (all_pollers) {
-		for (i = 0; i < num_pollers; i++)
-			net_sendto(poller_table[i], pkt);
 		return 0;
 	}
 
-	if (num_pollers && pkt->hdr.selection != 0xffff) {
-		linked_item *li = nodes_by_sel_id(pkt->hdr.selection);
+	/*
+	 * "normal" packets get sent to all peers and masters, and possibly
+	 * a group of, or all, pollers as well
+	 */
 
-		if (!li) {
-			lerr("No matching selection for id %d", pkt->hdr.selection);
-			return -1;
-		}
-		for (; li; li = li->next_item)
-			net_sendto((merlin_node *)li->item, pkt);
+	/* general control packets are for everyone */
+	if (pkt->hdr.selection == CTRL_GENERIC && pkt->hdr.type == CTRL_PACKET) {
+		ntable_stop = num_nodes;
 	}
+
+	/* Send this to all who should have it */
+	for (i = 0; i < ntable_stop; i++) {
+		net_sendto(node_table[i], pkt);
+	}
+
+	/* if we've already sent to everyone we return early */
+	if (ntable_stop == num_nodes || !num_pollers)
+		return 0;
+
+	li = nodes_by_sel_id(pkt->hdr.selection);
+	if (!li) {
+		lerr("No matching selection for id %d", pkt->hdr.selection);
+		return -1;
+	}
+
+	for (; li; li = li->next_item) {
+		net_sendto((merlin_node *)li->item, pkt);
+	}
+
 	return 0;
 }
 
