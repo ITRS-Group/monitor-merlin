@@ -572,8 +572,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_CANCEL_PENDING_HOST_SVC_DOWNTIME:
 	case CMD_DEL_HOST_DOWNTIME:
 	case CMD_DEL_SVC_DOWNTIME:
-	case CMD_SCHEDULE_SERVICEGROUP_HOST_DOWNTIME:
-	case CMD_SCHEDULE_SERVICEGROUP_SVC_DOWNTIME:
 	case CMD_SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME:
 	case CMD_SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME:
 		/* fallthrough */
@@ -628,18 +626,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_STOP_OBSESSING_OVER_HOST_CHECKS:
 	case CMD_SCHEDULE_HOST_CHECK:
 	case CMD_SCHEDULE_FORCED_HOST_CHECK:
-	case CMD_ENABLE_SERVICEGROUP_SVC_NOTIFICATIONS:
-	case CMD_DISABLE_SERVICEGROUP_SVC_NOTIFICATIONS:
-	case CMD_ENABLE_SERVICEGROUP_HOST_NOTIFICATIONS:
-	case CMD_DISABLE_SERVICEGROUP_HOST_NOTIFICATIONS:
-	case CMD_ENABLE_SERVICEGROUP_SVC_CHECKS:
-	case CMD_DISABLE_SERVICEGROUP_SVC_CHECKS:
-	case CMD_ENABLE_SERVICEGROUP_HOST_CHECKS:
-	case CMD_DISABLE_SERVICEGROUP_HOST_CHECKS:
-	case CMD_ENABLE_SERVICEGROUP_PASSIVE_SVC_CHECKS:
-	case CMD_DISABLE_SERVICEGROUP_PASSIVE_SVC_CHECKS:
-	case CMD_ENABLE_SERVICEGROUP_PASSIVE_HOST_CHECKS:
-	case CMD_DISABLE_SERVICEGROUP_PASSIVE_HOST_CHECKS:
 	case CMD_CHANGE_GLOBAL_HOST_EVENT_HANDLER:
 	case CMD_CHANGE_GLOBAL_SVC_EVENT_HANDLER:
 	case CMD_CHANGE_HOST_EVENT_HANDLER:
@@ -705,6 +691,31 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		 * (group of) poller(s).
 		 */
 		pkt->hdr.selection = get_cmd_selection(ds->command_args, 1);
+		break;
+
+		/*
+		 * servicegroup commands get sent to all peers and pollers,
+		 * but not to masters since we can't know if we'd affect
+		 * more than our fair share of services on the master.
+		 */
+	case CMD_SCHEDULE_SERVICEGROUP_HOST_DOWNTIME:
+	case CMD_SCHEDULE_SERVICEGROUP_SVC_DOWNTIME:
+	case CMD_ENABLE_SERVICEGROUP_SVC_NOTIFICATIONS:
+	case CMD_DISABLE_SERVICEGROUP_SVC_NOTIFICATIONS:
+	case CMD_ENABLE_SERVICEGROUP_HOST_NOTIFICATIONS:
+	case CMD_DISABLE_SERVICEGROUP_HOST_NOTIFICATIONS:
+	case CMD_ENABLE_SERVICEGROUP_SVC_CHECKS:
+	case CMD_DISABLE_SERVICEGROUP_SVC_CHECKS:
+	case CMD_ENABLE_SERVICEGROUP_HOST_CHECKS:
+	case CMD_DISABLE_SERVICEGROUP_HOST_CHECKS:
+	case CMD_ENABLE_SERVICEGROUP_PASSIVE_SVC_CHECKS:
+	case CMD_DISABLE_SERVICEGROUP_PASSIVE_SVC_CHECKS:
+	case CMD_ENABLE_SERVICEGROUP_PASSIVE_HOST_CHECKS:
+	case CMD_DISABLE_SERVICEGROUP_PASSIVE_HOST_CHECKS:
+		if (num_masters) {
+			linfo("Submitting servicegroup commands on pollers isn't necessarily a good idea");
+		}
+		pkt->hdr.selection = DEST_PEERS_POLLERS;
 		break;
 
 	default:
@@ -998,7 +1009,7 @@ int merlin_mod_hook(int cb, void *data)
 
 	memset(&pkt, 0, sizeof(pkt));
 	pkt.hdr.type = cb;
-	pkt.hdr.selection = 0xffff;
+	pkt.hdr.selection = DEST_BROADCAST;
 	switch (cb) {
 	case NEBCALLBACK_NOTIFICATION_DATA:
 		result = hook_notification(&pkt, data);
