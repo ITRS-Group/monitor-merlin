@@ -714,7 +714,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		 * here if we have neither of those
 		 */
 		if (!(num_peers + num_pollers)) {
-			ldebug("No peers or pollers. Blocking global command %d",
+			ldebug("No peers or pollers. Not sending command %d anywhere",
 			       ds->command_type);
 			return 0;
 		}
