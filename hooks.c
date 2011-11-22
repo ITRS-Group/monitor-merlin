@@ -532,15 +532,20 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		return 0;
 
 		/*
-		 * Notifications triggered by external commands are
-		 * always sent from the node generating the command,
-		 * so we must make sure to block them here.
+		 * Custom notifications are always sent from the node where
+		 * the user input the command, so we we must block them here
+		 * in order to not generate multiple notifications.
 		 */
-	case CMD_ACKNOWLEDGE_HOST_PROBLEM:
-	case CMD_ACKNOWLEDGE_SVC_PROBLEM:
 	case CMD_SEND_CUSTOM_HOST_NOTIFICATION:
 	case CMD_SEND_CUSTOM_SVC_NOTIFICATION:
 		return 0;
+
+		/*
+		 * these are forwarded and handled specially on the
+		 * receiving end
+		 */
+	case CMD_ACKNOWLEDGE_HOST_PROBLEM:
+	case CMD_ACKNOWLEDGE_SVC_PROBLEM:
 
 		/*
 		 * downtime is a troll of its own. For now, downtime
