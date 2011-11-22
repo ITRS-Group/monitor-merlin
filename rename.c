@@ -19,7 +19,7 @@ typedef struct renames {
 
 FILE *new_file;
 
-size_t rename_len;
+int64_t rename_len;
 char **from_name;
 char **to_name;
 
