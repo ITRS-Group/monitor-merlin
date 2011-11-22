@@ -511,6 +511,7 @@ class fake_mesh:
 				'ACKNOWLEDGE_SVC_PROBLEM;%s;0;0;0;mon testsuite;ack comment for service %s'
 				% (srv, srv)
 			)
+			self.tap.test(ret, True, "Acking %s on %s" % (srv, master.name))
 
 		# give all nodes some time before we check to make
 		# sure the ack has spread
