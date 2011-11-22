@@ -870,14 +870,28 @@ static int hook_notification(merlin_event *pkt, void *data)
 		return 0;
 
 	/*
-	 * Acknowledgement and "custom" (user-triggered) notifications
-	 * are sent from the node that received the command. This is to
-	 * prevent notifications going missing in the merlin network in
-	 * case a node dies and it gets lost in a crashed backlog.
+	 * Custom notifications are only every sent from the
+	 * node receiving the command and aren't forwarded to
+	 * the network, so we give them go-ahead straight away.
 	 */
-	if (ds->reason_type == NOTIFICATION_ACKNOWLEDGEMENT ||
-	    ds->reason_type == NOTIFICATION_CUSTOM)
-	{
+	if (ds->reason_type == NOTIFICATION_CUSTOM)
+		return 0;
+
+	/*
+	 * Acks from the network are blocked here to avoid sending
+	 * notifications twice and are given the go-ahead directly
+	 * if they orginated from the local node. They always get
+	 * sent immediately from the node that received the command
+	 * to prevent notifications going missing in the merlin net
+	 * in case a node dies and it gets lost in a crashed backlog,
+	 * but the command still gets sent to all other other nodes
+	 * so host, service and comment updates happen as they should
+	 * as quickly as possible.
+	 */
+	if (ds->reason_type == NOTIFICATION_ACKNOWLEDGEMENT) {
+		if (pthread_self() == reaper_thread) {
+			return NEBERROR_CALLBACKCANCEL;
+		}
 		return 0;
 	}
 
