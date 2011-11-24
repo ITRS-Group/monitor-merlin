@@ -139,6 +139,10 @@ class merlin_node:
 		col = color.yellow + color.bright
 		reset = color.reset
 
+		try:
+			locale.setlocale(locale.LC_CTYPE, '')
+		except locale.Error:
+			locale.setlocale(locale.LC_CTYPE, 'C')
 		command = command.decode(locale.getpreferredencoding())
 
 		if not self.ssh_user:
