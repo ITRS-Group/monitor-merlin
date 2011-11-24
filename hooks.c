@@ -203,7 +203,7 @@ static int get_selection(const char *key)
 {
 	node_selection *sel = node_selection_by_hostname(key);
 
-	return sel ? sel->id & 0xffff : DEST_BROADCAST;
+	return sel ? sel->id & 0xffff : DEST_PEERS_MASTERS;
 }
 
 static int get_hostgroup_selection(const char *key)
