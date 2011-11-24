@@ -35,9 +35,9 @@ for line in sys.stdin:
             cursor.execute(query, arg)
         else:
             arg =  zip(('oldhost', 'oldservice', 'newhost', 'newservice'), change.oldname.split(';') + change.newname.split(';'))
-            if conn.paramstyle == 'named':
+            if paramstyle == 'named':
                 query = 'INSERT INTO rename_log(from_host_name, from_service_description, to_host_name, to_service_description) VALUES (:oldhost, :oldservice, :newhost, :newservice)'
-            elif conn.paramstyle == 'format':
+            elif paramstyle == 'format':
                 query = 'INSERT INTO rename_log(from_host_name, from_service_description, to_host_name, to_service_description) VALUES (%s, %s, %s, %s)'
                 arg = arg.values()
             cursor.execute(query, arg)
