@@ -276,7 +276,7 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 		 "active_pollers = %u, configured_pollers = %u, "
 		 "active_masters = %u, configured_masters = %u, "
 		 "host_checks_handled = %u, service_checks_handled = %u, "
-		 "node_type = %d "			
+		 "node_type = %d, config_hash = '%s' "
 		 "WHERE instance_id = %d",
 		 time(NULL), p->program_start, p->pid, p->daemon_mode,
 		 p->last_command_check, p->last_log_rotation,
@@ -293,7 +293,8 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 		 info->active_pollers, info->configured_pollers,
 		 info->active_masters, info->configured_masters,
 		 info->host_checks_handled, info->service_checks_handled,
-		 node->type, node_id);
+		 node->type, tohex(info->config_hash, 20),
+		 node_id);
 
 	free(global_host_event_handler);
 	free(global_service_event_handler);

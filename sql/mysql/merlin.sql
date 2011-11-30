@@ -42,6 +42,7 @@ CREATE TABLE program_status(
 	global_host_event_handler		text,
 	global_service_event_handler	text,
 	node_type                       int,
+	config_hash                     varchar(41),
 	peer_id                         int,
 	self_assigned_peer_id           int,
 	active_peers                    int,
