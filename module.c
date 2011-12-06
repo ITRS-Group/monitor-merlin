@@ -6,6 +6,7 @@
 #include "nagios/perfdata.h"
 #include "nagios/comments.h"
 #include "nagios/common.h"
+#include <pthread.h>
 
 time_t merlin_should_send_paths = 1;
 
@@ -21,7 +22,7 @@ extern comment *comment_list;
 /** code start **/
 extern hostgroup *hostgroup_list;
 static int mrm_reap_interval = 2;
-pthread_t reaper_thread;
+static pthread_t reaper_thread;
 static int cancel_reaping;
 static int merlin_sendpath_interval = MERLIN_SENDPATH_INTERVAL;
 static int cancel_threads = 1;
@@ -36,6 +37,16 @@ static int cancel_threads = 1;
  * See grok_module_compound() for further details
  */
 static uint32_t event_mask;
+
+/**
+ * For some weird reason, the reaper_thread variable has to
+ * be static, or we'll invariably bomb out in merlin_decode().
+ * Weird, but true.
+ */
+int in_reaper_thread(void)
+{
+	return pthread_self() == reaper_thread;
+}
 
 /*
  * handle_{host,service}_result() is basically identical to
@@ -289,11 +300,11 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 		node->stats.bytes.read += packet_size(pkt);
 		node_log_event_count(node, 0);
 	}
-/*	ldebug("Inbound %s event from %s. len %d, type %d",
+	ldebug("Inbound %s event from %s. len %d, type %d",
 	       callback_name(pkt->hdr.type),
 		   node ? node->name : "local Merlin daemon",
 		   pkt->hdr.len, *pkt->body);
-*/
+
 	/* restore the pointers so the various handlers won't have to */
 	if (merlin_decode_event(pkt)) {
 		return 0;

@@ -900,7 +900,7 @@ static int hook_notification(merlin_event *pkt, void *data)
 	 * as quickly as possible.
 	 */
 	if (ds->reason_type == NOTIFICATION_ACKNOWLEDGEMENT) {
-		if (pthread_self() == reaper_thread) {
+		if (in_reaper_thread()) {
 			return NEBERROR_CALLBACKCANCEL;
 		}
 		return 0;

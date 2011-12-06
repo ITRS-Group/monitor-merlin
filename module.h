@@ -10,7 +10,6 @@
 # define USE_EVENT_BROKER 1
 #endif
 
-#include <pthread.h>
 #include "shared.h"
 #include "hash.h"
 
@@ -30,7 +29,6 @@ typedef struct file_list {
 } file_list;
 
 
-extern pthread_t reaper_thread;
 #define MERLIN_PULSE_INTERVAL 10
 extern hash_table *host_hash_table;
 extern node_selection *node_selection_by_hostname(const char *name);
@@ -45,6 +43,7 @@ extern int event_broker_options;
 extern int __nagios_object_structure_version;
 
 /** prototypes **/
+extern int in_reaper_thread(void);
 extern int send_paths(void);
 extern int handle_ipc_event(merlin_node *node, merlin_event *pkt);
 extern void file_list_free(struct file_list *list);
