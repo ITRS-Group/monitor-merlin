@@ -33,6 +33,13 @@ merlin_node *find_node(struct sockaddr_in *sain, const char *name)
 		}
 	}
 
+	if (first) {
+		lwarn("Inbound connection presumably from %s (%s:%d != %s:%d)",
+			  first->name,
+			  inet_ntoa(sain->sin_addr), ntohs(sain->sin_port),
+			  inet_ntoa(first->sain.sin_addr), net_source_port(first));
+	}
+
 	return first;
 }
 
