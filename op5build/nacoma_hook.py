@@ -26,20 +26,20 @@ for line in sys.stdin:
         continue
     if change.is_renamed():
         if change.type == 'host':
-            arg = {'oldhost': change.oldname, 'newhost': change.newname}
+            arg = (change.oldname, change.newname)
             if paramstyle == 'named':
+                arg = dict(zip(('oldhost', 'newhost'), arg))
                 query = 'INSERT INTO rename_log(from_host_name, from_service_description, to_host_name, to_service_description) VALUES (:oldhost, NULL, :newhost, NULL)'
             elif paramstyle == 'format':
                 query = 'INSERT INTO rename_log(from_host_name, from_service_description, to_host_name, to_service_description) VALUES (%s, NULL, %s, NULL)'
-                arg = arg.values()
             cursor.execute(query, arg)
         else:
-            arg =  zip(('oldhost', 'oldservice', 'newhost', 'newservice'), change.oldname.split(';') + change.newname.split(';'))
+            arg = change.oldname.split(';') + change.newname.split(';')
             if paramstyle == 'named':
+                arg = dict(zip(('oldhost', 'oldservice', 'newhost', 'newservice'), arg))
                 query = 'INSERT INTO rename_log(from_host_name, from_service_description, to_host_name, to_service_description) VALUES (:oldhost, :oldservice, :newhost, :newservice)'
             elif paramstyle == 'format':
                 query = 'INSERT INTO rename_log(from_host_name, from_service_description, to_host_name, to_service_description) VALUES (%s, %s, %s, %s)'
-                arg = arg.values()
             cursor.execute(query, arg)
 conn.commit()
 conn.close()
