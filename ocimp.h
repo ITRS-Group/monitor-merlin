@@ -518,6 +518,10 @@ static cfg_code slog_options[] = {
 	"%d, %d\n"      /* 67 */ \
 	")"
 
+#define NINJA_PENDING 6 /* marks object as pending in ninja */
+#define real_current_state(p) \
+	(p->state.has_been_checked ? p->state.current_state : NINJA_PENDING)
+
 #define INSERT_VALUES() \
 	p->ido.id, p->ido.instance_id, \
 	host_name, safe_str(display_name), safe_str(stalking_options), \
@@ -531,7 +535,7 @@ static cfg_code slog_options[] = {
 	p->state.event_handler_enabled, \
 	p->state.obsess, p->state.problem_has_been_acknowledged, \
 	p->state.acknowledgement_type, p->state.check_type, \
-	p->state.current_state, p->state.last_state, \
+	real_current_state(p), p->state.last_state, \
 	p->state.last_hard_state, p->state.state_type, \
 	p->state.current_attempt, p->state.current_event_id, \
 	p->state.last_event_id, p->state.current_problem_id, \
