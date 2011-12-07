@@ -29,7 +29,7 @@ merlin_node *find_node(struct sockaddr_in *sain, const char *name)
 			if (source_port == in_port) /* perfect match */
 				return node;
 			if (!first)
-				node = first;
+				first = node;
 		}
 	}
 
