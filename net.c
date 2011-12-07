@@ -26,8 +26,12 @@ merlin_node *find_node(struct sockaddr_in *sain, const char *name)
 		unsigned short source_port = ntohs(sain->sin_port);
 		unsigned short in_port = net_source_port(node);
 		if (node->sain.sin_addr.s_addr == sain->sin_addr.s_addr) {
-			if (source_port == in_port) /* perfect match */
+			if (source_port == in_port) {
+				/* perfect match */
+				ldebug("Inbound connection matches %s exactly (%s:%d)",
+				       node->name, inet_ntoa(sain->sin_addr), in_port);
 				return node;
+			}
 			if (!first)
 				first = node;
 		}
