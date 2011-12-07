@@ -300,10 +300,12 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 		node->stats.bytes.read += packet_size(pkt);
 		node_log_event_count(node, 0);
 	}
+/*
 	ldebug("Inbound %s event from %s. len %d, type %d",
 	       callback_name(pkt->hdr.type),
 		   node ? node->name : "local Merlin daemon",
 		   pkt->hdr.len, *pkt->body);
+*/
 
 	/* restore the pointers so the various handlers won't have to */
 	if (merlin_decode_event(pkt)) {
