@@ -323,10 +323,10 @@ int net_accept_one(void)
 	}
 
 	node = find_node(&sain, NULL);
-	linfo("%s connected from %s:%d. Current state is %d",
+	linfo("%s connected from %s:%d. Current state is %s",
 		  node ? node->name : "An unregistered node",
 		  inet_ntoa(sain.sin_addr), ntohs(sain.sin_port),
-		  node ? node->state : -1);
+		  node ? node_state_name(node->state) : "unknown");
 	if (!node) {
 		close(sock);
 		return 0;
