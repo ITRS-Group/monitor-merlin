@@ -262,7 +262,10 @@ def cmd_show(args):
 		print("No nodes configured")
 		return
 	if len(args) == 0:
-		for (name, node) in mconf.configured_nodes.items():
+		names = mconf.configured_nodes.keys()
+		names.sort()
+		for name in names:
+			node = mconf.configured_nodes[name]
 			if not node.ntype in wanted_types:
 				continue
 			print("\n# %s" % name)
