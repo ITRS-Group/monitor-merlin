@@ -48,7 +48,7 @@ class merlin_node:
 	def write(self, f):
 		oconf_vars = {}
 		f.write("%s %s {\n" % (self.ntype, self.name))
-		valid_vars = ['address', 'port']
+		valid_vars = ['address', 'port', 'connect']
 		if self.ntype != 'master':
 			valid_vars.append('hostgroup')
 
