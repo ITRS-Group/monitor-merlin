@@ -449,12 +449,38 @@ class nagios_slave_object(nagios_object):
 			# must use copy.deepcopy() here
 			h.slaves[self.otype][self.name] = copy.deepcopy(self)
 
-
-# only small differences between this and the other kind of thing
+# dependency objects are slaves to two objects.
+#
+# the regular slave logic makes sure that we only write the object
+# if the first master exists, but we must make sure that both
+# masters are written if we want to always end up with a valid
+# config, so keep track of the other, and bail when write()-ing.
+#
+# we're cheating, since everything else will think we were written,
+# but since there are no dependency slaves, nothing else cares.
 class nagios_dependency_object(nagios_slave_object):
 	master_var = 'dependent_host_name'
 	master_group_var = 'dependent_hostgroup_name'
+	other_master_var = 'host_name'
+	other_master_group_var = 'hostgroup_name'
+	other_hosts = []
 
+	def parse(self):
+		hie = self.incex(self.other_master_var)
+		gie = self.incex_members('hostgroup', self.other_master_group_var)
+		inc = self.incex2inc('host', hie[0] | gie[0], hie[1] | gie[1])
+		if not len(inc):
+			return False
+
+		self.other_hosts = inc
+		nagios_slave_object.parse(self)
+
+	def write(self, f):
+		# other_hosts always has length 1, so return is appropriate
+		for host in self.other_hosts:
+			if not host in interesting['host']:
+				return False
+		nagios_slave_object.write(self, f)
 
 class nagios_host(nagios_group_member):
 	otype = 'host'
