@@ -174,6 +174,8 @@ static struct file_list *get_cfg_files(char *str, struct file_list *list)
 		}
 	}
 
+	free(p);
+
 	return list;
 }
 
