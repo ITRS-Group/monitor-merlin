@@ -437,9 +437,9 @@ class nagios_slave_object(nagios_object):
 		if not len(inc):
 			return False
 		# remove hostgroup references and replace with host refs
-		self.obj.pop('hostgroup_name', False)
-		self.obj.pop('host_name', False)
-		self.obj['host_name'] = ','.join(inc)
+		self.obj.pop(self.master_group_var, False)
+		self.obj.pop(self.master_var, False)
+		self.obj[self.master_var] = ','.join(inc)
 
 		hosts = self.list2objs('host', inc)
 		for h in hosts.values():
