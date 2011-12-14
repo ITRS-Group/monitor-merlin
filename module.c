@@ -6,6 +6,7 @@
 #include "nagios/perfdata.h"
 #include "nagios/comments.h"
 #include "nagios/common.h"
+#include "nagios/downtime.h"
 #include <pthread.h>
 
 time_t merlin_should_send_paths = 1;
@@ -17,6 +18,9 @@ time_t merlin_should_send_paths = 1;
  */
 extern int xodtemplate_grab_config_info(char *main_config_file);
 extern comment *comment_list;
+extern int unschedule_downtime(int, unsigned long);
+extern pthread_mutex_t nagios_downtime_lock;
+extern scheduled_downtime *scheduled_downtime_list;
 
 
 /** code start **/
@@ -228,6 +232,64 @@ static int handle_comment_data(merlin_node *node, void *buf)
 	return 0;
 }
 
+static int matching_downtime(scheduled_downtime *downtime, nebstruct_downtime_data *ds)
+{
+	if (downtime->type == ds->downtime_type &&
+		downtime->duration == ds->duration &&
+		downtime->end_time == ds->end_time &&
+		downtime->fixed == ds->fixed &&
+		downtime->start_time == ds->start_time &&
+		downtime->triggered_by == ds->triggered_by &&
+		!strcmp(downtime->author, ds->author_name) &&
+		!strcmp(downtime->comment, ds->comment_data) &&
+		!strcmp(downtime->host_name, ds->host_name) &&
+		(downtime->service_description == ds->service_description ||
+		!strcmp(downtime->service_description, ds->service_description)))
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+
+static int handle_downtime_data(merlin_node *node, void *buf)
+{
+	nebstruct_downtime_data *ds = (nebstruct_downtime_data *)buf;
+	unsigned long downtime_id = 0;
+	unsigned long downtime_type = 0;
+	scheduled_downtime *this_downtime = NULL;
+
+	if (!node) {
+		lerr("handle_downtime_data() with NULL node");
+		return 0;
+	}
+
+	if (ds->type != NEBTYPE_DOWNTIME_DELETE && ds->type != NEBTYPE_DOWNTIME_STOP) {
+		lerr("forwarded downtime event is not a delete. not good.");
+		return 0;
+	}
+
+	/* We always run this in a separate thread, so even though it's read-only,
+	 * we should still lock to avoid another thread rewriting the list while
+	 * we're working on it.
+	 */
+	pthread_mutex_lock(&nagios_downtime_lock);
+	for(this_downtime = scheduled_downtime_list; this_downtime != NULL; this_downtime = this_downtime->next) {
+		if (matching_downtime(this_downtime, ds)) {
+			downtime_id = this_downtime->downtime_id;
+			downtime_type = this_downtime->type;
+			break;
+		}
+	}
+	pthread_mutex_unlock(&nagios_downtime_lock);
+
+	if (downtime_type && downtime_id)
+		unschedule_downtime(downtime_type, downtime_id);
+
+	return 0;
+}
+
 #define otype_agnostic_flapping_handling(obj) \
 	do { \
 		if (!obj) \
@@ -328,6 +390,8 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 		return handle_external_command(node, pkt->body);
 	case NEBCALLBACK_COMMENT_DATA:
 		return handle_comment_data(node, pkt->body);
+	case NEBCALLBACK_DOWNTIME_DATA:
+		return handle_downtime_data(node, pkt->body);
 	case NEBCALLBACK_FLAPPING_DATA:
 		return handle_flapping_data(node, pkt->body);
 	default:

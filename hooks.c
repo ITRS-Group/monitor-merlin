@@ -481,7 +481,7 @@ static int hook_downtime(merlin_event *pkt, void *data)
 	 * Downtime delete and stop events are transferred.
 	 * Adding is done on all nodes from the downtime command
 	 * that always gets transferred, but if a user cancels
-	 * downtime early, we get a "stop" event that we must
+	 * downtime early, we get a "delete" event that we must
 	 * transfer properly, or the other node (which might be
 	 * notifying) will think the node is still in downtime.
 	 */
@@ -548,6 +548,15 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		return 0;
 
 		/*
+		 * These only contain the downtime id, so they're mostly useless,
+		 * but potentially dangerous.
+		 * We'll forward the downtime_delete event instead.
+		 */
+	case CMD_DEL_HOST_DOWNTIME:
+	case CMD_DEL_SVC_DOWNTIME:
+		return 0;
+
+		/*
 		 * these are forwarded and handled specially on the
 		 * receiving end
 		 */
@@ -570,8 +579,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_CANCEL_PENDING_SVC_DOWNTIME:
 	case CMD_CANCEL_ACTIVE_HOST_SVC_DOWNTIME:
 	case CMD_CANCEL_PENDING_HOST_SVC_DOWNTIME:
-	case CMD_DEL_HOST_DOWNTIME:
-	case CMD_DEL_SVC_DOWNTIME:
 	case CMD_SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME:
 	case CMD_SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME:
 		/* fallthrough */
