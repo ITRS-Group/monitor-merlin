@@ -378,10 +378,44 @@ class fake_mesh:
 		self.pgroups = []
 		self.masters = []
 		self.tap = tap("Merlin distribution tests")
+		self.sleeptime = False
 
 		for (k, v) in kwargs.items():
 			setattr(self, k, v)
 
+
+	def intermission(self, msg=False):
+		"""Sleepytime between running of tests"""
+		if self.sleeptime == False:
+			self.sleeptime = 10 + (len(self.instances) * 5)
+			if self.sleeptime > 30:
+				self.sleeptime = 30
+
+		# only print the animation if anyone's looking
+		if os.isatty(sys.stdout.fileno()) == False:
+			sys.write.stdout("Sleeping %d seconds")
+			if msg:
+				print("Sleeping %.2f seconds: %s" % (self.sleeptime, msg))
+			else:
+				print("Sleeping %.2f seconds" % self.sleeptime)
+			time.sleep(self.sleeptime)
+
+		i = self.sleeptime
+		rotor = ['|', '/', '-', '\\']
+		r = 0
+		while i > 0:
+			r += 1
+			if msg:
+				sys.stdout.write(" %c Sleeping %.2f seconds: %s    \r" %
+					(rotor[r % len(rotor)], i, msg))
+				sys.stdout.flush()
+			else:
+				sys.stdout.write(" %c Sleeping %.2f seconds   \r" %
+					(rotor[r % len(rotor)], i))
+				sys.stdout.flush()
+			i -= 0.07
+			time.sleep(0.07)
+		print("   Sleeping 0.00 seconds")
 
 	##############################################################
 	#
@@ -441,8 +475,7 @@ class fake_mesh:
 		for cmd in raw_commands:
 			ret = master.submit_raw_command(cmd)
 			self.tap.test(ret, True, "Should be able to submit %s" % cmd)
-		print("Sleeping to let commands spread")
-		time.sleep(5)
+		self.intermission("Letting global commands spread")
 		i = 0
 		for query in queries:
 			cmd = raw_commands[i]
@@ -476,8 +509,7 @@ class fake_mesh:
 			if ret == False:
 				status = False
 
-		print("Sleeping to let passive results spread")
-		time.sleep(10)
+		self.intermission('Letting passive checks spread')
 		queries = {
 			'host': 'SELECT COUNT(1) FROM host WHERE current_state != 1',
 			'service': 'SELECT COUNT(1) FROM service WHERE current_state != 2',
@@ -515,8 +547,7 @@ class fake_mesh:
 
 		# give all nodes some time before we check to make
 		# sure the ack has spread
-		print("Sleeping to let acks spread")
-		time.sleep(10)
+		self.intermission("Letting acks spread")
 		for inst in self.instances:
 			inst.dbc.execute("SELECT COUNT(1) FROM host WHERE problem_has_been_acknowledged = 0")
 			value = inst.dbc.fetchall()[0][0]
@@ -873,8 +904,7 @@ def cmd_dist(args):
 	mesh.start_daemons()
 
 	# tests go here
-	print("Sleeping %d seconds before running tests" % sleeptime)
-	time.sleep(sleeptime)
+	mesh.intermission("Allowing nodes to connect to each other")
 	if mesh.test_connections() == False:
 		print("Connection tests failed. Bailing out")
 		_dist_shutdown(mesh, destroy_databases)
