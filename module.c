@@ -877,6 +877,18 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 		return 0;
 
 	/*
+	 * If we get disconnected while stalling, we immediately
+	 * stop stalling and note that we should send paths again.
+	 * Since we never received a CTRL_RESUME we can't know for
+	 * sure that the module has actually imported anything.
+	 * Better safe than sorry, iow.
+	 */
+	if (prev_state == STATE_CONNECTED && is_stalling()) {
+		ctrl_stall_stop();
+		merlin_should_send_paths = 1;
+	}
+
+	/*
 	 * we must use node_send_ctrl_active() here or we'll
 	 * end up in an infinite loop in ipc_ctrl(), rapidly
 	 * devouring all available stack space. Since we
