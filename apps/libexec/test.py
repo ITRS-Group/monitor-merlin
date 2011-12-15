@@ -84,7 +84,7 @@ class fake_peer_group:
 			mg.add_object(otype, name)
 
 
-	def create_object_config(self, num_hosts=10, num_services_per_host=5):
+	def create_object_config(self, num_hosts=3, num_services_per_host=2):
 		# master groups will call this for their pollers when
 		# asked to create their own object configuration
 		if self.oconf_buf:
