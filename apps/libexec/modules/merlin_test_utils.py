@@ -12,7 +12,7 @@ class tap:
 		if a == b:
 			return self.ok(msg)
 
-		self.fail(msg, a, b)
+		return self.fail(msg, a, b)
 
 
 	def ok(self, msg):
