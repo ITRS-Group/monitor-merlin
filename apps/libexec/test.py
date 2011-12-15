@@ -214,6 +214,8 @@ class fake_instance:
 		self.cmd_object = nagios_command()
 		self.cmd_object.set_pipe_path(self.cmd_pipe)
 
+		# actually counts entries in program_status, and we'll have one
+		self.num_nodes = 1
 
 	def test_connections(self):
 		"""
@@ -301,6 +303,7 @@ class fake_instance:
 		if not self.nodes[node_type][node_name].get('address', False):
 			self.nodes[node_type][node_name]['address'] = '127.0.0.1'
 		port = kwargs.get('port', False)
+		self.num_nodes += 1
 
 
 	def create_core_config(self):
