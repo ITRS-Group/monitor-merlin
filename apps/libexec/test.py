@@ -467,6 +467,7 @@ class fake_mesh:
 		ourselves, so it must be run first thing after we that all
 		nodes are connected to each other.
 		"""
+		status = True
 		raw_commands = [
 			'DISABLE_FLAP_DETECTION',
 			'DISABLE_FAILURE_PREDICTION',
@@ -501,12 +502,15 @@ class fake_mesh:
 			for inst in self.instances:
 				inst.dbc.execute('SELECT node_type, instance_name FROM program_status WHERE %s' % query)
 				rows = inst.dbc.fetchall()
-				self.tap.test(len(rows), 0, "%s should spread and bounce to %s" % (cmd, inst.name))
+				ret = self.tap.test(len(rows), 0,
+					"%s should spread and bounce to %s" % (cmd, inst.name))
+				if ret == False:
+					status = False
 				if len(rows) != 0:
 					print("  On '%s', command failed for the following systems:" % inst.name)
 					for row in rows:
 						print("    type: %d; name: %s" % (row[0], row[1]))
-		return None
+		return status
 
 
 	def test_passive_checks(self):
@@ -518,12 +522,16 @@ class fake_mesh:
 		master = self.masters.nodes[0]
 		for host in self.masters.objects['host']:
 			ret = master.submit_raw_command('PROCESS_HOST_CHECK_RESULT;%s;1;Plugin output for host %s' % (host, host))
-			self.tap.test(ret, True, "Setting status of host %s" % host)
+			if ret == False:
+				status = False
+			ret = self.tap.test(ret, True, "Setting status of host %s" % host)
 			if ret == False:
 				status = False
 		for srv in self.masters.objects['service']:
 			ret = master.submit_raw_command('PROCESS_SERVICE_CHECK_RESULT;%s;2;Service plugin output' % (srv))
-			self.tap.test(ret, True, "Setting status of service %s" % srv)
+			if ret == False:
+				status = False
+			ret = self.tap.test(ret, True, "Setting status of service %s" % srv)
 			if ret == False:
 				status = False
 
@@ -536,7 +544,11 @@ class fake_mesh:
 			for otype, query in queries.items():
 				inst.dbc.execute(query)
 				value = inst.dbc.fetchall()[0][0]
-				if self.tap.test(value, 0, 'Passive %s checks should propagate to %s' % (otype, inst.name)) == False:
+				ret = (self.tap.test(value, len(inst.group.objects[otype]),
+					'Passive %s checks should propagate to %s' %
+						(otype, inst.name))
+				)
+				if ret == False:
 					status = False
 
 		return status
