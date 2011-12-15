@@ -217,7 +217,7 @@ class fake_instance:
 		# actually counts entries in program_status, and we'll have one
 		self.num_nodes = 1
 
-	def test_connections(self):
+	def active_connections(self):
 		"""
 		Test to make sure all systems supposed to connect to this
 		node have actually done so. This is fundamental in order
@@ -225,7 +225,7 @@ class fake_instance:
 		which means it has to be run before all other tests.
 		"""
 		self.db_connect()
-		self.dbc.execute('SELECT COUNT(1) FROM program_status WHERE is_running = 0')
+		self.dbc.execute('SELECT COUNT(1) FROM program_status WHERE is_running = 1')
 		row = self.dbc.fetchall()
 		return row[0][0]
 
