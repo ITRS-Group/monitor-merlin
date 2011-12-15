@@ -871,9 +871,9 @@ static int post_config_init(int cb, void *ds)
  * connection is lost. A CTRL_ACTIVE packet should always be
  * the first to go through the ipc socket
  */
-static int ipc_action_handler(merlin_node *node, int state)
+static int ipc_action_handler(merlin_node *node, int prev_state)
 {
-	if (node != &ipc || ipc.state == state)
+	if (node != &ipc || ipc.state == prev_state)
 		return 0;
 
 	/*
@@ -884,7 +884,7 @@ static int ipc_action_handler(merlin_node *node, int state)
 	 * need the ipc_is_connected(0) call that ipc_ctrl
 	 * adds before trying to send.
 	 */
-	if (state == STATE_CONNECTED)
+	if (node->state == STATE_CONNECTED)
 		return node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 100);
 
 	return 0;
