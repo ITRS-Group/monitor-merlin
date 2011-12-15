@@ -6,6 +6,7 @@ class tap:
 		self.passed = 0
 		self.failed = 0
 		self.verbose = 1
+		self.failures = []
 
 	def test(self, a, b, msg):
 		if a == b:
@@ -23,7 +24,9 @@ class tap:
 
 	def fail(self, msg, a=False, b=False):
 		if self.verbose:
-			print("  %sfail%s %s" % (color.red, color.reset, msg))
+			msg = "  %sfail%s %s" % (color.red, color.reset, msg)
+			self.failures.append(msg)
+			print(msg)
 			if a != b:
 				print(a, b)
 		self.failed += 1
