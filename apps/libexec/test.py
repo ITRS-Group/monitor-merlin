@@ -596,8 +596,45 @@ class fake_mesh:
 			value = inst.dbc.fetchall()[0][0]
 			self.tap.test(value, len(inst.group.objects['service']), 'Service acks should generate one comment each on %s' % inst.name)
 
-
 		return None
+
+	def get_first_poller(self, master):
+		"""
+		There's no real concept of 'first' here, since the instances is a dict,
+		but we'll at least be consistent in that we return the same poller each
+		time we're called.
+		"""
+		for name, p in master.group.poller_groups.items():
+			return p.nodes[0]
+
+
+	def _schedule_downtime(self, node, ignore={'host': {}, 'service': {}}):
+		"""
+		Schedules downtime for all objects on a particular node from that
+		particular node.
+		"""
+		for host in node.group.objects['host']:
+			if host in ignore['host']:
+				continue
+			ret = node.submit_raw_command(
+				'%s;%s;%d;%d;1;0;54321;mon testsuite;downtime for host %s from %s' %
+					('SCHEDULE_HOST_DOWNTIME', host, time.time(),
+					time.time() + 54321, host, node.name)
+			)
+			self.tap.test(ret, True, "Scheduling downtime for %s on %s" %
+				(host, node.name)
+			)
+		for srv in node.group.objects['service']:
+			(_host_name, _service_description) = srv.split(';', 1)
+			ret = node.submit_raw_command(
+				'%s;%s;%d;%d;1;0;54321;mon testsuite;downtime for service %s on %s from %s' %
+				('SCHEDULE_SVC_DOWNTIME', srv, time.time(),
+				time.time() + 54321, _service_description, _host_name, node.name)
+			)
+			self.tap.test(ret, True, "Scheduling downtime for %s on %s" %
+				(srv, node.name))
+
+		return self.tap.failed == 0
 
 
 	def test_downtime(self):
@@ -605,8 +642,43 @@ class fake_mesh:
 		Adds downtime scheduling commands to various nodes in the
 		network and makes sure they get propagated to the nodes that
 		need to know about them.
+
+		Since downtime deletion works by deleting downtime with a
+		specific id, we need to submit downtime to one poller-group
+		first and then ignore that poller-group when submitting to
+		the master, since we want to make sure things are getting
+		deleted even if the id doesn't match.
 		"""
-		print("test_downtime() is a stub")
+		# stash to keep track of which objects we've already scheduled
+		scheduled = {'host': {}, 'service': {}}
+
+
+		master = self.masters.nodes[0]
+		poller = self.get_first_poller(master)
+		print("Submitting downtime to poller %s" % poller.name)
+		self._schedule_downtime(poller)
+		self._schedule_downtime(master, poller.group.objects)
+
+		# give all nodes some time before we check to make
+		# sure the ack has spread
+		self.intermission("Letting downtime spread")
+		for inst in self.instances:
+			inst.dbc.execute("SELECT COUNT(1) FROM host WHERE scheduled_downtime_depth > 0")
+			value = inst.dbc.fetchall()[0][0]
+			self.tap.test(value, len(inst.group.objects['host']),
+				'All host downtime should spread to %s' % inst.name)
+			inst.dbc.execute('SELECT COUNT(1) FROM service WHERE scheduled_downtime_depth > 0')
+			value = inst.dbc.fetchall()[0][0]
+			self.tap.test(value, len(inst.group.objects['service']),
+				'All service downtime should spread to %s' % inst.name)
+			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE comment_type = 1 AND entry_type = 2')
+			value = inst.dbc.fetchall()[0][0]
+			self.tap.test(value, len(inst.group.objects['host']),
+				"Host downtime should generate one comment each on %s" % inst.name)
+			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE comment_type = 2 AND entry_type = 2')
+			value = inst.dbc.fetchall()[0][0]
+			self.tap.test(value, len(inst.group.objects['service']),
+				'Service downtime should generate one comment each on %s' % inst.name)
 		return None
 
 
