@@ -640,10 +640,7 @@ class fake_mesh:
 			return False
 
 		if pid > 0:
-			print("master has pid %d. child has pid %d. sid=%d; childsid=%d" %
-				(os.getpid(), pid, os.getsid(os.getpid()), os.getsid(pid)))
 			(ret, status) = os.waitpid(pid, 0)
-			print("ret: %d; status: %d" % (ret, status))
 			return True
 
 		if not pid:
