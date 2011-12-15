@@ -537,8 +537,8 @@ class fake_mesh:
 
 		self.intermission('Letting passive checks spread')
 		queries = {
-			'host': 'SELECT COUNT(1) FROM host WHERE current_state != 1',
-			'service': 'SELECT COUNT(1) FROM service WHERE current_state != 2',
+			'host': 'SELECT COUNT(1) FROM host WHERE current_state = 1',
+			'service': 'SELECT COUNT(1) FROM service WHERE current_state = 2',
 		}
 		for inst in self.instances:
 			for otype, query in queries.items():
