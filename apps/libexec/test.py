@@ -682,14 +682,62 @@ class fake_mesh:
 		return None
 
 
+	def _add_comments(self, node, ignore={'host': {}, 'service': {}}):
+		"""
+		Schedules downtime for all objects on a particular node from that
+		particular node.
+		"""
+		for host in node.group.objects['host']:
+			if host in ignore['host']:
+				continue
+			ret = node.submit_raw_command(
+				'%s;%s;1;mon testsuite;comment for host %s from %s' %
+					('ADD_HOST_COMMENT', host, host, node.name)
+			)
+			self.tap.test(ret, True, "Adding comment for %s from %s" %
+				(host, node.name)
+			)
+		for srv in node.group.objects['service']:
+			if srv in ignore['service']:
+				continue
+			(_host_name, _service_description) = srv.split(';', 1)
+			ret = node.submit_raw_command(
+				'%s;%s;1;mon testsuite;comment for %s on %s from %s' %
+				('ADD_SVC_COMMENT', srv,
+				_service_description, _host_name, node.name)
+			)
+			self.tap.test(ret, True, "Adding comment for service %s on %s from %s" %
+				(_host_name, _service_description, node.name))
+
+		return self.tap.failed == 0
+
 	def test_comments(self):
 		"""
 		Adds comment adding commands to various nodes in the network
 		and makes sure they get propagated to the nodes that need to
 		know about them.
 		"""
-		print("test_comments() is a stub")
+		master = self.masters.nodes[0]
+		poller = self.get_first_poller(master)
+		print("Submitting comments to poller %s" % poller.name)
+		self._add_comments(poller)
+		self._add_comments(master, poller.group.objects)
+
+		# give all nodes some time before we check to make
+		# sure the ack has spread
+		self.intermission("Letting comments spread")
+		for inst in self.instances:
+			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE comment_type = 1 AND entry_type = 1')
+			value = inst.dbc.fetchall()[0][0]
+			self.tap.test(value, len(inst.group.objects['host']),
+				"Host comments should spread to %s" % inst.name)
+			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE comment_type = 2 AND entry_type = 1')
+			value = inst.dbc.fetchall()[0][0]
+			self.tap.test(value, len(inst.group.objects['service']),
+				'Service comments should spread to %s' % inst.name)
 		return None
+
+
 	#
 	# Actual tests end here
 	#
@@ -1032,8 +1080,8 @@ def cmd_dist(args):
 
 	# we only test acks if passive checks distribute properly
 	mesh.test_acks()
-	mesh.test_downtime()
 	mesh.test_comments()
+	mesh.test_downtime()
 
 	_dist_shutdown(mesh, destroy_databases, batch)
 
