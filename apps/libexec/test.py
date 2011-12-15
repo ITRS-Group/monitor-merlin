@@ -569,9 +569,10 @@ class fake_mesh:
 			)
 			self.tap.test(ret, True, "Acking %s on %s" % (host, master.name))
 		for srv in self.masters.objects['service']:
+			(_hst, _srv) = srv.split(';')
 			ret = master.submit_raw_command(
-				'ACKNOWLEDGE_SVC_PROBLEM;%s;0;0;0;mon testsuite;ack comment for service %s'
-				% (srv, srv)
+				'ACKNOWLEDGE_SVC_PROBLEM;%s;0;0;0;mon testsuite;ack comment for service %s on %s'
+				% (srv, _srv, _hst)
 			)
 			self.tap.test(ret, True, "Acking %s on %s" % (srv, master.name))
 
@@ -579,16 +580,19 @@ class fake_mesh:
 		# sure the ack has spread
 		self.intermission("Letting acks spread")
 		for inst in self.instances:
-			inst.dbc.execute("SELECT COUNT(1) FROM host WHERE problem_has_been_acknowledged = 0")
+			inst.dbc.execute("SELECT COUNT(1) FROM host WHERE problem_has_been_acknowledged = 1")
 			value = inst.dbc.fetchall()[0][0]
-			self.tap.test(value, 0, "All host acks should register on %s" % inst.name)
-			inst.dbc.execute('SELECT COUNT(1) FROM service WHERE problem_has_been_acknowledged = 0')
+			self.tap.test(value, len(inst.group.objects['host']),
+				"All host acks should register on %s" % inst.name)
+			inst.dbc.execute('SELECT COUNT(1) FROM service WHERE problem_has_been_acknowledged = 1')
 			value = inst.dbc.fetchall()[0][0]
-			self.tap.test(value, 0, 'All service acks should register on %s' % inst.name)
-			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE comment_type = 1')
+			self.tap.test(value, len(inst.group.objects['service']),
+				'All service acks should register on %s' % inst.name)
+
+			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE entry_type = 4 AND comment_type = 1')
 			value = inst.dbc.fetchall()[0][0]
 			self.tap.test(value, len(inst.group.objects['host']), "Host acks should generate one comment each on %s" % inst.name)
-			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE comment_type = 2')
+			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE entry_type = 4 AND comment_type = 2')
 			value = inst.dbc.fetchall()[0][0]
 			self.tap.test(value, len(inst.group.objects['service']), 'Service acks should generate one comment each on %s' % inst.name)
 
