@@ -842,8 +842,6 @@ def cmd_dist(args):
 	setup = True
 	destroy = True
 	basepath = '/tmp/merlin-dtest'
-	merlin_mod_path = posix.getcwd()
-	ocimp_path = "%s/ocimp" % merlin_mod_path
 	livestatus_o = '/home/exon/git/monitor/livestatus/livestatus/src/livestatus.o'
 	db_admin_user = 'exon'
 	db_admin_password = False
@@ -853,7 +851,10 @@ def cmd_dist(args):
 	num_masters = 3
 	poller_groups = 1
 	pollers_per_group = 3
-	merlin_binary = '%s/merlind' % merlin_mod_path
+	merlin_path = '/opt/monitor/op5/merlin'
+	merlin_mod_path = '%s/merlin.so' % merlin_path
+	merlin_binary = '%s/merlind' % merlin_path
+	ocimp_path = "%s/ocimp" % merlin_path
 	nagios_binary = '/opt/monitor/bin/monitor'
 	confgen_only = False
 	destroy_databases = False
