@@ -667,12 +667,13 @@ class fake_mesh:
 		os.system("rm -rf %s" % self.basepath)
 
 
-	def destroy(self):
+	def destroy(self, destroy_databases=False):
 		"""
 		Shuts down and removes all traces of the fake mesh
 		"""
 		self.stop_daemons()
-		self.destroy_databases()
+		if destroy_databases:
+			self.destroy_databases()
 		self.destroy_playground()
 
 
