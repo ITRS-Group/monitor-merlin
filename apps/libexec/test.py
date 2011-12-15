@@ -429,15 +429,30 @@ class fake_mesh:
 	def test_connections(self):
 		status = True
 		for inst in self.instances:
-			ret = inst.test_connections()
-			if ret != 0:
+			ret = inst.active_connections()
+			self.tap.test(ret, inst.num_nodes, "%s has %d/%d connected systems" % (inst.name, ret, inst.num_nodes))
+			if ret != inst.num_nodes:
 				status = False
-				self.tap.fail("%s has %d unconnected systems" % (inst.name, ret))
-			else:
-				self.tap.ok("%s is fully connected" % (inst.name))
 
 		return status
 
+	def test_imports(self):
+		"""make sure ocimp has run properly"""
+		status = True
+		for inst in self.instances:
+			inst.dbc.execute("SELECT COUNT(1) FROM host")
+			hosts = inst.dbc.fetchall()[0][0]
+			inst.dbc.execute("SELECT COUNT(1) FROM service")
+			services = inst.dbc.fetchall()[0][0]
+			ret = self.tap.test(hosts, len(inst.group.objects['host']),
+				'%s must import hosts properly' % inst.name)
+			if ret == False:
+				status = False
+			ret = self.tap.test(services, len(inst.group.objects['service']),
+				'%s must import services properly' % inst.name)
+			if ret == False:
+				status = False
+		return status
 
 	def test_global_commands(self):
 		"""
