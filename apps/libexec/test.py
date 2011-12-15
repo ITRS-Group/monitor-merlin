@@ -794,11 +794,14 @@ class fake_mesh:
 			pass
 
 
-def _dist_shutdown(mesh, destroy_databases):
+def _dist_shutdown(mesh, msg=False, batch=False, destroy_databases=False):
+	if msg != False:
+		print("%s" % msg)
+
 	mesh.test_finalize()
-	print("When done testing and examining, just press enter")
-	# when we're done testing, just press enter
-	buf = sys.stdin.readline()
+	if batch == False:
+		print("When done testing and examining, just press enter")
+		buf = sys.stdin.readline()
 
 	print("Stopping daemons")
 	mesh.stop_daemons()
@@ -855,8 +858,13 @@ def cmd_dist(args):
 	confgen_only = False
 	destroy_databases = False
 	sleeptime = False
+	batch = True
+	if os.isatty(sys.stdout.fileno()):
+		batch = False
 	for arg in args:
-		if arg.startswith('--basepath='):
+		if arg == '--batch':
+			batch = True
+		elif arg.startswith('--basepath='):
 			basepath = arg.split('=', 1)[1]
 		elif arg.startswith('--sql-admin-user='):
 			db_admin_user = arg.split('=', 1)[1]
@@ -931,22 +939,26 @@ def cmd_dist(args):
 	mesh.create_databases()
 	mesh.start_daemons()
 
-	# tests go here
+	# tests go here. Important ones come first so we can
+	# break out early in case one or more of the required
+	# ones fail hard.
 	mesh.intermission("Allowing nodes to connect to each other")
 	if mesh.test_connections() == False:
 		print("Connection tests failed. Bailing out")
-		_dist_shutdown(mesh, destroy_databases)
+		_dist_shutdown(mesh, 'Connection tests failed', batch)
+	if mesh.test_imports() == False:
+		_dist_shutdown(mesh, 'Imports failed. This is a known spurious error when running tests often', batch)
 	if mesh.test_global_commands() == False:
-		print("Global commands tests failed. Bailing out")
-		_dist_shutdown(mesh, destroy_databases)
+		_dist_shutdown(mesh, 'Global command tests failed', batch)
+	if mesh.test_passive_checks() == False:
+		_dist_shutdown(mesh, 'Passive checks are broken', batch)
 
 	# we only test acks if passive checks distribute properly
-	if mesh.test_passive_checks() == True:
-		mesh.test_acks()
+	mesh.test_acks()
 	mesh.test_downtime()
 	mesh.test_comments()
 
-	_dist_shutdown(mesh, destroy_databases)
+	_dist_shutdown(mesh, destroy_databases, batch)
 
 
 def test_cmd(cmd_fd, cmd, msg=False):
