@@ -190,6 +190,10 @@ class nagios_object:
 			for obj in olist.values():
 				obj.write_linked(f)
 
+		if self.otype != 'contact':
+			for obj in self.groups.values():
+				obj.write_linked(f)
+
 	def write_linked(self, f):
 		self.raw_write_linked(f)
 
@@ -332,6 +336,9 @@ class nagios_group(nagios_object):
 		self.members[member.name] = member
 
 	def write_linked(self, f):
+		if self.otype == 'hostgroup':
+			self.members = interesting[self.otype[:-5]].intersection(set(self.members))
+			self.obj['members'] = ','.join(self.members).replace(';', ',')
 		self.write(f)
 		if self.otype == 'contactgroup':
 			for obj in self.members.values():
@@ -352,6 +359,11 @@ class nagios_group(nagios_object):
 			self.members[m.name] = m
 
 class nagios_servicegroup(nagios_group):
+	def write_linked(self, f):
+		self.members = [x for x in self.members if x.split(';')[0] in interesting['host']]
+		self.obj['members'] = ','.join(self.members).replace(';', ',')
+		self.write(f)
+
 	def parse(self):
 		members = self.obj.get('members')
 		if not members:
@@ -362,9 +374,14 @@ class nagios_servicegroup(nagios_group):
 		i = 0
 		while i < len(ary):
 			name = ary[i] + ';' + ary[i + 1]
-			i += 2
 			service = nagios_objects['service'][name]
+			service.add_group(self)
+			# because we insist on using deepcopy (why?),
+			# we must add ourselves to the copy as well
+			hostservice = nagios_objects['host'][ary[i]].slaves['service'][name]
+			hostservice.add_group(self)
 			self.members[service.name] = service
+			i += 2
 
 class nagios_group_member(nagios_object):
 	def add_group(self, group):
@@ -647,6 +664,9 @@ def hg_pregen(li):
 		psel[r] = nagios_objects['hostgroup'][r]
 	return psel.keys()
 
+# warning!
+# interesting does Not contain all objects that will be exported
+# instead, it contains only some bits deemed convenient
 interesting = {}
 def run_param(param):
 	global nagios_objects, interesting

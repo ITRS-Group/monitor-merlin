@@ -210,7 +210,7 @@ static int get_hostgroup_selection(const char *key)
 {
 	node_selection *sel = node_selection_by_name(key);
 
-	return sel ? sel->id & 0xffff : DEST_BROADCAST;
+	return sel ? sel->id & 0xffff : DEST_PEERS_POLLERS;
 }
 
 static int send_host_status(merlin_event *pkt, struct host_struct *obj)
@@ -679,6 +679,12 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		break;
 
 	/* XXX downtime stuff on top */
+	/*
+	 * service- and hostgroup commands get sent to all peers
+	 * and pollers, but not to masters since we can't know if
+	 * we'd affect more than our fair share of services on the
+	 * master.
+	 */
 	case CMD_SCHEDULE_HOSTGROUP_HOST_DOWNTIME:
 	case CMD_SCHEDULE_HOSTGROUP_SVC_DOWNTIME:
 	case CMD_ENABLE_HOSTGROUP_SVC_NOTIFICATIONS:
@@ -693,18 +699,8 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_DISABLE_HOSTGROUP_PASSIVE_SVC_CHECKS:
 	case CMD_ENABLE_HOSTGROUP_PASSIVE_HOST_CHECKS:
 	case CMD_DISABLE_HOSTGROUP_PASSIVE_HOST_CHECKS:
-		/*
-		 * hostgroup commands should sometimes be passed to a particular
-		 * (group of) poller(s).
-		 */
 		pkt->hdr.selection = get_cmd_selection(ds->command_args, 1);
 		break;
-
-		/*
-		 * servicegroup commands get sent to all peers and pollers,
-		 * but not to masters since we can't know if we'd affect
-		 * more than our fair share of services on the master.
-		 */
 	case CMD_SCHEDULE_SERVICEGROUP_HOST_DOWNTIME:
 	case CMD_SCHEDULE_SERVICEGROUP_SVC_DOWNTIME:
 	case CMD_ENABLE_SERVICEGROUP_SVC_NOTIFICATIONS:
