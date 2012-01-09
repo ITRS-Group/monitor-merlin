@@ -16,6 +16,7 @@ class merlin_node:
 		self.ssh_key = ''
 		self.ssh_user = False
 		self.port = '15551'
+		self.connect = True
 		self.oconf_file = False
 		self.num_peers = 0
 		self.peer_nodes = {}
@@ -108,6 +109,8 @@ class merlin_node:
 			self.address = v
 		elif k == 'port':
 			self.port = v
+		elif k == 'connect':
+			self.connect = v
 
 		if k == 'hostgroup':
 			v = re.split("[\t ]*,[\t ]*", v)

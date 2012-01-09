@@ -424,7 +424,8 @@ def cmd_ctrl(args):
 		os.spawnvp(os.P_WAIT, "/bin/sh", ["/bin/sh", "-c", cmd])
 
 	for name, node in nodes.items():
-		node.ctrl(cmd)
+		if str(node.connect) != "no":
+			node.ctrl(cmd)
 
 	if by_name and len(wanted_names) == 1:
 		sys.exit(node.get_exit_code())
