@@ -4,7 +4,7 @@ pushed_logs = "/opt/monitor/pushed_logs"
 archive_dir = "/opt/monitor/var/archives"
 
 class SubcommandException(Exception):
-    pass
+	pass
 
 ## log commands ##
 # force running push_logs on poller and peer systems
@@ -137,8 +137,10 @@ def cmd_import(args):
 				import_args = [merlin_dir + '/import', tmpname] + args
 			else:
 				import_args = [merlin_dir + '/import'] + args
-			retcode = subprocess.call(import_args, stdout=sys.stdout.fileno())
+			retcode = subprocess.call(import_args, stdout=sys.stdout.fileno(), stderr=sys.stderr.fileno())
 			if retcode:
+				print("Failed to run log import subcommand")
+				print("  %s" % ' '.join(import_args))
 				raise SubcommandException()
 			return True
 
