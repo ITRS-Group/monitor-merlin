@@ -801,7 +801,7 @@ class fake_mesh:
 		self.destroy_playground()
 
 
-	def create_playground(self):
+	def create_playground(self, num_hosts=3, num_services_per_host=5):
 		"""
 		Sets up the directories and configuration required for testing
 		"""
@@ -833,7 +833,7 @@ class fake_mesh:
 			inst.create_directories()
 			inst.create_core_config()
 
-		self.masters.create_object_config()
+		self.masters.create_object_config(num_hosts, num_services_per_host)
 
 
 	def _destroy_database(self, inst, verbose=False):
@@ -957,12 +957,16 @@ def cmd_dist(args):
 	  --sql-admin-user=<user>   administrator user for MySQL
 	  --sql-db-name=<db name>   name of database to use as template
 	  --sql-host=<host>         ip-address or dns name of db host
+	  --hosts=<int>             hosts per peer-group (3)
+	  --services-per-host=<int> services per host (5)
 
 	Tests various aspects of event forwarding with any number of
 	hosts, services, peers and pollers, generating config and
 	creating databases for the various instances and checking
 	event distribution among them.
 	"""
+	num_hosts = 3
+	num_services_per_host = 5
 	setup = True
 	destroy = True
 	basepath = '/tmp/merlin-dtest'
@@ -1018,6 +1022,12 @@ def cmd_dist(args):
 		elif arg.startswith('--sleeptime='):
 			sleeptime = arg.split('=', 1)[1]
 			sleeptime = int(sleeptime)
+		elif arg.startswith('--hosts='):
+			num_hosts = arg.split('=', 1)[1]
+			num_hosts = int(num_hosts)
+		elif arg.startswith('--services-per-host='):
+			num_services_per_host = arg.split('=', 1)[1]
+			num_services_per_host = int(num_services_per_host)
 		else:
 			prettyprint_docstring('dist', cmd_dist.__doc__,
 				'Unknown argument: %s' % arg)
@@ -1055,7 +1065,7 @@ def cmd_dist(args):
 		db_name=db_name,
 		db_host=db_host,
 	)
-	mesh.create_playground()
+	mesh.create_playground(num_hosts, num_services_per_host)
 
 	if confgen_only:
 		sys.exit(0)
@@ -1201,8 +1211,11 @@ def cmd_pasv(args):
 	  --interval=<int>      interval in seconds between loops (def 1800)
 	  --delay=<int>         delay between submitting and checking (def 25)
 
-	%s%s!!! WARNING !!!%s This command will disble active checks on your system.
-	""" % (color.yellow, color.bright, color.reset)
+	!!! WARNING !!!     !!! WARNING !!!
+	This command will disble active checks on your system and have other
+	side-effects as well.
+	!!! WARNING !!!     !!! WARNING !!!
+	"""
 	global verbose
 	nagios_cfg = False
 	num_hosts = 1
