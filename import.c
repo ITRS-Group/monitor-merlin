@@ -1577,7 +1577,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (use_database && (!truncate_db && !incremental)) {
+	if (!list_files && use_database && (!truncate_db && !incremental)) {
 		printf("Defaulting to incremental mode\n");
 		incremental = 1;
 	}
