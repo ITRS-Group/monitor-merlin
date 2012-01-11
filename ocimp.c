@@ -834,41 +834,48 @@ static int is_valid_timedecl(const char *str)
  * and what constitutes the key. timeperiods are decidedly
  * bizarre when configured from Nagios.
  */
-static int handle_custom_timeperiod_var(int id, struct cfg_var *v)
+static void resplit_timeperiod_decl(char **key, char **value)
 {
-	int i, fkey = 0;
-	char *key = NULL, *value = NULL, *p;
-	char *qkey, *qval;
+	int i;
+	char *new_key, *new_value, *p;
 
-	for (p = v->value; p && *p; p++) {
+	for (p = *value; p && *p; p++) {
 		if (is_valid_timedecl(p)) {
-			value = p;
+			new_value = p;
 			break;
 		}
 	}
 
-	if (value == v->value) {
-		key = v->key;
-	} else {
-		/*
-		 * make "v->value" hold only the parts of the
-		 * variable that isn't part of the timespec.
-		 */
-		fkey = 1;
-		if (value)
-			value[-1] = 0;
-		key = malloc(v->value_len + v->key_len + 2);
-		sprintf(key, "%s %s", v->key, v->value);
-		for (i = strlen(key); i; i++) {
-			if (key[i] == ' ' || key[i] == '\t')
-				key[i] = 0;
-			else
-				break;
-		}
-	}
+	if (new_value == *value)
+		return;
 
-	sql_quote(key, &qkey);
-	sql_quote(value, &qval);
+	/*
+	 * make "v->value" hold only the parts of the
+	 * variable that isn't part of the timespec.
+	 */
+	if (new_value)
+		new_value[-1] = 0;
+	new_key = malloc(strlen(*key) + strlen(*value) + 2);
+	sprintf(new_key, "%s %s", *key, *value);
+	for (i = strlen(new_key); i; i++) {
+		if (new_key[i] == ' ' || new_key[i] == '\t')
+			new_key[i] = 0;
+		else
+			break;
+	}
+	*key = new_key;
+	*value = new_value;
+}
+
+/*
+ * Shove anything not-super-standard into custom_vars
+ */
+static int handle_custom_timeperiod_var(int id, struct cfg_var *v)
+{
+	char *qkey, *qval;
+
+	sql_quote(v->key, &qkey);
+	sql_quote(v->value, &qval);
 
 	sql_query("INSERT INTO custom_vars(obj_type, obj_id, variable, value) "
 	          "VALUES (\"timeperiod\", %d, %s, %s)", id, qkey, qval);
@@ -901,6 +908,8 @@ static int parse_timeperiod(struct cfg_comp *comp)
 
 	for (; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
+
+		resplit_timeperiod_decl(&(v->key), &(v->value));
 
 		if (!sunday && !strcmp(v->key, "sunday")) {
 			sql_quote(v->value, &sunday);
