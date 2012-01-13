@@ -422,7 +422,7 @@ static int parse_comment(struct cfg_comp *comp)
 static int parse_downtime(struct cfg_comp *comp)
 {
 	static int internal_id = 0;
-	int i = 0, dt_type = HOST_DOWNTIME;
+	int i = 0;
 	char *author = NULL, *comment_data = NULL;
 	char *host_name, *service_description = NULL;
 
@@ -432,7 +432,6 @@ static int parse_downtime(struct cfg_comp *comp)
 	sql_quote(comp->vlist[i++]->value, &host_name);
 	if (*comp->name == 's') {
 		sql_quote(comp->vlist[i++]->value, &service_description);
-		dt_type = SERVICE_DOWNTIME;
 	}
 	sql_quote(comp->vlist[i + 7]->value, &author);
 	sql_quote(comp->vlist[i + 8]->value, &comment_data);
