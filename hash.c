@@ -318,8 +318,10 @@ void hash_walk_data(hash_table *table, int (*walker)(void *))
 			table->removed++;
 			table->entries--;
 			hash_destroy_bucket(bkt);
-			prev->next = next;
-			if (!depth) {
+			if (depth) {
+				prev->next = next;
+			}
+			else {
 				table->buckets[i] = next;
 			}
 		}
