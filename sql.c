@@ -238,6 +238,15 @@ int sql_vquery(const char *fmt, va_list ap)
 			case 2029: /* null pointer */
 				break;
 
+			case 1194: /* ER_CRASHED_ON_USAGE */
+			case 1195: /* ER_CRASHED_ON_REPAIR */
+				/*
+				 * XXX: autofix by repairing the table and
+				 * caching inbound queries while repair is running.
+				 * We don't want to try reconnecting now though.
+				 */
+				break;
+
 			default:
 				reconnect = 1;
 				break;
