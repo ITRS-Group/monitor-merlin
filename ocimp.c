@@ -641,6 +641,38 @@ static int parse_status(struct cfg_comp *comp)
 			continue;
 		}
 
+		if (located) {
+			/* these values are set in status.log. every field in status.log is
+			 * written unconditionally, so this should be safe.
+			 * */
+			switch (ccode->code) {
+			/* duplicated host vars */
+			case CFG_check_command:
+			case CFG_notification_period:
+			case CFG_initial_state:
+			case CFG_check_interval:
+			case CFG_retry_interval:
+			case CFG_max_check_attempts:
+			case CFG_active_checks_enabled:
+			case CFG_passive_checks_enabled:
+			case CFG_obsess_over_host:
+			case CFG_event_handler_enabled:
+			case CFG_flap_detection_enabled:
+			case CFG_notifications_enabled:
+			case CFG_process_perf_data:
+			case CFG_failure_prediction_enabled:
+			/* extra duplicated service vars */
+			case CFG_check_period:
+			case CFG_obsess_over_service:
+			/* extra duplicated contact vars */
+			case CFG_service_notification_period:
+			case CFG_host_notification_period:
+			case CFG_host_notifications_enabled:
+			case CFG_service_notifications_enabled:
+				continue;
+			}
+		}
+
 		switch (ccode->code) {
 		case CFG_IGNORE:
 			continue;
