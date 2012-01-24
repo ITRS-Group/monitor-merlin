@@ -22,8 +22,6 @@ int log_grok_var(char *var, char *val)
 		};
 		char *p = val;
 
-		log_levels = 0;
-
 		for (p = val; p && *p; p = next_word(p)) {
 			uint i, mod = 0;
 
@@ -37,12 +35,12 @@ int log_grok_var(char *var, char *val)
 					return 0;
 
 				if (!prefixcmp(p, opt)) {
-					log_levels |= opt_codes[i].val;
 					if (!mod) /* not '+' or '-', so add all levels below it */
-						log_levels |= opt_codes[i].val - 1;
-
-					if (mod == '-') /* remove one level */
+						log_levels = opt_codes[i].val * 2 - 1;
+					else if (mod == '-') /* remove one level */
 						log_levels = log_levels & ~opt_codes[i].val;
+					else
+						log_levels |= opt_codes[i].val;
 				}
 			}
 		}
