@@ -13,7 +13,7 @@ merlin_nodeinfo self;
 
 char *next_word(char *str)
 {
-	while (!ISSPACE(*str))
+	while (!ISSPACE(*str) && *str != 0)
 		str++;
 
 	while (ISSPACE(*str) || *str == ',')
