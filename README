@@ -1,12 +1,8 @@
 Requirements
 ------------
-Merlin requires Nagios 3.2.4 or later.
-Since (at the time of this writing), Nagios 3.2.4 is not yet
-released, you'll have to use the latest sources from CVS head
-or cloned from git, using the following command:
-
-   git clone git://git.op5.org/nagios.git
-
+Merlin requires Nagios 3.3.2 or later.
+Since (at the time of this writing), Nagios 3.3.2 is not yet
+released, you'll have to use the latest sources from SVN head.
 
 For running merlin with its default configuration, you'll need
 to have libdbi-dbd-mysql and all of its dependencies (generally
