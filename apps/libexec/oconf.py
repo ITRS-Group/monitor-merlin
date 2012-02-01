@@ -337,8 +337,11 @@ class nagios_group(nagios_object):
 
 	def write_linked(self, f):
 		if self.otype == 'hostgroup':
-			self.members = interesting[self.otype[:-5]].intersection(set(self.members))
-			self.obj['members'] = ','.join(self.members).replace(';', ',')
+			to_include = interesting[self.otype[:-5]]
+			for oname in self.members:
+				if not oname in to_include:
+					del self.members[oname];
+			self.obj['members'] = ','.join(self.members.keys()).replace(';', ',')
 		self.write(f)
 		if self.otype == 'contactgroup':
 			for obj in self.members.values():
@@ -360,8 +363,10 @@ class nagios_group(nagios_object):
 
 class nagios_servicegroup(nagios_group):
 	def write_linked(self, f):
-		self.members = [x for x in self.members if x.split(';')[0] in interesting['host']]
-		self.obj['members'] = ','.join(self.members).replace(';', ',')
+		for oname in self.members:
+			if not oname.split(';')[0] in interesting['host']:
+				del self.members[oname];
+		self.obj['members'] = ','.join(self.members.keys()).replace(';', ',')
 		self.write(f)
 
 	def parse(self):
