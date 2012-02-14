@@ -58,6 +58,9 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 		int snd, rcv;
 		socklen_t size = sizeof(int);
 
+		/* mark this so we can disconnect nodes that never send data */
+		node->last_recv = time(NULL);
+
 		set_socket_options(node->sock, (int)node->ioc.ioc_bufsize);
 		getsockopt(node->sock, SOL_SOCKET, SO_SNDBUF, &snd, &size);
 		getsockopt(node->sock, SOL_SOCKET, SO_SNDBUF, &rcv, &size);
