@@ -435,19 +435,22 @@ static int net_sendto(merlin_node *node, merlin_event *pkt)
 
 
 /*
- * If a node hasn't been heard from in pulse_interval x 2 seconds,
- * we mark it as no longer connected and send a CTRL_INACTIVE event
- * to the module, signalling that our Nagios should, potentially,
- * take over checks for the awol poller
+ * If a node hasn't been heard from in too long, we mark it as no
+ * longer connected and send a CTRL_INACTIVE event to the module,
+ * signalling that our Nagios should, potentially, take over checks
+ * for the awol node
  */
 static void check_node_activity(merlin_node *node)
 {
 	time_t now = time(NULL);
 
 	if (node->sock == -1 || node->state != STATE_CONNECTED)
+
+	/* this one's on a reaaaally slow link */
+	if (!node->data_timeout)
 		return;
 
-	if (node->last_recv && node->last_recv < now - (pulse_interval * 2))
+	if (node->last_recv < now - node->data_timeout)
 		node_disconnect(node, "Too long since last action");
 }
 

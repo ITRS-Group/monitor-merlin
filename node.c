@@ -359,6 +359,8 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 		break;
 	}
 
+	node->data_timeout = pulse_interval * 2; /* a sane default */
+
 	for (i = 0; i < c->vars; i++) {
 		struct cfg_var *v = c->vlist[i];
 
@@ -376,6 +378,12 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			node->sain.sin_port = htons((unsigned short)atoi(v->value));
 			if (!node->sain.sin_port)
 				cfg_error(c, v, "Illegal value for port: %s\n", v->value);
+		}
+		else if (!strcmp(v->key, "data_timeout")) {
+			char *endptr;
+			node->data_timeout = (unsigned int)strtol(v->value, &endptr, 10);
+			if (*endptr != 0)
+				cfg_error(c, v, "Illegal value for data_timeout: %s\n", v->value);
 		}
 		else if (grok_node_flag(&node->flags, v->key, v->value) < 0) {
 			cfg_error(c, v, "Unknown variable\n");
