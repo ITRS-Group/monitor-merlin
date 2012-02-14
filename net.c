@@ -444,10 +444,6 @@ static void check_node_activity(merlin_node *node)
 {
 	time_t now = time(NULL);
 
-	/* we only bother about pollers, so return early if we have none */
-	if (!num_pollers)
-		return;
-
 	if (node->sock == -1 || node->state != STATE_CONNECTED)
 		return;
 
