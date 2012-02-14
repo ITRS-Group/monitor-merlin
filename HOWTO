@@ -831,6 +831,29 @@ like
 This feature was introduced in Merlin 0.9.1.
 
 
+Problem: A peer has crashed hard in my network, but the other peer
+         isn't taking over the checks!
+Answer:
+If you have no pollers in your merlin network and you're running
+merlin 1.1.14-p5 or earlier, you've most likely been hit by a
+fairly ancient bug in the Merlin daemon, where it only checked
+node timeout in case there were pollers attached to the network.
+This was fixed in 7f2fc8f9850735ab549d3bbfa987b09af4cc1a6d, which
+is part of all releases post 1.1.14 (ie, 1.1.15-beta1 and up).
+
+
+Problem: Nodes keep timing out even though I know they're still
+         connected. They just send very rarely and slowly!
+Answer:
+As of 1.1.14-p8 (ae67657bc1bd84beeac70759df5d87a2aac30fb2), you
+can set the data_timeout option for your nodes and have the
+merlin daemon grok it to mean how often a particular node must
+send data to still be considered alive and well. The default
+value here is pulse_interval * 2, so 30 seconds in total. You
+can increase it a lot, or set it to 0 to avoid any checking at
+all, but eventually the system tcp timeout will kick in and
+kill the connection anyway.
+
 Problem: I want feature X!
 Answer:
 I want icecream.
