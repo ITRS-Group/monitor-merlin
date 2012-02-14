@@ -761,11 +761,6 @@ static int io_poll_sockets(void)
 		return -1;
 	}
 
-	if (!nfound) {
-		check_all_node_activity();
-		return 0;
-	}
-
 	if (ipc_listen_sock > 0 && FD_ISSET(ipc_listen_sock, &rd)) {
 		linfo("Accepting inbound connection on ipc socket");
 		ipc_accept();
