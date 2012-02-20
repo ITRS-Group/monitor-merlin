@@ -990,17 +990,17 @@ class nagios_command:
 
 		# commands without parameters are more or less done here
 		if len(template_ary) == 1:
-			self.command_string = self.name
+			self.command_string = self.name.upper()
 			return True
 
 		if type(params) == type([1, 1]):
-			self.command_string = self.name + ';' + ';'.join(params)
+			self.command_string = self.name.upper() + ';' + ';'.join(params)
 			return True
 
 		if type(params) != type({1: 0, 1: 0}):
 			return False
 
-		cmd_string = self.name
+		cmd_string = self.name.upper()
 		for k in template_ary[1:]:
 			v = params.get(k, False)
 			if v == False:
