@@ -1,7 +1,8 @@
 #!/bin/sh
 
 # some constants
-state_file=/etc/op5/distributed/state/log.push.last
+state_dir=/etc/op5/distributed/state/
+state_file="$state_dir"/log.push.last
 nagios_cfg=/opt/monitor/etc/nagios.cfg
 
 if ! test -f $nagios_cfg; then
@@ -115,4 +116,21 @@ for t in $targets; do
 	test $? -eq 0 || fail=t
 done
 
-test -z "$fail" && echo $now > $state_file
+if test -z "$fail"; then
+	if mkdir -p "$state_dir"; then
+		chown monitor:apache "$state_dir"
+		echo $now > $state_file
+	else
+		echo "Error: Failed to create state directory."
+		echo "  Please create the directory $state_dir"
+		echo "  and make it writable for the user you wish to push as."
+		echo "  The following commands should do the trick:"
+		echo "     mkdir -p $state_dir"
+		echo "     chown monitor:apache $state_dir"
+		echo "     echo $now > $state_file"
+		exit 1
+	fi
+else
+	echo "Error: Failed to send some logs. Won't update $state_file"
+	exit 1
+fi
