@@ -184,7 +184,11 @@ module = {}
 _node_defaults = {}
 
 def parse():
-	conf = parse_conf(config_file)
+	try:
+		conf = parse_conf(config_file)
+	except Exception, e:
+		print("Failed to parse %s: %s" % (config_file, e.strerror))
+		sys.exit(1)
 
 	for comp in conf.objects:
 		comp.name = comp.name.strip()
