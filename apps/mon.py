@@ -148,7 +148,12 @@ def load_all_commands():
 				help_helpers.append(raw_cmd)
 			continue
 
-		(cat, cmd) = raw_cmd.split('.')
+		parts = raw_cmd.split('.')
+		# invalid, causes breakage, though people seem to trigger it when
+		# testing changes to scripts
+		if len(parts) > 2:
+			continue
+		(cat, cmd) = parts
 		if not cat in categories:
 			categories[cat] = []
 		if not cmd in categories[cat]:
