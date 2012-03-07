@@ -970,7 +970,7 @@ def cmd_dist(args):
 	setup = True
 	destroy = True
 	basepath = '/tmp/merlin-dtest'
-	livestatus_o = '/home/exon/git/monitor/livestatus/livestatus/src/livestatus.o'
+	livestatus_o = '/opt/monitor/op5/livestatus/livestatus.o'
 	db_admin_user = 'exon'
 	db_admin_password = False
 	db_name = 'merlin'
