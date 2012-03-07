@@ -69,35 +69,38 @@ else
 fi
 
 #========= misccommands.cfg =========
-egrep -E 'command_line                   /bin/mv /opt/monitor/var/service-perfdata /opt/monitor/var/spool/perfdata/service_perfdata.\$TIMET\$' ${BASEDIR}/misccommands.cfg > /dev/null
-ret=$?
-if [ $ret == 0 ]; then
-	sed -i "s|command_line                   /bin/mv /opt/monitor/var/service-perfdata /opt/monitor/var/spool/perfdata/service_perfdata.\\\$TIMET\\\$|${process_service_perfdata}|" ${BASEDIR}/misccommands.cfg
-else
-	egrep -E 'command_line                   /bin/mv /dev/shm/monitor/var/service-perfdata /dev/shm/monitor/var/spool/perfdata/service_perfdata.\$TIMET\$' ${BASEDIR}/misccommands.cfg > /dev/null
+if [ -f ${BASEDIR}/misccommands.cfg ]; then
+	egrep -E 'command_line                   /bin/mv /opt/monitor/var/service-perfdata /opt/monitor/var/spool/perfdata/service_perfdata.\$TIMET\$' ${BASEDIR}/misccommands.cfg > /dev/null
 	ret=$?
-	if [ $ret != 0 ]; then
-		echo "WARNING: non standard configured variable: 'process-service-perfdata' in ${BASEDIR}/misccommands.cfg"
-		echo "update it to look like below:"
-		echo "${process_service_perfdata}"
-		echo ""
+	if [ $ret == 0 ]; then
+		sed -i "s|command_line                   /bin/mv /opt/monitor/var/service-perfdata /opt/monitor/var/spool/perfdata/service_perfdata.\\\$TIMET\\\$|${process_service_perfdata}|" ${BASEDIR}/misccommands.cfg
+	else
+		egrep -E 'command_line                   /bin/mv /dev/shm/monitor/var/service-perfdata /dev/shm/monitor/var/spool/perfdata/service_perfdata.\$TIMET\$' ${BASEDIR}/misccommands.cfg > /dev/null
+		ret=$?
+		if [ $ret != 0 ]; then
+			echo "WARNING: non standard configured variable: 'process-service-perfdata' in ${BASEDIR}/misccommands.cfg"
+			echo "update it to look like below:"
+			echo "${process_service_perfdata}"
+			echo ""
+		fi
 	fi
-fi
 
-
-egrep -E 'command_line                   /bin/mv /opt/monitor/var/host-perfdata /opt/monitor/var/spool/perfdata/host_perfdata.\$TIMET\$' ${BASEDIR}/misccommands.cfg > /dev/null
-ret=$?
-if [ $ret == 0 ]; then
-	sed -i "s|command_line                   /bin/mv /opt/monitor/var/host-perfdata /opt/monitor/var/spool/perfdata/host_perfdata.\\\$TIMET\\\$|${process_host_perfdata}|" ${BASEDIR}/misccommands.cfg
-else
-	egrep -E 'command_line                   /bin/mv /dev/shm/monitor/var/host-perfdata /dev/shm/monitor/var/spool/perfdata/host_perfdata.\$TIMET\$' ${BASEDIR}/misccommands.cfg > /dev/null
+	egrep -E 'command_line                   /bin/mv /opt/monitor/var/host-perfdata /opt/monitor/var/spool/perfdata/host_perfdata.\$TIMET\$' ${BASEDIR}/misccommands.cfg > /dev/null
 	ret=$?
-	if [ $ret != 0 ]; then
-		echo "WARNING: non standard configured variable: 'process-host-perfdata' in ${BASEDIR}/misccommands.cfg"
-		echo "update it to look like below:"
-		echo "${process_host_perfdata}"
-		echo ""
+	if [ $ret == 0 ]; then
+		sed -i "s|command_line                   /bin/mv /opt/monitor/var/host-perfdata /opt/monitor/var/spool/perfdata/host_perfdata.\\\$TIMET\\\$|${process_host_perfdata}|" ${BASEDIR}/misccommands.cfg
+	else
+		egrep -E 'command_line                   /bin/mv /dev/shm/monitor/var/host-perfdata /dev/shm/monitor/var/spool/perfdata/host_perfdata.\$TIMET\$' ${BASEDIR}/misccommands.cfg > /dev/null
+		ret=$?
+		if [ $ret != 0 ]; then
+			echo "WARNING: non standard configured variable: 'process-host-perfdata' in ${BASEDIR}/misccommands.cfg"
+			echo "update it to look like below:"
+			echo "${process_host_perfdata}"
+			echo ""
+		fi
 	fi
+else
+	echo "WARNING: Couldn't find ${BASEDIR}/misccommands.cfg, if you are on a poller this is OK"
 fi
 
 #========= /etc/sysconfig/monitor =========
@@ -116,5 +119,7 @@ fi
 
 echo "Your configuration is now configured to utilize ramdisk"
 echo "Please run the following commands:"
-echo "mon restart"
+echo "mon stop"
+echo "Wait a few seconds to let ncpd take care of all the old data"
 echo "service npcd restart"
+echo "mon start"
