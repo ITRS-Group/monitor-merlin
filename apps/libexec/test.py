@@ -396,29 +396,28 @@ class fake_mesh:
 
 		# only print the animation if anyone's looking
 		if os.isatty(sys.stdout.fileno()) == False:
-			sys.stdout.write("Sleeping %d seconds")
 			if msg:
 				print("Sleeping %.2f seconds: %s" % (self.sleeptime, msg))
 			else:
 				print("Sleeping %.2f seconds" % self.sleeptime)
 			time.sleep(self.sleeptime)
-
-		i = self.sleeptime
-		rotor = ['|', '/', '-', '\\']
-		r = 0
-		while i > 0:
-			r += 1
-			if msg:
-				sys.stdout.write(" %c Sleeping %.2f seconds: %s    \r" %
-					(rotor[r % len(rotor)], i, msg))
-				sys.stdout.flush()
-			else:
-				sys.stdout.write(" %c Sleeping %.2f seconds   \r" %
-					(rotor[r % len(rotor)], i))
-				sys.stdout.flush()
-			i -= 0.07
-			time.sleep(0.07)
-		print("   Sleeping 0.00 seconds")
+		else:
+			i = self.sleeptime
+			rotor = ['|', '/', '-', '\\']
+			r = 0
+			while i > 0:
+				r += 1
+				if msg:
+					sys.stdout.write(" %c Sleeping %.2f seconds: %s    \r" %
+						(rotor[r % len(rotor)], i, msg))
+					sys.stdout.flush()
+				else:
+					sys.stdout.write(" %c Sleeping %.2f seconds   \r" %
+						(rotor[r % len(rotor)], i))
+					sys.stdout.flush()
+				i -= 0.07
+				time.sleep(0.07)
+			print("   Sleeping 0.00 seconds")
 
 	##############################################################
 	#
