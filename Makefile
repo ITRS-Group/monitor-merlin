@@ -135,34 +135,34 @@ check_latency: check_latency.o cfgfile.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(ALL_LDFLAGS)
 
 mtest: mtest.o $(DBWRAP_OBJS) $(TEST_OBJS) $(TEST_DEPS) $(MODULE_OBJS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) $(MTEST_LDFLAGS) $^ -o $@
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(MTEST_LDFLAGS)
 
 test-lparse: test-lparse.o lparse.o logutils.o hash.o test_utils.o
 	$(QUIET_LINK)$(CC) $^ -o $@
 
 ocimp: ocimp.o $(DBWRAP_OBJS) $(TEST_OBJS) sha1.o slist.o
-	$(QUIET_LINK)$(CC) -ggdb3 $(DB_LDFLAGS) $(LDFLAGS) $^ -o $@
+	$(QUIET_LINK)$(CC) $^ -o $@ -ggdb3 $(DB_LDFLAGS) $(LDFLAGS)
 
 import: $(IMPORT_OBJS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) $(LIB_NET) $(DB_LDFLAGS) $^ -o $@
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(LIB_NET) $(DB_LDFLAGS)
 
 showlog: $(SHOWLOG_OBJS)
-	$(QUIET_LINK)$(CC) $(LIB_NET) $^ -o $@
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LIB_NET)
 
 nebtest: $(NEBTEST_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(NEBTEST_LIBS) $(NEBTEST_LDFLAGS)
 
 merlind: $(DAEMON_OBJS)
-	$(QUIET_LINK)$(CC) $(LDFLAGS) $(DAEMON_LDFLAGS) $^ -o $@
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(DAEMON_LDFLAGS)
 
 merlin.so: $(MODULE_OBJS)
-	$(QUIET_LINK)$(CC) $(MOD_LDFLAGS) $(LDFLAGS) $^ -o $@
+	$(QUIET_LINK)$(CC) $^ -o $@ $(MOD_LDFLAGS) $(LDFLAGS)
 
 oconf: oconf.o sha1.o misc.o
-	$(QUIET_LINK)$(CC) $(LDFLAGS) $^ -o $@
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS)
 
 rename: $(RENAME_OBJS)
-	$(QUIET_LINK)$(CC) -ggdb3 $(DB_LDFLAGS) $(LDFLAGS) $^ -o $@
+	$(QUIET_LINK)$(CC) $^ -o $@ -ggdb3 $(DB_LDFLAGS) $(LDFLAGS)
 
 %.o: %.c
 	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@
