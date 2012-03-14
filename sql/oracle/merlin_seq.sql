@@ -870,6 +870,25 @@ CREATE TABLE program_status (
   service_checks_handled NUMBER(10,0)
 );
 
+set term off;
+ALTER TABLE program_status ADD (
+  peer_id NUMBER(10,0),
+  node_type NUMBER(6,0),
+  config_hash VARCHAR2(255 CHAR),
+  self_assigned_peer_id NUMBER(10,0),
+  active_peers NUMBER(10,0),
+  configured_peers NUMBER(10,0),
+  active_pollers NUMBER(10,0),
+  configured_pollers NUMBER(10,0),
+  active_masters NUMBER(10,0),
+  configured_masters NUMBER(10,0),
+  host_checks_handled NUMBER(10,0),
+  service_checks_handled NUMBER(10,0)
+);
+set term on;
+
+
+
 
 PROMPT Creating Primary Key Constraint PRIMARY_7 on table program_status ...
 ALTER TABLE program_status
@@ -895,6 +914,10 @@ CREATE TABLE report_data (
   downtime_depth NUMBER(10,0),
   output CLOB
 );
+
+set term off
+ALTER TABLE report_data DROP COLUMN id;
+set term on
 
 
 PROMPT Creating Index rd_timestamp on report_data ...
