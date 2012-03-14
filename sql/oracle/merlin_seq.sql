@@ -266,7 +266,6 @@ CREATE INDEX ca_ch ON contact_access
 )
 ;
 
-DROP TABLE merlin_importer CASCADE CONSTRAINTS;
 CREATE TABLE merlin_importer
 (
   pid NUMBER(10,0) DEFAULT NULL
@@ -746,8 +745,6 @@ CREATE UNIQUE INDEX hostgroup_name ON hostgroup
 )
 ;
 
-DROP TABLE notification CASCADE CONSTRAINTS;
-
 
 PROMPT Creating Table notification ...
 CREATE TABLE notification (
@@ -797,8 +794,6 @@ CREATE INDEX n_contact_name ON notification
   contact_name
 )
 ;
-
-DROP TABLE perfdata CASCADE CONSTRAINTS;
 
 
 PROMPT Creating Table perfdata ...
@@ -884,8 +879,6 @@ ADD CONSTRAINT PRIMARY_7 PRIMARY KEY
 )
 ENABLE
 ;
-
-DROP TABLE report_data CASCADE CONSTRAINTS;
 
 
 PROMPT Creating Table report_data ...
@@ -1402,7 +1395,6 @@ CREATE TABLE timeperiod_exclude (
 );
 
 
-DROP TABLE rename_log CASCADE CONSTRAINTS;
 PROMPT Creating Table rename_log ...
 CREATE TABLE rename_log (
   id NUMBER(10,0) NOT NULL,
