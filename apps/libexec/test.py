@@ -624,6 +624,8 @@ class fake_mesh:
 				(host, node.name)
 			)
 		for srv in node.group.objects['service']:
+			if srv in ignore['service']:
+				continue
 			(_host_name, _service_description) = srv.split(';', 1)
 			ret = node.submit_raw_command(
 				'%s;%s;%d;%d;1;0;54321;mon testsuite;downtime for service %s on %s from %s' %
