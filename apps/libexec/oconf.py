@@ -937,6 +937,14 @@ def cmd_push(args):
 	# now sync additional paths. We do them one by one and always
 	# to identical directories so we know where we're heading
 	for name, node in mconf.configured_nodes.items():
+		# XXX FIXME: ugly hack to get synergy rules
+		# synchronized every once in a while
+		if os.path.isdir('/opt/synergy/rules'):
+			if not node.paths_to_sync:
+				node.paths_to_sync = {'/opt/synergy/rules': True}
+			else:
+				node.paths_to_sync['/opt/synergy/rules'] = True
+
 		if node.paths_to_sync:
 			for src, dest in node.paths_to_sync.items():
 				if dest == True:
