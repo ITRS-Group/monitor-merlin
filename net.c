@@ -445,6 +445,7 @@ static void check_node_activity(merlin_node *node)
 	time_t now = time(NULL);
 
 	if (node->sock == -1 || node->state != STATE_CONNECTED)
+		return;
 
 	/* this one's on a reaaaally slow link */
 	if (!node->data_timeout)
