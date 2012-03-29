@@ -65,7 +65,7 @@
 #define HDR_SIZE (sizeof(merlin_header))
 #define PKT_SIZE (sizeof(merlin_event))
 #define BODY_SIZE (TOTAL_PKT_SIZE - sizeof(merlin_header))
-#define TOTAL_PKT_SIZE 32768
+#define TOTAL_PKT_SIZE (128 * 1024)
 #define MAX_PKT_SIZE TOTAL_PKT_SIZE /* for now. remove this macro later */
 
 #define packet_size(pkt) ((int)((pkt)->hdr.len + HDR_SIZE))
