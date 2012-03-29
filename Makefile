@@ -37,6 +37,7 @@ endif
 
 # CFLAGS, CPPFLAGS and LDFLAGS are for users to modify
 ALL_CFLAGS = $(CFLAGS) $(TWEAK_CPPFLAGS) $(SYS_CFLAGS) $(CPPFLAGS) $(PTHREAD_CFLAGS)
+ALL_CFLAGS += -D__USE_FILE_OFFSET64
 ALL_LDFLAGS = $(LDFLAGS) $(TWEAK_LDFLAGS) $(PTHREAD_LDFLAGS)
 WARN_FLAGS = -Wall -Wno-unused-parameter
 #WARN_FLAGS += -Wextra# is not supported on older gcc versions.
