@@ -941,9 +941,9 @@ def cmd_push(args):
 		# synchronized every once in a while
 		if os.path.isdir('/opt/synergy/rules'):
 			if not node.paths_to_sync:
-				node.paths_to_sync = {'/opt/synergy/rules': True}
+				node.paths_to_sync = {'/opt/synergy/rules': '/opt/synergy'}
 			else:
-				node.paths_to_sync['/opt/synergy/rules'] = True
+				node.paths_to_sync['/opt/synergy/rules'] = '/opt/synergy'
 
 		if node.paths_to_sync:
 			for src, dest in node.paths_to_sync.items():
