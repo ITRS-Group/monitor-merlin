@@ -120,6 +120,9 @@ static inline void host_mod2net(merlin_host_status *st_obj, host *obj)
 	st_obj->state.accept_passive_checks = obj->accept_passive_host_checks;
 	st_obj->state.obsess = obj->obsess_over_host;
 	st_obj->name = obj->name;
+
+	st_obj->state.notified_on = (!!obj->notified_on_down) << HOST_DOWN;
+	st_obj->state.notified_on |= (!!obj->notified_on_unreachable) << HOST_UNREACHABLE;
 }
 
 static inline void service_mod2net(merlin_service_status *st_obj, service *obj)
@@ -131,6 +134,10 @@ static inline void service_mod2net(merlin_service_status *st_obj, service *obj)
 	st_obj->state.obsess = obj->obsess_over_service;
 	st_obj->host_name = obj->host_name;
 	st_obj->service_description = obj->description;
+
+	st_obj->state.notified_on = (!!obj->notified_on_warning) << STATE_WARNING;
+	st_obj->state.notified_on |= (!!obj->notified_on_critical) << STATE_CRITICAL;
+	st_obj->state.notified_on |= (!!obj->notified_on_unknown) << STATE_UNKNOWN;
 }
 
 

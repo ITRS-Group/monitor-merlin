@@ -61,6 +61,7 @@
 
 #define sizeof(x) (uint)sizeof(x)
 
+#define is_flag_set(bfield, flag) (!!((bfield) & (flag)))
 #define safe_str(str) (str == NULL ? "NULL" : str)
 static inline void *safe_free(void *ptr)
 {
@@ -147,6 +148,7 @@ struct monitored_object_state {
 	int scheduled_downtime_depth;
 	int pending_flex_downtime;
 	int is_flapping;
+	int notified_on;
 	unsigned long flapping_comment_id;
 	double percent_state_change;
 	char *plugin_output;
