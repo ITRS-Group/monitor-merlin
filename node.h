@@ -125,6 +125,7 @@ struct merlin_nodeinfo {
 	uint32_t configured_masters;
 	uint32_t host_checks_handled;
 	uint32_t service_checks_handled;
+	uint32_t monitored_object_state_size;
 	/* new entries have to come LAST */
 } __attribute__((packed));
 typedef struct merlin_nodeinfo merlin_nodeinfo;

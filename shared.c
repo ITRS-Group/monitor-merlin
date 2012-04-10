@@ -11,6 +11,36 @@ merlin_nodeinfo self;
 # define ISSPACE(c) (c == ' ' || c == '\t')
 #endif
 
+
+/*
+ * XXX Update this when the nodeinfo version changes so users
+ * know which merlin version to get. It's really only helpful
+ * from the side with the highest version, but it's the best
+ * we can do.
+ */
+const char *nodeinfo_version_string(int version)
+{
+	const char *versions[] = { "v1.0", "v1.2" };
+
+	if (version < 0 || version > ARRAY_SIZE(versions))
+		return "the latest version";
+
+	return versions[version];
+}
+
+/*
+ * XXX Update this when protocol version changes.
+ */
+const char *protocol_version_string(int version)
+{
+	const char *versions[] = { "v1.0", "v1.2" };
+
+	if (version < 0 || version > ARRAY_SIZE(versions))
+		return "the latest version";
+
+	return versions[version];
+}
+
 char *next_word(char *str)
 {
 	while (!ISSPACE(*str) && *str != 0)
@@ -676,6 +706,13 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 			 * version is greater and struct is bigger. Everything we
 			 * need is almost certainly present in that struct
 			 */
+			lwarn("WARNING: Possible compatibility issues with '%s'", node->name);
+			lwarn("  - '%s' nodeinfo version %d; nodeinfo size %d.",
+				  node->name, node->info.version, len);
+			lwarn("  - we have nodeinfo version %d; nodeinfo size %d.",
+				  self.version, sizeof(self));
+			lwarn("  - upgrading Merlin (on this server) to %s should fix things",
+				  nodeinfo_version_string(node->info.version));
 			len = sizeof(node->info);
 		} else if (version_delta < 0 && len < sizeof(node->info)) {
 			/*
@@ -684,6 +721,8 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 			 * add new things to the info struct, and ignore copying
 			 * anything right now
 			 */
+			lwarn("WARNING: '%s' needs to be updated to at least version %s",
+				  node->name, nodeinfo_version_string(self.version));
 			ret -= 2;
 		} else if (version_delta && len != sizeof(node->info)) {
 			/*
