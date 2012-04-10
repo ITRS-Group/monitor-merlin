@@ -36,6 +36,7 @@
 #include "logging.h"
 #include "cfgfile.h"
 #include "binlog.h"
+#include "nagios/nagios.h"
 #include "nagios/nebstructs.h"
 #include "nagios/nebcallbacks.h"
 #include "nagios/broker.h"
