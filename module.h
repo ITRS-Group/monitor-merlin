@@ -107,6 +107,8 @@ extern void merlin_set_block_comment(nebstruct_comment_data *cmnt);
 	mrln.pending_flex_downtime = nag->pending_flex_downtime; \
 	mrln.is_flapping = nag->is_flapping; \
 	mrln.flapping_comment_id = nag->flapping_comment_id; \
+	memcpy(mrln.state_history, nag->state_history, sizeof(mrln.state_history)); \
+	mrln.state_history_index = nag->state_history_index; \
 	mrln.percent_state_change = nag->percent_state_change; \
 	mrln.plugin_output = nag->plugin_output; \
 	mrln.long_plugin_output = nag->long_plugin_output; \
@@ -203,6 +205,8 @@ struct tmp_net2mod_data {
 	nag->scheduled_downtime_depth = mrln.scheduled_downtime_depth; \
 	nag->pending_flex_downtime = mrln.pending_flex_downtime; \
 	nag->is_flapping = mrln.is_flapping; \
+	memcpy(nag->state_history, mrln.state_history, sizeof(mrln.state_history)); \
+	nag->state_history_index = mrln.state_history_index; \
 	nag->percent_state_change = mrln.percent_state_change; \
 	/* when all is done, we free the old state variables */ \
 	safe_free(tmp.old_plugin_output); \

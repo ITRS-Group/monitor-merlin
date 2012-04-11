@@ -147,10 +147,12 @@ struct monitored_object_state {
 	int check_flapping_recovery_notification;
 	int scheduled_downtime_depth;
 	int pending_flex_downtime;
+	int state_history[MAX_STATE_HISTORY_ENTRIES]; /* flap detection */
+	int state_history_index;
 	int is_flapping;
-	int notified_on;
 	unsigned long flapping_comment_id;
 	double percent_state_change;
+	int notified_on;
 	char *plugin_output;
 	char *long_plugin_output;
 	char *perf_data;
