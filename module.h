@@ -110,6 +110,7 @@ extern void merlin_set_block_comment(nebstruct_comment_data *cmnt);
 	memcpy(mrln.state_history, nag->state_history, sizeof(mrln.state_history)); \
 	mrln.state_history_index = nag->state_history_index; \
 	mrln.percent_state_change = nag->percent_state_change; \
+	mrln.modified_attributes = nag->modified_attributes; \
 	mrln.plugin_output = nag->plugin_output; \
 	mrln.long_plugin_output = nag->long_plugin_output; \
 	mrln.perf_data = nag->perf_data;
@@ -208,6 +209,7 @@ struct tmp_net2mod_data {
 	memcpy(nag->state_history, mrln.state_history, sizeof(mrln.state_history)); \
 	nag->state_history_index = mrln.state_history_index; \
 	nag->percent_state_change = mrln.percent_state_change; \
+	nag->modified_attributes = mrln.modified_attributes; \
 	/* when all is done, we free the old state variables */ \
 	safe_free(tmp.old_plugin_output); \
 	safe_free(tmp.old_long_plugin_output); \

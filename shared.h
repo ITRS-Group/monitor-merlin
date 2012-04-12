@@ -152,6 +152,7 @@ struct monitored_object_state {
 	int is_flapping;
 	unsigned long flapping_comment_id;
 	double percent_state_change;
+	unsigned long modified_attributes;
 	int notified_on;
 	char *plugin_output;
 	char *long_plugin_output;
