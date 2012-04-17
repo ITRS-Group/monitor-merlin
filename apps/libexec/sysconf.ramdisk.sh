@@ -12,14 +12,29 @@ usage()
 {
     cat << END_OF_HELP
 
-usage: mon conf ramdisk [options]
+usage: mon conf ramdisk [enable|options]
 Configure your system to use RAMDISK for temporary results
 
 Where options can be any combination of:
   -h --help           This helptext
 
+Note that this option is potentially dangerous if the system has
+limited RAM, so you must use
+
+	mon sysconf ramdisk enable
+
+for the changes to take effect.
+
 END_OF_HELP
 }
+
+case "$1" in
+	enable)
+		;; # do nothing
+	*)
+		usage
+		exit 0
+esac
 
 
 #========= nagios.cfg =========
