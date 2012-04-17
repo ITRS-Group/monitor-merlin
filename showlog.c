@@ -704,6 +704,7 @@ int show_hide(char *arg, char *opt)
 			filter |= EVT_COMMAND;
 		} else if (!prefixcmp(arg, "notification")) {
 			filter |= EVT_NOTIFY;
+			show_filter |= (EVT_HOST | EVT_SERVICE);
 		} else if (!prefixcmp(arg, "logrotat")) {
 			filter |= EVT_LROTATE;
 		} else if (!prefixcmp(arg, "livestatus")) {
