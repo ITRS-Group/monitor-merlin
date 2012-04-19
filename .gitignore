@@ -32,3 +32,4 @@ entries.sh
 ca-debug.py
 .lock*
 rename
+/Documentation

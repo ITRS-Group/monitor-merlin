@@ -1,0 +1,31 @@
+/** @page setups Merlin setups
+[TOC]
+@section intro Introduction
+Merlin is quite flexible in what it supports, but not so flexible that
+you can take any arbitrary network and just throw nodes in there
+hodge-podge and hope that it works. This document is intended to
+describe which scenarios work as intended, and what limitations there
+are.
+
+@warning Claiming that we support something that violates this document
+will make you the Least Wanted Person In The World as far as the dev
+department goes.
+
+@note "Companion node" = "neighbour" = peer, poller or master
+
+@section capabilities Capabilities
+* Merlin supports up to 64000 companion nodes, although no more than
+10 less than the maximum number of active filedescriptors (ulimit -n).
+* Merlin can push configuration to peers and pollers.
+
+@section limitations Limitations
+* It's not possible to use more than two tiers with Merlin. The
+testing cost and extensive toolset surrounding Merlin currently
+prohibits it.
+* Configuring from anything but the top-most master is not
+supported, due to lack of tool support to intelligently merge config
+from multiple pollers.
+* It's not possible to assign certain checks to a certain peer.
+Peered systems will <b>always</b> share the load as equally as
+possible. Use pollers if check assignment is important.
+*/
