@@ -14,18 +14,20 @@ department goes.
 @note "Companion node" = "neighbour" = peer, poller or master
 
 @section capabilities Capabilities
-* Merlin supports up to 64000 companion nodes, although no more than
+If either of these do not work, it's considered a bug.
+- Merlin supports up to 64000 companion nodes, although no more than
 10 less than the maximum number of active filedescriptors (ulimit -n).
-* Merlin can push configuration to peers and pollers.
+- Merlin can push configuration to peers and pollers.
+- Merlin forwards external nagios commands to the right destination.
 
 @section limitations Limitations
-* It's not possible to use more than two tiers with Merlin. The
+- It's not possible to use more than two tiers with Merlin. The
 testing cost and extensive toolset surrounding Merlin currently
 prohibits it.
-* Configuring from anything but the top-most master is not
+- Configuring from anything but the top-most master is not
 supported, due to lack of tool support to intelligently merge config
 from multiple pollers.
-* It's not possible to assign certain checks to a certain peer.
+- It's not possible to assign certain checks to a certain peer.
 Peered systems will <b>always</b> share the load as equally as
 possible. Use pollers if check assignment is important.
 */
