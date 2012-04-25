@@ -351,6 +351,11 @@ static void disable_indexes(void)
 	indexes_disabled = 1;
 }
 
+static void insert_extras(void)
+{
+	sql_query("INSERT INTO %s SELECT * FROM report_data_extras", db_table);
+}
+
 static void enable_indexes(void)
 {
 		db_wrap_result * result = NULL;
@@ -1719,6 +1724,7 @@ int main(int argc, char **argv)
 	}
 
 	if (use_database) {
+		insert_extras(); /* must be before indexing */
 		enable_indexes();
 		sql_close();
 	}
