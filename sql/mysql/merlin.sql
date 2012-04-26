@@ -642,6 +642,9 @@ CREATE TABLE IF NOT EXISTS report_data (
   output text
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE latin1_general_cs;
 
+
+CREATE TABLE IF NOT EXISTS report_data_extras LIKE report_data;
+
 --
 -- This table is not automagically recreated every time we upgrade
 -- and logging to it is not enabled by default. Repairing it if it
