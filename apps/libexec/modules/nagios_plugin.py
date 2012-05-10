@@ -37,7 +37,7 @@ def state_name(state):
 
 
 def state_code(state_name):
-	str = state_name.tolower()
+	str = state_name.lower()
 	if str.startswith('c'):
 		return CRITICAL
 	if str.startswith('w'):
