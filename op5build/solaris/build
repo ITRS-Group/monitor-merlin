@@ -15,11 +15,11 @@ mkdir -p $buildroot/opt/monitor/op5/merlin/logs
 chown monitor $buildroot/opt/monitor/op5/merlin/logs
 cp merlind $buildroot/opt/monitor/op5/merlin/
 cp import $buildroot/opt/monitor/op5/merlin/
+cp ocimp $buildroot/opt/monitor/op5/merlin/
 cp showlog $buildroot/opt/monitor/op5/merlin/
 cp merlin.so $buildroot/opt/monitor/op5/merlin/
 cp *.php $buildroot/opt/monitor/op5/merlin/
 cp *.sh $buildroot/opt/monitor/op5/merlin/
-cp *.sql $buildroot/opt/monitor/op5/merlin/
 cp -r sql $buildroot/opt/monitor/op5/merlin/
 
 gsed '1s,.*,#!/opt/csw/bin/python -Wignore::DeprecationWarning,' apps/mon.py > $buildroot/usr/bin/mon
