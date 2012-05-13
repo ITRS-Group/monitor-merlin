@@ -1388,3 +1388,81 @@ def cmd_pasv(args):
 	print("failed: %d/%.3f%%" % (failed, float(failed * 100) / total_tests))
 	print("passed: %d/%.3f%%" % (passed, float(passed * 100) / total_tests))
 	print("total tests: %d" % total_tests)
+
+
+def cmd_check_mark(args):
+	"""[--table=<table>] --max-age=<age> <key1=value1> <keyN=valueN>
+
+	Checks the timestamp marker in the table pointed to by <table>.
+	This should be used in conjunction with 'mon test mark'.
+
+	Each key translates to a column in the selected database table.
+	Each value is the value which has to match for the targeted table
+	for a match to be found.
+
+	A max-age of 0 means 'any timestamp will do'.
+	A negative timestamp means 'if we find an entry, we failed'.
+	"""
+	pretty_print_docstring('check-mark', cmd_check_mark.__doc__,
+		"This command isn't implemented yet.")
+	sys.exit(1)
+
+def cmd_mark(args):
+	"""--name=<name> [--table=<table>] <key1=value1> <keyN=valueN>
+
+	Adds a timestamp marker into the table pointed to by --table, which
+	lets a tester know when some event last occurred. This comes in pretty
+	handy when making sure active checks, notifications and eventhandlers
+	are working as expected.
+
+	Each key translates to a column in the selected database table.
+	Each value is the value which should go into that table (avoid strings
+	that need quoting, pretty please).
+	Each table used for such tests must contain the columns 'parent_pid' and
+	'timestamp', which are automagically added for tracking purposes.
+	"""
+
+	table = 'tests'
+	param_keys = []
+	param_values = []
+
+	db = merlin_db.connect(mconf)
+	dbc = db.cursor()
+
+	for arg in args:
+		if arg.startswith('--table='):
+			table = arg.split('=')[1]
+		elif '=' in arg:
+			(k, v) = arg.split('=', 1)
+			param_keys.append(k)
+			param_values.append(db.escape_string(v))
+
+	if len(param_keys) == 0:
+		prettyprint_docstring('mark', cmd_mark.__doc__,
+			'No parameters. At least one must be supplied')
+		sys.exit(1)
+
+	param_keys.append('timestamp')
+	param_values.append("%d" % time.time())
+	param_keys.append('parent_pid')
+	param_values.append("%d" % os.getppid())
+
+	query = "INSERT INTO %s(%s) VALUES('%s')" % (
+		table,
+		', '.join(param_keys),
+		"', '".join(param_values)
+	)
+
+	try:
+		dbc.execute(query)
+	except Exception, e:
+		print("Failed to execute query: %s" % e)
+		dbc.close()
+		db.close()
+		sys.exit(1)
+
+	print("Insert went just fine")
+
+	dbc.close()
+	db.close()
+	sys.exit(0)
