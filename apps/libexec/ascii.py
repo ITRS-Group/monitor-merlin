@@ -53,7 +53,7 @@ def cmd_merlin(discard):
 
 def cmd_ninja(discard):
 	"""
-	Draw the Ninja logo in ascii art"
+	Draw the Ninja logo in ascii art
 	"""
 	print("""%s%s%s%s                                                                   
              ..     ...::::::::::::::::::::...     ..                
