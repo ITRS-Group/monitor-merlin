@@ -228,7 +228,7 @@ int is_interesting_service(const char *host, const char *service)
 
 struct unhandled_event {
 	char *file;
-	const char *line;
+	char *line;
 	unsigned line_no;
 	struct unhandled_event *next;
 };
