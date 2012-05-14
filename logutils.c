@@ -230,6 +230,7 @@ struct unhandled_event {
 	char *file;
 	char *line;
 	unsigned line_no;
+	unsigned long repeated;
 	struct unhandled_event *next;
 };
 
@@ -243,20 +244,31 @@ static struct unhandled_event *event_list;
 void handle_unknown_event(const char *line)
 {
 	struct unhandled_event *event;
+	static struct unhandled_event *last = NULL;
 
 	num_unhandled++;
 
-	if (!(event = malloc(sizeof(*event))) || !(event->line = strdup(line))) {
+	if (last && !strncmp(&line[14], &last->line[14], 20)) {
+		last->repeated++;
+		return;
+	}
+
+	/* add to top of list. we'll print in reverse order */
+	if (last) {
+		/* add to "top" of list. we'll print in reverse order */
+		last->next = event_list;
+		event_list = last;
+		last = NULL;
+	}
+
+	if (!(event = calloc(1, sizeof(*event))) || !(event->line = strdup(line))) {
 		lp_crash("Failed to allocate memory for unhandled event [%s]\n", line);
 		return;
 	}
 
 	event->line_no = line_no;
 	event->file = cur_file->path;
-
-	/* add to "top" of list. we'll print in reverse order */
-	event->next = event_list;
-	event_list = event;
+	last = event;
 }
 
 void print_unhandled_events(void)
@@ -267,6 +279,19 @@ void print_unhandled_events(void)
 	if (!num_unhandled)
 		return;
 
+	/*
+	 * add the fake closing event so we get the last
+	 * real event added to the list. The fake one won't
+	 * get added though, so we needn't bother with it.
+	 */
+	handle_unknown_event("Fake unhandled event");
+
+	/*
+	 * fake message bumps counter, so we decrease it here
+	 * to get an accurate count
+	 */
+	num_unhandled--;
+
 	printf("\n%u Unhandled events encountered:\n" \
 	       "------------------------------", num_unhandled);
 
@@ -275,7 +300,11 @@ void print_unhandled_events(void)
 
 	putchar('\n');
 	for (event = event_list; event; event = event->next) {
-		printf("%s:%d:\n%s\n----\n", event->file, event->line_no, event->line);
+		printf("%s:%d:\n%s\n", event->file, event->line_no, event->line);
+		if (event->repeated) {
+			printf("  #### Similar events repeated %lu times\n", event->repeated);
+		}
+		puts("----");
 	}
 }
 
