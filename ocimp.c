@@ -2291,7 +2291,7 @@ int main(int argc, char **argv)
 {
 	struct cfg_comp *cache, *status;
 	char *nagios_cfg_path = NULL, *merlin_cfg_path = NULL;
-	int i, use_sql = 1, force = 0;
+	int i, use_sql = 1, force = 0, print_memory_stats = 0;
 	struct timeval start, stop;
 
 	gettimeofday(&start, NULL);
@@ -2352,6 +2352,10 @@ int main(int argc, char **argv)
 		}
 		if (!prefixcmp(arg, "--status-log")) {
 			status_path = opt;
+			continue;
+		}
+		if (!prefixcmp(arg, "--mem-stats")) {
+			print_memory_stats = 1;
 			continue;
 		}
 
@@ -2458,7 +2462,8 @@ int main(int argc, char **argv)
 	linfo("Import completed in %s", tv_delta(&start, &stop));
 
 #ifdef __GLIBC__
-	malloc_stats();
+	if (print_memory_stats)
+		malloc_stats();
 #endif
 
 	clean_exit(0);
