@@ -496,9 +496,15 @@ static int get_cmd_selection(char *cmd, int hostgroup)
 	char *semi_colon;
 	int ret;
 
-	/* only global commands have no arguments at all */
-	if (!cmd)
-		return CTRL_GENERIC;
+	/*
+	 * only global commands have no arguments at all. Those
+	 * shouldn't end up here, but if they do we forward them
+	 * to peers and pollers
+	 */
+	if (!cmd) {
+		ldebug("Global command [%s] ended up in get_cmd_selection()", cmd);
+		return DEST_PEERS_POLLERS;
+	}
 
 	semi_colon = strchr(cmd, ';');
 	if (semi_colon)
@@ -733,7 +739,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 			return 0;
 		}
 
-		pkt->hdr.selection = DEST_BROADCAST;
+		pkt->hdr.selection = DEST_PEERS_POLLERS;
 		break;
 	}
 
