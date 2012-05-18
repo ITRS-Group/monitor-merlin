@@ -13,7 +13,7 @@
 # define MERLIN_SIGNATURE (uint64_t)0x005456454e4c524dLL /* "MRLNEVT\0" */
 #endif
 
-#define MERLIN_PROTOCOL_VERSION 0
+#define MERLIN_PROTOCOL_VERSION 1
 /*
  * how long we should wait before sending paths before trying
  * to send them again in case something weird happens
@@ -107,9 +107,9 @@ typedef struct merlin_event merlin_event;
  * Thus, we must make sure to always use fixed-size entries in this
  * struct.
  */
-#define MERLIN_NODEINFO_VERSION 0
+#define MERLIN_NODEINFO_VERSION 1
 struct merlin_nodeinfo {
-	uint32_t version;       /* version of this structure (0 right now) */
+	uint32_t version;       /* version of this structure */
 	uint32_t word_size;     /* bits per register (sizeof(void *) * 8) */
 	uint32_t byte_order;    /* 1234 = little, 4321 = big, ... */
 	uint32_t object_structure_version;
@@ -125,6 +125,7 @@ struct merlin_nodeinfo {
 	uint32_t configured_masters;
 	uint32_t host_checks_handled;
 	uint32_t service_checks_handled;
+	uint32_t monitored_object_state_size;
 	/* new entries have to come LAST */
 } __attribute__((packed));
 typedef struct merlin_nodeinfo merlin_nodeinfo;

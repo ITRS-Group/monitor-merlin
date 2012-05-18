@@ -36,6 +36,7 @@
 #include "logging.h"
 #include "cfgfile.h"
 #include "binlog.h"
+#include "nagios/nagios.h"
 #include "nagios/nebstructs.h"
 #include "nagios/nebcallbacks.h"
 #include "nagios/broker.h"
@@ -60,6 +61,7 @@
 
 #define sizeof(x) (uint)sizeof(x)
 
+#define is_flag_set(bfield, flag) (!!((bfield) & (flag)))
 #define safe_str(str) (str == NULL ? "NULL" : str)
 static inline void *safe_free(void *ptr)
 {
@@ -145,9 +147,13 @@ struct monitored_object_state {
 	int check_flapping_recovery_notification;
 	int scheduled_downtime_depth;
 	int pending_flex_downtime;
+	int state_history[MAX_STATE_HISTORY_ENTRIES]; /* flap detection */
+	int state_history_index;
 	int is_flapping;
 	unsigned long flapping_comment_id;
 	double percent_state_change;
+	unsigned long modified_attributes;
+	int notified_on;
 	char *plugin_output;
 	char *long_plugin_output;
 	char *perf_data;
