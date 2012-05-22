@@ -939,11 +939,11 @@ def cmd_push(args):
 	for name, node in mconf.configured_nodes.items():
 		# XXX FIXME: ugly hack to get synergy rules
 		# synchronized every once in a while
-		if os.path.isdir('/opt/synergy/rules'):
+		if os.path.isdir('/opt/synergy/etc/bps'):
 			if not node.paths_to_sync:
-				node.paths_to_sync = {'/opt/synergy/rules': '/opt/synergy'}
+				node.paths_to_sync = {'/opt/synergy/etc/bps': '/opt/synergy/etc'}
 			else:
-				node.paths_to_sync['/opt/synergy/rules'] = '/opt/synergy'
+				node.paths_to_sync['/opt/synergy/etc/bps'] = '/opt/synergy/etc'
 
 		if node.paths_to_sync:
 			for src, dest in node.paths_to_sync.items():
