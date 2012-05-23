@@ -478,6 +478,11 @@ const char *sql_db_host(void)
 	return db.host ? db.host : "localhost";
 }
 
+const unsigned int sql_db_port(void)
+{
+	return db.port;
+}
+
 const char *sql_db_type(void)
 {
 	return db.type ? db.type : "mysql";
@@ -524,7 +529,7 @@ int sql_config(const char *key, const char *value)
 		db.type = value_cpy;
 	else if (!prefixcmp(key, "conn_str"))
 		db.conn_str = value_cpy;
-	else if (!prefixcmp(key, "port") && value) {
+	else if (!prefixcmp(key, "port") && value && value[0]) {
 		char *endp;
 		free(value_cpy);
 		db.port = (unsigned int)strtoul(value, &endp, 0);
