@@ -1724,7 +1724,8 @@ int main(int argc, char **argv)
 	}
 
 	if (use_database) {
-		insert_extras(); /* must be before indexing */
+		if (!only_notifications)
+			insert_extras(); /* must be before indexing */
 		enable_indexes();
 		sql_close();
 	}
