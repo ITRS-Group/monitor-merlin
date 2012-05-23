@@ -439,6 +439,12 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 		}
 	}
 
+	if (sql_db_port()) {
+		char *cmd2 = cmd;
+		asprintf(&cmd, "%s --db-port='%u'", cmd2, sql_db_port());
+		free(cmd2);
+	}
+
 	run_program("import", cmd, &importer_pid);
 	free(cmd);
 
