@@ -99,6 +99,9 @@ int net_is_connected(merlin_node *node)
 	if (!optval) {
 		node_set_state(node, STATE_CONNECTED, "connect() attempt completed successfully");
 		return 1;
+	} else {
+		ldebug("getsockopt(%s->sock, SOL_SOCKET, SO_ERROR, &optval, ...) made optval %d: %s",
+			   node->name, optval, strerror(optval));
 	}
 
 	return 0;
