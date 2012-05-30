@@ -136,6 +136,16 @@ int net_try_connect(merlin_node *node)
 		return 0;
 	}
 
+	/* if it's not yet time to connect, don't even try it */
+	if (node->last_conn_attempt + MERLIN_CONNECT_TIMEOUT > time(NULL)) {
+		ldebug("connect to %s blocked for %lu more seconds", node->name,
+			   node->last_conn_attempt + MERLIN_CONNECT_TIMEOUT - time(NULL));
+		return 0;
+	}
+
+	/* mark the time so we can time it out ourselves if need be */
+	node->last_conn_attempt = time(NULL);
+
 	/* create the socket if necessary */
 	if (node->sock < 0) {
 		node_disconnect(node, "struct reset (no real disconnect)");
@@ -197,8 +207,6 @@ int net_try_connect(merlin_node *node)
 		       node->name, strerror(errno));
 	}
 
-	/* mark the time so we can time it out ourselves if need be */
-	node->last_conn_attempt = time(NULL);
 	if (connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
 		if (errno == EINPROGRESS || errno == EALREADY) {
 			node_set_state(node, STATE_PENDING, "connect() already in progress");
