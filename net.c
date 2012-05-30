@@ -166,6 +166,8 @@ int net_try_connect(merlin_node *node)
 
 	(void)setsockopt(node->sock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int));
 	if (node->flags & MERLIN_NODE_FIXED_SRCPORT) {
+		ldebug("Using fixed source port for %s node %s",
+			   node_type(node), node->name);
 		/*
 		 * first we bind() to a local port calculated by our own
 		 * listening port + the target port.
