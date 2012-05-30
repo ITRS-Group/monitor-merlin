@@ -164,6 +164,7 @@ int net_try_connect(merlin_node *node)
 		      ntohs(node->sain.sin_port));
 	}
 
+	(void)setsockopt(node->sock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int));
 	if (node->flags & MERLIN_NODE_FIXED_SRCPORT) {
 		/*
 		 * first we bind() to a local port calculated by our own
@@ -172,7 +173,6 @@ int net_try_connect(merlin_node *node)
 		sain.sin_family = AF_INET;
 		sain.sin_port = htons(net_source_port(node));
 		sain.sin_addr.s_addr = 0;
-		(void)setsockopt(node->sock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int));
 		if (bind(node->sock, (struct sockaddr *)&sain, sizeof(sain))) {
 			lerr("Failed to bind() outgoing socket for node %s to port %d: %s",
 				 node->name, ntohs(sain.sin_port), strerror(errno));
