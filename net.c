@@ -56,8 +56,8 @@ merlin_node *find_node(struct sockaddr_in *sain, const char *name)
 int net_is_connected(merlin_node *node)
 {
 	struct sockaddr_in sain;
-	socklen_t slen = sizeof(struct sockaddr_in);
-	int optval;
+	socklen_t slen;
+	int optval = 0, gsoerr = 0, gsores = 0, gpnres = 0, gpnerr = 0;
 
 	if (!node || node->sock < 0)
 		return 0;
@@ -68,37 +68,55 @@ int net_is_connected(merlin_node *node)
 	if (node->state != STATE_PENDING)
 		return 0;
 
+	/*
+	 * yes, getpeername() actually has to be here, or getsockopt()
+	 * won't return errors when we're not yet connected. It's
+	 * important that we read the socket error state though, or
+	 * some older kernels will maintain the link in SYN_SENT state
+	 * more or less indefinitely, so get all the syscalls taken
+	 * care of no matter if they actually work or not.
+	 */
 	errno = 0;
-	if (getpeername(node->sock, (struct sockaddr *)&sain, &slen) < 0) {
-		if (errno != ENOTCONN) {
-			lerr("getpeername(%d) for %s: system error %d: %s",
-			     node->sock, node->name, errno, strerror(errno));
-		}
-
-		/*
-		 * if a connection is in progress, we should be getting
-		 * ENOTCONN, but we need to give it time to complete
-		 * first. 30 seconds should be enough.
-		 */
-		if (errno != ENOTCONN || node->state != STATE_PENDING ||
-		    node->last_conn_attempt + MERLIN_CONNECT_TIMEOUT < time(NULL))
-		{
-			node_disconnect(node, "connect() timed out");
-		}
-		return 0;
-	}
-
+	slen = sizeof(struct sockaddr_in);
+	gpnres = getpeername(node->sock, (struct sockaddr *)&sain, &slen);
+	gpnerr = errno;
 	slen = sizeof(optval);
-	if (getsockopt(node->sock, SOL_SOCKET, SO_ERROR, &optval, &slen) < 0) {
-		lerr("getsockopt(%d) failed for %s: %s",
-		     node->sock, node->name, strerror(errno));
-		node_disconnect(node, "getsockopt() failed");
-		return 0;
-	}
-
-	if (!optval) {
+	gsores = getsockopt(node->sock, SOL_SOCKET, SO_ERROR, &optval, &slen);
+	gsoerr = errno;
+	if (!gpnres && !gsores && !optval && !gpnerr && !gsoerr) {
 		node_set_state(node, STATE_CONNECTED, "connect() attempt completed successfully");
 		return 1;
+	}
+
+	/* diagnostics first */
+	ldebug("%s is not connected: gpn/gso: %d:%d/%d:%d; optval: %d",
+	       node->name, gpnres, gpnerr, gsores, gsoerr, optval);
+
+	if (optval) {
+		lerr("connect() to %s node %s failed: %s",
+			 node_type(node), node->name, strerror(optval));
+		node_disconnect(node, strerror(optval));
+		return 0;
+	}
+
+	if (gsores < 0 && gsoerr != ENOTCONN) {
+		lerr("getsockopt(%d) failed for %s: %s",
+		     node->sock, node->name, strerror(gsoerr));
+		node_disconnect(node, "getsockopt() failed");
+	}
+
+	if (gpnres < 0 && gpnerr != ENOTCONN) {
+		lerr("getpeername(%d) failed for %s: %s",
+			 node->sock, node->name, strerror(gpnerr));
+	}
+
+	/*
+	 * if a connection is in progress, we should be getting
+	 * ENOTCONN, but we need to give it time to complete
+	 * first. 30 seconds should be enough.
+	 */
+	if (node->last_conn_attempt + MERLIN_CONNECT_TIMEOUT < time(NULL)) {
+		node_disconnect(node, "connect() timed out");
 	}
 
 	return 0;
@@ -133,6 +151,16 @@ int net_try_connect(merlin_node *node)
 		return 0;
 	}
 
+	/* if it's not yet time to connect, don't even try it */
+	if (node->last_conn_attempt + MERLIN_CONNECT_TIMEOUT > time(NULL)) {
+		ldebug("connect to %s blocked for %lu more seconds", node->name,
+			   node->last_conn_attempt + MERLIN_CONNECT_TIMEOUT - time(NULL));
+		return 0;
+	}
+
+	/* mark the time so we can time it out ourselves if need be */
+	node->last_conn_attempt = time(NULL);
+
 	/* create the socket if necessary */
 	if (node->sock < 0) {
 		node_disconnect(node, "struct reset (no real disconnect)");
@@ -160,17 +188,22 @@ int net_try_connect(merlin_node *node)
 		      inet_ntoa(node->sain.sin_addr),
 		      ntohs(node->sain.sin_port));
 	}
-	/*
-	 * first we bind() to a local port calculated by our own
-	 * listening port + the target port.
-	 */
-	sain.sin_family = AF_INET;
-	sain.sin_port = htons(net_source_port(node));
-	sain.sin_addr.s_addr = 0;
+
 	(void)setsockopt(node->sock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int));
-	if (bind(node->sock, (struct sockaddr *)&sain, sizeof(sain))) {
-		lerr("Failed to bind() outgoing socket for node %s to port %d: %s",
-			 node->name, ntohs(sain.sin_port), strerror(errno));
+	if (node->flags & MERLIN_NODE_FIXED_SRCPORT) {
+		ldebug("Using fixed source port for %s node %s",
+			   node_type(node), node->name);
+		/*
+		 * first we bind() to a local port calculated by our own
+		 * listening port + the target port.
+		 */
+		sain.sin_family = AF_INET;
+		sain.sin_port = htons(net_source_port(node));
+		sain.sin_addr.s_addr = 0;
+		if (bind(node->sock, (struct sockaddr *)&sain, sizeof(sain))) {
+			lerr("Failed to bind() outgoing socket for node %s to port %d: %s",
+				 node->name, ntohs(sain.sin_port), strerror(errno));
+		}
 	}
 
 	if (fcntl(node->sock, F_SETFL, O_NONBLOCK) < 0) {
@@ -189,8 +222,6 @@ int net_try_connect(merlin_node *node)
 		       node->name, strerror(errno));
 	}
 
-	/* mark the time so we can time it out ourselves if need be */
-	node->last_conn_attempt = time(NULL);
 	if (connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
 		if (errno == EINPROGRESS || errno == EALREADY) {
 			node_set_state(node, STATE_PENDING, "connect() already in progress");

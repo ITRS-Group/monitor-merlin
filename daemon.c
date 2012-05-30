@@ -204,7 +204,7 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 /* daemon-specific node manipulation */
 static void post_process_nodes(void)
 {
-	uint i;
+	uint i, x;
 
 	ldebug("post processing %d masters, %d pollers, %d peers",
 	       num_masters, num_pollers, num_peers);
@@ -220,6 +220,38 @@ static void post_process_nodes(void)
 		if (!node->sain.sin_port)
 			node->sain.sin_port = htons(default_port);
 
+		/*
+		 * this lets us support multiple merlin instances on
+		 * a single system, but all instances on the same
+		 * system will be marked at the same time, so we skip
+		 * them on the second pass here.
+		 */
+		if (node->flags & MERLIN_NODE_FIXED_SRCPORT) {
+			continue;
+		}
+
+		if (node->sain.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+			node->flags |= MERLIN_NODE_FIXED_SRCPORT;
+			ldebug("Using fixed source-port for %s node %s",
+				   node_type(node), node->name);
+			continue;
+		}
+		for (x = i + 1; x < num_nodes; x++) {
+			merlin_node *nx = node_table[x];
+			if (node->sain.sin_addr.s_addr == nx->sain.sin_addr.s_addr) {
+				ldebug("Using fixed source-port for %s node %s",
+				       node_type(node), node->name);
+				ldebug("Using fixed source-port for %s node %s",
+				       node_type(nx), nx->name);
+				node->flags |= MERLIN_NODE_FIXED_SRCPORT;
+				nx->flags |= MERLIN_NODE_FIXED_SRCPORT;
+
+				if (node->sain.sin_port == nx->sain.sin_port) {
+					lwarn("Nodes %s and %s have same ip *and* same port. Voodoo?",
+					      node->name, nx->name);
+				}
+			}
+		}
 		node->action = node_action_handler;
 
 		node->ioc.ioc_bufsize = MERLIN_IOC_BUFSIZE;
