@@ -258,7 +258,7 @@ static int resolve(const char *cp, struct in_addr *inp)
  */
 static void create_node_tree(merlin_node *table, unsigned n)
 {
-	uint x, i, xnoc, xpeer, xpoll;
+	uint i, xnoc, xpeer, xpoll;
 
 	for (i = 0; i < n; i++) {
 		merlin_node *node = &table[i];
@@ -272,18 +272,6 @@ static void create_node_tree(merlin_node *table, unsigned n)
 		case MODE_PEER:
 			num_peers++;
 			break;
-		}
-
-		/*
-		 * this lets us support multiple merlin
-		 * instances on a single system
-		 */
-		for (x = i; x < n; x++) {
-			merlin_node *nx = &table[i];
-			if (node->sain.sin_addr.s_addr == nx->sain.sin_addr.s_addr) {
-				node->flags |= MERLIN_NODE_FIXED_SRCPORT;
-				nx->flags |= MERLIN_NODE_FIXED_SRCPORT;
-			}
 		}
 	}
 
