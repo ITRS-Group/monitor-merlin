@@ -245,9 +245,11 @@ static void post_process_nodes(void)
 				       node_type(nx), nx->name);
 				node->flags |= MERLIN_NODE_FIXED_SRCPORT;
 				nx->flags |= MERLIN_NODE_FIXED_SRCPORT;
-			}
-			if (node->sain.sin_port == nx->sain.sin_port) {
-				lwarn("Two nodes with same ip *and* same port? That's weird");
+
+				if (node->sain.sin_port == nx->sain.sin_port) {
+					lwarn("Nodes %s and %s have same ip *and* same port. Voodoo?",
+					      node->name, nx->name);
+				}
 			}
 		}
 		node->action = node_action_handler;
