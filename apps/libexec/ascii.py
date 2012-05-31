@@ -96,3 +96,23 @@ def cmd_ninja(discard):
             :MMM=                                   =MMM:            
              CM#                                     #MD             %s""" %
 (color.bright + color.esc, "40;7m", ' ', ' ', color.reset))
+
+def cmd_screensaver(args):
+	"""The most awesomest console-based screensaver in the entire world"""
+	interval = 5
+	for arg in args:
+		interval = arg
+
+	interval = float(interval)
+
+	if not interval:
+		interval = 5
+
+	try:
+		while True:
+			cmd_ninja(args)
+			time.sleep(interval)
+			cmd_merlin(args)
+			time.sleep(interval)
+	except:
+		sys.exit(0)
