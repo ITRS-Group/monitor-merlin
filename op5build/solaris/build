@@ -28,6 +28,8 @@ chown root:sys $buildroot/opt
 chmod 755 $buildroot/usr/bin/mon
 cp -r apps/libexec $buildroot/usr/libexec/merlin
 gsed -i 's#/etc/init.d/merlind start#svcadm enable -t op5merlin#' $buildroot/usr/libexec/merlin/start.sh
+gsed -i 's#grep#/usr/xpg4/bin/grep#' $buildroot/usr/libexec/merlin/start.sh
+gsed -i 's#sed#/opt/csw/bin/gsed#' $buildroot/usr/libexec/merlin/start.sh
 gsed -i 's#/etc/init.d/merlind stop#svcadm disable -t op5merlin#' $buildroot/usr/libexec/merlin/stop.sh
 gsed -i 's#/etc/init.d/monitor start#svcadm enable -t op5monitor#' $buildroot/usr/libexec/merlin/start.sh
 gsed -i 's#/etc/init.d/monitor slay#/opt/monitor/svc/svc-monitor slay#' $buildroot/usr/libexec/merlin/stop.sh
