@@ -640,10 +640,10 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 	 * for and report incompatibilities, so just bail out
 	 * with an error
 	 */
-	if (len < sizeof(uint32_t) * 4) {
-		lerr("FATAL: %s: incompatible nodeinfo body size %d. Ours is %d",
-			 node->name, len, sizeof(node->info));
-		lerr("FATAL: No further compatibility comparisons possible");
+	if (len < MERLIN_NODEINFO_MINSIZE) {
+		lerr("FATAL: %s: incompatible nodeinfo body size %d. Ours is %d. Required: %d",
+			 node->name, len, sizeof(node->info), MERLIN_NODEINFO_MINSIZE);
+		lerr("FATAL: Completely incompatible");
 		return -128;
 	}
 

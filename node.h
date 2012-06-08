@@ -108,7 +108,10 @@ typedef struct merlin_event merlin_event;
  * Thus, we must make sure to always use fixed-size entries in this
  * struct.
  */
+/* change this macro when nodeinfo is rearranged */
 #define MERLIN_NODEINFO_VERSION 1
+ /* change this macro when the struct grows incompatibly */
+#define MERLIN_NODEINFO_MINSIZE sizeof(struct merlin_nodeinfo)
 struct merlin_nodeinfo {
 	uint32_t version;       /* version of this structure */
 	uint32_t word_size;     /* bits per register (sizeof(void *) * 8) */
