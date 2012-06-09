@@ -1382,7 +1382,7 @@ def cmd_check_mark(args):
 	A max-age of 0 means 'any timestamp will do'.
 	A negative timestamp means 'if we find an entry, we failed'.
 	"""
-	pretty_print_docstring('check-mark', cmd_check_mark.__doc__,
+	prettyprint_docstring('check-mark', cmd_check_mark.__doc__,
 		"This command isn't implemented yet.")
 	sys.exit(1)
 
