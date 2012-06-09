@@ -373,12 +373,16 @@ class fake_mesh:
 			setattr(self, k, v)
 
 
-	def intermission(self, msg=False):
+	def intermission(self, msg, sleeptime=False):
 		"""Sleepytime between running of tests"""
 		if self.sleeptime == False:
-			self.sleeptime = 10 + (len(self.instances) * 5)
+			self.sleeptime = 10
+			#+ (len(self.instances) * 5)
 			if self.sleeptime > 30:
 				self.sleeptime = 30
+
+		if sleeptime == False:
+			sleeptime = self.sleeptime
 
 		# only print the animation if anyone's looking
 		if os.isatty(sys.stdout.fileno()) == False:
@@ -386,9 +390,9 @@ class fake_mesh:
 				print("Sleeping %.2f seconds: %s" % (self.sleeptime, msg))
 			else:
 				print("Sleeping %.2f seconds" % self.sleeptime)
-			time.sleep(self.sleeptime)
+			time.sleep(sleeptime)
 		else:
-			i = self.sleeptime
+			i = sleeptime
 			rotor = ['|', '/', '-', '\\']
 			r = 0
 			while i > 0:
@@ -403,7 +407,7 @@ class fake_mesh:
 					sys.stdout.flush()
 				i -= 0.07
 				time.sleep(0.07)
-			print("   Sleeping 0.00 seconds")
+			print("   Slept for %d.00 seconds: %s      " % (sleeptime, msg))
 
 	##############################################################
 	#
@@ -479,7 +483,7 @@ class fake_mesh:
 		for cmd in raw_commands:
 			ret = master.submit_raw_command(cmd)
 			self.tap.test(ret, True, "Should be able to submit %s" % cmd)
-		self.intermission("Letting global commands spread")
+		self.intermission("Letting global commands spread", 10)
 		i = 0
 		for query in queries:
 			cmd = raw_commands[i]
@@ -520,7 +524,7 @@ class fake_mesh:
 			if ret == False:
 				status = False
 
-		self.intermission('Letting passive checks spread')
+		self.intermission('Letting passive checks spread', 15)
 		queries = {
 			'host': 'SELECT COUNT(1) FROM host WHERE current_state = 1',
 			'service': 'SELECT COUNT(1) FROM service WHERE current_state = 2',
@@ -1057,7 +1061,7 @@ def cmd_dist(args):
 	# tests go here. Important ones come first so we can
 	# break out early in case one or more of the required
 	# ones fail hard.
-	mesh.intermission("Allowing nodes to connect to each other")
+	mesh.intermission("Allowing nodes to connect to each other", 10)
 	if mesh.test_connections() == False:
 		print("Connection tests failed. Bailing out")
 		_dist_shutdown(mesh, 'Connection tests failed', batch)
