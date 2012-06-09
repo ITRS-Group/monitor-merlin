@@ -209,7 +209,7 @@ class fake_instance:
 		self.merlin_conf_path = "%s/merlin/merlin.conf" % self.home
 		self.group_id = 0
 		self.db = False
-		self.pids = {}
+		self.proc = {}
 		self.cmd_pipe = '%s/var/rw/nagios.cmd' % self.home
 		self.cmd_object = nagios_command()
 		self.cmd_object.set_pipe_path(self.cmd_pipe)
@@ -244,34 +244,17 @@ class fake_instance:
 
 	def start_daemons(self, nagios_binary, merlin_binary):
 		print("Launching daemons for instance %s" % self.name)
-		nagios_cmd = [nagios_binary, '-d', '%s/etc/nagios.cfg' % self.home]
-		merlin_cmd = [merlin_binary, '-c', '%s/merlin/merlin.conf' % self.home]
-		self.pids['nagios'] = subprocess.Popen(nagios_cmd, stdout=subprocess.PIPE)
-		self.pids['merlin'] = subprocess.Popen(merlin_cmd, stdout=subprocess.PIPE)
-
-
-	def load_pids(self):
-		if self.pids:
-			return True
-		paths = {
-			'nagios': '%s/var/nagios.lock' % self.home,
-			'merlin': '%s/merlin/merlind.pid' % self.home
-		}
-		for program, path in paths.items():
-			f = open(path, 'r')
-			buf = f.read().strip()
-			self.pids[program] = int(buf)
-		return True
+		nagios_cmd = [nagios_binary, '%s/etc/nagios.cfg' % self.home]
+		merlin_cmd = [merlin_binary, '-d', '-c', '%s/merlin/merlin.conf' % self.home]
 		fd = os.open("/dev/null", os.O_WRONLY)
-		self.pids['nagios'] = subprocess.Popen(nagios_cmd, stdout=fd, stderr=fd)
-		self.pids['merlin'] = subprocess.Popen(merlin_cmd, stdout=fd, stderr=fd)
+		self.proc['nagios'] = subprocess.Popen(nagios_cmd, stdout=fd, stderr=fd)
+		self.proc['merlin'] = subprocess.Popen(merlin_cmd, stdout=fd, stderr=fd)
 
 
 	def signal_daemons(self, sig):
-		self.load_pids()
-		for name, pid in self.pids.items():
+		for name, proc in self.proc.items():
 			try:
-				os.kill(pid, sig)
+				os.kill(proc.pid, sig)
 			except OSError, e:
 				if e.errno == errno.ESRCH:
 					pass
@@ -757,29 +740,9 @@ class fake_mesh:
 
 
 	def start_daemons(self):
-		try:
-			pid = os.fork()
-		except OSError, e:
-			pid = -1
-			pass
-
-		if pid < 0:
-			print("Failed to fork(): %s" % (os.strerror(os.errno)))
-			return False
-
-		if pid > 0:
-			(ret, status) = os.waitpid(pid, 0)
-			return True
-
-		if not pid:
-			print("in child. pid=%d; pgid=%d; sid=%d" %
-				(os.getpid(), os.getpgid(os.getpid()), os.getsid(os.getpid())))
-			# child becomes process group leader, starts a new session
-			# and then starts the deamons
-			os.setsid()
-			for inst in self.instances:
-				inst.start_daemons(self.nagios_binary, self.merlin_binary)
-			sys.exit(0)
+		for inst in self.instances:
+			inst.start_daemons(self.nagios_binary, self.merlin_binary)
+		return
 
 
 	def stop_daemons(self):
@@ -946,6 +909,15 @@ def _dist_shutdown(mesh, msg=False, batch=False, destroy_databases=False):
 	sys.exit(1)
 
 
+dist_test_mesh = False
+def dist_test_sighandler(signo, stackframe):
+	print("Caught signal %d" % signo)
+	if dist_test_mesh == False:
+		sys.exit(1)
+	print("Killing leftover daemons")
+	dist_test_mesh.stop_daemons()
+	sys.exit(1)
+
 def cmd_dist(args):
 	"""[options]
 	Where options can be any of the following:
@@ -969,6 +941,8 @@ def cmd_dist(args):
 	creating databases for the various instances and checking
 	event distribution among them.
 	"""
+	global dist_test_mesh
+
 	num_hosts = 3
 	num_services_per_host = 5
 	setup = True
@@ -1077,6 +1051,8 @@ def cmd_dist(args):
 
 	mesh.create_databases()
 	mesh.start_daemons()
+	dist_test_mesh = mesh
+	signal.signal(signal.SIGINT, dist_test_sighandler)
 
 	# tests go here. Important ones come first so we can
 	# break out early in case one or more of the required
