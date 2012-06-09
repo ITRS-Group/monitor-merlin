@@ -752,7 +752,7 @@ class fake_mesh:
 	def stop_daemons(self):
 		for inst in self.instances:
 			inst.stop_daemons()
-		time.sleep(1)
+		time.sleep(0.3)
 		for inst in self.instances:
 			inst.slay_daemons()
 
