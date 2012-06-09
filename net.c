@@ -272,12 +272,12 @@ int net_try_connect(merlin_node *node)
  */
 static int net_negotiate_socket(merlin_node *node, int lis)
 {
-	int con, sel;
+	int con;
 	struct sockaddr_in lissain, consain;
 	socklen_t slen = sizeof(struct sockaddr_in);
 
 	linfo("Negotiating socket for %s %s", node_type(node), node->name);
-	sel = con = node->sock;
+	con = node->sock;
 
 	/* we prefer the socket with the lowest ip-address */
 	if (getsockname(lis, (struct sockaddr *)&lissain, &slen) < 0) {
