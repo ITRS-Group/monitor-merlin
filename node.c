@@ -682,7 +682,7 @@ int node_recv(merlin_node *node, int flags)
 int node_send(merlin_node *node, void *data, int len, int flags)
 {
 	merlin_event *pkt = (merlin_event *)data;
-	int sent;
+	int sent, sd = 0;
 
 	if (!node || node->sock < 0)
 		return 0;
@@ -710,6 +710,7 @@ int node_send(merlin_node *node, void *data, int len, int flags)
 	 * partial writes and complete failures can only be handled
 	 * by disconnecting and re-syncing the stream
 	 */
+	sd = node->sock;
 	node_disconnect(node, "Partial or failed write()");
 
 	if (sent < 0) {
@@ -719,7 +720,7 @@ int node_send(merlin_node *node, void *data, int len, int flags)
 
 		/* otherwise we log the error and disconnect the node */
 		lerr("Failed to send(%d, %p, %d, %d) to %s: %s",
-			 node->sock, data, len, flags, node->name, strerror(errno));
+			 sd, data, len, flags, node->name, strerror(errno));
 		return sent;
 	}
 
