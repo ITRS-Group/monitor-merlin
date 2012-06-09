@@ -640,6 +640,10 @@ int node_recv(merlin_node *node, int flags)
 		ioc->ioc_offset = ioc->ioc_buflen = 0;
 
 	to_read = ioc->ioc_bufsize - ioc->ioc_buflen;
+	if (!to_read) {
+		ldebug("!to_read: ioc->ioc_bufsize: %lu; ioc->ioc_buflen: %lu",
+			   ioc->ioc_bufsize, ioc->ioc_buflen);
+	}
 	bytes_read = recv(node->sock, ioc->ioc_buf + ioc->ioc_buflen, to_read, flags);
 
 	/*
@@ -670,6 +674,10 @@ int node_recv(merlin_node *node, int flags)
 		ldebug("sock: %d; buf: %p; buflen: %lu; offset: %lu; bufsize: %lu",
 		       node->sock, ioc->ioc_buf, ioc->ioc_buflen, ioc->ioc_offset, ioc->ioc_bufsize);
 	}
+
+	/* zero-read. We've been disconnected for some reason */
+	ldebug("to_read: %d; bytes_read: %d; errno: %d; strerror(%d): %s",
+		   to_read, bytes_read, errno, errno, strerror(errno));
 	node_disconnect(node, "recv() failed");
 	return -1;
 }
