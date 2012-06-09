@@ -32,7 +32,8 @@ merlin_node *find_node(struct sockaddr_in *sain, const char *name)
 				       node->name, inet_ntoa(sain->sin_addr), in_port);
 				return node;
 			}
-			if (!first)
+
+			if (!first && !(node->flags & MERLIN_NODE_FIXED_SRCPORT))
 				first = node;
 		}
 	}
