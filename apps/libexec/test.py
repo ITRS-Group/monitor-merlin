@@ -262,6 +262,9 @@ class fake_instance:
 			buf = f.read().strip()
 			self.pids[program] = int(buf)
 		return True
+		fd = os.open("/dev/null", os.O_WRONLY)
+		self.pids['nagios'] = subprocess.Popen(nagios_cmd, stdout=fd, stderr=fd)
+		self.pids['merlin'] = subprocess.Popen(merlin_cmd, stdout=fd, stderr=fd)
 
 
 	def signal_daemons(self, sig):
