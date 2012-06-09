@@ -470,6 +470,7 @@ class fake_mesh:
 			'STOP_OBSESSING_OVER_SVC_CHECKS',
 			'START_ACCEPTING_PASSIVE_HOST_CHECKS',
 			'START_ACCEPTING_PASSIVE_SVC_CHECKS',
+			'ENABLE_NOTIFICATIONS',
 		]
 		# queries get 'SELECT COUNT(1) FROM program_status WHERE'
 		# prepended and expect to get 0 as a proper answer
@@ -482,6 +483,7 @@ class fake_mesh:
 			'obsess_over_services = 1',
 			'passive_host_checks_enabled = 0',
 			'passive_service_checks_enabled = 0',
+			'notifications_enabled = 0',
 		]
 		master = self.masters.nodes[0]
 		for cmd in raw_commands:
