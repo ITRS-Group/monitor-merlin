@@ -220,6 +220,15 @@ static void post_process_nodes(void)
 		if (!node->sain.sin_port)
 			node->sain.sin_port = htons(default_port);
 
+		node->action = node_action_handler;
+
+		node->ioc.ioc_bufsize = MERLIN_IOC_BUFSIZE;
+		node->ioc.ioc_buf = malloc(node->ioc.ioc_bufsize);
+		if (!node->ioc.ioc_buf) {
+			lerr("Failed to malloc(%lu) for io cache for node %s. Aborting",
+				 node->ioc.ioc_bufsize, node->name);
+		}
+
 		/*
 		 * this lets us support multiple merlin instances on
 		 * a single system, but all instances on the same
@@ -232,7 +241,7 @@ static void post_process_nodes(void)
 
 		if (node->sain.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
 			node->flags |= MERLIN_NODE_FIXED_SRCPORT;
-			ldebug("Using fixed source-port for %s node %s",
+			ldebug("Using fixed source-port for local %s node %s",
 				   node_type(node), node->name);
 			continue;
 		}
@@ -251,14 +260,6 @@ static void post_process_nodes(void)
 					      node->name, nx->name);
 				}
 			}
-		}
-		node->action = node_action_handler;
-
-		node->ioc.ioc_bufsize = MERLIN_IOC_BUFSIZE;
-		node->ioc.ioc_buf = malloc(node->ioc.ioc_bufsize);
-		if (!node->ioc.ioc_buf) {
-			lerr("Failed to malloc(%lu) for io cache for node %s. Aborting",
-				 node->ioc.ioc_bufsize, node->name);
 		}
 	}
 }
