@@ -372,6 +372,10 @@ class fake_mesh:
 		for (k, v) in kwargs.items():
 			setattr(self, k, v)
 
+	def signal_daemons(self, signo):
+		"""Sends the designated signal to all attached daemons"""
+		for inst in self.instances:
+			inst.signal_daemons(signo)
 
 	def intermission(self, msg, sleeptime=False):
 		"""Sleepytime between running of tests"""
