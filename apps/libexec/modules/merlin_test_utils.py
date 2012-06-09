@@ -52,7 +52,7 @@ def test(a, b, msg):
 class test_config_in:
 	nagios_config_in = """log_file=@@DIR@@/nagios.log
 broker_module=@@MODULE_PATH@@ @@DIR@@/merlin/merlin.conf
-##LIVESTATUS_DISABLED##broker_module=@@LIVESTATUS_O@@ @@DIR@@/var/rw/live
+broker_module=@@LIVESTATUS_O@@ @@DIR@@/var/rw/live
 cfg_dir=@@DIR@@/etc/oconf
 object_cache_file=@@DIR@@/var/objects.cache
 temp_file=nagios.tmp
