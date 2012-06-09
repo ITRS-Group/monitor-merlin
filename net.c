@@ -4,6 +4,7 @@
 #include "daemon.h"
 
 #define MERLIN_CONNECT_TIMEOUT 20 /* the (hardcoded) connect timeout we use */
+#define MERLIN_CONNECT_INTERVAL 5 /* connect interval */
 
 static int net_sock = -1; /* listening sock descriptor */
 
@@ -137,6 +138,7 @@ int net_try_connect(merlin_node *node)
 	int connected = 0, should_log = 0;
 	struct timeval connect_timeout = { MERLIN_CONNECT_TIMEOUT, 0 };
 	struct sockaddr_in sain;
+	time_t interval = MERLIN_CONNECT_INTERVAL;
 
 	/* don't log obsessively */
 	if (node->last_conn_attempt_logged + 30 <= time(NULL)) {
@@ -153,9 +155,9 @@ int net_try_connect(merlin_node *node)
 	}
 
 	/* if it's not yet time to connect, don't even try it */
-	if (node->last_conn_attempt + MERLIN_CONNECT_TIMEOUT > time(NULL)) {
+	if (node->last_conn_attempt + interval > time(NULL)) {
 		ldebug("connect to %s blocked for %lu more seconds", node->name,
-			   node->last_conn_attempt + MERLIN_CONNECT_TIMEOUT - time(NULL));
+			   node->last_conn_attempt + interval - time(NULL));
 		return 0;
 	}
 
