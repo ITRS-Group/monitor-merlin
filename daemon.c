@@ -995,7 +995,6 @@ int main(int argc, char **argv)
 
 	signal(SIGINT, clean_exit);
 	signal(SIGTERM, clean_exit);
-	signal(SIGPIPE, dump_core);
 
 	sql_init();
 	if (use_database) {
