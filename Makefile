@@ -229,7 +229,7 @@ version.c: gen-version.sh
 	sh gen-version.sh
 
 clean: clean-core clean-log clean-test
-	rm -f $(NEB) $(PROG) $(APPS) *.o blread endpoint
+	rm -f merlin.so merlind $(APPS) *.o blread endpoint
 
 clean-test:
 	rm -f sltest bltest test-hash mtest test-lparse
