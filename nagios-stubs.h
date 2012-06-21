@@ -75,3 +75,8 @@ int unschedule_downtime(int type, unsigned long downtime_id)
 {
 	return 0;
 }
+int delete_downtime_by_hostname_service_description_start_time_comment
+	(char *hname, char *sdesc, time_t stime, char *comment)
+{
+	return 0;
+}

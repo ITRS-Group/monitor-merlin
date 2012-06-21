@@ -7,7 +7,6 @@
 #include "nagios/comments.h"
 #include "nagios/common.h"
 #include "nagios/downtime.h"
-#include <pthread.h>
 
 time_t merlin_should_send_paths = 1;
 
@@ -18,10 +17,6 @@ time_t merlin_should_send_paths = 1;
  */
 extern int xodtemplate_grab_config_info(char *main_config_file);
 extern comment *comment_list;
-extern int unschedule_downtime(int, unsigned long);
-extern pthread_mutex_t nagios_downtime_lock;
-extern scheduled_downtime *scheduled_downtime_list;
-
 
 /** code start **/
 extern hostgroup *hostgroup_list;
@@ -237,33 +232,9 @@ static int handle_comment_data(merlin_node *node, void *buf)
 	return 0;
 }
 
-static int matching_downtime(scheduled_downtime *downtime, nebstruct_downtime_data *ds)
-{
-	if (downtime->type == ds->downtime_type &&
-		downtime->duration == ds->duration &&
-		downtime->end_time == ds->end_time &&
-		downtime->fixed == ds->fixed &&
-		downtime->start_time == ds->start_time &&
-		downtime->triggered_by == ds->triggered_by &&
-		!strcmp(downtime->author, ds->author_name) &&
-		!strcmp(downtime->comment, ds->comment_data) &&
-		!strcmp(downtime->host_name, ds->host_name) &&
-		(downtime->service_description == ds->service_description ||
-		!strcmp(downtime->service_description, ds->service_description)))
-	{
-		return 1;
-	}
-
-	return 0;
-}
-
-
 static int handle_downtime_data(merlin_node *node, void *buf)
 {
 	nebstruct_downtime_data *ds = (nebstruct_downtime_data *)buf;
-	unsigned long downtime_id = 0;
-	unsigned long downtime_type = 0;
-	scheduled_downtime *this_downtime = NULL;
 
 	if (!node) {
 		lerr("handle_downtime_data() with NULL node");
@@ -275,22 +246,10 @@ static int handle_downtime_data(merlin_node *node, void *buf)
 		return 0;
 	}
 
-	/* We always run this in a separate thread, so even though it's read-only,
-	 * we should still lock to avoid another thread rewriting the list while
-	 * we're working on it.
-	 */
-	pthread_mutex_lock(&nagios_downtime_lock);
-	for(this_downtime = scheduled_downtime_list; this_downtime != NULL; this_downtime = this_downtime->next) {
-		if (matching_downtime(this_downtime, ds)) {
-			downtime_id = this_downtime->downtime_id;
-			downtime_type = this_downtime->type;
-			break;
-		}
-	}
-	pthread_mutex_unlock(&nagios_downtime_lock);
-
-	if (downtime_type && downtime_id)
-		unschedule_downtime(downtime_type, downtime_id);
+	/* the longest function name in the history of C programming... */
+	delete_downtime_by_hostname_service_description_start_time_comment
+		(ds->host_name, ds->service_description,
+			ds->start_time,	ds->comment_data);
 
 	return 0;
 }
