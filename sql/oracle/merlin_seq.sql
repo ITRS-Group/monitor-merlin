@@ -1432,8 +1432,6 @@ ADD CONSTRAINT rename_log_pk PRIMARY KEY
 ENABLE
 ;
 
-connect merlin/merlin;
-
 CREATE OR REPLACE TRIGGER comment_tbl_id_TRG BEFORE INSERT OR UPDATE ON comment_tbl
 FOR EACH ROW
 DECLARE
