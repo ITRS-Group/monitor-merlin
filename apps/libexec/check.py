@@ -229,6 +229,7 @@ def cmd_orphans(args=False):
 	otype = 'service'
 	unit = ''
 	warning = critical = 0
+	max_age = 1800
 	for arg in args:
 		if arg.startswith('--warning='):
 			val = arg.split('=', 1)[1]
@@ -242,6 +243,9 @@ def cmd_orphans(args=False):
 				unit = '%'
 				val = val.replace('%', '')
 			critical = float(val)
+		elif arg.startswith('--maxage=') or arg.startswith('--max-age='):
+			max_age = arg.split('=', 1)[1]
+			max_age = int(max_age)
 		elif arg == 'host' or arg == 'service':
 			otype = arg
 
@@ -250,7 +254,7 @@ def cmd_orphans(args=False):
 	# Todo: Check things that are in their checking period
 	query = ("""SELECT COUNT(1) FROM %s WHERE
 		should_be_scheduled = 1 AND check_period = '24x7' AND
-		next_check < %d""" % (otype, now - 1800))
+		next_check < %d""" % (otype, now - max_age))
 	dbc.execute(query)
 	row = dbc.fetchone()
 	orphans = int(row[0])
