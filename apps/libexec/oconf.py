@@ -531,13 +531,13 @@ class nagios_service(nagios_slave_object, nagios_group_member):
 		nagios_slave_object.parse(self)
 		nagios_group_member.parse(self)
 
-def parse_nagios_objects(path):
+def update_last_changed(path):
 	global last_changed
-
 	st = os.stat(path)
 	if st and st.st_mtime > last_changed:
 		last_changed = st.st_mtime
 
+def parse_nagios_objects(path):
 	f = open(path)
 	obj = False
 	otype = ''
@@ -784,21 +784,13 @@ def cmd_nodesplit(args):
 	config_dir = cache_dir + '/config'
 	mkdir_p(config_dir)
 
-	grab_nagios_cfg(nagios_cfg)
-
-	# now that the potentially failing calls have been made, we
-	# parse the object configuration from the objects.cache file
-	# or, if that file doesn't exist, from the regular object
-	# config. Either way, this must come before the loop as we
-	# need the last_changed variable from here in order to know
-	# which nodes we can avoid pushing to
-	if os.path.isfile(object_cache):
-		parse_object_config([object_cache])
-	else:
-		parse_object_config()
+	get_last_changed()
 
 	params = []
-	for name, node in mconf.configured_nodes.items():
+	hardlink = dict()
+	to_create = dict()
+	for node in mconf.sorted_nodes:
+		name = node.name
 		if node.ntype != 'poller':
 			continue
 		hostgroups = node.options.get('hostgroup', False)
@@ -808,27 +800,57 @@ def cmd_nodesplit(args):
 			sys.exit(1)
 
 		node.oconf_file = '%s/%s.cfg' % (config_dir, name)
+
+		# if there is another poller with identical hostgroups,
+		# we really don't need to generate it anew for this one
+		sorted_hostgroups = copy.copy(hostgroups)
+		sorted_hostgroups.sort()
+		sorted_hostgroups_str = ';'.join(sorted_hostgroups)
+		cached = to_create.get(sorted_hostgroups_str, False)
+		if cached != False:
+			print("hardlink: %s" % node.oconf_file)
+			hardlink[node.oconf_file] = cached
+			continue
+		to_create[sorted_hostgroups_str] = node.oconf_file
+
 		# if there is a cached config file which is the same age
 		# as the object config and we're not being forced, there's
 		# no need to re-create it
 		if os.access(node.oconf_file, os.R_OK):
 			st = os.stat(node.oconf_file)
-			if not force and st.st_mtime == last_changed:
+			if not force and st.st_mtime >= last_changed:
 				print("%s is cached" % (node.oconf_file))
 				continue
 
-		params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
+			params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
 
 	# If there are no pollers with hostgroups, we might as well
 	# go home.
-	if not len(params):
+	if not len(to_create):
+		print("No splitting to do. Quitting")
 		return
+
+	# now that we're done determining the minimum amount of work
+	# we need to do, we parse the object configuration from the
+	# objects.cache file or, if that file doesn't exist, from the
+	# regular object config.
+	files = grab_nagios_cfg(nagios_cfg)
+	if os.path.isfile(object_cache):
+		parse_object_config([object_cache])
+	else:
+		parse_object_config(files)
 
 	# make sure files are created with the proper mode
 	# for the target system
 	old_umask = os.umask(002)
 	map(run_param, params)
 	os.umask(old_umask)
+
+	# now create the hardlinks we know we need
+	for (dst, src) in hardlink.items():
+		print("Hardlinking\n     %s\n  to %s" % (src, dst))
+		os.unlink(dst)
+		os.link(src, dst)
 
 
 def get_ssh_key(node):
@@ -993,9 +1015,20 @@ def _cmd_t_randomize(args):
 		run_param(param)
 		i += 1
 
+def get_last_changed(files=False):
+	if last_changed != 0:
+		return last_changed
+
+	if not files:
+		files = grab_nagios_cfg(nagios_cfg)
+	map(update_last_changed, files)
+
+	return last_changed
+
 def parse_object_config(files = False):
 	if not files:
 		files = grab_nagios_cfg(nagios_cfg)
 
+	get_last_changed(files)
 	map(parse_nagios_objects, files)
 	post_parse()
