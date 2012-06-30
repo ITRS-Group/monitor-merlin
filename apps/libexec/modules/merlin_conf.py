@@ -6,6 +6,9 @@ class merlin_node:
 	valid_types = ['poller', 'master', 'peer']
 	exit_code = False
 
+	def __str__(self):
+		return self.name
+
 	def __init__(self, name, ntype = 'poller'):
 		self.options = {'type': 'poller', 'port': 15551}
 		self.set('name', name)
@@ -178,10 +181,22 @@ class merlin_node:
 config_file = '/opt/monitor/op5/merlin/merlin.conf'
 num_nodes = {'poller': 0, 'peer': 0, 'master': 0}
 configured_nodes = {}
+sorted_nodes = []
 dbopt = {}
 daemon = {}
 module = {}
 _node_defaults = {}
+
+def node_cmp(a, b):
+	if a.ntype == 'master' and b.ntype != 'master':
+		return -1
+	if b.ntype == 'master' and a.ntype != 'master':
+		return 1
+	if b.ntype == 'poller' and a.ntype != 'poller':
+		return -1
+	if a.ntype == 'poller' and b.ntype != 'poller':
+		return 1
+	return cmp(a.name, b.name)
 
 def parse():
 	try:
@@ -224,6 +239,7 @@ def parse():
 		node.path = config_file
 		num_nodes[ntype] += 1
 		configured_nodes[node.name] = node
+		sorted_nodes.append(node)
 		for (k, v) in comp.params:
 			node.set(k, v)
 		for sc in comp.objects:
@@ -237,6 +253,8 @@ def parse():
 						continue
 					node.paths_to_sync[sk] = sv
 
+	if len(sorted_nodes):
+		sorted_nodes.sort(node_cmp)
 
 	# check and store how many peers each node has.
 	i = 0
