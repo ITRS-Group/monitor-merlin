@@ -165,7 +165,39 @@ def cmd_show(args):
 	return ret
 
 def cmd_purge(args):
+	"""[--remove-older-than=<difference>]
+	Remove data no longer in use.
+
+	If --remove-older-than is specified, also removes log files and database
+	entries older than <difference>. The difference is specified as a number,
+	followed by a unit - 'y' for year, 'm' for month, 'w' for week, 'd' for day.
+	For instance, to delete all logs older than 1 year:
+		mon log purge --remove-older-than=1y
 	"""
-	Remove log files that are no longer in use
-	Currently only deletes stale RRD files."""
-	subprocess.call(['find', '/opt/monitor/op5/pnp/perfdata/.trash', '-mindepth', '1', '-delete'])
+	import time, glob, merlin_db
+	# units rounded upwards
+	units = {'y':31622400, 'm':2678400, 'w':604800, 'd':86400}
+	if os.path.exists('/opt/monitor/op5/pnp/perfdata/.trash'):
+		subprocess.call(['find', '/opt/monitor/op5/pnp/perfdata/.trash', '-mindepth', '1', '-delete'])
+	oldest = False
+	for arg in args:
+		if arg.startswith('--remove-older-than='):
+			if not arg[-1] in units.keys():
+				print("Invalid unit: " + arg[-1])
+				return False
+			try:
+				diff = float(arg[20:-1]) * units[arg[-1]]
+			except ValueError:
+				print "Invalid number: " + arg[20:-1]
+				return False
+			oldest = time.mktime(time.gmtime()) - diff
+	if not oldest:
+		return True
+	conn = merlin_db.connect(mconf)
+	dbc = conn.cursor()
+	dbc.execute('DELETE FROM notification WHERE end_time < %s', int(oldest))
+	dbc.execute('DELETE FROM report_data WHERE timestamp < %s', int(oldest))
+	for log in glob.glob(archive_dir + '/nagios-*.log'):
+		if time.mktime(time.strptime(log, archive_dir + '/nagios-%m-%d-%Y-%H.log')) < oldest:
+			os.remove(log)
+	return True
