@@ -439,6 +439,7 @@ CREATE TABLE service(
 	return_code smallint(8)
 ) COLLATE latin1_general_cs;
 CREATE UNIQUE INDEX s_service_name ON service(host_name, service_description);
+CREATE INDEX svc_host_name ON service(host_name);
 CREATE INDEX svc_dt ON service(scheduled_downtime_depth);
 CREATE INDEX svc_checks_enabled ON service(active_checks_enabled);
 CREATE INDEX svc_problem_ack ON service(problem_has_been_acknowledged);
