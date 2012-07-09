@@ -146,7 +146,7 @@ class fake_peer_group:
 					self.oconf_buf += "%s %s\n" % (k, v)
 				if x < 5:
 					sg_name = 'service%d_services' % x
-					self.oconf_buf += 'service_groups %s\n' % sg_name
+					self.oconf_buf += 'servicegroups %s\n' % sg_name
 					# only add each servicegroup once
 					if i == 1:
 						self.add_object('servicegroup', sg_name)
