@@ -1,10 +1,6 @@
 SPOOL merlin_seq.out
 SET DEFINE OFF;
 SET SCAN OFF;
-PROMPT Creating User merlin ...
-CREATE USER merlin IDENTIFIED BY merlin DEFAULT TABLESPACE USERS TEMPORARY TABLESPACE TEMP;
-GRANT CREATE SESSION, RESOURCE, CREATE VIEW, CREATE MATERIALIZED VIEW, CREATE SYNONYM TO merlin;
-connect merlin/merlin;
 
 DROP SEQUENCE comment_id_SEQ;
 
@@ -856,37 +852,7 @@ CREATE TABLE program_status (
   modified_service_attributes NUMBER(10,0),
   global_host_event_handler CLOB,
   global_service_event_handler CLOB,
-  peer_id NUMBER(10,0),
-  node_type NUMBER(6,0),
-  config_hash VARCHAR2(255 CHAR),
-  self_assigned_peer_id NUMBER(10,0),
-  active_peers NUMBER(10,0),
-  configured_peers NUMBER(10,0),
-  active_pollers NUMBER(10,0),
-  configured_pollers NUMBER(10,0),
-  active_masters NUMBER(10,0),
-  configured_masters NUMBER(10,0),
-  host_checks_handled NUMBER(10,0),
-  service_checks_handled NUMBER(10,0)
 );
-
-set term off;
-ALTER TABLE program_status ADD (
-  peer_id NUMBER(10,0),
-  node_type NUMBER(6,0),
-  config_hash VARCHAR2(255 CHAR),
-  self_assigned_peer_id NUMBER(10,0),
-  active_peers NUMBER(10,0),
-  configured_peers NUMBER(10,0),
-  active_pollers NUMBER(10,0),
-  configured_pollers NUMBER(10,0),
-  active_masters NUMBER(10,0),
-  configured_masters NUMBER(10,0),
-  host_checks_handled NUMBER(10,0),
-  service_checks_handled NUMBER(10,0)
-);
-set term on;
-
 
 
 
@@ -912,12 +878,9 @@ CREATE TABLE report_data (
   hard NUMBER(10,0) DEFAULT '0' NOT NULL,
   retry NUMBER(10,0) DEFAULT '0' NOT NULL,
   downtime_depth NUMBER(10,0),
-  output CLOB
+  output CLOB,
+  id NUMBER(10,0)
 );
-
-set term off
-ALTER TABLE report_data DROP COLUMN id;
-set term on
 
 
 PROMPT Creating Index rd_timestamp on report_data ...
@@ -1437,8 +1400,6 @@ ADD CONSTRAINT rename_log_pk PRIMARY KEY
 )
 ENABLE
 ;
-
-connect merlin/merlin;
 
 CREATE OR REPLACE TRIGGER comment_tbl_id_TRG BEFORE INSERT OR UPDATE ON comment_tbl
 FOR EACH ROW
