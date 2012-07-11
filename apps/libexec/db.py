@@ -1,8 +1,8 @@
 import os.path, glob, sys
 try:
-	import hashlib
+	from hashlib import sha1
 except ImportError:
-	import sha as hashlib
+	from sha import sha as sha1
 
 modpath = os.path.dirname(__file__) + '/modules'
 if not modpath in sys.path:
@@ -51,7 +51,7 @@ def cmd_cahash(args):
 	"""
 	conn = merlin_db.connect(mconf)
 	dbc = conn.cursor()
-	hash = hashlib.sha1()
+	hash = sha1()
 	dbc.execute("SELECT contact, host FROM contact_access "
 		"WHERE service IS NULL "
 		"ORDER BY contact, host")
