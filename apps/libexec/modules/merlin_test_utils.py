@@ -299,6 +299,18 @@ define hostgroup{
     hostgroup_name                 host4_hosts
     alias                          The fourth host in each group
     }
+define hostgroup{
+    hostgroup_name                 host5_hosts
+    alias                          The fifth host in each group
+    }
+define hostgroup{
+    hostgroup_name                 host6_hosts
+    alias                          The sixth host in each group
+    }
+define hostgroup{
+    hostgroup_name                 host7_hosts
+    alias                          The seventh host in each group
+    }
 define servicegroup{
     servicegroup_name            service1_services
     alias                        The first service on each host
@@ -314,5 +326,17 @@ define servicegroup{
 define servicegroup{
     servicegroup_name            service4_services
     alias                        The fourth service on each host
+}
+define servicegroup{
+    servicegroup_name            service5_services
+    alias                        The fifth service on each host
+}
+define servicegroup{
+    servicegroup_name            service6_services
+    alias                        The sixth service on each host
+}
+define servicegroup{
+    servicegroup_name            service7_services
+    alias                        The seventh service on each host
 }
 """
