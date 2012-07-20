@@ -97,3 +97,4 @@ def cmd_submit(args):
 	else:
 		print("%sERROR%s: Failed to submit %s for processing" %
 			(color.red, color.reset, cmd.command_string))
+		sys.exit(1)
