@@ -45,6 +45,7 @@ class fake_peer_group:
 		self.master_groups = {}
 		self.poller_groups = {}
 		self.oconf_buf = False
+		self.oconf_file = False
 		self.poller_oconf = ''
 		self.expect_entries = {}
 		self.objects = {
@@ -71,11 +72,6 @@ class fake_peer_group:
 		return None
 
 
-	def _add_oconf_object(self, otype, params):
-		self.oconf_buf = 'define %s {\n' % otype
-		for (k, v) in params.items():
-			self.oconf_buf = "%s %s" % (k, v)
-
 	def add_object(self, otype, name):
 		if not name in self.objects[otype]:
 			self.objects[otype].append(name)
@@ -89,6 +85,15 @@ class fake_peer_group:
 		# asked to create their own object configuration
 		if self.oconf_buf:
 			return True
+
+		if len(self.master_groups):
+			self.group_type = 'poller'
+		else:
+			self.group_type = 'master'
+
+		print("Generating object config for %s group %s" % (self.group_type, self.group_name))
+		ocbuf = []
+
 		self.objects['hostgroup'].append(self.group_name)
 
 		hostgroup = {
@@ -98,8 +103,8 @@ class fake_peer_group:
 		host = {
 			'use': 'default-host-template',
 			'host_name': '%s.@@host_num@@' % self.group_name,
-			'alias': 'Just a stupid alias',
-			'address': '127.0.0.1',
+			'alias': 'Alias text',
+			'address': '1',
 		}
 		service = {
 			'use': 'default-service',
@@ -114,25 +119,29 @@ class fake_peer_group:
 		sdesc = copy.deepcopy(service['service_description'])
 		hname = copy.deepcopy(host['host_name'])
 		i = 0
-		self.oconf_buf = 'define hostgroup {\n'
+		obuf = 'define hostgroup {\n'
 		for (k, v) in hostgroup.items():
-			self.oconf_buf += '\t%s %s\n' % (k, v)
-		self.oconf_buf += '}\n'
+			obuf = "%s\t%s %s\n" % (obuf, k, v)
+		obuf = "%s}" % obuf
+		ocbuf.append(obuf)
 		while i < num_hosts:
 			i += 1
+			if not i % 100:
+				print("%d hosts and %d services created" % (i, i * num_services_per_host))
 			hobj = host
 			hobj['host_name'] = hname.replace('@@host_num@@', "%04d" % i)
 			self.add_object('host', hobj['host_name'])
-			self.oconf_buf += "define host{\n"
+			obuf = "define host{\n"
 			for (k, v) in hobj.items():
-				self.oconf_buf += "%s %s\n" % (k, v)
-			if i < 5:
-				hg_name = 'host%d_hosts' % i
-				self.oconf_buf += "hostgroups %s,%s\n" % (hg_name, self.group_name)
+				obuf = "%s%s %s\n" % (obuf, k, v)
+			if i & 7:
+				hg_name = 'host%d_hosts' % (i & 7)
+				obuf += "hostgroups %s,%s\n" % (hg_name, self.group_name)
 				self.add_object('hostgroup', hg_name)
 			else:
-				self.oconf_buf += 'hostgroups %s\n' % self.group_name
-			self.oconf_buf += "}\n"
+				obuf += 'hostgroups %s\n' % self.group_name
+			obuf += "}"
+			ocbuf.append(obuf)
 			x = 0
 			while x < num_services_per_host:
 				x += 1
@@ -141,23 +150,25 @@ class fake_peer_group:
 				sobj['service_description'] = sdesc.replace('@@service_num@@', "%04d" % x)
 				sname = "%s;%s" % (sobj['host_name'], sobj['service_description'])
 				self.add_object('service', sname)
-				self.oconf_buf += "define service{\n"
+				obuf = "define service{\n"
 				for (k, v) in sobj.items():
-					self.oconf_buf += "%s %s\n" % (k, v)
-				if x < 5:
-					sg_name = 'service%d_services' % x
-					self.oconf_buf += 'servicegroups %s\n' % sg_name
+					obuf = "%s%s %s\n" % (obuf, k, v)
+				if x & 7:
+					sg_name = 'service%d_services' % (x & 7)
+					obuf = '%sservicegroups %s\n' % (obuf, sg_name)
 					# only add each servicegroup once
 					if i == 1:
 						self.add_object('servicegroup', sg_name)
-				self.oconf_buf += "}\n"
+				obuf += "}"
+				ocbuf.append(obuf)
 
+		self.oconf_buf = "\n".join(ocbuf)
+		ocbuf = False
 		poller_oconf_buf = ''
 		pgroup_names = self.poller_groups.keys()
 		pgroup_names.sort()
 		for pgroup_name in pgroup_names:
 			pgroup = self.poller_groups[pgroup_name]
-			print("Generating config for poller group %s" % pgroup.group_name)
 			pgroup.create_object_config(num_hosts, num_services_per_host)
 			poller_oconf_buf += pgroup.oconf_buf
 
