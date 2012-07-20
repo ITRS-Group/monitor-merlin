@@ -387,7 +387,7 @@ CREATE TABLE program_status (
   modified_host_attributes NUMBER(10,0),
   modified_service_attributes NUMBER(10,0),
   global_host_event_handler CLOB,
-  global_service_event_handler CLOB,
+  global_service_event_handler CLOB
 );
 ALTER TABLE program_status ADD CONSTRAINT PRIMARY_7 PRIMARY KEY(instance_id) ENABLE;
 

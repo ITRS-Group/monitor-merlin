@@ -52,7 +52,7 @@ CREATE TABLE report_data (
   hard NUMBER(10,0) DEFAULT '0' NOT NULL,
   retry NUMBER(10,0) DEFAULT '0' NOT NULL,
   downtime_depth NUMBER(10,0),
-  output CLOB,
+  output CLOB
 );
 CREATE INDEX rd_timestamp ON report_data(timestamp);
 CREATE INDEX rd_event_type ON report_data(event_type);
