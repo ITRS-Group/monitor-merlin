@@ -455,7 +455,6 @@ int net_init(void)
 	return 0;
 }
 
-
 /* send a specific packet to a specific host */
 static int net_sendto(merlin_node *node, merlin_event *pkt)
 {
@@ -465,6 +464,21 @@ static int net_sendto(merlin_node *node, merlin_event *pkt)
 	}
 
 	return node_send_event(node, pkt, 100);
+}
+
+static int net_sendto_many(merlin_node **ntable, uint num, merlin_event *pkt)
+{
+	uint i;
+
+	if (!ntable || !pkt || !num || !*ntable)
+		return -1;
+
+	for (i = 0; i < num; i++) {
+		merlin_node *node = ntable[num];
+		net_sendto(node, pkt);
+	}
+
+	return 0;
 }
 
 
@@ -498,7 +512,7 @@ static void check_node_activity(merlin_node *node)
  */
 static int handle_network_event(merlin_node *node, merlin_event *pkt)
 {
-	uint i, forward_to_pollers = 0;
+	uint i;
 
 	if (pkt->hdr.type == CTRL_PACKET) {
 		/*
@@ -535,10 +549,19 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 	} else if (node->type == MODE_POLLER && num_masters) {
 		ldebug("Passing on event from poller %s to %d masters",
 		       node->name, num_masters);
-
-		for (i = 0; i < num_masters; i++) {
-			merlin_node *noc = noc_table[i];
-			net_sendto(noc, pkt);
+		net_sendto_many(noc_table, num_masters, pkt);
+	} else if (node->type == MODE_MASTER && num_pollers) {
+		/*
+		 * @todo maybe we should also check if self.peer_id == 0
+		 * before we forward events to our pollers. Hmm...
+		 */
+		if (pkt->hdr.type != NEBCALLBACK_PROGRAM_STATUS_DATA &&
+		    pkt->hdr.type != NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA)
+		{
+			for (i = 0; i < num_pollers; i++) {
+				merlin_node *node = poller_table[i];
+				net_sendto(node, pkt);
+			}
 		}
 	}
 
@@ -566,7 +589,7 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 	/* and not all packets get sent to the database */
 	case CTRL_PACKET:
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
-		forward_to_pollers = 1;
+		net_sendto_many(poller_table, num_pollers, pkt);
 		return ipc_send_event(pkt);
 
 	case NEBCALLBACK_DOWNTIME_DATA:
@@ -586,17 +609,9 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		 * the event, which makes unusable for sending to the
 		 * ipc (or, indeed, anywhere else) afterwards.
 		 */
-		forward_to_pollers = 1;
 		ipc_send_event(pkt);
 		mrm_db_update(node, pkt);
 		return 0;
-	}
-
-	if (forward_to_pollers) {
-		for (i = 0; i < num_pollers; i++) {
-			merlin_node *poller = poller_table[i];
-			net_sendto(poller, pkt);
-		}
 	}
 
 	return 0;
