@@ -498,6 +498,8 @@ static void check_node_activity(merlin_node *node)
  */
 static int handle_network_event(merlin_node *node, merlin_event *pkt)
 {
+	uint i, forward_to_pollers = 0;
+
 	if (pkt->hdr.type == CTRL_PACKET) {
 		/*
 		 * if this is a CTRL_ALIVE packet from a remote module, we
@@ -531,8 +533,6 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 			db_mark_node_inactive(node);
 		}
 	} else if (node->type == MODE_POLLER && num_masters) {
-		uint i;
-
 		ldebug("Passing on event from poller %s to %d masters",
 		       node->name, num_masters);
 
@@ -566,6 +566,7 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 	/* and not all packets get sent to the database */
 	case CTRL_PACKET:
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
+		forward_to_pollers = 1;
 		return ipc_send_event(pkt);
 
 	case NEBCALLBACK_DOWNTIME_DATA:
@@ -585,10 +586,19 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		 * the event, which makes unusable for sending to the
 		 * ipc (or, indeed, anywhere else) afterwards.
 		 */
+		forward_to_pollers = 1;
 		ipc_send_event(pkt);
 		mrm_db_update(node, pkt);
 		return 0;
 	}
+
+	if (forward_to_pollers) {
+		for (i = 0; i < num_pollers; i++) {
+			merlin_node *poller = poller_table[i];
+			net_sendto(poller, pkt);
+		}
+	}
+
 	return 0;
 }
 
