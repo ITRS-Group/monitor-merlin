@@ -70,6 +70,12 @@ db_setup ()
 
 	case "$db_type" in
 		mysql)
+			# Try to connect to database
+			$(eval "$mysql -e ''")
+			if [ $? -ne 0 ]; then
+				echo "Couldn't connect to database, giving up."
+				exit 1
+			fi
 			new_install=0
 			# Create database if it do not exist
 			db_count=$($mysql -N -s -e "SHOW DATABASES LIKE '$db_name'" | wc -l)
