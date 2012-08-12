@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 src_dir=$(dirname $0)
 pushd "$src_dir" >/dev/null 2>&1
