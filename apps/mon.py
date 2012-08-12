@@ -2,7 +2,7 @@
 
 import os, sys, subprocess, tempfile
 
-merlin_dir = "/opt/monitor/op5/merlin"
+merlin_dir = "@@DESTDIR@@"
 libexec_dir = "/usr/libexec/merlin"
 
 module_dir = libexec_dir + '/modules'
