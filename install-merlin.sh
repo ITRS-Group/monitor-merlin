@@ -78,25 +78,25 @@ db_setup ()
 			fi
 			new_install=0
 			# Create database if it do not exist
-			db_count=$($mysql -N -s -e "SHOW DATABASES LIKE '$db_name'" | wc -l)
+			db_count=$(eval "$mysql -N -s -e \"SHOW DATABASES LIKE '$db_name'\"" | wc -l)
 			if [ $db_count -eq 0 ]; then
 				echo "Creating database $db_name"
-				$mysql -e "CREATE DATABASE IF NOT EXISTS $db_name"
+				eval "$mysql -e \"CREATE DATABASE IF NOT EXISTS $db_name\""
 				new_install=1
 			fi
 			# Always set privileges (to be on the extra safe side)
-			$mysql -e \
-			  "GRANT ALL ON $db_name.* TO $db_user@localhost IDENTIFIED BY '$db_pass'"
-			$mysql -e 'FLUSH PRIVILEGES'
+			eval "$mysql -e \
+			  \"GRANT ALL ON $db_name.* TO $db_user@localhost IDENTIFIED BY '$db_pass'\""
+			eval "$mysql -e 'FLUSH PRIVILEGES'"
 
 			# Fetch db_version and do upgrade stuff if/when needed
 			query="SELECT version FROM db_version"
-			db_version=$($mysql $db_name -BNe "$query" 2>/dev/null)
+			db_version=$(eval "$mysql $db_name -BNe \"$query\"" 2>/dev/null)
 
 			# we always run the default schema, since it drops all
 			# non-persistent tables. This must come AFTER we fetch
 			# $db_version
-			$mysql -f $db_name < $src_dir/sql/mysql/merlin.sql > /tmp/merlin-sql-upgrade.log 2>&1
+			eval "$mysql -f $db_name" < $src_dir/sql/mysql/merlin.sql > /tmp/merlin-sql-upgrade.log 2>&1
 
 			# Check for upgrade scripts
 			ver=$db_version
@@ -105,17 +105,17 @@ db_setup ()
 					nextver=$((ver+1))
 					f="$src_dir/sql/update-db-${ver}to${nextver}.sql"
 					test -f "$f" || break
-					$mysql -f $db_name < $f 2>&1 >>/tmp/merlin-sql-upgrade.log
+					eval "$mysql -f $db_name" < $f 2>&1 >>/tmp/merlin-sql-upgrade.log
 					ver=$nextver
 				done
 			fi
 			if [ $new_install -eq 1 ]; then
 				for index in $src_dir/sql/mysql/*-indexes.sql; do
-					$mysql -f $db_name < $index 2>&1 >>/tmp/merlin-sql-upgrade.log
+					eval "$mysql -f $db_name" < $index 2>&1 >>/tmp/merlin-sql-upgrade.log
 				done
 			else
 				# only check for indexes in report_data. sloppy, yes, but should be sufficient
-				idx=$($mysql $db_name -N -s -e "SHOW INDEX IN report_data" | wc -l);
+				idx=$(eval "$mysql $db_name -N -s -e \"SHOW INDEX IN report_data\"" | wc -l);
 				if [ $idx -eq '1' ]; then
 					cat <<EOF
 ***************
@@ -139,7 +139,7 @@ EOF
 			# new entries to the table to be dropped.
 			for table in report_data; do
 				echo "Dropping 'id' column from $table. This may take a while"
-				$mysql $db_name -e "ALTER TABLE $table DROP COLUMN id" &> /dev/null || :
+				eval "$mysql $db_name -e \"ALTER TABLE $table DROP COLUMN id\"" &> /dev/null || :
 			done
 			;;
 		*)
