@@ -474,7 +474,7 @@ static int net_sendto_many(merlin_node **ntable, uint num, merlin_event *pkt)
 		return -1;
 
 	for (i = 0; i < num; i++) {
-		merlin_node *node = ntable[num];
+		merlin_node *node = ntable[i];
 		net_sendto(node, pkt);
 	}
 
