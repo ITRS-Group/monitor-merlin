@@ -105,7 +105,7 @@ DROP TABLE IF EXISTS contact;
 CREATE TABLE contact(
 	instance_id							INT NOT NULL DEFAULT 0,
 	id								    INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	contact_name					    VARCHAR(75),
+	contact_name					    VARCHAR(255),
 	alias							    VARCHAR(160) NOT NULL,
 	host_notifications_enabled			BOOL,
 	service_notifications_enabled		BOOL,
@@ -143,7 +143,7 @@ DROP TABLE IF EXISTS contactgroup;
 CREATE TABLE contactgroup(
 	instance_id			int NOT NULL DEFAULT 0,
 	id					INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	contactgroup_name	VARCHAR(75) NOT NULL,
+	contactgroup_name	VARCHAR(255) NOT NULL,
 	alias				VARCHAR(160) NOT NULL
 ) COLLATE latin1_general_cs;
 CREATE UNIQUE INDEX contactgroup_name ON contactgroup(contactgroup_name);
@@ -152,7 +152,7 @@ DROP TABLE IF EXISTS timeperiod;
 CREATE TABLE timeperiod(
 	instance_id				int NOT NULL DEFAULT 0,
 	id						INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	timeperiod_name			VARCHAR(75) NOT NULL,
+	timeperiod_name			VARCHAR(255) NOT NULL,
 	alias					VARCHAR(160) NOT NULL,
 	sunday					VARCHAR(255),
 	monday					VARCHAR(255),
@@ -176,7 +176,7 @@ DROP TABLE IF EXISTS command;
 CREATE TABLE command(
 	instance_id		int NOT NULL DEFAULT 0,
 	id				INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	command_name	VARCHAR(75) NOT NULL,
+	command_name	VARCHAR(255) NOT NULL,
 	command_line	BLOB NOT NULL
 ) COLLATE latin1_general_cs;
 CREATE UNIQUE INDEX c_command_name ON command(command_name);
@@ -187,7 +187,7 @@ DROP TABLE IF EXISTS host;
 CREATE TABLE host(
 	instance_id						int NOT NULL DEFAULT 0,
 	id								INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	host_name						VARCHAR(75),
+	host_name						VARCHAR(255),
 	alias							VARCHAR(100) NOT NULL,
 	display_name					VARCHAR(100),
 	address							VARCHAR(75) NOT NULL,
@@ -198,7 +198,7 @@ CREATE TABLE host(
 	retry_interval					SMALLINT,
 	active_checks_enabled			BOOL,
 	passive_checks_enabled			BOOL,
-	check_period					VARCHAR(75),
+	check_period					VARCHAR(255),
 	obsess_over_host				BOOL,
 	check_freshness					BOOL,
 	freshness_threshold				FLOAT,
@@ -214,7 +214,7 @@ CREATE TABLE host(
 	retain_nonstatus_information	BOOL,
 	notification_interval			MEDIUMINT,
 	first_notification_delay		INT,
-	notification_period				VARCHAR(75),
+	notification_period				VARCHAR(255),
 	notification_options			VARCHAR(15),
 	notifications_enabled			BOOL,
 	stalking_options				VARCHAR(15),
@@ -332,7 +332,7 @@ DROP TABLE IF EXISTS hostgroup;
 CREATE TABLE hostgroup(
 	instance_id			int NOT NULL DEFAULT 0,
 	id 		 			INT NOT NULL PRIMARY KEY,
-	hostgroup_name		VARCHAR(75),
+	hostgroup_name		VARCHAR(255),
 	alias				VARCHAR(160),
 	notes				VARCHAR(160),
 	notes_url			VARCHAR(160),
@@ -345,8 +345,8 @@ DROP TABLE IF EXISTS service;
 CREATE TABLE service(
 	instance_id						int NOT NULL DEFAULT 0,
 	id								INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	host_name						VARCHAR(75) NOT NULL,
-	service_description				VARCHAR(160) NOT NULL,
+	host_name						VARCHAR(255) NOT NULL,
+	service_description				VARCHAR(255) NOT NULL,
 	display_name					VARCHAR(160),
 	is_volatile						BOOL,
 	check_command					TEXT,
@@ -356,7 +356,7 @@ CREATE TABLE service(
 	retry_interval					SMALLINT,
 	active_checks_enabled			BOOL,
 	passive_checks_enabled			BOOL,
-	check_period					VARCHAR(75),
+	check_period					VARCHAR(255),
 	parallelize_check				BOOL,
 	obsess_over_service				BOOL,
 	check_freshness					BOOL,
@@ -373,7 +373,7 @@ CREATE TABLE service(
 	retain_nonstatus_information	BOOL,
 	notification_interval			INT,
 	first_notification_delay		INT,
-	notification_period				VARCHAR(75),
+	notification_period				VARCHAR(255),
 	notification_options			VARCHAR(15),
 	notifications_enabled			BOOL,
 	stalking_options				VARCHAR(15),
@@ -482,7 +482,7 @@ DROP TABLE IF EXISTS servicegroup;
 CREATE TABLE servicegroup(
 	instance_id			int NOT NULL DEFAULT 0,
 	id					INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	servicegroup_name	VARCHAR(75) NOT NULL,
+	servicegroup_name	VARCHAR(255) NOT NULL,
 	alias				VARCHAR(160) NOT NULL,
 	notes				VARCHAR(160),
 	notes_url			VARCHAR(160),
@@ -497,7 +497,7 @@ CREATE TABLE servicedependency(
 	id								INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	service							INT NOT NULL,
 	dependent_service				INT NOT NULL,
-	dependency_period				VARCHAR(75),
+	dependency_period				VARCHAR(255),
 	inherits_parent					BOOL,
 	execution_failure_options		VARCHAR(15),
 	notification_failure_options	VARCHAR(15)
@@ -512,7 +512,7 @@ CREATE TABLE serviceescalation(
 	first_notification				MEDIUMINT,
 	last_notification				MEDIUMINT,
 	notification_interval			MEDIUMINT,
-	escalation_period				VARCHAR(75),
+	escalation_period				VARCHAR(255),
 	escalation_options				VARCHAR(15)
 ) COLLATE latin1_general_cs;
 
@@ -538,7 +538,7 @@ CREATE TABLE hostdependency(
 	id								INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	host_name						INT NOT NULL,
 	dependent_host_name				INT NOT NULL,
-	dependency_period				VARCHAR(75),
+	dependency_period				VARCHAR(255),
 	inherits_parent					BOOL,
 	execution_failure_options		VARCHAR(15),
 	notification_failure_options	VARCHAR(15)
@@ -552,7 +552,7 @@ CREATE TABLE hostescalation(
 	first_notification				INT,
 	last_notification				INT,
 	notification_interval			INT,
-	escalation_period				VARCHAR(75),
+	escalation_period				VARCHAR(255),
 	escalation_options				VARCHAR(15)
 ) COLLATE latin1_general_cs;
 
@@ -634,8 +634,8 @@ CREATE TABLE IF NOT EXISTS report_data (
   event_type int(11) NOT NULL default '0',
   flags int(11),
   attrib int(11),
-  host_name varchar(160) default '',
-  service_description varchar(160) default '',
+  host_name varchar(255) default '',
+  service_description varchar(255) default '',
   state int(2) NOT NULL default '0',
   hard int(2) NOT NULL default '0',
   retry int(5) NOT NULL default '0',
@@ -654,8 +654,8 @@ CREATE TABLE IF NOT EXISTS report_data_extras LIKE report_data;
 --
 CREATE TABLE IF NOT EXISTS perfdata(
 	timestamp  int(11) NOT NULL,
-	host_name  varchar(70) NOT NULL,
-	service_description varchar(200),
+	host_name  varchar(255) NOT NULL,
+	service_description varchar(255),
 	perfdata TEXT NOT NULL
 );
 

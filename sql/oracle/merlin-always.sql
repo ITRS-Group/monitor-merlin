@@ -91,7 +91,7 @@ DROP TABLE contact CASCADE CONSTRAINTS;
 CREATE TABLE contact (
   instance_id NUMBER(10,0) DEFAULT '0' NOT NULL,
   id NUMBER(10,0) NOT NULL,
-  contact_name VARCHAR2(75 CHAR),
+  contact_name VARCHAR2(255 CHAR),
   alias VARCHAR2(160 CHAR) NOT NULL,
   host_notifications_enabled NUMBER(3,0),
   service_notifications_enabled NUMBER(3,0),
@@ -140,7 +140,7 @@ DROP TABLE contactgroup CASCADE CONSTRAINTS;
 CREATE TABLE contactgroup (
   instance_id NUMBER(10,0) DEFAULT '0' NOT NULL,
   id NUMBER(10,0) NOT NULL,
-  contactgroup_name VARCHAR2(75 CHAR) NOT NULL,
+  contactgroup_name VARCHAR2(255 CHAR) NOT NULL,
   alias VARCHAR2(160 CHAR) NOT NULL
 );
 ALTER TABLE contactgroup ADD CONSTRAINT PRIMARY_9 PRIMARY KEY(id) ENABLE;
@@ -167,7 +167,7 @@ DROP TABLE host CASCADE CONSTRAINTS;
 CREATE TABLE host (
   instance_id NUMBER(10,0) DEFAULT '0' NOT NULL,
   id NUMBER(10,0) NOT NULL,
-  host_name VARCHAR2(75 CHAR),
+  host_name VARCHAR2(255 CHAR),
   alias VARCHAR2(100 CHAR) DEFAULT NULL, -- should be NOT NULL, but is DEFAULT NULL for compat. with a MySQL bug.
   display_name VARCHAR2(100 CHAR),
   address VARCHAR2(75 CHAR) DEFAULT NULL,  -- should be NOT NULL, but is DEFAULT NULL for compat. with a MySQL bug.
@@ -178,7 +178,7 @@ CREATE TABLE host (
   retry_interval NUMBER(5,0),
   active_checks_enabled NUMBER(3,0),
   passive_checks_enabled NUMBER(3,0),
-  check_period VARCHAR2(75 CHAR),
+  check_period VARCHAR2(255 CHAR),
   obsess_over_host NUMBER(3,0),
   check_freshness NUMBER(3,0),
   freshness_threshold FLOAT,
@@ -194,7 +194,7 @@ CREATE TABLE host (
   retain_nonstatus_information NUMBER(3,0),
   notification_interval NUMBER(12,0),
   first_notification_delay NUMBER(10,0),
-  notification_period VARCHAR2(75 CHAR),
+  notification_period VARCHAR2(255 CHAR),
   notification_options VARCHAR2(15 CHAR),
   notifications_enabled NUMBER(3,0),
   stalking_options VARCHAR2(15 CHAR),
@@ -313,7 +313,7 @@ CREATE TABLE hostdependency (
   id NUMBER(10,0) NOT NULL,
   host_name NUMBER(10,0) NOT NULL,
   dependent_host_name NUMBER(10,0) NOT NULL,
-  dependency_period VARCHAR2(75 CHAR),
+  dependency_period VARCHAR2(255 CHAR),
   inherits_parent NUMBER(3,0),
   execution_failure_options VARCHAR2(15 CHAR),
   notification_failure_options VARCHAR2(15 CHAR)
@@ -328,7 +328,7 @@ CREATE TABLE hostescalation (
   first_notification NUMBER(10,0),
   last_notification NUMBER(10,0),
   notification_interval NUMBER(10,0),
-  escalation_period VARCHAR2(75 CHAR),
+  escalation_period VARCHAR2(255 CHAR),
   escalation_options VARCHAR2(15 CHAR)
 );
 ALTER TABLE hostescalation ADD CONSTRAINT PRIMARY_2 PRIMARY KEY(id) ENABLE;
@@ -351,7 +351,7 @@ DROP TABLE hostgroup CASCADE CONSTRAINTS;
 CREATE TABLE hostgroup (
   instance_id NUMBER(10,0) DEFAULT '0' NOT NULL,
   id NUMBER(10,0) NOT NULL,
-  hostgroup_name VARCHAR2(75 CHAR),
+  hostgroup_name VARCHAR2(255 CHAR),
   alias VARCHAR2(160 CHAR),
   notes VARCHAR2(160 CHAR),
   notes_url VARCHAR2(160 CHAR),
@@ -417,8 +417,8 @@ DROP TABLE service CASCADE CONSTRAINTS;
 CREATE TABLE service (
   instance_id NUMBER(10,0) DEFAULT '0' NOT NULL,
   id NUMBER(10,0) NOT NULL,
-  host_name VARCHAR2(75 CHAR) DEFAULT NULL,  -- should be NOT NULL, but is DEFAULT NULL for compat. with a MySQL bug.
-  service_description VARCHAR2(160 CHAR) NOT NULL,
+  host_name VARCHAR2(255 CHAR) DEFAULT NULL,  -- should be NOT NULL, but is DEFAULT NULL for compat. with a MySQL bug.
+  service_description VARCHAR2(255 CHAR) NOT NULL,
   display_name VARCHAR2(160 CHAR),
   is_volatile NUMBER(3,0),
   check_command CLOB,
@@ -428,7 +428,7 @@ CREATE TABLE service (
   retry_interval NUMBER(5,0),
   active_checks_enabled NUMBER(3,0),
   passive_checks_enabled NUMBER(3,0),
-  check_period VARCHAR2(75 CHAR),
+  check_period VARCHAR2(255 CHAR),
   parallelize_check NUMBER(3,0),
   obsess_over_service NUMBER(3,0),
   check_freshness NUMBER(3,0),
@@ -445,7 +445,7 @@ CREATE TABLE service (
   retain_nonstatus_information NUMBER(3,0),
   notification_interval NUMBER(10,0),
   first_notification_delay NUMBER(10,0),
-  notification_period VARCHAR2(75 CHAR),
+  notification_period VARCHAR2(255 CHAR),
   notification_options VARCHAR2(15 CHAR),
   notifications_enabled NUMBER(3,0),
   stalking_options VARCHAR2(15 CHAR),
@@ -554,7 +554,7 @@ CREATE TABLE servicedependency (
   id NUMBER(10,0) NOT NULL,
   service NUMBER(10,0) NOT NULL,
   dependent_service NUMBER(10,0) NOT NULL,
-  dependency_period VARCHAR2(75 CHAR),
+  dependency_period VARCHAR2(255 CHAR),
   inherits_parent NUMBER(3,0),
   execution_failure_options VARCHAR2(15 CHAR),
   notification_failure_options VARCHAR2(15 CHAR)
@@ -569,7 +569,7 @@ CREATE TABLE serviceescalation (
   first_notification NUMBER(12,0),
   last_notification NUMBER(12,0),
   notification_interval NUMBER(12,0),
-  escalation_period VARCHAR2(75 CHAR),
+  escalation_period VARCHAR2(255 CHAR),
   escalation_options VARCHAR2(15 CHAR)
 );
 ALTER TABLE serviceescalation ADD CONSTRAINT PRIMARY_3 PRIMARY KEY(id) ENABLE;
@@ -592,7 +592,7 @@ DROP TABLE servicegroup CASCADE CONSTRAINTS;
 CREATE TABLE servicegroup (
   instance_id NUMBER(10,0) DEFAULT '0' NOT NULL,
   id NUMBER(10,0) NOT NULL,
-  servicegroup_name VARCHAR2(75 CHAR) NOT NULL,
+  servicegroup_name VARCHAR2(255 CHAR) NOT NULL,
   alias VARCHAR2(160 CHAR) NOT NULL,
   notes VARCHAR2(160 CHAR),
   notes_url VARCHAR2(160 CHAR),
@@ -605,7 +605,7 @@ DROP TABLE timeperiod CASCADE CONSTRAINTS;
 CREATE TABLE timeperiod (
   instance_id NUMBER(10,0) DEFAULT '0' NOT NULL,
   id NUMBER(10,0) NOT NULL,
-  timeperiod_name VARCHAR2(75 CHAR) NOT NULL,
+  timeperiod_name VARCHAR2(255 CHAR) NOT NULL,
   alias VARCHAR2(160 CHAR) NOT NULL,
   sunday VARCHAR2(255 CHAR),
   monday VARCHAR2(255 CHAR),

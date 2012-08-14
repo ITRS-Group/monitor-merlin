@@ -33,8 +33,8 @@ CREATE INDEX n_contact_name ON notification(contact_name);
 
 CREATE TABLE perfdata (
   timestamp NUMBER(10,0) NOT NULL,
-  host_name VARCHAR2(70 CHAR) NOT NULL,
-  service_description VARCHAR2(200 CHAR),
+  host_name VARCHAR2(255 CHAR) NOT NULL,
+  service_description VARCHAR2(255 CHAR),
   perfdata CLOB NOT NULL
 );
 CREATE INDEX pd_time ON perfdata(timestamp);
@@ -46,8 +46,8 @@ CREATE TABLE report_data (
   event_type NUMBER(10,0) DEFAULT '0' NOT NULL,
   flags NUMBER(10,0),
   attrib NUMBER(10,0),
-  host_name VARCHAR2(160 CHAR),
-  service_description VARCHAR2(160 CHAR),
+  host_name VARCHAR2(255 CHAR),
+  service_description VARCHAR2(255 CHAR),
   state NUMBER(10,0) DEFAULT '0' NOT NULL,
   hard NUMBER(10,0) DEFAULT '0' NOT NULL,
   retry NUMBER(10,0) DEFAULT '0' NOT NULL,
