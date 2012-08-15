@@ -169,9 +169,6 @@ int ipc_init(void)
 
 	slen = strlen(ipc_sock_path);
 
-	if (!ipc_sock_path)
-		ipc_sock_path = strdup("/opt/monitor/op5/mrd/socket.mrd");
-
 	if (!quiet) {
 		linfo("Initializing IPC socket '%s' for %s", ipc_sock_path,
 		      is_module ? "module" : "daemon");
