@@ -262,7 +262,7 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 	result = sql_query
 		("UPDATE program_status SET is_running = 1, "
 		 "last_alive = %lu, program_start = %lu, pid = %d, daemon_mode = %d, "
-		 "last_command_check = %lu, last_log_rotation = %lu, "
+		 "last_log_rotation = %lu, "
 		 "notifications_enabled = %d, "
 		 "active_service_checks_enabled = %d, passive_service_checks_enabled = %d, "
 		 "active_host_checks_enabled = %d, passive_host_checks_enabled = %d, "
@@ -279,7 +279,7 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 		 "node_type = %d, config_hash = '%s' "
 		 "WHERE instance_id = %d",
 		 time(NULL), p->program_start, p->pid, p->daemon_mode,
-		 p->last_command_check, p->last_log_rotation,
+		 p->last_log_rotation,
 		 p->notifications_enabled,
 		 p->active_service_checks_enabled, p->passive_service_checks_enabled,
 		 p->active_host_checks_enabled, p->passive_host_checks_enabled,
