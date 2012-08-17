@@ -15,7 +15,6 @@ sched_info scheduling_info;
 #define num_hosts scheduling_info.total_hosts
 #define num_services scheduling_info.total_services
 int __nagios_object_structure_version = CURRENT_OBJECT_STRUCTURE_VERSION;
-pthread_mutex_t nagios_downtime_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static nagios_macros global_macros;
 int add_new_comment(int comment_type, int entry_type, char *host_name, char *service_description, time_t entry_time, char *author_name, char *comment_data, int persistent, int source, int expires, time_t expire_time, unsigned long *comment_id)
@@ -37,7 +36,7 @@ nagios_macros *get_global_macros(void)
 }
 
 /* nagios functions we must have for dlopen() to work properly */
-int schedule_new_event(int a, int b, time_t c, int d, unsigned long e,
+timed_event *schedule_new_event(int a, int b, time_t c, int d, unsigned long e,
 					   void *f, int g, void *h, void *i, int j)
 {
 	return 0;
