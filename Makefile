@@ -7,8 +7,6 @@ else
 	SYS_CFLAGS = -pipe $(WARN_FLAGS) -ggdb3 -fPIC -fno-strict-aliasing -rdynamic
 endif
 
-PTHREAD_LDFLAGS = -pthread
-PTHREAD_CFLAGS = -pthread
 LIB_DL = -ldl
 LIB_NET =
 SYM_EXPORT = -Wl,-export-dynamic
@@ -28,7 +26,6 @@ endif
 ifeq ($(uname_S),SunOS)
 	TWEAK_CPPFLAGS = -I/usr/local/include
 	LIB_NET = -lnsl -lsocket -lresolv
-	PTHREAD_LDFLAGS =
 	PTHREAD_CFLAGS =
 	NEEDS_MEMRCHR = YesPlease
 	NEEDS_ASPRINTF = YesPlease
@@ -40,7 +37,7 @@ NAGIOS_PREFIX ?= /usr/local/nagios/
 ALL_CFLAGS = $(CFLAGS) $(TWEAK_CPPFLAGS) $(SYS_CFLAGS) $(CPPFLAGS) $(PTHREAD_CFLAGS)
 ALL_CFLAGS += -D__USE_FILE_OFFSET64
 ALL_CFLAGS += -I$(NAGIOS_PREFIX)/include
-ALL_LDFLAGS = $(LDFLAGS) $(TWEAK_LDFLAGS) $(PTHREAD_LDFLAGS)
+ALL_LDFLAGS = $(LDFLAGS) $(TWEAK_LDFLAGS)
 LIBNAGIOS_LDFLAGS = -L$(NAGIOS_PREFIX)/lib -lnagios
 WARN_FLAGS = -Wall -Wno-unused-parameter
 #WARN_FLAGS += -Wextra# is not supported on older gcc versions.
@@ -92,11 +89,11 @@ RENAME_OBJS = $(APP_OBJS) rename.o logutils.o lparse.o $(DBWRAP_OBJS)
 NEBTEST_OBJS = $(TEST_OBJS) nebtest.o
 DEPS = Makefile cfgfile.h ipc.h mrln_logging.h shared.h
 APPS = showlog import oconf ocimp rename
-MOD_LDFLAGS = -shared -ggdb3 -fPIC $(PTHREAD_LDFLAGS)
+MOD_LDFLAGS = -shared -ggdb3 -fPIC
 DAEMON_LIBS = $(LIB_NET)
 DAEMON_LDFLAGS = $(DAEMON_LIBS) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) -ggdb3
 MTEST_LIBS = $(LIB_DL) $(LIB_NET)
-MTEST_LDFLAGS = $(MTEST_LIBS) $(DB_LDFLAGS) -ggdb3 $(SYM_EXPORT) $(PTHREAD_LDFLAGS) $(LIBNAGIOS_LDFLAGS)
+MTEST_LDFLAGS = $(MTEST_LIBS) $(DB_LDFLAGS) -ggdb3 $(SYM_EXPORT) $(LIBNAGIOS_LDFLAGS)
 NEBTEST_LIBS = $(LIB_DL) $(LIB_NET)
 NEBTEST_LDFLAGS = $(SYM_EXPORT) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS)
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef

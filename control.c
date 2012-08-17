@@ -6,39 +6,11 @@
 #include "slist.h"
 #include <nagios.h>
 
-static time_t stall_start;
 static merlin_node **peerid_table;
 static slist *host_sl, *service_sl;
 extern sched_info scheduling_info;
 extern host *host_list;
 extern service *service_list;
-
-/* return number of stalling seconds remaining */
-#define STALL_TIMER 20
-int is_stalling(void)
-{
-	/* stall_start is set to 0 when we stop stalling */
-	if (stall_start && stall_start + STALL_TIMER > time(NULL))
-		return (stall_start + STALL_TIMER) - time(NULL);
-
-	stall_start = 0;
-	return 0;
-}
-
-/*
- * we use setter functions for these, so we can start stalling
- * after having sent the paths without having to implement the
- * way we mark and unmark stalling in multiple places
- */
-void ctrl_stall_start(void)
-{
-	stall_start = time(NULL);
-}
-
-void ctrl_stall_stop(void)
-{
-	stall_start = 0;
-}
 
 static int host_cmp(const void *a_, const void *b_)
 {

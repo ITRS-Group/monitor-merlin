@@ -1,3 +1,4 @@
+#include <libnagios/iobroker.h>
 #include "module.h"
 #include <nagios.h>
 #include <objects.h>
@@ -7,6 +8,8 @@
 #include <comments.h>
 #include <common.h>
 #include <downtime.h>
+
+extern iobroker_set *nagios_iobs;
 
 time_t merlin_should_send_paths = 1;
 
@@ -21,10 +24,7 @@ extern comment *comment_list;
 /** code start **/
 extern hostgroup *hostgroup_list;
 static int mrm_reap_interval = 2;
-static pthread_t reaper_thread;
-static int cancel_reaping;
 static int merlin_sendpath_interval = MERLIN_SENDPATH_INTERVAL;
-static int cancel_threads = 1;
 
 /*
  * user-defined filters, used as or-gate. Defaults to
@@ -36,16 +36,6 @@ static int cancel_threads = 1;
  * See grok_module_compound() for further details
  */
 static uint32_t event_mask;
-
-/**
- * For some weird reason, the reaper_thread variable has to
- * be static, or we'll invariably bomb out in merlin_decode().
- * Weird, but true.
- */
-int in_reaper_thread(void)
-{
-	return pthread_self() == reaper_thread;
-}
 
 /*
  * handle_{host,service}_result() is basically identical to
@@ -366,65 +356,30 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	return 0;
 }
 
-/*
- * Let's hope Nagios is up to scratch wrt thread-safety
- */
-static void *ipc_reaper(void *discard)
+static int ipc_reaper(int sd, int events, void *arg)
 {
-	linfo("ipc reaper with thread id %ld reporting in", pthread_self());
+	merlin_node *source = (merlin_node *)arg;
+	int recv_result;
+	merlin_event *pkt;
 
-	/* one loop to rule them all... */
-	while (!cancel_reaping) {
-		int recv_result;
-		merlin_event *pkt;
-
-		pthread_testcancel();
-
-		/*
-		 * we mustn't attempt to connect here since that could
-		 * cause a race condition in the socket layer and the
-		 * binlog api (when we attempt to send paths).
-		 * If we're not connected, we sleep a little while to
-		 * make sure we don't hog the cpu.
-		 * The pulses we send ensure that we try to connect
-		 * at least every MERLIN_PULSE_INTERVAL, which is 10
-		 * seconds and should be good enough.
-		 */
-		if (ipc.sock < 0) {
-			usleep(50000);
-			continue;
-		}
-
-		/*
-		 * in order for cancel_reaping to kick in, we must
-		 * make sure not to hang in recv() indefinitely
-		 */
-		if (io_read_ok(ipc.sock, 1000) <= 0) {
-			continue;
-		}
-
-		/* we block while reading */
-		recv_result = node_recv(&ipc, 0);
-
-		/* and then just loop over the received packets */
-		while (!cancel_reaping && (pkt = node_get_event(&ipc))) {
-			merlin_node *node = node_by_id(pkt->hdr.selection);
-
-			pthread_testcancel();
-
-			if (node)
-				node->last_recv = time(NULL);
-
-			/* control packets are handled separately */
-			if (pkt->hdr.type == CTRL_PACKET) {
-				handle_control(node, pkt);
-			} else {
-				handle_ipc_event(node, pkt);
-			}
-		}
+	if ((recv_result = node_recv(source, 0)) <= 0) {
+		return 1;
 	}
 
-	linfo("ipc reaper with thread id %ld signing off", pthread_self());
+	/* and then just loop over the received packets */
+	while ((pkt = node_get_event(source))) {
+		merlin_node *node = node_by_id(pkt->hdr.selection);
+
+		if (node)
+			node->last_recv = time(NULL);
+
+		/* control packets are handled separately */
+		if (pkt->hdr.type == CTRL_PACKET) {
+			handle_control(node, pkt);
+		} else {
+			handle_ipc_event(node, pkt);
+		}
+	}
 
 	return 0;
 }
@@ -577,10 +532,6 @@ static void grok_module_compound(struct cfg_comp *comp)
 		if (!strcmp(v->key, "ignore_events")) {
 			if (parse_event_filter(v->value, &ignore_events) < 0)
 				cfg_error(comp, v, "Illegal value for %s", v->key);
-			continue;
-		}
-		if (!strcmp(v->key, "cancel_threads")) {
-			cancel_threads = strtobool(v->value);
 			continue;
 		}
 
@@ -767,12 +718,6 @@ int send_paths(void)
 	 * wait until the import is completed
 	 */
 	ctrl_stall_start();
-	ldebug("Stalling up to %d seconds while awaiting CTRL_RESUME",
-		   is_stalling());
-	while (is_stalling()) {
-		usleep(500);
-	}
-	ldebug("Stalling done");
 	return 0;
 }
 
@@ -784,8 +729,6 @@ int send_paths(void)
  */
 static int post_config_init(int cb, void *ds)
 {
-	int result;
-
 	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
 		return 0;
 
@@ -812,13 +755,6 @@ static int post_config_init(int cb, void *ds)
 	 */
 	register_merlin_hooks(event_mask);
 
-	/* now we create the ipc reaper thread and send the paths */
-	result = pthread_create(&reaper_thread, NULL, ipc_reaper, NULL);
-	if (result) {
-		lerr("Failed to create reaper thread: %s", strerror(result));
-	} else {
-		linfo("Successfully created ipc reaper with thread id %ld", reaper_thread);
-	}
 	send_paths();
 
 	/*
@@ -850,6 +786,12 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	if (prev_state == STATE_CONNECTED && is_stalling()) {
 		ctrl_stall_stop();
 		merlin_should_send_paths = 1;
+	}
+
+	if (ipc.state == STATE_CONNECTED) {
+		iobroker_register(nagios_iobs, ipc.sock, (void *)&ipc, ipc_reaper);
+	} else {
+		iobroker_unregister(nagios_iobs, ipc.sock);
 	}
 
 	/*
@@ -962,24 +904,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
  */
 int nebmodule_deinit(int flags, int reason)
 {
-	int ret;
-
 	linfo("Unloading Merlin module");
-	if (reaper_thread && cancel_threads) {
-		pthread_cancel(reaper_thread);
-	}
-	cancel_reaping = 1;
-	if (reaper_thread) {
-		ret = pthread_join(reaper_thread, NULL);
-		if (ret) {
-			lerr("Failed to join reaper thread: %s", strerror(errno));
-		} else {
-			linfo("Successfully joined reaper thread");
-		}
-	} else {
-		lwarn("No reaper thread running, or one is running with id 0.");
-		lwarn("You might want to check for filedescriptor leaks.");
-	}
 
 	log_deinit();
 	ipc_deinit();
