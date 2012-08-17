@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/time.h>
+#include <libnagios/iocache.h>
 #include "cfgfile.h"
 #include "binlog.h"
 
@@ -152,13 +153,6 @@ typedef struct merlin_confsync merlin_confsync;
  * receive buffer, so that's what we stick with
  */
 #define MERLIN_IOC_BUFSIZE (256 * 1024)
-struct merlin_iocache {
-	char *ioc_buf;             /* the data */
-	unsigned long ioc_offset;  /* where we're reading in the buffer */
-	unsigned long ioc_buflen;  /* the amount of data read into the buffer */
-	unsigned long ioc_bufsize; /* size of the buffer */
-};
-typedef struct merlin_iocache merlin_iocache;
 
 struct statistics_vars {
 	unsigned long long sent, read, logged, dropped;
@@ -214,7 +208,7 @@ struct merlin_node {
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
 	binlog *binlog;         /* binary backlog for this node */
 	merlin_node_stats stats; /* event/data statistics */
-	merlin_iocache ioc;     /* I/O cache for bulk reads */
+	iocache *ioc;     /* I/O cache for bulk reads */
 	merlin_confsync *csync; /* config synchronization configuration */
 	int (*action)(struct merlin_node *, int); /* (daemon) action handler */
 };
@@ -234,7 +228,7 @@ extern void node_log_event_count(merlin_node *node, int force);
 extern void node_disconnect(merlin_node *node, const char *reason);
 extern int node_send(merlin_node *node, void *data, int len, int flags);
 extern int node_send_event(merlin_node *node, merlin_event *pkt, int msec);
-extern int node_recv(merlin_node *node, int flags);
+extern int node_recv(merlin_node *node);
 extern merlin_event *node_get_event(merlin_node *node);
 extern int node_send_binlog(merlin_node *node, merlin_event *pkt);
 extern const char *node_state(merlin_node *node);

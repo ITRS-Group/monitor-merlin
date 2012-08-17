@@ -362,7 +362,7 @@ static int ipc_reaper(int sd, int events, void *arg)
 	int recv_result;
 	merlin_event *pkt;
 
-	if ((recv_result = node_recv(source, 0)) <= 0) {
+	if ((recv_result = node_recv(source)) <= 0) {
 		return 1;
 	}
 
@@ -921,7 +921,7 @@ int nebmodule_deinit(int flags, int reason)
 	 * Nagios' command pipe. We also (currently) loose
 	 * the ipc binlog, if any, which is slightly annoying
 	 */
-	safe_free(ipc.ioc.ioc_buf);
+	iocache_destroy(ipc.ioc);
 	safe_free(node_table);
 	binlog_wipe(ipc.binlog, BINLOG_UNLINK);
 

@@ -628,7 +628,7 @@ static int net_input(merlin_node *node)
 	int len, events = 0;
 
 	errno = 0;
-	len = node_recv(node, MSG_DONTWAIT);
+	len = node_recv(node);
 	if (len < 0) {
 		return 0;
 	}

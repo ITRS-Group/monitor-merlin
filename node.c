@@ -90,7 +90,7 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 		/* mark this so we can disconnect nodes that never send data */
 		node->last_recv = time(NULL);
 
-		set_socket_options(node->sock, (int)node->ioc.ioc_bufsize);
+		set_socket_options(node->sock, iocache_size(node->ioc));
 		getsockopt(node->sock, SOL_SOCKET, SO_SNDBUF, &snd, &size);
 		getsockopt(node->sock, SOL_SOCKET, SO_SNDBUF, &rcv, &size);
 		ldebug("send / receive buffers are %s / %s for node %s",
@@ -585,7 +585,7 @@ void node_disconnect(merlin_node *node, const char *reason)
 	node->sock = -1;
 	node_set_state(node, STATE_NONE, reason);
 	node->last_recv = 0;
-	node->ioc.ioc_buflen = node->ioc.ioc_offset = 0;
+	iocache_reset(node->ioc);
 }
 
 static int node_binlog_add(merlin_node *node, merlin_event *pkt)
@@ -651,29 +651,16 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
  * to this point, and if the caller wants to poll the
  * socket for input, it'll have to do so itself.
  */
-int node_recv(merlin_node *node, int flags)
+int node_recv(merlin_node *node)
 {
-	int to_read, bytes_read;
-	merlin_iocache *ioc = &node->ioc;
+	int bytes_read;
+	iocache *ioc = node->ioc;
 
 	if (!node || node->sock < 0) {
 		return -1;
 	}
 
-	/*
-	 * first check if we've managed to read our fill. This
-	 * prevents us from ending up in an infinite loop in case
-	 * we hit the bufsize with both buflen and offset
-	 */
-	if (ioc->ioc_offset >= ioc->ioc_buflen)
-		ioc->ioc_offset = ioc->ioc_buflen = 0;
-
-	to_read = ioc->ioc_bufsize - ioc->ioc_buflen;
-	if (!to_read) {
-		ldebug("!to_read: ioc->ioc_bufsize: %lu; ioc->ioc_buflen: %lu",
-			   ioc->ioc_bufsize, ioc->ioc_buflen);
-	}
-	bytes_read = recv(node->sock, ioc->ioc_buf + ioc->ioc_buflen, to_read, flags);
+	bytes_read = iocache_read(ioc, node->sock);
 
 	/*
 	 * If we read something, update the stat counter
@@ -681,7 +668,6 @@ int node_recv(merlin_node *node, int flags)
 	 * input as it sees fit
 	 */
 	if (bytes_read > 0) {
-		ioc->ioc_buflen += bytes_read;
 		node->stats.bytes.read += bytes_read;
 		return bytes_read;
 	}
@@ -698,15 +684,13 @@ int node_recv(merlin_node *node, int flags)
 	 * letting the write machinery attempt to reconnect later
 	 */
 	if (bytes_read < 0) {
-		lerr("Failed to recv() %d bytes from %s node %s: %s",
-		     to_read, node_type(node), node->name, strerror(errno));
-		ldebug("sock: %d; buf: %p; buflen: %lu; offset: %lu; bufsize: %lu",
-		       node->sock, ioc->ioc_buf, ioc->ioc_buflen, ioc->ioc_offset, ioc->ioc_bufsize);
+		lerr("Failed to read from %s node %s: %s",
+		     node_type(node), node->name, strerror(errno));
 	}
 
 	/* zero-read. We've been disconnected for some reason */
-	ldebug("to_read: %d; bytes_read: %d; errno: %d; strerror(%d): %s",
-		   to_read, bytes_read, errno, errno, strerror(errno));
+	ldebug("bytes_read: %d; errno: %d; strerror(%d): %s",
+		   bytes_read, errno, errno, strerror(errno));
 	node_disconnect(node, "recv() failed");
 	return -1;
 }
@@ -775,47 +759,24 @@ int node_send(merlin_node *node, void *data, int len, int flags)
 merlin_event *node_get_event(merlin_node *node)
 {
 	merlin_event *pkt;
-	merlin_iocache *ioc = &node->ioc;
-	int available;
+	iocache *ioc = node->ioc;
+
+	pkt = (merlin_event *)(iocache_use_size(ioc, HDR_SIZE));
 
 	/*
-	 * if we've read it all, mark the buffer as such so we can
-	 * read as much as possible the next time we read. If we don't
-	 * do this, we might end up with an infinite loop since it's
-	 * possible we run into buflen and offset both being the same
-	 * as bufsize, and thus we will issue zero-size reads and
-	 * never get any new events from the node.
-	 *
-	 * This must come before we assign pkt into the ioc->ioc_buf,
-	 * since we may otherwise try to read beyond the end of the
-	 * buffer.
+	 * buffer is empty
 	 */
-	if (ioc->ioc_offset >= ioc->ioc_buflen) {
-		ioc->ioc_offset = ioc->ioc_buflen = 0;
+	if (pkt == NULL) {
 		return NULL;
 	}
 
-	pkt = (merlin_event *)(ioc->ioc_buf + ioc->ioc_offset);
-
 	/*
-	 * If one event lacks a complete header, we mustn't try to access
-	 * the event struct, or we'll run headlong into a SIGSEGV when the
-	 * start of the header but not the hdr.len part fits between
-	 * buf[offset] and buf[buflen].
-	 *
-	 * We must also check if body of the packet isn't complete in
-	 * the buffer.
-	 *
-	 * When either of those happen, we move the remainder of the buf
-	 * to the start of it and set the offsets and counters properly
+	 * If buffer is smaller than expected, put the header back
+	 * and wait for more data
 	 */
-	available = ioc->ioc_buflen - ioc->ioc_offset;
-	if ((int)HDR_SIZE > available || packet_size(pkt) > available) {
-		ldebug("IOC: moving %u bytes from %p to %p. buflen: %lu; bufsize: %lu",
-			   available, ioc->ioc_buf + ioc->ioc_offset, ioc->ioc_buf, ioc->ioc_buflen, ioc->ioc_bufsize);
-		memmove(ioc->ioc_buf, ioc->ioc_buf + ioc->ioc_offset, available);
-		ioc->ioc_buflen = available;
-		ioc->ioc_offset = 0;
+	if (pkt->hdr.len > iocache_available(ioc)) {
+		ldebug("IOC: packet is longer (%i) than remaining data (%lu) from %s - will read more and try again", pkt->hdr.len, iocache_available(ioc), node->name);
+		iocache_unuse_size(ioc, HDR_SIZE);
 		return NULL;
 	}
 
@@ -825,7 +786,7 @@ merlin_event *node_get_event(merlin_node *node)
 		return NULL;
 	}
 	node->stats.events.read++;
-	ioc->ioc_offset += packet_size(pkt);
+	iocache_use_size(ioc, pkt->hdr.len);
 	return pkt;
 }
 

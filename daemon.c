@@ -222,11 +222,10 @@ static void post_process_nodes(void)
 
 		node->action = node_action_handler;
 
-		node->ioc.ioc_bufsize = MERLIN_IOC_BUFSIZE;
-		node->ioc.ioc_buf = malloc(node->ioc.ioc_bufsize);
-		if (!node->ioc.ioc_buf) {
-			lerr("Failed to malloc(%lu) for io cache for node %s. Aborting",
-				 node->ioc.ioc_bufsize, node->name);
+		node->ioc = iocache_create(MERLIN_IOC_BUFSIZE);
+		if (node->ioc == NULL) {
+			lerr("Failed to malloc(%i) for io cache for node %s. Aborting",
+				 MERLIN_IOC_BUFSIZE, node->name);
 		}
 
 		/*
@@ -749,7 +748,7 @@ static int ipc_reap_events(void)
 
 	node_log_event_count(&ipc, 0);
 
-	len = node_recv(&ipc, MSG_DONTWAIT);
+	len = node_recv(&ipc);
 	if (len < 0)
 		return len;
 
