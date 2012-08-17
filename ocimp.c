@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <sys/mman.h>
 #include "cfgfile.h"
 #include "db_wrap.h"
 #include "sql.h"
