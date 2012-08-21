@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/time.h>
-#include <libnagios/iocache.h>
+#include <lib/iocache.h>
 #include "cfgfile.h"
 #include "binlog.h"
 

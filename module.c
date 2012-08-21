@@ -1,4 +1,4 @@
-#include <libnagios/iobroker.h>
+#include <lib/iobroker.h>
 #include "module.h"
 #include <nagios.h>
 #include <objects.h>
