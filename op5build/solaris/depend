@@ -1,3 +1,1 @@
-P libdbi libdbi
-P ocilib ocilib
-P merlin-apps merlin-apps
+P gcc gcc
