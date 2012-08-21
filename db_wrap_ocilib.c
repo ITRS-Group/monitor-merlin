@@ -8,7 +8,7 @@ Concrete db_wrap implementation based off of ocilib (a.k.a. orclib).
 #include <assert.h>
 #include <stdlib.h> /* atexit() */
 #include <ocilib.h> /* libdbi */
-#include "logging.h" /* lerr() */
+#include "mrln_logging.h" /* lerr() */
 
 #undef TODO
 #undef FIXME

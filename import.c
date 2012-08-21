@@ -2,8 +2,8 @@
 #include <sys/types.h>
 #include <signal.h>
 
-#include "nagios/broker.h"
-#include "nagios/nebcallbacks.h"
+#include <broker.h>
+#include <nebcallbacks.h>
 #include "shared.h"
 #include "sql.h"
 #include "state.h"

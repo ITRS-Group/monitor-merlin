@@ -1,5 +1,5 @@
-#include "nagios/broker.h"
-#include "nagios/comments.h"
+#include <broker.h>
+#include <comments.h>
 #include "daemon.h"
 
 #define STATUS_QUERY(type) \

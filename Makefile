@@ -36,9 +36,12 @@ ifeq ($(uname_S),SunOS)
 endif
 
 # CFLAGS, CPPFLAGS and LDFLAGS are for users to modify
+NAGIOS_PREFIX ?= /usr/local/nagios/
 ALL_CFLAGS = $(CFLAGS) $(TWEAK_CPPFLAGS) $(SYS_CFLAGS) $(CPPFLAGS) $(PTHREAD_CFLAGS)
 ALL_CFLAGS += -D__USE_FILE_OFFSET64
+ALL_CFLAGS += -I$(NAGIOS_PREFIX)/include
 ALL_LDFLAGS = $(LDFLAGS) $(TWEAK_LDFLAGS) $(PTHREAD_LDFLAGS)
+LIBNAGIOS_LDFLAGS = -L$(NAGIOS_PREFIX)/lib -lnagios
 WARN_FLAGS = -Wall -Wno-unused-parameter
 #WARN_FLAGS += -Wextra# is not supported on older gcc versions.
 
@@ -87,15 +90,15 @@ IMPORT_OBJS = $(APP_OBJS) import.o $(DBWRAP_OBJS)
 SHOWLOG_OBJS = $(APP_OBJS) showlog.o auth.o
 RENAME_OBJS = $(APP_OBJS) rename.o logutils.o lparse.o $(DBWRAP_OBJS)
 NEBTEST_OBJS = $(TEST_OBJS) nebtest.o
-DEPS = Makefile cfgfile.h ipc.h logging.h shared.h
+DEPS = Makefile cfgfile.h ipc.h mrln_logging.h shared.h
 APPS = showlog import oconf ocimp rename
 MOD_LDFLAGS = -shared -ggdb3 -fPIC $(PTHREAD_LDFLAGS)
 DAEMON_LIBS = $(LIB_NET)
-DAEMON_LDFLAGS = $(DAEMON_LIBS) $(DB_LDFLAGS) -ggdb3
+DAEMON_LDFLAGS = $(DAEMON_LIBS) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) -ggdb3
 MTEST_LIBS = $(LIB_DL) $(LIB_NET)
-MTEST_LDFLAGS = $(MTEST_LIBS) $(DB_LDFLAGS) -ggdb3 $(SYM_EXPORT) $(PTHREAD_LDFLAGS)
+MTEST_LDFLAGS = $(MTEST_LIBS) $(DB_LDFLAGS) -ggdb3 $(SYM_EXPORT) $(PTHREAD_LDFLAGS) $(LIBNAGIOS_LDFLAGS)
 NEBTEST_LIBS = $(LIB_DL) $(LIB_NET)
-NEBTEST_LDFLAGS = $(SYM_EXPORT) $(DB_LDFLAGS)
+NEBTEST_LDFLAGS = $(SYM_EXPORT) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS)
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
 
@@ -142,7 +145,7 @@ test-lparse: test-lparse.o lparse.o logutils.o hash.o test_utils.o
 	$(QUIET_LINK)$(CC) $^ -o $@
 
 ocimp: ocimp.o $(DBWRAP_OBJS) $(TEST_OBJS) sha1.o slist.o
-	$(QUIET_LINK)$(CC) $^ -o $@ -ggdb3 $(DB_LDFLAGS) $(LDFLAGS)
+	$(QUIET_LINK)$(CC) $^ -o $@ -ggdb3 $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) $(LDFLAGS)
 
 import: $(IMPORT_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(LIB_NET) $(DB_LDFLAGS)
@@ -220,8 +223,8 @@ $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
 
 test-dbwrap.o: test-dbwrap.c
 test-dbwrap: test-dbwrap.o db_wrap.o $(SHARED_OBJS)
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(MTEST_LDFLAGS)
 db_wrap.o: db_wrap.h db_wrap.c
-test-dbwrap: LDFLAGS+=$(MTEST_LDFLAGS)
 APPS += test-dbwrap
 all: test-dbwrap
 

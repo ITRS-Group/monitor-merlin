@@ -9,8 +9,8 @@
 #include <stdarg.h>
 #include <fcntl.h>
 #include <errno.h>
-#include "nagios/broker.h"
-#include "nagios/nebcallbacks.h"
+#include <broker.h>
+#include <nebcallbacks.h>
 #include "shared.h"
 #include "hash.h"
 

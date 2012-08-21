@@ -4,7 +4,7 @@
 
 #include "module.h"
 #include "slist.h"
-#include "nagios/nagios.h"
+#include <nagios.h>
 
 static time_t stall_start;
 static merlin_node **peerid_table;

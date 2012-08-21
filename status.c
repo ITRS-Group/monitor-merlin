@@ -1,6 +1,6 @@
 #include "daemon.h"
 #include "hash.h"
-#include "nagios/broker.h"
+#include <broker.h>
 #include <stdlib.h>
 #include <string.h>
 

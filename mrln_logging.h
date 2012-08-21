@@ -1,5 +1,5 @@
-#ifndef INCLUDE_logging_h__
-#define INCLUDE_logging_h__
+#ifndef INCLUDE_mrln_logging_h__
+#define INCLUDE_mrln_logging_h__
 
 #include <stdarg.h>
 

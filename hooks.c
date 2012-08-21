@@ -9,10 +9,10 @@
  * thingie.
  */
 #include "module.h"
-#include "nagios/objects.h"
-#include "nagios/neberrors.h"
-#include "nagios/common.h"
-#include "nagios/comments.h"
+#include <objects.h>
+#include <neberrors.h>
+#include <common.h>
+#include <comments.h>
 
 static nebstruct_comment_data *block_comment;
 static int check_dupes;

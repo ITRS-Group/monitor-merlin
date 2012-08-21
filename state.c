@@ -2,7 +2,7 @@
 #include <string.h>
 #include "state.h"
 #include "hash.h"
-#include "logging.h"
+#include "mrln_logging.h"
 
 #define HOST_STATES_HASH_BUCKETS 4096
 #define SERVICE_STATES_HASH_BUCKETS (HOST_STATES_HASH_BUCKETS * 4)

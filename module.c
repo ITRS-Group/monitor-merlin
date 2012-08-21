@@ -1,12 +1,12 @@
 #include "module.h"
-#include "nagios/nagios.h"
-#include "nagios/objects.h"
-#include "nagios/statusdata.h"
-#include "nagios/macros.h"
-#include "nagios/perfdata.h"
-#include "nagios/comments.h"
-#include "nagios/common.h"
-#include "nagios/downtime.h"
+#include <nagios.h>
+#include <objects.h>
+#include <statusdata.h>
+#include <macros.h>
+#include <perfdata.h>
+#include <comments.h>
+#include <common.h>
+#include <downtime.h>
 
 time_t merlin_should_send_paths = 1;
 

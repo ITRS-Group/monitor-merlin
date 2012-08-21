@@ -13,9 +13,9 @@
 #include "shared.h"
 #include "hash.h"
 
-#include "nagios/nebmods.h"
-#include "nagios/nebmodules.h"
-#include "nagios/broker.h"
+#include <nebmods.h>
+#include <nebmodules.h>
+#include <broker.h>
 
 typedef struct BINLOG_HEAD {
 	int type;

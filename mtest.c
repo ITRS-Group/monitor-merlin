@@ -5,14 +5,14 @@
 #define _GNU_SOURCE 1
 #define NSCORE
 #include <dlfcn.h>
-#include "nagios/nebstructs.h"
-#include "nagios/nebmodules.h"
-#include "nagios/nebmods.h"
-#include "nagios/broker.h"
-#include "nagios/macros.h"
-#include "nagios/statusdata.h"
-#include "nagios/objects.h"
-#include "nagios/nagios.h"
+#include <nebstructs.h>
+#include <nebmodules.h>
+#include <nebmods.h>
+#include <broker.h>
+#include <macros.h>
+#include <statusdata.h>
+#include <objects.h>
+#include <nagios.h>
 #include "shared.h"
 #include "hookinfo.h"
 #include "sql.h"

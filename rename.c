@@ -1,7 +1,7 @@
 #include "sql.h"
 #include "logutils.h"
 #include "lparse.h"
-#include "nagios/locations.h"
+#include <locations.h>
 #include <string.h>
 #include <stdio.h>
 
