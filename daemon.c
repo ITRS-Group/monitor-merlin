@@ -851,6 +851,7 @@ static void clean_exit(int sig)
 	ipc_deinit();
 	sql_close();
 	net_deinit();
+	daemon_shutdown();
 
 	_exit(!!sig);
 }
