@@ -1,8 +1,7 @@
 Requirements
 ------------
-Merlin requires Nagios 3.3.2 or later.
-Since (at the time of this writing), Nagios 3.3.2 is not yet
-released, you'll have to use the latest sources from SVN head.
+Merlin requires Nagios 4, and needs the libnagios-devel package
+for building, as well as for running.
 
 For running merlin with its default configuration, you'll need
 to have libdbi-dbd-mysql and all of its dependencies (generally
