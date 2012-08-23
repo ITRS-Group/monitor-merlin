@@ -8,5 +8,6 @@
 extern int kill_daemon(const char *pidfile);
 extern int daemonize(const char *runas, const char *jail,
                      const char *pidfile, int flags);
+extern void daemon_shutdown();
 
 #endif

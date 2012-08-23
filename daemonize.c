@@ -19,11 +19,9 @@ static const char *daemon_pidfile;
 /*
  * Really stupid generic sighandler...
  */
-static void sighandler(int sig)
+void daemon_shutdown()
 {
 	unlink(daemon_pidfile);
-
-	exit(EXIT_SUCCESS);
 }
 
 
@@ -207,11 +205,6 @@ int daemonize(const char *runas, const char *jail, const char *pidfile, int flag
 			exit(EXIT_FAILURE);
 		}
 		free(pw);
-
-		if (flags & DMNZ_SIGS) {
-			signal(SIGTERM, sighandler);
-			signal(SIGINT, sighandler);
-		}
 
 		return 0;
 	}
