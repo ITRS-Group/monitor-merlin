@@ -9,6 +9,7 @@
 #include <broker.h>
 #include <objects.h>
 #include <macros.h>
+#include <lib/libnagios.h>
 #include "nagios-stubs.h"
 
 static int (*hooks[NEBCALLBACK_NUMITEMS])(int, void *);

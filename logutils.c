@@ -14,7 +14,7 @@ struct naglog_file *cur_file; /* the file we're currently importing */
 uint line_no = 0;
 uint num_unhandled = 0;
 uint warnings = 0;
-static hash_table *interesting_hosts, *interesting_services;
+static dkhash_table *interesting_hosts, *interesting_services;
 
 #define host_code(S) { 0, #S, sizeof(#S) - 1, HOST_##S }
 static struct string_code host_state[] = {
@@ -174,11 +174,11 @@ void print_interesting_objects(void)
 {
 	if (interesting_hosts) {
 		printf("\nInteresting hosts:\n");
-		hash_walk_data(interesting_hosts, print_string);
+		dkhash_walk_data(interesting_hosts, print_string);
 	}
 	if (interesting_services) {
 		printf("\nInteresting services:\n");
-		hash_walk_data(interesting_services, print_string);
+		dkhash_walk_data(interesting_services, print_string);
 	}
 	if (interesting_hosts || interesting_services)
 		putchar('\n');
@@ -193,17 +193,17 @@ int add_interesting_object(const char *orig_str)
 	semi_colon = strchr(str, ';');
 	if (!semi_colon) {
 		if (!interesting_hosts)
-			interesting_hosts = hash_init(512);
+			interesting_hosts = dkhash_create(512);
 		if (!interesting_hosts)
 			crash("Failed to initialize hash table for interesting hosts");
-		hash_add(interesting_hosts, str, strdup(orig_str));
+		dkhash_insert(interesting_hosts, str, NULL, strdup(orig_str));
 	} else {
 		if (!interesting_services)
-			interesting_services = hash_init(512);
+			interesting_services = dkhash_create(512);
 		if (!interesting_services)
 			lp_crash("Failed to initialize hash table for interesting services");
 		*semi_colon++ = 0;
-		hash_add2(interesting_services, str, semi_colon, strdup(orig_str));
+		dkhash_insert(interesting_services, str, semi_colon, strdup(orig_str));
 	}
 
 	return 0;
@@ -212,7 +212,7 @@ int add_interesting_object(const char *orig_str)
 int is_interesting_host(const char *host)
 {
 	if (interesting_hosts)
-		return !!hash_find(interesting_hosts, host);
+		return !!dkhash_get(interesting_hosts, host, NULL);
 
 	return 1;
 }
@@ -223,7 +223,7 @@ int is_interesting_service(const char *host, const char *service)
 	if (!service || !interesting_services)
 		return is_interesting_host(host);
 
-	return !!hash_find2(interesting_services, host, service);
+	return !!dkhash_get(interesting_services, host, service);
 }
 
 struct unhandled_event {

@@ -1,20 +1,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include "state.h"
-#include "hash.h"
 #include "mrln_logging.h"
+#include <lib/dkhash.h>
 
 #define HOST_STATES_HASH_BUCKETS 4096
 #define SERVICE_STATES_HASH_BUCKETS (HOST_STATES_HASH_BUCKETS * 4)
-static hash_table *host_states, *svc_states;
+static dkhash_table *host_states, *svc_states;
 
 int state_init(void)
 {
-	host_states = hash_init(HOST_STATES_HASH_BUCKETS);
+	host_states = dkhash_create(HOST_STATES_HASH_BUCKETS);
 	if (!host_states)
 		return -1;
 
-	svc_states = hash_init(SERVICE_STATES_HASH_BUCKETS);
+	svc_states = dkhash_create(SERVICE_STATES_HASH_BUCKETS);
 	if (!svc_states) {
 		free(host_states);
 		host_states = NULL;
@@ -53,13 +53,13 @@ int host_has_new_state(char *host, int state, int type)
 		lerr("host_has_new_state() called with NULL host");
 		return 0;
 	}
-	old_state = hash_find(host_states, host);
+	old_state = dkhash_get(host_states, host, NULL);
 	if (!old_state) {
 		int *cur_state;
 
 		cur_state = malloc(sizeof(*cur_state));
 		*cur_state = CAT_STATE(state, type);
-		hash_add(host_states, strdup(host), cur_state);
+		dkhash_insert(host_states, strdup(host), NULL, cur_state);
 		return 1;
 	}
 
@@ -78,13 +78,13 @@ int service_has_new_state(char *host, char *desc, int state, int type)
 		lerr("service_has_new_state() called with NULL desc");
 		return 0;
 	}
-	old_state = hash_find2(svc_states, host, desc);
+	old_state = dkhash_get(svc_states, host, desc);
 	if (!old_state) {
 		int *cur_state;
 
 		cur_state = malloc(sizeof(*cur_state));
 		*cur_state = CAT_STATE(state, type);
-		hash_add2(svc_states, strdup(host), strdup(desc), cur_state);
+		dkhash_insert(svc_states, strdup(host), strdup(desc), cur_state);
 		return 1;
 	}
 

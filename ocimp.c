@@ -4,7 +4,6 @@
 #include "db_wrap.h"
 #include "sql.h"
 #include "slist.h"
-#include "hash.h"
 #include "shared.h"
 #include "sha1.h"
 #include "ocimp.h"

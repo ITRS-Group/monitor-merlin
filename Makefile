@@ -33,7 +33,7 @@ ifeq ($(uname_S),SunOS)
 endif
 
 # CFLAGS, CPPFLAGS and LDFLAGS are for users to modify
-NAGIOS_PREFIX ?= /usr/local/nagios/
+NAGIOS_PREFIX ?= /usr/local/nagios
 ALL_CFLAGS = $(CFLAGS) $(TWEAK_CPPFLAGS) $(SYS_CFLAGS) $(CPPFLAGS) $(PTHREAD_CFLAGS)
 ALL_CFLAGS += -D__USE_FILE_OFFSET64
 ALL_CFLAGS += -I$(NAGIOS_PREFIX)/include
@@ -74,14 +74,14 @@ db_wrap.o: db_wrap_dbi.c
 endif
 sql.o test-dbwrap.o db_wrap.o: CFLAGS+=$(DB_CFLAGS)
 
-COMMON_OBJS = cfgfile.o shared.o hash.o version.o logging.o
+COMMON_OBJS = cfgfile.o shared.o version.o logging.o
 SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
 DAEMON_OBJS = status.o daemonize.o daemon.o net.o $(DBWRAP_OBJS) db_updater.o state.o
 DAEMON_OBJS += $(SHARED_OBJS)
 MODULE_OBJS = $(SHARED_OBJS) module.o hooks.o control.o slist.o misc.o sha1.o
-MODULE_DEPS = module.h hash.h slist.h
-DAEMON_DEPS = net.h sql.h daemon.h hash.h
+MODULE_DEPS = module.h slist.h
+DAEMON_DEPS = net.h sql.h daemon.h
 APP_OBJS = $(COMMON_OBJS) state.o logutils.o lparse.o test_utils.o
 IMPORT_OBJS = $(APP_OBJS) import.o $(DBWRAP_OBJS)
 SHOWLOG_OBJS = $(APP_OBJS) showlog.o auth.o
@@ -92,10 +92,10 @@ APPS = showlog import oconf ocimp rename
 MOD_LDFLAGS = -shared -ggdb3 -fPIC
 DAEMON_LIBS = $(LIB_NET)
 DAEMON_LDFLAGS = $(DAEMON_LIBS) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) -ggdb3
-MTEST_LIBS = $(LIB_DL) $(LIB_NET)
-MTEST_LDFLAGS = $(MTEST_LIBS) $(DB_LDFLAGS) -ggdb3 $(SYM_EXPORT) $(LIBNAGIOS_LDFLAGS)
-NEBTEST_LIBS = $(LIB_DL) $(LIB_NET)
-NEBTEST_LDFLAGS = $(SYM_EXPORT) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS)
+MTEST_LIBS = $(LIB_DL) $(LIB_NET) $(LIBNAGIOS_LDFLAGS)
+MTEST_LDFLAGS = $(MTEST_LIBS) $(DB_LDFLAGS) -ggdb3 $(SYM_EXPORT)
+NEBTEST_LIBS = $(LIBNAGIOS_LDFLAGS) $(LIB_DL) $(LIB_NET)
+NEBTEST_LDFLAGS = $(SYM_EXPORT) $(DB_LDFLAGS)
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
 
@@ -138,20 +138,20 @@ check_latency: check_latency.o cfgfile.o
 mtest: mtest.o $(DBWRAP_OBJS) $(TEST_OBJS) $(TEST_DEPS) $(MODULE_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(MTEST_LDFLAGS)
 
-test-lparse: test-lparse.o lparse.o logutils.o hash.o test_utils.o
-	$(QUIET_LINK)$(CC) $^ -o $@
+test-lparse: test-lparse.o lparse.o logutils.o test_utils.o
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LIBNAGIOS_LDFLAGS)
 
 ocimp: ocimp.o $(DBWRAP_OBJS) $(TEST_OBJS) sha1.o slist.o
 	$(QUIET_LINK)$(CC) $^ -o $@ -ggdb3 $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) $(LDFLAGS)
 
 import: $(IMPORT_OBJS)
-	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(LIB_NET) $(DB_LDFLAGS)
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(LIB_NET) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS)
 
 showlog: $(SHOWLOG_OBJS)
-	$(QUIET_LINK)$(CC) $^ -o $@ $(LIB_NET)
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LIB_NET) $(LIBNAGIOS_LDFLAGS)
 
 nebtest: $(NEBTEST_OBJS)
-	$(QUIET_LINK)$(CC) $^ -o $@ $(NEBTEST_LIBS) $(NEBTEST_LDFLAGS)
+	$(QUIET_LINK)$(CC) $^ $(NEBTEST_LIBS) $(NEBTEST_LDFLAGS) -o $@
 
 merlind: $(DAEMON_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(DAEMON_LDFLAGS)
@@ -163,28 +163,22 @@ oconf: oconf.o sha1.o misc.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS)
 
 rename: $(RENAME_OBJS)
-	$(QUIET_LINK)$(CC) $^ -o $@ -ggdb3 $(DB_LDFLAGS) $(LDFLAGS)
+	$(QUIET_LINK)$(CC) $^ -o $@ -ggdb3 $(DB_LDFLAGS) $(LDFLAGS) $(LIBNAGIOS_LDFLAGS)
 
 %.o: %.c
 	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@
 
-#test: test-binlog test-slist test__hash test__lparse test_module
-test: test-slist test__hash test__lparse test_module
+#test: test-binlog test-slist test__lparse test_module
+test: test-slist test__lparse test_module
 
 test_module: nebtest merlin.so
 	@./nebtest merlin.so
-
-test__hash: test-hash
-	@./test-hash
 
 test-slist: sltest
 	@./sltest
 
 test-binlog: bltest
 	@./bltest
-
-test-hash: test-hash.o hash.o test_utils.o
-	$(QUIET_LINK)$(CC) $(LDFLAGS) $^ -o $@
 
 test__lparse: test-lparse
 	@./test-lparse
@@ -214,7 +208,7 @@ mtest.o nebtest.o: nagios-stubs.h
 ocimp.o: ocimp.c ocimp.h
 
 $(COMMON_OBJS): $(DEPS)
-module.o: module.c $(MODULE_DEPS) $(DEPS) hash.h
+module.o: module.c $(MODULE_DEPS) $(DEPS)
 $(DAEMON_OBJS): $(DAEMON_DEPS) $(DEPS)
 $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
 
@@ -232,7 +226,7 @@ clean: clean-core clean-log clean-test
 	rm -f merlin.so merlind $(APPS) *.o blread endpoint
 
 clean-test:
-	rm -f sltest bltest test-hash mtest test-lparse
+	rm -f sltest bltest mtest test-lparse
 
 clean-core:
 	rm -f core core.[0-9]*

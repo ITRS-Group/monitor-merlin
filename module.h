@@ -11,11 +11,11 @@
 #endif
 
 #include "shared.h"
-#include "hash.h"
 
 #include <nebmods.h>
 #include <nebmodules.h>
 #include <broker.h>
+#include <lib/dkhash.h>
 
 typedef struct BINLOG_HEAD {
 	int type;
@@ -30,7 +30,7 @@ typedef struct file_list {
 
 
 #define MERLIN_PULSE_INTERVAL 10
-extern hash_table *host_hash_table;
+extern dkhash_table *host_hash_table;
 extern node_selection *node_selection_by_hostname(const char *name);
 
 /* global variables in the module only */

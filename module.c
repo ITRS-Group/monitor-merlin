@@ -384,10 +384,10 @@ static int ipc_reaper(int sd, int events, void *arg)
 	return 0;
 }
 
-hash_table *host_hash_table;
+dkhash_table *host_hash_table;
 node_selection *node_selection_by_hostname(const char *name)
 {
-	return hash_find(host_hash_table, name);
+	return dkhash_get(host_hash_table, name, NULL);
 }
 
 static void setup_host_hash_tables(void)
@@ -407,7 +407,7 @@ static void setup_host_hash_tables(void)
 		return;
 
 	linfo("Creating hash tables");
-	host_hash_table = hash_init(2048);
+	host_hash_table = dkhash_create(2048);
 	if (!host_hash_table) {
 		lerr("Failed to initialize hash tables: Out of memory");
 		exit(1);
@@ -443,7 +443,7 @@ static void setup_host_hash_tables(void)
 			}
 			num_ents[sel->id]++;
 
-			hash_add(host_hash_table, m->host_name, sel);
+			dkhash_insert(host_hash_table, m->host_name, NULL, sel);
 		}
 	}
 

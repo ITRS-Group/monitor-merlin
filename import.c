@@ -46,8 +46,8 @@ static time_t ltime; /* the timestamp from the current log-line */
 
 static uint dt_start, dt_stop, dt_skip;
 #define dt_depth (dt_start - dt_stop)
-static hash_table *host_downtime;
-static hash_table *service_downtime;
+static dkhash_table *host_downtime;
+static dkhash_table *service_downtime;
 static int downtime_id;
 
 struct downtime_entry {
@@ -629,7 +629,7 @@ static int del_matching_dt(void *data)
 	if (del_dte->id == dt->id) {
 		dt_print("ALSO", 0, dt);
 		remove_downtime(dt);
-		return HASH_WALK_REMOVE;
+		return DKHASH_WALK_REMOVE;
 	}
 
 	return 0;
@@ -784,11 +784,13 @@ static inline void add_downtime(char *host, char *service, int id)
 
 	if (!service) {
 		dt->service = NULL;
-		old = hash_update(host_downtime, dt->host, dt);
+		old = dkhash_get(host_downtime, dt->host, NULL);
+		dkhash_insert(host_downtime, dt->host, NULL, dt);
 	}
 	else {
 		dt->service = strdup(service);
-		old = hash_update2(service_downtime, dt->host, dt->service, dt);
+		old = dkhash_get(service_downtime, dt->host, dt->service);
+		dkhash_insert(service_downtime, dt->host, dt->service, dt);
 	}
 
 	if (old && old != dt) {
@@ -986,10 +988,13 @@ static int insert_downtime(struct string_code *sc)
 	host = strv[0];
 	if (sc->nvecs == 4) {
 		service = strv[1];
-		dt = hash_find2(service_downtime, host, service);
+		dt = dkhash_get(service_downtime, host, service);
 	}
-	else
-		dt = hash_find(host_downtime, host);
+	else {
+		dt = dkhash_get(host_downtime, host, NULL);
+	}
+
+
 
 	/*
 	 * to stop a downtime we can either get STOPPED or
@@ -1047,9 +1052,9 @@ static int insert_downtime(struct string_code *sc)
 		 */
 		del_dte = dt;
 		if (!dt->service)
-			hash_walk_data(host_downtime, del_matching_dt);
+			dkhash_walk_data(host_downtime, del_matching_dt);
 		else
-			hash_walk_data(service_downtime, del_matching_dt);
+			dkhash_walk_data(service_downtime, del_matching_dt);
 		break;
 
 	default:
@@ -1076,7 +1081,7 @@ static int purge_expired_dt(void *data)
 		debug("PURGE %lu: purging expired dt %d (start=%lu; started=%lu; stop=%lu; duration=%lu; host=%s; service=%s",
 			  ltime, dt->id, dt->start, dt->started, dt->stop, dt->duration, dt->host, dt->service);
 		remove_downtime(dt);
-		return HASH_WALK_REMOVE;
+		return DKHASH_WALK_REMOVE;
 	}
 	else {
 		dt_print("PURGED_NOT_TIME", ltime, dt);
@@ -1092,12 +1097,12 @@ static void purge_expired_downtime(void)
 
 	next_dt_purge = 0;
 	dt_purged = 0;
-	hash_walk_data(host_downtime, purge_expired_dt);
+	dkhash_walk_data(host_downtime, purge_expired_dt);
 	if (dt_purged)
 		debug("PURGE %d host downtimes purged", dt_purged);
 	tot_purged += dt_purged;
 	dt_purged = 0;
-	hash_walk_data(service_downtime, purge_expired_dt);
+	dkhash_walk_data(service_downtime, purge_expired_dt);
 	if (dt_purged)
 		debug("PURGE %d service downtimes purged", dt_purged);
 	tot_purged += dt_purged;
@@ -1651,8 +1656,8 @@ int main(int argc, char **argv)
 
 	qsort(nfile, num_nfile, sizeof(*nfile), nfile_cmp);
 
-	host_downtime = hash_init(HASH_TABLE_SIZE);
-	service_downtime = hash_init(HASH_TABLE_SIZE);
+	host_downtime = dkhash_create(HASH_TABLE_SIZE);
+	service_downtime = dkhash_create(HASH_TABLE_SIZE);
 
 	if (state_init() < 0)
 		crash("Failed to initialize state machinery");
@@ -1708,18 +1713,18 @@ int main(int argc, char **argv)
 		if (dt_depth) {
 			printf("Unclosed host downtimes:\n");
 			puts("------------------------");
-			hash_walk_data(host_downtime, print_downtime);
+			dkhash_walk_data(host_downtime, print_downtime);
 			printf("Unclosed service downtimes:\n");
 			puts("---------------------------");
-			hash_walk_data(service_downtime, print_downtime);
+			dkhash_walk_data(service_downtime, print_downtime);
 
 			printf("dt_depth: %d\n", dt_depth);
 		}
 		printf("purged downtimes: %d\n", purged_downtimes);
 		printf("max simultaneous host downtime hashes: %u\n",
-		       hash_entries_max(host_downtime));
+		       dkhash_num_entries_max(host_downtime));
 		printf("max simultaneous service downtime hashes: %u\n",
-		       hash_entries_max(service_downtime));
+		       dkhash_num_entries_max(service_downtime));
 		printf("max downtime depth: %u\n", max_dt_depth);
 	}
 
@@ -1737,12 +1742,10 @@ int main(int argc, char **argv)
 		uint count;
 		fprintf(stderr, "Downtime data %s\n  started: %d\n  stopped: %d\n  delta  : %d\n  skipped: %d\n",
 		        dt_depth ? "mismatch!" : "consistent", dt_start, dt_stop, dt_depth, dt_skip);
-		hash_debug_table(host_downtime, 0);
-		hash_debug_table(service_downtime, 0);
-		if ((count = hash_entries(host_downtime))) {
+		if ((count = dkhash_num_entries(host_downtime))) {
 			fprintf(stderr, "host_downtime as %u entries remaining\n", count);
 		}
-		if ((count = hash_entries(service_downtime))) {
+		if ((count = dkhash_num_entries(service_downtime))) {
 			fprintf(stderr, "service_downtime has %u entries remaining\n", count);
 		}
 	}

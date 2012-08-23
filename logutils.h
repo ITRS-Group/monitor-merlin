@@ -11,8 +11,8 @@
 #include <errno.h>
 #include <broker.h>
 #include <nebcallbacks.h>
+#include <lib/dkhash.h>
 #include "shared.h"
-#include "hash.h"
 
 #define CLR_RESET          "\033[m"
 #define CLR_BOLD           "\033[1m"

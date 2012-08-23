@@ -4,7 +4,6 @@
 #include <stdarg.h>
 
 #include "shared.h"
-#include "hash.h"
 #include "lparse.h"
 #include "logutils.h"
 #include "auth.h"

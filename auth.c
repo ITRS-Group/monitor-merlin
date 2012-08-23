@@ -1,12 +1,12 @@
 #include "logutils.h"
 #include "cfgfile.h"
-#include "hash.h"
 #include "auth.h"
+#include <lib/dkhash.h>
 
 static const char *user;
 static char **cgroups;
 static uint num_cgroups, cgroup_idx;
-static hash_table *auth_hosts, *auth_services;
+static dkhash_table *auth_hosts, *auth_services;
 static int is_host_root = 1, is_service_root = 1;
 
 int auth_host_ok(const char *host)
@@ -14,7 +14,7 @@ int auth_host_ok(const char *host)
 	if (is_host_root)
 		return 1;
 
-	return !!hash_find(auth_hosts, host);
+	return !!dkhash_get(auth_hosts, host, NULL);
 }
 
 int auth_service_ok(const char *host, const char *svc)
@@ -22,7 +22,7 @@ int auth_service_ok(const char *host, const char *svc)
 	if (is_service_root || is_host_root)
 		return 1;
 
-	if ((hash_find2(auth_services, host, svc)) || auth_host_ok(host))
+	if ((dkhash_get(auth_services, host, svc)) || auth_host_ok(host))
 		return 1;
 
 	return 0;
@@ -78,7 +78,7 @@ static int grok_host(struct cfg_comp *obj)
 	if ((contacts && list_has_entry(contacts, user)) ||
 		(groups && list_has_any_entry(groups, cgroups, cgroup_idx)))
 	{
-		hash_add(auth_hosts, host_name, (void *)user);
+		dkhash_insert(auth_hosts, host_name, NULL, (void *)user);
 	}
 
 	if (!host_name)
@@ -111,7 +111,7 @@ static int grok_service(struct cfg_comp *obj)
 	if ((contacts && list_has_entry(contacts, user)) ||
 		(groups && list_has_any_entry(groups, cgroups, cgroup_idx)))
 	{
-		hash_add2(auth_services, host_name, service_description, (void *)user);
+		dkhash_insert(auth_services, host_name, service_description, (void *)user);
 	}
 
 	return 0;
@@ -215,13 +215,13 @@ int auth_init(const char *path)
 	grok_object(conf, "define contactgroup", grok_contactgroup);
 	if (!is_host_root) {
 		host_buckets = conf->nested / 10;
-		auth_hosts = hash_init(host_buckets);
+		auth_hosts = dkhash_create(host_buckets);
 		grok_object(conf, "define host", grok_host);
 	}
 
 	if (!is_service_root) {
 		service_buckets = conf->nested / 2;
-		auth_services = hash_init(service_buckets);
+		auth_services = dkhash_create(service_buckets);
 		grok_object(conf, "define service", grok_service);
 	}
 	return 0;
