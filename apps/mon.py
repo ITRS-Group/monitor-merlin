@@ -4,6 +4,9 @@ import os, sys, subprocess, tempfile
 
 merlin_dir = "@@DESTDIR@@"
 libexec_dir = "/usr/libexec/merlin"
+# default to op5-ish systems
+if merlin_dir == "@" + "@DESTDIR@@":
+	merlin_dir = '/opt/monitor/op5/merlin'
 
 module_dir = libexec_dir + '/modules'
 if not libexec_dir in sys.path:
