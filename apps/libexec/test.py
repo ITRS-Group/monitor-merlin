@@ -48,9 +48,13 @@ class fake_peer_group:
 		self.oconf_file = False
 		self.poller_oconf = ''
 		self.expect_entries = {}
-		self.objects = {
-			'host': [], 'service': [],
-			'hostgroup': [], 'servicegroup': [],
+		self.num_objects = {
+			'host': 0, 'service': 0,
+			'hostgroup': 0, 'servicegroup': 0,
+		}
+		self.have_objects = {
+			'host': {}, 'service': {},
+			'hostgroup': {}, 'servicegroup': {},
 		}
 		i = 0
 		while i < num_nodes:
@@ -73,8 +77,9 @@ class fake_peer_group:
 
 
 	def add_object(self, otype, name):
-		if not name in self.objects[otype]:
-			self.objects[otype].append(name)
+		if self.have_objects[otype].get(name, False) == False:
+			self.num_objects[otype] += 1
+			self.have_objects[otype][name] = True
 		# this way objects will filter up to master groups as well
 		for mg in self.master_groups.values():
 			mg.add_object(otype, name)
@@ -83,8 +88,11 @@ class fake_peer_group:
 	def create_object_config(self, num_hosts=3, num_services_per_host=2):
 		# master groups will call this for their pollers when
 		# asked to create their own object configuration
-		if self.oconf_buf:
+		if self.oconf_file:
 			return True
+
+		self.oconf_file = self.nodes[0].get_path("etc/oconf/generated.cfg")
+		f = self.nodes[0].create_file(self.oconf_file)
 
 		if len(self.master_groups):
 			self.group_type = 'poller'
@@ -94,7 +102,7 @@ class fake_peer_group:
 		print("Generating object config for %s group %s" % (self.group_type, self.group_name))
 		ocbuf = []
 
-		self.objects['hostgroup'].append(self.group_name)
+		self.add_object('hostgroup', self.group_name)
 
 		hostgroup = {
 			'hostgroup_name': self.group_name,
@@ -122,12 +130,14 @@ class fake_peer_group:
 		obuf = 'define hostgroup {\n'
 		for (k, v) in hostgroup.items():
 			obuf = "%s\t%s %s\n" % (obuf, k, v)
+
 		obuf = "%s}" % obuf
 		ocbuf.append(obuf)
 		while i < num_hosts:
 			i += 1
-			if not i % 100:
-				print("%d hosts and %d services created" % (i, i * num_services_per_host))
+			if os.isatty(sys.stdout.fileno()) and not i % 7:
+				sys.stdout.write("\r%d hosts and %d services created" % (i, i * num_services_per_host))
+
 			hobj = host
 			hobj['host_name'] = hname.replace('@@host_num@@', "%04d" % i)
 			self.add_object('host', hobj['host_name'])
@@ -162,6 +172,7 @@ class fake_peer_group:
 				obuf += "}"
 				ocbuf.append(obuf)
 
+		print("\r%d hosts and %d services created" % (i, i * num_services_per_host))
 		self.oconf_buf = "\n".join(ocbuf)
 		ocbuf = False
 		poller_oconf_buf = ''
@@ -179,10 +190,10 @@ class fake_peer_group:
 				test_config_in.shared_object_config)
 
 		print("Peer group %s objects:" % self.group_name)
-		print("        hosts: %d" % len(self.objects['host']))
-		print("     services: %d" % len(self.objects['service']))
-		print("   hostgroups: %d" % len(self.objects['hostgroup']))
-		print("servicegroups: %d" % len(self.objects['servicegroup']))
+		print("        hosts: %d" % self.num_objects['host'])
+		print("     services: %d" % self.num_objects['service'])
+		print("   hostgroups: %d" % self.num_objects['hostgroup'])
+		print("servicegroups: %d" % self.num_objects['servicegroup'])
 		return True
 
 
@@ -331,10 +342,16 @@ class fake_instance:
 		return True
 
 
-	def write_file(self, path, contents, mode=0644):
+	def create_file(self, path, mode=0644):
+		return open(self.get_path(path), 'w', mode)
+
+	def get_path(self, path):
 		if path[0] != '/':
 			path = "%s/%s" % (self.home, path)
-		f = open(path, 'w', mode)
+		return path
+
+	def write_file(self, path, contents, mode=0644):
+		f = self.create_file(path, mode)
 		f.write(contents)
 		f.close()
 		return True
