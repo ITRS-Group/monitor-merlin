@@ -945,7 +945,7 @@ def cmd_push(args):
 
 		# XXX rewrite this to node.rsync_send(list(source), dest)
 		host_dest = "%s:%s" % (node.address, oconf_dest)
-		address_dest = node.address + ':' + oconf_dest
+		address_dest = ssh_user + '@' + node.address + ':' + oconf_dest
 		rsync_args = base_rsync_args + [source, '-e', ssh_cmd, address_dest]
 		ret = os.spawnvp(os.P_WAIT, 'rsync', rsync_args)
 		if ret != 0:
