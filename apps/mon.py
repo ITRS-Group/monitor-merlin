@@ -19,6 +19,7 @@ if not module_dir in sys.path:
 import merlin_conf as mconf
 
 mconf.config_file = '%s/merlin.conf' % merlin_dir
+nagios_cfg = '/opt/monitor/etc/nagios.cfg'
 
 # run a generic helper from the libexec dir
 def run_helper(helper, args):
@@ -66,6 +67,7 @@ def load_command_module(path):
 	module.mconf = mconf
 	module.merlin_dir = merlin_dir
 	module.module_dir = module_dir
+	module.nagios_cfg = nagios_cfg
 
 	docstrings[modname] = {'__doc__': module.__doc__}
 
@@ -194,47 +196,45 @@ categories have a help-command associated with them.
 		mod_fail_print("(nonfatal)", mod)
 	sys.exit(1)
 
+args = []
+i = 0
+for arg in sys.argv[1:]:
+	i += 1
+	if arg.startswith('--merlin-cfg=') or arg.startswith('--merlin-conf='):
+		mconf.config_file = arg.split('=', 1)[1]
+	elif arg.startswith('--nagios-cfg=') or arg.startswith('--nagios-conf='):
+		nagios_cfg = arg.split('=', 1)[1]
+	elif arg.startswith('--object-cache='):
+		object_cache = arg.split('=', 1)[1]
+	else:
+		args.append(arg)
+		continue
+
 # now we load all the commands so we can actually do things
 load_all_commands()
 
 if len(sys.argv) < 2 or sys.argv[1] == '--help' or sys.argv[1] == 'help':
 	show_usage()
 
-args = []
 autohelp = False
-cmd = cat = sys.argv[1]
+cmd = cat = args[0]
 if cat in commands:
-	args = sys.argv[2:]
+	args = args[1:]
 elif len(sys.argv) > 2:
 	if sys.argv[2] == '--help' or sys.argv[2] == 'help':
 		cmd = cat + '.help'
 		autohelp = True
 	else:
 		cmd = cat + '.' + sys.argv[2]
-	args = sys.argv[3:]
+	args = args[2:]
 else:
 	# only one argument passed, and it's not a stand-alone command.
 	# Take it to mean 'help' for that category
 	cmd = cat + '.help'
 	autohelp = True
 
-i = 0
-rem_args = []
-for arg in args:
-	i += 1
-	if arg.startswith('--merlin-cfg='):
-		mconf.config_file = arg.split('=', 1)[1]
-	elif arg.startswith('--nagios-cfg='):
-		nagios_cfg = arg.split('=', 1)[1]
-	elif arg.startswith('--object-cache='):
-		object_cache = arg.split('=', 1)[1]
-	else:
-		rem_args.append(arg)
-		continue
-
 # now we parse the merlin config file and stash remaining args
 mconf.parse()
-args = rem_args
 
 # if a dev's managed to hack in a bug in a command module, we
 # should tell the user so politely and not just fail to do anything
