@@ -70,6 +70,10 @@ static int handle_host_status(merlin_header *hdr, void *buf)
 		return -1;
 	}
 
+	/* discard check results that are older than our latest */
+	if(obj->last_check > st_obj->state.last_check)
+		return 0;
+
 	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
 	obj->last_host_notification = st_obj->state.last_notification;
 	obj->next_host_notification = st_obj->state.next_notification;
@@ -98,6 +102,10 @@ static int handle_service_status(merlin_header *hdr, void *buf)
 
 		return -1;
 	}
+
+	/* discard check results that are older than our latest */
+	if(obj->last_check > st_obj->state.last_check)
+		return 0;
 
 	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
 	obj->last_notification = st_obj->state.last_notification;
