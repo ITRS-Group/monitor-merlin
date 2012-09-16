@@ -1,7 +1,7 @@
 #include "shared.h"
 
-static FILE *log_fp;
-static char *log_file;
+static FILE *merlin_log_fp;
+static char *merlin_log_file;
 static int log_levels = (1 << LOG_ERR) | (1 << LOG_WARNING) | (1 << LOG_INFO);
 
 int log_grok_var(char *var, char *val)
@@ -49,8 +49,8 @@ int log_grok_var(char *var, char *val)
 	}
 
 	if (!strcmp(var, "log_file")) {
-		log_file = strdup(val);
-		fprintf(stderr, "Logging to '%s'\n", log_file);
+		merlin_log_file = strdup(val);
+		fprintf(stderr, "Logging to '%s'\n", merlin_log_file);
 		return 1;
 	}
 
@@ -59,32 +59,32 @@ int log_grok_var(char *var, char *val)
 
 void log_deinit(void)
 {
-	if (log_fp) {
-		fflush(log_fp);
-		if (log_fp != stdout && log_fp != stderr) {
-			fsync(fileno(log_fp));
-			fclose(log_fp);
-			log_fp = NULL;
+	if (merlin_log_fp) {
+		fflush(merlin_log_fp);
+		if (merlin_log_fp != stdout && merlin_log_fp != stderr) {
+			fsync(fileno(merlin_log_fp));
+			fclose(merlin_log_fp);
+			merlin_log_fp = NULL;
 		}
 	}
 }
 
 int log_init(void)
 {
-	if (!log_file || !strcmp(log_file, "stdout")) {
-		log_fp = stdout;
+	if (!merlin_log_file || !strcmp(merlin_log_file, "stdout")) {
+		merlin_log_fp = stdout;
 		return 0;
 	}
 
-	if (!strcmp(log_file, "stderr"))
-		log_fp = stderr;
+	if (!strcmp(merlin_log_file, "stderr"))
+		merlin_log_fp = stderr;
 
-	if (log_fp)
+	if (merlin_log_fp)
 		return 0;
 
-	log_fp = fopen(log_file, "a");
+	merlin_log_fp = fopen(merlin_log_file, "a");
 
-	if (!log_fp)
+	if (!merlin_log_fp)
 		return -1;
 
 	return 0;
@@ -101,11 +101,11 @@ void log_msg(int severity, const char *fmt, ...)
 		return;
 	}
 
-	if (!log_fp)
+	if (!merlin_log_fp)
 		log_init();
 
 	/* if we can't log anywhere, return early */
-	if (!log_fp && !isatty(fileno(stdout)))
+	if (!merlin_log_fp && !isatty(fileno(stdout)))
 		return;
 
 	va_start(ap, fmt);
@@ -125,15 +125,15 @@ void log_msg(int severity, const char *fmt, ...)
 	}
 
 	/* only print to log if it's something else than 'stdout' */
-	if (log_fp && log_fp != stdout) {
-		fprintf(log_fp, "[%lu] %d: %s\n", time(NULL), severity, msg);
+	if (merlin_log_fp && merlin_log_fp != stdout) {
+		fprintf(merlin_log_fp, "[%lu] %d: %s\n", time(NULL), severity, msg);
 		/*
 		 * systems where logging matters (a lot) can specify
 		 * MERLIN_FLUSH_LOGFILES as CPPFLAGS when building
 		 */
-		fflush(log_fp);
+		fflush(merlin_log_fp);
 #ifdef MERLIN_FLUSH_LOGFILES
-		fsync(fileno(log_fp));
+		fsync(fileno(merlin_log_fp));
 #endif
 	}
 }
