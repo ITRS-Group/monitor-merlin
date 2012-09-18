@@ -38,8 +38,6 @@ extern time_t merlin_should_send_paths;
 extern void *neb_handle;
 
 /** global variables exported by Nagios **/
-extern char *config_file;
-extern int event_broker_options;
 extern int __nagios_object_structure_version;
 
 /** prototypes **/
@@ -113,35 +111,13 @@ extern void merlin_set_block_comment(nebstruct_comment_data *cmnt);
 	mrln.modified_attributes = nag->modified_attributes; \
 	mrln.plugin_output = nag->plugin_output; \
 	mrln.long_plugin_output = nag->long_plugin_output; \
-	mrln.perf_data = nag->perf_data;
-
-static inline void host_mod2net(merlin_host_status *st_obj, host *obj)
-{
-	MOD2NET_STATE_VARS(st_obj->state, obj);
-	st_obj->state.last_notification = obj->last_host_notification;
-	st_obj->state.next_notification = obj->next_host_notification;
-	st_obj->state.accept_passive_checks = obj->accept_passive_host_checks;
-	st_obj->state.obsess = obj->obsess_over_host;
-	st_obj->name = obj->name;
-
-	st_obj->state.notified_on = (!!obj->notified_on_down) << HOST_DOWN;
-	st_obj->state.notified_on |= (!!obj->notified_on_unreachable) << HOST_UNREACHABLE;
-}
-
-static inline void service_mod2net(merlin_service_status *st_obj, service *obj)
-{
-	MOD2NET_STATE_VARS(st_obj->state, obj);
-	st_obj->state.last_notification = obj->last_notification;
-	st_obj->state.next_notification = obj->next_notification;
-	st_obj->state.accept_passive_checks = obj->accept_passive_service_checks;
-	st_obj->state.obsess = obj->obsess_over_service;
-	st_obj->host_name = obj->host_name;
-	st_obj->service_description = obj->description;
-
-	st_obj->state.notified_on = (!!obj->notified_on_warning) << STATE_WARNING;
-	st_obj->state.notified_on |= (!!obj->notified_on_critical) << STATE_CRITICAL;
-	st_obj->state.notified_on |= (!!obj->notified_on_unknown) << STATE_UNKNOWN;
-}
+	mrln.perf_data = nag->perf_data; \
+	/* Nagios 4 only */ \
+	mrln.last_notification = nag->last_notification; \
+	mrln.next_notification = nag->next_notification; \
+	mrln.accept_passive_checks = nag->accept_passive_checks; \
+	mrln.notified_on = nag->notified_on; \
+	mrln.obsess = nag->obsess
 
 
 /*
@@ -210,6 +186,13 @@ struct tmp_net2mod_data {
 	nag->state_history_index = mrln.state_history_index; \
 	nag->percent_state_change = mrln.percent_state_change; \
 	nag->modified_attributes = mrln.modified_attributes; \
+	/* Nagios 4 only */ \
+	nag->obsess = mrln.obsess; \
+	nag->last_notification = mrln.last_notification; \
+	nag->next_notification = mrln.next_notification; \
+	nag->accept_passive_checks = mrln.accept_passive_checks; \
+	nag->notified_on = mrln.notified_on; \
+	/* end Nagios 4 only */ \
 	/* when all is done, we free the old state variables */ \
 	safe_free(tmp.old_plugin_output); \
 	safe_free(tmp.old_long_plugin_output); \

@@ -229,7 +229,7 @@ static int send_host_status(merlin_event *pkt, struct host_struct *obj)
 		last_obj = obj;
 	}
 
-	host_mod2net(&st_obj, obj);
+	MOD2NET_STATE_VARS(st_obj.state, obj);
 	pkt->hdr.selection = get_selection(obj->name);
 
 	return send_generic(pkt, &st_obj);
@@ -252,7 +252,7 @@ static int send_service_status(merlin_event *pkt, struct service_struct *obj)
 		last_obj = obj;
 	}
 
-	service_mod2net(&st_obj, obj);
+	MOD2NET_STATE_VARS(st_obj.state, obj);
 	pkt->hdr.selection = get_selection(obj->host_name);
 
 	return send_generic(pkt, &st_obj);

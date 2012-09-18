@@ -65,12 +65,6 @@ static int handle_host_status(merlin_header *hdr, void *buf)
 		return 0;
 
 	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
-	obj->last_host_notification = st_obj->state.last_notification;
-	obj->next_host_notification = st_obj->state.next_notification;
-	obj->accept_passive_host_checks = st_obj->state.accept_passive_checks;
-	obj->obsess_over_host = st_obj->state.obsess;
-	obj->notified_on_down = is_flag_set(st_obj->state.notified_on, 1 << HOST_DOWN);
-	obj->notified_on_unreachable = is_flag_set(st_obj->state.notified_on, 1 << HOST_UNREACHABLE);
 	if (hdr->type == NEBCALLBACK_HOST_CHECK_DATA && obj->perf_data) {
 		update_host_performance_data(obj);
 	}
@@ -98,10 +92,6 @@ static int handle_service_status(merlin_header *hdr, void *buf)
 		return 0;
 
 	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
-	obj->last_notification = st_obj->state.last_notification;
-	obj->next_notification = st_obj->state.next_notification;
-	obj->accept_passive_service_checks = st_obj->state.accept_passive_checks;
-	obj->obsess_over_service = st_obj->state.obsess;
 	obj->notified_on_warning = is_flag_set(st_obj->state.notified_on, 1 << STATE_WARNING);
 	obj->notified_on_critical = is_flag_set(st_obj->state.notified_on, 1 << STATE_CRITICAL);
 	obj->notified_on_unknown = is_flag_set(st_obj->state.notified_on, 1 << STATE_UNKNOWN);
@@ -616,8 +606,6 @@ NEB_API_VERSION(CURRENT_NEB_API_VERSION);
 
 extern int daemon_dumps_core;
 void *neb_handle = NULL;
-
-extern int event_broker_options;
 
 extern char *config_file;
 
