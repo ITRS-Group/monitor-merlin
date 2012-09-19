@@ -912,6 +912,10 @@ static int hook_notification(merlin_event *pkt, void *data)
 			host_name = s->host_name;
 			sdesc = s->description;
 
+			/* never block notificatons from passive checks */
+			if(s->check_type == SERVICE_CHECK_PASSIVE)
+				return 0;
+
 			what = "service";
 			if (!ctrl_should_run_service_check(host_name, s->description)) {
 				ldebug("Blocked notification for %s %s;%s. A peer is supposed to send it.",
@@ -921,6 +925,11 @@ static int hook_notification(merlin_event *pkt, void *data)
 		} else {
 			host *h = (host *)ds->object_ptr;
 			host_name = h->name;
+
+			/* never block notificatons from passive checks */
+			if(h->check_type == HOST_CHECK_PASSIVE)
+				return 0;
+
 			if (!ctrl_should_run_host_check(host_name)) {
 				ldebug("Blocked notification for %s %s. A peer is supposed to send it",
 					   what, host_name);
