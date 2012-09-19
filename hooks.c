@@ -213,10 +213,10 @@ static int get_hostgroup_selection(const char *key)
 	return sel ? sel->id & 0xffff : DEST_PEERS_POLLERS;
 }
 
-static int send_host_status(merlin_event *pkt, struct host_struct *obj)
+static int send_host_status(merlin_event *pkt, host *obj)
 {
 	merlin_host_status st_obj;
-	static struct host_struct *last_obj = NULL;
+	static host *last_obj = NULL;
 
 	if (!obj) {
 		lerr("send_host_status() called with NULL obj");
@@ -236,10 +236,10 @@ static int send_host_status(merlin_event *pkt, struct host_struct *obj)
 	return send_generic(pkt, &st_obj);
 }
 
-static int send_service_status(merlin_event *pkt, struct service_struct *obj)
+static int send_service_status(merlin_event *pkt, service *obj)
 {
 	merlin_service_status st_obj;
-	static struct service_struct *last_obj = NULL;
+	static service *last_obj = NULL;
 
 	if (!obj) {
 		lerr("send_service_status() called with NULL obj");
@@ -786,7 +786,7 @@ static void log_blocked(const char *what, struct block_object *blk)
 static int hook_host_status(merlin_event *pkt, void *data)
 {
 	nebstruct_host_status_data *ds = (nebstruct_host_status_data *)data;
-	struct host_struct *h = (struct host_struct *)ds->object_ptr;
+	host *h = (host *)ds->object_ptr;
 
 	log_blocked("host", &h_block);
 
@@ -817,7 +817,7 @@ static int hook_host_status(merlin_event *pkt, void *data)
 static int hook_service_status(merlin_event *pkt, void *data)
 {
 	nebstruct_service_status_data *ds = (nebstruct_service_status_data *)data;
-	struct service_struct *srv = (struct service_struct *)ds->object_ptr;
+	service *srv = (service *)ds->object_ptr;
 
 	log_blocked("service", &s_block);
 	if (srv == unblocked_service) {

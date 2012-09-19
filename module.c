@@ -59,7 +59,7 @@ int in_reaper_thread(void)
  */
 static int handle_host_status(merlin_header *hdr, void *buf)
 {
-	struct host_struct *obj;
+	host *obj;
 	merlin_host_status *st_obj = (merlin_host_status *)buf;
 	struct tmp_net2mod_data tmp;
 
@@ -474,7 +474,7 @@ static void setup_host_hash_tables(void)
 	 */
 	for (hg = hostgroup_list; hg; hg = hg->next) {
 		node_selection *sel = node_selection_by_name(hg->group_name);
-		struct hostsmember_struct *m;
+		hostsmember *m;
 
 		if (!sel)
 			continue;
