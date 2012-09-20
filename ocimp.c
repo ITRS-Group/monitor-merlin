@@ -2172,7 +2172,25 @@ static void usage(const char *fmt, ...)
 		va_end(ap);
 	}
 
-	printf("Usage: ocimp\n");
+	printf("Usage: ocimp <options>\n");
+	printf("Where options can be any of the following:\n");
+	printf("  --db-name      name of database to import to (def: merlin)\n");
+	printf("  --db-user      database username (def: merlin)\n");
+	printf("  --db-pass      database password (def: merlin)\n");
+	printf("  --db-type      database type (def: mysql)\n");
+	printf("  --db-port      database port to connect to (def: type dependant)\n");
+	printf("  --merlin-conf  path to merlin config file (for db info)\n");
+	printf("  --merlin-cfg   As above, so below\n");
+	printf("  --cache        objects.cache file to import\n");
+	printf("  --status-log   path to status.log file to import\n");
+	printf("  --nagios-cfg   path to nagios' main config (for objects.cache and status.log\n");
+	printf("\nDebug options:\n");
+	printf("  --mem-stats    Print memory stats after execution\n");
+	printf("  --force        force re-import even if objects.cache hasn't changed\n");
+	printf("  --no-ca-query  Don't use contact_access cache query\n");
+	printf("  --no-ca        Don't populate the contact_access cache\n");
+	printf("  --no-contact-cache   \"Real\" name of '--no-ca'\n");
+
 	exit(1);
 }
 
