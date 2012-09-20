@@ -5,7 +5,7 @@
 #include <string.h>
 
 static struct object_state *object_states[2];
-static size_t num_objects[2];
+static size_t merlin_num_objects[2];
 
 /*
  * sort/search function for the state caches
@@ -35,7 +35,7 @@ static struct object_state *store_object_states(db_wrap_result * result, size_t 
 		return NULL;
 	}
 
-		*count = 0;
+	*count = 0;
 	result->api->num_rows(result, count);
 	if (!*count)
 		goto out;
@@ -82,7 +82,7 @@ static int prime_host_states(size_t *count)
 	sql_query("SELECT host_name, current_state, state_type "
 	          "FROM %s.host ORDER BY host_name", sql_db_name());
 	object_states[0] = store_object_states(sql_get_result(), count);
-	num_objects[0] = *count;
+	merlin_num_objects[0] = *count;
 
 	return object_states[0] != NULL;
 }
@@ -97,7 +97,7 @@ static int prime_service_states(size_t *count)
 	sql_query("SELECT CONCAT(host_name, ';', service_description) as name, current_state, state_type "
 	          "FROM %s.service ORDER BY name", sql_db_name());
 	object_states[1] = store_object_states(sql_get_result(), count);
-	num_objects[1] = *count;
+	merlin_num_objects[1] = *count;
 
 	return object_states[1] != NULL;
 }
@@ -129,8 +129,8 @@ int prime_object_states(size_t *hosts, size_t *services)
 	if (!use_database)
 		return 0;
 
-	destroy_states(object_states[0], num_objects[0]);
-	destroy_states(object_states[1], num_objects[1]);
+	destroy_states(object_states[0], merlin_num_objects[0]);
+	destroy_states(object_states[1], merlin_num_objects[1]);
 
 	return prime_host_states(hosts) | prime_service_states(services);
 }
@@ -146,7 +146,7 @@ object_state *get_object_state(const char *name, size_t id)
 	int result;
 	object_state *ary;
 
-	high = num_objects[id];
+	high = merlin_num_objects[id];
 	ary = object_states[id];
 
 	/* binary search in the alphabetically sorted array */
@@ -203,7 +203,7 @@ object_state *get_service_state(const char *h_name, const char *s_name)
 size_t foreach_state(int id, int (*fn)(object_state *))
 {
 	size_t i;
-	for (i = 0; i < num_objects[id]; i++) {
+	for (i = 0; i < merlin_num_objects[id]; i++) {
 		object_state *st = &object_states[id][i];
 		fn(st);
 	}
