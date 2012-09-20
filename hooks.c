@@ -36,10 +36,10 @@ struct block_object {
 };
 static struct block_object h_block, s_block;
 
-struct check_stats {
+struct merlin_check_stats {
 	unsigned long long poller, peer, self, orphaned;
 };
-static struct check_stats service_checks, host_checks;
+static struct merlin_check_stats service_checks, host_checks;
 
 #ifdef DEBUG_DUPES_CAREFULLY
 #define mos_case(vname) \
