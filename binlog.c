@@ -220,8 +220,12 @@ static int binlog_file_read(binlog *bl, void **buf, unsigned int *len)
 
 	lseek(bl->fd, bl->file_read_pos, SEEK_SET);
 	result = read(bl->fd, len, sizeof(*len));
+	if(result < 0)
+		return -1;
 	*buf = malloc(*len);
 	result = read(bl->fd, *buf, *len);
+	if(result < 0)
+		return -1;
 	bl->file_read_pos = lseek(bl->fd, 0, SEEK_CUR);
 	bl->file_entries--;
 
