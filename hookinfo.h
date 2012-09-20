@@ -21,13 +21,6 @@ static struct hook_info_struct {
 	int strings;
 	off_t offset, ptrs[7];
 } hook_info[NEBCALLBACK_NUMITEMS] = {
-	{ NEBCALLBACK_RESERVED0, 0, 0, { 0, 0, 0, 0, 0 }, },
-	{ NEBCALLBACK_RESERVED1, 0, 0, { 0, 0, 0, 0, 0 }, },
-	{ NEBCALLBACK_RESERVED2, 0, 0, { 0, 0, 0, 0, 0 }, },
-	{ NEBCALLBACK_RESERVED3, 0, 0, { 0, 0, 0, 0, 0 }, },
-	{ NEBCALLBACK_RESERVED4, 0, 0, { 0, 0, 0, 0, 0 }, },
-	{ NEBCALLBACK_RAW_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
-	{ NEBCALLBACK_NEB_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
 	{ NEBCALLBACK_PROCESS_DATA, 0, sizeof(nebstruct_process_data),
 		{ 0, 0, 0, 0, 0 },
 	},

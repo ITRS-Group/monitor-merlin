@@ -264,19 +264,11 @@ char *tohex(const unsigned char *data, int len)
 }
 
 #define CB_ENTRY(s) { NEBCALLBACK_##s##_DATA, #s, sizeof(#s) - 1 }
-#define CB_RESERVED(s) { NEBCALLBACK_RESERVED##s, "RESERVED" #s, sizeof("RESERVED"#s) - 1 }
 struct {
 	int id;
 	char *name;
 	uint name_len;
 } callback_list[NEBCALLBACK_NUMITEMS] = {
-	CB_RESERVED(0),
-	CB_RESERVED(1),
-	CB_RESERVED(2),
-	CB_RESERVED(3),
-	CB_RESERVED(4),
-	CB_ENTRY(RAW),
-	CB_ENTRY(NEB),
 	CB_ENTRY(PROCESS),
 	CB_ENTRY(TIMED_EVENT),
 	CB_ENTRY(LOG),
