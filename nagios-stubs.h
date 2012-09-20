@@ -9,7 +9,7 @@ hostgroup *hostgroup_list = NULL;
 host *host_list = NULL;
 scheduled_downtime *scheduled_downtime_list = NULL;
 #define macro_x global_macros.x
-int event_broker_options = 0;
+unsigned long event_broker_options = 0;
 int daemon_dumps_core = 0;
 sched_info scheduling_info;
 #define num_hosts scheduling_info.total_hosts
@@ -43,11 +43,11 @@ timed_event *schedule_new_event(int a, int b, time_t c, int d, unsigned long e,
 {
 	return 0;
 }
-host *find_host(char *host_name)
+host *find_host(const char *host_name)
 {
 	return NULL;
 }
-service *find_service(char *host_name, char *service_description)
+service *find_service(const char *host_name, const char *service_description)
 {
 	return NULL;
 }
