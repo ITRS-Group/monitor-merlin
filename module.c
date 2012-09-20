@@ -92,9 +92,6 @@ static int handle_service_status(merlin_header *hdr, void *buf)
 		return 0;
 
 	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
-	obj->notified_on_warning = is_flag_set(st_obj->state.notified_on, 1 << STATE_WARNING);
-	obj->notified_on_critical = is_flag_set(st_obj->state.notified_on, 1 << STATE_CRITICAL);
-	obj->notified_on_unknown = is_flag_set(st_obj->state.notified_on, 1 << STATE_UNKNOWN);
 	if (hdr->type == NEBCALLBACK_SERVICE_CHECK_DATA && obj->perf_data) {
 		update_service_performance_data(obj);
 	}
