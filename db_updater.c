@@ -267,7 +267,7 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 		 "active_service_checks_enabled = %d, passive_service_checks_enabled = %d, "
 		 "active_host_checks_enabled = %d, passive_host_checks_enabled = %d, "
 		 "event_handlers_enabled = %d, flap_detection_enabled = %d, "
-		 "failure_prediction_enabled = %d, process_performance_data = %d, "
+		 "process_performance_data = %d, "
 		 "obsess_over_hosts = %d, obsess_over_services = %d, "
 		 "modified_host_attributes = %lu, modified_service_attributes = %lu, "
 		 "global_host_event_handler = %s, global_service_event_handler = %s, "
@@ -284,7 +284,7 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 		 p->active_service_checks_enabled, p->passive_service_checks_enabled,
 		 p->active_host_checks_enabled, p->passive_host_checks_enabled,
 		 p->event_handlers_enabled, p->flap_detection_enabled,
-		 p->failure_prediction_enabled, p->process_performance_data,
+		 p->process_performance_data,
 		 p->obsess_over_hosts, p->obsess_over_services,
 		 p->modified_host_attributes, p->modified_service_attributes,
 		 safe_str(global_host_event_handler), safe_str(global_service_event_handler),
