@@ -525,7 +525,7 @@ static void test_broken_packets(void)
 			merlin_service_status st_obj;
 
 			pkt.hdr.len = HDR_SIZE + (rand() & (MAX_PKT_SIZE - 1));
-			service_mod2net(&st_obj, &services[i]);
+			MOD2NET_STATE_VARS(st_obj.state, ((service *)&services[i]));
 			real_len = merlin_encode_event(&pkt, (void *)&st_obj);
 			pkt.hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
 			sent = node_send(&ipc, &pkt, pkt.hdr.len, 0);
