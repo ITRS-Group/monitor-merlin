@@ -12,10 +12,10 @@
 
 #include "shared.h"
 
-#include <nebmods.h>
-#include <nebmodules.h>
-#include <broker.h>
-#include <lib/dkhash.h>
+#include <nagios/nebmods.h>
+#include <nagios/nebmodules.h>
+#include <nagios/broker.h>
+#include <nagios/lib/dkhash.h>
 
 typedef struct BINLOG_HEAD {
 	int type;

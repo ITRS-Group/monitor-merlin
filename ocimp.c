@@ -7,7 +7,7 @@
 #include "shared.h"
 #include "sha1.h"
 #include "ocimp.h"
-#include <objects.h>
+#include <nagios/objects.h>
 
 #ifdef __GLIBC__
 #include <malloc.h>

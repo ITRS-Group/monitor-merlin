@@ -9,9 +9,9 @@
 #include <stdarg.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <broker.h>
-#include <nebcallbacks.h>
-#include <lib/dkhash.h>
+#include <nagios/broker.h>
+#include <nagios/nebcallbacks.h>
+#include <nagios/lib/dkhash.h>
 #include "shared.h"
 
 #define CLR_RESET          "\033[m"

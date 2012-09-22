@@ -1,13 +1,13 @@
-#include <lib/iobroker.h>
+#include <nagios/lib/iobroker.h>
 #include "module.h"
-#include <nagios.h>
-#include <objects.h>
-#include <statusdata.h>
-#include <macros.h>
-#include <perfdata.h>
-#include <comments.h>
-#include <common.h>
-#include <downtime.h>
+#include <nagios/nagios.h>
+#include <nagios/objects.h>
+#include <nagios/statusdata.h>
+#include <nagios/macros.h>
+#include <nagios/perfdata.h>
+#include <nagios/comments.h>
+#include <nagios/common.h>
+#include <nagios/downtime.h>
 
 extern iobroker_set *nagios_iobs;
 

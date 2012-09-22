@@ -1,7 +1,7 @@
 /* variables provided by Nagios and required by module */
-#include <macros.h>
-#include <comments.h>
-#include <downtime.h>
+#include <nagios/macros.h>
+#include <nagios/comments.h>
+#include <nagios/downtime.h>
 char *config_file = "/opt/monitor/etc/nagios.cfg";
 comment *comment_list = NULL;
 service *service_list = NULL;

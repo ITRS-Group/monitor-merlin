@@ -4,7 +4,7 @@
 
 #include "module.h"
 #include "slist.h"
-#include <nagios.h>
+#include <nagios/nagios.h>
 
 static merlin_node **peerid_table;
 static slist *host_sl, *service_sl;

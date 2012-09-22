@@ -1,7 +1,7 @@
 #include "logutils.h"
 #include "cfgfile.h"
 #include "auth.h"
-#include <lib/dkhash.h>
+#include <nagios/lib/dkhash.h>
 
 static const char *user;
 static char **cgroups;

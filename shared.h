@@ -36,10 +36,10 @@
 #include "mrln_logging.h"
 #include "cfgfile.h"
 #include "binlog.h"
-#include <nagios.h>
-#include <nebstructs.h>
-#include <nebcallbacks.h>
-#include <broker.h>
+#include <nagios/nagios.h>
+#include <nagios/nebstructs.h>
+#include <nagios/nebcallbacks.h>
+#include <nagios/broker.h>
 
 /*
  * debug macros. All of them (including assert), goes away when NDEBUG

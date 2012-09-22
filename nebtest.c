@@ -3,13 +3,13 @@
 #include <dlfcn.h>
 #include "logutils.h"
 #include "test_utils.h"
-#include <nebstructs.h>
-#include <nebmodules.h>
-#include <nebmods.h>
-#include <broker.h>
-#include <objects.h>
-#include <macros.h>
-#include <lib/libnagios.h>
+#include <nagios/nebstructs.h>
+#include <nagios/nebmodules.h>
+#include <nagios/nebmods.h>
+#include <nagios/broker.h>
+#include <nagios/objects.h>
+#include <nagios/macros.h>
+#include <nagios/lib/libnagios.h>
 #include "nagios-stubs.h"
 
 static int (*hooks[NEBCALLBACK_NUMITEMS])(int, void *);
