@@ -333,17 +333,23 @@ static int get_file_hash(blk_SHA_CTX *ctx, const char *path)
 	return 0;
 }
 
+static int cfg_code_cmp(const void *a_, const void *b_)
+{
+	cfg_code *a = (cfg_code *)a_;
+	cfg_code *b = (cfg_code *)b_;
+
+	if(a->len != b->len)
+		return a->len - b->len;
+	return strcmp(a->key, b->key);
+}
+
 static cfg_code *real_get_cfg_code(struct cfg_var *v, cfg_code *ary, int entries)
 {
-	int i;
+	cfg_code seek;
 
-	for (i = 0; i < entries; i++) {
-		cfg_code *c = &ary[i];
-		if (c->len == v->key_len && !memcmp(c->key, v->key, c->len))
-			return c;
-	}
-
-	return NULL;
+	seek.key = v->key;
+	seek.len = v->key_len;
+	return bsearch(&seek, ary, entries, sizeof(*ary), cfg_code_cmp);
 }
 
 #define scode_str_case(key) \
@@ -2308,6 +2314,7 @@ int main(int argc, char **argv)
 	struct cfg_comp *cache, *status;
 	char *nagios_cfg_path = NULL, *merlin_cfg_path = NULL;
 	int i, use_sql = 1, force = 0, print_memory_stats = 0;
+	int print_keys = 0;
 	struct timeval start, stop;
 
 	gettimeofday(&start, NULL);
@@ -2341,6 +2348,10 @@ int main(int argc, char **argv)
 		}
 		if (!strcmp(arg, "--force")) {
 			force = 1;
+			continue;
+		}
+		if(!strcmp(arg, "--print-keys")) {
+			print_keys = 1;
 			continue;
 		}
 
@@ -2381,6 +2392,13 @@ int main(int argc, char **argv)
 		usage("Unknown argument: %s\n", arg);
 	}
 
+	qsort(slog_options, ARRAY_SIZE(slog_options), sizeof(*slog_options), cfg_code_cmp);
+	if(print_keys) {
+		for(i = 0; i < ARRAY_SIZE(slog_options); i++) {
+			printf("%s\n", slog_options[i].key);
+		}
+		exit(0);
+	}
 	if (merlin_cfg_path) {
 		grok_merlin_config(merlin_cfg_path);
 	}
