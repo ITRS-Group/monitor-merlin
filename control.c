@@ -6,7 +6,6 @@
 #include <nagios/nagios.h>
 
 static merlin_node **peerid_table;
-extern sched_info scheduling_info;
 
 static int timeval_comp(const struct timeval *a, const struct timeval *b)
 {
