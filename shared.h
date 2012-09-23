@@ -124,6 +124,7 @@ struct monitored_object_state {
 	int last_hard_state;
 	int state_type;
 	int current_attempt;
+	unsigned long hourly_value;
 	unsigned long current_event_id;
 	unsigned long last_event_id;
 	unsigned long current_problem_id;

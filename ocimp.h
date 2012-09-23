@@ -100,6 +100,7 @@
 #define CFG_notifications_enabled 97
 #define CFG_obsess 98
 #define CFG_obsess_over_hosts 99
+#define CFG_hourly_value 100
 #define CFG_obsess_over_services 101
 #define CFG_parallel_host_check_stats 102
 #define CFG_passive_checks_enabled 103
@@ -160,7 +161,6 @@
 #define CFG_icon_image_alt 227
 
 /* for contacts. We should probably optimize this somewhat */
-#define CFG_service_notification_options 240
 #define CFG_host_notification_options 228
 #define CFG_service_notification_commands 229
 #define CFG_host_notification_commands 230
@@ -173,6 +173,8 @@
 #define CFG_address4 237
 #define CFG_address5 238
 #define CFG_address6 239
+#define CFG_service_notification_options 240
+#define CFG_minimum_value 241
 
 
 /*
@@ -283,6 +285,12 @@ static cfg_code slog_options[] = {
 	{ OCIMP_CFG_ENTRY(active_scheduled_host_check_stats) },
 	{ OCIMP_CFG_ENTRY(active_scheduled_service_check_stats) },
 	{ OCIMP_CFG_ENTRY(active_service_checks_enabled) },
+	{ OCIMP_CFG_ENTRY(address1) },
+	{ OCIMP_CFG_ENTRY(address2) },
+	{ OCIMP_CFG_ENTRY(address3) },
+	{ OCIMP_CFG_ENTRY(address4) },
+	{ OCIMP_CFG_ENTRY(address5) },
+	{ OCIMP_CFG_ENTRY(address6) },
 	{ OCIMP_CFG_ENTRY(author) },
 	{ OCIMP_CFG_ENTRY(cached_host_check_stats) },
 	{ OCIMP_CFG_ENTRY(cached_service_check_stats) },
@@ -331,6 +339,7 @@ static cfg_code slog_options[] = {
 	{ OCIMP_CFG_ENTRY(host_name) },
 	{ OCIMP_CFG_ENTRY(host_notification_period) },
 	{ OCIMP_CFG_ENTRY(host_notifications_enabled) },
+	{ OCIMP_CFG_ENTRY(hourly_value) },
 	{ OCIMP_CFG_ENTRY(is_flapping) },
 	{ OCIMP_CFG_ENTRY(last_check) },
 	{ OCIMP_CFG_ENTRY(last_command_check) },
@@ -355,6 +364,7 @@ static cfg_code slog_options[] = {
 	{ OCIMP_CFG_ENTRY(last_version) },
 	{ OCIMP_CFG_ENTRY(long_plugin_output) },
 	{ OCIMP_CFG_ENTRY(max_attempts) },
+	{ OCIMP_CFG_ENTRY(minimum_value) },
 	{ OCIMP_CFG_ENTRY(modified_attributes) },
 	{ OCIMP_CFG_ENTRY(modified_host_attributes) },
 	{ OCIMP_CFG_ENTRY(modified_service_attributes) },
@@ -453,7 +463,7 @@ static cfg_code slog_options[] = {
 	"process_performance_data,\n" \
 	"active_checks_enabled, passive_checks_enabled,\n" \
 	"event_handler_enabled,\n"                            /* 20 */ \
-	"obsess_over_" type ", problem_has_been_acknowledged,\n" \
+	"obsess, problem_has_been_acknowledged,\n" \
 	"acknowledgement_type, check_type,\n" \
 	"current_state, last_state,\n" \
 	"last_hard_state, state_type,\n" \

@@ -11,7 +11,7 @@
 	"process_performance_data = %d, " \
 	"active_checks_enabled = %d, passive_checks_enabled = %d, " \
 	"event_handler_enabled = %d, " \
-	"obsess_over_" type " = %d, problem_has_been_acknowledged = %d, " \
+	"obsess = %d, problem_has_been_acknowledged = %d, " \
 	"acknowledgement_type = %d, check_type = %d, " \
 	"current_state = %d, last_state = %d, " /* 17 - 18 */ \
 	"last_hard_state = %d, state_type = %d, " \

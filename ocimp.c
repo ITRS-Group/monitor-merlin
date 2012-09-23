@@ -707,6 +707,7 @@ static int parse_status(struct cfg_comp *comp)
 			scode_int_case(scheduled_downtime_depth);
 			scode_int_case(check_type);
 			scode_int_case(current_state);
+			scode_int_case(hourly_value);
 
 			/* double vars */
 			scode_dbl_case_x(check_latency, latency);
@@ -1148,6 +1149,7 @@ static void parse_contact(struct cfg_comp *comp)
 	int can_submit_commands = 0;
 	int retain_status_information;
 	int retain_nonstatus_information;
+	int minimum_value;
 	char *address1 = NULL;
 	char *address2 = NULL;
 	char *address3 = NULL;
@@ -1207,6 +1209,9 @@ static void parse_contact(struct cfg_comp *comp)
 		case CFG_can_submit_commands: can_submit_commands = *v->value == '1'; break;
 		case CFG_host_notifications_enabled: host_notifications_enabled = *v->value == '1'; break;
 		case CFG_service_notifications_enabled: service_notifications_enabled = *v->value == '1'; break;
+		case CFG_minimum_value:
+			minimum_value = atoi(v->value);
+			break;
 		case CFG_email: sql_quote(v->value, &email); break;
 		case CFG_pager: sql_quote(v->value, &pager); break;
 		case CFG_address1: sql_quote(v->value, &address1); break;
@@ -1230,7 +1235,7 @@ static void parse_contact(struct cfg_comp *comp)
 			  "host_notification_options, service_notification_options, "
 			  "host_notification_commands, service_notification_commands, "
 			  "retain_status_information, retain_nonstatus_information, "
-			  "email, pager, "
+			  "email, pager, minimum_value, "
 			  "address1, address2, address3, "
 			  "address4, address5, address6, "
 			  "last_host_notification, last_service_notification) "
@@ -1241,7 +1246,7 @@ static void parse_contact(struct cfg_comp *comp)
 			  "%s, %s, "
 			  "%s, %s, "
 			  "%d, %d, "
-			  "%s, %s, "
+			  "%s, %s, %d, "
 			  "%s, %s, %s, "
 			  "%s, %s, %s, "
 			  "0, 0)",
@@ -1252,7 +1257,7 @@ static void parse_contact(struct cfg_comp *comp)
 			  host_notification_options, service_notification_options,
 			  host_notification_commands, service_notification_commands,
 			  retain_status_information, retain_nonstatus_information,
-			  safe_str(email), safe_str(pager),
+			  safe_str(email), safe_str(pager), minimum_value,
 			  safe_str(address1), safe_str(address2), safe_str(address3),
 			  safe_str(address4), safe_str(address5), safe_str(address6));
 
