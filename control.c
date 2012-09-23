@@ -3,100 +3,10 @@
  */
 
 #include "module.h"
-#include "slist.h"
 #include <nagios/nagios.h>
 
 static merlin_node **peerid_table;
-static slist *host_sl, *service_sl;
 extern sched_info scheduling_info;
-extern host *host_list;
-extern service *service_list;
-
-static int host_cmp(const void *a_, const void *b_)
-{
-	const host *a = *(const host **)a_;
-	const host *b = *(const host **)b_;
-
-	return strcmp(a->name, b->name);
-}
-
-static int service_cmp(const void *a_, const void *b_)
-{
-	const service *a = *(const service **)a_;
-	const service *b = *(const service **)b_;
-	int result;
-
-	result = strcmp(a->host_name, b->host_name);
-	return result ? result : strcmp(a->description, b->description);
-}
-
-static int should_run_check(slist *sl, const void *key)
-{
-	int pos;
-
-	if (!self.active_peers || !sl)
-		return 1;
-
-	pos = slist_find_pos(sl, key);
-
-	/* this should never happen */
-	if (pos < 0) {
-		return -1;
-	}
-
-	return (pos % (self.active_peers + 1)) == self.peer_id;
-}
-
-int ctrl_should_run_host_check(char *host_name)
-{
-	host h;
-	h.name = host_name;
-	return should_run_check(host_sl, &h);
-}
-
-int ctrl_should_run_service_check(char *host_name, char *desc)
-{
-	service s;
-	s.host_name = host_name;
-	s.description = desc;
-	return should_run_check(service_sl, &s);
-}
-
-static void create_host_table(void)
-{
-	host *h;
-
-	if (!num_peers)
-		return;
-
-	linfo("Creating sorted host table for %d hosts",
-		  scheduling_info.total_hosts);
-	host_sl = slist_init(scheduling_info.total_hosts, host_cmp);
-	for (h = host_list; h; h = h->next)
-		slist_add(host_sl, h);
-	slist_sort(host_sl);
-}
-
-static void create_service_table(void)
-{
-	service *s;
-
-	if (!num_peers)
-		return;
-
-	linfo("Creating sorted service table for %d services",
-		  scheduling_info.total_services);
-	service_sl = slist_init(scheduling_info.total_services, service_cmp);
-	for (s = service_list; s; s = s->next)
-		slist_add(service_sl, s);
-	slist_sort(service_sl);
-}
-
-void ctrl_create_object_tables(void)
-{
-	create_host_table();
-	create_service_table();
-}
 
 static int timeval_comp(const struct timeval *a, const struct timeval *b)
 {

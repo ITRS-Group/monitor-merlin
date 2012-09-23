@@ -40,6 +40,11 @@ struct merlin_check_stats {
 };
 static struct merlin_check_stats service_checks, host_checks;
 
+
+#define should_run_check(obj) \
+	((obj)->id % (self.active_peers + 1)) == self.peer_id
+
+
 #ifdef DEBUG_DUPES_CAREFULLY
 #define mos_case(vname) \
 	if (offset >= offsetof(monitored_object_state, vname) && \
@@ -337,7 +342,7 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		 * if a peer is supposed to handle this check, we must
 		 * take care not to run it
 		 */
-		if (!ctrl_should_run_service_check(ds->host_name, ds->service_description)) {
+		if (!should_run_check(((service *)ds->object_ptr))) {
 			service_checks.peer++;
 			return NEBERROR_CALLBACKCANCEL;
 		}
@@ -383,7 +388,7 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		}
 
 		/* if a peer will handle it, we won't */
-		if (!ctrl_should_run_host_check(ds->host_name)) {
+		if (!should_run_check((host *)ds->object_ptr)) {
 			host_checks.peer++;
 			return NEBERROR_CALLBACKCANCEL;
 		}
@@ -805,7 +810,7 @@ static int hook_host_status(merlin_event *pkt, void *data)
 			h_block.poller++;
 			return 0;
 		}
-		if (!ctrl_should_run_host_check(h->name)) {
+		if (!should_run_check(h)) {
 			h_block.peer++;
 			return 0;
 		}
@@ -834,7 +839,7 @@ static int hook_service_status(merlin_event *pkt, void *data)
 			s_block.poller++;
 			return 0;
 		}
-		if (!ctrl_should_run_service_check(srv->host_name, srv->description)) {
+		if (!should_run_check(srv)) {
 			s_block.peer++;
 			return 0;
 		}
@@ -916,7 +921,7 @@ static int hook_notification(merlin_event *pkt, void *data)
 				return 0;
 
 			what = "service";
-			if (!ctrl_should_run_service_check(host_name, s->description)) {
+			if (!should_run_check(s)) {
 				ldebug("Blocked notification for %s %s;%s. A peer is supposed to send it.",
 					   what, host_name, sdesc);
 				return NEBERROR_CALLBACKCANCEL;
@@ -929,7 +934,7 @@ static int hook_notification(merlin_event *pkt, void *data)
 			if(h->check_type == HOST_CHECK_PASSIVE)
 				return 0;
 
-			if (!ctrl_should_run_host_check(host_name)) {
+			if (!should_run_check(h)) {
 				ldebug("Blocked notification for %s %s. A peer is supposed to send it",
 					   what, host_name);
 				return NEBERROR_CALLBACKCANCEL;
