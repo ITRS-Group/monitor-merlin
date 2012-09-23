@@ -655,7 +655,7 @@ static int parse_status(struct cfg_comp *comp)
 			case CFG_max_check_attempts:
 			case CFG_active_checks_enabled:
 			case CFG_passive_checks_enabled:
-			case CFG_obsess_over_host:
+			case CFG_obsess:
 			case CFG_event_handler_enabled:
 			case CFG_flap_detection_enabled:
 			case CFG_notifications_enabled:
@@ -663,7 +663,6 @@ static int parse_status(struct cfg_comp *comp)
 			case CFG_failure_prediction_enabled:
 			/* extra duplicated service vars */
 			case CFG_check_period:
-			case CFG_obsess_over_service:
 			/* extra duplicated contact vars */
 			case CFG_service_notification_period:
 			case CFG_host_notification_period:
@@ -677,8 +676,7 @@ static int parse_status(struct cfg_comp *comp)
 		case CFG_IGNORE:
 			continue;
 
-		case CFG_obsess_over_host:
-		case CFG_obsess_over_service:
+		case CFG_obsess:
 			obj->state.obsess = *v->value = '0';
 			break;
 

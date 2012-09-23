@@ -98,9 +98,8 @@
 #define CFG_no_more_notifications CFG_IGNORE
 #define CFG_notification_period 96
 #define CFG_notifications_enabled 97
-#define CFG_obsess_over_host 98
+#define CFG_obsess 98
 #define CFG_obsess_over_hosts 99
-#define CFG_obsess_over_service 100
 #define CFG_obsess_over_services 101
 #define CFG_parallel_host_check_stats 102
 #define CFG_passive_checks_enabled 103
@@ -161,7 +160,7 @@
 #define CFG_icon_image_alt 227
 
 /* for contacts. We should probably optimize this somewhat */
-#define CFG_service_notification_options 227
+#define CFG_service_notification_options 240
 #define CFG_host_notification_options 228
 #define CFG_service_notification_commands 229
 #define CFG_host_notification_commands 230
@@ -371,9 +370,8 @@ static cfg_code slog_options[] = {
 	{ OCIMP_CFG_ENTRY(no_more_notifications) },
 	{ OCIMP_CFG_ENTRY(notification_period) },
 	{ OCIMP_CFG_ENTRY(notifications_enabled) },
-	{ OCIMP_CFG_ENTRY(obsess_over_host) },
+	{ OCIMP_CFG_ENTRY(obsess) },
 	{ OCIMP_CFG_ENTRY(obsess_over_hosts) },
-	{ OCIMP_CFG_ENTRY(obsess_over_service) },
 	{ OCIMP_CFG_ENTRY(obsess_over_services) },
 	{ OCIMP_CFG_ENTRY(parallel_host_check_stats) },
 	{ OCIMP_CFG_ENTRY(passive_checks_enabled) },
