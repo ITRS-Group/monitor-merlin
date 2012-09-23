@@ -243,7 +243,6 @@ CREATE TABLE host(
 	execution_time float,
 	is_executing int(10) NOT NULL default '0',
 	check_options int(10) NOT NULL default '0',
-	last_notification int(10),
 	next_notification int(10),
 	next_check int(10),
 	should_be_scheduled int(10) NOT NULL default '0',
