@@ -354,7 +354,7 @@ main(int argc, char **argv)
 		lerr("There was an error. Aborting.");
 		exit(1);
 	}
-	linfo("Found %i renames.", rename_len);
+	linfo("Found %ld renames.", rename_len);
 	if (!rename_len) {
 		linfo("Nothing to do. Exiting.");
 		exit(0);
