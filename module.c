@@ -402,7 +402,7 @@ static void setup_host_hash_tables(void)
 		return;
 
 	linfo("Creating hash tables");
-	host_hash_table = dkhash_create(2048);
+	host_hash_table = dkhash_create(num_objects.hosts * 1.3);
 	if (!host_hash_table) {
 		lerr("Failed to initialize hash tables: Out of memory");
 		exit(1);
