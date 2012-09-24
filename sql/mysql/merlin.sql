@@ -25,6 +25,8 @@ CREATE TABLE program_status(
 	last_command_check				int(10),
 	last_log_rotation				int(10),
 	notifications_enabled			tinyint(2),
+	active_host_checks_enabled	tinyint(2),
+	passive_host_checks_enabled	tinyint(2),
 	active_service_checks_enabled	tinyint(2),
 	passive_service_checks_enabled	tinyint(2),
 	active_checks_enabled			tinyint(2),
