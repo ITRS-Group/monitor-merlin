@@ -215,8 +215,8 @@ static inline int merlin_decode_event(merlin_event *pkt)
 	int ret = merlin_decode(pkt->body, pkt->hdr.len, pkt->hdr.type);
 
 	if (ret) {
-		lerr("CODEC: Failed to decode packet. type: %u; code: %u; len: %u",
-			 pkt->hdr.type, pkt->hdr.code, pkt->hdr.len);
+		lerr("CODEC: Failed to decode packet. type: %u (%s); code: %u; len: %u",
+			 pkt->hdr.type, callback_name(pkt->hdr.type), pkt->hdr.code, pkt->hdr.len);
 	}
 	return ret;
 }
