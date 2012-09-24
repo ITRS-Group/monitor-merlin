@@ -60,19 +60,19 @@ static struct hook_info_struct {
 	},
 	{ NEBCALLBACK_SERVICE_CHECK_DATA, 5, sizeof(merlin_service_status),
 		{
+			offsetof(merlin_service_status, host_name),
+			offsetof(merlin_service_status, service_description),
 			offsetof(merlin_service_status, state.plugin_output),
 			offsetof(merlin_service_status, state.long_plugin_output),
 			offsetof(merlin_service_status, state.perf_data),
-			offsetof(merlin_service_status, host_name),
-			offsetof(merlin_service_status, service_description)
 		}
 	},
 	{ NEBCALLBACK_HOST_CHECK_DATA, 4, sizeof(merlin_host_status),
 		{
+			offsetof(merlin_host_status, name),
 			offsetof(merlin_host_status, state.plugin_output),
 			offsetof(merlin_host_status, state.long_plugin_output),
 			offsetof(merlin_host_status, state.perf_data),
-			offsetof(merlin_host_status, name),
 			0
 		},
 	},
@@ -110,20 +110,20 @@ static struct hook_info_struct {
 	},
 	{ NEBCALLBACK_HOST_STATUS_DATA, 4, sizeof(merlin_host_status),
 		{
+			offsetof(merlin_host_status, name),
 			offsetof(merlin_host_status, state.plugin_output),
 			offsetof(merlin_host_status, state.long_plugin_output),
 			offsetof(merlin_host_status, state.perf_data),
-			offsetof(merlin_host_status, name),
 			0
 		},
 	},
 	{ NEBCALLBACK_SERVICE_STATUS_DATA, 5, sizeof(merlin_service_status),
 		{
+			offsetof(merlin_service_status, host_name),
+			offsetof(merlin_service_status, service_description),
 			offsetof(merlin_service_status, state.plugin_output),
 			offsetof(merlin_service_status, state.long_plugin_output),
 			offsetof(merlin_service_status, state.perf_data),
-			offsetof(merlin_service_status, host_name),
-			offsetof(merlin_service_status, service_description)
 		}
 	},
 	{ NEBCALLBACK_ADAPTIVE_PROGRAM_DATA, 0, 0, { 0, 0, 0, 0, 0 }, },
