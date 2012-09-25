@@ -980,6 +980,8 @@ int merlin_mod_hook(int cb, void *data)
 {
 	merlin_event pkt;
 	int result = 0;
+	static time_t last_pulse = 0;
+	time_t now;
 
 	if (!data) {
 		lerr("eventbroker module called with NULL data");
@@ -1012,6 +1014,12 @@ int merlin_mod_hook(int cb, void *data)
 		/* send_paths resets merlin_should_send_paths if successful */
 		send_paths();
 	}
+
+	/* self-heal nodes that have missed out on the fact that we're up */
+	now = time(NULL);
+	if(!last_pulse || now - last_pulse > 15)
+		node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 0);
+	last_pulse = now;
 
 	memset(&pkt, 0, sizeof(pkt));
 	pkt.hdr.type = cb;
