@@ -303,7 +303,7 @@ int ipc_send_event(merlin_event *pkt)
 	pkt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
 	gettimeofday(&pkt->hdr.sent, NULL);
 
-	if (node_send_event(&ipc, pkt, 100) < 0) {
+	if (node_send_event(&ipc, pkt, 0) < 0) {
 		ipc_reinit();
 		return -1;
 	}
