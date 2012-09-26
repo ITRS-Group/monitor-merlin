@@ -3,6 +3,7 @@ prefix=/opt/monitor/op5/merlin
 nagios_config=/opt/monitor/etc/nagios.cfg
 merlin_config=/opt/monitor/op5/merlin/merlin.conf
 modline="broker_module=/opt/monitor/op5/merlin/merlin.so"
+grep=/usr/xpg4/bin/grep
 
-grep -Fq $modline $nagios_config || echo "$modline $merlin_config" >> $nagios_config
+$grep -Fq $modline $nagios_config || echo "$modline $merlin_config" >> $nagios_config
 svccfg import /opt/monitor/svc/manifest-merlin.xml
