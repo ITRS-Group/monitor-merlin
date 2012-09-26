@@ -1,3 +1,8 @@
+#!/opt/csw/bin/bash
+
+# Fail on first occured error
+set -e
+
 curdir=`pwd`
 working_dir=`dirname $curdir`
 buildroot=$working_dir/temp
