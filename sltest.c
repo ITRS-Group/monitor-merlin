@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <objects.h>
+#include <nagios/objects.h>
 #include "shared.h"
 #include "test_utils.h"
 #include "slist.h"
