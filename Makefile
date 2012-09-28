@@ -169,7 +169,7 @@ rename: $(RENAME_OBJS)
 	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@
 
 #test: test-binlog test-slist test__hash test__lparse test_module
-test: test-slist test__hash test__lparse test_module
+test: test-slist test__hash test__lparse
 
 test_module: nebtest merlin.so
 	@./nebtest merlin.so
