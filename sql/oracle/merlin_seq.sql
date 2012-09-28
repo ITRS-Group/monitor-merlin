@@ -2,7 +2,7 @@ SPOOL merlin_seq.out
 SET DEFINE OFF;
 SET SCAN OFF;
 
-DROP SEQUENCE comment_id_SEQ;
+DROP SEQUENCE comment_tbl_id_SEQ;
 
 
 PROMPT Creating Sequence comment_tbl_id_SEQ ...
