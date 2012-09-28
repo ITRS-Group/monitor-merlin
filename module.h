@@ -70,12 +70,8 @@ extern void merlin_set_block_comment(nebstruct_comment_data *cmnt);
  * large but rather simple macros here
  */
 #define MOD2NET_STATE_VARS(mrln, nag) \
-	mrln.initial_state = nag->initial_state; \
 	mrln.flap_detection_enabled = nag->flap_detection_enabled; \
-	mrln.low_flap_threshold = nag->low_flap_threshold;  \
-	mrln.high_flap_threshold = nag->high_flap_threshold; \
 	mrln.check_freshness = nag->check_freshness; \
-	mrln.freshness_threshold = nag->freshness_threshold; \
 	mrln.process_performance_data = nag->process_performance_data; \
 	mrln.checks_enabled = nag->checks_enabled; \
 	mrln.event_handler_enabled = nag->event_handler_enabled; \
@@ -170,12 +166,8 @@ struct tmp_net2mod_data {
 	nag->long_plugin_output = tmp.new_long_plugin_output; \
 	nag->perf_data = tmp.new_perf_data; \
 	/* then we assign variables (again, this is atomic) */ \
-	nag->initial_state = mrln.initial_state; \
 	nag->flap_detection_enabled = mrln.flap_detection_enabled; \
-	nag->low_flap_threshold = mrln.low_flap_threshold; \
-	nag->high_flap_threshold = mrln.high_flap_threshold; \
 	nag->check_freshness = mrln.check_freshness; \
-	nag->freshness_threshold = mrln.freshness_threshold; \
 	nag->process_performance_data = mrln.process_performance_data; \
 	nag->checks_enabled = mrln.checks_enabled; \
 	nag->event_handler_enabled = mrln.event_handler_enabled; \
