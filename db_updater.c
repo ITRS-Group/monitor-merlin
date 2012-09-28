@@ -5,9 +5,8 @@
 #define STATUS_QUERY(type) \
 	"UPDATE " type " SET " \
 	"instance_id = %d, " \
-	"initial_state = %d, flap_detection_enabled = %d, " \
-	"low_flap_threshold = %f, high_flap_threshold = %f, " \
-	"check_freshness = %d, freshness_threshold = %d, " \
+	"flap_detection_enabled = %d, " \
+	"check_freshness = %d, " \
 	"process_performance_data = %d, " \
 	"active_checks_enabled = %d, passive_checks_enabled = %d, " \
 	"event_handler_enabled = %d, " \
@@ -32,9 +31,8 @@
 	"output = %s, long_output = %s, perf_data = %s"
 
 #define STATUS_ARGS(output, long_output, perf_data) \
-	p->state.initial_state, p->state.flap_detection_enabled, \
-	p->state.low_flap_threshold, p->state.high_flap_threshold, \
-	p->state.check_freshness, p->state.freshness_threshold, \
+	p->state.flap_detection_enabled, \
+	p->state.check_freshness, \
 	p->state.process_performance_data, \
 	p->state.checks_enabled, p->state.accept_passive_checks, \
 	p->state.event_handler_enabled, \
