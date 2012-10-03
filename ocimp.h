@@ -463,7 +463,7 @@ static cfg_code slog_options[] = {
 	"process_performance_data,\n" \
 	"active_checks_enabled, passive_checks_enabled,\n" \
 	"event_handler_enabled,\n"                            /* 20 */ \
-	"obsess, problem_has_been_acknowledged,\n" \
+	"obsess_over_" type ", problem_has_been_acknowledged,\n" \
 	"acknowledgement_type, check_type,\n" \
 	"current_state, last_state,\n" \
 	"last_hard_state, state_type,\n" \
