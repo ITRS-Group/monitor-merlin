@@ -32,12 +32,7 @@ chown root:bin $buildroot/usr/bin/mon
 chown root:sys $buildroot/opt
 chmod 755 $buildroot/usr/bin/mon
 cp -r apps/libexec $buildroot/usr/libexec/merlin
-gsed -i 's#/etc/init.d/merlind start#svcadm enable -t op5merlin#' $buildroot/usr/libexec/merlin/start.sh
-gsed -i 's#/etc/init.d/merlind stop#svcadm disable -t op5merlin#' $buildroot/usr/libexec/merlin/stop.sh
-gsed -i 's#/etc/init.d/monitor start#svcadm enable -t op5monitor#' $buildroot/usr/libexec/merlin/start.sh
-gsed -i 's#/etc/init.d/monitor slay#/opt/monitor/svc/svc-monitor slay#' $buildroot/usr/libexec/merlin/stop.sh
-gsed -i 's#/etc/init.d/monitor stop#svcadm disable -t op5monitor#' $buildroot/usr/libexec/merlin/stop.sh
-gsed -i 's#/etc/init.d/monitor configtest#/opt/monitor/svc/svc-monitor configtest#' $buildroot/usr/libexec/merlin/restart.sh
+
 gsed -i 's/^import MySQLdb/# import MySQLdb/' $buildroot/usr/libexec/merlin/db.py
 cp oconf $buildroot/usr/libexec/merlin/-oconf
 
