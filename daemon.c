@@ -191,6 +191,8 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 					db_log_notifications = strtobool(v->value);
 				} else if (!prefixcmp(v->key, "track_current")) {
 					db_track_current = strtobool(v->value);
+				} else if (!strcmp(v->key, "enabled")) {
+					use_database = strtobool(v->value);
 				} else {
 					sql_config(v->key, v->value);
 				}
