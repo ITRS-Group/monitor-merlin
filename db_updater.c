@@ -166,7 +166,6 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 				p->state.state_type == HARD_STATE,
 				p->state.current_attempt, output);
 	}
-	safe_free(output);
 
 	/*
 	 * Stash service performance data separately, in case
