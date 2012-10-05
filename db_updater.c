@@ -60,48 +60,58 @@
 static int handle_host_status(merlin_node *node, int cb, const merlin_host_status *p)
 {
 	char *host_name;
-	char *output, *long_output, *perf_data;
-	int result, node_id;
+	char *output = NULL, *long_output = NULL, *perf_data = NULL;
+	int result, node_id, rpt_log = 0, perf_log = 0;
+
+	if (cb == NEBCALLBACK_HOST_CHECK_DATA) {
+		if (db_log_reports && host_has_new_state(p->name, p->state.current_state, p->state.state_type))
+			rpt_log = 1;
+		if (host_perf_table && p->state.perf_data && *p->state.perf_data) {
+			perf_log = 1;
+		}
+	}
+
+	if (!db_track_current && !rpt_log && !perf_log)
+		return 0;
 
 	node_id = node == &ipc ? 0 : node->id + 1;
 
 	sql_quote(p->name, &host_name);
-	sql_quote(p->state.plugin_output, &output);
-	sql_quote(p->state.long_plugin_output, &long_output);
-	sql_quote(p->state.perf_data, &perf_data);
-	result = sql_query(STATUS_QUERY("host") " WHERE host_name = %s",
-					   node_id,
-					   STATUS_ARGS(output, long_output, perf_data),
-					   host_name);
+	if (db_track_current || rpt_log)
+		sql_quote(p->state.plugin_output, &output);
+	if (db_track_current || perf_log)
+		sql_quote(p->state.perf_data, &perf_data);
 
-	/* this check is only done when we have new checkresults */
-	if (cb == NEBCALLBACK_HOST_CHECK_DATA) {
-		if (db_log_reports && host_has_new_state(p->name, p->state.current_state, p->state.state_type)) {
-			result = sql_query
-				("INSERT INTO %s(timestamp, event_type, host_name, state, "
-				 "hard, retry, output) "
-				 "VALUES(%lu, %d, %s, %d, %d, %d, %s)",
-				 sql_table_name(), p->state.last_check,
-				 NEBTYPE_HOSTCHECK_PROCESSED, host_name,
-				 p->state.current_state,
-				 p->state.state_type == HARD_STATE,
-				 p->state.current_attempt, output);
-		}
+	if (db_track_current) {
+		sql_quote(p->state.long_plugin_output, &long_output);
+		result = sql_query(STATUS_QUERY("host") " WHERE host_name = %s",
+						   node_id,
+						   STATUS_ARGS(output, long_output, perf_data),
+						   host_name);
+	}
 
-		/*
-		 * Stash host performance data separately, in case
-		 * people people are using Merlin with Nagiosgrapher or
-		 * similar performance data graphing solutions.
-		 */
-		if (host_perf_table && p->state.perf_data && *p->state.perf_data) {
-			char *perfdata;
-			sql_quote(p->state.perf_data, &perfdata);
-			result = sql_query
-				("INSERT INTO %s(timestamp, host_name, perfdata) "
-				 "VALUES(%lu, %s, %s)",
-				 host_perf_table, p->state.last_check, host_name, perfdata);
-			free(perfdata);
-		}
+	if (rpt_log) {
+		result = sql_query
+			("INSERT INTO %s(timestamp, event_type, host_name, state, "
+				"hard, retry, output) "
+				"VALUES(%lu, %d, %s, %d, %d, %d, %s)",
+				sql_table_name(), p->state.last_check,
+				NEBTYPE_HOSTCHECK_PROCESSED, host_name,
+				p->state.current_state,
+				p->state.state_type == HARD_STATE,
+				p->state.current_attempt, output);
+	}
+
+	/*
+	 * Stash host performance data separately, in case
+	 * people people are using Merlin with Nagiosgrapher or
+	 * similar performance data graphing solutions.
+	 */
+	if (perf_log) {
+		result = sql_query
+			("INSERT INTO %s(timestamp, host_name, perfdata) "
+				"VALUES(%lu, %s, %s)",
+				host_perf_table, p->state.last_check, host_name, perf_data);
 	}
 
 	free(host_name);
@@ -115,50 +125,61 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 {
 	char *host_name, *service_description;
 	char *output, *long_output, *perf_data;
-	int result, node_id;
+	int result, node_id, rpt_log = 0, perf_log = 0;
+
+	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA) {
+		if (db_log_reports && service_has_new_state(p->host_name, p->service_description, p->state.current_state, p->state.state_type))
+			rpt_log = 1;
+		if (service_perf_table && p->state.perf_data && *p->state.perf_data)
+			perf_log = 1;
+	}
+
+	if (!db_track_current && !rpt_log && !perf_log)
+		return 0;
 
 	node_id = node == &ipc ? 0 : node->id + 1;
 
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->service_description, &service_description);
-	sql_quote(p->state.plugin_output, &output);
-	sql_quote(p->state.long_plugin_output, &long_output);
-	sql_quote(p->state.perf_data, &perf_data);
-	result = sql_query
-		(STATUS_QUERY("service")
-		 " WHERE host_name = %s AND service_description = %s",
-		 node_id, STATUS_ARGS(output, long_output, perf_data),
-		 host_name, service_description);
+	if (db_track_current || rpt_log)
+		sql_quote(p->state.plugin_output, &output);
 
-	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA) {
-		if (db_log_reports && service_has_new_state(p->host_name, p->service_description, p->state.current_state, p->state.state_type)) {
-			result = sql_query
-				("INSERT INTO %s(timestamp, event_type, host_name, "
-				 "service_description, state, hard, retry, output) "
-				 "VALUES(%lu, %d, %s, %s, %d, '%d', '%d', %s)",
-				 sql_table_name(), p->state.last_check,
-				 NEBTYPE_SERVICECHECK_PROCESSED, host_name,
-				 service_description, p->state.current_state,
-				 p->state.state_type == HARD_STATE,
-				 p->state.current_attempt, output);
-		}
+	if (db_track_current || perf_log)
+		sql_quote(p->state.perf_data, &perf_data);
+	if (db_track_current) {
+		sql_quote(p->state.long_plugin_output, &long_output);
+		result = sql_query
+			(STATUS_QUERY("service")
+				" WHERE host_name = %s AND service_description = %s",
+				node_id, STATUS_ARGS(output, long_output, perf_data),
+				host_name, service_description);
+	}
 
-		/*
-		 * Stash service performance data separately, in case
-		 * people people are using Merlin with Nagiosgrapher or
-		 * similar performance data graphing solutions.
-		 */
-		if (service_perf_table && p->state.perf_data && *p->state.perf_data) {
-			char *perfdata;
-			sql_quote(p->state.perf_data, &perfdata);
-			result = sql_query
-				("INSERT INTO %s(timestamp, host_name, "
-				 "service_description, perfdata) "
-				 "VALUES(%lu, %s, %s, %s)",
-				 service_perf_table, p->state.last_check,
-				 host_name, service_description, perfdata);
-			free(perfdata);
-		}
+	if (rpt_log) {
+		result = sql_query
+			("INSERT INTO %s(timestamp, event_type, host_name, "
+				"service_description, state, hard, retry, output) "
+				"VALUES(%lu, %d, %s, %s, %d, '%d', '%d', %s)",
+				sql_table_name(), p->state.last_check,
+				NEBTYPE_SERVICECHECK_PROCESSED, host_name,
+				service_description, p->state.current_state,
+				p->state.state_type == HARD_STATE,
+				p->state.current_attempt, output);
+	}
+	safe_free(output);
+
+	/*
+	 * Stash service performance data separately, in case
+	 * people people are using Merlin with Nagiosgrapher or
+	 * similar performance data graphing solutions.
+	 */
+	if (perf_log) {
+		result = sql_query
+			("INSERT INTO %s(timestamp, host_name, "
+				"service_description, perfdata) "
+				"VALUES(%lu, %s, %s, %s)",
+				service_perf_table, p->state.last_check,
+				host_name, service_description, perf_data);
 	}
 
 	free(host_name);
@@ -246,6 +267,9 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 	int result, node_id;
 	merlin_nodeinfo *info;
 
+	if (!db_track_current)
+		return 0;
+
 	sql_quote(p->global_host_event_handler, &global_host_event_handler);
 	sql_quote(p->global_service_event_handler, &global_service_event_handler);
 
@@ -305,6 +329,9 @@ static int handle_flapping(const nebstruct_flapping_data *p)
 	char *host_name, *service_description = NULL;
 	unsigned long comment_id;
 
+	if (!db_track_current)
+		return 0;
+
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->service_description, &service_description);
 
@@ -343,6 +370,9 @@ static int handle_downtime(merlin_node *node, const nebstruct_downtime_data *p)
 	int result = 0;
 	char *host_name = NULL, *service_description = NULL;
 	char *comment_data = NULL, *author_name = NULL;
+
+	if (!db_track_current)
+		return 0;
 
 	/*
 	 * If we stop downtime that's already started, we'll get a
@@ -437,6 +467,9 @@ static int handle_comment(merlin_node *node, const nebstruct_comment_data *p)
 {
 	int result;
 	char *host_name, *author_name, *comment_data, *service_description;
+
+	if (!db_track_current)
+		return 0;
 
 	/*
 	 * The simple case of deleting comments is when the event

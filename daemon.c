@@ -16,6 +16,7 @@ static int num_children;
 static int killing;
 int db_log_reports = 1;
 int db_log_notifications = 1;
+int db_track_current = 0;
 
 static void usage(char *fmt, ...)
 	__attribute__((format(printf,1,2)));
@@ -188,6 +189,8 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 					db_log_reports = strtobool(v->value);
 				} else if (!prefixcmp(v->key, "log_notification")) {
 					db_log_notifications = strtobool(v->value);
+				} else if (!prefixcmp(v->key, "track_current")) {
+					db_track_current = strtobool(v->value);
 				} else {
 					sql_config(v->key, v->value);
 				}
@@ -441,7 +444,7 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 	int result = 0;
 
 	/* don't bother if we're not using a datbase */
-	if (!use_database)
+	if (!use_database || !db_track_current)
 		return 0;
 
 	/* ... or if an import is already in progress */
