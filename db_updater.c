@@ -124,7 +124,7 @@ static int handle_host_status(merlin_node *node, int cb, const merlin_host_statu
 static int handle_service_status(merlin_node *node, int cb, const merlin_service_status *p)
 {
 	char *host_name, *service_description;
-	char *output, *long_output, *perf_data;
+	char *output = NULL, *long_output = NULL, *perf_data = NULL;
 	int result, node_id, rpt_log = 0, perf_log = 0;
 
 	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA) {
