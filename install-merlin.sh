@@ -137,8 +137,8 @@ EOF
 			# It hasn't been used in a long time and causes trouble on
 			# very large systems where the 32-bit counter may wrap, causing
 			# new entries to the table to be dropped.
-			for table in report_data; do
-				echo "Dropping 'id' column from $table. This may take a while"
+			echo "Dropping 'id' column from report_data. This may take a while"
+			for table in report_data report_data_extras; do
 				eval "$mysql $db_name -e \"ALTER TABLE $table DROP COLUMN id\"" &> /dev/null || :
 			done
 			;;
