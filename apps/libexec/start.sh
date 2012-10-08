@@ -3,7 +3,7 @@
 if [ "`uname`" = "SunOS" ]; then
 	grep=/usr/xpg4/bin/grep
 	gsed=/opt/csw/bin/gsed
-	if mon node show | $grep -q ^TYPE=master; then
+	if mon node show | $grep -q "^TYPE=master"; then
 		# we have masters, so we're a poller
 		# Disable synergy nagios stuff (fugly workaround)
 		ncfg=/opt/monitor/etc/nagios.cfg
