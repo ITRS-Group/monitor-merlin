@@ -97,6 +97,19 @@ add_key_locally()
 	fi
 }
 
+add_key_for_all()
+{
+	# if we're root, we should setup
+	# root->root, root->monitor, monitor->monitor
+	# without doing monitor->root
+	if [ `whoami` == "root" ]; then
+		export -f add_key_locally grab_key
+		su monitor --session-command "export outfile=~monitor/.ssh/authorized_keys; add_key_locally $1"
+		su monitor --session-command "export outfile=~monitor/.ssh/authorized_keys; add_key_locally root@$1"
+	fi
+	add_key_locally $1
+}
+
 for dest in $destinations; do
 	echo "Fetching public key from $dest"
 	case "$dest" in
@@ -104,8 +117,7 @@ for dest in $destinations; do
 		add_key_locally "$dest"
 	;;
 	*)
-		add_key_locally "root@$dest"
-		add_key_locally "monitor@$dest"
+		add_key_for_all "$dest"
 	;;
 	esac
 done

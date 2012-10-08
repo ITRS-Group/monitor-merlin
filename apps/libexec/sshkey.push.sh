@@ -91,32 +91,36 @@ while test "$#" -ne 0; do
 	shift
 done
 
-if test -z "$key"; then
-	if test -r ~/.ssh/id_rsa.pub; then
-		key=~/.ssh/id_rsa.pub
-	elif test -r ~/.ssh/id_dsa.pub; then
-		key=~/.ssh/id_dsa.pub
-	else
-		echo "--key not specified and no valid keys found"
-		ssh-keygen -t rsa -b 2048 -N "" -f ~/.ssh/id_rsa
-		key=~/.ssh/id_rsa.pub
+find_key_for_user()
+{
+	if test -z "$key"; then
+		if test -r ~/.ssh/id_rsa.pub; then
+			key=~/.ssh/id_rsa.pub
+		elif test -r ~/.ssh/id_dsa.pub; then
+			key=~/.ssh/id_dsa.pub
+		else
+			echo "--key not specified and no valid keys found - generating new one" >&2
+			ssh-keygen -q -t rsa -b 2048 -N "" -f ~/.ssh/id_rsa
+			key=~/.ssh/id_rsa.pub
+		fi
 	fi
-fi
-
-if ! test -r "$key"; then
-	echo "Key '$key' doesn't exist. Generate it first with ssh-keygen"
-	exit 1
-fi
+	echo "$key"
+}
 
 for dest in $destinations; do
 	echo "Appending $key to $dest"
 	case "$dest" in
 	*@*)
-		dest="$dest"
+		append_key $(find_key_for_user) $dest | sed 's/^./  &/'
 	;;
 	*)
-		dest="root@$dest"
+		# first install our key into (root and) monitor user
+		append_key $(find_key_for_user) $dest | sed 's/^./  &/'
+		# and then use that key for uploading monitor's key to monitor user
+		if [ -z "$key" -a $(whoami) == "root" ]; then
+			export -f find_key_for_user
+			append_key $(su monitor -c find_key_for_user) "monitor@$dest" | sed 's/^./  &/'
+		fi
 	;;
 	esac
-	append_key $key $dest | sed 's/^./  &/'
 done
