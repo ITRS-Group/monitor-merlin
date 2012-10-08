@@ -23,7 +23,7 @@ Requires: merlin-apps >= %version
 BuildRequires: mysql-devel
 BuildRequires: libdbi-devel
 BuildRequires: ocilib-devel
-BuildRequires: nagios-devel
+BuildRequires: op5-nagios-devel
 Obsoletes: monitor-reports-module
 BuildRoot: /override/%name-%version
 
