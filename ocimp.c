@@ -2458,15 +2458,17 @@ int main(int argc, char **argv)
 	 * order matters greatly here. We must first parse status.log
 	 * so we load all currently active hosts and services.
 	 */
-	status = cfg_parse_file(status_path);
-	if (!status) {
-		lerr("Failed to parse '%s'", status_path);
-		exit(1);
+	if (status_path) {
+		status = cfg_parse_file(status_path);
+		if (!status) {
+			lerr("Failed to parse '%s'", status_path);
+			exit(1);
+		}
+		parse_status_log(status);
+		linfo("Sorting host and service lists for binary search");
+		slist_sort(host_slist);
+		slist_sort(service_slist);
 	}
-	parse_status_log(status);
-	linfo("Sorting host and service lists for binary search");
-	slist_sort(host_slist);
-	slist_sort(service_slist);
 
 	/*
 	 * Now we can load the id's and instance_id's for hosts and
