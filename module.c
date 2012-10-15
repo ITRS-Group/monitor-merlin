@@ -25,6 +25,7 @@ extern comment *comment_list;
 extern hostgroup *hostgroup_list;
 static int mrm_reap_interval = 2;
 static int merlin_sendpath_interval = MERLIN_SENDPATH_INTERVAL;
+static int db_track_current = 0;
 
 /*
  * user-defined filters, used as or-gate. Defaults to
@@ -552,9 +553,17 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 	uint i;
 
 	for (i = 0; i < comp->nested; i++) {
+		struct cfg_comp *c = comp->nest[i];
+		uint vi;
 		if (!prefixcmp(comp->nest[i]->name, "database")) {
 			use_database = 1;
-			return;
+			for (vi = 0; vi < c->vars; vi++) {
+				struct cfg_var *v = c->vlist[vi];
+				if (!prefixcmp(v->key, "track_current")) {
+					db_track_current = strtobool(v->value);
+				}
+			}
+			break;
 		}
 	}
 }
@@ -651,7 +660,10 @@ int send_paths(void)
 		return 0;
 
 	mac = get_global_macros();
-	cache_file = nagios_object_cache;
+	if (db_track_current)
+		cache_file = nagios_object_cache;
+	else
+		asprintf(&cache_file, "/tmp/timeperiods.cache");
 	status_log = nagios_status_log;
 
 	ldebug("config_file: %p; nagios_object_cache: %p; status_log: %p",
@@ -690,6 +702,11 @@ int send_paths(void)
 		}
 	}
 
+	if (!db_track_current) {
+		free(cache_file);
+		cache_file = NULL;
+	}
+
 	/* nul-terminate and include the nul-char */
 	pkt.body[pkt.hdr.len++] = 0;
 	pkt.hdr.selection = 0;
@@ -724,6 +741,33 @@ static int post_config_init(int cb, void *ds)
 {
 	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
 		return 0;
+
+	if (!db_track_current) {
+		char *cache_file = NULL;
+		FILE *fp = NULL;
+		time_t current_time = 0L;
+		unsigned int i;
+
+		time(&current_time);
+
+		asprintf(&cache_file, "/tmp/timeperiods.cache");
+
+		/* open the cache file for writing */
+		fp = fopen(cache_file, "w");
+		if(fp != NULL) {
+			fprintf(fp, "########################################\n");
+			fprintf(fp, "#       MERLIN TIMEPERIOD CACHE FILE\n");
+			fprintf(fp, "#\n");
+			fprintf(fp, "# Created: %s", ctime(&current_time));
+			fprintf(fp, "########################################\n\n");
+
+			/* cache timeperiods */
+			for(i = 0; i < num_objects.timeperiods; i++)
+				fcache_timeperiod(fp, timeperiod_ary[i]);
+			fclose(fp);
+		}
+		free(cache_file);
+	}
 
 	/* only call this function once */
 	/* We can't deregister our own call back at this time, due to a bug

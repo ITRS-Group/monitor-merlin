@@ -446,7 +446,7 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 	int result = 0;
 
 	/* don't bother if we're not using a datbase */
-	if (!use_database || !db_track_current)
+	if (!use_database)
 		return 0;
 
 	/* ... or if an import is already in progress */
@@ -466,12 +466,17 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 			 sql_db_type(), sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host(), sql_db_conn_str());
 	if (cache && *cache) {
 		char *cmd2 = cmd;
-		asprintf(&cmd, "%s --cache=%s", cmd2, cache);
-		free(cmd2);
+		if (db_track_current) {
+			asprintf(&cmd, "%s --cache=%s", cmd2, cache);
+			free(cmd2);
 
-		if (status && *status) {
-			cmd2 = cmd;
-			asprintf(&cmd, "%s --status-log=%s", cmd2, status);
+			if (status && *status) {
+				cmd2 = cmd;
+				asprintf(&cmd, "%s --status-log=%s", cmd2, status);
+				free(cmd2);
+			}
+		} else {
+			asprintf(&cmd, "%s --cache=/tmp/timeperiods.cache", cmd2);
 			free(cmd2);
 		}
 	}

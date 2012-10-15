@@ -5,6 +5,7 @@
 char *config_file = "/opt/monitor/etc/nagios.cfg";
 comment *comment_list = NULL;
 service *service_list = NULL;
+timeperiod **timeperiod_ary = NULL;
 hostgroup *hostgroup_list = NULL;
 host *host_list = NULL;
 scheduled_downtime *scheduled_downtime_list = NULL;
@@ -82,4 +83,8 @@ int delete_downtime_by_hostname_service_description_start_time_comment
 	(char *hname, char *sdesc, time_t stime, char *comment)
 {
 	return 0;
+}
+
+void fcache_timeperiod(FILE *fp, timeperiod *temp_timeperiod) {
+	return;
 }
