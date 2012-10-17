@@ -1,5 +1,6 @@
 %define mod_path /opt/monitor/op5/merlin
 %define nagios_cfg /opt/monitor/etc/nagios.cfg
+%define debug_package %{nil}
 
 # prevent stripping of binaries
 %define __spec_install_post /usr/lib/rpm/brp-compress
@@ -14,6 +15,7 @@ License: GPL
 Group: op5/Monitor
 URL: http://www.op5.se
 Source0: %name-%version.tar.gz
+BuildRoot: %{_tmppath}/%{name}-%{version}
 Prefix: /opt/monitor
 Requires: libdbi
 Requires: libaio
@@ -25,7 +27,6 @@ BuildRequires: libdbi-devel
 BuildRequires: ocilib-devel
 BuildRequires: op5-nagios-devel
 Obsoletes: monitor-reports-module
-BuildRoot: /override/%name-%version
 
 
 %description
