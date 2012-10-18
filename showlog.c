@@ -34,6 +34,9 @@ static int hide_state_dupes; /* if set, we hide duplicate state messages */
 #define EVT_START    (1 << 9)
 #define EVT_STOP     (1 << 10)
 #define EVT_LIVESTATUS (1 << 11)
+#define EVT_QH       (1 << 12)
+#define EVT_NERD     (1 << 13)
+#define EVT_WPROC    (1 << 14)
 
 #define EVT_HOST    (1 << 20)
 #define EVT_SERVICE (1 << 21)
@@ -52,6 +55,9 @@ static struct string_code event_codes[] = {
 	add_event("LOG VERSION", EVT_PROCESS),
 	add_event("EXTERNAL COMMAND", EVT_COMMAND),
 	add_event("livestatus", EVT_LIVESTATUS),
+	add_event("qh", EVT_QH),
+	add_event("nerd", EVT_NERD),
+	add_event("wproc", EVT_WPROC),
 
 	add_code(5, "HOST ALERT", EVT_ALERT | EVT_HOST),
 	add_code(5, "INITIAL HOST STATE", EVT_STATE | EVT_HOST),
