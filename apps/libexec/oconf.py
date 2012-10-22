@@ -703,6 +703,14 @@ def usage(msg = False):
 
 def oconf_helper(args):
 	app = os.path.dirname(__file__) + '/-oconf'
+	have_nagios_cfg = False
+	for arg in args:
+		if arg.startswith('--nagios-cfg'):
+			have_nagios_cfg = True
+			break
+	if not have_nagios_cfg:
+		args += ['--nagios-cfg=' + nagios_cfg]
+
 	ret = os.spawnv(os.P_WAIT, app, [app] + args)
 	if ret < 0:
 		print("Helper %s was killed by signal %d" % (app, ret))
