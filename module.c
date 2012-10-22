@@ -48,7 +48,7 @@ static uint32_t event_mask;
  * In essence, it would probably be enough to just send the
  * check result events and ignore the rest
  */
-static int handle_host_status(merlin_header *hdr, void *buf)
+static int handle_host_status(merlin_node *node, merlin_header *hdr, void *buf)
 {
 	host *obj;
 	merlin_host_status *st_obj = (merlin_host_status *)buf;
@@ -68,12 +68,13 @@ static int handle_host_status(merlin_header *hdr, void *buf)
 	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
 	if (hdr->type == NEBCALLBACK_HOST_CHECK_DATA && obj->perf_data) {
 		update_host_performance_data(obj);
+		obj->check_source = node->source_name;
 	}
 
 	return 0;
 }
 
-static int handle_service_status(merlin_header *hdr, void *buf)
+static int handle_service_status(merlin_node *node, merlin_header *hdr, void *buf)
 {
 	service *obj;
 	merlin_service_status *st_obj = (merlin_service_status *)buf;
@@ -95,6 +96,7 @@ static int handle_service_status(merlin_header *hdr, void *buf)
 	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
 	if (hdr->type == NEBCALLBACK_SERVICE_CHECK_DATA && obj->perf_data) {
 		update_service_performance_data(obj);
+		obj->check_source = node->source_name;
 	}
 
 	return 0;
@@ -336,10 +338,10 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	switch (pkt->hdr.type) {
 	case NEBCALLBACK_HOST_CHECK_DATA:
 	case NEBCALLBACK_HOST_STATUS_DATA:
-		return handle_host_status(&pkt->hdr, pkt->body);
+		return handle_host_status(node, &pkt->hdr, pkt->body);
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
-		return handle_service_status(&pkt->hdr, pkt->body);
+		return handle_service_status(node, &pkt->hdr, pkt->body);
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
 		return handle_external_command(node, pkt->body);
 	case NEBCALLBACK_COMMENT_DATA:

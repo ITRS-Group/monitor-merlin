@@ -188,6 +188,7 @@ typedef struct node_selection node_selection;
 
 struct merlin_node {
 	char *name;             /* name of this node */
+	char *source_name;      /* check source name for this node */
 	uint id;                 /* internal index lookup number */
 	unsigned int latency;   /* module to module latency of this node */
 	int sock;               /* the socket */

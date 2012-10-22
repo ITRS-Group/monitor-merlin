@@ -332,6 +332,8 @@ static void create_node_tree(merlin_node *table, unsigned n)
 			poller_table[xpoll++] = node;
 			break;
 		}
+		if(is_module)
+			asprintf(&node->source_name, "Merlin %s %s", node_type(node), node->name);
 	}
 }
 
