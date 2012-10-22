@@ -582,7 +582,7 @@ int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 /*
  * Set some common socket options
  */
-int set_socket_options(int sd, int bufsize)
+int merlin_set_socket_options(int sd, int bufsize)
 {
 	/*
 	 * make sure random output from import programs and whatnot

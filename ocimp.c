@@ -1,3 +1,4 @@
+#define OCIMP 1
 #include <stdio.h>
 #include <sys/mman.h>
 #include "cfgfile.h"

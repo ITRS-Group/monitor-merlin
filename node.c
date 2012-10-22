@@ -61,7 +61,7 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 		/* mark this so we can disconnect nodes that never send data */
 		node->last_recv = time(NULL);
 
-		set_socket_options(node->sock, (int)node->ioc.ioc_bufsize);
+		merlin_set_socket_options(node->sock, 224 * 1024);
 		getsockopt(node->sock, SOL_SOCKET, SO_SNDBUF, &snd, &size);
 		getsockopt(node->sock, SOL_SOCKET, SO_SNDBUF, &rcv, &size);
 		ldebug("send / receive buffers are %s / %s for node %s",

@@ -185,7 +185,7 @@ int ipc_init(void)
 			lerr("Failed to obtain ipc socket: %s", strerror(errno));
 			return -1;
 		}
-		set_socket_options(listen_sock, 0);
+		merlin_set_socket_options(listen_sock, 0);
 	}
 
 	if (!is_module) {

@@ -16,6 +16,7 @@
 static const char *progname;
 static time_t first_time, last_time; /* first and last timestamp to show */
 static time_t last_ltime, ltime; /* timestamp of last and current log-line */
+static time_t last_start_time; /* time of last start event */
 static uint last_severity, severity = -1;
 static const char *image_url = "/ninja/application/views/themes/default/icons/16x16";
 static int reverse_parse_files;
@@ -99,6 +100,36 @@ static void print_time_raw(struct tm *t)
 	printf("[%lu] ", ltime);
 }
 
+static const char *human_duration(time_t now, time_t then)
+{
+	static char buf[100];
+	const char suffix[] = "mhdw";
+	const int dividers[ARRAY_SIZE(suffix) - 1] = { 60, 3600, 3600 * 24, 3600 * 24 * 7 };
+	int vals[ARRAY_SIZE(suffix) - 1];
+	int weeks, days, hours, minutes, seconds, i;
+	time_t delta = now - then;
+
+	if (!delta)
+		return "0s";
+
+	for (i = ARRAY_SIZE(dividers) - 1; delta && i >= 0; i--) {
+		vals[i] = delta / dividers[i];
+		delta %= dividers[i];
+	}
+	weeks = vals[3];
+	days = vals[2];
+	hours = vals[1];
+	minutes = vals[0];
+	seconds = (int)delta;
+	sprintf(buf, "%dw %dd %dh %dm %ds", weeks, days, hours, minutes, seconds);
+	return buf;
+}
+
+static void print_runtime(struct tm *t)
+{
+	printf("[%s] ", human_duration(ltime, last_start_time));
+}
+
 static struct {
 	char *name;
 	void (*func)(struct tm *);
@@ -107,6 +138,7 @@ static struct {
 	{ "iso8601", print_time_iso8601, print_time_div_iso8601 },
 	{ "raw", print_time_raw, NULL },
 	{ "duration", print_time_duration, NULL },
+	{ "runtime", print_runtime, NULL },
 	{ NULL, NULL, NULL },
 };
 static void (*print_time)(struct tm *) = print_time_iso8601;
@@ -413,13 +445,19 @@ static int parse_line(char *orig_line, uint len)
 			return 0;
 
 		if (is_start_event(ptr)) {
+			last_start_time = ltime;
 			print_line(EVT_START, line, len);
 		} else if (is_stop_event(ptr)) {
 			print_line(EVT_STOP, line, len);
+			last_start_time = 0;
 		}
 
 		return 0;
 	}
+
+	/* we found a line, so the daemon is obviously started */
+	if (!last_start_time)
+		last_start_time = ltime - 1;
 
 	if (!(sc = get_event_type(ptr, colon - ptr))) {
 		return 0;
@@ -658,7 +696,7 @@ static void usage(const char *fmt, ...)
 		if (time_format_selections[i + 1].name)
 			printf("|");
 	}
-	printf("]    set timeformat for log-entries\n");
+	printf("]\n                                          set timeformat for log-entries\n");
 
 	putchar('\n');
 
