@@ -1,6 +1,8 @@
 #include "module.h"
 #include "sha1.h"
 #include <sys/mman.h>
+#include <nagios/lib/nspath.h>
+#include <libgen.h>
 
 /* does a deep free of a file_list struct */
 void file_list_free(struct file_list *list)
@@ -139,8 +141,10 @@ static struct file_list *recurse_cfg_dir(char *path, struct file_list *list,
  * through the use of the recursive function recurse_cfg_dir) */
 static struct file_list *get_cfg_files(char *str, struct file_list *list)
 {
-	char *p;
+	char *p, *base_path = NULL;
 	int size, i;
+
+	base_path = dirname(nspath_real(str, NULL));
 
 	p = read_strip_split(str, &size);
 	if (!p || !size)
@@ -163,18 +167,22 @@ static struct file_list *get_cfg_files(char *str, struct file_list *list)
 			fl->next = list;
 			list = fl;
 
-			list->name = strdup(&p[i]);
+			list->name = nspath_absolute(&p[i], base_path);
 			if (!list->name)
 				return list;
 			stat(list->name, &list->st);
 		}
 		else if (!prefixcmp(&p[i], "cfg_dir=")) {
+			char *dir;
 			i += 8;
-			list = recurse_cfg_dir(&p[i], list, 4, 0);
+			dir = nspath_absolute(&p[i], base_path);
+			list = recurse_cfg_dir(dir, list, 4, 0);
+			free(dir);
 		}
 	}
 
 	free(p);
+	free(base_path);
 
 	return list;
 }
@@ -226,21 +234,13 @@ static int flist_hash_add(struct file_list *fl, blk_SHA_CTX *ctx)
 	return 0;
 }
 
-/*
- * calculate a sha1 hash of the contents of all config files
- * sorted by their full path.
- * *hash must hold at least 20 bytes
- */
-int get_config_hash(unsigned char *hash)
+file_list **get_sorted_oconf_files(unsigned int *n_files)
 {
-	struct file_list *flist, *base;
-	struct file_list **sorted_flist;
-	int num_files = 0, i = 0;
-	blk_SHA_CTX ctx;
+	struct file_list *flist, *base, **sorted_flist;
+	unsigned int i = 0, num_files = 0;
 
-	blk_SHA1_Init(&ctx);
-
-	base = flist = get_cfg_files(config_file, NULL);
+	if (!(base = get_cfg_files(config_file, NULL)))
+		return NULL;
 
 	/*
 	 * this is horribly inefficient, but I don't really care.
@@ -256,14 +256,34 @@ int get_config_hash(unsigned char *hash)
 		sorted_flist[i++] = flist;
 	}
 	qsort(sorted_flist, num_files, sizeof(file_list *), flist_cmp);
+
+	*n_files = num_files;
+
+	return sorted_flist;
+}
+
+/*
+ * calculate a sha1 hash of the contents of all config files
+ * sorted by their full path.
+ * *hash must hold at least 20 bytes
+ */
+int get_config_hash(unsigned char *hash)
+{
+	struct file_list **sorted_flist;
+	unsigned int num_files = 0, i = 0;
+	blk_SHA_CTX ctx;
+
+	blk_SHA1_Init(&ctx);
+
+	sorted_flist = get_sorted_oconf_files(&num_files);
+
 	for (i = 0; i < num_files; i++) {
 		flist_hash_add(sorted_flist[i], &ctx);
+		sorted_flist[i]->next = NULL;
+		file_list_free(sorted_flist[i]);
 	}
 	blk_SHA1_Final(hash, &ctx);
 	free(sorted_flist);
-
-	if (base)
-		file_list_free(base);
 
 	return 0;
 }

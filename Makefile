@@ -160,7 +160,7 @@ merlin.so: $(MODULE_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(MOD_LDFLAGS) $(LDFLAGS)
 
 oconf: oconf.o sha1.o misc.o
-	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS)
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(LIBNAGIOS_LDFLAGS)
 
 rename: $(RENAME_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ -ggdb3 $(DB_LDFLAGS) $(LDFLAGS) $(LIBNAGIOS_LDFLAGS)
