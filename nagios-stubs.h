@@ -1,4 +1,5 @@
 /* variables provided by Nagios and required by module */
+#include <nagios/nagios.h>
 #include <nagios/macros.h>
 #include <nagios/comments.h>
 #include <nagios/downtime.h>
@@ -22,6 +23,11 @@ struct object_count num_objects;
 iobroker_set *nagios_iobs = NULL;
 
 static nagios_macros global_macros;
+
+int qh_register_handler(const char *name, unsigned int options, qh_handler handler)
+{
+	return 0;
+}
 int add_new_comment(int comment_type, int entry_type, char *host_name, char *service_description, time_t entry_time, char *author_name, char *comment_data, int persistent, int source, int expires, time_t expire_time, unsigned long *comment_id)
 {
 	return 0;

@@ -745,6 +745,8 @@ int send_paths(void)
  */
 static int post_config_init(int cb, void *ds)
 {
+	int result;
+
 	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
 		return 0;
 
@@ -782,6 +784,11 @@ static int post_config_init(int cb, void *ds)
 
 	linfo("Object configuration parsed.");
 	setup_host_hash_tables();
+
+	if((result = qh_register_handler("merlin", 0, merlin_qh)) < 0)
+		lerr("Failed to register query handler: %s", strerror(-result));
+	else
+		linfo("merlin_qh registered with query handler");
 
 	/*
 	 * it's safe to send the hash of the config we're using now that

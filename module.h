@@ -48,6 +48,8 @@ extern void file_list_free(struct file_list *list);
 extern time_t get_last_cfg_change(void);
 extern int get_config_hash(unsigned char *hash);
 
+extern int merlin_qh(int sd, char *buf, unsigned int len);
+
 extern void handle_control(merlin_node *node, merlin_event *pkt);
 extern int is_stalling(void);
 extern void ctrl_set_node_actions(void);
