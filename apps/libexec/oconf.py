@@ -723,9 +723,7 @@ def cmd_files(args):
 	"""
 	Print the configuration files in alphabetical order
 	"""
-	sob_files = sorted(grab_nagios_cfg(nagios_cfg))
-	for cfile in sob_files:
-		print(cfile)
+	oconf_helper(['files'] + args)
 
 def cmd_split(args):
 	"""<outfile:hostgroup1,hostgroup2,hostgroupN>

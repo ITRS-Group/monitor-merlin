@@ -33,6 +33,7 @@ char *tohex(const unsigned char *data, int len)
 
 #define CMD_HASH 1
 #define CMD_LAST_CHANGE 2
+#define CMD_FILES 3
 int main(int argc, char **argv)
 {
 	unsigned char hash[20];
@@ -71,6 +72,10 @@ int main(int argc, char **argv)
 			cmd = CMD_HASH;
 			continue;
 		}
+		if (!prefixcmp(arg, "list") || !strcmp(arg, "files")) {
+			cmd = CMD_FILES;
+			continue;
+		}
 	}
 	if (!config_file)
 		config_file = "/opt/monitor/etc/nagios.cfg";
@@ -82,6 +87,23 @@ int main(int argc, char **argv)
 		break;
 	case CMD_LAST_CHANGE:
 		printf("%lu\n", get_last_cfg_change());
+		break;
+	case CMD_FILES:
+		{
+			struct file_list **sorted_flist;
+			unsigned int num_files, i;
+
+			sorted_flist = get_sorted_oconf_files(&num_files);
+			if(!sorted_flist)
+				break;
+
+			for (i = 0; i < num_files; i++) {
+				printf("%s\n", sorted_flist[i]->name);
+				sorted_flist[i]->next = NULL;
+				file_list_free(sorted_flist[i]);
+			}
+			free(sorted_flist);
+		}
 		break;
 	}
 	return 0;
