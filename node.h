@@ -148,11 +148,8 @@ struct merlin_confsync {
 };
 typedef struct merlin_confsync merlin_confsync;
 
-/*
- * it doesn't make sense to use a buffer larger than the kernel's
- * receive buffer, so that's what we stick with
- */
-#define MERLIN_IOC_BUFSIZE (256 * 1024)
+/* 1MB receive buffer should work nicely */
+#define MERLIN_IOC_BUFSIZE (1 * 1024 * 1024)
 
 struct statistics_vars {
 	unsigned long long sent, read, logged, dropped;

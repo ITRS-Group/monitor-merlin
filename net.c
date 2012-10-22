@@ -439,7 +439,7 @@ int net_init(void)
 	if (net_sock < 0)
 		return -1;
 
-	set_socket_options(net_sock, 0);
+	merlin_set_socket_options(net_sock, 0);
 
 	/* if this fails we can do nothing but try anyway */
 	(void)setsockopt(net_sock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int));
