@@ -295,6 +295,8 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	}
 
 	if (node) {
+		struct timeval tv;
+
 		/*
 		 * this node is obviously connected, so mark it as such,
 		 * but warn about nodes with empty info that's sending
@@ -308,6 +310,8 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 			node->info.byte_order = -1;
 		}
 
+		gettimeofday(&tv, NULL);
+		node->latency = tv_delta_msec(&pkt->hdr.sent, &tv);
 		node->stats.events.read++;
 		node->stats.bytes.read += packet_size(pkt);
 		node_log_event_count(node, 0);
