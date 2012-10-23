@@ -51,6 +51,24 @@ static int dump_nodeinfo(merlin_node *n, int sd)
 	return 0;
 }
 
+static int dump_cbstats(merlin_node *n, int sd)
+{
+	int i;
+
+	nsock_printf(sd, "name=%s;type=%s;", n->name, node_type(n));
+	for (i = 0; i <= NEBCALLBACK_NUMITEMS; i++) {
+		const char *cb_name = callback_name(i);
+		/* don't print empty values */
+		if(!n->stats.cb_count[i].in && !n->stats.cb_count[i].in)
+			continue;
+		nsock_printf(sd, "%s_IN=%u;%s_OUT=%u;",
+					 cb_name, n->stats.cb_count[i].in,
+					 cb_name, n->stats.cb_count[i].in);
+	}
+	nsock_printf(sd, "\n");
+	return 0;
+}
+
 /* Our primary query handler */
 int merlin_qh(int sd, char *buf, unsigned int len)
 {
@@ -65,6 +83,13 @@ int merlin_qh(int sd, char *buf, unsigned int len)
 		dump_nodeinfo(&ipc, sd);
 		for(i = 0; i < num_nodes; i++) {
 			dump_nodeinfo(node_table[i], sd);
+		}
+		return 0;
+	}
+	if (len == 6 && !memcmp(buf, "cbstats", len)) {
+		dump_cbstats(&ipc, sd);
+		for(i = 0; i < num_nodes; i++) {
+			dump_cbstats(node_table[i], sd);
 		}
 		return 0;
 	}

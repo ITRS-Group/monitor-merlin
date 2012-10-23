@@ -299,8 +299,11 @@ struct {
 
 const char *callback_name(int id)
 {
-	if (id < 0 || id > NEBCALLBACK_NUMITEMS - 1)
+	if (id < 0 || id > NEBCALLBACK_NUMITEMS - 1) {
+		if (id == NEBCALLBACK_NUMITEMS)
+			return "CTRL_PACKET";
 		return "(invalid/unknown)";
+	}
 
 	return callback_list[id].name;
 }
