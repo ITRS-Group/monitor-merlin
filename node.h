@@ -179,6 +179,7 @@ typedef struct node_selection node_selection;
 #define MODE_MASTER    MODE_NOC /* alias for MODE_NOC */
 #define MODE_PEER      (1 << 1)
 #define MODE_POLLER    (1 << 2)
+#define MODE_INTERNAL  (1 << 3)
 
 /* for node->state */
 #define STATE_NONE 0
