@@ -431,8 +431,11 @@ static int ipc_reaper(int sd, int events, void *arg)
 	while ((pkt = node_get_event(source))) {
 		merlin_node *node = node_by_id(pkt->hdr.selection);
 
-		if (node)
+		if (node) {
+			int type = pkt->hdr.type == CTRL_PACKET ? NEBCALLBACK_NUMITEMS : pkt->hdr.type;
 			node->last_recv = time(NULL);
+			node->stats.cb_count[type].in++;
+		}
 
 		/* control packets are handled separately */
 		if (pkt->hdr.type == CTRL_PACKET) {

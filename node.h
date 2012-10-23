@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <nagios/lib/iocache.h>
+#include <nagios/nebcallbacks.h>
 #include "cfgfile.h"
 #include "binlog.h"
 
@@ -154,9 +155,13 @@ typedef struct merlin_confsync merlin_confsync;
 struct statistics_vars {
 	unsigned long long sent, read, logged, dropped;
 };
+struct callback_count {
+	unsigned int in, out;
+};
 struct merlin_node_stats {
 	struct statistics_vars events, bytes;
 	time_t last_logged;     /* when we logged the event-count last */
+	struct callback_count cb_count[NEBCALLBACK_NUMITEMS + 1];
 };
 typedef struct merlin_node_stats merlin_node_stats;
 
