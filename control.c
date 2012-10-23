@@ -228,6 +228,8 @@ static void assign_peer_ids(void)
 	if (self.peer_id == (int)-1)
 		self.peer_id = self.active_peers;
 
+	ipc.peer_id = self.peer_id;
+
 	linfo("We're now peer #%d out of %d active ones", self.peer_id,
 		  self.active_peers + 1);
 	h_extra = (scheduling_info.total_hosts % (self.active_peers + 1)) > self.peer_id;
