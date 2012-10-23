@@ -308,6 +308,7 @@ static int has_active_poller(const char *host_name)
 static int hook_service_result(merlin_event *pkt, void *data)
 {
 	nebstruct_service_check_data *ds = (nebstruct_service_check_data *)data;
+	service *s = (service *)ds->object_ptr;
 	int ret;
 
 	/* block status data events for this service in the imminent future */
@@ -340,7 +341,7 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		 * if a peer is supposed to handle this check, we must
 		 * take care not to run it
 		 */
-		if (!should_run_check(((service *)ds->object_ptr))) {
+		if (!should_run_check(s)) {
 			service_checks.peer++;
 			return NEBERROR_CALLBACKCANCEL;
 		}
