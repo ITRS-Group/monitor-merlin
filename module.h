@@ -47,6 +47,7 @@ extern int handle_ipc_event(merlin_node *node, merlin_event *pkt);
 extern void file_list_free(struct file_list *list);
 extern time_t get_last_cfg_change(void);
 extern int get_config_hash(unsigned char *hash);
+extern file_list **get_sorted_oconf_files(unsigned int *n_files);
 
 extern int merlin_qh(int sd, char *buf, unsigned int len);
 
