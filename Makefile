@@ -114,7 +114,7 @@ ifndef V
 	QUIET_LINK  = @echo '   ' LINK $@;
 endif
 
-all: merlin.so merlind mtest nebtest $(APPS)
+all: merlin.so merlind nebtest $(APPS)
 
 thanks:
 	@echo "The following people have contributed to Merlin with patches,"
