@@ -12,7 +12,7 @@ static int dump_nodeinfo(merlin_node *n, int sd)
 				 "state=%s;peer_id=%u;flags=%d;"
 				 "address=%s;port=%u;"
 				 "data_timeout=%u;last_recv=%lu;last_sent=%lu;"
-				 "last_conn_attempt=%lu;last_action=%d;"
+				 "last_conn_attempt=%lu;last_action=%d;latency=%u;"
 				 "binlog_size=%u;iocache_available=%lu;"
 				 "events_sent=%llu;events_read=%llu;"
 				 "events_logged=%llu;events_dropped=%llu;"
@@ -32,7 +32,7 @@ static int dump_nodeinfo(merlin_node *n, int sd)
 				 node_state_name(n->state), n->peer_id, n->flags,
 				 inet_ntoa(n->sain.sin_addr), ntohs(n->sain.sin_port),
 				 n->data_timeout, n->last_recv, n->last_sent,
-				 n->last_conn_attempt, n->last_action,
+				 n->last_conn_attempt, n->last_action, n->latency,
 				 binlog_size(n->binlog), iocache_available(n->ioc),
 				 s->events.sent, s->events.read,
 				 s->events.logged, s->events.dropped,
