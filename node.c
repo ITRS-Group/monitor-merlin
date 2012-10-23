@@ -539,6 +539,8 @@ const char *node_type(merlin_node *node)
 		return "peer";
 	case MODE_POLLER:
 		return "poller";
+	case MODE_INTERNAL:
+		return "internal";
 	}
 
 	return "Unknown node-type";
