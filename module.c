@@ -9,6 +9,15 @@
 #include <nagios/common.h>
 #include <nagios/downtime.h>
 
+merlin_node **host_check_node = NULL;
+merlin_node **service_check_node = NULL;
+merlin_node untracked_checks_node = {
+	.name = "untracked checks",
+	.type = MODE_INTERNAL,
+	.host_checks = 0,
+	.service_checks = 0,
+};
+
 extern iobroker_set *nagios_iobs;
 
 time_t merlin_should_send_paths = 1;
@@ -37,6 +46,50 @@ static int db_track_current = 0;
  * See grok_module_compound() for further details
  */
 static uint32_t event_mask;
+
+void set_host_check_node(merlin_node *node, host *h)
+{
+	merlin_node *old;
+
+	old = host_check_node[h->id];
+	if(old == node)
+		return;
+
+	if (!old) {
+		old = &untracked_checks_node;
+	}
+
+	ldebug("Migrating hostcheck '%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u)",
+		   h->name, h->id,
+		   node_type(old), old->name, old->peer_id,
+		   node_type(node), node->name, node->peer_id);
+
+	old->host_checks--;
+	node->host_checks++;
+	host_check_node[h->id] = node;
+}
+
+void set_service_check_node(merlin_node *node, service *s)
+{
+	merlin_node *old;
+
+	old = service_check_node[s->id];
+	if(old == node)
+		return;
+
+	if (!old) {
+		old = &untracked_checks_node;
+	}
+
+	ldebug("Migrating servicecheck '%s;%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s (p-id=%u)",
+		   s->host_name, s->description, s->id,
+		   node_type(old), old->name, old->peer_id,
+		   node_type(node), node->name, node->peer_id);
+
+	old->service_checks--;
+	node->service_checks++;
+	service_check_node[s->id] = node;
+}
 
 /*
  * handle_{host,service}_result() is basically identical to
@@ -67,6 +120,7 @@ static int handle_host_status(merlin_node *node, merlin_header *hdr, void *buf)
 
 	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
 	if (hdr->type == NEBCALLBACK_HOST_CHECK_DATA) {
+		set_host_check_node(node, obj);
 		obj->check_source = node->source_name;
 		if (obj->perf_data) {
 			update_host_performance_data(obj);
@@ -97,6 +151,7 @@ static int handle_service_status(merlin_node *node, merlin_header *hdr, void *bu
 
 	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
 	if (hdr->type == NEBCALLBACK_SERVICE_CHECK_DATA) {
+		set_service_check_node(node, obj);
 		obj->check_source = node->source_name;
 		if (obj->perf_data) {
 			update_service_performance_data(obj);
@@ -753,6 +808,9 @@ static int post_config_init(int cb, void *ds)
 
 	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
 		return 0;
+
+	host_check_node = calloc(num_objects.hosts, sizeof(merlin_node *));
+	service_check_node = calloc(num_objects.services, sizeof(merlin_node *));
 
 	if (!db_track_current) {
 		char *cache_file = NULL;

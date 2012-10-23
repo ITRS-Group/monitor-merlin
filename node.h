@@ -200,6 +200,8 @@ struct merlin_node {
 	struct sockaddr *sa;    /* should always point to sain */
 	struct sockaddr_in sain;
 	unsigned int data_timeout; /* send gracetime before we disconnect */
+	unsigned int host_checks; /* actually executed host checks */
+	unsigned int service_checks; /* actually executed service checks */
 	time_t last_recv;       /* last time node sent something to us */
 	time_t last_sent;       /* when we sent something last */
 	time_t last_conn_attempt_logged; /* when we last logged a connect attempt */

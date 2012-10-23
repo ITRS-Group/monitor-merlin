@@ -28,6 +28,10 @@ typedef struct file_list {
 	struct file_list *next;
 } file_list;
 
+/* junk to keep track of which node last executed which check */
+extern merlin_node **host_check_node;
+extern merlin_node **service_check_node;
+extern merlin_node untracked_check_node;
 
 #define MERLIN_PULSE_INTERVAL 10
 extern dkhash_table *host_hash_table;
@@ -64,6 +68,9 @@ extern int register_merlin_hooks(uint32_t mask);
 extern int deregister_merlin_hooks(void);
 extern int merlin_mod_hook(int cb, void *data);
 extern void merlin_set_block_comment(nebstruct_comment_data *cmnt);
+
+extern void set_host_check_node(merlin_node *node, host *h);
+extern void set_service_check_node(merlin_node *node, service *s);
 
 /**
  * host and service status structures share a *lot* of data,
