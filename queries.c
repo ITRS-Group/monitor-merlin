@@ -26,6 +26,7 @@ static int dump_nodeinfo(merlin_node *n, int sd)
 				 "active_pollers=%u;configured_pollers=%u;"
 				 "active_masters=%u;configured_masters=%u;"
 				 "host_checks_handled=%u;service_checks_handled=%u;"
+				 "host_checks_executed=%u;service_checks_executed=%u;"
 				 "monitored_object_state_size=%u;socket=%d\n",
 				 n->name, n->source_name, n->sock, node_type(n),
 				 node_state_name(n->state), n->peer_id, n->flags,
@@ -45,6 +46,7 @@ static int dump_nodeinfo(merlin_node *n, int sd)
 				 i->active_pollers, i->configured_pollers,
 				 i->active_masters, i->configured_masters,
 				 i->host_checks_handled, i->service_checks_handled,
+				 n->host_checks, n->service_checks,
 				 i->monitored_object_state_size, n->sock);
 	return 0;
 }
