@@ -66,9 +66,11 @@ static int handle_host_status(merlin_node *node, merlin_header *hdr, void *buf)
 		return 0;
 
 	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
-	if (hdr->type == NEBCALLBACK_HOST_CHECK_DATA && obj->perf_data) {
-		update_host_performance_data(obj);
+	if (hdr->type == NEBCALLBACK_HOST_CHECK_DATA) {
 		obj->check_source = node->source_name;
+		if (obj->perf_data) {
+			update_host_performance_data(obj);
+		}
 	}
 
 	return 0;
@@ -94,9 +96,11 @@ static int handle_service_status(merlin_node *node, merlin_header *hdr, void *bu
 		return 0;
 
 	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
-	if (hdr->type == NEBCALLBACK_SERVICE_CHECK_DATA && obj->perf_data) {
-		update_service_performance_data(obj);
+	if (hdr->type == NEBCALLBACK_SERVICE_CHECK_DATA) {
 		obj->check_source = node->source_name;
+		if (obj->perf_data) {
+			update_service_performance_data(obj);
+		}
 	}
 
 	return 0;
