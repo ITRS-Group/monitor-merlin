@@ -19,8 +19,6 @@ static int check_dupes;
 static merlin_event last_pkt;
 static unsigned long long dupes, dupe_bytes;
 static uint32_t event_mask;
-static host *unblocked_host;
-static service *unblocked_service;
 
 /*
  * used for blocking host and service status events after a
@@ -797,23 +795,18 @@ static int hook_host_status(merlin_event *pkt, void *data)
 
 	log_blocked("host", &h_block);
 
-	if (h == unblocked_host) {
-		/* unblocking a host is only ever good for one spell */
-		unblocked_host = NULL;
-	} else {
-		if (h_block.obj == h && h_block.when + 1 >= time(NULL)) {
-			h_block.safe++;
-			return 0;
-		}
+	if (has_active_poller(h->name)) {
+		h_block.poller++;
+		return 0;
+	}
+	if (!should_run_check(h)) {
+		h_block.peer++;
+		return 0;
+	}
 
-		if (has_active_poller(h->name)) {
-			h_block.poller++;
-			return 0;
-		}
-		if (!should_run_check(h)) {
-			h_block.peer++;
-			return 0;
-		}
+	if (h_block.obj == h && h_block.when + 1 >= time(NULL)) {
+		h_block.safe++;
+		return 0;
 	}
 
 	h_block.sent++;
@@ -827,22 +820,18 @@ static int hook_service_status(merlin_event *pkt, void *data)
 	service *srv = (service *)ds->object_ptr;
 
 	log_blocked("service", &s_block);
-	if (srv == unblocked_service) {
-		unblocked_service = NULL;
-	} else {
-		if (s_block.obj == srv && s_block.when + 1 >= time(NULL)) {
-			s_block.safe++;
-			return 0;
-		}
+	if (has_active_poller(srv->host_name)) {
+		s_block.poller++;
+		return 0;
+	}
+	if (!should_run_check(srv)) {
+		s_block.peer++;
+		return 0;
+	}
 
-		if (has_active_poller(srv->host_name)) {
-			s_block.poller++;
-			return 0;
-		}
-		if (!should_run_check(srv)) {
-			s_block.peer++;
-			return 0;
-		}
+	if (s_block.obj == srv && s_block.when + 1 >= time(NULL)) {
+		s_block.safe++;
+		return 0;
 	}
 
 	s_block.sent++;
