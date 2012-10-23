@@ -396,11 +396,6 @@ static int hook_host_result(merlin_event *pkt, void *data)
 
 	/* only send processed host checks */
 	case NEBTYPE_HOSTCHECK_PROCESSED:
-		/*
-		 * we fiddle a bit here and send processed host check results
-		 * as host status updates
-		 */
-		pkt->hdr.selection = get_selection(ds->host_name);
 		return send_host_status(pkt, ds->object_ptr);
 	}
 
