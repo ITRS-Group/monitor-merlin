@@ -86,7 +86,7 @@ int merlin_qh(int sd, char *buf, unsigned int len)
 		}
 		return 0;
 	}
-	if (len == 6 && !memcmp(buf, "cbstats", len)) {
+	if (len == 7 && !memcmp(buf, "cbstats", len)) {
 		dump_cbstats(&ipc, sd);
 		for(i = 0; i < num_nodes; i++) {
 			dump_cbstats(node_table[i], sd);
