@@ -169,7 +169,7 @@ int daemonize(const char *runas, const char *jail, const char *pidfile, int flag
 	daemon_pidfile = strdup(pidfile);
 
 	if (pid > 0) {
-		fprintf(stderr, "Another instance is already running with pid %d\n", pid);
+		fprintf(stderr, "Another Merlin instance is already running with pid %d\n", pid);
 		exit(EXIT_FAILURE);
 	}
 
