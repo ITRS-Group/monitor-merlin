@@ -1,10 +1,9 @@
-import os, sys, re, time
+import os, sys, re, time, socket
 
 modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
 if not modpath in sys.path:
 	sys.path.append(modpath)
 from merlin_apps_utils import *
-import merlin_db
 
 wanted_types = []
 wanted_names = []
@@ -42,80 +41,6 @@ def module_init(args):
 	mconf.parse()
 	return rem_args
 
-def get_min_avg_max(table, column, iid=None):
-	query = 'SELECT min(%s), avg(%s), max(%s) FROM %s WHERE ' % \
-		(column, column, column, table)
-
-	if iid != None:
-		query += 'instance_id = %d AND ' % iid
-
-	query += 'active_checks_enabled = 1'
-
-	dbc.execute(query)
-	row = dbc.fetchone()
-	ret = {'min': row[0], 'avg': row[1], 'max': row[2]}
-	return ret
-
-def get_num_checks(table, iid=None):
-	query = 'SELECT count(*) FROM %s' % table
-	if iid != None:
-		query += ' WHERE instance_id = %d' % iid
-
-	dbc.execute(query)
-	row = dbc.fetchone()
-	return row[0]
-
-def get_node_status():
-	global dbc
-
-	cols = {
-		'instance_name': False, 'instance_id': False,
-		'is_running': False, 'last_alive': False,
-	}
-
-	dbc.execute("select %s "
-		"FROM program_status ORDER BY instance_name" % ', '.join(cols.keys()))
-
-	result_set = {}
-	for row in dbc.fetchall():
-		res = {}
-		node_name = row[0]
-		col_num = 1
-		for col in cols.keys()[1:]:
-			res[col] = row[col_num]
-			col_num += 1
-
-		result_set[node_name] = res
-
-	for (name, info) in result_set.items():
-		iid = info['instance_id']
-		for otype in ['host', 'service']:
-			info['%s_checks' % otype] = get_num_checks(otype, iid)
-			info['%s_latency' % otype] = get_min_avg_max(otype, 'latency', iid)
-			info['%s_exectime' % otype] = get_min_avg_max(otype, 'execution_time', iid)
-
-	return result_set
-
-def fmt_min_avg_max(lat, thresh={}):
-	values = []
-	keys = []
-	for (k, v) in lat.items():
-		if v == None:
-			continue
-		v_color = ''
-		max_v = thresh.get(k, -1)
-		if max_v >= 0 and max_v < v:
-			v_color = color.red
-		keys.insert(0, k)
-		values.insert(0, "%s%.3f%s" % (v_color, v, color.reset))
-
-	if not values and not keys:
-		return ": %s%s%s" % (color.red, "Unable to retrieve data", color.reset)
-	
-	ret = "(%s): %s" % (' / '.join(keys), ' / '.join(values))
-	return ret
-
-dbc = False
 def cmd_status(args):
 	"""
 	Show status of all nodes configured in the running Merlin daemon
@@ -123,31 +48,40 @@ def cmd_status(args):
 	being inactive, not handling any checks,  or not sending regular
 	enough program_status updates.
 	"""
-	global dbc
 
+	read_size = 4096
 	high_latency = {}
 	inactive = {}
 	mentioned = {}
 
-	dbc = merlin_db.connect(mconf).cursor()
+	qh = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+	qh.connect("/opt/monitor/var/rw/nagios.qh")
+	qh.send("@merlin nodeinfo\0")
+	cnt = read_size
+	resp = ''
+	while cnt == read_size:
+		out = qh.recv(read_size)
+		cnt = len(out)
+		resp += out
+	sinfo = [dict([y.split('=') for y in x.split(';')]) for x in resp.split('\n') if x]
+	qh.close()
 
-	status = get_node_status()
+	host_checks = sum([int(x['host_checks_executed']) for x in sinfo])
+	service_checks = sum([int(x['service_checks_executed']) for x in sinfo])
+	print("Total checks (host / service): %s / %s" % (host_checks, service_checks))
+
 	latency_thresholds = {'min': -1.0, 'avg': 100.0, 'max': -1.0}
-	sinfo = sorted(status.items())
-	host_checks = get_num_checks('host')
-	service_checks = get_num_checks('service')
-	print("Total checks (host / service): %d / %d" % (host_checks, service_checks))
 
 	num_peers = mconf.num_nodes['peer']
 	num_pollers = mconf.num_nodes['poller']
 	num_masters = mconf.num_nodes['master']
 	num_helpers = num_peers + num_pollers
-	for (name, info) in sinfo:
+	for info in sinfo:
 		print("")
-		iid = info.pop('instance_id', 0)
-		node = mconf.configured_nodes.get(name, False)
-		is_running = info.pop('is_running')
-		name = "#%02d: %s" % (iid, name)
+		iid = int(info.pop('self_assigned_peer_id', 0))
+		node = mconf.configured_nodes.get(info['name'], False)
+		is_running = info.pop('state') == 'STATE_CONNECTED'
+		name = "#%02d: %s" % (iid, info['name'])
 		name_len = len(name) + 9
 		if is_running:
 			name += " (%sACTIVE%s)" % (color.green, color.reset)
@@ -160,7 +94,7 @@ def cmd_status(args):
 			print("%sThis node is currently not in the configuration file%s" %
 				(color.yellow, color.reset))
 
-		last_alive = info.pop('last_alive')
+		last_alive = max(int(info.pop('last_recv')), int(info.pop('last_sent')))
 		if not last_alive:
 			print("%sUnable to determine when this node was last alive%s" %
 				(color.red, color.reset))
@@ -175,8 +109,8 @@ def cmd_status(args):
 			print("Last alive: %s (%d) (%s%s ago%s)" %
 				(dtime,	last_alive, la_color, delta, color.reset))
 
-		hchecks = info.pop('host_checks')
-		schecks = info.pop('service_checks')
+		hchecks = int(info.pop('host_checks_executed'))
+		schecks = int(info.pop('service_checks_executed'))
 		hc_color = sc_color = ''
 
 		# master nodes should never run checks
@@ -222,20 +156,7 @@ def cmd_status(args):
 		# very well print out its latency or execution time values
 		if not hchecks and not schecks:
 			continue
-		host_lat = fmt_min_avg_max(info.pop('host_latency'), latency_thresholds)
-		service_lat = fmt_min_avg_max(info.pop('service_latency'), latency_thresholds)
-		host_exectime = fmt_min_avg_max(info.pop('host_exectime'))
-		service_exectime = fmt_min_avg_max(info.pop('service_exectime'))
-		print("Host latency    %s" % host_lat)
-		print("Service latency %s" % service_lat)
-		#print("Host check execution time    %s" % host_exectime)
-		#print("Service check execution time %s" % service_exectime)
-
-		# should be empty by now
-		for (k, v) in info.items():
-			print("%s = %s" % (k, v))
-
-	merlin_db.disconnect()
+		print("Latency    %s" % info.pop('latency'))
 
 ## node commands ##
 # list configured nodes, capable of filtering by type
