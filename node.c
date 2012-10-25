@@ -780,7 +780,8 @@ merlin_event *node_get_event(merlin_node *node)
 	 */
 	if (pkt->hdr.len > iocache_available(ioc)) {
 		ldebug("IOC: packet is longer (%i) than remaining data (%lu) from %s - will read more and try again", pkt->hdr.len, iocache_available(ioc), node->name);
-		iocache_unuse_size(ioc, HDR_SIZE);
+		if (iocache_unuse_size(ioc, HDR_SIZE) < 0)
+			lerr("IOC: Failed to unuse %d bytes from iocache. Next packet from %s will be invalid\n", HDR_SIZE, node->name);
 		return NULL;
 	}
 
