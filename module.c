@@ -385,7 +385,7 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 */
 
 	/* restore the pointers so the various handlers won't have to */
-	if (merlin_decode_event(pkt)) {
+	if (merlin_decode_event(node, pkt)) {
 		return 0;
 	}
 

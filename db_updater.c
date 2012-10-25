@@ -663,7 +663,7 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 		return 0;
 	}
 
-	if (merlin_decode_event(pkt)) {
+	if (merlin_decode_event(node, pkt)) {
 		return 0;
 	}
 
