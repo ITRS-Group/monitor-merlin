@@ -66,8 +66,14 @@ def cmd_status(args):
 	sinfo = [dict([y.split('=') for y in x.split(';')]) for x in resp.split('\n') if x]
 	qh.close()
 
-	host_checks = sum([int(x['host_checks_executed']) for x in sinfo])
-	service_checks = sum([int(x['service_checks_executed']) for x in sinfo])
+	host_checks = 0
+	service_checks = 0
+	for n in sinfo:
+		t = n.get('type', False)
+		# we only count the local node and its peers for totals
+		if t == 'peer' or t == 'local ipc':
+			host_checks += int(n['host_checks_handled'])
+			service_checks += int(n['service_checks_handled'])
 	print("Total checks (host / service): %s / %s" % (host_checks, service_checks))
 
 	latency_thresholds = {'min': -1.0, 'avg': 100.0, 'max': -1.0}
