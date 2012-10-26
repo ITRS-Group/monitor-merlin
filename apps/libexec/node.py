@@ -91,7 +91,8 @@ def cmd_status(args):
 		node = mconf.configured_nodes.get(info['name'], False)
 		is_running = info.pop('state') == 'STATE_CONNECTED'
 		if is_running:
-			latency = float(info.pop('latency'))
+			# latency is in milliseconds, so convert to float
+			latency = float(info.pop('latency')) / 1000.0
 			if latency > 2.0:
 				lat_color = color.yellow
 			else:
