@@ -99,6 +99,12 @@ def cmd_status(args):
 			name_len += 2
 
 		print("%s\n%s" % (name, '-' * name_len))
+
+		sa_peer_id = info.pop('self_assigned_peer_id', 0)
+		peer_id = info.pop('peer_id', 0)
+		if info['type'] == 'peer' and sa_peer_id != peer_id:
+			print("%sPeer id mismatch: self-assigned=%d; real=%d%s" %
+				(color.yellow, sa_peer_id, peer_id, color.reset))
 		if iid and not node:
 			print("%sThis node is currently not in the configuration file%s" %
 				(color.yellow, color.reset))
