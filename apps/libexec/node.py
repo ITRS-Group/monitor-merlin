@@ -84,7 +84,7 @@ def cmd_status(args):
 	num_helpers = num_peers + num_pollers
 	for info in sinfo:
 		print("")
-		iid = int(info.pop('self_assigned_peer_id', 0))
+		iid = int(info.pop('instance_id', 0))
 		node = mconf.configured_nodes.get(info['name'], False)
 		is_running = info.pop('state') == 'STATE_CONNECTED'
 		name = "#%02d: %s" % (iid, info['name'])
