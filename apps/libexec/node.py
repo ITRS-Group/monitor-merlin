@@ -90,7 +90,7 @@ def cmd_status(args):
 		iid = int(info.pop('instance_id', 0))
 		node = mconf.configured_nodes.get(info['name'], False)
 		is_running = info.pop('state') == 'STATE_CONNECTED'
-		name = "#%02d: %s" % (iid, info['name'])
+		name = "#%02d: %s %s" % (iid, info['type'], info['name'])
 		name_len = len(name) + 9
 		if is_running:
 			name += " (%sACTIVE%s)" % (color.green, color.reset)
