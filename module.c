@@ -356,8 +356,6 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	}
 
 	if (node) {
-		struct timeval tv;
-
 		/*
 		 * this node is obviously connected, so mark it as such,
 		 * but warn about nodes with empty info that's sending
@@ -371,8 +369,6 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 			node->info.byte_order = -1;
 		}
 
-		gettimeofday(&tv, NULL);
-		node->latency = tv_delta_msec(&pkt->hdr.sent, &tv);
 		node->stats.events.read++;
 		node->stats.bytes.read += packet_size(pkt);
 		node_log_event_count(node, 0);
@@ -422,10 +418,14 @@ static int ipc_reaper(int sd, int events, void *arg)
 	merlin_node *source = (merlin_node *)arg;
 	int recv_result;
 	merlin_event *pkt;
+	struct timeval tv;
 
 	if ((recv_result = node_recv(source)) <= 0) {
 		return 1;
 	}
+
+	/* needed for latency and action time setting */
+	gettimeofday(&tv, NULL);
 
 	/* and then just loop over the received packets */
 	while ((pkt = node_get_event(source))) {
@@ -433,7 +433,10 @@ static int ipc_reaper(int sd, int events, void *arg)
 
 		if (node) {
 			int type = pkt->hdr.type == CTRL_PACKET ? NEBCALLBACK_NUMITEMS : pkt->hdr.type;
+			node->latency = tv_delta_msec(&pkt->hdr.sent, &tv);
+			node->last_action = node->last_recv = tv.tv_sec;
 			node->stats.cb_count[type].in++;
+			node->latency = ipc.latency;
 		}
 
 		/* control packets are handled separately */
