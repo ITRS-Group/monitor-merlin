@@ -436,7 +436,6 @@ static int ipc_reaper(int sd, int events, void *arg)
 			node->latency = tv_delta_msec(&pkt->hdr.sent, &tv);
 			node->last_action = node->last_recv = tv.tv_sec;
 			node->stats.cb_count[type].in++;
-			node->latency = ipc.latency;
 		}
 
 		/* control packets are handled separately */
