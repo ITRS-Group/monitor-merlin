@@ -108,8 +108,8 @@ def cmd_status(args):
 
 		print("%s\n%s" % (name, '-' * name_len))
 
-		sa_peer_id = info.pop('self_assigned_peer_id', 0)
-		peer_id = info.pop('peer_id', 0)
+		sa_peer_id = int(info.pop('self_assigned_peer_id', 0))
+		peer_id = int(info.pop('peer_id', 0))
 		if info['type'] == 'peer' and sa_peer_id != peer_id:
 			print("%sPeer id mismatch: self-assigned=%d; real=%d%s" %
 				(color.yellow, sa_peer_id, peer_id, color.reset))
