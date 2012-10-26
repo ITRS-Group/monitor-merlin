@@ -563,7 +563,7 @@ const char *node_type(merlin_node *node)
 {
 	switch (node->type) {
 	case MODE_LOCAL:
-		return "local ipc";
+		return "local";
 	case MODE_NOC:
 		return "master";
 	case MODE_PEER:
