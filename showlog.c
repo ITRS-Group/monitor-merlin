@@ -121,7 +121,17 @@ static const char *human_duration(time_t now, time_t then)
 	hours = vals[1];
 	minutes = vals[0];
 	seconds = (int)delta;
-	sprintf(buf, "%dw %dd %dh %dm %ds", weeks, days, hours, minutes, seconds);
+	if (weeks) {
+		sprintf(buf, "%dw %dd %dh %dm %ds", weeks, days, hours, minutes, seconds);
+	} else if (days) {
+		sprintf(buf, "%dd %dh %dm %ds", days, hours, minutes, seconds);
+	} else if (hours) {
+		sprintf(buf, "%dh %dm %ds", hours, minutes, seconds);
+	} else if (minutes) {
+		sprintf(buf, "%dm %ds", minutes, seconds);
+	} else {
+		sprintf(buf, "%ds", seconds);
+	}
 	return buf;
 }
 
