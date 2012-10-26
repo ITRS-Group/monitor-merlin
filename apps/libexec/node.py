@@ -1,4 +1,4 @@
-import os, sys, re, time, socket
+import os, sys, re, time, socket, select
 
 modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
 if not modpath in sys.path:
@@ -59,7 +59,10 @@ def cmd_status(args):
 	qh.send("@merlin nodeinfo\0")
 	cnt = read_size
 	resp = ''
-	while cnt == read_size:
+	while True:
+		ary = select.select([qh], [], [], 0.15)
+		if not len(ary[0]):
+			break
 		out = qh.recv(read_size)
 		cnt = len(out)
 		resp += out
