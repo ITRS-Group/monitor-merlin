@@ -395,7 +395,6 @@ int net_accept_one(void)
 	}
 
 	node_set_state(node, STATE_CONNECTED, "Inbound connection accepted or negotiated");
-	node->last_sent = node->last_recv = time(NULL);
 
 	return sock;
 }

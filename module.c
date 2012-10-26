@@ -433,7 +433,6 @@ static int ipc_reaper(int sd, int events, void *arg)
 
 		if (node) {
 			int type = pkt->hdr.type == CTRL_PACKET ? NEBCALLBACK_NUMITEMS : pkt->hdr.type;
-			node->last_recv = time(NULL);
 			node->stats.cb_count[type].in++;
 		}
 

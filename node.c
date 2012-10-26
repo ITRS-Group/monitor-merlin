@@ -672,6 +672,7 @@ int node_recv(merlin_node *node)
 	 * input as it sees fit
 	 */
 	if (bytes_read > 0) {
+		node->last_action = node->last_recv = time(NULL);
 		node->stats.bytes.read += bytes_read;
 		return bytes_read;
 	}
@@ -727,7 +728,7 @@ int node_send(merlin_node *node, void *data, int len, int flags)
 	/* success. Should be the normal case */
 	if (sent == len) {
 		node->stats.bytes.sent += sent;
-		node->last_sent = time(NULL);
+		node->last_action = node->last_sent = time(NULL);
 		return sent;
 	}
 
