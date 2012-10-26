@@ -60,7 +60,7 @@ def cmd_status(args):
 	cnt = read_size
 	resp = ''
 	while True:
-		ary = select.select([qh], [], [], 0.15)
+		ary = select.select([qh], [], [], 0.25)
 		if not len(ary[0]):
 			break
 		out = qh.recv(read_size)
@@ -74,7 +74,7 @@ def cmd_status(args):
 	for n in sinfo:
 		t = n.get('type', False)
 		# we only count the local node and its peers for totals
-		if t == 'peer' or t == 'local ipc':
+		if t == 'peer' or t == 'local':
 			host_checks += int(n['host_checks_handled'])
 			service_checks += int(n['service_checks_handled'])
 	print("Total checks (host / service): %s / %s" % (host_checks, service_checks))
@@ -90,13 +90,21 @@ def cmd_status(args):
 		iid = int(info.pop('instance_id', 0))
 		node = mconf.configured_nodes.get(info['name'], False)
 		is_running = info.pop('state') == 'STATE_CONNECTED'
-		name = "#%02d: %s %s" % (iid, info['type'], info['name'])
-		name_len = len(name) + 9
 		if is_running:
-			name += " (%sACTIVE%s)" % (color.green, color.reset)
+			latency = float(info.pop('latency'))
+			if latency > 2.0:
+				lat_color = color.yellow
+			else:
+				lat_color = color.green
+
+		name = "#%02d: %s %s" % (iid, info['type'], info['name'])
+
+		if is_running:
+			name += " (%sACTIVE%s - %s%.2fms%s latency)" % (color.green, color.reset, lat_color, latency, color.reset)
+			name_len = len(name) - 22
 		else:
 			name += " (%sINACTIVE%s)" % (color.red, color.reset)
-			name_len += 2
+			name_len = len(name) - 8
 
 		print("%s\n%s" % (name, '-' * name_len))
 
@@ -109,7 +117,7 @@ def cmd_status(args):
 			print("%sThis node is currently not in the configuration file%s" %
 				(color.yellow, color.reset))
 
-		last_alive = max(int(info.pop('last_recv')), int(info.pop('last_sent')))
+		last_alive = int(info.pop('last_action'))
 		if not last_alive:
 			print("%sUnable to determine when this node was last alive%s" %
 				(color.red, color.reset))
@@ -171,7 +179,6 @@ def cmd_status(args):
 		# very well print out its latency or execution time values
 		if not hchecks and not schecks:
 			continue
-		print("Latency    %s" % info.pop('latency'))
 
 ## node commands ##
 # list configured nodes, capable of filtering by type
