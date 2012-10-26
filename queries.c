@@ -1,14 +1,14 @@
 #include "module.h"
 #include <nagios/nagios.h>
 
-static int dump_nodeinfo(merlin_node *n, int sd)
+static int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 {
 	merlin_nodeinfo *i;
 	merlin_node_stats *s = &n->stats;
 
 	i = n == &ipc ? &self : &n->info;
 
-	nsock_printf(sd, "name=%s;source_name=%s;socket=%d;type=%s;"
+	nsock_printf(sd, "instance_id=%d;name=%s;source_name=%s;socket=%d;type=%s;"
 				 "state=%s;peer_id=%u;flags=%d;"
 				 "address=%s;port=%u;"
 				 "data_timeout=%u;last_recv=%lu;last_sent=%lu;"
@@ -28,6 +28,7 @@ static int dump_nodeinfo(merlin_node *n, int sd)
 				 "host_checks_handled=%u;service_checks_handled=%u;"
 				 "host_checks_executed=%u;service_checks_executed=%u;"
 				 "monitored_object_state_size=%u\n",
+				 instance_id,
 				 n->name, n->source_name, n->sock, node_type(n),
 				 node_state_name(n->state), n->peer_id, n->flags,
 				 inet_ntoa(n->sain.sin_addr), ntohs(n->sain.sin_port),
@@ -80,9 +81,9 @@ int merlin_qh(int sd, char *buf, unsigned int len)
 
 	linfo("qh request: '%s' (%u)", buf, len);
 	if(len == 8 && !memcmp(buf, "nodeinfo", len)) {
-		dump_nodeinfo(&ipc, sd);
+		dump_nodeinfo(&ipc, sd, 0);
 		for(i = 0; i < num_nodes; i++) {
-			dump_nodeinfo(node_table[i], sd);
+			dump_nodeinfo(node_table[i], sd, i + 1);
 		}
 		return 0;
 	}
