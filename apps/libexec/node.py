@@ -98,10 +98,11 @@ def cmd_status(args):
 			else:
 				lat_color = color.green
 
-		name = "#%02d: %s %s" % (iid, info['type'], info['name'])
+		peer_id = int(info.pop('peer_id', 0))
+		name = "#%02d.%d %s %s" % (iid, peer_id, info['type'], info['name'])
 
 		if is_running:
-			name += " (%sACTIVE%s - %s%.2fms%s latency)" % (color.green, color.reset, lat_color, latency, color.reset)
+			name += " (%sACTIVE%s - %s%.3fs%s latency)" % (color.green, color.reset, lat_color, latency, color.reset)
 			name_len = len(name) - 22
 		else:
 			name += " (%sINACTIVE%s)" % (color.red, color.reset)
@@ -110,7 +111,6 @@ def cmd_status(args):
 		print("%s\n%s" % (name, '-' * name_len))
 
 		sa_peer_id = int(info.pop('self_assigned_peer_id', 0))
-		peer_id = int(info.pop('peer_id', 0))
 		if info['type'] == 'peer' and sa_peer_id != peer_id:
 			print("%sPeer id mismatch: self-assigned=%d; real=%d%s" %
 				(color.yellow, sa_peer_id, peer_id, color.reset))
