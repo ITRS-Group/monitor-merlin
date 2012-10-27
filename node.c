@@ -505,11 +505,12 @@ void node_log_event_count(merlin_node *node, int force)
 		  human_bytes(b_in), human_bytes(b_out));
 	if (!e_out)
 		return;
-	linfo("%s events/bytes: read %llu/%s, sent %llu/%s, dropped %llu/%s, logged %llu/%s",
+	linfo("%s events/bytes: read %llu/%s, sent %llu/%s, dropped %llu/%s, logged %llu/%s, logsize %u/%s",
 	      node->name, e_in, human_bytes(b_in),
 		  s->events.sent, human_bytes(s->bytes.sent),
 		  s->events.dropped, human_bytes(s->bytes.dropped),
-		  s->events.logged, human_bytes(s->bytes.logged));
+		  s->events.logged, human_bytes(s->bytes.logged),
+		  binlog_entries(node->binlog), human_bytes(binlog_size(node->binlog)));
 }
 
 const char *node_state(merlin_node *node)
