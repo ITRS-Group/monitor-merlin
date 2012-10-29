@@ -192,11 +192,13 @@ typedef struct node_selection node_selection;
 #define STATE_NEGOTIATING 2
 #define STATE_CONNECTED 3
 
+#define NODE_WARN_CLOCK 1   /* clock skew warning */
+
 struct merlin_node {
 	char *name;             /* name of this node */
 	char *source_name;      /* check source name for this node */
-	uint id;                 /* internal index lookup number */
-	unsigned int latency;   /* module to module latency of this node */
+	uint id;                /* internal index lookup number */
+	int latency;            /* module to module latency of this node */
 	int sock;               /* the socket */
 	int type;               /* server type (master, slave, peer) */
 	int state;              /* state of this node (down, pending, active) */
@@ -207,6 +209,7 @@ struct merlin_node {
 	unsigned int data_timeout; /* send gracetime before we disconnect */
 	unsigned int host_checks; /* actually executed host checks */
 	unsigned int service_checks; /* actually executed service checks */
+	unsigned int warn_flags; /* warnings caught from this node */
 	time_t last_recv;       /* last time node sent something to us */
 	time_t last_sent;       /* when we sent something last */
 	time_t last_conn_attempt_logged; /* when we last logged a connect attempt */

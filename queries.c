@@ -12,7 +12,7 @@ static int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 "state=%s;peer_id=%u;flags=%d;"
 				 "address=%s;port=%u;"
 				 "data_timeout=%u;last_recv=%lu;last_sent=%lu;"
-				 "last_conn_attempt=%lu;last_action=%d;latency=%u;"
+				 "last_conn_attempt=%lu;last_action=%d;latency=%d;"
 				 "binlog_size=%u;iocache_available=%lu;"
 				 "events_sent=%llu;events_read=%llu;"
 				 "events_logged=%llu;events_dropped=%llu;"
@@ -21,7 +21,7 @@ static int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 "version=%u;word_size=%u;byte_order=%u;"
 				 "object_structure_version=%u;start=%lu.%lu;"
 				 "last_cfg_change=%lu;config_hash=%s;"
-				 "self_assigned_peer_id=%u;"
+				 "self_assigned_peer_id=%u;warn_flags=%u;"
 				 "active_peers=%u;configured_peers=%u;"
 				 "active_pollers=%u;configured_pollers=%u;"
 				 "active_masters=%u;configured_masters=%u;"
@@ -42,7 +42,7 @@ static int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 i->version, i->word_size, i->byte_order,
 				 i->object_structure_version, i->start.tv_sec, i->start.tv_usec,
 				 i->last_cfg_change, tohex(i->config_hash, 20),
-				 i->peer_id,
+				 i->peer_id, n->warn_flags,
 				 i->active_peers, i->configured_peers,
 				 i->active_pollers, i->configured_pollers,
 				 i->active_masters, i->configured_masters,
