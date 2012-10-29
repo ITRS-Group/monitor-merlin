@@ -455,7 +455,6 @@ static int binlog_file_add(binlog *bl, void *buf, unsigned int len)
 	if (ret)
 		return ret;
 	ret = safe_write(bl, buf, len);
-	fsync(bl->fd);
 	bl->file_size += len + sizeof(len);
 	bl->file_entries++;
 
