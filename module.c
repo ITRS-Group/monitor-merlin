@@ -923,6 +923,21 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	 */
 	if (node->state == STATE_CONNECTED)
 		return node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 100);
+	else {
+		int i;
+
+		/*
+		 * if we went from connected to anything else, we must
+		 * mark all other nodes as disconnected so that checks
+		 * fail over properly
+		 */
+		for (i = 0; i < num_nodes; i++) {
+			merlin_node *node = node_table[i];
+			/* this handles peer-count and peer-id as well */
+			node_set_state(node, STATE_NONE, "Daemon disconnected");
+			memset(&node->info, 0, sizeof(node->info));
+		}
+	}
 
 	return 0;
 }
