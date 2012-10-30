@@ -834,7 +834,7 @@ def cmd_nodesplit(args):
 			if not force and st.st_mtime >= last_changed:
 				print("%s is cached" % (node.oconf_file))
 				continue
-        else:
+		else:
 			params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
 
 	# If there are no pollers with hostgroups, we might as well
