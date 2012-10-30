@@ -4,15 +4,26 @@ modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
 if not modpath in sys.path:
 	sys.path.append(modpath)
 from merlin_apps_utils import *
+from merlin_qh import *
+import compound_config as cconf
 
 wanted_types = []
 wanted_names = []
 have_type_arg = False
 have_name_arg = False
 
+qh = '/opt/monitor/var/rw/nagios.qh'
+
 def module_init(args):
 	global wanted_types, wanted_names
 	global have_type_arg, have_name_arg
+	global qh
+
+	comp = cconf.parse_conf(nagios_cfg)
+	for v in comp.params:
+		if v[0] == 'query_socket':
+			qh = v[1]
+			break
 
 	wanted_types = mconf.merlin_node.valid_types
 	rem_args = []
@@ -49,25 +60,11 @@ def cmd_status(args):
 	enough program_status updates.
 	"""
 
-	read_size = 4096
 	high_latency = {}
 	inactive = {}
 	mentioned = {}
 
-	qh = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-	qh.connect("/opt/monitor/var/rw/nagios.qh")
-	qh.send("@merlin nodeinfo\0")
-	cnt = read_size
-	resp = ''
-	while True:
-		ary = select.select([qh], [], [], 0.25)
-		if not len(ary[0]):
-			break
-		out = qh.recv(read_size)
-		cnt = len(out)
-		resp += out
-	sinfo = [dict([y.split('=') for y in x.split(';')]) for x in resp.split('\n') if x]
-	qh.close()
+	sinfo = get_merlin_nodeinfo(qh)
 
 	host_checks = 0
 	service_checks = 0

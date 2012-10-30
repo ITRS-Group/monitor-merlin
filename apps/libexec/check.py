@@ -1,5 +1,7 @@
 import os, sys, re, time, copy, errno
 
+import livestatus
+
 modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
 if not modpath in sys.path:
 	sys.path.append(modpath)
@@ -9,8 +11,13 @@ import nagios_plugin as nplug
 import merlin_conf as mconf
 import merlin_db
 from coredump import *
+import compound_config as cconf
 
-dbc = False
+# defaults, will use nagios.cfg for guidance
+ls_path = '/opt/monitor/var/rw/live'
+qh = '/opt/monitor/var/rw/nagios.qh'
+
+lsc = False
 mst = False
 wanted_types = False
 wanted_names = False
@@ -20,7 +27,7 @@ have_name_arg = False
 def module_init(args):
 	global wanted_types, wanted_names
 	global have_type_arg, have_name_arg
-	global dbc, mst
+	global mst, lsc, ls_path, qh
 
 	rem_args = []
 	i = -1
@@ -42,8 +49,15 @@ def module_init(args):
 			rem_args += [arg]
 			continue
 
-	dbc = merlin_db.connect(mconf).cursor()
-	mst = merlin_status(dbc)
+	comp = cconf.parse_conf(nagios_cfg)
+	for v in comp.params:
+		if v[0] == 'query_socket':
+			qh = v[1]
+		elif v[0] == 'broker_module' and 'livestatus' in v[1]:
+			ls_path = v[1].rsplit(' ', 1)[-1]
+
+	lsc = livestatus.SingleSiteConnection('unix:' + ls_path)
+	mst = merlin_status(lsc, qh)
 	return rem_args
 
 def cmd_distribution(args):
@@ -52,12 +66,12 @@ def cmd_distribution(args):
 	not expected to work properly the first couple of minutes after
 	a new machine has been brought online or taken offline
 	"""
+
 	print_perfdata = True
 	for arg in args:
 		if arg == '--no-perfdata':
 			print_perfdata = False
 
-	# min and max number of checks
 	total_checks = {
 		'host': mst.num_entries('host'),
 		'service': mst.num_entries('service'),
@@ -71,60 +85,50 @@ def cmd_distribution(args):
 	should = {}
 	# loop all nodes, checking their status and creating the various
 	# strings we'll want to print later
-	for (name, info) in nodes.items():
-		node = info['node']
-		should[name] = ac = mst.assigned_checks(node, info)
-		if node.ntype == 'master':
-			cmax = cmin = {'host': 0, 'service': 0}
-		elif node.num_peers:
-			cmin = ac
-			cmax = {'host': ac['host'], 'service': ac['service']}
-		else:
-			cmin = cmax = ac
+	for (name, info) in nodes['nodes'].items():
+		should[name] = ac = mst.assigned_checks(info['info'])
+		if info['info']['type'] == 'master':
+			ac['host'] = (0,0)
+			ac['service'] = (0,0)
 
 		# pollers can never run more checks than they should. The
 		# rest of them can always end up running all
 		ctot = copy.copy(total_checks)
-		if node.ntype == 'poller':
-			ctot['host'] = ac['host'] * (node.num_peers + 1)
-			ctot['service'] = ac['service'] * (node.num_peers + 1)
+		if info['info']['type'] == 'poller':
+			ctot['host'] = ac['host'][0] * (int(info['info']['active_peers']) + 1)
+			ctot['service'] = ac['service'][0] * (int(info['info']['active_peers']) + 1)
 
 		# get the actual data immediately
 		runs_checks = {
-			'host': mst.num_entries('host', None, info['basic']['iid']),
-			'service': mst.num_entries('service', None, info['basic']['iid']),
+			'host': int(info['info']['host_checks_executed']),
+			'service': int(info['info']['service_checks_executed']),
 		}
 		for ctype, num in total_checks.items():
-			# see if we should add one to the OK count
-			plus = 0
-			if node.ntype != 'master' and node.num_peers:
-				if cmax[ctype] % (node.num_peers + 1):
-					cmax[ctype] = cmax[ctype] + 1
-
 			# we now how many checks the node should run, so
 			# construct performance-data, check our state and
 			# set up data dicts so we later can construct a
 			# meaningful error message
 			run = runs_checks[ctype]
-			if run < cmin[ctype] or run > cmax[ctype]:
+			if run < ac[ctype][0] or run > ac[ctype][1]:
 				state = nplug.STATE_CRITICAL
 				bad[name] = copy.deepcopy(runs_checks)
 
 			absmax = total_checks[ctype]
-			ok_str = "%d:%d" % (cmin[ctype], cmax[ctype] + plus)
+			ok_str = "%d:%d" % (ac[ctype][0], ac[ctype][1])
 			pdata += (" '%s_%ss'=%d;%s;%s;0;%d" %
-				(name, ctype, run, ok_str, ok_str, ctot[ctype] + plus))
+				(name, ctype, run, ok_str, ok_str, ctot[ctype]))
 
 	for name, b in bad.items():
 		if not len(b):
 			continue
-		state_str += ("%s runs %d / %d checks (should be %d / %d)." %
+		state_str += ("%s runs %d / %d checks (should be %s / %s). " %
 			(name, bad[name]['host'], bad[name]['service'],
-			should[name]['host'], should[name]['service']))
+			should[name]['host'][0] == should[name]['host'][1] and should[name]['host'][0] or "%s - %s" % (should[name]['host'][0], should[name]['host'][1]),
+			 should[name]['service'][0] == should[name]['service'][1] and should[name]['service'][0] or "%s - %s" % (should[name]['service'][0], should[name]['service'][1])))
 
 	sys.stdout.write("%s: " % nplug.state_name(state))
 	if not state_str:
-		state_str = "All %d nodes run their assigned checks." % len(nodes)
+		state_str = "All %d nodes run their assigned checks." % len(nodes['nodes'])
 	sys.stdout.write("%s" % state_str.rstrip())
 	if print_perfdata:
 		print("|%s" % pdata.lstrip())
@@ -139,7 +143,7 @@ def check_min_avg_max(args, col, defaults=False, filter=False):
 	otype = False
 
 	if filter == False:
-		filter = 'should_be_scheduled = 1 AND active_checks_enabled = 1'
+		filter = 'Filter: should_be_scheduled = 1\nFilter: active_checks_enabled = 1\nAnd: 2\n'
 
 	for arg in args:
 		if arg.startswith('--warning=') or arg.startswith('--critical'):
@@ -250,17 +254,10 @@ def cmd_orphans(args=False):
 			otype = arg
 
 	now = time.time()
-	orphans = {'host': 0, 'service': 0}
-	# Todo: Check things that are in their checking period
-	query = ("""SELECT COUNT(1) FROM %s WHERE
-		should_be_scheduled = 1 AND check_period = '24x7' AND
-		next_check < %d""" % (otype, now - max_age))
-	dbc.execute(query)
-	row = dbc.fetchone()
-	orphans = int(row[0])
-	total = mst.num_entries(otype, "check_period = '24x7'")
-	# by default, critical is at 1% and warning at 0.5%
+	query = 'GET %ss\nFilter: should_be_scheduled = 1\nFilter: in_check_period = 1\nFilter: next_check < %s\nStats: state != 999'
+	orphans = int(lsc.query_value(query % (otype, now - max_age)))
 	if not warning and not critical:
+		total = int(lsc.query_value('GET %ss\nFilter: should_be_scheduled = 1\nFilter: in_check_period = 1\nStats: state != 999' % (otype,)))
 		critical = total * 0.01
 		warning = total * 0.005
 	if not warning and not critical:
