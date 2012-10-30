@@ -103,10 +103,10 @@ def cmd_status(args):
 
 		if is_running:
 			name += " (%sACTIVE%s - %s%.3fs%s latency)" % (color.green, color.reset, lat_color, latency, color.reset)
-			name_len = len(name) - 22
+			name_len = len(name) - (len(color.green) + len(lat_color) + (len(color.reset) * 2))
 		else:
 			name += " (%sINACTIVE%s)" % (color.red, color.reset)
-			name_len = len(name) - 8
+			name_len = len(name) - (len(color.red) + len(color.reset))
 
 		print("%s\n%s" % (name, '-' * name_len))
 
