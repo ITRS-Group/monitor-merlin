@@ -819,8 +819,11 @@ static int post_config_init(int cb, void *ds)
 	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
 		return 0;
 
+	/* required for the 'nodeinfo' query through the query handler */
 	host_check_node = calloc(num_objects.hosts, sizeof(merlin_node *));
 	service_check_node = calloc(num_objects.services, sizeof(merlin_node *));
+	self.host_checks_handled = num_objects.hosts;
+	self.service_checks_handled = num_objects.services;
 
 	if (!db_track_current) {
 		char *cache_file = NULL;
