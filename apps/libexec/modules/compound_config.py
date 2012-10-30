@@ -58,7 +58,7 @@ def parse_conf(path, splitchar='='):
 			cur.line_start = lnum
 			continue
 
-		kv = line.split(splitchar)
+		kv = line.split(splitchar, 1)
 		if len(kv) != 2:
 			cur.add(line, True)
 			continue
