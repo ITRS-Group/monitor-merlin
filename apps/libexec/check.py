@@ -54,7 +54,11 @@ def module_init(args):
 		if v[0] == 'query_socket':
 			qh = v[1]
 		elif v[0] == 'broker_module' and 'livestatus' in v[1]:
-			ls_path = v[1].rsplit(' ', 1)[-1]
+			ary = v[1].rsplit(' ')
+			for p in ary[1:]:
+				if not '=' in p:
+					ls_path = p
+					break
 
 	lsc = livestatus.SingleSiteConnection('unix:' + ls_path)
 	mst = merlin_status(lsc, qh)
