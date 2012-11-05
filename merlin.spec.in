@@ -22,6 +22,7 @@ Requires: libaio
 Requires: libdbi-dbd-mysql
 Requires: ocilib >= 3.8
 Requires: merlin-apps >= %version
+Requires: monitor-config
 BuildRequires: mysql-devel
 BuildRequires: libdbi-devel
 BuildRequires: ocilib-devel
@@ -39,6 +40,7 @@ data into a variety of databases, using libdbi.
 Summary: A Nagios module designed to communicate with the Merlin daemon
 Group: op5/Monitor
 Requires: monitor >= 4.0, merlin = %version-%release
+Requires: monitor-config
 
 %description -n monitor-merlin
 monitor-merlin is an event broker module running inside Nagios. Its
