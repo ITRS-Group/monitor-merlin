@@ -55,9 +55,10 @@ static struct string_code event_codes[] = {
 	add_event("LOG VERSION", EVT_PROCESS),
 	add_event("EXTERNAL COMMAND", EVT_COMMAND),
 	add_event("livestatus", EVT_LIVESTATUS),
-	add_event("qh", EVT_QH),
-	add_event("nerd", EVT_NERD),
-	add_event("wproc", EVT_WPROC),
+	add_event("qh", EVT_QH | EVT_PROCESS),
+	add_event("nerd", EVT_NERD | EVT_PROCESS),
+	add_event("NERD", EVT_NERD | EVT_PROCESS),
+	add_event("wproc", EVT_WPROC | EVT_PROCESS),
 
 	add_code(5, "HOST ALERT", EVT_ALERT | EVT_HOST),
 	add_code(5, "INITIAL HOST STATE", EVT_STATE | EVT_HOST),
