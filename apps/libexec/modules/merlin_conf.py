@@ -152,8 +152,9 @@ class merlin_node:
 		command = command.decode(locale.getpreferredencoding())
 
 		if not self.ssh_user:
-			self.ssh_user = 'root'
-		prefix_args = ["ssh", self.ssh_user + "@" + self.address]
+			prefix_args = ["ssh", self.address]
+		else:
+			prefix_args = ["ssh", self.ssh_user + '@' + self.address]
 		if self.ssh_key:
 			prefix_args += ['-i', self.ssh_key]
 		all_args = prefix_args + [command]
