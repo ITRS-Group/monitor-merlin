@@ -937,7 +937,7 @@ def cmd_push(args):
 			default_dest = '/opt/monitor'
 
 		oconf_dest = node.options.get('oconf_dest', default_dest)
-		ssh_user = node.options.get('oconf_ssh_user', 'root')
+		ssh_user = node.options.get('oconf_ssh_user', False)
 
 		# XXX rewrite this to node.ssh_key(), always returning a path
 		ssh_key = get_ssh_key(node)
@@ -953,12 +953,13 @@ def cmd_push(args):
 		if not os.isatty(sys.stdout.fileno()):
 			ssh_cmd += ' -o KbdInteractiveAuthentication=no'
 
-		ssh_cmd += ' -l ' + ssh_user
+		if ssh_user:
+			ssh_cmd += ' -l ' + ssh_user
 		node.ssh_cmd = ssh_cmd
 
-		# XXX rewrite this to node.rsync_send(list(source), dest)
-		host_dest = "%s:%s" % (node.address, oconf_dest)
-		address_dest = ssh_user + '@' + node.address + ':' + oconf_dest
+		address_dest = "%s:%s" % (node.address, oconf_dest)
+		if ssh_user:
+			address_dest = ssh_user + '@' + host_dest
 		rsync_args = base_rsync_args + [source, '-e', ssh_cmd, address_dest]
 		ret = os.spawnvp(os.P_WAIT, 'rsync', rsync_args)
 		if ret != 0:
@@ -972,6 +973,7 @@ def cmd_push(args):
 	# now sync additional paths. We do them one by one and always
 	# to identical directories so we know where we're heading
 	for name, node in mconf.configured_nodes.items():
+		ssh_user = node.options.get('oconf_ssh_user', False)
 		# XXX FIXME: ugly hack to get synergy rules
 		# synchronized every once in a while
 		if os.path.isdir('/opt/synergy/etc/bps'):
@@ -985,6 +987,8 @@ def cmd_push(args):
 				if dest == True:
 					dest = src
 				address_dest = "%s:%s" % (node.address, dest)
+				if ssh_user:
+					address_dest = ssh_user + '@' + host_dest
 				rsync_args = base_rsync_args + [src, '-e', node.ssh_cmd, address_dest]
 				ret = os.spawnvp(os.P_WAIT, 'rsync', rsync_args)
 
