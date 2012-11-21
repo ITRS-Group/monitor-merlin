@@ -1,4 +1,4 @@
-import socket
+import socket, select
 
 query_handler = "/opt/monitor/var/rw/nagios.qh"
 
@@ -8,7 +8,7 @@ def get_merlin_nodeinfo(query_handler):
 	qh.connect(query_handler)
 	qh.send("#merlin nodeinfo\0")
 	resp = ''
-	while True:
+	while select.select([qh], [], [], 0.25):
 		out = qh.recv(read_size)
 		if not out:
 			break
