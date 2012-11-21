@@ -66,6 +66,10 @@ def cmd_status(args):
 
 	sinfo = get_merlin_nodeinfo(qh)
 
+	if not sinfo:
+		print("Found no checks")
+		return
+
 	host_checks = 0
 	service_checks = 0
 	for n in sinfo:

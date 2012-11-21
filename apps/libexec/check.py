@@ -81,16 +81,24 @@ def cmd_distribution(args):
 		'service': mst.num_entries('service'),
 	}
 
+
 	state = nplug.OK
 	nodes = mst.status()
 	pdata = ""
 	state_str = ""
 	bad = {}
 	should = {}
+	if not nodes['nodes']:
+		print "UNKNOWN: No hosts found at all"
+		sys.exit(nplug.UNKNOWN)
 	# loop all nodes, checking their status and creating the various
 	# strings we'll want to print later
 	for (name, info) in nodes['nodes'].items():
-		should[name] = ac = mst.assigned_checks(info['info'])
+		try:
+			should[name] = ac = mst.assigned_checks(info['info'])
+		except livestatus.livestatus.MKLivestatusSocketError:
+			print "UNKNOWN: Error asking livestatus for info, bailing out"
+			sys.exit(nplug.UNKNOWN)
 		if info['info']['type'] == 'master':
 			ac['host'] = (0,0)
 			ac['service'] = (0,0)
@@ -173,7 +181,11 @@ def check_min_avg_max(args, col, defaults=False, filter=False):
 		nplug.unknown("Need 'host' or 'service' as argument")
 
 	state = nplug.STATE_OK
-	values = mst.min_avg_max(otype, col, filter)
+	try:
+		values = mst.min_avg_max(otype, col, filter)
+	except livestatus.livestatus.MKLivestatusSocketError:
+		print "UNKNOWN: Error asking livestatus for info, bailing out"
+		sys.exit(nplug.STATE_UNKNOWN)
 	output = []
 	for thresh_type in ['critical', 'warning']:
 		if state != nplug.STATE_OK:
@@ -259,11 +271,15 @@ def cmd_orphans(args=False):
 
 	now = time.time()
 	query = 'GET %ss\nFilter: should_be_scheduled = 1\nFilter: in_check_period = 1\nFilter: next_check < %s\nStats: state != 999'
-	orphans = int(lsc.query_value(query % (otype, now - max_age)))
-	if not warning and not critical:
-		total = int(lsc.query_value('GET %ss\nFilter: should_be_scheduled = 1\nFilter: in_check_period = 1\nStats: state != 999' % (otype,)))
-		critical = total * 0.01
-		warning = total * 0.005
+	try:
+		orphans = int(lsc.query_value(query % (otype, now - max_age)))
+		if not warning and not critical:
+			total = int(lsc.query_value('GET %ss\nFilter: should_be_scheduled = 1\nFilter: in_check_period = 1\nStats: state != 999' % (otype,)))
+			critical = total * 0.01
+			warning = total * 0.005
+	except livestatus.livestatus.MKLivestatusSocketError:
+		print "UNKNOWN: Error asking livestatus for info, bailing out"
+		sys.exit(nplug.UNKNOWN)
 	if not warning and not critical:
 		warning = critical = 1
 
