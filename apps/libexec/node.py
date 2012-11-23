@@ -64,7 +64,7 @@ def cmd_status(args):
 	inactive = {}
 	mentioned = {}
 
-	sinfo = get_merlin_nodeinfo(qh)
+	sinfo = list(get_merlin_nodeinfo(qh))
 
 	if not sinfo:
 		print("Found no checks")
