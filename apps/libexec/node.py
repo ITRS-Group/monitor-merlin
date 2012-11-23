@@ -177,11 +177,6 @@ def cmd_status(args):
 			hc_color, hpercent, color.reset,
 			sc_color, spercent, color.reset))
 
-		# if this node has never reported any checks, we can't
-		# very well print out its latency or execution time values
-		if not hchecks and not schecks:
-			continue
-
 ## node commands ##
 # list configured nodes, capable of filtering by type
 def cmd_list(args):
