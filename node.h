@@ -235,7 +235,7 @@ extern linked_item *nodes_by_sel_id(int sel);
 extern linked_item *nodes_by_sel_name(const char *name);
 extern void node_grok_config(struct cfg_comp *config);
 extern void node_log_event_count(merlin_node *node, int force);
-extern void node_disconnect(merlin_node *node, const char *reason);
+extern void node_disconnect(merlin_node *node, const char *fmt, ...);
 extern int node_send(merlin_node *node, void *data, int len, int flags);
 extern int node_send_event(merlin_node *node, merlin_event *pkt, int msec);
 extern int node_recv(merlin_node *node);
