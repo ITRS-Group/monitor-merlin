@@ -95,16 +95,14 @@ int net_is_connected(merlin_node *node)
 	       node->name, gpnres, gpnerr, gsores, gsoerr, optval);
 
 	if (optval) {
-		lerr("connect() to %s node %s failed: %s",
-			 node_type(node), node->name, strerror(optval));
-		node_disconnect(node, strerror(optval));
+		node_disconnect(node, "connect() to %s node %s failed: %s",
+						node_type(node), node->name, strerror(optval));
 		return 0;
 	}
 
 	if (gsores < 0 && gsoerr != ENOTCONN) {
-		lerr("getsockopt(%d) failed for %s: %s",
-		     node->sock, node->name, strerror(gsoerr));
-		node_disconnect(node, "getsockopt() failed");
+		node_disconnect(node, "getsockopt(%d) failed for %s node %s: %s",
+						node->sock, node_type(node), node->name, strerror(gsoerr));
 	}
 
 	if (gpnres < 0 && gpnerr != ENOTCONN) {
@@ -118,7 +116,8 @@ int net_is_connected(merlin_node *node)
 	 * first. 30 seconds should be enough.
 	 */
 	if (node->last_conn_attempt + MERLIN_CONNECT_TIMEOUT < time(NULL)) {
-		node_disconnect(node, "connect() timed out");
+		node_disconnect(node, "connect() timed out after %d seconds",
+						MERLIN_CONNECT_TIMEOUT);
 	}
 
 	return 0;
@@ -232,10 +231,11 @@ int net_try_connect(merlin_node *node)
 			connected = 1;
 		} else {
 			if (should_log) {
-				lerr("connect() failed to node '%s' (%s:%d): %s",
-				     node->name, inet_ntoa(node->sain.sin_addr),
-				     ntohs(node->sain.sin_port), strerror(errno));
-				node_disconnect(node, "connect() failed");
+				node_disconnect(node, "connect() failed to %s node '%s' (%s:%d): %s",
+								node_type(node), node->name,
+								inet_ntoa(node->sain.sin_addr),
+								ntohs(node->sain.sin_port),
+								strerror(errno));
 			} else {
 				node_disconnect(node, NULL);
 			}

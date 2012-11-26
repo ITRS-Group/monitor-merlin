@@ -548,8 +548,11 @@ const char *node_type(merlin_node *node)
 }
 
 /* close down the connection to a node and mark it as down */
-void node_disconnect(merlin_node *node, const char *reason)
+void node_disconnect(merlin_node *node, const char *fmt, ...)
 {
+	va_list ap;
+	char *reason = NULL;
+
 	if (node->state == STATE_CONNECTED)
 		node_log_event_count(node, 1);
 
@@ -557,7 +560,14 @@ void node_disconnect(merlin_node *node, const char *reason)
 	if (node->sock >= 0)
 		close(node->sock);
 	node->sock = -1;
+	if (fmt) {
+		va_start(ap, fmt);
+		vasprintf(&reason, fmt, ap);
+		va_end(ap);
+	}
 	node_set_state(node, STATE_NONE, reason);
+	if (reason)
+		free(reason);
 	node->last_recv = 0;
 	node->ioc.ioc_buflen = node->ioc.ioc_offset = 0;
 }
@@ -722,7 +732,8 @@ int node_send(merlin_node *node, void *data, int len, int flags)
 	 * by disconnecting and re-syncing the stream
 	 */
 	sd = node->sock;
-	node_disconnect(node, "Partial or failed write()");
+	node_disconnect(node, "Partial or failed write() (sent=%d; len=%d): %s",
+				   sent, len, strerror(errno));
 
 	if (sent < 0) {
 		/* if we would have blocked, we simply return 0 */
