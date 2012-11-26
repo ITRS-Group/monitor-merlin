@@ -442,6 +442,8 @@ static int ipc_reaper(int sd, int events, void *arg)
 			}
 			node->last_action = node->last_recv = tv.tv_sec;
 			node->stats.cb_count[type].in++;
+			ldebug("Received type %d event from %s node %s",
+				   pkt->hdr.type, node_type(node), node->name);
 		}
 
 		/* control packets are handled separately */
