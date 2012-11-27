@@ -1,7 +1,7 @@
 #include "module.h"
 #include <nagios/nagios.h>
 
-static int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
+int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 {
 	merlin_nodeinfo *i;
 	merlin_node_stats *s = &n->stats;

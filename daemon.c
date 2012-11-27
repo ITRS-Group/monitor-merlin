@@ -14,6 +14,7 @@ static char *merlin_conf;
 static merlin_confsync csync;
 static int num_children;
 static int killing;
+static int user_sig;
 int db_log_reports = 1;
 int db_log_notifications = 1;
 int db_track_current = 0;
@@ -822,11 +823,31 @@ static int io_poll_sockets(void)
 	return 0;
 }
 
+static void dump_daemon_nodes(void)
+{
+	int fd, i;
+
+	user_sig &= ~(1 << SIGUSR1);
+
+	fd = open("/tmp/merlind.nodeinfo", O_CREAT | O_TRUNC | O_WRONLY, 0644);
+	if (fd < 0) {
+		lerr("USERSIG: Failed to open /tmp/merlind.nodeinfo for dumping: %s", strerror(errno));
+		return;
+	}
+
+	dump_nodeinfo(&ipc, fd, 0);
+	for (i = 0; i < num_nodes; i++)
+		dump_nodeinfo(node_table[i], fd, i + 1);
+}
+
 static void polling_loop(void)
 {
 	for (;;) {
 		uint i;
 		time_t now = time(NULL);
+
+		if (user_sig & (1 << SIGUSR1))
+			dump_daemon_nodes();
 
 		/*
 		 * log the event count. The marker to prevent us from
@@ -898,6 +919,10 @@ static void clean_exit(int sig)
 	_exit(!!sig);
 }
 
+static void sigusr_handler(int sig)
+{
+	user_sig |= 1 << sig;
+}
 
 int main(int argc, char **argv)
 {
@@ -1005,6 +1030,8 @@ int main(int argc, char **argv)
 
 	signal(SIGINT, clean_exit);
 	signal(SIGTERM, clean_exit);
+	signal(SIGUSR1, sigusr_handler);
+	signal(SIGUSR2, sigusr_handler);
 
 	sql_init();
 	if (use_database) {
