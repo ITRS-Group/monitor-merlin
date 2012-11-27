@@ -587,10 +587,6 @@ void node_disconnect(merlin_node *node, const char *fmt, ...)
 	if (node->state == STATE_CONNECTED)
 		node_log_event_count(node, 1);
 
-	/* avoid spurious close() errors while strace/valgrind debugging */
-	if (node->sock >= 0)
-		close(node->sock);
-	node->sock = -1;
 	if (fmt) {
 		va_start(ap, fmt);
 		vasprintf(&reason, fmt, ap);
@@ -600,6 +596,11 @@ void node_disconnect(merlin_node *node, const char *fmt, ...)
 	if (reason)
 		free(reason);
 	node->last_recv = 0;
+
+	/* avoid spurious close() errors while strace/valgrind debugging */
+	if (node->sock >= 0)
+		close(node->sock);
+	node->sock = -1;
 
 	iocache_reset(node->ioc);
 }
