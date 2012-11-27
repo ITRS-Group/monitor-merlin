@@ -897,8 +897,13 @@ static int post_config_init(int cb, void *ds)
  */
 static int ipc_action_handler(merlin_node *node, int prev_state)
 {
-	if (node != &ipc || ipc.state == prev_state)
+	int ret;
+
+	ldebug("Running ipc action handler");
+	if (node != &ipc || ipc.state == prev_state) {
+		ldebug("  ipc_action_handler(): First exit");
 		return 0;
+	}
 
 	/*
 	 * If we get disconnected while stalling, we immediately
@@ -913,9 +918,15 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	}
 
 	if (ipc.state == STATE_CONNECTED) {
-		iobroker_register(nagios_iobs, ipc.sock, (void *)&ipc, ipc_reaper);
+		ret = iobroker_register(nagios_iobs, ipc.sock, (void *)&ipc, ipc_reaper);
+		if (ret)
+			lerr("  ipc_action_handler(): iobroker_register(%p, %d, %p, %p) returned %d: %s",
+				 nagios_iobs, ipc.sock, (void *)&ipc, ipc_reaper, ret, iobroker_strerror(ret));
 	} else {
-		iobroker_unregister(nagios_iobs, ipc.sock);
+		ret = iobroker_unregister(nagios_iobs, ipc.sock);
+		if (ret)
+			ldebug("  ipc_action_handler(): iobroker_unregister(%p, %d) returned %d: %s",
+				   nagios_iobs, ipc.sock, ret, iobroker_strerror(ret));
 	}
 
 	/*
