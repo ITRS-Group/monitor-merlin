@@ -37,6 +37,6 @@ Commands need not include trailing nullbyte."""
 			for pair in row.items():
 				print "%-25s %s" % pair
 			print ""
-	except ValueError:
+	except ValueError, v:
 		print "WARNING: Couldn't format response, printing raw response:\n"
-		print resp
+		cmd_query(args)
