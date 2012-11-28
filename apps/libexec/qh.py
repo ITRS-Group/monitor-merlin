@@ -17,12 +17,24 @@ def module_init(args):
 			break
 
 
+def args_to_query(args):
+	if not len(args):
+		return False
+
+	# one-shot queries are default
+	if args[0][0] != '#' and args[0][0] != '@':
+		args[0] = '#' + args[0]
+
+	return ' '.join(args)
+
+
 def cmd_query(args):
 	"""Run an arbitrary query with the nagios query handler.
 Print raw output.
 Commands need not include trailing nullbyte."""
 	handler = nagios_qh(qh)
-	for block in handler.query(args[0]):
+	query = args_to_query(args)
+	for block in handler.query(query):
 		print block,
 		sys.stdout.flush()
 
@@ -31,7 +43,8 @@ def cmd_get(args):
 Print pretty-printed output.
 Commands need not include trailing nullbyte."""
 	handler = nagios_qh(qh)
-	resp = handler.query(args[0])
+	query = args_to_query(args)
+	resp = handler.query(query)
 	try:
 		for row in handler.format(resp):
 			for pair in row.items():
