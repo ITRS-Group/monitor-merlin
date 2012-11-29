@@ -24,7 +24,7 @@ iobroker_set *nagios_iobs = NULL;
 
 static nagios_macros global_macros;
 
-int qh_register_handler(const char *name, unsigned int options, qh_handler handler)
+int qh_register_handler(const char *name, const char *description, unsigned int options, qh_handler handler)
 {
 	return 0;
 }
