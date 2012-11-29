@@ -860,7 +860,7 @@ static int post_config_init(int cb, void *ds)
 	linfo("Object configuration parsed.");
 	setup_host_hash_tables();
 
-	if((result = qh_register_handler("merlin", 0, merlin_qh)) < 0)
+	if((result = qh_register_handler("merlin", "Merlin information", 0, merlin_qh)) < 0)
 		lerr("Failed to register query handler: %s", strerror(-result));
 	else
 		linfo("merlin_qh registered with query handler");
