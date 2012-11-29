@@ -856,7 +856,11 @@ def cmd_nodesplit(args):
 	# now create the hardlinks we know we need
 	for (dst, src) in hardlink.items():
 		print("Hardlinking\n     %s\n  to %s" % (src, dst))
-		os.unlink(dst)
+		try:
+			os.unlink(dst)
+		except OSError:
+			# file does not exist, likely, which is fine
+			pass
 		os.link(src, dst)
 
 
