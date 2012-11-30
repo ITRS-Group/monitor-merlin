@@ -39,7 +39,7 @@ data into a variety of databases, using libdbi.
 %package -n monitor-merlin
 Summary: A Nagios module designed to communicate with the Merlin daemon
 Group: op5/Monitor
-Requires: monitor >= 4.0, merlin = %version-%release
+Requires: op5-nagios >= 3.99.99.4, merlin = %version-%release
 Requires: monitor-config
 
 %description -n monitor-merlin
