@@ -498,7 +498,6 @@ class fake_mesh:
 		status = True
 		raw_commands = [
 			'DISABLE_FLAP_DETECTION',
-			'DISABLE_FAILURE_PREDICTION',
 			'STOP_EXECUTING_HOST_CHECKS',
 			'STOP_EXECUTING_SVC_CHECKS',
 			'STOP_OBSESSING_OVER_HOST_CHECKS',
@@ -511,7 +510,6 @@ class fake_mesh:
 		# prepended and expect to get 0 as a proper answer
 		queries = [
 			'flap_detection_enabled = 1',
-			'failure_prediction_enabled = 1',
 			'active_host_checks_enabled = 1',
 			'active_service_checks_enabled = 1',
 			'obsess_over_hosts = 1',
