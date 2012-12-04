@@ -379,7 +379,8 @@ int sql_init(void)
 	result = db.conn->api->option_set(db.conn, "encoding", db.encoding ? db.encoding : "latin1");
 
 	if (result && log_attempt) {
-		lwarn("Warning: Failed to set one or more database connection options");
+		lwarn("Warning: Failed to set encoding for the connection to db '%s' at host '%s':'%d' as user %s using driver %s.",
+			 db.name, db.host, db.port, db.user, db.type );
 	}
 
 	result = db.conn->api->connect(db.conn);
