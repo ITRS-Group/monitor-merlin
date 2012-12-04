@@ -5,7 +5,6 @@ import signal
 import re
 import copy
 import subprocess
-from qhcheck.qhcheck import QhChannel
 import livestatus
 
 try:
@@ -20,6 +19,7 @@ from merlin_apps_utils import *
 from merlin_test_utils import *
 from nagios_command import nagios_command
 import merlin_db
+from qhcheck import QhChannel
 
 import compound_config as cconf
 
