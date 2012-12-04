@@ -6,6 +6,7 @@ import re
 import copy
 import subprocess
 import livestatus
+import traceback
 
 try:
 	import hashlib
@@ -1095,24 +1096,37 @@ def cmd_dist(args):
 	# tests go here. Important ones come first so we can
 	# break out early in case one or more of the required
 	# ones fail hard.
-	mesh.intermission("Allowing nodes to connect to each other", 10)
-	if mesh.test_connections() == False:
-		print("Connection tests failed. Bailing out")
-		_dist_shutdown(mesh, 'Connection tests failed', batch)
-	if mesh.test_imports() == False:
-		_dist_shutdown(mesh, 'Imports failed. This is a known spurious error when running tests often', batch)
-	if mesh.test_global_commands() == False:
-		_dist_shutdown(mesh, 'Global command tests failed', batch)
-	if mesh.test_passive_checks() == False:
-		_dist_shutdown(mesh, 'Passive checks are broken', batch)
+	try:
+		mesh.intermission("Allowing nodes to connect to each other", 10)
+		if mesh.test_connections() == False:
+			print("Connection tests failed. Bailing out")
+			_dist_shutdown(mesh, 'Connection tests failed', batch)
+		if mesh.test_imports() == False:
+			_dist_shutdown(mesh, 'Imports failed. This is a known spurious error when running tests often', batch)
+		if mesh.test_global_commands() == False:
+			_dist_shutdown(mesh, 'Global command tests failed', batch)
+		if mesh.test_passive_checks() == False:
+			_dist_shutdown(mesh, 'Passive checks are broken', batch)
 
-	# we only test acks if passive checks distribute properly
-	mesh.test_acks()
-	mesh.test_comments()
-	mesh.test_downtime()
+		# we only test acks if passive checks distribute properly
+		mesh.test_acks()
+		mesh.test_comments()
+		mesh.test_downtime()
+	except SystemExit:
+		# Some of the helper functions call sys.exit(1) to bail out.
+		# Let's assume they take care of cleaning up before doing so
+		raise
+	except:
+		# Don't leave stuff running, just because we messed up
+		print '*'*40
+		print 'Exception while running tests:'
+		traceback.print_exc()
+		print '*'*40
+		mesh.tap.failed = True
+		_dist_shutdown(mesh, destroy_databases, batch)
+		raise
 
 	_dist_shutdown(mesh, destroy_databases, batch)
-
 
 def test_cmd(cmd_fd, cmd, msg=False):
 	if msg != False:
