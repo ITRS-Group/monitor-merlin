@@ -5,6 +5,8 @@ import signal
 import re
 import copy
 import subprocess
+from qhcheck.qhcheck import QhChannel
+import livestatus
 
 try:
 	import hashlib
@@ -238,6 +240,8 @@ class fake_instance:
 
 		# actually counts entries in program_status, and we'll have one
 		self.num_nodes = 1
+		live_path = os.path.join(self.home, 'var', 'rw', 'live')
+		self.live = livestatus.SingleSiteConnection('unix://%s' % live_path)
 
 	def active_connections(self):
 		"""
@@ -247,10 +251,13 @@ class fake_instance:
 		which means it has to be run before all other tests.
 		"""
 		self.db_connect()
-		self.dbc.execute('SELECT COUNT(1) FROM program_status WHERE is_running = 1')
-		row = self.dbc.fetchall()
-		return row[0][0]
+		conn_cnt = 0
+		channel = QhChannel('merlin', subscribe=False)
+		for response in channel.query('nodeinfo'):
+			if response.state == 'STATE_CONNECTED':
+				conn_cnt += 1
 
+		return conn_cnt
 
 	def submit_raw_command(self, cmd):
 		if self.cmd_object.submit_raw(cmd) == False:
@@ -464,15 +471,13 @@ class fake_mesh:
 		"""make sure ocimp has run properly"""
 		status = True
 		for inst in self.instances:
-			inst.dbc.execute("SELECT COUNT(1) FROM host")
-			hosts = inst.dbc.fetchall()[0][0]
-			inst.dbc.execute("SELECT COUNT(1) FROM service")
-			services = inst.dbc.fetchall()[0][0]
-			ret = self.tap.test(hosts, len(inst.group.objects['host']),
+			hosts = inst.live.query('GET hosts\nStats: state != 9999')[0][0]
+			services = inst.live.query('GET services\nStats: state != 9999')[0][0]
+			ret = self.tap.test(hosts, len(inst.group.have_objects['host']),
 				'%s must import hosts properly' % inst.name)
 			if ret == False:
 				status = False
-			ret = self.tap.test(services, len(inst.group.objects['service']),
+			ret = self.tap.test(services, len(inst.group.have_objects['service']),
 				'%s must import services properly' % inst.name)
 			if ret == False:
 				status = False
@@ -543,14 +548,14 @@ class fake_mesh:
 		"""
 		status = True
 		master = self.masters.nodes[0]
-		for host in self.masters.objects['host']:
+		for host in self.masters.have_objects['host']:
 			ret = master.submit_raw_command('PROCESS_HOST_CHECK_RESULT;%s;1;Plugin output for host %s' % (host, host))
 			if ret == False:
 				status = False
 			ret = self.tap.test(ret, True, "Setting status of host %s" % host)
 			if ret == False:
 				status = False
-		for srv in self.masters.objects['service']:
+		for srv in self.masters.have_objects['service']:
 			ret = master.submit_raw_command('PROCESS_SERVICE_CHECK_RESULT;%s;2;Service plugin output' % (srv))
 			if ret == False:
 				status = False
@@ -560,14 +565,13 @@ class fake_mesh:
 
 		self.intermission('Letting passive checks spread', 15)
 		queries = {
-			'host': 'SELECT COUNT(1) FROM host WHERE current_state = 1',
-			'service': 'SELECT COUNT(1) FROM service WHERE current_state = 2',
+			'host': 'GET hosts\nStats: state = 1',
+			'service': 'GET services\nStats: state = 2',
 		}
 		for inst in self.instances:
 			for otype, query in queries.items():
-				inst.dbc.execute(query)
-				value = inst.dbc.fetchall()[0][0]
-				ret = (self.tap.test(value, len(inst.group.objects[otype]),
+				value = inst.live.query(query)[0][0]
+				ret = (self.tap.test(value, len(inst.group.have_objects[otype]),
 					'Passive %s checks should propagate to %s' %
 						(otype, inst.name))
 				)
@@ -585,13 +589,13 @@ class fake_mesh:
 		XXX: Should also spawn notifications and check for them
 		"""
 		master = self.masters.nodes[0]
-		for host in self.masters.objects['host']:
+		for host in self.masters.have_objects['host']:
 			ret = master.submit_raw_command(
 				'ACKNOWLEDGE_HOST_PROBLEM;%s;0;0;0;mon testsuite;ack comment for host %s'
 				% (host, host)
 			)
 			self.tap.test(ret, True, "Acking %s on %s" % (host, master.name))
-		for srv in self.masters.objects['service']:
+		for srv in self.masters.have_objects['service']:
 			(_hst, _srv) = srv.split(';')
 			ret = master.submit_raw_command(
 				'ACKNOWLEDGE_SVC_PROBLEM;%s;0;0;0;mon testsuite;ack comment for service %s on %s'
@@ -603,21 +607,18 @@ class fake_mesh:
 		# sure the ack has spread
 		self.intermission("Letting acks spread")
 		for inst in self.instances:
-			inst.dbc.execute("SELECT COUNT(1) FROM host WHERE problem_has_been_acknowledged = 1")
-			value = inst.dbc.fetchall()[0][0]
-			self.tap.test(value, len(inst.group.objects['host']),
+			value = inst.live.query('GET hosts\nStats: acknowledged = 1')[0][0]
+			self.tap.test(value, len(inst.group.have_objects['host']),
 				"All host acks should register on %s" % inst.name)
-			inst.dbc.execute('SELECT COUNT(1) FROM service WHERE problem_has_been_acknowledged = 1')
-			value = inst.dbc.fetchall()[0][0]
-			self.tap.test(value, len(inst.group.objects['service']),
+
+			value = inst.live.query('GET services\nStats: acknowledged = 1')[0][0]
+			self.tap.test(value, len(inst.group.have_objects['service']),
 				'All service acks should register on %s' % inst.name)
 
-			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE entry_type = 4 AND comment_type = 1')
-			value = inst.dbc.fetchall()[0][0]
-			self.tap.test(value, len(inst.group.objects['host']), "Host acks should generate one comment each on %s" % inst.name)
-			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE entry_type = 4 AND comment_type = 2')
-			value = inst.dbc.fetchall()[0][0]
-			self.tap.test(value, len(inst.group.objects['service']), 'Service acks should generate one comment each on %s' % inst.name)
+			value = inst.live.query('GET comments\nStats: entry_type = 4\nStats: type = 1\nStatsAnd: 2')[0][0]
+			self.tap.test(value, len(inst.group.have_objects['host']), "Host acks should generate one comment each on %s" % inst.name)
+			value = inst.live.query('GET comments\nStats: entry_type = 4\nStats: type = 2\nStatsAnd: 2')[0][0]
+			self.tap.test(value, len(inst.group.have_objects['service']), 'Service acks should generate one comment each on %s' % inst.name)
 
 		return None
 
@@ -636,7 +637,7 @@ class fake_mesh:
 		Schedules downtime for all objects on a particular node from that
 		particular node.
 		"""
-		for host in node.group.objects['host']:
+		for host in node.group.have_objects['host']:
 			if host in ignore['host']:
 				continue
 			ret = node.submit_raw_command(
@@ -647,7 +648,7 @@ class fake_mesh:
 			self.tap.test(ret, True, "Scheduling downtime for %s on %s" %
 				(host, node.name)
 			)
-		for srv in node.group.objects['service']:
+		for srv in node.group.have_objects['service']:
 			if srv in ignore['service']:
 				continue
 			(_host_name, _service_description) = srv.split(';', 1)
@@ -682,27 +683,26 @@ class fake_mesh:
 		poller = self.get_first_poller(master)
 		print("Submitting downtime to poller %s" % poller.name)
 		self._schedule_downtime(poller)
-		self._schedule_downtime(master, poller.group.objects)
+		self._schedule_downtime(master, poller.group.have_objects)
 
 		# give all nodes some time before we check to make
 		# sure the ack has spread
 		self.intermission("Letting downtime spread")
 		for inst in self.instances:
-			inst.dbc.execute("SELECT COUNT(1) FROM host WHERE scheduled_downtime_depth > 0")
-			value = inst.dbc.fetchall()[0][0]
-			self.tap.test(value, len(inst.group.objects['host']),
+			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
+			self.tap.test(value, len(inst.group.have_objects['host']),
 				'All host downtime should spread to %s' % inst.name)
-			inst.dbc.execute('SELECT COUNT(1) FROM service WHERE scheduled_downtime_depth > 0')
-			value = inst.dbc.fetchall()[0][0]
-			self.tap.test(value, len(inst.group.objects['service']),
+
+			value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
+			self.tap.test(value, len(inst.group.have_objects['service']),
 				'All service downtime should spread to %s' % inst.name)
-			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE comment_type = 1 AND entry_type = 2')
-			value = inst.dbc.fetchall()[0][0]
-			self.tap.test(value, len(inst.group.objects['host']),
+
+			value = inst.live.query('GET comments\nStats: type = 1\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
+			self.tap.test(value, len(inst.group.have_objects['host']),
 				"Host downtime should generate one comment each on %s" % inst.name)
-			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE comment_type = 2 AND entry_type = 2')
-			value = inst.dbc.fetchall()[0][0]
-			self.tap.test(value, len(inst.group.objects['service']),
+			value = inst.live.query('GET comments\nStats: type = 2\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
+			print inst.live.query('GET comments\nFilter: type = 2\nFilter: entry_type = 2\nAnd: 2\nColumns: host_name\nOutputFormat: json')
+			self.tap.test(value, len(inst.group.have_objects['service']),
 				'Service downtime should generate one comment each on %s' % inst.name)
 		return None
 
@@ -712,7 +712,7 @@ class fake_mesh:
 		Schedules downtime for all objects on a particular node from that
 		particular node.
 		"""
-		for host in node.group.objects['host']:
+		for host in node.group.have_objects['host']:
 			if host in ignore['host']:
 				continue
 			ret = node.submit_raw_command(
@@ -722,7 +722,7 @@ class fake_mesh:
 			self.tap.test(ret, True, "Adding comment for %s from %s" %
 				(host, node.name)
 			)
-		for srv in node.group.objects['service']:
+		for srv in node.group.have_objects['service']:
 			if srv in ignore['service']:
 				continue
 			(_host_name, _service_description) = srv.split(';', 1)
@@ -746,19 +746,17 @@ class fake_mesh:
 		poller = self.get_first_poller(master)
 		print("Submitting comments to poller %s" % poller.name)
 		self._add_comments(poller)
-		self._add_comments(master, poller.group.objects)
+		self._add_comments(master, poller.group.have_objects)
 
 		# give all nodes some time before we check to make
 		# sure the ack has spread
 		self.intermission("Letting comments spread")
 		for inst in self.instances:
-			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE comment_type = 1 AND entry_type = 1')
-			value = inst.dbc.fetchall()[0][0]
-			self.tap.test(value, len(inst.group.objects['host']),
+			value = inst.live.query('GET comments\nStats: type = 1\nStats: entry_type = 1\nStatsAnd: 2')[0][0]
+			self.tap.test(value, len(inst.group.have_objects['host']),
 				"Host comments should spread to %s" % inst.name)
-			inst.dbc.execute('SELECT COUNT(1) FROM comment_tbl WHERE comment_type = 2 AND entry_type = 1')
-			value = inst.dbc.fetchall()[0][0]
-			self.tap.test(value, len(inst.group.objects['service']),
+			value = inst.live.query('GET comments\nStats: type = 2\nStats: entry_type = 1\nStatsAnd: 2')[0][0]
+			self.tap.test(value, len(inst.group.have_objects['service']),
 				'Service comments should spread to %s' % inst.name)
 		return None
 
@@ -989,7 +987,7 @@ def cmd_dist(args):
 	destroy = True
 	basepath = '/tmp/merlin-dtest'
 	livestatus_o = '/opt/monitor/op5/livestatus/livestatus.o'
-	db_admin_user = 'exon'
+	db_admin_user = 'root'
 	db_admin_password = False
 	db_name = 'merlin'
 	db_host = 'localhost'
