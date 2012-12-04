@@ -252,7 +252,8 @@ class fake_instance:
 		"""
 		self.db_connect()
 		conn_cnt = 0
-		channel = QhChannel('merlin', subscribe=False)
+		qh_path = '%s/%s' % (self.home, 'var/rw/nagios.qh')
+		channel = QhChannel('merlin', qh_path, subscribe=False)
 		for response in channel.query('nodeinfo'):
 			if response.state == 'STATE_CONNECTED':
 				conn_cnt += 1
