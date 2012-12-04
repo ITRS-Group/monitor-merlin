@@ -213,25 +213,26 @@ for arg in sys.argv[1:]:
 # now we load all the commands so we can actually do things
 load_all_commands()
 
-if len(sys.argv) < 2 or sys.argv[1] == '--help' or sys.argv[1] == 'help':
+if len(args) < 2 or args[1] == '--help' or args[1] == 'help':
 	show_usage()
 
 autohelp = False
 cmd = cat = args[0]
 if cat in commands:
 	args = args[1:]
-elif len(sys.argv) > 2:
-	if sys.argv[2] == '--help' or sys.argv[2] == 'help':
-		cmd = cat + '.help'
-		autohelp = True
-	else:
-		cmd = cat + '.' + sys.argv[2]
-	args = args[2:]
-else:
+elif len(args) == 1:
 	# only one argument passed, and it's not a stand-alone command.
 	# Take it to mean 'help' for that category
 	cmd = cat + '.help'
 	autohelp = True
+else:
+	if args == '--help' or sys.argv[2] == 'help':
+		cmd = cat + '.help'
+		autohelp = True
+	else:
+		cmd = cat + '.' + args[1]
+	args = args[2:]
+
 
 # now we parse the merlin config file and stash remaining args
 mconf.parse()
