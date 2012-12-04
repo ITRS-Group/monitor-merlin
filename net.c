@@ -589,7 +589,6 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 	/* and not all packets get sent to the database */
 	case CTRL_PACKET:
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
-		net_sendto_many(poller_table, num_pollers, pkt);
 		return ipc_send_event(pkt);
 
 	case NEBCALLBACK_DOWNTIME_DATA:
