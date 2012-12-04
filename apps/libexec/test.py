@@ -702,7 +702,6 @@ class fake_mesh:
 			self.tap.test(value, len(inst.group.have_objects['host']),
 				"Host downtime should generate one comment each on %s" % inst.name)
 			value = inst.live.query('GET comments\nStats: type = 2\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
-			print inst.live.query('GET comments\nFilter: type = 2\nFilter: entry_type = 2\nAnd: 2\nColumns: host_name\nOutputFormat: json')
 			self.tap.test(value, len(inst.group.have_objects['service']),
 				'Service downtime should generate one comment each on %s' % inst.name)
 		return None
