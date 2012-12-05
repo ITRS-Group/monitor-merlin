@@ -506,17 +506,16 @@ class fake_mesh:
 			'START_ACCEPTING_PASSIVE_SVC_CHECKS',
 			'ENABLE_NOTIFICATIONS',
 		]
-		# queries get 'SELECT COUNT(1) FROM program_status WHERE'
-		# prepended and expect to get 0 as a proper answer
+		
 		queries = [
-			'flap_detection_enabled = 1',
-			'active_host_checks_enabled = 1',
-			'active_service_checks_enabled = 1',
+			'enable_flap_detection = 1',
+			'execute_host_checks = 1',
+			'execute_service_checks = 1',
 			'obsess_over_hosts = 1',
 			'obsess_over_services = 1',
-			'passive_host_checks_enabled = 0',
-			'passive_service_checks_enabled = 0',
-			'notifications_enabled = 0',
+			'accept_passive_host_checks = 0',
+			'accept_passive_service_checks = 0',
+			'enable_notifications = 0',
 		]
 		master = self.masters.nodes[0]
 		for cmd in raw_commands:
@@ -528,16 +527,15 @@ class fake_mesh:
 			cmd = raw_commands[i]
 			i += 1
 			for inst in self.instances:
-				inst.dbc.execute('SELECT node_type, instance_name FROM program_status WHERE %s' % query)
-				rows = inst.dbc.fetchall()
-				ret = self.tap.test(len(rows), 0,
+				lq = 'GET status\nFilter: %s\nColumns: %s' % (query, query.split('=')[0].strip())
+				live_result = inst.live.query(lq)
+				ret = self.tap.test(len(live_result), 0,
 					"%s should spread and bounce to %s" % (cmd, inst.name))
 				if ret == False:
 					status = False
-				if len(rows) != 0:
-					print("  On '%s', command failed for the following systems:" % inst.name)
-					for row in rows:
-						print("    type: %d; name: %s" % (row[0], row[1]))
+					print("  Command failed on '%s'" % inst.name)
+					print("  query was:")
+					print("%s" % lq)
 		return status
 
 
