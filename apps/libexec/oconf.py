@@ -823,13 +823,12 @@ def cmd_nodesplit(args):
 		# if there is a cached config file which is the same age
 		# as the object config and we're not being forced, there's
 		# no need to re-create it
-		if os.access(node.oconf_file, os.R_OK):
+		if not force and os.access(node.oconf_file, os.R_OK):
 			st = os.stat(node.oconf_file)
-			if not force and st.st_mtime >= last_changed:
+			if int(st.st_mtime) == int(last_changed):
 				print("%s is cached" % (node.oconf_file))
 				continue
-		else:
-			params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
+		params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
 
 	# If there are no pollers with hostgroups, we might as well
 	# go home.
