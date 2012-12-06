@@ -155,6 +155,7 @@ macro_subst ()
 	sed -e "s/@@DBNAME@@/$db_name/g" -e "s/@@DBTYPE@@/$db_type/g" \
 		-e "s/@@DBUSER@@/$db_user/g" -e "s/@@DBPASS@@/$db_pass/g" \
 		-e "s#@@NAGIOSCFG@@#$nagios_cfg#g" -e "s#@@DESTDIR@@#$dest_dir#g" \
+		-e "s#@@LIBEXECDIR@@#$libexecdir#g" \
 		-e "s#@@SRCDIR@@#$src_dir#g" \
 		"$@"
 }
