@@ -89,6 +89,8 @@ extern const char *merlin_version;
 extern int is_module;
 extern int pulse_interval;
 extern int debug;
+extern char *binlog_dir;
+
 
 #define num_masters self.configured_masters
 #define num_peers self.configured_peers
