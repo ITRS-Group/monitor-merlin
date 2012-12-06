@@ -8,7 +8,7 @@ libexec_dir = "@@LIBEXECDIR@@"
 # default to op5-ish systems
 if merlin_dir == "@" + "@DESTDIR@@":
 	merlin_dir = '/opt/monitor/op5/merlin'
-if libexec_dir == "@" + "@LIBEXECDIR":
+if libexec_dir == "@" + "@LIBEXECDIR@@":
 	libexec_dir = "/usr/libexec/merlin"
 
 module_dir = libexec_dir + '/modules'
