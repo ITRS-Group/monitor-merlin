@@ -2,7 +2,6 @@
 
 static int listen_sock = -1; /* for bind() and such */
 static char *ipc_sock_path;
-static char *ipc_binlog_path, *ipc_binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 merlin_node ipc; /* the ipc node */
 
 void ipc_init_struct(void)
@@ -89,46 +88,6 @@ static int ipc_set_sock_path(const char *path)
 	return 0;
 }
 
-static int ipc_set_binlog_path(const char *path)
-{
-	int result;
-
-	/* the binlog-path will be set both from module and daemon,
-	   so path must be absolute */
-	if (*path != '/') {
-		lerr("ipc_binlog path must be absolute");
-		return -1;
-	}
-
-	if (strlen(path) > UNIX_PATH_MAX)
-		return -1;
-
-	if (path[strlen(path)-1] == '/') {
-		lerr("ipc_binlog must not end in trailing slash");
-		return -1;
-	}
-
-	safe_free(ipc_binlog_path);
-
-	ipc_binlog_path = strdup(path);
-	if (!ipc_binlog_path) {
-		lerr("ipc_binlog_set_path: could not strdup path, out of memory?");
-		return -1;
-	}
-
-	/* Test to make sure that the path will be usable when we need it. */
-	result = open(path, O_CREAT|O_APPEND, S_IRUSR|S_IWUSR);
-	if (result < 0) {
-		lerr("Error opening '%s' for writing, failed with error: %s",
-		     path, strerror(errno));
-		return -1;
-	}
-	close(result);
-	unlink(path);
-
-	return 0;
-}
-
 int ipc_grok_var(char *var, char *val)
 {
 	if (!val)
@@ -137,11 +96,14 @@ int ipc_grok_var(char *var, char *val)
 	if (!strcmp(var, "ipc_socket"))
 		return !ipc_set_sock_path(val);
 
-	if (!strcmp(var, "ipc_binlog"))
-		return !ipc_set_binlog_path(val);
+	if (!strcmp(var, "ipc_binlog")) {
+		lwarn("%s is deprecated. The name will always be computed.", var);
+		lwarn("   Set binlog_dir to control where the file will be created");
+		return 1;
+	}
 
 	if (!strcmp(var, "ipc_binlog_dir") || !strcmp(var, "ipc_backlog_dir")) {
-		ipc_binlog_dir = strdup(val);
+		lwarn("%s is deprecated. Use binlog_dir instead", var);
 		return 1;
 	}
 
