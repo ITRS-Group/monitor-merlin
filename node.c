@@ -35,8 +35,6 @@ merlin_node **noc_table, **poller_table, **peer_table;
 static int num_selections;
 static node_selection *selection_table;
 
-static char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
-
 void node_set_state(merlin_node *node, int state, const char *reason)
 {
 	int prev_state, add;

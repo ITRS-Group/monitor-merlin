@@ -6,6 +6,7 @@ int is_module = 1; /* the daemon sets this to 0 immediately */
 int pulse_interval = 15;
 int use_database = 0;
 merlin_nodeinfo self;
+char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 
 #ifndef ISSPACE
 # define ISSPACE(c) (c == ' ' || c == '\t')
@@ -536,6 +537,16 @@ int grok_confsync_compound(struct cfg_comp *comp, merlin_confsync *csync)
 	return 0;
 }
 
+static int grok_binlog_var(const char *key, const char *value)
+{
+	if (!strcmp(key, "binlog_dir")) {
+		binlog_dir = strdup(value);
+		return 1;
+	}
+
+	return 0;
+}
+
 int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 {
 	const char *expires;
@@ -571,6 +582,12 @@ int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 		return 1;
 	}
 
+	if (!prefixcmp(v->key, "binlog_")) {
+		if (!grok_binlog_var(v->key, v->value))
+			cfg_error(config, v, "Failed to grok binlog option");
+
+		return 1;
+	}
 	return 0;
 }
 
