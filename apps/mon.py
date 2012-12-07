@@ -216,7 +216,7 @@ for arg in sys.argv[1:]:
 # now we load all the commands so we can actually do things
 load_all_commands()
 
-if len(args) < 2 or args[1] == '--help' or args[1] == 'help':
+if len(args) < 1 or args[0] == '--help' or args[0] == 'help':
 	show_usage()
 
 autohelp = False
