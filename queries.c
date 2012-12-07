@@ -27,7 +27,7 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 "active_masters=%u;configured_masters=%u;"
 				 "host_checks_handled=%u;service_checks_handled=%u;"
 				 "host_checks_executed=%u;service_checks_executed=%u;"
-				 "monitored_object_state_size=%u\n",
+				 "monitored_object_state_size=%u;connect_time=%lu\n",
 				 instance_id,
 				 n->name, n->source_name, n->sock, node_type(n),
 				 node_state_name(n->state), n->peer_id, n->flags,
@@ -48,7 +48,7 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 i->active_masters, i->configured_masters,
 				 i->host_checks_handled, i->service_checks_handled,
 				 n->host_checks, n->service_checks,
-				 i->monitored_object_state_size);
+				 i->monitored_object_state_size, n->connect_time);
 	return 0;
 }
 

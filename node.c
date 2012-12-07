@@ -60,6 +60,7 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 	 */
 	if (state == STATE_CONNECTED) {
 		add = 1;
+		node->connect_time = time(NULL);
 	} else if (node->state == STATE_CONNECTED) {
 		add = -1;
 	} else {
