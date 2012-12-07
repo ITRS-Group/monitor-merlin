@@ -94,7 +94,7 @@ def cmd_status(args):
 		if is_running:
 			# latency is in milliseconds, so convert to float
 			latency = float(info.pop('latency')) / 1000.0
-			if latency > 2.0 or latency < 0.0:
+			if latency > 5.0 or latency < -2.0:
 				lat_color = color.yellow
 			else:
 				lat_color = color.green
