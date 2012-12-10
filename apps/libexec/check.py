@@ -292,6 +292,77 @@ def cmd_orphans(args=False):
 	print("|'orphans'=%d;%d;%d;0;%d" % (orphans, warning, critical, total))
 	sys.exit(state)
 
+def cmd_status(args=False):
+	"""Check that all nodes are connected and run checks (analogous to mon node check)"""
+	state = nplug.OK
+	sinfo = list(get_merlin_nodeinfo(qh))
+	if not sinfo:
+		nplug.unknown("Found no checks, is nagios running?")
+
+	host_checks = 0
+	service_checks = 0
+	for info in sinfo:
+		t = info.get('type')
+		if t in ('peer', 'local'):
+			host_checks += int(info['host_checks_handled'])
+			service_checks += int(info['service_checks_handled'])
+
+	num_helpers = sum(mconf.num_nodes[x] for x in mconf.num_nodes.values() if x in ('peer', 'poller'))
+	for info in sinfo:
+		if info.get('state') != 'STATE_CONNECTED':
+			print "Error: %s is not connected." % (info['name'])
+			state = nplug.worst_state(state, nplug.CRITICAL)
+			continue
+		if not info.has_key('latency'):
+			print "Error: Can't find latency information for %s - this shouldn't happen." % (info['name'])
+			state = nplug.worst_state(state, nplug.CRITICAL)
+		elif int(info['latency']) > 5000 or int(info['latency']) < -2000:
+			print "Warning: Latency for %s is %ss." % (info['name'], float(info['latency']) / 1000)
+			state = nplug.worst_state(state, nplug.WARNING)
+		if info['type'] == 'peer' \
+				and not (info.get('connect_time', 0) + 30 > int(time.time())) \
+				and info.get('self_assigned_peer_id', 0) != info.get('peer_id', 0):
+			print "Warning: Peer id mismatch for %s: self-assigned=%d; real=%d." % (
+					info['name'],
+					info.get('self_assigned_peer_id', 0),
+					info.get('peer_id', 0))
+			state = nplug.worst_state(state, nplug.WARNING)
+
+		if not info.get('last_action'):
+			print "Warning: Unable to determine when %s was last alive." % (info['name'])
+			state = nplug.worst_state(state, nplug.UNKNOWN)
+		elif not (int(info.get('last_action', 0)) + 30 > time.time()):
+			print "Error: %s hasn't checked in recently." % (info['name'])
+			state = nplug.worst_state(state, nplug.CRITICAL)
+
+		node = mconf.configured_nodes.get(info['name'], False)
+		if int(info.get('instance_id', 0)) and not node:
+			print "Warning: Connected node %s is currently not int the configuration file." % (info['name'])
+			state = nplug.worst_state(state, nplug.WARNING)
+			continue
+		if node:
+			if node.ntype == 'master' and (int(info.get('host_checks_executed', 0)) or int(info.get('service_checks_executed', 0))):
+				print "Error: Master %s should not run (visible) checks." % (info['name'])
+				state = nplug.worst_state(state, nplug.CRITICAL)
+			elif not int(info.get('host_checks_executed', 0)) and not int(info.get('service_checks_executed', 0)):
+				print "Error: Node %s runs no checks." % (info['name'])
+				state = nplug.worst_state(state, nplug.CRITICAL)
+		if not int(info.get('instance_id', 0)) and num_helpers:
+			if info.get('host_checks_executed', 0) == host_checks:
+				print "Error: There are other nodes, but this node runs all host checks."
+				state = nplug.worst_state(state, nplug.CRITICAL)
+			if info.get('service_checks_executed', 0) == host_checks:
+				print "Error: There are other nodes, but this node runs all service checks."
+				state = nplug.worst_state(state, nplug.CRITICAL)
+	if state == nplug.OK:
+		nodes = []
+		types = ['master', 'peer', 'poller', 'local']
+		for type in types:
+			n = sum(1 for x in sinfo if x['type'] == type)
+			if n != 0:
+				nodes.append('%s %s' % (n, type if n == 1 else type + 's'))
+		print "OK: Total nodes: %s." % (", ".join(nodes))
+	sys.exit(state)
 
 def get_files(dir, regex=False, result=[]):
 	"""
