@@ -701,8 +701,8 @@ int node_recv(merlin_node *node)
 	 * letting the write machinery attempt to reconnect later
 	 */
 	if (bytes_read < 0) {
-		lerr("Failed to read from %s node %s: %s",
-		     node_type(node), node->name, strerror(errno));
+		lerr("Failed to read from socket %d into %p for %s node %s: %s",
+		     node->sock, ioc, node_type(node), node->name, strerror(errno));
 	}
 
 	/* zero-read. We've been disconnected for some reason */
