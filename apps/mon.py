@@ -31,12 +31,6 @@ def run_helper(helper, args):
 	if ret < 0:
 		print("Helper %s was killed by signal %d" % (app, ret))
 
-def cmd_start(args):
-	print("This should start the op5 Monitor system")
-
-def cmd_stop(args):
-	print("This should stop the op5 Monitor system")
-
 # the list of commands
 commands = {}
 categories = {}
