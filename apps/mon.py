@@ -14,12 +14,13 @@ if libexec_dir == "@" + "@LIBEXECDIR@@":
 module_dir = libexec_dir + '/modules'
 if not libexec_dir in sys.path:
 	sys.path.insert(0, libexec_dir)
+if not module_dir in sys.path:
+	sys.path.append(module_dir)
+
+import merlin_conf as mconf
 import node
 from merlin_apps_utils import *
 
-if not module_dir in sys.path:
-	sys.path.append(module_dir)
-import merlin_conf as mconf
 
 mconf.config_file = '%s/merlin.conf' % merlin_dir
 nagios_cfg = '/opt/monitor/etc/nagios.cfg'
