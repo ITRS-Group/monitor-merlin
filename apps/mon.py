@@ -86,7 +86,7 @@ def load_command_module(path):
 
 	return ret
 
-def load_all_commands():
+def load_commands(name=False):
 	global commands, categories, helpers, help_helpers
 
 	if os.access(libexec_dir, os.X_OK):
@@ -104,6 +104,9 @@ def load_all_commands():
 
 			# ignore non-executables, unless they're python scriptlets
 			if not os.access(path, os.X_OK) and not rh.endswith('.py'):
+				continue
+
+			if name and not rh.startswith(name):
 				continue
 
 			# remove script suffixes
@@ -170,6 +173,7 @@ def mod_fail_print(text, mod):
 		color.red, color.bright, msg, color.reset))
 
 def show_usage():
+	load_commands()
 	print('''usage: mon [category] <command> [options]
 
 Where category is sometimes optional.\n''')
@@ -207,9 +211,6 @@ for arg in sys.argv[1:]:
 		args.append(arg)
 		continue
 
-# now we load all the commands so we can actually do things
-load_all_commands()
-
 if len(args) < 1 or args[0] == '--help' or args[0] == 'help':
 	show_usage()
 
@@ -219,6 +220,8 @@ if args[0] == '--libexecdir':
 
 autohelp = False
 cmd = cat = args[0]
+load_commands(cmd)
+
 if cat in commands:
 	args = args[1:]
 elif len(args) == 1:
