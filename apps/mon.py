@@ -213,6 +213,10 @@ load_all_commands()
 if len(args) < 1 or args[0] == '--help' or args[0] == 'help':
 	show_usage()
 
+if args[0] == '--libexecdir':
+	print("libexecdir=%s" % libexec_dir)
+	sys.exit(0)
+
 autohelp = False
 cmd = cat = args[0]
 if cat in commands:
