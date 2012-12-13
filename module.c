@@ -1056,7 +1056,6 @@ int nebmodule_deinit(int flags, int reason)
 {
 	linfo("Unloading Merlin module");
 
-	log_deinit();
 	ipc_deinit();
 
 	/* flush junk to disk */
@@ -1085,6 +1084,12 @@ int nebmodule_deinit(int flags, int reason)
 	 * us from Nagios, which could well be a better
 	 * solutions
 	 */
+
+	/*
+	 * deinit logfiles last, so nothing reopens them while
+	 * we're shutting down other parts
+	 */
+	log_deinit();
 
 	return 0;
 }
