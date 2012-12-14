@@ -70,6 +70,15 @@ static int dump_cbstats(merlin_node *n, int sd)
 	return 0;
 }
 
+static int help(int sd, char *buf, unsigned int len)
+{
+	nsock_printf_nul(sd,
+		"I answer questions regarding the merlin *module*, not the daemon\n"
+		"nodeinfo   Print info about all nodes I know about\n"
+		"cbstats    Print callback statistics for each node\n"
+	);
+}
+
 /* Our primary query handler */
 int merlin_qh(int sd, char *buf, unsigned int len)
 {
@@ -87,6 +96,10 @@ int merlin_qh(int sd, char *buf, unsigned int len)
 		}
 		return 0;
 	}
+	if (len == 4 && !memcmp(buf, "help", len))
+		return help(sd, NULL, 0);
+	if (!prefixcmp(buf, "help"))
+		return help(sd, buf + 5, len - 5);
 	if (len == 7 && !memcmp(buf, "cbstats", len)) {
 		dump_cbstats(&ipc, sd);
 		for(i = 0; i < num_nodes; i++) {
