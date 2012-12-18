@@ -1,4 +1,4 @@
-import os, sys, re, time, copy, errno
+import os, sys, re, time, errno
 
 import livestatus
 
@@ -82,71 +82,87 @@ def cmd_distribution(args):
 	}
 
 
-	state = nplug.OK
 	nodes = mst.status()
-	pdata = ""
 	state_str = ""
-	bad = {}
 	should = {}
-	if not nodes['nodes']:
+	if not nodes:
 		print "UNKNOWN: No hosts found at all"
 		sys.exit(nplug.UNKNOWN)
-	# loop all nodes, checking their status and creating the various
-	# strings we'll want to print later
-	for (name, info) in nodes['nodes'].items():
-		try:
-			should[name] = ac = mst.assigned_checks(info['info'])
-		except livestatus.livestatus.MKLivestatusSocketError:
-			print "UNKNOWN: Error asking livestatus for info, bailing out"
-			sys.exit(nplug.UNKNOWN)
-		if info['info']['type'] == 'master':
-			ac['host'] = (0,0)
-			ac['service'] = (0,0)
+	masters = filter(lambda x: x['type'] == 'master', nodes)
+	peers = filter(lambda x: x['type'] in ('peer', 'local'), nodes)
+	pollers = filter(lambda x: x['type'] == 'poller', nodes)
 
-		# pollers can never run more checks than they should. The
-		# rest of them can always end up running all
-		ctot = copy.copy(total_checks)
-		if info['info']['type'] == 'poller':
-			ctot['host'] = ac['host'][0] * (int(info['info']['active_peers']) + 1)
-			ctot['service'] = ac['service'][0] * (int(info['info']['active_peers']) + 1)
+	class check_objs(object):
+		pdata = ''
+		bad = {}
+		state = nplug.OK
 
-		# get the actual data immediately
-		runs_checks = {
-			'host': int(info['info']['host_checks_executed']),
-			'service': int(info['info']['service_checks_executed']),
+		def is_bad(self, actual, exp):
+			return actual < exp[0] or actual > exp[1]
+
+		def verify_executed_checks(self, info, exp):
+			for ctype, num in exp.items():
+				actual = int(info[ctype + '_checks_executed'])
+				ok_str = "%d:%d" % (num[0], num[1])
+				self.pdata += (" '%s_%ss'=%d;%s;%s;0;%d" %
+					(info['name'], ctype, actual, ok_str, ok_str, total_checks[ctype]))
+				if self.is_bad(actual, num):
+					self.state = nplug.STATE_CRITICAL
+					self.bad[info['name']] = {'host': info['host_checks_executed'], 'service': info['service_checks_executed']}
+
+	o = check_objs()
+
+	for info in masters:
+		exp = should[info['name']] = {'host': (0,0), 'service': (0,0)}
+		o.verify_executed_checks(info, exp)
+
+	try:
+		host_dis = lsc.query_value('GET hosts\nFilter: active_checks_enabled = 0\nStats: state != 999')
+		svc_dis = lsc.query_value('GET services\nFilter: active_checks_enabled = 0\nStats: state != 999')
+	except livestatus.livestatus.MKLivestatusSocketError:
+		print "UNKNOWN: Error asking livestatus for info, bailing out"
+		sys.exit(nplug.UNKNOWN)
+
+	host_on_poller = 0
+	svc_on_poller = 0
+
+	for info in pollers:
+		hhandled = int(info.get('host_checks_handled', 0)) / (int(info.get('configured_peers', 0)) + 1)
+		shandled = int(info.get('service_checks_handled', 0)) / (int(info.get('configured_peers', 0)) + 1)
+		exp = should[info['name']] = {
+			'host': (hhandled - host_dis, hhandled),
+			'service': (shandled - svc_dis, shandled)
 		}
-		for ctype, num in total_checks.items():
-			# we now how many checks the node should run, so
-			# construct performance-data, check our state and
-			# set up data dicts so we later can construct a
-			# meaningful error message
-			run = runs_checks[ctype]
-			if run < ac[ctype][0] or run > ac[ctype][1]:
-				state = nplug.STATE_CRITICAL
-				bad[name] = copy.deepcopy(runs_checks)
+		host_on_poller += exp['host'][1]
+		svc_on_poller += exp['service'][1]
+		o.verify_executed_checks(info, exp)
 
-			absmax = total_checks[ctype]
-			ok_str = "%d:%d" % (ac[ctype][0], ac[ctype][1])
-			pdata += (" '%s_%ss'=%d;%s;%s;0;%d" %
-				(name, ctype, run, ok_str, ok_str, ctot[ctype]))
+	for info in peers:
+		hhandled = int(info.get('host_checks_handled', 0)) / (int(info.get('configured_peers', 0)) + 1)
+		shandled = int(info.get('service_checks_handled', 0)) / (int(info.get('configured_peers', 0)) + 1)
+		exp = should[info['name']] = {
+			'host': (hhandled - host_dis - host_on_poller, hhandled),
+			'service': (shandled - svc_dis - svc_on_poller, shandled),
+		}
+		o.verify_executed_checks(info, exp)
 
-	for name, b in bad.items():
+	for name, b in o.bad.items():
 		if not len(b):
 			continue
 		state_str += ("%s runs %d / %d checks (should be %s / %s). " %
-			(name, bad[name]['host'], bad[name]['service'],
-			should[name]['host'][0] == should[name]['host'][1] and should[name]['host'][0] or "%s - %s" % (should[name]['host'][0], should[name]['host'][1]),
-			 should[name]['service'][0] == should[name]['service'][1] and should[name]['service'][0] or "%s - %s" % (should[name]['service'][0], should[name]['service'][1])))
+			(name, b['host'], b['service'],
+			(should[name]['host'][0] == should[name]['host'][1] and should[name]['host'][0]) or ("%s-%s" % (should[name]['host'][0], should[name]['host'][1])),
+			 (should[name]['service'][0] == should[name]['service'][1] and should[name]['service'][0]) or ("%s-%s" % (should[name]['service'][0], should[name]['service'][1]))))
 
-	sys.stdout.write("%s: " % nplug.state_name(state))
+	sys.stdout.write("%s: " % nplug.state_name(o.state))
 	if not state_str:
-		state_str = "All %d nodes run their assigned checks." % len(nodes['nodes'])
+		state_str = "All %d nodes run their assigned checks." % len(nodes)
 	sys.stdout.write("%s" % state_str.rstrip())
 	if print_perfdata:
-		print("|%s" % pdata.lstrip())
+		print("|%s" % o.pdata.lstrip())
 	else:
 		sys.stdout.write("\n")
-	sys.exit(state)
+	sys.exit(o.state)
 
 
 def check_min_avg_max(args, col, defaults=False, filter=False):
