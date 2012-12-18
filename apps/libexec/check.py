@@ -320,7 +320,7 @@ def cmd_status(args=False):
 			print "Warning: Latency for %s is %ss." % (info['name'], float(info['latency']) / 1000)
 			state = nplug.worst_state(state, nplug.WARNING)
 		if info['type'] == 'peer' \
-				and not (info.get('connect_time', 0) + 30 > int(time.time())) \
+				and not (int(info.get('connect_time', 0)) + 30 > int(time.time())) \
 				and info.get('self_assigned_peer_id', 0) != info.get('peer_id', 0):
 			print "Warning: Peer id mismatch for %s: self-assigned=%d; real=%d." % (
 					info['name'],
