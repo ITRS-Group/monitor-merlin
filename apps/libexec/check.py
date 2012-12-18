@@ -341,9 +341,10 @@ def cmd_status(args=False):
 			state = nplug.worst_state(state, nplug.WARNING)
 			continue
 		if node:
-			if node.ntype == 'master' and (int(info.get('host_checks_executed', 0)) or int(info.get('service_checks_executed', 0))):
-				print "Error: Master %s should not run (visible) checks." % (info['name'])
-				state = nplug.worst_state(state, nplug.CRITICAL)
+			if node.ntype == 'master':
+				if (int(info.get('host_checks_executed', 0)) or int(info.get('service_checks_executed', 0))):
+					print "Error: Master %s should not run (visible) checks." % (info['name'])
+					state = nplug.worst_state(state, nplug.CRITICAL)
 			elif not int(info.get('host_checks_executed', 0)) and not int(info.get('service_checks_executed', 0)):
 				print "Error: Node %s runs no checks." % (info['name'])
 				state = nplug.worst_state(state, nplug.CRITICAL)
