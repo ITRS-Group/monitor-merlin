@@ -475,14 +475,10 @@ class fake_mesh:
 			return True
 		status = True
 		for inst in self.instances:
-			hosts = inst.live.query('GET hosts\nStats: state != 9999')[0][0]
-			services = inst.live.query('GET services\nStats: state != 9999')[0][0]
-			ret = self.tap.test(hosts, len(inst.group.have_objects['host']),
-				'%s must import hosts properly' % inst.name)
-			if ret == False:
-				status = False
-			ret = self.tap.test(services, len(inst.group.have_objects['service']),
-				'%s must import services properly' % inst.name)
+			res = inst.dbc.execute('SELECT COUNT(1) FROM timeperiod')
+			row = inst.dbc.fetchone()
+			tps = row[0]
+			ret = self.tap.test(tps, 2, "%s must import timeperiods" % inst.name)
 			if ret == False:
 				status = False
 		return status
