@@ -512,6 +512,14 @@ class fake_mesh:
 				status = False
 		return status
 
+
+	def test_daemon_restarts(self):
+		self.stop_daemons('merlin')
+		self.intermission("Letting merlin daemons die", 3)
+		self.start_daemons('merlin')
+		self.intermission("Letting systems reconnect and renegotiate")
+		return self.test_connections()
+
 	def test_global_commands(self):
 		"""
 		Sends a series of global commands to each master and makes
@@ -1141,8 +1149,14 @@ def cmd_dist(args):
 		if mesh.test_connections() == False:
 			print("Connection tests failed. Bailing out")
 			_dist_shutdown(mesh, 'Connection tests failed', batch)
+
 		if mesh.test_imports() == False:
 			_dist_shutdown(mesh, 'Imports failed. This is a known spurious error when running tests often', batch)
+
+		if mesh.test_daemon_restarts() == False:
+			print("Daemon restart tests failed. Bailing out")
+			_dist_shutdown(mesh, 'Restart tests failed', batch)
+
 		if mesh.test_global_commands() == False:
 			_dist_shutdown(mesh, 'Global command tests failed', batch)
 		if mesh.test_passive_checks() == False:
