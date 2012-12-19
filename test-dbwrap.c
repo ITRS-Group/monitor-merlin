@@ -11,7 +11,7 @@
 #define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
 #define FIXME(X) MARKER("FIXME: " X)
 
-struct {
+static struct {
 	db_wrap_conn_params mysql;
 	db_wrap_conn_params sqlite3;
 	db_wrap_conn_params oracle;
@@ -47,7 +47,7 @@ static void show_errinfo_impl(db_wrap * wr, int rc, unsigned int line)
 }
 #define show_errinfo(WR,RC) show_errinfo_impl(WR, RC, __LINE__)
 
-void test_dbwrap_generic(char const * driver, db_wrap * wr)
+static void test_dbwrap_generic(char const * driver, db_wrap * wr)
 {
 	MARKER("Running generic tests: [%s]\n",driver);
 
@@ -294,7 +294,7 @@ void test_dbwrap_generic(char const * driver, db_wrap * wr)
 
 }
 
-void test_mysql_1()
+static void test_mysql_1(void)
 {
 #if ! DB_WRAP_CONFIG_ENABLE_LIBDBI
 	assert(0 && "ERROR: dbi:mysql support not compiled in!");
@@ -324,7 +324,7 @@ void test_mysql_1()
 #endif
 }
 
-void test_sqlite_1()
+static void test_sqlite_1(void)
 {
 #if ! DB_WRAP_CONFIG_ENABLE_LIBDBI
 	assert(0 && "ERROR: dbi:sqlite3 support not compiled in!");
@@ -367,7 +367,7 @@ void test_sqlite_1()
 #endif
 }
 
-void test_oracle_1()
+static void test_oracle_1(void)
 {
 #if ! DB_WRAP_CONFIG_ENABLE_OCILIB
 	assert(0 && "ERROR: oracle support not compiled in!");
