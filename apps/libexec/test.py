@@ -272,9 +272,20 @@ class fake_instance:
 			return False
 		return True
 
-	def start_daemons(self, daemons):
+	def start_daemons(self, daemons, dname=False):
+		if dname:
+			print("Launching %s daemon for instance %s" % (dname, self.name))
+		else:
+			print("Launching daemons for instance %s" % self.name)
 		fd = os.open("/dev/null", os.O_WRONLY)
 		for name, program in daemons.items():
+			if dname and name != dname:
+				continue
+
+			if self.proc.get(name):
+				print("ERROR: %s already started, so not relaunching it" % name)
+				sys.exit(1)
+
 			if name == 'nagios':
 				cmd = [program, '%s/etc/nagios.cfg' % self.home]
 			elif name == 'merlin':
@@ -283,21 +294,29 @@ class fake_instance:
 			self.proc[name] = subprocess.Popen(cmd, stdout=fd, stderr=fd)
 
 		os.close(fd)
-	def signal_daemons(self, sig):
+
+
+	def signal_daemons(self, sig, dname=False):
 		for name, proc in self.proc.items():
+			remove = sig == signal.SIGKILL
+			if dname and dname != name:
+				continue
 			try:
 				os.kill(proc.pid, sig)
 			except OSError, e:
 				if e.errno == errno.ESRCH:
+					remove = True
 					pass
+			if remove:
+				self.proc.pop(name)
 
 
-	def stop_daemons(self):
-		self.signal_daemons(signal.SIGTERM)
+	def stop_daemons(self, dname=False):
+		self.signal_daemons(signal.SIGTERM, dname)
 
 
-	def slay_daemons(self):
-		self.signal_daemons(signal.SIGKILL)
+	def slay_daemons(self, dname=False):
+		self.signal_daemons(signal.SIGKILL, dname)
 
 
 	def add_subst(self, key, value):
@@ -777,18 +796,18 @@ class fake_mesh:
 		return self.tap.failed == 0
 
 
-	def start_daemons(self):
+	def start_daemons(self, dname=False):
 		for inst in self.instances:
 			inst.start_daemons(self.progs, dname)
 		return
 
 
-	def stop_daemons(self):
+	def stop_daemons(self, dname=False):
 		for inst in self.instances:
-			inst.stop_daemons()
+			inst.stop_daemons(dname)
 		time.sleep(0.3)
 		for inst in self.instances:
-			inst.slay_daemons()
+			inst.slay_daemons(dname)
 
 
 	def destroy_playground(self):
