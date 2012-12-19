@@ -103,7 +103,6 @@ extern void set_service_check_node(merlin_node *node, service *s);
 	mrln.last_check = nag->last_check; \
 	mrln.last_state_change = nag->last_state_change; \
 	mrln.last_hard_state_change = nag->last_hard_state_change; \
-	mrln.has_been_checked = nag->has_been_checked; \
 	mrln.current_notification_number = nag->current_notification_number; \
 	mrln.current_notification_id = nag->current_notification_id; \
 	mrln.check_flapping_recovery_notification = nag->check_flapping_recovery_notification; \

@@ -122,6 +122,7 @@ static int handle_host_status(merlin_node *node, merlin_header *hdr, void *buf)
 	if (hdr->type == NEBCALLBACK_HOST_CHECK_DATA) {
 		set_host_check_node(node, obj);
 		obj->check_source = node->source_name;
+		obj->has_been_checked = 1;
 		if (obj->perf_data) {
 			update_host_performance_data(obj);
 		}
@@ -153,6 +154,7 @@ static int handle_service_status(merlin_node *node, merlin_header *hdr, void *bu
 	if (hdr->type == NEBCALLBACK_SERVICE_CHECK_DATA) {
 		set_service_check_node(node, obj);
 		obj->check_source = node->source_name;
+		obj->has_been_checked = 1;
 		if (obj->perf_data) {
 			update_service_performance_data(obj);
 		}
