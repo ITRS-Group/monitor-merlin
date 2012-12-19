@@ -404,6 +404,7 @@ class fake_mesh:
 		self.masters = []
 		self.tap = tap("Merlin distribution tests")
 		self.sleeptime = False
+		self.use_database = False
 
 		for (k, v) in kwargs.items():
 			setattr(self, k, v)
@@ -470,6 +471,8 @@ class fake_mesh:
 
 	def test_imports(self):
 		"""make sure ocimp has run properly"""
+		if not self.use_database:
+			return True
 		status = True
 		for inst in self.instances:
 			hosts = inst.live.query('GET hosts\nStats: state != 9999')[0][0]
@@ -836,6 +839,8 @@ class fake_mesh:
 
 
 	def _destroy_database(self, inst, verbose=False):
+		if not self.use_database:
+			return
 		try:
 			self.dbc.execute('DROP DATABASE %s' % inst.db_name)
 		except Exception, e:
@@ -846,6 +851,8 @@ class fake_mesh:
 
 
 	def destroy_databases(self, verbose=False):
+		if not self.use_database:
+			return
 		self.close_db()
 		self.db = False
 		self.connect_to_db()
@@ -854,6 +861,8 @@ class fake_mesh:
 
 
 	def _create_database(self, inst):
+		if not self.use_database:
+			return
 		self._destroy_database(inst)
 		ret = []
 		try:
@@ -1007,6 +1016,7 @@ def cmd_dist(args):
 	destroy_databases = False
 	sleeptime = False
 	batch = True
+	use_database = False
 	if os.isatty(sys.stdout.fileno()):
 		batch = False
 	for arg in args:
@@ -1014,6 +1024,8 @@ def cmd_dist(args):
 			batch = True
 		elif arg.startswith('--basepath='):
 			basepath = arg.split('=', 1)[1]
+		elif arg.startswith('--use-database='):
+			use_database = bool(int(arg.split('=')[1]))
 		elif arg.startswith('--sql-admin-user='):
 			db_admin_user = arg.split('=', 1)[1]
 		elif arg.startswith('--sql-pass=') or arg.startswith('--sql-passwd='):
@@ -1083,6 +1095,7 @@ def cmd_dist(args):
 		db_pass=db_admin_password,
 		db_name=db_name,
 		db_host=db_host,
+		use_database=use_database,
 	)
 	mesh.create_playground(num_hosts, num_services_per_host)
 
