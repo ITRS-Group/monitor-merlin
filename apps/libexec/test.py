@@ -272,15 +272,17 @@ class fake_instance:
 			return False
 		return True
 
-	def start_daemons(self, nagios_binary, merlin_binary):
-		print("Launching daemons for instance %s" % self.name)
-		nagios_cmd = [nagios_binary, '%s/etc/nagios.cfg' % self.home]
-		merlin_cmd = [merlin_binary, '-d', '-c', '%s/merlin/merlin.conf' % self.home]
+	def start_daemons(self, daemons):
 		fd = os.open("/dev/null", os.O_WRONLY)
-		self.proc['nagios'] = subprocess.Popen(nagios_cmd, stdout=fd, stderr=fd)
-		self.proc['merlin'] = subprocess.Popen(merlin_cmd, stdout=fd, stderr=fd)
+		for name, program in daemons.items():
+			if name == 'nagios':
+				cmd = [program, '%s/etc/nagios.cfg' % self.home]
+			elif name == 'merlin':
+				cmd = [program, '-d', '-c', '%s/merlin/merlin.conf' % self.home]
 
+			self.proc[name] = subprocess.Popen(cmd, stdout=fd, stderr=fd)
 
+		os.close(fd)
 	def signal_daemons(self, sig):
 		for name, proc in self.proc.items():
 			try:
@@ -405,9 +407,14 @@ class fake_mesh:
 		self.tap = tap("Merlin distribution tests")
 		self.sleeptime = False
 		self.use_database = False
+		self.progs = {}
 
 		for (k, v) in kwargs.items():
-			setattr(self, k, v)
+			if k.startswith('prog_'):
+				pname = k[5:]
+				self.progs[pname] = v
+			else:
+				setattr(self, k, v)
 
 	def signal_daemons(self, signo):
 		"""Sends the designated signal to all attached daemons"""
@@ -772,7 +779,7 @@ class fake_mesh:
 
 	def start_daemons(self):
 		for inst in self.instances:
-			inst.start_daemons(self.nagios_binary, self.merlin_binary)
+			inst.start_daemons(self.progs, dname)
 		return
 
 
@@ -1079,8 +1086,8 @@ def cmd_dist(args):
 
 	mesh = fake_mesh(
 		basepath,
-		nagios_binary=nagios_binary,
-		merlin_binary=merlin_binary,
+		prog_merlin=merlin_binary,
+		prog_nagios=nagios_binary,
 		num_masters=num_masters,
 		poller_groups=poller_groups,
 		pollers_per_group=pollers_per_group,
