@@ -432,6 +432,9 @@ class fake_mesh:
 			if k.startswith('prog_'):
 				pname = k[5:]
 				self.progs[pname] = v
+				if not os.access(v, os.X_OK):
+					print("Failed to access '%s'" % v)
+					sys.exit(1)
 			else:
 				setattr(self, k, v)
 
