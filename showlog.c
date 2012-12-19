@@ -274,11 +274,19 @@ static void print_time_break(struct tm *t)
 	puts("</h2>");
 }
 
+#define write_and_quote(a) do{ \
+	fwrite(line, 1, i, stdout); \
+	fwrite(a, 1, strlen(a), stdout); \
+	line = ++tmp; \
+	i = 0; \
+}while(0);
 
 static void print_line_html(int type, struct tm *t, char *line, uint len)
 {
 	const char *image = NULL;
 	static time_t last_time_break = 0;
+	char *tmp;
+	int i = 0;
 
 	switch (type) {
 	case EVT_ALERT | EVT_HOST:
@@ -349,7 +357,32 @@ static void print_line_html(int type, struct tm *t, char *line, uint len)
 
 	printf("<img src=\"%s/%s\" alt=\"%s\" /> ", image_url, image, image);
 	print_time(t);
-	printf("%s<br />\n", line);
+	tmp = line;
+	while (*tmp != '\0') {
+		switch (*tmp) {
+		 case '&':
+			write_and_quote("&amp;");
+			break;
+		 case '"':
+			write_and_quote("&quot;");
+			break;
+		 case '\'':
+			write_and_quote("&apos;");
+			break;
+		 case '<':
+			write_and_quote("&lt;");
+			break;
+		 case '>':
+			write_and_quote("&gt;");
+			break;
+		 default:
+			tmp++;
+			i++;
+			break;
+		}
+	}
+	fwrite(line, 1, i, stdout);
+	puts("<br />");
 }
 
 
