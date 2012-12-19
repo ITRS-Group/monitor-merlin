@@ -138,6 +138,10 @@ def cmd_status(args):
 			print("Last alive: %s (%d) (%s%s ago%s)" %
 				(dtime,	last_alive, la_color, delta, color.reset))
 
+		proc_start = float(info.pop('start'))
+		if proc_start:
+			print time.strftime("Process start: %F %H:%M:%S", time.localtime(proc_start)) + ' (%s)' % int(proc_start)
+
 		hchecks = int(info.pop('host_checks_executed'))
 		schecks = int(info.pop('service_checks_executed'))
 		hc_color = sc_color = ''
