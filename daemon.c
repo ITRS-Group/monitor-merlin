@@ -467,17 +467,12 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 			 sql_db_type(), sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host(), sql_db_conn_str());
 	if (cache && *cache) {
 		char *cmd2 = cmd;
-		if (db_track_current) {
-			asprintf(&cmd, "%s --cache=%s", cmd2, cache);
-			free(cmd2);
+		asprintf(&cmd, "%s --cache='%s'", cmd2, cache);
+		free(cmd2);
 
-			if (status && *status) {
-				cmd2 = cmd;
-				asprintf(&cmd, "%s --status-log=%s", cmd2, status);
-				free(cmd2);
-			}
-		} else {
-			asprintf(&cmd, "%s --cache=/tmp/timeperiods.cache", cmd2);
+		if (db_track_current && status && *status) {
+			cmd2 = cmd;
+			asprintf(&cmd, "%s --status-log='%s'", cmd2, status);
 			free(cmd2);
 		}
 	}
