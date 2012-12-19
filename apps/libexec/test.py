@@ -251,7 +251,6 @@ class fake_instance:
 		to get all other tests to fly and does some initial setup
 		which means it has to be run before all other tests.
 		"""
-		self.db_connect()
 		conn_cnt = 0
 		qh_path = '%s/%s' % (self.home, 'var/rw/nagios.qh')
 		channel = QhChannel('merlin', qh_path, subscribe=False)
@@ -903,10 +902,17 @@ class fake_mesh:
 
 
 	def create_databases(self):
-		"""Sets up databases for all nodes in the mesh"""
+		"""
+		Sets up databases for all nodes in the mesh, and makes
+		sure each node is connected to 'their' database.
+		"""
+		if not self.use_database:
+			return
 		self.connect_to_db()
 		for inst in self.instances:
 			self._create_database(inst)
+		for inst in self.instances:
+			inst.db_connect()
 
 
 	def close_db(self):
