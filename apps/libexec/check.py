@@ -473,7 +473,12 @@ def cmd_spool(args=False):
 	elif bad >= warning:
 		state = nplug.STATE_WARNING
 
-	nplug.die(state, "%d files too old|%s" % (bad, perfdata))
+	if delete:
+		msg = "%d too old files were deleted|%s" % (bad, perfdata)
+	else:
+		msg = "%d files too old|%s" % (bad, perfdata)
+
+	nplug.die(state, msg)
 	sys.exit(state)
 
 def cmd_cores(args=False):
