@@ -77,6 +77,7 @@ static int help(int sd, char *buf, unsigned int len)
 		"nodeinfo   Print info about all nodes I know about\n"
 		"cbstats    Print callback statistics for each node\n"
 	);
+	return 0;
 }
 
 /* Our primary query handler */
