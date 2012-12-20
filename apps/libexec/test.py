@@ -514,11 +514,17 @@ class fake_mesh:
 
 
 	def test_daemon_restarts(self):
-		self.stop_daemons('merlin')
-		self.intermission("Letting merlin daemons die", 3)
-		self.start_daemons('merlin')
-		self.intermission("Letting systems reconnect and renegotiate")
-		return self.test_connections()
+		status = True
+		for n, discard in self.progs.items():
+			self.stop_daemons(n)
+			self.intermission("Letting %s daemons die" % n, 3)
+			self.start_daemons(n)
+			self.intermission("Letting systems reconnect and renegotiate")
+			ret = self.test_connections()
+			if ret == False:
+				status = False
+		return status
+
 
 	def test_global_commands(self):
 		"""
