@@ -83,7 +83,7 @@ sh install-merlin.sh --batch --root=%buildroot --bindir=%_bindir \
 chmod 777 %buildroot/%mod_path/logs
 mkdir -p %buildroot/%mod_path/binlogs
 mkdir -p %buildroot%_sysconfdir/logrotate.d
-cp %_sourcedir/merlin.logrotate %buildroot%_sysconfdir/logrotate.d/merlin
+cp merlin.logrotate %buildroot%_sysconfdir/logrotate.d/merlin
 
 # install plugins and create their symlinks
 mkdir -p %buildroot/opt
