@@ -34,11 +34,13 @@ endif
 
 # CFLAGS, CPPFLAGS and LDFLAGS are for users to modify
 NAGIOS_PREFIX ?= /usr/local/nagios
+NAGIOS_LIBDIR ?= $(NAGIOS_PREFIX)/lib
+NAGIOS_INCDIR ?= $(NAGIOS_PREFIX)/include
 ALL_CFLAGS = $(CFLAGS) $(TWEAK_CPPFLAGS) $(SYS_CFLAGS) $(CPPFLAGS) $(PTHREAD_CFLAGS)
 ALL_CFLAGS += -D__USE_FILE_OFFSET64
-ALL_CFLAGS += -I$(NAGIOS_PREFIX)/include
+ALL_CFLAGS += -I$(NAGIOS_INCDIR)
 ALL_LDFLAGS = $(LDFLAGS) $(TWEAK_LDFLAGS)
-LIBNAGIOS_LDFLAGS = -L$(NAGIOS_PREFIX)/lib -lnagios
+LIBNAGIOS_LDFLAGS = -L$(NAGIOS_LIBDIR) -lnagios
 WARN_FLAGS = -Wall -Wno-unused-parameter
 #WARN_FLAGS += -Wextra# is not supported on older gcc versions.
 
