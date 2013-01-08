@@ -113,12 +113,13 @@ def cmd_status(args):
 
 		sa_peer_id = int(info.pop('self_assigned_peer_id', 0))
 		conn_time = int(info.pop('connect_time', 0))
-		if info['type'] == 'peer' and sa_peer_id != peer_id:
+		if is_running and info['type'] == 'peer' and sa_peer_id != peer_id:
 			if conn_time + 30 > int(time.time()):
 				print("%sPeer id negotiation in progress%s" % (color.green, color.reset))
 			else:
 				print("%sPeer id mismatch: self-assigned=%d; real=%d%s" %
 				(color.yellow, sa_peer_id, peer_id, color.reset))
+
 		if iid and not node:
 			print("%sThis node is currently not in the configuration file%s" %
 				(color.yellow, color.reset))
