@@ -195,6 +195,7 @@ install_apps ()
 	mkdir -p $root_path/$libexecdir
 	macro_subst "$src_dir/apps/mon.py" > "$root_path/$bindir/mon"
 	cp -a apps/libexec/* $root_path/$libexecdir
+	rm -f $root_path/$libexecdir/-oconf
 	cp oconf $root_path/$libexecdir/-oconf
 	chmod 755 $root_path/$bindir/mon
 	chmod 755 $root_path/$libexecdir/*

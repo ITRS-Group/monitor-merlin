@@ -165,7 +165,9 @@ oconf: oconf.o sha1.o misc.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(LIBNAGIOS_LDFLAGS)
 
 rename: $(RENAME_OBJS)
+	@rm -f apps/libexec/-oconf
 	$(QUIET_LINK)$(CC) $^ -o $@ -ggdb3 $(DB_LDFLAGS) $(LDFLAGS) $(LIBNAGIOS_LDFLAGS)
+	@ln -s $$(pwd)/oconf apps/libexec/-oconf
 
 %.o: %.c
 	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@
