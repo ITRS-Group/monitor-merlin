@@ -1,4 +1,4 @@
-#define _GNU_SOURCE
+#define _GNU_SOURCE 1
 #include <signal.h>
 #include "sql.h"
 #include "daemonize.h"
