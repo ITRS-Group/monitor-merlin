@@ -58,10 +58,7 @@ parse_order = [
 # grab object configuration files from a cfg_dir directive
 def recurse_grab_object_cfg_files(v, basepath=''):
 	obj_files = []
-	if v[0] == '/':
-		f_ary = os.listdir(v)
-	else:
-		f_ary = os.listdir(basepath + '/' + v)
+	f_ary = os.listdir(basepath + '/' + v)
 	for f in f_ary:
 		path = '%s%s/%s' % (basepath, v, f)
 		if os.path.isdir(path):
@@ -84,7 +81,10 @@ def grab_nagios_cfg(nagios_cfg_path):
 			else:
 				obj_files.append(basepath + '/' + v)
 		elif k == 'cfg_dir':
-			obj_files += recurse_grab_object_cfg_files(v, basepath + '/')
+			if v[0] == '/':
+				obj_files += recurse_grab_object_cfg_files(v, '')
+			else:
+				obj_files += recurse_grab_object_cfg_files(v, basepath + '/')
 		elif k.endswith("_command"):
 			force_include_commands[k] = v;
 
