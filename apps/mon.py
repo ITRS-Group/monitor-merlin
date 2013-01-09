@@ -7,9 +7,9 @@ libexec_dir = "@@LIBEXECDIR@@"
 
 # default to op5-ish systems
 if merlin_dir == "@" + "@DESTDIR@@":
-	merlin_dir = '/opt/monitor/op5/merlin'
+	merlin_dir = os.path.abspath(os.path.dirname(os.path.realpath(__file__))+'/..')
 if libexec_dir == "@" + "@LIBEXECDIR@@":
-	libexec_dir = "/usr/libexec/merlin"
+	libexec_dir = os.path.dirname(os.path.realpath(__file__)) + '/libexec/'
 
 module_dir = libexec_dir + '/modules'
 if not libexec_dir in sys.path:
