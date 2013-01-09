@@ -66,6 +66,16 @@ preparing object configuration for pollers, helping with ssh key
 management and allround tasks regarding administering a distributed
 network monitoring setup.
 
+%package test
+Summary: Test files for merlin
+Group: op5/Monitor
+Requires: monitor-livestatus
+Requires: op5-nagios
+Requires: merlin merlin-apps monitor-merlin
+
+%description test
+Some additional test files for merlin
+
 %prep
 %setup -q
 
@@ -205,6 +215,9 @@ sh /etc/init.d/monitor start || :
 %_sysconfdir/cron.d/*
 /opt/plugins/*
 /opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
+
+%files test
+/usr/libexec/merlin/test.py*
 
 %clean
 rm -rf %buildroot
