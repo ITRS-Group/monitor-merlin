@@ -891,7 +891,7 @@ static int hook_notification(merlin_event *pkt, void *data)
 	 * so host, service and comment updates happen as they should
 	 * as quickly as possible.
 	 */
-	if (ds->reason_type == NOTIFICATION_ACKNOWLEDGEMENT) {
+	if (merlin_net_event && ds->reason_type == NOTIFICATION_ACKNOWLEDGEMENT) {
 		return 0;
 	}
 

@@ -36,6 +36,8 @@ static int mrm_reap_interval = 2;
 static int merlin_sendpath_interval = MERLIN_SENDPATH_INTERVAL;
 static int db_track_current = 0;
 
+int merlin_net_event = 0;
+
 /*
  * user-defined filters, used as or-gate. Defaults to
  * 'handle everything'. This only affects what events
@@ -348,6 +350,8 @@ static int handle_flapping_data(merlin_node *node, void *buf)
 /* events that require status updates return 1, others return 0 */
 int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 {
+	int ret;
+
 	if (!pkt) {
 		lerr("MM: pkt is NULL in handle_ipc_event()");
 		return 0;
@@ -392,27 +396,30 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	 * with the exception that checkresults also cause performance
 	 * data to be handled.
 	 */
+	merlin_net_event = 1;
 	switch (pkt->hdr.type) {
 	case NEBCALLBACK_HOST_CHECK_DATA:
 	case NEBCALLBACK_HOST_STATUS_DATA:
-		return handle_host_status(node, &pkt->hdr, pkt->body);
+		ret = handle_host_status(node, &pkt->hdr, pkt->body);
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
-		return handle_service_status(node, &pkt->hdr, pkt->body);
+		ret = handle_service_status(node, &pkt->hdr, pkt->body);
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
-		return handle_external_command(node, pkt->body);
+		ret = handle_external_command(node, pkt->body);
 	case NEBCALLBACK_COMMENT_DATA:
-		return handle_comment_data(node, pkt->body);
+		ret = handle_comment_data(node, pkt->body);
 	case NEBCALLBACK_DOWNTIME_DATA:
-		return handle_downtime_data(node, pkt->body);
+		ret = handle_downtime_data(node, pkt->body);
 	case NEBCALLBACK_FLAPPING_DATA:
-		return handle_flapping_data(node, pkt->body);
+		ret = handle_flapping_data(node, pkt->body);
 	default:
 		lwarn("Ignoring unrecognized/unhandled callback type: %d (%s)",
 		      pkt->hdr.type, callback_name(pkt->hdr.type));
 	}
 
-	return 0;
+	merlin_net_event = 0;
+
+	return ret;
 }
 
 static int ipc_reaper(int sd, int events, void *arg)
