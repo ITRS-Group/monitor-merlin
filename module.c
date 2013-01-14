@@ -401,17 +401,23 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	case NEBCALLBACK_HOST_CHECK_DATA:
 	case NEBCALLBACK_HOST_STATUS_DATA:
 		ret = handle_host_status(node, &pkt->hdr, pkt->body);
+		break;
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
 		ret = handle_service_status(node, &pkt->hdr, pkt->body);
+		break;
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
 		ret = handle_external_command(node, pkt->body);
+		break;
 	case NEBCALLBACK_COMMENT_DATA:
 		ret = handle_comment_data(node, pkt->body);
+		break;
 	case NEBCALLBACK_DOWNTIME_DATA:
 		ret = handle_downtime_data(node, pkt->body);
+		break;
 	case NEBCALLBACK_FLAPPING_DATA:
 		ret = handle_flapping_data(node, pkt->body);
+		break;
 	default:
 		lwarn("Ignoring unrecognized/unhandled callback type: %d (%s)",
 		      pkt->hdr.type, callback_name(pkt->hdr.type));
