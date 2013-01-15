@@ -217,6 +217,7 @@ class fake_instance:
 	all of the above.
 	"""
 	def __init__(self, basepath, name, port=15551):
+		self.valgrind = False
 		self.group = False
 		self.name = name
 		self.port = port
@@ -291,6 +292,9 @@ class fake_instance:
 			elif name == 'merlin':
 				cmd = [program, '-d', '-c', '%s/merlin/merlin.conf' % self.home]
 
+			if self.valgrind:
+				real_cmd = ['valgrind', '--child-silent-after-fork=yes', '--leak-check=full', '--log-file=%s/valgrind.log' % self.home] + cmd
+				cmd = real_cmd
 			self.proc[name] = subprocess.Popen(cmd, stdout=fd, stderr=fd)
 
 		os.close(fd)
@@ -414,6 +418,7 @@ class fake_mesh:
 	different setups.
 	"""
 	def __init__(self, basepath, **kwargs):
+		self.valgrind = False
 		self.basepath = basepath
 		self.baseport = 16000
 		self.num_masters = 3
@@ -453,6 +458,9 @@ class fake_mesh:
 
 		if sleeptime == False:
 			sleeptime = self.sleeptime
+
+		if self.valgrind:
+			sleeptime *= 4
 
 		# only print the animation if anyone's looking
 		if os.isatty(sys.stdout.fileno()) == False:
@@ -873,11 +881,13 @@ class fake_mesh:
 
 		for inst in self.masters.nodes:
 			self.instances.append(inst)
+			inst.valgrind = self.valgrind
 
 		for pgroup in self.pgroups:
 			pgroup.add_master_group(self.masters)
 			for inst in pgroup.nodes:
 				self.instances.append(inst)
+				inst.valgrind = self.valgrind
 
 		self.groups = self.pgroups + [self.masters]
 
