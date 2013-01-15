@@ -687,6 +687,14 @@ class fake_mesh:
 			self.tap.test(ret, True, "Scheduling downtime for %s on %s" %
 				(host, node.name)
 			)
+			ret = node.submit_raw_command(
+				'SCHEDULE_HOST_DOWNTIME;%s;%d;%d;0;0;10;mon testsuite;Flexible downtime for host %s from %s' %
+					(host, time.time() + 1, time.time() + 5,
+					host, node.name)
+			)
+			self.tap.test(ret, True, "Adding flexible downtime for host %s from %s" % (host, node.name))
+
+
 		for srv in node.group.have_objects['service']:
 			if srv in ignore['service']:
 				continue
@@ -698,6 +706,12 @@ class fake_mesh:
 			)
 			self.tap.test(ret, True, "Scheduling downtime for %s on %s" %
 				(srv, node.name))
+			ret = node.submit_raw_command(
+				'SCHEDULE_SVC_DOWNTIME;%s;%d;%d;0;0;10;mon testsuite;Flexible downtime for service %s on %s from %s' %
+					(srv, time.time() + 1, time.time() + 5,
+					_service_description, _host_name, node.name)
+			)
+			self.tap.test(ret, True, "Adding flexible downtime for service %s on %s" % (srv, node.name))
 
 		return self.tap.failed == 0
 
@@ -1169,9 +1183,9 @@ def cmd_dist(args):
 			_dist_shutdown(mesh, 'Passive checks are broken', batch)
 
 		# we only test acks if passive checks distribute properly
+		mesh.test_downtime()
 		mesh.test_acks()
 		mesh.test_comments()
-		mesh.test_downtime()
 	except SystemExit:
 		# Some of the helper functions call sys.exit(1) to bail out.
 		# Let's assume they take care of cleaning up before doing so
