@@ -763,6 +763,7 @@ static inline void set_next_dt_purge(time_t base, time_t add)
 static inline void add_downtime(char *host, char *service, int id)
 {
 	struct downtime_entry *dt, *cmd, *old;
+	dkhash_table *the_table;
 
 	if (!is_interesting_service(host, service))
 		return;
@@ -785,23 +786,24 @@ static inline void add_downtime(char *host, char *service, int id)
 
 	set_next_dt_purge(ltime, dt->duration);
 
-	if (!service) {
-		dt->service = NULL;
-		old = dkhash_get(host_downtime, dt->host, NULL);
-		dkhash_insert(host_downtime, dt->host, NULL, dt);
+	if (service) {
+		dt->service = strdup(service);
+		the_table = service_downtime;
 	}
 	else {
-		dt->service = strdup(service);
-		old = dkhash_get(service_downtime, dt->host, dt->service);
-		dkhash_insert(service_downtime, dt->host, dt->service, dt);
+		dt->service = NULL;
+		the_table = host_downtime;
 	}
 
-	if (old && old != dt) {
+	old = dkhash_get(the_table, dt->host, dt->service);
+	if (old) {
+		dkhash_remove(host_downtime, old->host, old->service);
 		free(old->host);
 		if (old->service)
 			free(old->service);
 		free(old);
 	}
+	dkhash_insert(the_table, dt->host, dt->service, dt);
 
 	dt_print("IN_DT", ltime, dt);
 	insert_downtime_event(NEBTYPE_DOWNTIME_START, dt->host, dt->service, dt->id);
