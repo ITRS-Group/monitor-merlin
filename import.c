@@ -797,7 +797,7 @@ static inline void add_downtime(char *host, char *service, int id)
 
 	old = dkhash_get(the_table, dt->host, dt->service);
 	if (old) {
-		dkhash_remove(host_downtime, old->host, old->service);
+		dkhash_remove(the_table, old->host, old->service);
 		free(old->host);
 		if (old->service)
 			free(old->service);
