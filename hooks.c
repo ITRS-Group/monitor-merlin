@@ -860,20 +860,79 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
 }
 
 /*
- * Notifications always go out from the node that detects them. This
- * makes it near-impossible for us to lose notifications in the merlin
- * network, which is good.
- * It also means we can block all notifications that are triggered by
- * events we receive over the network, as they'll already have been
- * sent by another node.
+ * Called when a notification chain starts. This is used to
+ * avoid sending notifications from a node that isn't supposed
+ * to send it
  */
 static int hook_notification(merlin_event *pkt, void *data)
 {
 	nebstruct_notification_data *ds = (nebstruct_notification_data *)data;
 
-	/* block network-originating events */
-	if (merlin_net_event) {
-		return NEBERROR_CALLBACKOVERRIDE;
+	/* if we have no pollers and no peers we won't block the notification */
+	if (!num_peers && !num_pollers)
+		return 0;
+
+	/*
+	 * Custom notifications are only every sent from the
+	 * node receiving the command and aren't forwarded to
+	 * the network, so we give them go-ahead straight away.
+	 */
+	if (ds->reason_type == NOTIFICATION_CUSTOM)
+		return 0;
+
+	/*
+	 * Acks from the network are blocked here to avoid sending
+	 * notifications twice and are given the go-ahead directly
+	 * if they orginated from the local node. They always get
+	 * sent immediately from the node that received the command
+	 * to prevent notifications going missing in the merlin net
+	 * in case a node dies and it gets lost in a crashed backlog,
+	 * but the command still gets sent to all other other nodes
+	 * so host, service and comment updates happen as they should
+	 * as quickly as possible.
+	 */
+	if (merlin_net_event && ds->reason_type == NOTIFICATION_ACKNOWLEDGEMENT) {
+		return 0;
+	}
+
+	if (ds->type == NEBTYPE_NOTIFICATION_START) {
+		char *what = "host";
+		char *host_name, *sdesc = NULL;
+
+		if (ds->notification_type == SERVICE_NOTIFICATION) {
+			service *s = (service *)ds->object_ptr;
+			host_name = s->host_name;
+			sdesc = s->description;
+
+			/* never block notificatons from passive checks */
+			if(s->check_type == SERVICE_CHECK_PASSIVE)
+				return 0;
+
+			what = "service";
+			if (!should_run_check(s)) {
+				ldebug("Blocked notification for %s %s;%s. A peer is supposed to send it.",
+					   what, host_name, sdesc);
+				return NEBERROR_CALLBACKCANCEL;
+			}
+		} else {
+			host *h = (host *)ds->object_ptr;
+			host_name = h->name;
+
+			/* never block notificatons from passive checks */
+			if(h->check_type == HOST_CHECK_PASSIVE)
+				return 0;
+
+			if (!should_run_check(h)) {
+				ldebug("Blocked notification for %s %s. A peer is supposed to send it",
+					   what, host_name);
+				return NEBERROR_CALLBACKCANCEL;
+			}
+		}
+		if (has_active_poller(host_name)) {
+			ldebug("Blocked notification for %s %s%s%s. A poller is supposed to send it",
+				   what, host_name, sdesc ? ";" : "", sdesc ? sdesc : "");
+			return NEBERROR_CALLBACKCANCEL;
+		}
 	}
 
 	return 0;
