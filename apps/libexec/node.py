@@ -372,9 +372,15 @@ def cmd_ctrl(args):
 	if run_on_self:
 		os.spawnvp(os.P_WAIT, "/bin/sh", ["/bin/sh", "-c", cmd])
 
+	blocked = 0
 	for name, node in nodes.items():
 		if str(node.connect) != "no":
+			blocked += 1
 			node.ctrl(cmd)
+
+	if by_name and blocked == len(wanted_names):
+		print("Only nodes which we can't connect to were chosen. Can't run command")
+		sys.exit(3)
 
 	if by_name and len(wanted_names) == 1:
 		sys.exit(node.get_exit_code())
