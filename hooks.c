@@ -896,9 +896,12 @@ static int hook_notification(merlin_event *pkt, void *data)
 		host_name = s->host_name;
 		sdesc = s->description;
 
-		/* never block notificatons from passive checks */
-		if(!merlin_net_event && s->check_type == SERVICE_CHECK_PASSIVE)
+		/* never block local notificatons from passive checks */
+		if(s->check_type == SERVICE_CHECK_PASSIVE) {
+			if (merlin_net_event)
+				return NEBERROR_CALLBACKCANCEL;
 			return 0;
+		}
 
 		what = "service";
 		if (!should_run_check(s)) {
@@ -910,9 +913,12 @@ static int hook_notification(merlin_event *pkt, void *data)
 		host *h = (host *)ds->object_ptr;
 		host_name = h->name;
 
-		/* never block notificatons from passive checks */
-		if(h->check_type == HOST_CHECK_PASSIVE)
+		/* never block local notificatons from passive checks */
+		if(h->check_type == HOST_CHECK_PASSIVE) {
+			if (merlin_net_event)
+				return NEBERROR_CALLBACKCANCEL;
 			return 0;
+		}
 
 		if (!should_run_check(h)) {
 			ldebug("Blocked notification for %s %s. A peer is supposed to send it",
