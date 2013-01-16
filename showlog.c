@@ -21,6 +21,8 @@ static const char *image_url = "/ninja/application/views/themes/default/icons/16
 static int reverse_parse_files;
 static unsigned long long ltime_skews, skip, limit;
 static int hide_state_dupes; /* if set, we hide duplicate state messages */
+static int count;
+static unsigned long printed_lines;
 
 #define EVT_PROCESS  (1 << 0)
 #define EVT_NOTIFY   (1 << 1)
@@ -76,6 +78,14 @@ static struct string_code event_codes[] = {
 	add_code(4, "SERVICE FLAPPING ALERT", EVT_FLAPPING | EVT_SERVICE),
 	{ 0, NULL, 0, 0 },
 };
+
+static void exit_nicely(int code)
+{
+	if (count) {
+		printf("%lu\n", printed_lines);
+	}
+	exit(code);
+}
 
 static void print_time_iso8601(struct tm *t)
 {
@@ -181,6 +191,11 @@ static inline void pre_print_mangle_line(struct tm *t, char *line, uint len)
 	localtime_r(&ltime, t);
 }
 
+
+static void print_line_count(int type, struct tm *t, char *line, uint len)
+{
+	return;
+}
 
 static void print_line_ascii(int type, struct tm *t, char *line, uint len)
 {
@@ -405,6 +420,7 @@ static void print_line(int type, char *line, uint len)
 		int cur_severity = severity;
 		if (last_line) {
 			severity = last_severity;
+			printed_lines++;
 			real_print_line(last_type, &t, last_line, last_len);
 			severity = cur_severity;
 			free(last_line);
@@ -416,14 +432,13 @@ static void print_line(int type, char *line, uint len)
 		last_len = len;
 		last_ltime = ltime;
 	} else {
+		printed_lines++;
 		real_print_line(type, &t, line, len);
 	}
 
 	/* if we've printed all the lines we should, just exit */
-	if (limit) {
-		if (!--limit)
-			exit(0);
-	}
+	if (limit && !--limit)
+		exit_nicely(0);
 }
 
 
@@ -852,6 +867,11 @@ int main(int argc, char **argv)
 			opt = argv[i + 1];
 		}
 
+		if (!strcmp(arg, "--count")) {
+			count = 1;
+			real_print_line = print_line_count;
+			continue;
+		}
 		if (!strcmp(arg, "--reverse")) {
 			reverse_parse_files = 1;
 			continue;
@@ -1115,19 +1135,23 @@ int main(int argc, char **argv)
 	if (print_time == print_time_duration) {
 		/* duration should be calculated til the end of the period */
 		ltime = last_time;
+		printed_lines++;
 		print_line(0, NULL, 0);
 	}
 
-	if (show_ltime_skews) {
-		printf("%llu ltime skews in %llu lines. %f%%\n",
-		       ltime_skews, tot_lines,
-		       ((float)ltime_skews / (float)tot_lines) * 100);
+	if (!count) {
+		if (show_ltime_skews) {
+			printf("%llu ltime skews in %llu lines. %f%%\n",
+				   ltime_skews, tot_lines,
+				   ((float)ltime_skews / (float)tot_lines) * 100);
+		}
+
+		if (warnings && debug_level)
+			fprintf(stderr, "Total warnings: %d\n", warnings);
+
+		print_unhandled_events();
 	}
 
-	if (warnings && debug_level)
-		fprintf(stderr, "Total warnings: %d\n", warnings);
-
-	print_unhandled_events();
-
+	exit_nicely(0);
 	return 0;
 }
