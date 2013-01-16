@@ -71,7 +71,6 @@ enable_event_handlers=1
 log_rotation_method=d
 log_archive_path=@@DIR@@/var/archives
 check_external_commands=1
-command_check_interval=1s
 command_file=@@DIR@@/var/rw/nagios.cmd
 lock_file=@@DIR@@/var/nagios.lock
 retain_state_information=1
