@@ -213,8 +213,8 @@ define contact{
     service_notifications_enabled  1
     host_notification_period       24x7
     service_notification_period    24x7
-    host_notification_options      d,r
-    service_notification_options   c,w,r
+    host_notification_options      a
+    service_notification_options   a
     host_notification_commands     host-notify
     service_notification_commands  service-notify
     can_submit_commands            1
