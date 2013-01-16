@@ -792,7 +792,7 @@ class fake_mesh:
 				_service_description, _host_name, node.name)
 			)
 			self.tap.test(ret, True, "Adding comment for service %s on %s from %s" %
-				(_host_name, _service_description, node.name))
+				(_service_description, _host_name, node.name))
 
 		return self.tap.failed == 0
 
