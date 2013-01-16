@@ -99,8 +99,15 @@ def cmd_status(args):
 			else:
 				lat_color = color.green
 
-		peer_id = int(info.pop('peer_id', 0))
-		name = "#%02d.%d %s %s" % (iid, peer_id, info['type'], info['name'])
+		if info['type'] == 'peer':
+			peer_id = int(info.pop('peer_id', 0))
+		else:
+			peer_id = int(info.pop('self_assigned_peer_id', 0))
+		name = "#%02d %d/%d:%d %s %s" % (
+			iid, peer_id,
+			int(info.pop('active_peers', -1)), int(info.pop('configured_peers', -1)),
+			info['type'], info['name']
+		)
 
 		if is_running:
 			name += " (%sACTIVE%s - %s%.3fs%s latency)" % (color.green, color.reset, lat_color, latency, color.reset)
