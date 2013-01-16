@@ -186,6 +186,10 @@ class fake_peer_group:
 			pgroup.create_object_config(num_hosts, num_services_per_host)
 			poller_oconf_buf += pgroup.oconf_buf
 
+		for otype in self.have_objects.keys():
+			self.have_objects[otype] = self.have_objects[otype].keys()
+			self.have_objects[otype].sort()
+
 		self.oconf_buf = "%s\n%s" % (self.oconf_buf, poller_oconf_buf)
 		for node in self.nodes:
 			node.write_file('etc/oconf/generated.cfg', self.oconf_buf)
