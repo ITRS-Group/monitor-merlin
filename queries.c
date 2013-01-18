@@ -19,7 +19,6 @@ static int dump_cbstats(merlin_node *n, int sd)
 	return 0;
 }
 
-extern const char *notification_reason_name(int foo);
 static int dump_notify_stats(int sd)
 {
 	int a, b, c;
