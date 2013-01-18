@@ -22,12 +22,6 @@ int db_track_current = 0;
 static void usage(char *fmt, ...)
 	__attribute__((format(printf,1,2)));
 
-static void dump_core(int sig)
-{
-	kill(getpid(), SIGSEGV);
-	exit(1);
-}
-
 static void usage(char *fmt, ...)
 {
 	if (fmt) {
