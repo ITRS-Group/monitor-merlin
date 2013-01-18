@@ -19,6 +19,28 @@ static int dump_cbstats(merlin_node *n, int sd)
 	return 0;
 }
 
+extern const char *notification_reason_name(int foo);
+static int dump_notify_stats(int sd)
+{
+	int a, b, c;
+
+	for (a = 0; a < 9; a++) {
+		const char *rtype = notification_reason_name(a);
+		for (b = 0; b < 2; b++) {
+			const char *ntype = b == SERVICE_NOTIFICATION ? "SERVICE" : "HOST";
+			for (c = 0; c < 2; c++) {
+				const char *ctype = c == CHECK_TYPE_ACTIVE ? "ACTIVE" : "PASSIVE";
+				struct merlin_notify_stats *mns = &merlin_notify_stats[a][b][c];
+				nsock_printf(sd, "type=%s;reason=%s;checktype=%s;"
+					"peer=%lu;poller=%lu;net=%lu;sent=%lu\n",
+					ntype, rtype, ctype,
+					mns->peer, mns->poller, mns->net, mns->sent);
+			}
+		}
+	}
+	return 0;
+}
+
 static int help(int sd, char *buf, unsigned int len)
 {
 	nsock_printf_nul(sd,
@@ -55,6 +77,10 @@ int merlin_qh(int sd, char *buf, unsigned int len)
 		for(i = 0; i < num_nodes; i++) {
 			dump_cbstats(node_table[i], sd);
 		}
+		return 0;
+	}
+	if (!strcmp(buf, "notify-stats")) {
+		dump_notify_stats(sd);
 		return 0;
 	}
 	return 400;
