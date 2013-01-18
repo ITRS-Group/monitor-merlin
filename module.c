@@ -38,6 +38,9 @@ static int db_track_current = 0;
 
 int merlin_net_event = 0;
 
+/* 9 = "reason_type", 2 = host/service, 2 = last check active/passive */
+struct merlin_notify_stats merlin_notify_stats[9][2][2];
+
 /*
  * user-defined filters, used as or-gate. Defaults to
  * 'handle everything'. This only affects what events

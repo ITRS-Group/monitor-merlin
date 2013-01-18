@@ -28,6 +28,16 @@ typedef struct file_list {
 	struct file_list *next;
 } file_list;
 
+struct merlin_notify_stats {
+	unsigned long net;    /* blocked due to network origin */
+	unsigned long peer;   /* blocked due to peer managing it */
+	unsigned long poller; /* blocked due to active poller */
+	unsigned long sent;   /* allowed through */
+};
+
+/* 9 = "reason_type", 2 = host/service, 2 = last check active/passive */
+extern struct merlin_notify_stats merlin_notify_stats[9][2][2];
+
 /* junk to keep track of which node last executed which check */
 extern merlin_node **host_check_node;
 extern merlin_node **service_check_node;

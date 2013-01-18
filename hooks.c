@@ -867,16 +867,35 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
 static int hook_notification(merlin_event *pkt, void *data)
 {
 	nebstruct_notification_data *ds = (nebstruct_notification_data *)data;
+	unsigned int id, check_type = 0, rtype;
 	char *what = "host";
 	char *host_name, *sdesc = NULL;
+	struct merlin_notify_stats *mns = NULL;
+	struct service *s;
+	struct host *h;
 
-	/* if we have no pollers and no peers we won't block the notification */
-	if (!num_peers && !num_pollers)
-		return 0;
-
-	/* we can't block notifications after they're sent */
+	/* don't count or (try to) block notifications after they're sent */
 	if (ds->type != NEBTYPE_NOTIFICATION_START)
 		return 0;
+	if (ds->notification_type == SERVICE_NOTIFICATION) {
+		s = (service *)ds->object_ptr;
+		check_type = s->check_type;
+	} else {
+		h = (struct host *)ds->object_ptr;
+		check_type = h->check_type;
+	}
+
+	/* handle NOTIFICATION_CUSTOM being 99 in some releases */
+	rtype = ds->reason_type;
+	if (rtype > 8)
+		rtype = 8;
+	mns = &merlin_notify_stats[ds->reason_type][ds->notification_type][check_type];
+
+	/* if we have no pollers and no peers we won't block the notification */
+	if (!num_peers && !num_pollers) {
+		mns->sent++;
+		return 0;
+	}
 
 	/*
 	 * command-triggered notifications are sent immediately
@@ -886,20 +905,25 @@ static int hook_notification(merlin_event *pkt, void *data)
 	switch (ds->reason_type) {
 	case NOTIFICATION_ACKNOWLEDGEMENT:
 	case NOTIFICATION_CUSTOM:
-		if (merlin_net_event)
+		if (merlin_net_event) {
+			mns->net++;
 			return NEBERROR_CALLBACKCANCEL;
+		}
+		mns->sent++;
 		return 0;
 	}
 
 	if (ds->notification_type == SERVICE_NOTIFICATION) {
-		service *s = (service *)ds->object_ptr;
 		host_name = s->host_name;
 		sdesc = s->description;
 
 		/* never block local notificatons from passive checks */
 		if(s->check_type == SERVICE_CHECK_PASSIVE) {
-			if (merlin_net_event)
+			if (merlin_net_event) {
+				mns->net++;
 				return NEBERROR_CALLBACKCANCEL;
+			}
+			mns->sent++;
 			return 0;
 		}
 
@@ -907,6 +931,7 @@ static int hook_notification(merlin_event *pkt, void *data)
 		if (!should_run_check(s)) {
 			ldebug("Blocked notification for %s %s;%s. A peer is supposed to send it.",
 				   what, host_name, sdesc);
+			mns->peer++;
 			return NEBERROR_CALLBACKCANCEL;
 		}
 	} else {
@@ -915,22 +940,29 @@ static int hook_notification(merlin_event *pkt, void *data)
 
 		/* never block local notificatons from passive checks */
 		if(h->check_type == HOST_CHECK_PASSIVE) {
-			if (merlin_net_event)
+			if (merlin_net_event) {
+				mns->net++;
 				return NEBERROR_CALLBACKCANCEL;
+			}
+			mns->sent++;
 			return 0;
 		}
 
 		if (!should_run_check(h)) {
 			ldebug("Blocked notification for %s %s. A peer is supposed to send it",
 				   what, host_name);
+			mns->peer++;
 			return NEBERROR_CALLBACKCANCEL;
 		}
 	}
 	if (has_active_poller(host_name)) {
 		ldebug("Blocked notification for %s %s%s%s. A poller is supposed to send it",
 			   what, host_name, sdesc ? ";" : "", sdesc ? sdesc : "");
+		mns->poller++;
 		return NEBERROR_CALLBACKCANCEL;
 	}
+
+	mns->sent++;
 
 	return 0;
 }
