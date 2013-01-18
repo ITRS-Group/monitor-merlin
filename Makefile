@@ -77,7 +77,7 @@ endif
 sql.o test-dbwrap.o db_wrap.o: CFLAGS+=$(DB_CFLAGS)
 
 COMMON_OBJS = cfgfile.o shared.o version.o logging.o
-SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o queries.o
+SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
 DAEMON_OBJS = status.o daemonize.o daemon.o net.o $(DBWRAP_OBJS) db_updater.o state.o
 DAEMON_OBJS += $(SHARED_OBJS)

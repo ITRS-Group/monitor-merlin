@@ -4,6 +4,61 @@ static int listen_sock = -1; /* for bind() and such */
 static char *ipc_sock_path;
 merlin_node ipc; /* the ipc node */
 
+/*
+ * this lives here since both daemon and module needs it, but
+ * none of the apps should have it
+ */
+int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
+{
+	merlin_nodeinfo *i;
+	merlin_node_stats *s = &n->stats;
+
+	i = n == &ipc ? &self : &n->info;
+
+	nsock_printf(sd, "instance_id=%d;name=%s;source_name=%s;socket=%d;type=%s;"
+				 "state=%s;peer_id=%u;flags=%d;"
+				 "address=%s;port=%u;"
+				 "data_timeout=%u;last_recv=%lu;last_sent=%lu;"
+				 "last_conn_attempt=%lu;last_action=%d;latency=%d;"
+				 "binlog_size=%u;iocache_available=%lu;"
+				 "events_sent=%llu;events_read=%llu;"
+				 "events_logged=%llu;events_dropped=%llu;"
+				 "bytes_sent=%llu;bytes_read=%llu;"
+				 "bytes_logged=%llu;bytes_dropped=%llu;"
+				 "version=%u;word_size=%u;byte_order=%u;"
+				 "object_structure_version=%u;start=%lu.%lu;"
+				 "last_cfg_change=%lu;config_hash=%s;"
+				 "self_assigned_peer_id=%u;warn_flags=%u;"
+				 "active_peers=%u;configured_peers=%u;"
+				 "active_pollers=%u;configured_pollers=%u;"
+				 "active_masters=%u;configured_masters=%u;"
+				 "host_checks_handled=%u;service_checks_handled=%u;"
+				 "host_checks_executed=%u;service_checks_executed=%u;"
+				 "monitored_object_state_size=%u;connect_time=%lu\n",
+				 instance_id,
+				 n->name, n->source_name, n->sock, node_type(n),
+				 node_state_name(n->state), n->peer_id, n->flags,
+				 inet_ntoa(n->sain.sin_addr), ntohs(n->sain.sin_port),
+				 n->data_timeout, n->last_recv, n->last_sent,
+				 n->last_conn_attempt, n->last_action, n->latency,
+				 binlog_size(n->binlog), iocache_available(n->ioc),
+				 s->events.sent, s->events.read,
+				 s->events.logged, s->events.dropped,
+				 s->bytes.sent, s->bytes.read,
+				 s->bytes.logged, s->bytes.dropped,
+				 i->version, i->word_size, i->byte_order,
+				 i->object_structure_version, i->start.tv_sec, i->start.tv_usec,
+				 i->last_cfg_change, tohex(i->config_hash, 20),
+				 i->peer_id, n->warn_flags,
+				 i->active_peers, i->configured_peers,
+				 i->active_pollers, i->configured_pollers,
+				 i->active_masters, i->configured_masters,
+				 i->host_checks_handled, i->service_checks_handled,
+				 n->host_checks, n->service_checks,
+				 i->monitored_object_state_size, n->connect_time);
+	return 0;
+}
+
 void ipc_init_struct(void)
 {
 	memset(&ipc, 0, sizeof(ipc));
