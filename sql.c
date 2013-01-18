@@ -140,10 +140,13 @@ void sql_try_commit(int query)
 	    )
 	   )
 	{
-		int result;
-
 		ldebug("Committing %d queries", queries);
-		result = db.conn->api->commit(db.conn);
+		/*
+		 * we ignore the return value here, as each db
+		 * seems to return a different code on success
+		 * and failure. Bleh...
+		 */
+		(void)db.conn->api->commit(db.conn);
 		last_commit = now;
 		total_queries += queries;
 		queries = 0;
