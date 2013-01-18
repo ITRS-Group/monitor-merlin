@@ -919,8 +919,8 @@ static int hook_notification(merlin_event *pkt, void *data)
 		host_name = s->host_name;
 		sdesc = s->description;
 
-		/* never block local notificatons from passive checks */
-		if(s->check_type == SERVICE_CHECK_PASSIVE) {
+		/* never block normal, local notificatons from passive checks */
+		if(ds->reason_type == NOTIFICATION_NORMAL && s->check_type == SERVICE_CHECK_PASSIVE) {
 			mns->sent++;
 			return 0;
 		}
@@ -936,8 +936,8 @@ static int hook_notification(merlin_event *pkt, void *data)
 		host *h = (host *)ds->object_ptr;
 		host_name = h->name;
 
-		/* never block local notificatons from passive checks */
-		if(h->check_type == HOST_CHECK_PASSIVE) {
+		/* never block normal local notificatons from passive checks */
+		if(ds->reason_type == NOTIFICATION_NORMAL && h->check_type == HOST_CHECK_PASSIVE) {
 			mns->sent++;
 			return 0;
 		}
