@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-svcadm disable op5merlin
-/opt/monitor/svc/svc-merlin stop
+svcadm disable op5merlin ||:
+/opt/monitor/svc/svc-merlin stop ||:
 
-svccfg delete op5merlin
+svccfg delete op5merlin ||:
