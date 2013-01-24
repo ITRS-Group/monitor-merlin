@@ -150,7 +150,7 @@ def cmd_distribution(args):
 		if not len(b):
 			continue
 		state_str += ("%s runs %d / %d checks (should be %s / %s). " %
-			(name, b['host'], b['service'],
+			(name, int(b['host']), int(b['service']),
 			(should[name]['host'][0] == should[name]['host'][1] and should[name]['host'][0]) or ("%s-%s" % (should[name]['host'][0], should[name]['host'][1])),
 			 (should[name]['service'][0] == should[name]['service'][1] and should[name]['service'][0]) or ("%s-%s" % (should[name]['service'][0], should[name]['service'][1]))))
 
