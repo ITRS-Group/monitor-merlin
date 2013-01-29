@@ -485,11 +485,12 @@ static int hook_downtime(merlin_event *pkt, void *data)
 	 * Downtime delete and stop events are transferred.
 	 * Adding is done on all nodes from the downtime command
 	 * that always gets transferred, but if a user cancels
-	 * downtime early, we get a "delete" event that we must
-	 * transfer properly, or the other node (which might be
-	 * notifying) will think the node is still in downtime.
+	 * downtime early, we get a "delete" event with attribute
+	 * NEBATTR_DOWNTIME_STOP_CANCELLED that we must transfer
+	 * properly, or the other node (which might be notifying)
+	 * will think the node is still in downtime.
 	 */
-	if (ds->type != NEBTYPE_DOWNTIME_DELETE && ds->type != NEBTYPE_DOWNTIME_STOP)
+	if (ds->attr != NEBATTR_DOWNTIME_STOP_CANCELLED)
 		pkt->hdr.code = MAGIC_NONET;
 
 	return send_generic(pkt, data);
