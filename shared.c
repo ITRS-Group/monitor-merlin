@@ -602,6 +602,9 @@ int merlin_set_socket_options(int sd, int bufsize)
 	 */
 	fcntl(sd, F_SETFD, FD_CLOEXEC);
 
+	/* make socket non-blocking */
+	fcntl(sd, F_SETFL, O_NONBLOCK);
+
 	if (bufsize) {
 		if (setsockopt(sd, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(int)) < 0) {
 			ldebug("Failed to set sendbuffer for %d to %d bytes: %s",
