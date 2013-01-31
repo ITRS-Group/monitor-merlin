@@ -284,7 +284,9 @@ class nagios_object:
 
 	def parse_line(self, line):
 		ary = re.split('[\t ]*', line, 1)
-		return (ary[0], ary[1])
+		if len(ary) == 2:
+			return (ary[0], ary[1])
+		return (ary[0], '')
 
 	def parse(self):
 		return True
