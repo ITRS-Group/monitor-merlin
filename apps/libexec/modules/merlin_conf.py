@@ -55,6 +55,7 @@ class merlin_node:
 		valid_vars = ['address', 'port', 'connect']
 		if self.ntype != 'master':
 			valid_vars.append('hostgroup')
+			valid_vars.append('hostgroups')
 
 		for (k, v) in self.options.items():
 			# we handle object_config variables first
@@ -115,7 +116,7 @@ class merlin_node:
 		elif k == 'connect':
 			self.connect = v
 
-		if k == 'hostgroup':
+		if k == 'hostgroup' or k == 'hostgroups':
 			v = re.split("[\t ]*,[\t ]*", v)
 			if self.options.has_key(k):
 				self.options[k] += v
