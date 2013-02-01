@@ -34,6 +34,10 @@ Print raw output.
 Commands need not include trailing nullbyte."""
 	handler = nagios_qh(qh)
 	query = args_to_query(args)
+	if not query:
+		print """Expected more arguments, try something like 'mon qh help' or
+'mon qh query help'"""
+		return
 	for block in handler.query(query):
 		print block,
 		sys.stdout.flush()
@@ -44,6 +48,10 @@ Print pretty-printed output.
 Commands need not include trailing nullbyte."""
 	handler = nagios_qh(qh)
 	query = args_to_query(args)
+	if not query:
+		print """Expected more arguments, try something like 'mon qh help' or
+'mon qh get help'"""
+		return
 	resp = handler.query(query)
 	try:
 		for row in handler.format(resp):
