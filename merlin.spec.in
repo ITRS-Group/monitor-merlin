@@ -95,6 +95,7 @@ chmod 777 %buildroot/%mod_path/logs
 mkdir -p %buildroot/%mod_path/binlogs
 mkdir -p %buildroot%_sysconfdir/logrotate.d
 cp merlin.logrotate %buildroot%_sysconfdir/logrotate.d/merlin
+ln -s ../../../../usr/bin/merlind %buildroot/%mod_path/merlind
 
 # install plugins and create their symlinks
 mkdir -p %buildroot/opt
@@ -198,6 +199,7 @@ sh /etc/init.d/monitor start || :
 /etc/init.d/merlind
 %dir %mod_path/logs
 %mod_path/binlogs
+/usr/bin/merlind
 
 
 %files -n monitor-merlin

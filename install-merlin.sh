@@ -156,7 +156,7 @@ macro_subst ()
 		-e "s/@@DBUSER@@/$db_user/g" -e "s/@@DBPASS@@/$db_pass/g" \
 		-e "s#@@NAGIOSCFG@@#$nagios_cfg#g" -e "s#@@DESTDIR@@#$dest_dir#g" \
 		-e "s#@@LIBEXECDIR@@#$libexecdir#g" \
-		-e "s#@@SRCDIR@@#$src_dir#g" \
+		-e "s#@@SRCDIR@@#$src_dir#g" -e "s#@@BINDIR@@#$bindir#g" \
 		"$@"
 }
 
@@ -203,10 +203,11 @@ install_apps ()
 
 install_files ()
 {
-	execs="import showlog merlind ocimp install-merlin.sh init.sh rename"
+	bins="merlind" # stuff that a user might be supposed to execute
+	execs="import showlog ocimp install-merlin.sh init.sh rename" # implementation execs
 	files="$execs merlin.so example.conf"
 	missing=
-	for i in $files; do
+	for i in $bins $files; do
 		if ! test -f "$src_dir/$i"; then
 			echo "$src_dir/$i is missing"
 			missing="$missing $src_dir/$i"
@@ -229,6 +230,11 @@ install_files ()
 	macro_subst "$src_dir/oci8topdo.php" > "$root_path/$dest_dir/oci8topdo.php"
 	for f in $execs; do
 		chmod 755 "$root_path/$dest_dir/$f"
+	done
+	mkdir -p $root_path/$bindir
+	for f in $bins; do
+		cp "$src_dir/$f" "$root_path/$bindir"
+		chmod 755 "$root_path/$bindir/$f"
 	done
 	for f in merlin.conf example.conf merlin.so; do
 		chmod 644 "$root_path/$dest_dir/$f"

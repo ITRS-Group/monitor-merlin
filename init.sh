@@ -17,7 +17,7 @@
 
 ulimit -c unlimited
 prog=merlind
-BINDIR=@@DESTDIR@@
+BINDIR=@@BINDIR@@
 CONFIG_FILE=@@DESTDIR@@/merlin.conf
 
 start ()
