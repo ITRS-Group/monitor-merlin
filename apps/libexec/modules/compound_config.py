@@ -29,6 +29,34 @@ class compound_object:
 			if p[0] == key:
 				return p[1]
 
+
+def count_compound_types(path):
+	"""Counts object types in compound config files"""
+	if not path:
+		return False
+
+	ocount = dict()
+
+	f = open(path, "r")
+	for line in f:
+		name = False
+		line = line.strip()
+		if not len(line) or line[-1] != '{':
+			continue
+		if line.startswith('define'):
+			name = line.split(' ', 2)[1]
+		else:
+			name = line.split(' ', 1)[0]
+
+		if ocount.get(name, False) == False:
+			ocount[name] = 0
+		ocount[name] += 1
+
+	f.close()
+
+	return ocount
+
+
 def parse_conf(path, splitchar='='):
 	cur = compound_object(path)
 	cur.path = path

@@ -1035,6 +1035,25 @@ def dist_test_sighandler(signo, stackframe):
 	dist_test_mesh.stop_daemons()
 	sys.exit(1)
 
+def cmd_ocount(args):
+	"""path
+	Counts objects of each specific type in 'path' and prints them in
+	shell eval()'able style to stdout in sorted order.
+	"""
+	if not len(args):
+		print("No path specified")
+		sys.exit(1)
+	ret = cconf.count_compound_types(args[0])
+	total = 0
+
+	# sort alphabetically
+	otypes = list(ret.items())
+	otypes.sort()
+	for t, num in otypes:
+		total += num
+		print("%s=%d" % (t, num))
+
+
 def cmd_dist(args):
 	"""[options]
 	Where options can be any of the following:
