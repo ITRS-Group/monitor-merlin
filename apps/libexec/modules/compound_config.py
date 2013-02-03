@@ -67,6 +67,8 @@ def parse_conf(path, splitchar='='):
 		value = value.lstrip().rstrip(';')
 		cur.add(key, value)
 
+	f.close()
+
 	return cur
 
 def write_conf(f, opt, nesting = 0):
