@@ -99,10 +99,9 @@ static struct cfg_comp *start_compound(const char *name, struct cfg_comp *cur, u
 static struct cfg_comp *close_compound(struct cfg_comp *comp, unsigned line)
 {
 	if (comp) {
-		//printf("Closing compound '%s' on line %d\n", comp->name, line);
 		comp->end = line;
 		if (!comp->parent) {
-			cfg_error(comp, NULL, "Returning NULL from close_compound on line %d, started on line %d", line, comp->start);
+			cfg_error(comp, NULL, "Compound closed on line %d was never opened\n", line);
 		}
 		return comp->parent;
 	}
