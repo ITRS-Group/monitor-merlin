@@ -5,7 +5,7 @@
 
 /* have a care with this one. It can't be used when (c) has side-effects */
 #undef ISSPACE
-#define ISSPACE(c) ((c) == ' ' || (c) == '\t')
+#define ISSPACE(c) ((c) == ' ' || (c) == '\t' || (c) == '\r')
 
 /* types */
 struct cfg_var {
