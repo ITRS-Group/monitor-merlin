@@ -265,10 +265,10 @@ static void cfg_print_error(struct cfg_comp *comp, struct cfg_var *v,
 	if (!comp->buf)
 		fprintf(stderr, "  in compound '%s' starting on line %d\n", comp->name, comp->start);
 
-	fprintf(stderr, "  in file ");
 	for (c = comp; c; c = c->parent) {
-		if (c->buf)
-			fprintf(stderr, "'%s'", c->name);
+		if (!c->buf)
+			continue;
+		fprintf(stderr, "  in file '%s'\n", c->name);
 	}
 
 	fprintf(stderr, "----\n");
