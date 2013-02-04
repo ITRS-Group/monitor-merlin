@@ -348,7 +348,7 @@ static void disable_indexes(void)
 	 */
 	if (sql_query("ALTER TABLE %s DISABLE KEYS", db_table))
 		crash("Failed to disable keys: %s", sql_error_msg());
-	if (sql_query("LOCK TABLES %s, report_data_extras WRITE", db_table))
+	if (sql_query("LOCK TABLES %s WRITE, report_data_extras WRITE", db_table))
 		crash("Failed to lock table %s: %s", db_table, sql_error_msg());
 
 	indexes_disabled = 1;
