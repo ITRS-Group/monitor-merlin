@@ -194,7 +194,7 @@ class fake_peer_group:
 		for node in self.nodes:
 			node.write_file('etc/oconf/generated.cfg', self.oconf_buf)
 			node.write_file('etc/oconf/shared.cfg',
-				test_config_in.shared_object_config)
+				test_config_in.shared_object_config.replace('@@node_name@@', node.name))
 
 		print("Peer group %s objects:" % self.group_name)
 		print("        hosts: %d" % self.num_objects['host'])
@@ -1546,7 +1546,7 @@ def cmd_check_mark(args):
 	sys.exit(1)
 
 def cmd_mark(args):
-	"""--name=<name> [--table=<table>] <key1=value1> <keyN=valueN>
+	"""--name=<name> [--file=<logfile>] <key1=value1> <keyN=valueN>
 
 	Adds a timestamp marker into the table pointed to by --table, which
 	lets a tester know when some event last occurred. This comes in pretty
@@ -1560,47 +1560,44 @@ def cmd_mark(args):
 	'timestamp', which are automagically added for tracking purposes.
 	"""
 
-	table = 'tests'
-	param_keys = []
-	param_values = []
-
-	db = merlin_db.connect(mconf)
-	dbc = db.cursor()
+	path = False
+	params = []
+	sep = "\t"
+	mark_type = 'hostmark'
 
 	for arg in args:
 		if arg.startswith('--table='):
 			table = arg.split('=')[1]
-		elif '=' in arg:
-			(k, v) = arg.split('=', 1)
-			param_keys.append(k)
-			param_values.append(db.escape_string(v))
+		elif arg.startswith('--file=') or arg.startswith('--path='):
+			path = arg.split('=')[1]
+		elif arg.startswith('--field-sep='):
+			sep = arg.split('=')[1]
+			if sep == '\n':
+				sep = "\n"
+		else:
+			if not path and arg.startswith('log='):
+				path = os.path.dirname(arg.split('=', 1)[1]) + '/marks.log'
+			if arg.startswith('SERVICE'):
+				mark_type = 'servicemark'
+			params.append(arg)
 
-	if len(param_keys) == 0:
+	if not path:
+		prettyprint_docstring('mark', cmd_mark.__doc__,
+			'No path parameter supplied. Where do I put my mark?')
+		sys.exit(1)
+
+	if len(params) == 0:
 		prettyprint_docstring('mark', cmd_mark.__doc__,
 			'No parameters. At least one must be supplied')
 		sys.exit(1)
 
-	param_keys.append('timestamp')
-	param_values.append("%d" % time.time())
-	param_keys.append('parent_pid')
-	param_values.append("%d" % os.getppid())
+	params.insert(0, 'timestamp=%d' % time.time())
 
-	query = "INSERT INTO %s(%s) VALUES('%s')" % (
-		table,
-		', '.join(param_keys),
-		"', '".join(param_values)
-	)
+	s = "%s {\n\t%s\n}\n" % (mark_type, '\n\t'.join(params))
 
-	try:
-		dbc.execute(query)
-	except Exception, e:
-		print("Failed to execute query: %s" % e)
-		dbc.close()
-		db.close()
-		sys.exit(1)
+	f = open(path, "a")
+	f.write(s)
+	f.close()
 
-	print("Insert went just fine")
-
-	dbc.close()
-	db.close()
 	sys.exit(0)
+
