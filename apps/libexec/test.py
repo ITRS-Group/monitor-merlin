@@ -21,6 +21,7 @@ from merlin_test_utils import *
 from nagios_command import nagios_command
 import merlin_db
 from qhcheck import QhChannel
+import nagios_plugin as nplug
 
 import compound_config as cconf
 
@@ -1604,3 +1605,74 @@ def cmd_mark(args):
 
 	sys.exit(0)
 
+
+def build_output(what, args):
+	if len(args):
+		msg = "%s: %s" % (what, ' '.join(args))
+	else:
+		msg = '%s: Static mon test output' % what
+	return msg
+
+
+def cmd_check(args):
+	"""[<path>] [options]
+	If path exists, it should point to a file looking like this:
+		state=CRITICAL
+		output=Some plugin output
+		perfdata=<valid performance data>
+	and its data will be used to set the check state.
+	If it doesn't exist, its last element, separated by dashes (-)
+	will be considered a state-name for us to use.
+	If no arguments are passed, a random state will be used.
+	"""
+	path = False
+	perfdata = ''
+	output = False
+	for arg in args:
+		if arg.startswith('--state='):
+			stext = arg.split('=', 1)[1]
+			state = nplug.state_code(stext)
+		elif arg.startswith('--perfdata='):
+			perfdata += arg.split('=')[1]
+		elif arg.startswith('--output='):
+			output = arg.split('=')[1]
+		elif not path:
+			path = arg
+
+	if not len(args) or not path:
+		state = random.randint(0, 3)
+		stext = nplug.state_name(state)
+		print(build_output(stext, ["Randomized check"]))
+		sys.exit(state)
+
+	stext = "unset"
+
+	f = False
+	if path:
+		try:
+			f = open(path)
+		except:
+			f = False
+			pass
+
+	if not f:
+		stext = args[0].split('-')[-1].upper()
+	else:
+		for line in f:
+			line = line.strip()
+			if line.startswith('state='):
+				stext = line.split('=', 1)[1].upper()
+				state = nplug.state_code(stext)
+			elif line.startswith('output='):
+				output = line.split('=', 1)[1]
+			elif line.startswith('perfdata='):
+				perfdata = line.split('=', 1)[1]
+
+	if not output:
+		output = ' '.join(args)
+	if perfdata:
+		print(build_output(stext, [output, '|', perfdata]))
+	else:
+		print(build_output(stext, [output]))
+
+	sys.exit(nplug.state_code(stext))
