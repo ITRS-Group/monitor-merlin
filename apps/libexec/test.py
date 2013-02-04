@@ -1205,9 +1205,7 @@ def cmd_dist(args):
 		if mesh.test_imports() == False:
 			_dist_shutdown(mesh, 'Imports failed. This is a known spurious error when running tests often', batch)
 
-		if mesh.test_daemon_restarts() == False:
-			print("Daemon restart tests failed. Bailing out")
-			_dist_shutdown(mesh, 'Restart tests failed', batch)
+		mesh.intermission("Stabilizing all daemon connections", 20)
 
 		if mesh.test_global_commands() == False:
 			_dist_shutdown(mesh, 'Global command tests failed', batch)
@@ -1218,6 +1216,12 @@ def cmd_dist(args):
 		mesh.test_downtime()
 		mesh.test_acks()
 		mesh.test_comments()
+
+		# restart tests come last, as we now have some state to read back in
+		if mesh.test_daemon_restarts() == False:
+			print("Daemon restart tests failed. Bailing out")
+			_dist_shutdown(mesh, 'Restart tests failed', batch)
+
 	except SystemExit:
 		# Some of the helper functions call sys.exit(1) to bail out.
 		# Let's assume they take care of cleaning up before doing so
