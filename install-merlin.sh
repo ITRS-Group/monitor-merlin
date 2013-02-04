@@ -203,8 +203,8 @@ install_apps ()
 
 install_files ()
 {
-	bins="merlind" # stuff that a user might be supposed to execute
-	execs="import showlog ocimp install-merlin.sh init.sh rename" # implementation execs
+	bins="merlind merlin-import" # stuff that a user might be supposed to execute
+	execs="showlog ocimp install-merlin.sh init.sh rename" # implementation execs
 	files="$execs merlin.so example.conf"
 	missing=
 	for i in $bins $files; do
