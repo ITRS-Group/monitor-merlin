@@ -110,6 +110,8 @@ def cmd_import(args):
 			args.pop(i)
 		i += 1
 
+	args.insert(0, '--nagios-cfg=' + nagios_cfg)
+
 	if not '--list-files' in args:
 		db_user = mconf.dbopt.get('user', 'merlin')
 		db_pass = mconf.dbopt.get('pass', 'merlin')
