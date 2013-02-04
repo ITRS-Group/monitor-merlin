@@ -193,8 +193,6 @@ class fake_peer_group:
 		self.oconf_buf = "%s\n%s" % (self.oconf_buf, poller_oconf_buf)
 		for node in self.nodes:
 			node.write_file('etc/oconf/generated.cfg', self.oconf_buf)
-			node.write_file('etc/oconf/shared.cfg',
-				test_config_in.shared_object_config.replace('@@node_name@@', node.name))
 
 		print("Peer group %s objects:" % self.group_name)
 		print("        hosts: %d" % self.num_objects['host'])
@@ -372,6 +370,7 @@ class fake_instance:
 
 		configs[self.nagios_cfg_path] = self.nagios_config
 		configs[self.merlin_conf_path] = self.merlin_config
+		configs["%s/etc/oconf/shared.cfg" % (self.home)] = test_config_in.shared_object_config
 		for (path, buf) in configs.items():
 			for (key, value) in self.substitutions.items():
 				buf = buf.replace(key, value)
