@@ -134,9 +134,9 @@ def cmd_import(args):
 				cmd_fetch(since)
 				tmpname = cmd_sortmerge(['--since=' + since])
 				print("importing from %s" % tmpname)
-				import_args = [merlin_dir + '/import', tmpname] + args
+				import_args = ['merlin-import', tmpname] + args
 			else:
-				import_args = [merlin_dir + '/import'] + args
+				import_args = ['merlin-import'] + args
 			retcode = subprocess.call(import_args, stdout=sys.stdout.fileno(), stderr=sys.stderr.fileno())
 			if retcode:
 				print("Failed to run log import subcommand")
@@ -144,7 +144,7 @@ def cmd_import(args):
 				raise SubcommandException()
 			return True
 
-	app = merlin_dir + "/import"
+	app = "merlin-import"
 	try:
 		ret = subprocess.call([app] + args, stdout=None, stderr=sys.stderr)
 		if ret < 0:
