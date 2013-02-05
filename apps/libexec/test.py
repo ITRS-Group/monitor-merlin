@@ -1035,16 +1035,55 @@ def dist_test_sighandler(signo, stackframe):
 	dist_test_mesh.stop_daemons()
 	sys.exit(1)
 
+def ocount_compare(have, expected):
+	expect = []
+	ret = {'fail': [], 'pass': []}
+	for exp in expected:
+		ary = exp.split('=')
+		k = '='.join(ary[:-1])
+		v = int(ary[-1])
+		expect.append([k, v])
+
+	for (k, v) in expect:
+		exp = have.get(k, 0)
+		if v == exp:
+			ret['pass'].append([k, v, exp])
+		else:
+			ret['fail'].append([k, v, exp])
+	return ret
+
 def cmd_ocount(args):
-	"""path
+	"""path [<path2> <pathN>] [[--expect=]name=<int>]
 	Counts objects of each specific type in 'path' and prints them in
 	shell eval()'able style to stdout in sorted order.
+	Note that
+	  somekey=0
+	will yield a passing test if somekey isn't found in the result.
+	Also note that we can't parse files with equal signs in them.
 	"""
-	if not len(args):
+	expect = []
+	path = []
+	for arg in args:
+		if '=' in arg:
+			expect.append(arg)
+		else:
+			path.append(arg)
+
+	if not len(path):
 		print("No path specified")
 		sys.exit(1)
-	ret = cconf.count_compound_types(args[0])
+
+	ret = {}
+	for p in path:
+		xret = cconf.count_compound_types(p)
+		for k, v in xret.items():
+			if ret.get(k, False) == False:
+				ret[k] = 0
+			ret[k] += v
+
 	total = 0
+
+	result = ocount_compare(ret, expect)
 
 	# sort alphabetically
 	otypes = list(ret.items())
@@ -1052,6 +1091,11 @@ def cmd_ocount(args):
 	for t, num in otypes:
 		total += num
 		print("%s=%d" % (t, num))
+	print("passed=%d" % (len(result['pass'])))
+	print("failed=%d" % (len(result['fail'])))
+	if len(result['fail']):
+		sys.exit(1)
+	sys.exit(0)
 
 
 def cmd_dist(args):
