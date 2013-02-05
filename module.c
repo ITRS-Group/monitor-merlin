@@ -758,7 +758,7 @@ int send_paths(void)
 	if (db_track_current)
 		cache_file = nagios_object_cache;
 	else
-		asprintf(&cache_file, "/tmp/timeperiods.cache");
+		asprintf(&cache_file, "/%s/timeperiods.cache", temp_path);
 	status_log = nagios_status_log;
 
 	ldebug("config_file: %p; nagios_object_cache: %p; status_log: %p",
@@ -853,7 +853,7 @@ static int post_config_init(int cb, void *ds)
 
 		time(&current_time);
 
-		asprintf(&cache_file, "/tmp/timeperiods.cache");
+		asprintf(&cache_file, "/%s/timeperiods.cache", temp_path);
 
 		/* open the cache file for writing */
 		fp = fopen(cache_file, "w");
