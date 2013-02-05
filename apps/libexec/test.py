@@ -1612,10 +1612,11 @@ def cmd_mark(args):
 	params = []
 	sep = "\t"
 	mark_type = 'hostmark'
+	mark_name = False
 
 	for arg in args:
-		if arg.startswith('--table='):
-			table = arg.split('=')[1]
+		if arg.startswith('--mark='):
+			mark_name = arg.split('=', 1)[1]
 		elif arg.startswith('--file=') or arg.startswith('--path='):
 			path = arg.split('=')[1]
 		elif arg.startswith('--field-sep='):
@@ -1625,9 +1626,12 @@ def cmd_mark(args):
 		else:
 			if not path and arg.startswith('log='):
 				path = os.path.dirname(arg.split('=', 1)[1]) + '/marks.log'
-			if arg.startswith('SERVICE'):
+			if not mark_name and arg.startswith('SERVICE'):
 				mark_type = 'servicemark'
 			params.append(arg)
+
+	if not mark_name:
+		mark_name = mark_type
 
 	if not path:
 		prettyprint_docstring('mark', cmd_mark.__doc__,
@@ -1641,7 +1645,7 @@ def cmd_mark(args):
 
 	params.insert(0, 'timestamp=%d' % time.time())
 
-	s = "%s {\n\t%s\n}\n" % (mark_type, '\n\t'.join(params))
+	s = "%s {\n\t%s\n}\n" % (mark_name, '\n\t'.join(params))
 
 	f = open(path, "a")
 	f.write(s)
