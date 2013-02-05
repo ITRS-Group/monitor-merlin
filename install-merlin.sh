@@ -203,12 +203,12 @@ install_apps ()
 
 install_files ()
 {
-	# FIXME: some of these should be libexec?
-	bins="merlind merlin-import ocimp" # user-visible binaries
-	execs="showlog install-merlin.sh init.sh rename" # implementation execs - libexec them
-	files="$execs merlin.so example.conf"
+	bins="merlind" # user-visible binaries
+	libexecs="import ocimp merlin.so showlog" # binaries that are outside of /opt/monitor lockdown
+	files="example.conf install-merlin.sh init.sh rename" # files going straight to /opt/monitor/op5/merlin/
+	execs="import ocimp showlog install-merlin.sh init.sh rename merlind" # everything that should +x
 	missing=
-	for i in $bins $files; do
+	for i in $bins $libexecs $files $execs; do
 		if ! test -f "$src_dir/$i"; then
 			echo "$src_dir/$i is missing"
 			missing="$missing $src_dir/$i"
@@ -219,6 +219,11 @@ install_files ()
 	test -d "$root_path/$dest_dir" || mkdir -p -m 755 "$root_path/$dest_dir"
 	test -d "$root_path/$dest_dir/logs" || mkdir -p -m 777 "$root_path/$dest_dir/logs"
 	test -d "$root_path/$dest_dir" || { echo "$root_path/$dest_dir is not a directory"; return 1; }
+	test -d "$root_path/$libexecdir" || mkdir -p -m 755 "$root_path/$libexecdir"
+	for f in $execs; do
+		chmod 755 "$f"
+	done
+
 	for f in $files; do
 		cp "$src_dir/$f" "$root_path/$dest_dir"
 	done
@@ -229,16 +234,12 @@ install_files ()
 	macro_subst "$src_dir/object_importer.inc.php" > "$root_path/$dest_dir/object_importer.inc.php"
 	macro_subst "$src_dir/MerlinPDO.inc.php" > "$root_path/$dest_dir/MerlinPDO.inc.php"
 	macro_subst "$src_dir/oci8topdo.php" > "$root_path/$dest_dir/oci8topdo.php"
-	for f in $execs; do
-		chmod 755 "$root_path/$dest_dir/$f"
-	done
 	mkdir -p $root_path/$bindir
 	for f in $bins; do
 		cp "$src_dir/$f" "$root_path/$bindir"
-		chmod 755 "$root_path/$bindir/$f"
 	done
-	for f in merlin.conf example.conf merlin.so; do
-		chmod 644 "$root_path/$dest_dir/$f"
+	for f in $libexecs; do
+		cp "$src_dir/$f" "$root_path/$libexecdir"
 	done
 }
 

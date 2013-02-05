@@ -96,8 +96,10 @@ mkdir -p %buildroot/%mod_path/binlogs
 mkdir -p %buildroot%_sysconfdir/logrotate.d
 cp merlin.logrotate %buildroot%_sysconfdir/logrotate.d/merlin
 ln -s ../../../../usr/bin/merlind %buildroot/%mod_path/merlind
-ln -s ../../../../usr/bin/merlin-import %buildroot/%mod_path/import
-ln -s ../../../../usr/bin/ocimp %buildroot/%mod_path/ocimp
+ln -s ../../../../usr/libexec/merlin/import %buildroot/%mod_path/import
+ln -s ../../../../usr/libexec/merlin/ocimp %buildroot/%mod_path/ocimp
+ln -s ../../../../usr/libexec/merlin/showlog %buildroot/%mod_path/showlog
+ln -s ../../../../usr/libexec/merlin/merlin.so %buildroot/%mod_path/merlin.so
 
 # install plugins and create their symlinks
 mkdir -p %buildroot/opt
@@ -217,8 +219,6 @@ sh /etc/init.d/monitor start || :
 %mod_path/rename
 /usr/libexec/merlin/*
 /usr/bin/mon
-/usr/bin/merlin-import
-/usr/bin/ocimp
 %_sysconfdir/cron.d/*
 /opt/plugins/*
 /opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*

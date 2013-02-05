@@ -90,7 +90,7 @@ SHOWLOG_OBJS = $(APP_OBJS) showlog.o auth.o
 RENAME_OBJS = $(APP_OBJS) rename.o logutils.o lparse.o $(DBWRAP_OBJS)
 NEBTEST_OBJS = $(TEST_OBJS) nebtest.o
 DEPS = Makefile cfgfile.h ipc.h mrln_logging.h shared.h
-APPS = showlog merlin-import oconf ocimp rename
+APPS = showlog import oconf ocimp rename
 MOD_LDFLAGS = -shared -ggdb3 -fPIC
 DAEMON_LIBS = $(LIB_NET)
 DAEMON_LDFLAGS = $(DAEMON_LIBS) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) -ggdb3
@@ -146,7 +146,7 @@ test-lparse: test-lparse.o lparse.o logutils.o test_utils.o
 ocimp: ocimp.o $(DBWRAP_OBJS) $(TEST_OBJS) sha1.o slist.o
 	$(QUIET_LINK)$(CC) $^ -o $@ -ggdb3 $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) $(LDFLAGS)
 
-merlin-import: $(IMPORT_OBJS)
+import: $(IMPORT_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(LIB_NET) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS)
 
 showlog: $(SHOWLOG_OBJS)
