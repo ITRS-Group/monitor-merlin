@@ -1638,11 +1638,6 @@ def cmd_mark(args):
 			'No path parameter supplied. Where do I put my mark?')
 		sys.exit(1)
 
-	if len(params) == 0:
-		prettyprint_docstring('mark', cmd_mark.__doc__,
-			'No parameters. At least one must be supplied')
-		sys.exit(1)
-
 	params.insert(0, 'timestamp=%d' % time.time())
 
 	s = "%s {\n\t%s\n}\n" % (mark_name, '\n\t'.join(params))
