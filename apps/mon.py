@@ -3,12 +3,12 @@
 import os, sys, subprocess, tempfile
 
 merlin_dir = "@@DESTDIR@@"
-libexec_dir = "@@LIBEXECDIR@@"
+libexec_dir = "@@LIBEXECDIR@@/mon/"
 
 # default to op5-ish systems
 if merlin_dir == "@" + "@DESTDIR@@":
 	merlin_dir = os.path.abspath(os.path.dirname(os.path.realpath(__file__))+'/..')
-if libexec_dir == "@" + "@LIBEXECDIR@@":
+if libexec_dir == "@" + "@LIBEXECDIR@@/mon/":
 	libexec_dir = os.path.dirname(os.path.realpath(__file__)) + '/libexec/'
 
 module_dir = libexec_dir + '/modules'

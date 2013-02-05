@@ -192,13 +192,13 @@ say ()
 install_apps ()
 {
 	mkdir -p $root_path/$bindir
-	mkdir -p $root_path/$libexecdir
+	mkdir -p $root_path/$libexecdir/mon
 	macro_subst "$src_dir/apps/mon.py" > "$root_path/$bindir/mon"
-	cp -a apps/libexec/* $root_path/$libexecdir
-	rm -f $root_path/$libexecdir/-oconf
-	cp oconf $root_path/$libexecdir/-oconf
+	cp -a apps/libexec/* $root_path/$libexecdir/mon
+	rm -f $root_path/$libexecdir/mon/-oconf
+	cp oconf $root_path/$libexecdir/mon/-oconf
 	chmod 755 $root_path/$bindir/mon
-	chmod 755 $root_path/$libexecdir/*
+	chmod 755 $root_path/$libexecdir/mon/*
 }
 
 install_files ()

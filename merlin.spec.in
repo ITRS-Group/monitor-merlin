@@ -223,10 +223,10 @@ sh /etc/init.d/monitor start || :
 /opt/plugins/*
 /opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
 
-%exclude /usr/libexec/merlin/test.py*
+%exclude /usr/libexec/merlin/mon/test.py*
 
 %files test
-/usr/libexec/merlin/test.py*
+/usr/libexec/merlin/mon/test.py*
 
 %clean
 rm -rf %buildroot
