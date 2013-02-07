@@ -381,8 +381,9 @@ def cmd_ctrl(args):
 
 	blocked = 0
 	for name, node in nodes.items():
-		if str(node.connect) != "no":
+		if str(node.connect) == "no":
 			blocked += 1
+		else:
 			node.ctrl(cmd)
 
 	if by_name and blocked == len(wanted_names):
