@@ -27,7 +27,7 @@ static uint32_t event_mask;
  * from the node that won't even run the check
  */
 struct block_object {
-	time_t when;
+	time_t when, last_logged;
 	void *obj;
 	unsigned long long safe, poller, peer, sent;
 };
@@ -766,6 +766,13 @@ static int hook_flapping(merlin_event *pkt, void *data)
 static void log_blocked(const char *what, struct block_object *blk)
 {
 	unsigned long long total = blk->safe + blk->peer + blk->poller;
+	time_t now = time(NULL);
+
+	/* don't spam the logs more than necessary */
+	if (blk->last_logged + 120 < now)
+		return;
+
+	blk->last_logged = now;
 
 	/* log this once every 1000'th blocked event */
 	if (total && !(total % 1000)) {
