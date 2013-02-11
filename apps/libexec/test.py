@@ -1576,36 +1576,29 @@ def cmd_pasv(args):
 	print("total tests: %d" % total_tests)
 
 
-def cmd_check_mark(args):
-	"""[--table=<table>] --max-age=<age> <key1=value1> <keyN=valueN>
+def mark(path, mark_name='mark', params=[]):
+	"""The business end of 'cmd_mark'"""
 
-	Checks the timestamp marker in the table pointed to by <table>.
-	This should be used in conjunction with 'mon test mark'.
+	params.insert(0, 'timestamp=%d' % time.time())
 
-	Each key translates to a column in the selected database table.
-	Each value is the value which has to match for the targeted table
-	for a match to be found.
+	if not mark_name:
+		mark_name = 'mark'
 
-	A max-age of 0 means 'any timestamp will do'.
-	A negative timestamp means 'if we find an entry, we failed'.
-	"""
-	prettyprint_docstring('check-mark', cmd_check_mark.__doc__,
-		"This command isn't implemented yet.")
-	sys.exit(1)
+	s = "%s {\n\t%s\n}\n" % (mark_name, '\n\t'.join(params))
+
+	f = open(path, "a")
+	f.write(s)
+	f.close()
+
 
 def cmd_mark(args):
-	"""--name=<name> [--file=<logfile>] <key1=value1> <keyN=valueN>
+	"""--mark-name=<name> [--mark-file=<logfile>] <key1=value1> <keyN=valueN>
 
-	Adds a timestamp marker into the table pointed to by --table, which
-	lets a tester know when some event last occurred. This comes in pretty
-	handy when making sure active checks, notifications and eventhandlers
-	are working as expected.
+	Adds a compound entry into the file pointed to by '--mark-file'.
+	This can be used to let a tester know when some event occurred.
 
-	Each key translates to a column in the selected database table.
-	Each value is the value which should go into that table (avoid strings
-	that need quoting, pretty please).
-	Each table used for such tests must contain the columns 'parent_pid' and
-	'timestamp', which are automagically added for tracking purposes.
+	Each key=value pair becomes a key=value pair in the written compound,
+	with 'timestamp=<unix-timestamp>' added as the first entry.
 	"""
 
 	path = False
@@ -1615,9 +1608,9 @@ def cmd_mark(args):
 	mark_name = False
 
 	for arg in args:
-		if arg.startswith('--mark='):
+		if arg.startswith('--mark-name=') or arg.startswith('--name'):
 			mark_name = arg.split('=', 1)[1]
-		elif arg.startswith('--file=') or arg.startswith('--path='):
+		elif arg.startswith('--mark-file=') or arg.startswith('--file'):
 			path = arg.split('=')[1]
 		elif arg.startswith('--field-sep='):
 			sep = arg.split('=')[1]
@@ -1638,14 +1631,7 @@ def cmd_mark(args):
 			'No path parameter supplied. Where do I put my mark?')
 		sys.exit(1)
 
-	params.insert(0, 'timestamp=%d' % time.time())
-
-	s = "%s {\n\t%s\n}\n" % (mark_name, '\n\t'.join(params))
-
-	f = open(path, "a")
-	f.write(s)
-	f.close()
-
+	mark(path, mark_name, params)
 	sys.exit(0)
 
 
@@ -1671,6 +1657,9 @@ def cmd_check(args):
 	path = False
 	perfdata = ''
 	output = False
+	mark_file = False
+	mark_name = False
+	mark_params = []
 	for arg in args:
 		if arg.startswith('--state='):
 			stext = arg.split('=', 1)[1]
@@ -1679,14 +1668,15 @@ def cmd_check(args):
 			perfdata += arg.split('=')[1]
 		elif arg.startswith('--output='):
 			output = arg.split('=')[1]
-		elif not path:
+		elif arg.startswith('--mark-file='):
+			mark_file = arg.split('=', 1)[1]
+		elif arg.startswith('--mark-name='):
+			mark_name = arg.split('=', 1)[1]
+		else:
 			path = arg
 
-	if not len(args) or not path:
-		state = random.randint(0, 3)
-		stext = nplug.state_name(state)
-		print(build_output(stext, ["Randomized check"]))
-		sys.exit(state)
+	if not path:
+		path = '/dev/null/check-random'
 
 	stext = "unset"
 
@@ -1699,7 +1689,11 @@ def cmd_check(args):
 			pass
 
 	if not f:
-		stext = args[0].split('-')[-1].upper()
+		stext = path.split('-')[-1].upper()
+		if stext.lower() == 'random':
+			state = random.randint(0, 3)
+			stext = nplug.state_name(state)
+			output = "Randomized check"
 	else:
 		for line in f:
 			line = line.strip()
@@ -1717,5 +1711,13 @@ def cmd_check(args):
 		print(build_output(stext, [output, '|', perfdata]))
 	else:
 		print(build_output(stext, [output]))
+
+	if mark_file:
+		params = []
+		if perfdata:
+			params.append('perfdata=%s' % perfdata)
+		params.append("state=%s" % stext)
+		params.append('output=%s' % output)
+		mark(mark_file, mark_name, params)
 
 	sys.exit(nplug.state_code(stext))
