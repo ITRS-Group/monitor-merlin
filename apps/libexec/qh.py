@@ -10,11 +10,18 @@ qh = '/opt/monitor/var/rw/nagios.qh'
 
 def module_init(args):
 	global qh
+	rem_args = []
 	comp = cconf.parse_conf(nagios_cfg)
 	for v in comp.params:
 		if v[0] == 'query_socket':
 			qh = v[1]
 			break
+	for arg in args:
+		if arg.startswith('--socket='):
+			qh = arg.split('=', 1)[1]
+			continue
+		rem_args.append(arg)
+	return rem_args
 
 
 def args_to_query(args):
@@ -29,9 +36,10 @@ def args_to_query(args):
 
 
 def cmd_query(args):
-	"""Run an arbitrary query with the nagios query handler.
-Print raw output.
-Commands need not include trailing nullbyte."""
+	"""--socket=</path/to/query-socket> <query>
+	Run an arbitrary query with the nagios query handler and print its
+	raw output. Queries need not include the trailing nulbyte or
+	leading hash- or at-sign."""
 	handler = nagios_qh(qh)
 	query = args_to_query(args)
 	if not query:
@@ -43,9 +51,10 @@ Commands need not include trailing nullbyte."""
 		sys.stdout.flush()
 
 def cmd_get(args):
-	"""Run an arbitrary query with the nagios query handler.
-Print pretty-printed output.
-Commands need not include trailing nullbyte."""
+	"""--socket=</path/to/query-socket> <query>
+	Run an arbitrary query with the nagios query handler and pretty-print
+	the output. Queries need not include the trailing nulbyte or leading
+	hash- or at-sign."""
 	handler = nagios_qh(qh)
 	query = args_to_query(args)
 	if not query:
