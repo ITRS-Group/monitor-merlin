@@ -43,6 +43,8 @@ def module_init(args):
 		elif arg.startswith('--name='):
 			wanted_names = arg.split('=')[1].split(',')
 			have_name_arg = True
+		elif arg.startswith('--socket='):
+			qh = arg.split('=', 1)[1]
 		else:
 			# not an argument we recognize, so stash it and move on
 			rem_args += [arg]
