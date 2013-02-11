@@ -300,7 +300,9 @@ class fake_instance:
 				cmd = real_cmd
 			self.proc[name] = subprocess.Popen(cmd, stdout=fd, stderr=fd)
 
-		os.close(fd)
+		# do NOT close 'fd' here, or we'll end up getting a bazillion
+		# "Inappropriate ioctl for device" due to a lot of failed
+		# isatty() calls in the logging functions
 
 
 	def signal_daemons(self, sig, dname=False):
