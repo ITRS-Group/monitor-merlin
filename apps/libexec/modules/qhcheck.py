@@ -120,11 +120,11 @@ class QhChannel(object):
 		self.query_handler = path
 		self.subscribe = subscribe
 		self.QUERY_FORMAT = '#%s %s\0' if self.subscribe else '#%s %s\0'
+
+	def query(self, query, timeout=None):
 		self.qh = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 		self.qh.connect(self.query_handler)
 		self._isclosed = False
-
-	def query(self, query, timeout=None):
 		if self._isclosed:
 			raise Exception('Cannot query closed channel %s' % self.address)
 
