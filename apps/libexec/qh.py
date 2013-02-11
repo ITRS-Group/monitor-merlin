@@ -5,6 +5,7 @@ modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
 if not modpath in sys.path:
 	sys.path.append(modpath)
 from nagios_qh import nagios_qh
+from merlin_apps_utils import *
 
 qh = '/opt/monitor/var/rw/nagios.qh'
 
@@ -43,8 +44,7 @@ def cmd_query(args):
 	handler = nagios_qh(qh)
 	query = args_to_query(args)
 	if not query:
-		print """Expected more arguments, try something like 'mon qh help' or
-'mon qh query help'"""
+		prettyprint_docstring('query', cmd_query.__doc__, 'Not enough arguments')
 		return
 	for block in handler.query(query):
 		print block,
@@ -58,8 +58,7 @@ def cmd_get(args):
 	handler = nagios_qh(qh)
 	query = args_to_query(args)
 	if not query:
-		print """Expected more arguments, try something like 'mon qh help' or
-'mon qh get help'"""
+		prettyprint_docstring('get', cmd_get.__doc__, 'Not enough arguments')
 		return
 	resp = handler.query(query)
 	try:
