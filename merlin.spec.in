@@ -23,6 +23,7 @@ Requires: libdbi-dbd-mysql
 Requires: ocilib >= 3.8
 Requires: merlin-apps >= %version
 Requires: monitor-config
+Requires: op5-monitor-supported-database
 BuildRequires: mysql-devel
 BuildRequires: libdbi-devel
 BuildRequires: ocilib-devel
