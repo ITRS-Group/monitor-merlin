@@ -716,24 +716,25 @@ def oconf_helper(args):
 	ret = os.spawnv(os.P_WAIT, app, [app] + args)
 	if ret < 0:
 		print("Helper %s was killed by signal %d" % (app, ret))
+	return ret
 
 def cmd_hash(args):
 	"""
 	Print sha1 hash of running configuration
 	"""
-	oconf_helper(['hash'] + args)
+	sys.exit(oconf_helper(['hash'] + args))
 
 def cmd_changed(args):
 	"""
 	Print last modification time of all object configuration files
 	"""
-	oconf_helper(['last-changed'] + args)
+	sys.exit(oconf_helper(['last-changed'] + args))
 
 def cmd_files(args):
 	"""
 	Print the configuration files in alphabetical order
 	"""
-	oconf_helper(['files'] + args)
+	sys.exit(oconf_helper(['files'] + args))
 
 def cmd_split(args):
 	"""<outfile:hostgroup1,hostgroup2,hostgroupN>
