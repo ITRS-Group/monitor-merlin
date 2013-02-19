@@ -185,6 +185,7 @@ Where category is sometimes optional.\n''')
 	for cat in cat_keys:
 		print("  %-7s: %s" % (cat, ', '.join(categories[cat])))
 	if len(help_helpers):
+		help_helpers.sort()
 		topic = "Commands without category:"
 		print("\n%s\n%s\n   %s" % (topic, '-' * len(topic), ', '.join(help_helpers)))
 
