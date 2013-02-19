@@ -13,6 +13,9 @@ class nagios_qh:
 	def query(self, query):
 		"""Ask a raw query to nagios' query handler socket, return the raw
 		response as a lazily generated sequence."""
+		if not query:
+			print "Missing query argument"
+			return
 		try:
 			self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 			self.socket.connect(self.query_handler)
