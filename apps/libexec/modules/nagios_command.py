@@ -955,13 +955,13 @@ class nagios_command:
 		},
 	}
 
-	def __init__(self, name=False):
+	def __init__(self, name=False, path=False):
 		self.info = False
-		self.use_command(name)
 		self.params = False
 		self.command_string = False
 		self.pipe_fd = -1
-		self.pipe_path = False
+		self.pipe_path = path
+		self.use_command(name)
 
 
 	def use_command(self, name=False):
@@ -971,6 +971,8 @@ class nagios_command:
 		self.info = self.command_info.get(self.name, False)
 		if self.info == False:
 			return False
+		if not ';' in self.info.get('template'):
+			self.command_string = self.name
 		return True
 
 
