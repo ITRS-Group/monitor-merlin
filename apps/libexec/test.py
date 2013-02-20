@@ -729,6 +729,12 @@ class fake_mesh:
 
 		return self.tap.failed == 0
 
+	def _unschedule_downtime(self, node, host_ids, svc_ids):
+		for dt in host_ids:
+			ret = node.submit_raw_command('DEL_HOST_DOWNTIME;%d' % dt);
+		for dt in svc_ids:
+			ret = node.submit_raw_command('DEL_SVC_DOWNTIME;%d' % dt);
+
 
 	def test_downtime(self):
 		"""
@@ -770,6 +776,33 @@ class fake_mesh:
 			value = inst.live.query('GET comments\nStats: type = 2\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
 			self.tap.test(value, len(inst.group.have_objects['service']),
 				'Service downtime should generate one comment each on %s' % inst.name)
+
+		host_downtimes = [x[0] for x in self.instances[0].live.query('GET downtimes\nColumns: id\nFilter: is_service = 0')]
+		service_downtimes = [x[0] for x in self.instances[0].live.query('GET downtimes\nColumns: id\nFilter: is_service = 1')]
+		self._unschedule_downtime(master, host_downtimes, service_downtimes)
+		self.intermission("Letting downtime deletion spread")
+		for inst in self.instances:
+			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
+			self.tap.test(value, 0,
+				'All host downtime should be gone on %s' % inst.name)
+
+			value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
+			self.tap.test(value, 0,
+				'All service downtime should be gone on %s' % inst.name)
+
+		print("Submitting downtime to poller %s again" % poller.name)
+		self._schedule_downtime(poller)
+		self._schedule_downtime(master, poller.group.have_objects)
+		self.intermission("Letting downtime spread")
+		for inst in self.instances:
+			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
+			self.tap.test(value, len(inst.group.have_objects['host']),
+				'All host downtime should spread to %s' % inst.name)
+
+			value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
+			self.tap.test(value, len(inst.group.have_objects['service']),
+				'All service downtime should spread to %s' % inst.name)
+
 		return None
 
 
