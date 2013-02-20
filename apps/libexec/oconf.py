@@ -21,6 +21,7 @@ if not modpath in sys.path:
 from compound_config import *
 from object_importer import ObjectImporter
 from merlin_apps_utils import *
+from nagios_command import *
 
 obj_index = {}
 def idx_get(otype):
@@ -717,6 +718,19 @@ def oconf_helper(args):
 	if ret < 0:
 		print("Helper %s was killed by signal %d" % (app, ret))
 	return ret
+
+def cmd_reload(args):
+	"""
+	Reload by submitting external command RESTART_PROCESS
+	"""
+	comp = parse_nagios_cfg(nagios_cfg)
+	for k, v in comp.params:
+		if k != 'command_file':
+			continue
+		cmd_file = v
+		break
+	ncmd = nagios_command('RESTART_PROCESS', cmd_file)
+	ncmd.submit()
 
 def cmd_hash(args):
 	"""
