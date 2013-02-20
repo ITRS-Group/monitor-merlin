@@ -1,3 +1,5 @@
+import os
+
 class compound_object:
 	def __init__(self, name = '', parent = False):
 		# we stash start and end line so our caller can remove
@@ -98,6 +100,77 @@ def parse_conf(path, splitchar='='):
 	f.close()
 
 	return cur
+
+def parse_nagios_cfg(path):
+	comp = parse_conf(path)
+	main_config_dir = os.path.dirname(os.path.abspath(path))
+	temp_path_i = False
+	temp_path = False
+	temp_file_i = False
+	temp_file = False
+	comp.command_file = False
+	comp.query_socket = False
+	i = -1
+	for k, v in comp.params:
+		i += 1
+		if not '_' in k:
+			continue
+		if k == 'broker_module':
+			ary = v.split(' ')
+			modpath = ary[0]
+			if modpath[0] == '/':
+				print("early cont")
+				continue
+			else:
+				ary[0] = os.path.abspath(main_config_dir + '/' + modpath)
+				comp.params[i] = ('broker_module', ' '.join(ary))
+		if k != 'query_socket':
+			last = k.split('_')[-1]
+			if last != 'file' and last != 'dir' and last != 'path':
+				continue
+		if k == 'temp_path':
+			temp_path_i = i
+			temp_path = v
+		if k == 'temp_file':
+			temp_file_i = i
+			temp_file = v
+		if v[0] != '/':
+			rel_v = os.path.abspath(main_config_dir + '/' + v)
+			comp.params[i] = (k, rel_v)
+		if k == 'command_file':
+			comp.command_file = v
+		elif k == 'query_socket':
+			comp.query_socket = v
+
+	# This is how Nagios does it
+	if not temp_path_i:
+		temp_path = os.getenv("TMPDIR")
+		if not temp_path:
+			temp_path = os.getenv("TMP")
+		if not temp_path:
+			temp_path = '/tmp'
+		comp.params.append(('temp_path', temp_path))
+
+	if not temp_file_i:
+		temp_file = '%s/nagios.tmp' % temp_path
+		comp.params.append(('temp_file', '%s/nagios.tmp' % temp_path))
+	elif not temp_file[0] == '/':
+		if not '/' in temp_file:
+			temp_file = '%s/%s' % (temp_path, temp_file)
+		else:
+			temp_file = '%s/%s' % (temp_path, os.path.abspath(temp_file))
+		comp.params[temp_file_i] = ('temp_file', '%s' % temp_file)
+
+	comp.temp_path = temp_path
+	comp.temp_file = temp_file
+	# we're basically guessing if these aren't set, but it follows the
+	# Nagios defaults more or less, so that's probably ok.
+	if not comp.command_file:
+		comp.command_file = '%s/rw/nagios.cmd' % (comp.temp_path)
+	if not comp.query_socket:
+		comp.query_socket = "%s/nagios.qh" % (os.path.dirname(comp.command_file))
+
+	return comp
 
 def write_conf(f, opt, nesting = 0):
 	if nesting:
