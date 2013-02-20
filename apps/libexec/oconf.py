@@ -1044,7 +1044,7 @@ def cmd_push(args):
 	# of them, or we might trigger an avalanche of config pushes
 	# that trigger and re-trigger each other.
 	for name, node in restart_nodes.items():
-		if restart and not node.ctrl("mon restart"):
+		if restart and not node.ctrl("mon oconf reload"):
 			print("Restart failed for node '%s'" % name)
 			errors += 1
 
