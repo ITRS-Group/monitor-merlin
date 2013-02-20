@@ -720,17 +720,41 @@ def oconf_helper(args):
 	return ret
 
 def cmd_reload(args):
+	"""[--unsafe] [</path/to/nagios>]
+	Reload object config by submitting an external command
 	"""
-	Reload by submitting external command RESTART_PROCESS
-	"""
+	global nagios_cfg
+	safe = True
+	bin = 'monitor'
+	for arg in args:
+		if arg == '--unsafe':
+			safe = False
+		elif arg == '--safe':
+			safe = True
+		elif arg.endswith('.cfg'):
+			nagios_cfg = arg
+		else:
+			bin = arg
+
+	color = ansi_color()
+
+	if safe:
+		cmd_args = [bin, '-v', nagios_cfg]
+		ret = os.spawnvp(os.P_WAIT, bin, cmd_args)
+		if ret != 0:
+			print("\n%sConfig seems broken. Refusing to reload%s" % (color.red, color.reset))
+			print("Testing command used:\n  %s" % ' '.join(cmd_args))
+			sys.exit(ret)
+		print("")
+
 	comp = parse_nagios_cfg(nagios_cfg)
-	for k, v in comp.params:
-		if k != 'command_file':
-			continue
-		cmd_file = v
-		break
-	ncmd = nagios_command('RESTART_PROCESS', cmd_file)
-	ncmd.submit()
+	ncmd = nagios_command('RESTART_PROCESS', comp.command_file)
+	ret = ncmd.submit()
+	if ret == False:
+		print("%sConfig reload failed%s" % (color.red, color.reset))
+		sys.exit(1)
+	else:
+		print("%sConfig reloaded OK%s" % (color.green, color.reset))
 
 def cmd_hash(args):
 	"""
