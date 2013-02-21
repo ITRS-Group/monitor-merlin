@@ -188,6 +188,7 @@ sh /etc/init.d/monitor start || :
 %files
 %defattr(-,root,root)
 %config(noreplace) %mod_path/merlin.conf
+%mod_path/sample.merlin.conf
 %mod_path/sql
 %mod_path/merlind
 %mod_path/install-merlin.sh

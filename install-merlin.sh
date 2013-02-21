@@ -229,9 +229,9 @@ install_files ()
 	done
 	mkdir -p "$root_path/$dest_dir/sql/mysql/"
 	cp -r "$src_dir/sql" "$root_path/$dest_dir"
-	macro_subst "$src_dir/example.conf" > "$root_path/$dest_dir/merlin.conf.sample"
+	macro_subst "$src_dir/example.conf" > "$root_path/$dest_dir/sample.merlin.conf"
 	test -f "$root_path/$dest_dir/merlin.conf" || \
-		cp "$root_path/$dest_dir/merlin.conf.sample" \
+		cp "$root_path/$dest_dir/sample.merlin.conf" \
 			"$root_path/$dest_dir/merlin.conf"
 	macro_subst "$src_dir/import.php" > "$root_path/$dest_dir/import.php"
 	macro_subst "$src_dir/object_importer.inc.php" > "$root_path/$dest_dir/object_importer.inc.php"
