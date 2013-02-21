@@ -23,7 +23,9 @@ from merlin_apps_utils import *
 
 
 mconf.config_file = '%s/merlin.conf' % merlin_dir
-nagios_cfg = '/opt/monitor/etc/nagios.cfg'
+nagios_cfg = '@@NAGIOSCFG@@'
+if nagios_cfg == '@' + '@NAGIOSCFG@@':
+	nagios_cfg = '/opt/monitor/etc/nagios.cfg'
 
 # run a generic helper from the libexec dir
 def run_helper(helper, args):
