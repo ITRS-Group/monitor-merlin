@@ -1261,6 +1261,7 @@ def cmd_dist(args):
 		db_name=db_name,
 		db_host=db_host,
 		use_database=use_database,
+		sleeptime=sleeptime
 	)
 	mesh.create_playground(num_hosts, num_services_per_host)
 
