@@ -205,10 +205,11 @@ install_files ()
 {
 	bins="merlind" # user-visible binaries
 	libexecs="import ocimp merlin.so showlog" # binaries that are outside of /opt/monitor lockdown
-	files="example.conf install-merlin.sh init.sh rename" # files going straight to /opt/monitor/op5/merlin/
+	files="install-merlin.sh rename" # files going straight to /opt/monitor/op5/merlin/
+	subst="example.conf init.sh" # files needing substitution
 	execs="import ocimp showlog install-merlin.sh init.sh rename merlind" # everything that should +x
 	missing=
-	for i in $bins $libexecs $files $execs; do
+	for i in $bins $libexecs $files $execs $subst; do
 		if ! test -f "$src_dir/$i"; then
 			echo "$src_dir/$i is missing"
 			missing="$missing $src_dir/$i"
