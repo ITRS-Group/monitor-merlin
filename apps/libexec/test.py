@@ -252,6 +252,13 @@ class fake_instance:
 		live_path = os.path.join(self.home, 'var', 'rw', 'live')
 		self.live = livestatus.SingleSiteConnection('unix://%s' % live_path)
 
+	def stat(self, path):
+		return os.stat('%s/%s' (self.home, path))
+
+	def fsize(self, path):
+		st = os.stat('%s/%s' % (self.home, path))
+		return st.st_size
+
 	def active_connections(self):
 		"""
 		Test to make sure all systems supposed to connect to this
@@ -533,6 +540,9 @@ class fake_mesh:
 
 	def test_daemon_restarts(self):
 		status = True
+		for inst in self.instances:
+			inst.nslog_size = inst.fsize('nagios.log')
+
 		for n, discard in self.progs.items():
 			self.stop_daemons(n)
 			self.intermission("Letting %s daemons die" % n, 3)
@@ -541,6 +551,9 @@ class fake_mesh:
 			ret = self.test_connections()
 			if ret == False:
 				status = False
+		for inst in self.instances:
+			lsize = inst.fsize('nagios.log')
+			self.tap.test(lsize > inst.nslog_size, True, "nagios.log must not be truncated")
 		return status
 
 
