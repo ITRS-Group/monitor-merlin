@@ -39,18 +39,18 @@ modify_nagios_cfg ()
 {
 	if ! grep -q "merlin.so" "$nagios_cfg"; then
 		say "Adding merlin.so as eventbroker to nagios"
-		sed -i "s#^log_file.*#broker_module=$dest_dir/merlin.so $dest_dir/merlin.conf\\n\\n&#" \
+		sed -i "s#^log_file.*#broker_module=$libexecdir/merlin.so $dest_dir/merlin.conf\\n\\n&#" \
 			"$nagios_cfg"
 		return 0
 	fi
 
-	if grep -q "$dest_dir/merlin.so" "$nagios_cfg"; then
+	if grep -q "$libexecdir/merlin.so" "$nagios_cfg"; then
 		say "merlin.so is already a registered eventbroker in Nagios"
 		return 0
 	fi
 
 	say "Updating path to merlin.so in $nagios_cfg"
-	sed -i "s#broker_module.*merlin.so.*#broker_module=$dest_dir/merlin.so $dest_dir/merlin.conf#" \
+	sed -i "s#broker_module.*merlin.so.*#broker_module=$libexecdir/merlin.so $dest_dir/merlin.conf#" \
 		"$nagios_cfg"
 	return 0
 }
