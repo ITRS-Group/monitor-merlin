@@ -119,7 +119,7 @@ class QhChannel(object):
 		self.bufsize = 4096
 		self.query_handler = path
 		self.subscribe = subscribe
-		self.QUERY_FORMAT = '#%s %s\0' if self.subscribe else '#%s %s\0'
+		self.QUERY_FORMAT = '@%s %s\0' if self.subscribe else '#%s %s\0'
 
 	def query(self, query, timeout=None):
 		self.qh = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
