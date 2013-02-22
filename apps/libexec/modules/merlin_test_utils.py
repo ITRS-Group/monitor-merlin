@@ -86,7 +86,6 @@ log_event_handlers=1
 log_initial_states=1
 log_external_commands=1
 log_passive_checks=1
-sleep_time=0.25
 service_inter_check_delay_method=s
 max_service_check_spread=30
 service_interleave_factor=s
