@@ -1635,7 +1635,7 @@ def cmd_pasv(args):
 	print("total tests: %d" % total_tests)
 
 
-def mark(path, mark_name='mark', params=[]):
+def mark(path, mark_name='mark', params=[], oneline=False):
 	"""The business end of 'cmd_mark'"""
 
 	params.insert(0, 'timestamp=%d' % time.time())
@@ -1643,7 +1643,10 @@ def mark(path, mark_name='mark', params=[]):
 	if not mark_name:
 		mark_name = 'mark'
 
-	s = "%s {\n\t%s\n}\n" % (mark_name, '\n\t'.join(params))
+	if oneline:
+		s = "%s %s" % (mark_name, ' '.join(params))
+	else:
+		s = "%s {\n\t%s\n}\n" % (mark_name, '\n\t'.join(params))
 
 	f = open(path, "a")
 	f.write(s)
@@ -1665,6 +1668,7 @@ def cmd_mark(args):
 	sep = "\t"
 	mark_type = 'hostmark'
 	mark_name = False
+	oneline = False
 
 	for arg in args:
 		if arg.startswith('--mark-name=') or arg.startswith('--name'):
@@ -1675,6 +1679,8 @@ def cmd_mark(args):
 			sep = arg.split('=')[1]
 			if sep == '\n':
 				sep = "\n"
+		elif arg == '--oneline':
+			oneline = True
 		else:
 			if not path and arg.startswith('log='):
 				path = os.path.dirname(arg.split('=', 1)[1]) + '/marks.log'
@@ -1690,7 +1696,7 @@ def cmd_mark(args):
 			'No path parameter supplied. Where do I put my mark?')
 		sys.exit(1)
 
-	mark(path, mark_name, params)
+	mark(path, mark_name, params, oneline)
 	sys.exit(0)
 
 
@@ -1719,6 +1725,7 @@ def cmd_check(args):
 	mark_file = False
 	mark_name = False
 	mark_params = []
+	oneline = False
 	for arg in args:
 		if arg.startswith('--state='):
 			stext = arg.split('=', 1)[1]
@@ -1731,6 +1738,8 @@ def cmd_check(args):
 			mark_file = arg.split('=', 1)[1]
 		elif arg.startswith('--mark-name='):
 			mark_name = arg.split('=', 1)[1]
+		elif arg.startswith('--oneline'):
+			oneline = True
 		else:
 			path = arg
 
@@ -1777,6 +1786,6 @@ def cmd_check(args):
 			params.append('perfdata=%s' % perfdata)
 		params.append("state=%s" % stext)
 		params.append('output=%s' % output)
-		mark(mark_file, mark_name, params)
+		mark(mark_file, mark_name, params, oneline)
 
 	sys.exit(nplug.state_code(stext))
