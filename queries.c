@@ -44,8 +44,9 @@ static int help(int sd, char *buf, unsigned int len)
 {
 	nsock_printf_nul(sd,
 		"I answer questions regarding the merlin *module*, not the daemon\n"
-		"nodeinfo   Print info about all nodes I know about\n"
-		"cbstats    Print callback statistics for each node\n"
+		"nodeinfo      Print info about all nodes I know about\n"
+		"cbstats       Print callback statistics for each node\n"
+		"notify-stats  Print notification statistics\n"
 	);
 	return 0;
 }
