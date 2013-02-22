@@ -221,9 +221,6 @@ install_files ()
 	test -d "$root_path/$dest_dir/logs" || mkdir -p -m 777 "$root_path/$dest_dir/logs"
 	test -d "$root_path/$dest_dir" || { echo "$root_path/$dest_dir is not a directory"; return 1; }
 	test -d "$root_path/$libexecdir" || mkdir -p -m 755 "$root_path/$libexecdir"
-	for f in $execs; do
-		chmod 755 "$f"
-	done
 
 	for f in $files; do
 		cp "$src_dir/$f" "$root_path/$dest_dir"
