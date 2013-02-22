@@ -41,7 +41,7 @@ class fake_peer_group:
 	Represents one fake group of peered nodes, sharing the same
 	object configuration
 	"""
-	def __init__(self, basepath, group_name, num_nodes=3, port=16000):
+	def __init__(self, basepath, group_name, num_nodes=3, port=16000, **kwargs):
 		self.nodes = []
 		self.num_nodes = num_nodes
 		self.group_name = group_name
@@ -63,7 +63,7 @@ class fake_peer_group:
 		i = 0
 		while i < num_nodes:
 			i += 1
-			inst = fake_instance(basepath, group_name, i, port)
+			inst = fake_instance(basepath, group_name, i, port, **kwargs)
 			inst.group = self
 			self.nodes.append(inst)
 			port += 1
@@ -221,7 +221,7 @@ class fake_instance:
 	and is responsible for creating directories and configurations for
 	all of the above.
 	"""
-	def __init__(self, basepath, group_name, group_id, port=15551):
+	def __init__(self, basepath, group_name, group_id, port=15551, **kwargs):
 		self.valgrind = False
 		self.group = False
 		self.group_name = group_name
@@ -251,6 +251,8 @@ class fake_instance:
 		self.num_nodes = 1
 		live_path = os.path.join(self.home, 'var', 'rw', 'live')
 		self.live = livestatus.SingleSiteConnection('unix://%s' % live_path)
+		if kwargs.get('valgrind'):
+			self.valgrind = True
 
 	def stat(self, path):
 		return os.stat('%s/%s' (self.home, path))
@@ -931,14 +933,14 @@ class fake_mesh:
 		Sets up the directories and configuration required for testing
 		"""
 		port = self.baseport
-		self.masters = fake_peer_group(self.basepath, 'master', self.num_masters, port)
+		self.masters = fake_peer_group(self.basepath, 'master', self.num_masters, port, valgrind = self.valgrind)
 		port += self.num_masters
 		i = 0
 		self.pgroups = []
 		while i < self.poller_groups:
 			i += 1
 			group_name = "pg%d" % i
-			self.pgroups.append(fake_peer_group(self.basepath, group_name, self.pollers_per_group, port))
+			self.pgroups.append(fake_peer_group(self.basepath, group_name, self.pollers_per_group, port, valgrind = self.valgrind))
 			port += self.pollers_per_group
 
 		for inst in self.masters.nodes:
@@ -1173,6 +1175,7 @@ def cmd_dist(args):
 	  --sql-host=<host>         ip-address or dns name of db host
 	  --hosts=<int>             hosts per peer-group (3)
 	  --services-per-host=<int> services per host (5)
+	  --valgrind                run binaries through valgrind
 
 	Tests various aspects of event forwarding with any number of
 	hosts, services, peers and pollers, generating config and
@@ -1205,6 +1208,7 @@ def cmd_dist(args):
 	sleeptime = False
 	batch = True
 	use_database = False
+	valgrind = False
 	if os.isatty(sys.stdout.fileno()):
 		batch = False
 	for arg in args:
@@ -1247,6 +1251,8 @@ def cmd_dist(args):
 		elif arg.startswith('--services-per-host='):
 			num_services_per_host = arg.split('=', 1)[1]
 			num_services_per_host = int(num_services_per_host)
+		elif arg.startswith('--valgrind'):
+			valgrind = True
 		else:
 			prettyprint_docstring('dist', cmd_dist.__doc__,
 				'Unknown argument: %s' % arg)
@@ -1284,7 +1290,8 @@ def cmd_dist(args):
 		db_name=db_name,
 		db_host=db_host,
 		use_database=use_database,
-		sleeptime=sleeptime
+		sleeptime=sleeptime,
+		valgrind=valgrind,
 	)
 	mesh.create_playground(num_hosts, num_services_per_host)
 
