@@ -1710,6 +1710,13 @@ def build_output(what, args):
 
 def cmd_check(args):
 	"""[<path>] [options]
+	Options can be any of
+	  --state=<str>       The state we should exit with
+	  --perfdata=<str>    The perfdata string we should print
+	  --output=<str>      The output we should print
+	  --mark-file=<path>  The file we should leave a mark in when running
+	  --mark-name=<str>   The 'name' of the mark we should leave
+	  --oneline           Leave a oneline mark
 	If path exists, it should point to a file looking like this:
 		state=CRITICAL
 		output=Some plugin output
