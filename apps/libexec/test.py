@@ -486,9 +486,9 @@ class fake_mesh:
 		# only print the animation if anyone's looking
 		if os.isatty(sys.stdout.fileno()) == False:
 			if msg:
-				print("Sleeping %.2f seconds: %s" % (self.sleeptime, msg))
+				print("Sleeping %.2f seconds: %s" % (sleeptime, msg))
 			else:
-				print("Sleeping %.2f seconds" % self.sleeptime)
+				print("Sleeping %.2f seconds" % sleeptime)
 			time.sleep(sleeptime)
 		else:
 			i = sleeptime
