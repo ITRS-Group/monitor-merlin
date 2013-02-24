@@ -901,9 +901,11 @@ class fake_mesh:
 		return self.tap.failed == 0
 
 
-	def start_daemons(self, dname=False):
+	def start_daemons(self, dname=False, stagger=True):
 		for inst in self.instances:
 			inst.start_daemons(self.progs, dname)
+			if stagger:
+				self.intermission("Staggering daemon starts to enfore peer id's", 0.25)
 		return
 
 
