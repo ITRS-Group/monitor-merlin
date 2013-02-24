@@ -1682,14 +1682,13 @@ def cmd_pasv(args):
 def mark(path, mark_name='mark', params=[], oneline=False):
 	"""The business end of 'cmd_mark'"""
 
-	params.insert(0, 'timestamp=%d' % time.time())
-
 	if not mark_name:
 		mark_name = 'mark'
 
 	if oneline:
-		s = "%s %s" % (mark_name, ' '.join(params))
+		s = "%d %s %s\n" % (time.time(), mark_name, ' '.join(params))
 	else:
+		params.insert(0, 'timestamp=%d' % time.time())
 		s = "%s {\n\t%s\n}\n" % (mark_name, '\n\t'.join(params))
 
 	f = open(path, "a")
