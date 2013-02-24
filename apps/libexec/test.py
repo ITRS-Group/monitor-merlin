@@ -582,7 +582,7 @@ class fake_mesh:
 			'START_ACCEPTING_PASSIVE_SVC_CHECKS',
 			'ENABLE_NOTIFICATIONS',
 		]
-		
+
 		queries = [
 			'enable_flap_detection = 1',
 			'execute_host_checks = 1',
@@ -1059,6 +1059,7 @@ class fake_mesh:
 		if not self.db:
 			return True
 		try:
+			print("Closing database connection")
 			self.db.close()
 			self.dbc = False
 			self.db = False
@@ -1082,7 +1083,6 @@ def _dist_shutdown(mesh, msg=False, batch=False, destroy_databases=False):
 		mesh.destroy_databases(True)
 	print("Destroying on-disk mesh")
 	mesh.destroy()
-	print("Closing database connection")
 	mesh.close_db()
 
 	if mesh.tap.failed == 0:
