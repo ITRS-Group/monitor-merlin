@@ -1189,7 +1189,7 @@ def cmd_dist(args):
 	global dist_test_mesh
 
 	num_hosts = 3
-	num_services_per_host = 5
+	num_services_per_host = 6
 	setup = True
 	destroy = True
 	basepath = '/tmp/merlin-dtest'
