@@ -506,7 +506,7 @@ class fake_mesh:
 					sys.stdout.flush()
 				i -= 0.07
 				time.sleep(0.07)
-			print("   Slept for %d.00 seconds: %s      " % (sleeptime, msg))
+			print("   Slept for %.2f seconds: %s      " % (sleeptime, msg))
 
 	##############################################################
 	#
