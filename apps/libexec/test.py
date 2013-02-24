@@ -263,21 +263,17 @@ class fake_instance:
 		st = os.stat('%s/%s' % (self.home, path))
 		return st.st_size
 
-	def active_connections(self):
+	def get_nodeinfo(self):
 		"""
-		Test to make sure all systems supposed to connect to this
-		node have actually done so. This is fundamental in order
-		to get all other tests to fly and does some initial setup
-		which means it has to be run before all other tests.
+		Grab this node's nodeinfo output and stash it per-system
+		in a 'nodeinfo' list
 		"""
-		conn_cnt = 0
-		qh_path = '%s/%s' % (self.home, 'var/rw/nagios.qh')
+		self.nodeinfo = []
+		qh_path = '%s/%s' % (self.home, '/var/rw/nagios.qh')
 		channel = QhChannel('merlin', qh_path, subscribe=False)
 		for response in channel.query('nodeinfo'):
-			if response.state == 'STATE_CONNECTED':
-				conn_cnt += 1
-
-		return conn_cnt
+			self.nodeinfo.append(response)
+		self.info = self.nodeinfo[0]
 
 	def submit_raw_command(self, cmd):
 		if self.cmd_object.submit_raw(cmd) == False:
@@ -519,12 +515,49 @@ class fake_mesh:
 	#
 	def test_connections(self):
 		status = True
-		for inst in self.instances:
-			ret = inst.active_connections()
-			self.tap.test(ret, inst.num_nodes, "%s has %d/%d connected systems" % (inst.name, ret, inst.num_nodes))
-			if ret != inst.num_nodes:
-				status = False
+		start_failed = self.tap.failed
 
+		for inst in self.instances:
+			inst.get_nodeinfo()
+
+			exp_peer_id = int(inst.name.split('-', 1)[1]) - 1
+			exp_num_peers = inst.group.num_nodes - 1
+
+			self.tap.test(int(inst.info.peer_id), exp_peer_id,
+				'%s should have peer-id %d' % (inst.name, exp_peer_id))
+			self.tap.test(int(inst.info.configured_peers), exp_num_peers,
+				'%s should have %d peers' % (inst.name, exp_num_peers))
+
+			calc_con = int(inst.info.active_peers) + int(inst.info.active_pollers) + int(inst.info.active_masters)
+			if inst.info.state == 'STATE_CONNECTED':
+				calc_con += 1
+			tot_con = 0
+			for i in inst.nodeinfo:
+				if self.tap.test(i.state, 'STATE_CONNECTED', "%s -> %s connection" % (inst.name, i.name)):
+					tot_con += 1
+				if i.type == 'peer':
+					self.tap.test(i.peer_id, i.self_assigned_peer_id, "%s -> %s peer id agreement" % (inst.name, i.name))
+				if int(i.instance_id) == 0:
+					continue
+				self.tap.test(i.active_peers, i.configured_peers,
+					"%s thinks %s has %s/%s active peers" %
+					(inst.name, i.name, i.active_peers, i.configured_peers))
+
+				self.tap.test(i.active_pollers, i.configured_pollers,
+					"%s thinks %s has %s/%s active pollers" %
+					(inst.name, i.name, i.active_pollers, i.configured_pollers))
+
+				self.tap.test(i.active_masters, i.configured_masters,
+					"%s thinks %s has %s/%s active masters" %
+					(inst.name, i.name, i.active_masters, i.configured_masters))
+
+			self.tap.test(tot_con, len(self.instances), "%s has %d/%d connected systems" %
+				(inst.name, tot_con, len(self.instances)))
+			self.tap.test(tot_con, calc_con, "%s should count connections properly" % inst.name)
+
+
+		if self.tap.failed > start_failed:
+			status = False
 		return status
 
 	def test_imports(self):
