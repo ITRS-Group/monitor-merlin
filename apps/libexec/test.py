@@ -235,6 +235,8 @@ class fake_instance:
 			'@@DIR@@': self.home,
 			'@@NETWORK_PORT@@': "%d" % port,
 			'@@DB_NAME@@': self.db_name,
+			'@@BASEPATH@@': basepath,
+			'@@NODENAME@@': self.name,
 		}
 		self.merlin_config = test_config_in.merlin_config_in
 		self.nagios_config = test_config_in.nagios_config_in
