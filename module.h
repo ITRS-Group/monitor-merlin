@@ -41,7 +41,7 @@ extern bitmap *poller_handled_services;
 extern merlin_node **host_check_node;
 extern merlin_node **service_check_node;
 extern merlin_node untracked_check_node;
-extern int merlin_net_event;
+extern merlin_node *merlin_sender;
 
 #define MERLIN_PULSE_INTERVAL 10
 extern dkhash_table *host_hash_table;

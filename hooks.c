@@ -892,7 +892,7 @@ static int hook_notification(merlin_event *pkt, void *data)
 	mns = &merlin_notify_stats[ds->reason_type][ds->notification_type][check_type];
 
 	/* we must *never* notify on network events */
-	if (merlin_net_event) {
+	if (merlin_sender) {
 		mns->net++;
 		return NEBERROR_CALLBACKCANCEL;
 	}

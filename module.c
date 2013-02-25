@@ -36,7 +36,11 @@ static int mrm_reap_interval = 2;
 static int merlin_sendpath_interval = MERLIN_SENDPATH_INTERVAL;
 static int db_track_current = 0;
 
-int merlin_net_event = 0;
+/*
+ * the sending node, in case it triggers more
+ * events while processing its packet
+ */
+merlin_node *merlin_sender = NULL;
 
 /* 9 = "reason_type", 2 = host/service, 2 = last check active/passive */
 struct merlin_notify_stats merlin_notify_stats[9][2][2];
@@ -469,7 +473,7 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	 * with the exception that checkresults also cause performance
 	 * data to be handled.
 	 */
-	merlin_net_event = 1;
+	merlin_sender = node;
 	switch (pkt->hdr.type) {
 	case NEBCALLBACK_HOST_CHECK_DATA:
 	case NEBCALLBACK_HOST_STATUS_DATA:
@@ -495,8 +499,7 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 		lwarn("Ignoring unrecognized/unhandled callback type: %d (%s)",
 		      pkt->hdr.type, callback_name(pkt->hdr.type));
 	}
-
-	merlin_net_event = 0;
+	merlin_sender = NULL;
 
 	return ret;
 }
