@@ -90,7 +90,7 @@ make ENABLE_OCILIB=1 ENABLE_LIBDBI=1 NAGIOS_PREFIX=/opt/monitor test
 rm -rf %buildroot
 sh install-merlin.sh --batch --root=%buildroot --bindir=%_bindir \
 	--libexecdir=%_libexecdir/merlin --install=files,apps,init \
-	--dest-dir %mod_path
+	--dest-dir %mod_path --nagios-cfg=%prefix/etc/nagios.cfg
 chmod 777 %buildroot/%mod_path/logs
 mkdir -p %buildroot/%mod_path/binlogs
 mkdir -p %buildroot%_sysconfdir/logrotate.d
