@@ -17,11 +17,6 @@
 #include <nagios/broker.h>
 #include <nagios/lib/dkhash.h>
 
-typedef struct BINLOG_HEAD {
-	int type;
-	int cmd;
-} BINLOG_HEAD;
-
 typedef struct file_list {
 	char *name;
 	struct stat st;
