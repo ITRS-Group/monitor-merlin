@@ -401,6 +401,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			cfg_error(c, v, "Variable must have a value\n");
 
 		if (node->type != MODE_NOC && (!strcmp(v->key, "hostgroup") || !strcmp(v->key, "hostgroups"))) {
+			node->hostgroups = strdup(v->value);
 			sel_id = add_selection(v->value, node);
 		}
 		else if (!strcmp(v->key, "address") || !strcmp(v->key, "host")) {

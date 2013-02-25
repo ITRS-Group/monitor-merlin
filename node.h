@@ -96,6 +96,11 @@ struct merlin_event {
 } __attribute__((packed));
 typedef struct merlin_event merlin_event;
 
+/* track assigned objects */
+struct merlin_assigned_objects {
+	int32_t hosts, services;
+};
+
 /*
  * New entries in this struct *must* be appended LAST for the change
  * to not break backwards compatibility. When the receiving code
@@ -171,6 +176,35 @@ typedef struct linked_item {
 	struct linked_item *next_item;
 } linked_item;
 
+struct merlin_node;
+
+struct merlin_peer_group {
+	int id;
+	struct merlin_node **nodes;
+	int active_nodes;
+	int total_nodes;
+	int num_hostgroups;
+	int overlapping;
+	/*
+	 * counts for how hosts and services should be distributed
+	 * Access as assign[node->pg->active_nodes][node->peer_id]
+	 * to find out how many checks a node should run.
+	 * When all pollers in this peer-group are offline, the
+	 * checks will be distributed to the master nodes according
+	 * to the same mapping.
+	 */
+	unsigned int alloc;
+	struct merlin_assigned_objects **assign;
+	struct merlin_assigned_objects assigned;
+	char *hostgroups;
+	char **hostgroup_array;
+	bitmap *host_map;
+	bitmap *service_map;
+	unsigned int *host_checks;
+	unsigned int *service_checks;
+};
+typedef struct merlin_peer_group merlin_peer_group;
+
 struct node_selection {
 	int id;
 	char *name;
@@ -197,6 +231,7 @@ typedef struct node_selection node_selection;
 struct merlin_node {
 	char *name;             /* name of this node */
 	char *source_name;      /* check source name for this node */
+	char *hostgroups;       /* only used for pollers */
 	uint id;                /* internal index lookup number */
 	int latency;            /* module to module latency of this node */
 	int sock;               /* the socket */
@@ -215,6 +250,12 @@ struct merlin_node {
 	time_t last_conn_attempt_logged; /* when we last logged a connect attempt */
 	time_t last_conn_attempt; /* when we last tried initiating a connection */
 	time_t connect_time;    /* when we established a connection to this node */
+	merlin_peer_group *pgroup; /* this node's peer-group (if a poller) */
+	struct {
+		struct merlin_assigned_objects passive; /* passive check modifiers */
+		struct merlin_assigned_objects extra; /* taken over from a poller */
+		struct merlin_assigned_objects current; /* base assigned right now */
+	} assigned;
 	merlin_nodeinfo info;   /* node info */
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
 	binlog *binlog;         /* binary backlog for this node */

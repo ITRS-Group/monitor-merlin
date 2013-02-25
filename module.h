@@ -11,6 +11,7 @@
 #endif
 
 #include "shared.h"
+#include "pgroup.h"
 
 #include <nagios/nebmods.h>
 #include <nagios/nebmodules.h>
@@ -32,6 +33,9 @@ struct merlin_notify_stats {
 
 /* 9 = "reason_type", 2 = host/service, 2 = last check active/passive */
 extern struct merlin_notify_stats merlin_notify_stats[9][2][2];
+
+extern bitmap *poller_handled_hosts;
+extern bitmap *poller_handled_services;
 
 /* junk to keep track of which node last executed which check */
 extern merlin_node **host_check_node;
@@ -60,12 +64,7 @@ extern file_list **get_sorted_oconf_files(unsigned int *n_files);
 
 extern int merlin_qh(int sd, char *buf, unsigned int len);
 
-extern void handle_control(merlin_node *node, merlin_event *pkt);
 extern int is_stalling(void);
-extern void ctrl_set_node_actions(void);
-extern int ctrl_should_run_host_check(char *host_name);
-extern int ctrl_should_run_service_check(char *host_name, char *desc);
-extern void ctrl_create_object_tables(void);
 extern void ctrl_stall_start(void);
 extern void ctrl_stall_stop(void);
 

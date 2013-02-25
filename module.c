@@ -97,6 +97,76 @@ void set_service_check_node(merlin_node *node, service *s)
 }
 
 /*
+ * Handles merlin control events inside the module. Control events
+ * that relate to cross-host communication only never reaches this.
+ */
+static void handle_control(merlin_node *node, merlin_event *pkt)
+{
+	const char *ctrl;
+	if (!pkt) {
+		lerr("handle_control() called with NULL packet");
+		return;
+	}
+
+	ctrl = ctrl_name(pkt->hdr.code);
+	linfo("Received control packet code %d (%s) from %s",
+		  pkt->hdr.code, ctrl, node ? node->name : "local Merlin daemon");
+
+	/* protect against bogus headers */
+	if (!node && (pkt->hdr.code == CTRL_INACTIVE || pkt->hdr.code == CTRL_ACTIVE)) {
+		lerr("Received %s with unknown node id %d", ctrl, pkt->hdr.selection);
+		return;
+	}
+	switch (pkt->hdr.code) {
+	case CTRL_INACTIVE:
+		/*
+		 * must memset() node->info before the disconnect handler
+		 * so we discard it in the peer id calculation dance if
+		 * we get data from it before it sends us a CTRL_ACTIVE
+		 * packet
+		 */
+		memset(&node->info, 0, sizeof(node->info));
+		node_set_state(node, STATE_NONE, "Received CTRL_INACTIVE");
+		break;
+	case CTRL_ACTIVE:
+		/*
+		 * Only mark the node as connected if the CTRL_ACTIVE packet
+		 * checks out properly and the info is new. If it *is* new,
+		 * we must re-do the peer assignment thing.
+		 */
+		if (!handle_ctrl_active(node, pkt)) {
+			node_set_state(node, STATE_CONNECTED, "Received CTRL_ACTIVE");
+
+			pgroup_assign_peer_ids(node->pgroup);
+
+			ldebug("##NSTATE##: Got fresh CTRL_ACTIVE from %s node %s",
+				   node_type(node), node->name);
+			/*
+			 * We got an update to our status of neighbours.
+			 * Other nodes don't know about our new status yet, so
+			 * let's inform them.
+			 */
+			ldebug("##NSTATE##: Sending CTRL_ACTIVE volley for %s node %s",
+				   node_type(node), node->name);
+			node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 100);
+		}
+		break;
+	case CTRL_STALL:
+		ctrl_stall_start();
+		break;
+	case CTRL_RESUME:
+		ctrl_stall_stop();
+		pgroup_assign_peer_ids(ipc.pgroup);
+		break;
+	case CTRL_STOP:
+		linfo("Received (and ignoring) CTRL_STOP event. What voodoo is this?");
+		break;
+	default:
+		lwarn("Unknown control code: %d", pkt->hdr.code);
+	}
+}
+
+/*
  * handle_{host,service}_result() is basically identical to
  * handle_{host,service}_status(), with the added exception
  * that the check result events also cause performance data
@@ -876,6 +946,7 @@ static int post_config_init(int cb, void *ds)
 	neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);
 
 	linfo("Object configuration parsed.");
+	pgroup_init();
 	setup_host_hash_tables();
 
 	if((result = qh_register_handler("merlin", "Merlin information", 0, merlin_qh)) < 0)
@@ -904,6 +975,25 @@ static int post_config_init(int cb, void *ds)
 	 * must see it to be able to shove startup info into the database.
 	 */
 	merlin_mod_hook(cb, ds);
+
+	return 0;
+}
+
+/*
+ * this gets run for all nodes belonging to peer groups and
+ * lets us trigger peer id reassignment and whatnot. The ipc
+ * action handler runs it as part of its hook.
+ */
+static int node_action_handler(merlin_node *node, int prev_state)
+{
+	if (!node->pgroup)
+		return 0;
+
+	if (node->state == STATE_CONNECTED) {
+		node->pgroup->active_nodes++;
+	} else {
+		node->pgroup->active_nodes--;
+	}
 
 	return 0;
 }
@@ -956,7 +1046,7 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	 * adds before trying to send.
 	 */
 	if (node->state == STATE_CONNECTED)
-		return node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 100);
+		node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 100);
 	else {
 		int i;
 
@@ -973,6 +1063,7 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 		}
 	}
 
+	node_action_handler(&ipc, prev_state);
 	return 0;
 }
 
@@ -982,6 +1073,7 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
  */
 int nebmodule_init(int flags, char *arg, nebmodule *handle)
 {
+	int i;
 	char *home = NULL;
 
 	neb_handle = (void *)handle;
@@ -1039,6 +1131,10 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	self.last_cfg_change = get_last_cfg_change();
 	get_config_hash(self.config_hash);
 
+	/* required for peer id calculations */
+	ipc.info.start.tv_sec = self.start.tv_sec;
+	ipc.info.start.tv_usec = self.start.tv_usec;
+
 	/* make sure we can catch whatever we want */
 	event_broker_options = BROKER_EVERYTHING;
 
@@ -1055,8 +1151,11 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	/* this gets de-registered immediately, so we need to add it manually */
 	neb_register_callback(NEBCALLBACK_PROCESS_DATA, neb_handle, 0, post_config_init);
 
+	/* now we set the node action handlers */
+	for (i = 0; i < num_nodes; i++) {
+		node_table[i]->action = node_action_handler;
+	}
 	ipc.action = ipc_action_handler;
-	ctrl_set_node_actions();
 
 	linfo("Merlin module %s initialized successfully", merlin_version);
 
@@ -1091,6 +1190,8 @@ int nebmodule_deinit(int flags, int reason)
 	iocache_destroy(ipc.ioc);
 	safe_free(node_table);
 	binlog_wipe(ipc.binlog, BINLOG_UNLINK);
+
+	pgroup_deinit();
 
 	/*
 	 * TODO: free the state hash tables and their data.
