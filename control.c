@@ -188,6 +188,13 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 		 */
 		if (!handle_ctrl_active(node, pkt)) {
 			node_set_state(node, STATE_CONNECTED, "Received CTRL_ACTIVE");
+
+			/*
+			 * We got an update to our status of neighbours.
+			 * Other nodes don't know about our new status yet, so
+			 * let's inform them.
+			 */
+			node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 100);
 		}
 		break;
 	case CTRL_STALL:
