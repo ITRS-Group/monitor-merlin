@@ -51,7 +51,6 @@ extern void *neb_handle;
 extern int __nagios_object_structure_version;
 
 /** prototypes **/
-extern int in_reaper_thread(void);
 extern int send_paths(void);
 extern int handle_ipc_event(merlin_node *node, merlin_event *pkt);
 extern void file_list_free(struct file_list *list);
