@@ -196,8 +196,6 @@ sh /etc/init.d/monitor start || :
 %mod_path/object_importer.inc.php
 %mod_path/MerlinPDO.inc.php
 %mod_path/oci8topdo.php
-%mod_path/example.conf
-%mod_path/init.sh
 %_sysconfdir/logrotate.d/merlin
 %_sysconfdir/op5kad/conf.d/merlin.kad
 %_sysconfdir/nrpe.d/nrpe-merlin.cfg
