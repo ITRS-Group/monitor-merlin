@@ -188,7 +188,6 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 		 */
 		if (!handle_ctrl_active(node, pkt)) {
 			node_set_state(node, STATE_CONNECTED, "Received CTRL_ACTIVE");
-			assign_peer_ids();
 		}
 		break;
 	case CTRL_STALL:
