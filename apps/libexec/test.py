@@ -535,6 +535,9 @@ class fake_mesh:
 			for i in inst.nodeinfo:
 				if self.tap.test(i.state, 'STATE_CONNECTED', "%s -> %s connection" % (inst.name, i.name)):
 					tot_con += 1
+				else:
+					# no point pressing on if we're not connected
+					continue
 				if i.type == 'peer':
 					self.tap.test(i.peer_id, i.self_assigned_peer_id, "%s -> %s peer id agreement" % (inst.name, i.name))
 				if int(i.instance_id) == 0:
