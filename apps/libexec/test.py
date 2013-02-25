@@ -1356,7 +1356,6 @@ def cmd_dist(args):
 		if mesh.test_imports() == False:
 			_dist_shutdown(mesh, 'Imports failed. This is a known spurious error when running tests often', batch)
 
-		mesh.intermission("Stabilizing all daemon connections", 20)
 
 		if mesh.test_global_commands() == False:
 			_dist_shutdown(mesh, 'Global command tests failed', batch)
