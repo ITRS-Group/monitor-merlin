@@ -1348,14 +1348,13 @@ def cmd_dist(args):
 	# break out early in case one or more of the required
 	# ones fail hard.
 	try:
-		mesh.intermission("Allowing nodes to connect to each other", 10)
+		mesh.intermission("Allowing nodes to connect to each other", 3)
 		if mesh.test_connections() == False:
 			print("Connection tests failed. Bailing out")
 			_dist_shutdown(mesh, 'Connection tests failed', batch)
 
 		if mesh.test_imports() == False:
 			_dist_shutdown(mesh, 'Imports failed. This is a known spurious error when running tests often', batch)
-
 
 		if mesh.test_global_commands() == False:
 			_dist_shutdown(mesh, 'Global command tests failed', batch)

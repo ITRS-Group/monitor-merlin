@@ -741,7 +741,6 @@ static int read_config(char *cfg_file)
 	uint i;
 	struct cfg_comp *config;
 
-
 	merlin_config_file = nspath_absolute(cfg_file, config_file_dir);
 
 	if (!(config = cfg_parse_file(merlin_config_file))) {
@@ -1014,6 +1013,7 @@ static int node_action_handler(merlin_node *node, int prev_state)
 static int ipc_action_handler(merlin_node *node, int prev_state)
 {
 	int ret;
+	time_t start;
 
 	ldebug("Running ipc action handler");
 	if (node != &ipc || ipc.state == prev_state) {
@@ -1045,17 +1045,7 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 				   nagios_iobs, ipc.sock, ret, iobroker_strerror(ret));
 	}
 
-	/*
-	 * we must use node_send_ctrl_active() here or we'll
-	 * end up in an infinite loop in ipc_ctrl(), rapidly
-	 * devouring all available stack space. Since we
-	 * know we're connected anyways, we don't really
-	 * need the ipc_is_connected(0) call that ipc_ctrl
-	 * adds before trying to send.
-	 */
-	if (node->state == STATE_CONNECTED)
-		node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 100);
-	else {
+	if (node->state != STATE_CONNECTED) {
 		int i;
 
 		/*
@@ -1069,9 +1059,40 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 			node_set_state(node, STATE_NONE, "Daemon disconnected");
 			memset(&node->info, 0, sizeof(node->info));
 		}
+		node_action_handler(&ipc, prev_state);
+		return 0;
 	}
 
+	/* this is a connect event */
+
+	/*
+	 * we must use node_send_ctrl_active() here or we'll
+	 * end up in an infinite loop in ipc_ctrl(), rapidly
+	 * devouring all available stack space. Since we
+	 * know we're connected anyways, we don't really
+	 * need the ipc_is_connected(0) call that ipc_ctrl
+	 * adds before trying to send.
+	 */
+	node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 100);
+
 	node_action_handler(&ipc, prev_state);
+
+	/* now we wait for inbound connections */
+	start = time(NULL);
+	for (;;) {
+		int wait;
+		/* exits immediately if we have no peers or pollers */
+		if (online_peers + online_pollers == num_peers + num_pollers)
+			break;
+		wait = (start + 10) - time(NULL);
+		if (wait <= 0)
+			break;
+		iobroker_poll(nagios_iobs, wait * 1000);
+	}
+	linfo("%d / %d peers+pollers connected in %d seconds",
+		  online_peers + online_pollers, num_peers + num_pollers,
+		  (int)(time(NULL) - start));
+
 	return 0;
 }
 

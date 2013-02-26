@@ -97,6 +97,10 @@ extern char *merlin_config_file;
 #define num_peers self.configured_peers
 #define num_pollers self.configured_pollers
 #define num_nodes (num_masters + num_pollers + num_peers)
+#define online_masters self.active_masters
+#define online_peers self.active_peers
+#define online_pollers self.active_pollers
+#define online_nodes (online_masters + online_pollers + online_peers)
 extern int use_database;
 extern merlin_nodeinfo self;
 
