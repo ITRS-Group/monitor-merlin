@@ -736,7 +736,7 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 	}
 }
 
-static void read_config(char *cfg_file)
+static int read_config(char *cfg_file)
 {
 	uint i;
 	struct cfg_comp *config;
@@ -776,6 +776,7 @@ static void read_config(char *cfg_file)
 	 */
 	node_grok_config(config);
 	cfg_destroy_compound(config);
+	return 0;
 }
 
 
@@ -1104,7 +1105,8 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	 */
 	ipc_init_struct();
 
-	read_config(arg);
+	if (read_config(arg) < 0)
+		return -1;
 
 	/*
 	 * Must come after reading configuration or we won't know
