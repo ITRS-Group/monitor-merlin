@@ -90,6 +90,7 @@ extern int is_module;
 extern int pulse_interval;
 extern int debug;
 extern char *binlog_dir;
+extern char *merlin_config_file;
 
 
 #define num_masters self.configured_masters

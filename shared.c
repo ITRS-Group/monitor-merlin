@@ -5,6 +5,7 @@ int debug = 0;  /* doesn't actually do anything right now */
 int is_module = 1; /* the daemon sets this to 0 immediately */
 int pulse_interval = 15;
 int use_database = 0;
+char *merlin_config_file = NULL;
 merlin_nodeinfo self;
 char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 

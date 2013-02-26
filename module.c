@@ -739,11 +739,15 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 static void read_config(char *cfg_file)
 {
 	uint i;
-	struct cfg_comp *config = cfg_parse_file(cfg_file);
+	struct cfg_comp *config;
 
-	if (!config) {
-		lwarn("Failed to read config file");
-		return;
+
+	merlin_config_file = nspath_absolute(cfg_file, config_file_dir);
+
+	if (!(config = cfg_parse_file(merlin_config_file))) {
+		lwarn("Failed to read config file %s", merlin_config_file);
+		free(merlin_config_file);
+		return -1;
 	}
 
 	for (i = 0; i < config->vars; i++)
@@ -1195,6 +1199,7 @@ int nebmodule_deinit(int flags, int reason)
 	binlog_wipe(ipc.binlog, BINLOG_UNLINK);
 
 	pgroup_deinit();
+	free(merlin_config_file);
 
 	/*
 	 * TODO: free the state hash tables and their data.

@@ -10,7 +10,6 @@ static char *import_program;
 unsigned short default_port = 15551;
 unsigned int default_addr = 0;
 static int importer_pid;
-static char *merlin_conf;
 static merlin_confsync csync;
 static int num_children;
 static int killing;
@@ -935,8 +934,8 @@ int main(int argc, char **argv)
 		char *opt, *arg = argv[i];
 
 		if (*arg != '-') {
-			if (!merlin_conf) {
-				merlin_conf = arg;
+			if (!merlin_config_file) {
+				merlin_config_file = arg;
 				continue;
 			}
 			goto unknown_argument;
@@ -962,18 +961,19 @@ int main(int argc, char **argv)
 
 		i++;
 		if (!strcmp(arg, "--config") || !strcmp(arg, "-c")) {
-			merlin_conf = opt;
+			merlin_config_file = opt;
 			continue;
 		}
 		unknown_argument:
 		usage("Unknown argument: %s", arg);
 	}
 
-	if (!merlin_conf)
+	if (!merlin_config_file)
 		usage("No config-file specified\n");
 
-	if (!grok_config(merlin_conf)) {
-		fprintf(stderr, "%s contains errors. Bailing out\n", merlin_conf);
+	merlin_config_file = nspath_absolute(merlin_config_file, NULL);
+	if (!grok_config(merlin_config_file)) {
+		fprintf(stderr, "%s contains errors. Bailing out\n", merlin_config_file);
 		return 1;
 	}
 
