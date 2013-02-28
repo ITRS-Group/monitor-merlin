@@ -514,6 +514,8 @@ class fake_mesh:
 	# state.
 	#
 	def test_connections(self):
+		"""Tests connections between nodes in the mesh.
+		This is a mandatory test"""
 		status = True
 		start_failed = self.tap.failed
 
@@ -577,24 +579,31 @@ class fake_mesh:
 				status = False
 		return status
 
-
-	def test_daemon_restarts(self):
+	def _test_restarts(self, daemon, deathtime=3, recontime=3):
 		status = True
+		self.stop_daemons(daemon)
+		self.intermission("Letting %s daemons die" % daemon, deathtime)
+		self.start_daemons(daemon)
+		self.intermission("Letting systems reconnect and renegotiate", recontime)
+		return self.test_connections()
+
+	def test_merlin_restarts(self):
+		"""5 second intermission to allow reconnect"""
+		return self._test_restarts('merlin', 1, 5)
+
+	def test_nagios_restarts(self):
+		"""Verifies that nodes reconnect after a restart of Nagios
+		2 second intermission to allow reconnect
+		Also tests for log truncation
+		"""
 		for inst in self.instances:
 			inst.nslog_size = inst.fsize('nagios.log')
-
-		for n, discard in self.progs.items():
-			self.stop_daemons(n)
-			self.intermission("Letting %s daemons die" % n, 3)
-			self.start_daemons(n)
-			self.intermission("Letting systems reconnect and renegotiate")
-			ret = self.test_connections()
-			if ret == False:
-				status = False
+		ret = self._test_restarts('nagios', 3, 2)
 		for inst in self.instances:
 			lsize = inst.fsize('nagios.log')
-			self.tap.test(lsize > inst.nslog_size, True, "nagios.log must not be truncated")
-		return status
+			self.tap.test(lsize > inst.nslog_size, True, "%s must keep nagios.log")
+		return ret
+
 
 
 	def test_global_commands(self):
@@ -928,7 +937,7 @@ class fake_mesh:
 	#
 	##########################################################
 
-	def test_finalize(self):
+	def finalize_tests(self):
 		if self.tap.failed:
 			print("passed: %s%d%s" % (color.green, self.tap.passed, color.reset))
 			print("failed: %s%d%s" % (color.red, self.tap.failed, color.reset))
@@ -1107,7 +1116,7 @@ def _dist_shutdown(mesh, msg=False, batch=False, destroy_databases=False):
 	if msg != False:
 		print("%s" % msg)
 
-	mesh.test_finalize()
+	mesh.finalize_tests()
 	if batch == False:
 		print("When done testing and examining, just press enter")
 		buf = sys.stdin.readline()
@@ -1249,6 +1258,25 @@ def cmd_dist(args):
 	batch = True
 	use_database = False
 	valgrind = False
+
+	tests = []
+	arg_tests = []
+	avail_tests = []
+	test_doc = {}
+	all_tests = dir(fake_mesh)
+	for m in all_tests:
+		thing = getattr(fake_mesh, m)
+		if type(thing) == type(fake_mesh.test_connections) and m.startswith('test_'):
+			tname = m.split('_', 1)[1]
+			doc = getattr(thing, '__doc__')
+			if not doc:
+				doc = "Test '%s' lacks documentation" % tname
+				print(doc)
+			test_doc[tname] = doc
+			avail_tests.append(tname)
+	avail_tests.sort()
+
+	show_tests = []
 	if os.isatty(sys.stdout.fileno()):
 		batch = False
 	for arg in args:
@@ -1293,10 +1321,61 @@ def cmd_dist(args):
 			num_services_per_host = int(num_services_per_host)
 		elif arg.startswith('--valgrind'):
 			valgrind = True
+		elif arg == '--list':
+			arg_tests.append('list')
+		elif arg.startswith('--test=') or arg.startswith('--tests='):
+			arg_tests += arg.split('=', 1)[1].split(',')
+		elif arg.startswith('--show='):
+			show_tests = arg.replace('-', '_').split('=', 1)[1].split(',')
 		else:
 			prettyprint_docstring('dist', cmd_dist.__doc__,
 				'Unknown argument: %s' % arg)
 			sys.exit(1)
+
+	if 'list' in arg_tests:
+		print("Available tests:\n  %s" % "\n  ".join(avail_tests))
+		print("\nNote that not all tests are optional")
+		sys.exit(0)
+
+	for t in show_tests:
+		print("%s%s%s" % (color.yellow, t, color.reset))
+		if not t in avail_tests:
+			print("  %s%s%s" % (color.red, "No such test. Typo?", color.reset))
+		else:
+			d = test_doc.get(t)
+			print("  %s\n" % d.replace("\n\t\t", "\n  ").strip())
+
+	if len(show_tests):
+		sys.exit(0)
+
+	selected_tests = []
+	deselected_tests = []
+	for t in arg_tests:
+		if t == 'all' or t == 'list':
+			stash = avail_tests
+			continue
+		if t[0] == '-':
+			t = t[1:]
+			stash = deselected_tests
+		else:
+			stash = selected_tests
+		if '-' in t:
+			t = t.replace('-', '_')
+		if test_doc.get(t):
+			stash.append(t)
+		else:
+			print("No such test: %s" % t)
+
+	if not len(selected_tests) and not len(deselected_tests):
+		if not len(arg_tests):
+			tests = avail_tests
+		else:
+			print("You seem to have serious typing issues")
+			sys.exit(1)
+	else:
+		for t in selected_tests:
+			if t not in deselected_tests:
+				tests.append(t)
 
 	if sleeptime == False:
 		sleeptime = 3 + (num_masters + (poller_groups * pollers_per_group))
@@ -1356,20 +1435,29 @@ def cmd_dist(args):
 		if mesh.test_imports() == False:
 			_dist_shutdown(mesh, 'Imports failed. This is a known spurious error when running tests often', batch)
 
-		if mesh.test_global_commands() == False:
-			_dist_shutdown(mesh, 'Global command tests failed', batch)
-		if mesh.test_passive_checks() == False:
-			_dist_shutdown(mesh, 'Passive checks are broken', batch)
+		if 'global_commands' in tests:
+			if mesh.test_global_commands() == False:
+				_dist_shutdown(mesh, 'Global command tests failed', batch)
+		if 'passive_checks' in tests:
+			if mesh.test_passive_checks() == False:
+				_dist_shutdown(mesh, 'Passive checks are broken', batch)
 
-		# we only test acks if passive checks distribute properly
-		mesh.test_downtime()
-		mesh.test_acks()
-		mesh.test_comments()
+		if 'downtime' in tests:
+			mesh.test_downtime()
+		if 'passive_checks' in tests and 'acks' in tests:
+			mesh.test_acks()
+		if 'comments' in tests:
+			mesh.test_comments()
 
 		# restart tests come last, as we now have some state to read back in
-		if mesh.test_daemon_restarts() == False:
-			print("Daemon restart tests failed. Bailing out")
-			_dist_shutdown(mesh, 'Restart tests failed', batch)
+		if 'merlin_restarts' in tests:
+			if mesh.test_merlin_restarts() == False:
+				print("Merlin restart tests failed. Bailing out")
+				_dist_shutdown(mesh, 'Merlin restart tests failed', batch)
+		if 'nagios_restarts' in tests:
+			if mesh.test_nagios_restarts() == False:
+				print("Nagios restart tests failed. Bailing out")
+				_dist_shutdown(mesh, 'Nagios restart tests failed', batch)
 
 	except SystemExit:
 		# Some of the helper functions call sys.exit(1) to bail out.
