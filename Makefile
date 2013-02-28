@@ -228,7 +228,7 @@ version.c: gen-version.sh
 	sh gen-version.sh
 
 clean: clean-core clean-log clean-test
-	rm -f merlin.so merlind $(APPS) *.o blread endpoint
+	rm -f merlin.so merlind $(APPS) *.o blread endpoint nagios.tmp*
 
 clean-test:
 	rm -f sltest bltest mtest test-lparse
