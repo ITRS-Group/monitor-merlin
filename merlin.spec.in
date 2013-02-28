@@ -52,7 +52,13 @@ merlin daemon, which then takes appropriate action.
 %package apps
 Summary: Applications used to set up and aid a merlin/ninja installation
 Group: op5/Monitor
-Requires: libdbi, rsync, MySQL-python
+Requires: libdbi, rsync
+%if ( 0%{?rhel} <= 5)
+Requires: python26
+Requires: python26-mysqldb
+%else
+Requires: MySQL-python
+%endif
 Obsoletes: monitor-distributed
 
 %description apps
@@ -82,6 +88,17 @@ Some additional test files for merlin
 
 %build
 sed -i 's/^DEF_VER=.*/DEF_VER=%{version}-%{release}/' gen-version.sh
+
+# If we're building for CentOS 5 we have some sed'ing to do
+%if ( 0%{?rhel} <= 5)
+# use python26 for 'mon'
+sed -i '1s#/bin/python.*#/bin/python26#' apps/mon.py
+
+# Track current status to database by default
+sed -i 's/^\(int db_track_current\).*/\1 = 1;/' daemon.c
+%endif
+
+
 make ENABLE_OCILIB=1 ENABLE_LIBDBI=1 NAGIOS_PREFIX=/opt/monitor
 make ENABLE_OCILIB=1 ENABLE_LIBDBI=1 NAGIOS_PREFIX=/opt/monitor test
 
