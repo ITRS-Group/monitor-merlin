@@ -947,9 +947,11 @@ class fake_mesh:
 
 
 	def start_daemons(self, dname=False, stagger=True):
+		i = 0
 		for inst in self.instances:
+			i += 1
 			inst.start_daemons(self.progs, dname)
-			if stagger:
+			if stagger and i < len(self.instances):
 				self.intermission("Staggering daemon starts to enfore peer id's", 0.25)
 		return
 
