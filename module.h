@@ -55,6 +55,8 @@ extern void *neb_handle;
 extern int __nagios_object_structure_version;
 
 /** prototypes **/
+#define assigned_peer(id, active_peers) ((id) % (active_peers))
+#define id2peer(id) ((id) % ipc.pgroup->active_nodes)
 extern int send_paths(void);
 extern int handle_ipc_event(merlin_node *node, merlin_event *pkt);
 extern void file_list_free(struct file_list *list);

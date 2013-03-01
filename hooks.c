@@ -39,10 +39,6 @@ struct merlin_check_stats {
 static struct merlin_check_stats service_checks, host_checks;
 
 
-#define should_run_check(obj) \
-	((obj)->id % (self.active_peers + 1)) == self.peer_id
-
-
 #ifdef DEBUG_DUPES_CAREFULLY
 #define mos_case(vname) \
 	if (offset >= offsetof(monitored_object_state, vname) && \
@@ -303,6 +299,11 @@ static int has_active_poller(const char *host_name)
 	return takeover ? 0 : 2;
 }
 
+static inline int should_run_check(unsigned int id)
+{
+	return assigned_peer(id, ipc.info.active_peers + 1) == ipc.peer_id;
+}
+
 /*
  * The hooks are called from broker.c in Nagios.
  */
@@ -342,7 +343,7 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		 * if a peer is supposed to handle this check, we must
 		 * take care not to run it
 		 */
-		if (!should_run_check(s)) {
+		if (!should_run_check(s->id)) {
 			service_checks.peer++;
 			return NEBERROR_CALLBACKCANCEL;
 		}
@@ -361,10 +362,12 @@ static int hook_host_result(merlin_event *pkt, void *data)
 {
 	nebstruct_host_check_data *ds = (nebstruct_host_check_data *)data;
 	int ret;
+	struct host *h;
 
 	/* block status data events for this host in the imminent future */
 	h_block.obj = ds->object_ptr;
 	h_block.when = time(NULL);
+	h = (struct host *)ds->object_ptr;
 
 	switch (ds->type) {
 	case NEBTYPE_HOSTCHECK_ASYNC_PRECHECK:
@@ -389,7 +392,7 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		}
 
 		/* if a peer will handle it, we won't */
-		if (!should_run_check((host *)ds->object_ptr)) {
+		if (!should_run_check(h->id)) {
 			host_checks.peer++;
 			return NEBERROR_CALLBACKCANCEL;
 		}
@@ -798,7 +801,7 @@ static int hook_host_status(merlin_event *pkt, void *data)
 		h_block.poller++;
 		return 0;
 	}
-	if (!should_run_check(h)) {
+	if (!should_run_check(h->id)) {
 		h_block.peer++;
 		return 0;
 	}
@@ -823,7 +826,7 @@ static int hook_service_status(merlin_event *pkt, void *data)
 		s_block.poller++;
 		return 0;
 	}
-	if (!should_run_check(srv)) {
+	if (!should_run_check(srv->id)) {
 		s_block.peer++;
 		return 0;
 	}
@@ -926,7 +929,7 @@ static int hook_notification(merlin_event *pkt, void *data)
 		}
 
 		what = "service";
-		if (!should_run_check(s)) {
+		if (!should_run_check(s->id)) {
 			ldebug("Blocked notification for %s %s;%s. A peer is supposed to send it.",
 				   what, host_name, sdesc);
 			mns->peer++;
@@ -942,7 +945,7 @@ static int hook_notification(merlin_event *pkt, void *data)
 			return 0;
 		}
 
-		if (!should_run_check(h)) {
+		if (!should_run_check(h->id)) {
 			ldebug("Blocked notification for %s %s. A peer is supposed to send it",
 				   what, host_name);
 			mns->peer++;
