@@ -606,6 +606,21 @@ class fake_mesh:
 		return ret
 
 
+	def test_active_checks(self):
+		"""
+		Enables active checks and checks (via ochp and ocsp commands)
+		that checks are properly run by the nodes supposed to take
+		care of them.
+		Checks can be tracked by monitoring @@BASEPATH@@/*-checks.log
+		"""
+		master = self.masters.nodes[0]
+		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
+		master.submit_raw_command('START_EXECUTING_SVC_CHECKS')
+		self.intermission("Running active checks", 120)
+		master.submit_raw_command('STOP_EXECUTING_HOST_CHECKS')
+		master.submit_raw_command('STOP_EXECUTING_SVC_CHECKS')
+		self.intermission('Letting active check disabling spread', 10)
+
 
 	def test_global_commands(self):
 		"""
@@ -1444,6 +1459,8 @@ def cmd_dist(args):
 			if mesh.test_passive_checks() == False:
 				_dist_shutdown(mesh, 'Passive checks are broken', batch)
 
+		if 'active_checks' in tests:
+			mesh.test_active_checks()
 		if 'downtime' in tests:
 			mesh.test_downtime()
 		if 'passive_checks' in tests and 'acks' in tests:
