@@ -357,7 +357,10 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		return 0;
 
 	case NEBTYPE_SERVICECHECK_PROCESSED:
-		set_service_check_node(&ipc, ds->object_ptr);
+		if (merlin_sender && ds->check_type == CHECK_TYPE_PASSIVE)
+			set_service_check_node(merlin_sender, ds->object_ptr);
+		else
+			set_service_check_node(&ipc, ds->object_ptr);
 		return send_service_status(pkt, ds->object_ptr);
 	}
 
@@ -407,7 +410,10 @@ static int hook_host_result(merlin_event *pkt, void *data)
 
 	/* only send processed host checks */
 	case NEBTYPE_HOSTCHECK_PROCESSED:
-		set_host_check_node(&ipc, ds->object_ptr);
+		if (merlin_sender && ds->check_type == CHECK_TYPE_PASSIVE)
+			set_host_check_node(merlin_sender, ds->object_ptr);
+		else
+			set_host_check_node(&ipc, ds->object_ptr);
 		return send_host_status(pkt, ds->object_ptr);
 	}
 
