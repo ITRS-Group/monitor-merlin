@@ -52,6 +52,7 @@ class fake_peer_group:
 		self.oconf_file = False
 		self.poller_oconf = ''
 		self.expect_entries = {}
+		self.pg_name = group_name
 		self.num_objects = {
 			'host': 0, 'service': 0,
 			'hostgroup': 0, 'servicegroup': 0,
@@ -818,7 +819,6 @@ class fake_mesh:
 		"""
 		# stash to keep track of which objects we've already scheduled
 		scheduled = {'host': {}, 'service': {}}
-
 
 		master = self.masters.nodes[0]
 		poller = self.get_first_poller(master)
