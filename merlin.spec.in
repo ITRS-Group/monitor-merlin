@@ -61,7 +61,7 @@ Requires: rsync
 Requires: libdbi0
 Requires: python-MySQLdb
 %else
-if 0%{?rhel} <= 5
+%if 0%{?rhel} <= 5
 Requires: python26
 Requires: python26-mysqldb
 %else
