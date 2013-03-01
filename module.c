@@ -964,6 +964,7 @@ static int post_config_init(int cb, void *ds)
 	/*
 	 * it's safe to send the hash of the config we're using now that
 	 * we know the local host could parse it properly.
+	 * Note that this also sets up the repeating pulse-timer.
 	 */
 	send_pulse(NULL);
 
