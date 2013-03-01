@@ -126,19 +126,16 @@ void pgroup_assign_peer_ids(merlin_peer_group *pg)
 		}
 	}
 
-	if (pg == ipc.pgroup)
-		ipc.info.peer_id = self.peer_id = ipc.peer_id;
-
 	ldebug("Reassigning checks");
 	pgroup_reassign_checks(pg);
 
-	self.host_checks_handled = ipc.assigned.current.hosts;
-	self.service_checks_handled = ipc.assigned.current.services;
-
-	linfo("We're now peer #%d out of %d active ones",
-		  self.peer_id, pg->active_nodes);
-	linfo("Handling %u host and %u service checks",
-		  self.host_checks_handled, self.service_checks_handled);
+	if (pg == ipc.pgroup) {
+		ipc.info.peer_id = self.peer_id = ipc.peer_id;
+		linfo("We're now peer #%d out of %d active ones",
+			  ipc.peer_id, pg->active_nodes);
+		linfo("Handling %u host and %u service checks",
+			  ipc.assigned.current.hosts, ipc.assigned.current.services);
+	}
 }
 
 merlin_peer_group *pgroup_create(char *hostgroups)
