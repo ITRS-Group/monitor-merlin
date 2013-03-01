@@ -1126,8 +1126,10 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	 */
 	ipc_init_struct();
 
-	if (read_config(arg) < 0)
+	if (read_config(arg) < 0) {
+		iocache_destroy(ipc.ioc);
 		return -1;
+	}
 
 	/*
 	 * Must come after reading configuration or we won't know
