@@ -231,7 +231,10 @@ static int send_host_status(merlin_event *pkt, host *obj)
 
 	st_obj.name = obj->name;
 	MOD2NET_STATE_VARS(st_obj.state, obj);
-	pkt->hdr.selection = get_selection(obj->name);
+	if (obj->check_type == CHECK_TYPE_PASSIVE && merlin_sender)
+		pkt->hdr.code = MAGIC_NONET;
+	else
+		pkt->hdr.selection = get_selection(obj->name);
 
 	return send_generic(pkt, &st_obj);
 }
@@ -256,7 +259,10 @@ static int send_service_status(merlin_event *pkt, service *obj)
 	st_obj.host_name = obj->host_name;
 	st_obj.service_description = obj->description;
 	MOD2NET_STATE_VARS(st_obj.state, obj);
-	pkt->hdr.selection = get_selection(obj->host_name);
+	if (obj->check_type == CHECK_TYPE_PASSIVE && merlin_sender)
+		pkt->hdr.code = MAGIC_NONET;
+	else
+		pkt->hdr.selection = get_selection(obj->host_name);
 
 	return send_generic(pkt, &st_obj);
 }
