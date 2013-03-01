@@ -698,7 +698,7 @@ class fake_mesh:
 			if ret == False:
 				status = False
 
-		self.intermission('Letting passive checks spread', 15)
+		self.intermission('Letting passive checks spread', 10)
 		queries = {
 			'host': 'GET hosts\nStats: state = 1',
 			'service': 'GET services\nStats: state = 2',
