@@ -75,11 +75,9 @@ def cmd_status(args):
 	host_checks = 0
 	service_checks = 0
 	for n in sinfo:
-		t = n.get('type', False)
-		# we only count the local node and its peers for totals
-		if t == 'peer' or t == 'local':
-			host_checks += int(n['host_checks_handled'])
-			service_checks += int(n['service_checks_handled'])
+		host_checks += int(n['assigned_hosts'])
+		service_checks += int(n['assigned_services'])
+
 	print("Total checks (host / service): %s / %s" % (host_checks, service_checks))
 
 	latency_thresholds = {'min': -1.0, 'avg': 100.0, 'max': -1.0}
@@ -154,33 +152,15 @@ def cmd_status(args):
 
 		hchecks = int(info.pop('host_checks_executed'))
 		schecks = int(info.pop('service_checks_executed'))
-		hc_color = sc_color = ''
+		assigned_hchecks = int(info.pop('assigned_hosts'))
+		assigned_schecks = int(info.pop('assigned_services'))
 
-		# master nodes should never run checks
 		hc_color = ''
 		sc_color = ''
 		if node:
-			# if the node is a master and it's running checks,
-			# that's an error
-			if node.ntype == 'master':
-				if hchecks:
-					hc_color = color.red
-				if schecks:
-					sc_color = color.red
-			else:
-				# if it's not and it's not running checks,
-				# that's also an error
-				if not hchecks:
-					hc_color = color.red
-				if not schecks:
-					sc_color = color.red
-
-		# if this is the local node, we have helpers attached
-		# and we're still running all checks, that's bad
-		if not iid and num_helpers:
-			if hchecks == host_checks:
+			if hchecks != assigned_hchecks:
 				hc_color = color.red
-			if schecks == service_checks:
+			if schecks != assigned_schecks:
 				sc_color = color.red
 
 		hpercent = 0
