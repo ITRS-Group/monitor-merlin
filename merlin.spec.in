@@ -1,9 +1,5 @@
 %define mod_path /opt/monitor/op5/merlin
 %define nagios_cfg /opt/monitor/etc/nagios.cfg
-%define debug_package %{nil}
-
-# prevent stripping of binaries
-%define __spec_install_post /usr/lib/rpm/brp-compress
 
 %{?dgroup:%define daemon_group %{dgroup}}
 
@@ -17,18 +13,26 @@ URL: http://www.op5.se
 Source0: %name-%version.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}
 Prefix: /opt/monitor
-Requires: libdbi
 Requires: libaio
-Requires: libdbi-dbd-mysql
 Requires: ocilib >= 3.8
 Requires: merlin-apps >= %version
 Requires: monitor-config
 Requires: op5-monitor-supported-database
 BuildRequires: mysql-devel
-BuildRequires: libdbi-devel
 BuildRequires: ocilib-devel
 BuildRequires: op5-nagios-devel >= 3.99.99.7
 Obsoletes: monitor-reports-module
+
+%if 0%{?suse_version}
+BuildRequires: libdbi-devel
+Requires: libdbi1
+Requires: libdbi-drivers-dbd-mysql
+Requires(post): mysql-client
+%else
+BuildRequires: libdbi-devel
+Requires: libdbi
+Requires: libdbi-dbd-mysql
+%endif
 
 
 %description
@@ -52,12 +56,18 @@ merlin daemon, which then takes appropriate action.
 %package apps
 Summary: Applications used to set up and aid a merlin/ninja installation
 Group: op5/Monitor
-Requires: libdbi, rsync
-%if ( 0%{?rhel} <= 5)
+Requires: rsync
+%if 0%{?suse_version}
+Requires: libdbi0
+Requires: python-MySQLdb
+%else
+if 0%{?rhel} <= 5
 Requires: python26
 Requires: python26-mysqldb
 %else
 Requires: MySQL-python
+%endif
+Requires: libdbi
 %endif
 Obsoletes: monitor-distributed
 
@@ -106,17 +116,17 @@ make ENABLE_OCILIB=1 ENABLE_LIBDBI=1 NAGIOS_PREFIX=/opt/monitor test
 %install
 rm -rf %buildroot
 sh install-merlin.sh --batch --root=%buildroot --bindir=%_bindir \
-	--libexecdir=%_libexecdir/merlin --install=files,apps,init \
+	--libexecdir=%_libdir/merlin --install=files,apps,init \
 	--dest-dir %mod_path --nagios-cfg=%prefix/etc/nagios.cfg
 chmod 777 %buildroot/%mod_path/logs
 mkdir -p %buildroot/%mod_path/binlogs
 mkdir -p %buildroot%_sysconfdir/logrotate.d
 cp merlin.logrotate %buildroot%_sysconfdir/logrotate.d/merlin
 ln -s ../../../../usr/bin/merlind %buildroot/%mod_path/merlind
-ln -s ../../../../usr/libexec/merlin/import %buildroot/%mod_path/import
-ln -s ../../../../usr/libexec/merlin/ocimp %buildroot/%mod_path/ocimp
-ln -s ../../../../usr/libexec/merlin/showlog %buildroot/%mod_path/showlog
-ln -s ../../../../usr/libexec/merlin/merlin.so %buildroot/%mod_path/merlin.so
+ln -s ../../../../%_libdir/merlin/import %buildroot/%mod_path/import
+ln -s ../../../../%_libdir/merlin/ocimp %buildroot/%mod_path/ocimp
+ln -s ../../../../%_libdir/merlin/showlog %buildroot/%mod_path/showlog
+ln -s ../../../../%_libdir/merlin/merlin.so %buildroot/%mod_path/merlin.so
 
 # install plugins and create their symlinks
 mkdir -p %buildroot/opt
@@ -148,8 +158,8 @@ cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
 /etc/init.d/merlind stop >/dev/null || :
 
 # Verify that mysql-server is installed and running before executing sql scripts
-$(mysql -Be "quit" 2>/dev/null)
-if [ $? -eq 0 ]; then
+$(mysql -Be "quit" 2>/dev/null) && MYSQL_AVAILABLE=1
+if [ -n "$MYSQL_AVAILABLE" ]; then
   %mod_path/install-merlin.sh --batch --install=db \
       --nagios-cfg=%prefix/etc/nagios.cfg --dest-dir=%prefix/op5/merlin
 else
@@ -163,12 +173,12 @@ fi
 # If mysql-server is running _or_ this is an upgrade
 # we import logs
 $(mysql -Be "quit" 2>/dev/null)
-if [[ $? -eq 0 || $1 -eq 2 ]]; then
-  /sbin/chkconfig --add merlind
+if [[ -n "$MYSQL_AVAILABLE" || $1 -eq 2 ]]; then
+  /sbin/chkconfig --add merlind || :
   echo "Importing status events from logfiles to database"
-  mon log import --incremental
+  mon log import --incremental || :
   echo "Importing notifications from logfiles to database"
-  mon log import --only-notifications --incremental
+  mon log import --only-notifications --incremental || :
 fi
 
 # restart all daemons
@@ -198,7 +208,7 @@ fi
 
 %post -n monitor-merlin
 %mod_path/install-merlin.sh --batch --install=config \
-	--nagios-cfg=%nagios_cfg --dest-dir=%mod_path
+	--nagios-cfg=%nagios_cfg --dest-dir=%mod_path || :
 sh /etc/init.d/monitor start || :
 
 
@@ -217,6 +227,7 @@ sh /etc/init.d/monitor start || :
 %_sysconfdir/op5kad/conf.d/merlin.kad
 %_sysconfdir/nrpe.d/nrpe-merlin.cfg
 /etc/init.d/merlind
+%dir %mod_path
 %dir %mod_path/logs
 %mod_path/binlogs
 /usr/bin/merlind
@@ -233,16 +244,16 @@ sh /etc/init.d/monitor start || :
 %mod_path/showlog
 %mod_path/ocimp
 %mod_path/rename
-/usr/libexec/merlin/*
+%_libdir/merlin/*
 /usr/bin/mon
 %_sysconfdir/cron.d/*
 /opt/plugins/*
 /opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
 
-%exclude /usr/libexec/merlin/mon/test.py*
+%exclude %_libdir/merlin/mon/test.py*
 
 %files test
-/usr/libexec/merlin/mon/test.py*
+%_libdir/merlin/mon/test.py*
 
 %clean
 rm -rf %buildroot

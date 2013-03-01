@@ -2,13 +2,13 @@
 #
 # Start / stop the Merlin daemon
 #
-# chkconfig: 2345 90 10
+# chkconfig: 235 90 10
 #
 ### BEGIN INIT INFO
-# Provides: monitor
+# Provides: merlin
 # Required-Start: $local_fs $network $remote_fs
 # Required-Stop: $local_fs $network $remote_fs
-# Default-Start:  2 3 4 5
+# Default-Start:  2 3 5
 # Default-Stop: 0 1 6
 # Short-Description: start and stop the merlin daemon
 # Description: Merlin is an event-distribution system for Nagios
