@@ -955,6 +955,7 @@ static int post_config_init(int cb, void *ds)
 	linfo("Object configuration parsed.");
 	pgroup_init();
 	setup_host_hash_tables();
+	pgroup_assign_peer_ids(ipc.pgroup);
 
 	if((result = qh_register_handler("merlin", "Merlin information", 0, merlin_qh)) < 0)
 		lerr("Failed to register query handler: %s", strerror(-result));
