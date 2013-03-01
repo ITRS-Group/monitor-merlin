@@ -13,8 +13,10 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 	merlin_nodeinfo *i;
 	merlin_node_stats *s = &n->stats;
 	struct merlin_assigned_objects aso;
+	merlin_peer_group *pg;
 
 	i = &n->info;
+	pg = n->pgroup;
 	aso.hosts = n->assigned.current.hosts + n->assigned.extra.hosts;
 	aso.services = n->assigned.current.services + n->assigned.extra.services;
 
@@ -39,7 +41,10 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 "host_checks_executed=%u;service_checks_executed=%u;"
 				 "monitored_object_state_size=%u;connect_time=%lu;"
 				 "assigned_hosts=%u;assigned_services=%u;"
-				 "pgroup_active_nodes=%u;pgroup_total_nodes=%u\n",
+				 "pgroup_active_nodes=%u;pgroup_total_nodes=%u;"
+				 "pgroup_hosts=%u;pgroup_services=%u;"
+				 "pgroup_id=%d;pgroup_hostgroups=%s"
+				 "\n",
 				 instance_id,
 				 n->name, n->source_name, n->sock, node_type(n),
 				 node_state_name(n->state), n->peer_id, n->flags,
@@ -63,7 +68,9 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 i->monitored_object_state_size, n->connect_time,
 				 aso.hosts, aso.services,
 				 n->pgroup ? n->pgroup->active_nodes : 0,
-				 n->pgroup ? n->pgroup->total_nodes : 0);
+				 n->pgroup ? n->pgroup->total_nodes : 0,
+				 pg ? pg->assigned.hosts : 0, pg ? pg->assigned.services : 0,
+				 pg ? pg->id : -1, pg ? pg->hostgroups : "");
 	return 0;
 }
 
