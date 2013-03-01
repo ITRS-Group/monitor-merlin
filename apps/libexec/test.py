@@ -590,7 +590,7 @@ class fake_mesh:
 
 	def test_merlin_restarts(self):
 		"""5 second intermission to allow reconnect"""
-		return self._test_restarts('merlin', 1, 5)
+		return self._test_restarts('merlin', 3, 10)
 
 	def test_nagios_restarts(self):
 		"""Verifies that nodes reconnect after a restart of Nagios
