@@ -602,7 +602,7 @@ class fake_mesh:
 		ret = self._test_restarts('nagios', 3, 2)
 		for inst in self.instances:
 			lsize = inst.fsize('nagios.log')
-			self.tap.test(lsize > inst.nslog_size, True, "%s must keep nagios.log")
+			self.tap.test(lsize > inst.nslog_size, True, "%s must keep nagios.log" % inst.name)
 		return ret
 
 
