@@ -1216,17 +1216,6 @@ int nebmodule_deinit(int flags, int reason)
 	free(merlin_config_file);
 
 	/*
-	 * TODO: free the state hash tables and their data.
-	 *       They're currently leaked.
-	 *
-	 * Requires hash api re-design so it strdup()'s the
-	 * keys itself to be done properly, or a change to
-	 * use the host and service descriptions passed to
-	 * us from Nagios, which could well be a better
-	 * solutions
-	 */
-
-	/*
 	 * deinit logfiles last, so nothing reopens them while
 	 * we're shutting down other parts
 	 */
