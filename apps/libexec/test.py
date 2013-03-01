@@ -619,6 +619,27 @@ class fake_mesh:
 		self.intermission("Running active checks", 120)
 		master.submit_raw_command('STOP_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('STOP_EXECUTING_SVC_CHECKS')
+
+		# now get nodeinfo snapshot and check to make sure
+		# * All nodes have all checks accounted for
+		# * All nodes agree on which node ran which check
+		# * Each node runs exactly their allotted number of checks
+		for inst in self.instances:
+			inst.get_nodeinfo()
+			hchecks = 0
+			schecks = 0
+			for i in inst.nodeinfo:
+				hchecks += int(i.host_checks_executed)
+				schecks += int(i.service_checks_executed)
+				self.tap.test(i.assigned_hosts, i.host_checks_executed,
+					"host checks for %s from %s" % (i.name, inst.name))
+				self.tap.test(i.assigned_services, i.service_checks_executed,
+					"service checks for %s from %s" % (i.name, inst.name))
+			self.tap.test(hchecks, inst.group.num_objects['host'],
+				"%s should have all host checks accounted for" % inst.name)
+			self.tap.test(schecks, inst.group.num_objects['service'],
+				"%s should have all service checks accounted for" % inst.name)
+
 		self.intermission('Letting active check disabling spread', 10)
 
 
