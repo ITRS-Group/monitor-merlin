@@ -1103,8 +1103,6 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 int nebmodule_init(int flags, char *arg, nebmodule *handle)
 {
 	int i;
-	char *home = NULL;
-
 	neb_handle = (void *)handle;
 
 	/*
@@ -1169,16 +1167,6 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 
 	/* make sure we can catch whatever we want */
 	event_broker_options = BROKER_EVERYTHING;
-
-	daemon_dumps_core = 1;
-	home = getenv("HOME");
-	if (!home)
-		home = "/tmp";
-
-	linfo("Coredumps in %s", home);
-	signal(SIGSEGV, SIG_DFL);
-	if (flags != -1 || arg != NULL || handle != NULL)
-		chdir(home);
 
 	/* this gets de-registered immediately, so we need to add it manually */
 	neb_register_callback(NEBCALLBACK_PROCESS_DATA, neb_handle, 0, post_config_init);
