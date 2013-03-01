@@ -17,6 +17,7 @@ static int user_sig;
 int db_log_reports = 1;
 int db_log_notifications = 1;
 int db_track_current = 0;
+static merlin_nodeinfo merlind;
 
 static void usage(char *fmt, ...)
 	__attribute__((format(printf,1,2)));
@@ -920,8 +921,9 @@ int main(int argc, char **argv)
 	progname = progname ? progname + 1 : argv[0];
 
 	is_module = 0;
+	self = &merlind;
 	ipc_init_struct();
-	gettimeofday(&self.start, NULL);
+	gettimeofday(&merlind.start, NULL);
 
 
 	/*

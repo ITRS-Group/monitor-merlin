@@ -6,7 +6,7 @@ int is_module = 1; /* the daemon sets this to 0 immediately */
 int pulse_interval = 15;
 int use_database = 0;
 char *merlin_config_file = NULL;
-merlin_nodeinfo self;
+merlin_nodeinfo *self = NULL;
 char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
 
 #ifndef ISSPACE
@@ -726,7 +726,7 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 			lwarn("  - '%s' nodeinfo version %d; nodeinfo size %d.",
 				  node->name, node->info.version, len);
 			lwarn("  - we have nodeinfo version %d; nodeinfo size %d.",
-				  self.version, sizeof(self));
+				  self->version, sizeof(node->info));
 			lwarn("  - upgrading Merlin (on this server) to %s should fix things",
 				  nodeinfo_version_string(node->info.version));
 			len = sizeof(node->info);
@@ -738,7 +738,7 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 			 * anything right now
 			 */
 			lwarn("WARNING: '%s' needs to be updated to at least version %s",
-				  node->name, nodeinfo_version_string(self.version));
+				  node->name, nodeinfo_version_string(self->version));
 			ret -= 2;
 		} else if (version_delta && len != sizeof(node->info)) {
 			/*

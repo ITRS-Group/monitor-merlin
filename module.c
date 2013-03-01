@@ -152,7 +152,7 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 			 */
 			ldebug("##NSTATE##: Sending CTRL_ACTIVE volley for %s node %s",
 				   node_type(node), node->name);
-			node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 100);
+			node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info, 100);
 		}
 		break;
 	case CTRL_STALL:
@@ -794,7 +794,7 @@ extern char *config_file;
  */
 static int send_pulse(void *discard)
 {
-	node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 100);
+	node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info, 100);
 	schedule_new_event(EVENT_USER_FUNCTION, TRUE,
 	                   time(NULL) + MERLIN_PULSE_INTERVAL, FALSE,
 	                   0, NULL, FALSE, send_pulse, NULL, 0);
@@ -919,8 +919,6 @@ static int post_config_init(int cb, void *ds)
 	/* required for the 'nodeinfo' query through the query handler */
 	host_check_node = calloc(num_objects.hosts, sizeof(merlin_node *));
 	service_check_node = calloc(num_objects.services, sizeof(merlin_node *));
-	self.host_checks_handled = num_objects.hosts;
-	self.service_checks_handled = num_objects.services;
 
 	if (!db_track_current) {
 		char *cache_file = NULL;
@@ -1075,7 +1073,7 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	 * need the ipc_is_connected(0) call that ipc_ctrl
 	 * adds before trying to send.
 	 */
-	node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 100);
+	node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info, 100);
 
 	node_action_handler(&ipc, prev_state);
 
@@ -1107,12 +1105,15 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	int i;
 	neb_handle = (void *)handle;
 
+	self = &ipc.info;
+
 	/*
 	 * this must be zero'd out before we enter the node
 	 * config parsing, or we'll clobber the values collected
 	 * there and think we have no nodes configured
 	 */
-	memset(&self, 0, sizeof(self));
+	memset(&ipc.info, 0, sizeof(ipc.info));
+
 	/*
 	 * Solaris (among others) don't have MSG_NOSIGNAL, so we
 	 * ignore SIGPIPE globally instead.
@@ -1154,18 +1155,14 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	 * now we collect info about ourselves. Somewhat akin to a
 	 * capabilities and attributes list.
 	 */
-	self.version = MERLIN_NODEINFO_VERSION;
-	self.word_size = COMPAT_WORDSIZE;
-	self.byte_order = endianness();
-	self.monitored_object_state_size = sizeof(monitored_object_state);
-	self.object_structure_version = CURRENT_OBJECT_STRUCTURE_VERSION;
-	gettimeofday(&self.start, NULL);
-	self.last_cfg_change = get_last_cfg_change();
-	get_config_hash(self.config_hash);
-
-	/* required for peer id calculations */
-	ipc.info.start.tv_sec = self.start.tv_sec;
-	ipc.info.start.tv_usec = self.start.tv_usec;
+	ipc.info.version = MERLIN_NODEINFO_VERSION;
+	ipc.info.word_size = COMPAT_WORDSIZE;
+	ipc.info.byte_order = endianness();
+	ipc.info.monitored_object_state_size = sizeof(monitored_object_state);
+	ipc.info.object_structure_version = CURRENT_OBJECT_STRUCTURE_VERSION;
+	gettimeofday(&ipc.info.start, NULL);
+	ipc.info.last_cfg_change = get_last_cfg_change();
+	get_config_hash(ipc.info.config_hash);
 
 	/* make sure we can catch whatever we want */
 	event_broker_options = BROKER_EVERYTHING;

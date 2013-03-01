@@ -994,7 +994,7 @@ int merlin_mod_hook(int cb, void *data)
 	/* self-heal nodes that have missed out on the fact that we're up */
 	now = time(NULL);
 	if(!last_pulse || now - last_pulse > 15)
-		node_send_ctrl_active(&ipc, CTRL_GENERIC, &self, 0);
+		node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info, 0);
 	last_pulse = now;
 
 	memset(&pkt, 0, sizeof(pkt));

@@ -67,11 +67,11 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 		add = 0;
 	}
 	if (node->type == MODE_POLLER)
-		self.active_pollers += add;
+		self->active_pollers += add;
 	else if (node->type == MODE_PEER)
-		self.active_peers += add;
+		self->active_peers += add;
 	else if (node->type == MODE_MASTER)
-		self.active_masters += add;
+		self->active_masters += add;
 
 	prev_state = node->state;
 	node->state = state;
@@ -523,7 +523,7 @@ void node_log_event_count(merlin_node *node, int force)
 		return;
 
 	s->last_logged = now.tv_sec;
-	dura = tv_delta(&self.start, &now);
+	dura = tv_delta(&self->start, &now);
 
 	b_in = s->bytes.read;
 	b_out = s->bytes.sent + s->bytes.logged + s->bytes.dropped;

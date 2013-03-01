@@ -130,11 +130,13 @@ void pgroup_assign_peer_ids(merlin_peer_group *pg)
 	pgroup_reassign_checks(pg);
 
 	if (pg == ipc.pgroup) {
-		ipc.info.peer_id = self.peer_id = ipc.peer_id;
+		ipc.info.peer_id = ipc.peer_id;
 		linfo("We're now peer #%d out of %d active ones",
 			  ipc.peer_id, pg->active_nodes);
 		linfo("Handling %u host and %u service checks",
 			  ipc.assigned.current.hosts, ipc.assigned.current.services);
+		ipc.info.host_checks_handled = ipc.assigned.current.hosts;
+		ipc.info.service_checks_handled = ipc.assigned.current.services;
 	}
 }
 

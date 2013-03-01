@@ -14,7 +14,7 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 	merlin_node_stats *s = &n->stats;
 	struct merlin_assigned_objects aso;
 
-	i = n == &ipc ? &self : &n->info;
+	i = &n->info;
 	aso.hosts = n->assigned.current.hosts + n->assigned.extra.hosts;
 	aso.services = n->assigned.current.services + n->assigned.extra.services;
 
