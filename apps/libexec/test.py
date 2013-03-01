@@ -1458,13 +1458,14 @@ def cmd_dist(args):
 		if 'passive_checks' in tests:
 			if mesh.test_passive_checks() == False:
 				_dist_shutdown(mesh, 'Passive checks are broken', batch)
+			# acks must follow immediately upon passive checks
+			if 'acks' in tests:
+				mesh.test_acks()
 
 		if 'active_checks' in tests:
 			mesh.test_active_checks()
 		if 'downtime' in tests:
 			mesh.test_downtime()
-		if 'passive_checks' in tests and 'acks' in tests:
-			mesh.test_acks()
 		if 'comments' in tests:
 			mesh.test_comments()
 
