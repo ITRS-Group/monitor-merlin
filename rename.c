@@ -17,11 +17,11 @@ typedef struct renames {
 	char *to_service_description;
 } renames;
 
-FILE *new_file;
+static FILE *new_file;
 
-int64_t rename_len;
-char **from_name;
-char **to_name;
+static int64_t rename_len;
+static char **from_name;
+static char **to_name;
 
 #define previous_is(str, val) \
 	(!memcmp(str - strlen(val), val, strlen(val)))
