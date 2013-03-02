@@ -19,7 +19,7 @@ static const char *daemon_pidfile;
 /*
  * Really stupid generic sighandler...
  */
-void daemon_shutdown()
+void daemon_shutdown(void)
 {
 	unlink(daemon_pidfile);
 }

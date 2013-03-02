@@ -108,7 +108,7 @@ NULL/*data*/,
 static dbi_inst DBI_INSTANCE = NULL;
 #endif
 
-static void dbiw_atexit()
+static void dbiw_atexit(void)
 {
 #if USE_DEPRECATED_DBI_API
 	dbi_shutdown();
@@ -121,7 +121,7 @@ static void dbiw_atexit()
 	}
 #endif
 }
-static char dbiw_dbi_init()
+static char dbiw_dbi_init(void)
 {
 	static char doneit = 0;
 	if (doneit) return 1;
