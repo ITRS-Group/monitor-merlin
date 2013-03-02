@@ -140,7 +140,7 @@ void pgroup_assign_peer_ids(merlin_peer_group *pg)
 	}
 }
 
-merlin_peer_group *pgroup_create(char *hostgroups)
+static merlin_peer_group *pgroup_create(char *hostgroups)
 {
 	merlin_peer_group *pg, **ary;
 
@@ -160,7 +160,7 @@ merlin_peer_group *pgroup_create(char *hostgroups)
 	return pg;
 }
 
-merlin_peer_group *pgroup_get_by_cshgs(char *hgs)
+static merlin_peer_group *pgroup_get_by_cshgs(char *hgs)
 {
 	int i;
 
@@ -175,7 +175,7 @@ merlin_peer_group *pgroup_get_by_cshgs(char *hgs)
 	return pgroup_create(hgs);
 }
 
-void pgroup_alloc_counters(merlin_peer_group *pg)
+static void pgroup_alloc_counters(merlin_peer_group *pg)
 {
 	int i;
 
@@ -188,7 +188,7 @@ void pgroup_alloc_counters(merlin_peer_group *pg)
 	}
 }
 
-void pgroup_destroy(merlin_peer_group *pg)
+static void pgroup_destroy(merlin_peer_group *pg)
 {
 	int i;
 
@@ -199,7 +199,7 @@ void pgroup_destroy(merlin_peer_group *pg)
 	}
 }
 
-int pgroup_add_node(merlin_peer_group *pg, merlin_node *node)
+static int pgroup_add_node(merlin_peer_group *pg, merlin_node *node)
 {
 	merlin_node **ary;
 
@@ -269,7 +269,7 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 	return dupes;
 }
 
-void pgroup_map_objects(void)
+static void pgroup_map_objects(void)
 {
 	int i, x, dupes = 0;
 
