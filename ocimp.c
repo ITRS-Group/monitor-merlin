@@ -281,31 +281,6 @@ static inline void cfg_indent(FILE *fp, int depth)
 	}
 }
 
-void cfg_fprintr_comp(FILE *fp, struct cfg_comp *comp, int depth)
-{
-	int i;
-
-	if (!comp || !fp)
-		return;
-
-	for (i = 0; i < comp->vars; i++) {
-		struct cfg_var *v = comp->vlist[i];
-		cfg_indent(fp, depth);
-		fprintf(fp, "%s = %s\n", v->key, v->value);
-	}
-
-	for (i = 0; i < comp->nested; i++) {
-		struct cfg_comp *nc = comp->nest[i];
-
-		cfg_indent(fp, depth);
-		fprintf(fp, "%s {\n", nc->name);
-		cfg_fprintr_comp(fp, nc, depth + 1);
-
-		cfg_indent(fp, depth);
-		fprintf(fp, "}\n\n");
-	}
-}
-
 static int get_file_hash(blk_SHA_CTX *ctx, const char *path)
 {
 	struct stat st;
