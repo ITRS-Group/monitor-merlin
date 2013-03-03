@@ -1,7 +1,7 @@
 %define mod_path /opt/monitor/op5/merlin
 %define nagios_cfg /opt/monitor/etc/nagios.cfg
 
-%define install_args --batch --dest-dir=%mod_path \
+%define install_args --batch --dest-dir=%mod_path \\\
 	--bindir=%_bindir --libexecdir=%_libdir/merlin --nagios-cfg=%nagios_cfg
 
 %{?dgroup:%define daemon_group %{dgroup}}
