@@ -191,7 +191,7 @@ unsigned int slist_entries(slist *sl)
 void *slist_get_list(slist *sl)
 {
 	if (!sl)
-		return 0;
+		return NULL;
 
 	return sl->list;
 }

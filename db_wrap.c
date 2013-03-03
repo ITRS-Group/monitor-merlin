@@ -51,7 +51,7 @@ static int db_wrap_query_number_prepare(db_wrap * db, char const * sql, size_t l
 	if (DB_WRAP_E_DONE == rc)
 	{
 		res->api->finalize(res);
-		*tgt = 0;
+		*tgt = NULL;
 		return 0;
 	}
 	else if (rc)
@@ -122,7 +122,7 @@ int db_wrap_query_string(db_wrap * db, char const * sql, size_t len, char const 
 	if (rc) return rc;
 	else if (! res)
 	{
-		*tgt = 0;
+		*tgt = NULL;
 		*tgtLen = 0;
 		return 0;
 	}
