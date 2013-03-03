@@ -20,7 +20,6 @@ static slist *sg_slist, *cg_slist, *hg_slist;
 static int num_contacts;
 static int ocache_unchanged, skip_contact_access;
 static uint dodged_queries;
-extern unsigned long total_queries;
 static unsigned char ocache_hash[20];
 static char *cache_path, *status_path;
 static int no_ca_query;

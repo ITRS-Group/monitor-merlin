@@ -11,7 +11,7 @@
 
 merlin_node **host_check_node = NULL;
 merlin_node **service_check_node = NULL;
-merlin_node untracked_checks_node = {
+static merlin_node untracked_checks_node = {
 	.name = "untracked checks",
 	.type = MODE_INTERNAL,
 	.host_checks = 0,

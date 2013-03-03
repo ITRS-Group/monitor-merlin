@@ -237,7 +237,7 @@ char *tohex(const unsigned char *data, int len)
 }
 
 #define CB_ENTRY(s) { NEBCALLBACK_##s##_DATA, #s, sizeof(#s) - 1 }
-struct {
+static struct {
 	int id;
 	char *name;
 	uint name_len;

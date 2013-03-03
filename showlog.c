@@ -767,7 +767,7 @@ static void usage(const char *fmt, ...)
 #define OPT_SHOW 0
 #define OPT_HIDE 1
 #define show_hide_code(s, opt) { 0, s, sizeof(#s) - 1, opt }
-int show_hide(char *arg, char *opt)
+static int show_hide(char *arg, char *opt)
 {
 	int what;
 	uint filter = 0, show_filter = 0;

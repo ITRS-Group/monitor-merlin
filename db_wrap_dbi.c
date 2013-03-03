@@ -158,7 +158,7 @@ static char dbiw_dbi_init(void)
 	if (!dbires) return ERRVAL; \
 	INIT_DBI(ERRVAL)
 
-int dbiw_connect(db_wrap * self)
+static int dbiw_connect(db_wrap * self)
 {
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	return dbi_conn_connect(conn)
@@ -166,7 +166,7 @@ int dbiw_connect(db_wrap * self)
 		: 0;
 }
 
-size_t dbiw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest)
+static size_t dbiw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest)
 {
 	DB_DECL(0);
 	if (!sql || !*sql || !len)
@@ -180,7 +180,7 @@ size_t dbiw_sql_quote(db_wrap * self, char const * sql, size_t len, char ** dest
 	}
 }
 
-int dbiw_free_string(db_wrap * self, char * str)
+static int dbiw_free_string(db_wrap * self, char * str)
 {
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	free(str);
@@ -191,7 +191,7 @@ int dbiw_free_string(db_wrap * self, char * str)
    wrapper. Its api and typeID members are initialized by this call.
    Returns NULL only on alloc error.
 */
-static db_wrap_result * dbiw_res_alloc()
+static db_wrap_result * dbiw_res_alloc(void)
 {
 	db_wrap_result * rc = (db_wrap_result*)malloc(sizeof(db_wrap_result));
 	if (rc)
@@ -201,7 +201,7 @@ static db_wrap_result * dbiw_res_alloc()
 	return rc;
 }
 
-int dbiw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_result ** tgt)
+static int dbiw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_result ** tgt)
 {
 	/*
 	  This impl does not use the len param, but it's in the interface because i
@@ -223,7 +223,7 @@ int dbiw_query_result(db_wrap * self, char const * sql, size_t len, db_wrap_resu
 	return 0;
 }
 
-int dbiw_error_info(db_wrap * self, char const ** dest, size_t * len, int * errCode)
+static int dbiw_error_info(db_wrap * self, char const ** dest, size_t * len, int * errCode)
 {
 	if (! self) return DB_WRAP_E_BAD_ARG;
 	DB_DECL(DB_WRAP_E_BAD_ARG);
@@ -250,7 +250,7 @@ int dbiw_error_info(db_wrap * self, char const ** dest, size_t * len, int * errC
 	return 0;
 }
 
-int dbiw_option_set(db_wrap * self, char const * key, void const * val)
+static int dbiw_option_set(db_wrap * self, char const * key, void const * val)
 {
 	/**
 	   Maintenance note:
@@ -280,7 +280,7 @@ int dbiw_option_set(db_wrap * self, char const * key, void const * val)
 	return rc;
 }
 
-int dbiw_option_get(db_wrap * self, char const * key, void * val)
+static int dbiw_option_get(db_wrap * self, char const * key, void * val)
 {
 	/* See maintenance notes in dbiw_option_set(). */
 	DB_DECL(DB_WRAP_E_BAD_ARG);
@@ -311,14 +311,14 @@ int dbiw_option_get(db_wrap * self, char const * key, void * val)
 	return 0;
 }
 
-char dbiw_is_connected(db_wrap * self)
+static char dbiw_is_connected(db_wrap * self)
 {
 	DB_DECL(0);
 	return NULL != conn;
 }
 
 
-int dbiw_cleanup(db_wrap * self)
+static int dbiw_cleanup(db_wrap * self)
 {
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	if (conn)
@@ -329,7 +329,7 @@ int dbiw_cleanup(db_wrap * self)
 	return 0;
 }
 
-int dbiw_finalize(db_wrap * self)
+static int dbiw_finalize(db_wrap * self)
 {
 	/*MARKER("Freeing db handle @%p\n",(void const *)self);*/
 	DB_DECL(DB_WRAP_E_BAD_ARG);
@@ -338,7 +338,7 @@ int dbiw_finalize(db_wrap * self)
 	return 0;
 }
 
-int dbiw_commit(db_wrap * self)
+static int dbiw_commit(db_wrap * self)
 {
 	dbi_result dbir;
 
@@ -350,7 +350,7 @@ int dbiw_commit(db_wrap * self)
 	return 0;
 }
 
-int dbiw_set_auto_commit(db_wrap * self, int set)
+static int dbiw_set_auto_commit(db_wrap * self, int set)
 {
 	dbi_result dbir;
 	DB_DECL(DB_WRAP_E_BAD_ARG);
@@ -366,7 +366,7 @@ int dbiw_set_auto_commit(db_wrap * self, int set)
 	return 0;
 }
 
-int dbiw_res_step(db_wrap_result * self)
+static int dbiw_res_step(db_wrap_result * self)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	return dbi_result_next_row(dbires)
@@ -375,7 +375,7 @@ int dbiw_res_step(db_wrap_result * self)
 		;
 }
 
-int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * val)
+static int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * val)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
@@ -463,7 +463,7 @@ int dbiw_res_get_int32_ndx(db_wrap_result * self, unsigned int ndx, int32_t * va
 	return 0;
 }
 
-int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * val)
+static int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * val)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
@@ -540,7 +540,7 @@ int dbiw_res_get_int64_ndx(db_wrap_result * self, unsigned int ndx, int64_t * va
 	return 0;
 }
 
-int dbiw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * val)
+static int dbiw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * val)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
@@ -567,7 +567,7 @@ int dbiw_res_get_double_ndx(db_wrap_result * self, unsigned int ndx, double * va
 	return 0;
 }
 
-int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char const ** val, size_t * len)
+static int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char const ** val, size_t * len)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) return DB_WRAP_E_BAD_ARG;
@@ -588,7 +588,7 @@ int dbiw_res_get_string_ndx(db_wrap_result * self, unsigned int ndx, char const 
 	return 0;
 }
 
-int dbiw_res_num_rows(db_wrap_result * self, size_t *num)
+static int dbiw_res_num_rows(db_wrap_result * self, size_t *num)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! num) return DB_WRAP_E_BAD_ARG;
@@ -596,7 +596,7 @@ int dbiw_res_num_rows(db_wrap_result * self, size_t *num)
 	return 0;
 }
 
-int dbiw_res_finalize(db_wrap_result * self)
+static int dbiw_res_finalize(db_wrap_result * self)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	/*MARKER("Freeing result handle @%p/@%p\n",(void const *)self, (void const *)res);*/

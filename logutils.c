@@ -7,7 +7,7 @@ int ipc_grok_var(char *var, char *val) { return 0; }
 /* global variables used in all log-handling apps */
 char **strv = NULL;
 int num_nfile = 0;
-int nfile_alloc = 0;
+static int nfile_alloc = 0;
 struct naglog_file *nfile;
 int debug_level = 0;
 struct naglog_file *cur_file; /* the file we're currently importing */
