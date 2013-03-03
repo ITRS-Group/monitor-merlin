@@ -318,6 +318,7 @@ class fake_instance:
 
 
 	def signal_daemons(self, sig, dname=False):
+		alive = True
 		for name, proc in self.proc.items():
 			remove = sig == signal.SIGKILL
 			if dname and dname != name:
@@ -325,11 +326,16 @@ class fake_instance:
 			try:
 				os.kill(proc.pid, sig)
 			except OSError, e:
+				alive = False
 				if e.errno == errno.ESRCH:
 					remove = True
 					pass
 			if remove:
 				self.proc.pop(name)
+
+		if sig == 0:
+			return alive
+		return None
 
 
 	def stop_daemons(self, dname=False):
@@ -513,12 +519,75 @@ class fake_mesh:
 	# and if one of them fails, we must break out early and print
 	# an error, since the rest of the tests will be in unknown
 	# state.
-	#
+	def _test_proc_alive(self, proc, exp, msg_prefix):
+		msg = msg_prefix
+
+		try:
+			result = os.waitpid(proc.pid, os.WNOHANG)
+		except OSError, e:
+			return self.tap.fail("EXCEPTION for '%s': %s" % msg)
+
+		pid, status = result
+		if not pid and not status:
+			return self.tap.test(True, exp, msg)
+
+		# we got a pid and a status, so check what happened
+		if os.WIFEXITED(status):
+			msg = "%s: Exited with status %d" % (msg, os.WEXITSTATUS(status))
+			if exp == False and not os.WEXITSTATUS(status):
+				return self.tap.ok(msg)
+		elif os.WIFSIGNALED(status):
+			msg = "%s: Caught sig %d" % (msg, os.WTERMSIG(status))
+			if os.WCOREDUMP(status):
+				msg = "%s (core dumped)" % msg
+		else:
+			msg = "%s: pid=%d; status=%d; unknown exit reason" % (pid, status)
+		self.tap.test(False, exp, msg)
+
+
+	def test_alive(self, **kwargs):
+		"""Tests to make sure daemons are still alive"""
+		daemon = False
+		what = False
+		pretest_failed = self.tap.failed
+		expect = True
+		verbose = True
+
+		for k, v in kwargs:
+			if k == 'daemon':
+				daemon = v
+			elif k == 'verbose':
+				verbose = v
+			elif k == 'expect':
+				expect = v
+			elif k == 'quiet':
+				verbose = not v
+
+		old_verbose = self.tap.verbose
+		self.tap.verbose = verbose
+
+		if expect == True:
+			how = "must live"
+		else:
+			how = "must exit nicely"
+		for inst in self.instances:
+			for dname, proc in inst.proc.items():
+				if daemon and dname != daemon:
+					continue
+				self._test_proc_alive(proc, expect, "%s on %s %s" % (dname, inst.name, how))
+
+		self.tap.verbose = old_verbose
+		if self.tap.failed > pretest_failed:
+			self.shutdown('Daemons have crashed. Bailing out')
+		return True
+
 	def test_connections(self):
 		"""Tests connections between nodes in the mesh.
 		This is a mandatory test"""
 		status = True
 		start_failed = self.tap.failed
+
+		self.test_alive()
 
 		for inst in self.instances:
 			inst.get_nodeinfo()
@@ -1451,6 +1520,7 @@ def cmd_dist(args):
 
 
 	mesh.create_databases()
+
 	mesh.start_daemons()
 	dist_test_mesh = mesh
 	signal.signal(signal.SIGINT, dist_test_sighandler)
