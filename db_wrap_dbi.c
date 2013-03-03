@@ -626,8 +626,8 @@ int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const * param, db_wrap *
 	wr->impl.data = conn;
 	if (param)
 	{
-#define CLEANUP do{ wr->impl.data = 0/*caller keeps ownership*/; wr->api->finalize(wr); wr = NULL; } while(0)
-#define CHECKRC if (0 != rc) { CLEANUP; return rc; } (void)0
+#define CLEANUP do{ wr->impl.data = NULL/*caller keeps ownership*/; wr->api->finalize(wr); wr = NULL; } while(0)
+#define CHECKRC do { if (0 != rc) { CLEANUP; return rc; } } while (0)
 		int rc = 0;
 #define OPT(K) if (param->K && *param->K) {              \
 			rc = wr->api->option_set(wr, #K, param->K);   \
