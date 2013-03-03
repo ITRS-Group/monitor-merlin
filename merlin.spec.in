@@ -1,6 +1,9 @@
 %define mod_path /opt/monitor/op5/merlin
 %define nagios_cfg /opt/monitor/etc/nagios.cfg
 
+%define install_args --batch --dest-dir=%mod_path \
+	--bindir=%_bindir --libexecdir=%_libdir/merlin --nagios-cfg=%nagios_cfg
+
 %{?dgroup:%define daemon_group %{dgroup}}
 
 Summary: The merlin daemon is a multiplexing event-transport program
@@ -115,9 +118,8 @@ make ENABLE_OCILIB=1 ENABLE_LIBDBI=1 NAGIOS_PREFIX=/opt/monitor test
 
 %install
 rm -rf %buildroot
-sh install-merlin.sh --batch --root=%buildroot --bindir=%_bindir \
-	--libexecdir=%_libdir/merlin --install=files,apps,init \
-	--dest-dir %mod_path --nagios-cfg=%prefix/etc/nagios.cfg
+sh install-merlin.sh %install_args --root=%buildroot --install=files,apps,init
+
 chmod 777 %buildroot/%mod_path/logs
 mkdir -p %buildroot/%mod_path/binlogs
 mkdir -p %buildroot%_sysconfdir/logrotate.d
@@ -160,8 +162,7 @@ cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
 # Verify that mysql-server is installed and running before executing sql scripts
 $(mysql -Be "quit" 2>/dev/null) && MYSQL_AVAILABLE=1
 if [ -n "$MYSQL_AVAILABLE" ]; then
-  %mod_path/install-merlin.sh --batch --install=db \
-      --nagios-cfg=%prefix/etc/nagios.cfg --dest-dir=%prefix/op5/merlin
+  %mod_path/install-merlin.sh %install_args --batch --install=db
 else
   echo "WARNING: mysql-server is not installed or not running."
   echo "If Oracle database is to be used this is ok."
@@ -207,8 +208,7 @@ if [ $1 -eq 0 ]; then
 fi
 
 %post -n monitor-merlin
-%mod_path/install-merlin.sh --batch --install=config \
-	--nagios-cfg=%nagios_cfg --dest-dir=%mod_path || :
+%mod_path/install-merlin.sh %install_args --install=config || :
 sh /etc/init.d/monitor start || :
 
 
@@ -246,7 +246,7 @@ sh /etc/init.d/monitor start || :
 %mod_path/ocimp
 %mod_path/rename
 %_libdir/merlin/*
-/usr/bin/mon
+%_bindir/mon
 %_sysconfdir/cron.d/*
 /opt/plugins/*
 /opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
