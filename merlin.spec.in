@@ -236,6 +236,7 @@ sh /etc/init.d/monitor start || :
 %files -n monitor-merlin
 %defattr(-,root,root)
 %mod_path/merlin.so
+%_libdir/merlin/merlin.so
 
 
 %files apps
@@ -251,6 +252,7 @@ sh /etc/init.d/monitor start || :
 /opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
 
 %exclude %_libdir/merlin/mon/test.py*
+%exclude %_libdir/merlin/merlin.so
 
 %files test
 %_libdir/merlin/mon/test.py*
