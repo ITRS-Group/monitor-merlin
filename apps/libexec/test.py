@@ -1005,14 +1005,30 @@ class fake_mesh:
 		os.system("rm -rf %s" % self.basepath)
 
 
-	def destroy(self, destroy_databases=False):
-		"""
-		Shuts down and removes all traces of the fake mesh
-		"""
-		self.stop_daemons()
-		if destroy_databases:
-			self.destroy_databases()
+	def destroy(self):
+		"""Removes all traces of the fake mesh"""
+		self.destroy_databases()
 		self.destroy_playground()
+
+
+	def shutdown(self, msg=False):
+		if msg != False:
+			print("%s" % msg)
+
+		self.finalize_tests()
+		if not self.batch:
+			print("When done testing and examining, just press enter")
+			buf = sys.stdin.readline()
+
+		print("Stopping daemons")
+		self.stop_daemons()
+		print("Destroying playground")
+		self.destroy()
+		self.close_db()
+
+		if self.tap.failed == 0:
+			sys.exit(0)
+		sys.exit(1)
 
 
 	def create_playground(self, num_hosts=3, num_services_per_host=5):
@@ -1148,29 +1164,6 @@ class fake_mesh:
 			self.db = False
 		except Exception, e:
 			pass
-
-
-def _dist_shutdown(mesh, msg=False, batch=False, destroy_databases=False):
-	if msg != False:
-		print("%s" % msg)
-
-	mesh.finalize_tests()
-	if batch == False:
-		print("When done testing and examining, just press enter")
-		buf = sys.stdin.readline()
-
-	print("Stopping daemons")
-	mesh.stop_daemons()
-	if destroy_databases:
-		print("Destroying databases")
-		mesh.destroy_databases(True)
-	print("Destroying on-disk mesh")
-	mesh.destroy()
-	mesh.close_db()
-
-	if mesh.tap.failed == 0:
-		sys.exit(0)
-	sys.exit(1)
 
 
 dist_test_mesh = False
@@ -1449,6 +1442,7 @@ def cmd_dist(args):
 		use_database=use_database,
 		sleeptime=sleeptime,
 		valgrind=valgrind,
+		batch=batch
 	)
 	mesh.create_playground(num_hosts, num_services_per_host)
 
@@ -1467,18 +1461,17 @@ def cmd_dist(args):
 	try:
 		mesh.intermission("Allowing nodes to connect to each other", 3)
 		if mesh.test_connections() == False:
-			print("Connection tests failed. Bailing out")
-			_dist_shutdown(mesh, 'Connection tests failed', batch)
+			mesh.shutdown('Connection tests failed. Bailing out')
 
 		if mesh.test_imports() == False:
-			_dist_shutdown(mesh, 'Imports failed. This is a known spurious error when running tests often', batch)
+			mesh.shutdown('Imports failed. This is a known spurious error when running tests often')
 
 		if 'global_commands' in tests:
 			if mesh.test_global_commands() == False:
-				_dist_shutdown(mesh, 'Global command tests failed', batch)
+				mesh.shutdown('Global command tests failed')
 		if 'passive_checks' in tests:
 			if mesh.test_passive_checks() == False:
-				_dist_shutdown(mesh, 'Passive checks are broken', batch)
+				mesh.shutdown(mesh, 'Passive checks are broken')
 			# acks must follow immediately upon passive checks
 			if 'acks' in tests:
 				mesh.test_acks()
@@ -1494,11 +1487,11 @@ def cmd_dist(args):
 		if 'merlin_restarts' in tests:
 			if mesh.test_merlin_restarts() == False:
 				print("Merlin restart tests failed. Bailing out")
-				_dist_shutdown(mesh, 'Merlin restart tests failed', batch)
+				mesh.shutdown('Merlin restart tests failed')
 		if 'nagios_restarts' in tests:
 			if mesh.test_nagios_restarts() == False:
 				print("Nagios restart tests failed. Bailing out")
-				_dist_shutdown(mesh, 'Nagios restart tests failed', batch)
+				mesh.shutdown('Nagios restart tests failed')
 
 	except SystemExit:
 		# Some of the helper functions call sys.exit(1) to bail out.
@@ -1511,10 +1504,10 @@ def cmd_dist(args):
 		traceback.print_exc()
 		print '*'*40
 		mesh.tap.failed = True
-		_dist_shutdown(mesh, destroy_databases, batch)
+		mesh.shutdown()
 		raise
 
-	_dist_shutdown(mesh, destroy_databases, batch)
+	mesh.shutdown()
 
 def test_cmd(cmd_fd, cmd, msg=False):
 	if msg != False:
