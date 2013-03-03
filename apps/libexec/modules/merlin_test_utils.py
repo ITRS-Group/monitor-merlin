@@ -28,9 +28,8 @@ class tap:
 		msg = "  %sfail%s %s" % (color.red, color.reset, msg)
 		self.failures.append(msg)
 		self.faildiag.append((a, b))
-		if self.verbose:
-			print(msg)
-			print(a, b)
+		print(msg)
+		print(a, b)
 		return False
 
 
