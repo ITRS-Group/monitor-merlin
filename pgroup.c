@@ -181,7 +181,7 @@ static void pgroup_alloc_counters(merlin_peer_group *pg)
 
 	pg->host_map = bitmap_create(num_objects.hosts);
 	pg->service_map = bitmap_create(num_objects.services);
-	pg->alloc = pg->total_nodes;
+	pg->alloc = max(num_peers + 1, pg->total_nodes);
 	pg->assign = calloc(pg->alloc, sizeof(void *));
 	for (i = 0; i < pg->alloc; i++) {
 		pg->assign[i] = calloc(i + 1, sizeof(**pg->assign));
