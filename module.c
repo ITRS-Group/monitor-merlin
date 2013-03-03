@@ -1013,7 +1013,7 @@ static int node_action_handler(merlin_node *node, int prev_state)
 static int ipc_action_handler(merlin_node *node, int prev_state)
 {
 	int ret;
-	time_t start;
+	struct timeval start, stop;
 
 	ldebug("Running ipc action handler");
 	if (node != &ipc || ipc.state == prev_state) {
@@ -1078,20 +1078,22 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	node_action_handler(&ipc, prev_state);
 
 	/* now we wait for inbound connections */
-	start = time(NULL);
-	for (;;) {
+	for (gettimeofday(&start, NULL);;) {
 		int wait;
 		/* exits immediately if we have no peers or pollers */
-		if (online_peers + online_pollers == num_peers + num_pollers)
+		if (online_nodes >= num_nodes)
 			break;
-		wait = (start + 10) - time(NULL);
+		gettimeofday(&stop, NULL);
+		wait = 10000 - tv_delta_msec(&start, &stop);
 		if (wait <= 0)
 			break;
-		iobroker_poll(nagios_iobs, wait * 1000);
+		ldebug("Polling for input for %d msecs", wait);
+		iobroker_poll(nagios_iobs, wait);
 	}
-	linfo("%d / %d peers+pollers connected in %d seconds",
-		  online_peers + online_pollers, num_peers + num_pollers,
-		  (int)(time(NULL) - start));
+	gettimeofday(&stop, NULL);
+	linfo("%d/%d pollers, %d/%d peers and %d/%d masters connected in %s",
+		  online_pollers, num_pollers, online_peers, num_peers,
+		  online_masters, num_masters, tv_delta(&start, &stop));
 
 	return 0;
 }
