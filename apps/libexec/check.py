@@ -29,6 +29,7 @@ def module_init(args):
 	global have_type_arg, have_name_arg
 	global mst, lsc, ls_path, qh
 
+	qh_path = False
 	rem_args = []
 	i = -1
 	for arg in args:
@@ -44,6 +45,8 @@ def module_init(args):
 		elif arg.startswith('--name='):
 			wanted_names = arg.split('=')[1].split(',')
 			have_name_arg = True
+		elif arg.startswith('--qh-socket='):
+			qh_path = arg.split('=', 1)[1]
 		else:
 			# not an argument we recognize, so stash it and move on
 			rem_args += [arg]
@@ -60,9 +63,30 @@ def module_init(args):
 					ls_path = p
 					break
 
+	if qh_path:
+		qh = qh_path
 	lsc = livestatus.SingleSiteConnection('unix:' + ls_path)
 	mst = merlin_status(lsc, qh)
 	return rem_args
+
+
+# When casting to int *everywhere* gets tedious...
+class _dict2obj:
+	def __init__(self, d):
+		for k, v in d.items():
+			try:
+				i = int(v)
+				setattr(self, k, i)
+			except:
+				try:
+					x = float(v)
+					setattr(self, k, x)
+				except:
+					setattr(self, k, v)
+					pass
+
+	def get(self, what, dflt=None):
+		return getattr(self, what, dflt)
 
 def cmd_distribution(args):
 	"""[--no-perfdata]
@@ -76,21 +100,29 @@ def cmd_distribution(args):
 		if arg == '--no-perfdata':
 			print_perfdata = False
 
-	total_checks = {
-		'host': mst.num_entries('host'),
-		'service': mst.num_entries('service'),
+	info = get_merlin_nodeinfo(qh)
+	checktot = {
+		'host': { 'assigned': 0, 'executed': 0 },
+		'service': { 'assigned': 0, 'executed': 0 },
 	}
+	hchecks = 0; schecks = 0; hchecks_exec = 0; schecks_exec = 0
+	nodes = []
+	for i in info:
+		n = _dict2obj(i)
+		nodes.append(n)
+		hchecks += n.assigned_hosts
+		hchecks_exec += n.host_checks_executed
+		schecks += n.assigned_services
+		schecks_exec += n.service_checks_executed
+		for ctype in checktot.keys():
+			checktot[ctype]['assigned'] = getattr(n, 'assigned_%ss' % ctype)
+			checktot[ctype]['executed'] = getattr(n, '%s_checks_executed' % ctype)
 
-
-	nodes = mst.status()
 	state_str = ""
 	should = {}
 	if not nodes:
 		print "UNKNOWN: No hosts found at all"
 		sys.exit(nplug.UNKNOWN)
-	masters = filter(lambda x: x['type'] == 'master', nodes)
-	peers = filter(lambda x: x['type'] in ('peer', 'local'), nodes)
-	pollers = filter(lambda x: x['type'] == 'poller', nodes)
 
 	class check_objs(object):
 		pdata = ''
@@ -102,49 +134,45 @@ def cmd_distribution(args):
 
 		def verify_executed_checks(self, info, exp):
 			for ctype, num in exp.items():
-				actual = int(info[ctype + '_checks_executed'])
+				actual = getattr(n, ctype + '_checks_executed')
 				ok_str = "%d:%d" % (num[0], num[1])
 				self.pdata += (" '%s_%ss'=%d;%s;%s;0;%d" %
-					(info['name'], ctype, actual, ok_str, ok_str, total_checks[ctype]))
+					(info.name, ctype, actual, ok_str, ok_str, checktot[ctype]['assigned']))
 				if self.is_bad(actual, num):
 					self.state = nplug.STATE_CRITICAL
-					self.bad[info['name']] = {'host': info['host_checks_executed'], 'service': info['service_checks_executed']}
+					self.bad[info.name] = {
+						'host': info.host_checks_executed,
+						'service': info.service_checks_executed
+					}
 
 	o = check_objs()
+	hc_delta = hchecks - hchecks_exec
+	sc_delta = schecks - schecks_exec
 
-	for info in masters:
-		exp = should[info['name']] = {'host': (0,0), 'service': (0,0)}
-		o.verify_executed_checks(info, exp)
+	# if either delta is wrong, we just set it to 0.
+	# That will cause the check to go CRITICAL, which
+	# is just fine.
+	if hc_delta < 0:
+		print("hchecks=%d; hchecks_exec=%d; delta=%d" %
+			(hchecks, hchecks_exec, hcheck_delta))
+		hc_delta = 0
+	if sc_delta < 0:
+		print("schecks=%d; schecks_exec=%d; delta=%d" %
+			(schecks, schecks_exec, scheck_delta))
+		sc_delta = 0
 
-	try:
-		host_dis = lsc.query_value('GET hosts\nFilter: active_checks_enabled = 0\nStats: state != 999')
-		svc_dis = lsc.query_value('GET services\nFilter: active_checks_enabled = 0\nStats: state != 999')
-	except livestatus.livestatus.MKLivestatusSocketError:
-		print "UNKNOWN: Error asking livestatus for info, bailing out"
-		sys.exit(nplug.UNKNOWN)
-
-	host_on_poller = 0
-	svc_on_poller = 0
-
-	for info in pollers:
-		hhandled = int(info.get('host_checks_handled', 0)) / (int(info.get('configured_peers', 0)) + 1)
-		shandled = int(info.get('service_checks_handled', 0)) / (int(info.get('configured_peers', 0)) + 1)
-		exp = should[info['name']] = {
-			'host': (hhandled - host_dis, hhandled),
-			'service': (shandled - svc_dis, shandled)
+	for n in nodes:
+		exp = {
+			'host': (
+				int(n.get('assigned_hosts')) - hc_delta,
+				int(n.get('assigned_hosts')) + hc_delta
+			),
+			'service': (
+				int(n.get('assigned_services')) - sc_delta,
+				int(n.get('assigned_services')) + sc_delta
+			)
 		}
-		host_on_poller += exp['host'][1]
-		svc_on_poller += exp['service'][1]
-		o.verify_executed_checks(info, exp)
-
-	for info in peers:
-		hhandled = int(info.get('host_checks_handled', 0)) / (int(info.get('configured_peers', 0)) + 1)
-		shandled = int(info.get('service_checks_handled', 0)) / (int(info.get('configured_peers', 0)) + 1)
-		exp = should[info['name']] = {
-			'host': (hhandled - host_dis - host_on_poller, hhandled),
-			'service': (shandled - svc_dis - svc_on_poller, shandled),
-		}
-		o.verify_executed_checks(info, exp)
+		o.verify_executed_checks(n, exp)
 
 	for name, b in o.bad.items():
 		if not len(b):
