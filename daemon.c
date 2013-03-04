@@ -42,7 +42,7 @@ void db_mark_node_inactive(merlin_node *node)
 {
 	int node_id;
 
-	if (!use_database)
+	if (!use_database || !db_track_current)
 		return;
 
 	node_id = node == &ipc ? 0 : node->id + 1;
@@ -87,7 +87,7 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 
 	switch (node->state) {
 	case STATE_CONNECTED:
-		if (sql_is_connected(1)) {
+		if (db_track_current && sql_is_connected(1)) {
 			sql_query("UPDATE program_status SET "
 			          "is_running = 1, last_alive = %lu "
 			          "WHERE instance_id = 0", time(NULL));
@@ -1025,7 +1025,7 @@ int main(int argc, char **argv)
 	signal(SIGUSR2, sigusr_handler);
 
 	sql_init();
-	if (use_database) {
+	if (use_database && db_track_current) {
 		sql_query("TRUNCATE TABLE program_status");
 		sql_query("INSERT INTO program_status(instance_id, instance_name, is_running) "
 		          "VALUES(0, 'Local Nagios daemon', 0)");
