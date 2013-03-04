@@ -1540,7 +1540,7 @@ def cmd_dist(args):
 	# break out early in case one or more of the required
 	# ones fail hard.
 	try:
-		mesh.intermission("Allowing nodes to connect to each other", 3)
+		mesh.intermission("Allowing nodes to connect to each other", 5)
 		if mesh.test_connections() == False:
 			mesh.shutdown('Connection tests failed. Bailing out')
 
