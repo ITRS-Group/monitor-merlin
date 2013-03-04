@@ -82,10 +82,6 @@ def cmd_status(args):
 
 	latency_thresholds = {'min': -1.0, 'avg': 100.0, 'max': -1.0}
 
-	num_peers = mconf.num_nodes['peer']
-	num_pollers = mconf.num_nodes['poller']
-	num_masters = mconf.num_nodes['master']
-	num_helpers = num_peers + num_pollers
 	for info in sinfo:
 		print("")
 		iid = int(info.pop('instance_id', 0))
