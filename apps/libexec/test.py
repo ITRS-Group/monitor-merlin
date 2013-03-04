@@ -637,10 +637,9 @@ class fake_mesh:
 					"%s thinks %s has %s/%s active masters" %
 					(inst.name, i.name, i.active_masters, i.configured_masters))
 
-			self.tap.test(tot_con, len(self.instances), "%s has %d/%d connected systems" %
-				(inst.name, tot_con, len(self.instances)))
+			self.tap.test(tot_con, inst.num_nodes, "%s has %d/%d connected systems" %
+				(inst.name, tot_con, inst.num_nodes))
 			self.tap.test(tot_con, calc_con, "%s should count connections properly" % inst.name)
-
 
 		if self.tap.failed > start_failed:
 			status = False
