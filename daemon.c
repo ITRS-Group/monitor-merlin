@@ -18,6 +18,7 @@ int db_log_reports = 1;
 int db_log_notifications = 1;
 int db_track_current = 0;
 static merlin_nodeinfo merlind;
+static int merlind_sig;
 
 static void usage(char *fmt, ...)
 	__attribute__((format(printf,1,2)));
@@ -831,7 +832,7 @@ static void dump_daemon_nodes(void)
 
 static void polling_loop(void)
 {
-	for (;;) {
+	for (;!merlind_sig;) {
 		uint i;
 		time_t now = time(NULL);
 
@@ -866,7 +867,7 @@ static void polling_loop(void)
 		 * accept that connection, we can humor them and avoid the
 		 * whole socket negotiation thing.
 		 */
-		while (net_accept_one() >= 0)
+		while (!merlind_sig && net_accept_one() >= 0)
 			; /* nothing */
 
 		/*
@@ -875,7 +876,7 @@ static void polling_loop(void)
 		 * say one network can't connect to the other, but not the
 		 * other way around, so it's useful to try from both sides
 		 */
-		for (i = 0; i < num_nodes; i++) {
+		for (i = 0; !merlind_sig && i < num_nodes; i++) {
 			merlin_node *node = node_table[i];
 			/* try connecting if we're not already */
 			if (!net_is_connected(node)) {
@@ -883,12 +884,18 @@ static void polling_loop(void)
 			}
 		}
 
+		if (merlind_sig)
+			return;
+
 		/*
 		 * io_poll_sockets() is the real worker. It handles network
 		 * and ipc based IO and ships inbound events off to their
 		 * right destination.
 		 */
 		io_poll_sockets();
+
+		if (merlind_sig)
+			return;
 
 		/*
 		 * Try to commit any outstanding queries
@@ -900,12 +907,23 @@ static void polling_loop(void)
 
 static void clean_exit(int sig)
 {
+	if (sig) {
+		lwarn("Caught signal %d. Shutting down", sig);
+	}
+
 	ipc_deinit();
 	sql_close();
 	net_deinit();
 	daemon_shutdown();
 
-	_exit(!!sig);
+	if (!sig || sig == SIGINT || sig == SIGTERM)
+		exit(EXIT_SUCCESS);
+	exit(EXIT_FAILURE);
+}
+
+static void merlind_sighandler(int sig)
+{
+	merlind_sig = sig;
 }
 
 static void sigusr_handler(int sig)
@@ -1019,8 +1037,8 @@ int main(int argc, char **argv)
 		open("/dev/null", O_WRONLY);
 	}
 
-	signal(SIGINT, clean_exit);
-	signal(SIGTERM, clean_exit);
+	signal(SIGINT, merlind_sighandler);
+	signal(SIGTERM, merlind_sighandler);
 	signal(SIGUSR1, sigusr_handler);
 	signal(SIGUSR2, sigusr_handler);
 
