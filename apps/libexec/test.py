@@ -437,6 +437,7 @@ class fake_mesh:
 	different setups.
 	"""
 	def __init__(self, basepath, **kwargs):
+		self.shutting_down = False
 		self.valgrind = False
 		self.basepath = basepath
 		self.baseport = 16000
@@ -659,11 +660,10 @@ class fake_mesh:
 				status = False
 		return status
 
-	def _test_restarts(self, daemon, deathtime=3, recontime=3):
+	def _test_restarts(self, daemon, deathtime=3, recontime=3, stagger=True):
 		status = True
-		self.stop_daemons(daemon)
-		self.intermission("Letting %s daemons die" % daemon, deathtime)
-		self.start_daemons(daemon)
+		self.stop_daemons(daemon, deathtime)
+		self.start_daemons(daemon, stagger)
 		self.intermission("Letting systems reconnect and renegotiate", recontime)
 		return self.test_connections()
 
@@ -1071,12 +1071,17 @@ class fake_mesh:
 		return
 
 
-	def stop_daemons(self, dname=False):
+	def stop_daemons(self, dname=False, deathtime=3):
 		for inst in self.instances:
 			inst.stop_daemons(dname)
-		time.sleep(0.3)
+		msgname = 'all' if dname == False else dname
+		if not self.shutting_down and deathtime > 0:
+			self.intermission('Letting %s daemons die' % msgname, deathtime)
+			self.test_alive(daemon=dname, verbose=True, expect=False, sig_ok=15)
 		for inst in self.instances:
 			inst.slay_daemons(dname)
+		if not self.shutting_down:
+			self.test_alive(daemon=dname, verbose=False, expect=False, sig_ok=9)
 
 
 	def destroy_playground(self):
@@ -1091,6 +1096,14 @@ class fake_mesh:
 
 
 	def shutdown(self, msg=False):
+		# if we're already shutting down, we should just unwind the
+		# stack frames and get going from the first one
+		if self.shutting_down:
+			return
+
+		# disable alive-tests
+		self.shutting_down = True
+
 		if msg != False:
 			print("%s" % msg)
 
@@ -1251,6 +1264,7 @@ def dist_test_sighandler(signo, stackframe):
 	if dist_test_mesh == False:
 		sys.exit(1)
 	print("Killing leftover daemons")
+	dist_test_mesh.shutting_down = True
 	dist_test_mesh.stop_daemons()
 	sys.exit(1)
 
