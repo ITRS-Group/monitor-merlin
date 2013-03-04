@@ -318,9 +318,8 @@ class fake_instance:
 
 
 	def signal_daemons(self, sig, dname=False):
-		alive = True
+		remove = False
 		for name, proc in self.proc.items():
-			remove = sig == signal.SIGKILL
 			if dname and dname != name:
 				continue
 			try:
@@ -332,10 +331,6 @@ class fake_instance:
 					pass
 			if remove:
 				self.proc.pop(name)
-
-		if sig == 0:
-			return alive
-		return None
 
 
 	def stop_daemons(self, dname=False):
@@ -519,7 +514,7 @@ class fake_mesh:
 	# and if one of them fails, we must break out early and print
 	# an error, since the rest of the tests will be in unknown
 	# state.
-	def _test_proc_alive(self, proc, exp, msg_prefix):
+	def _test_proc_alive(self, proc, exp, sig_ok, msg_prefix):
 		msg = msg_prefix
 
 		try:
@@ -534,15 +529,25 @@ class fake_mesh:
 		# we got a pid and a status, so check what happened
 		if os.WIFEXITED(status):
 			msg = "%s: Exited with status %d" % (msg, os.WEXITSTATUS(status))
-			if exp == False and not os.WEXITSTATUS(status):
-				return self.tap.ok(msg)
-		elif os.WIFSIGNALED(status):
-			msg = "%s: Caught sig %d" % (msg, os.WTERMSIG(status))
+			if exp == False:
+				return self.tap.test(os.WEXITSTATUS(status), 0, msg)
+			return self.tap.fail(msg)
+
+		if os.WIFSIGNALED(status):
+			if exp == False and os.WTERMSIG(status) in sig_ok:
+				clr = color.green
+			else:
+				clr = color.red
+			msg = "%s: %sTerminated by sig %d%s" % (msg, clr, os.WTERMSIG(status), color.reset)
 			if os.WCOREDUMP(status):
-				msg = "%s (core dumped)" % msg
-		else:
-			msg = "%s: pid=%d; status=%d; unknown exit reason" % (pid, status)
-		self.tap.test(False, exp, msg)
+				msg = "%s (%score dumped%s)" % (color.red, msg, color.reset)
+				return self.tap.fail(msg)
+			if exp == False and os.WTERMSIG(status) in sig_ok:
+				return self.tap.ok(msg)
+			return self.tap.test(os.WTERMSIG(status) in sig_ok, True, msg)
+
+		msg = "%s: pid=%d; status=%d; %sunknown exit reason%s" % (msg, pid, status, color.red, color.reset)
+		self.tap.fail(msg)
 
 
 	def test_alive(self, **kwargs):
@@ -552,9 +557,10 @@ class fake_mesh:
 		pretest_failed = self.tap.failed
 		expect = True
 		verbose = True
+		sig_ok = []
 
-		for k, v in kwargs:
-			if k == 'daemon':
+		for k, v in kwargs.items():
+			if k == 'daemon' and v != False:
 				daemon = v
 			elif k == 'verbose':
 				verbose = v
@@ -562,6 +568,11 @@ class fake_mesh:
 				expect = v
 			elif k == 'quiet':
 				verbose = not v
+			elif k == 'sig_ok':
+				if type(v) == type([]):
+					sig_ok = v
+				else:
+					sig_ok = [v]
 
 		old_verbose = self.tap.verbose
 		self.tap.verbose = verbose
@@ -574,11 +585,11 @@ class fake_mesh:
 			for dname, proc in inst.proc.items():
 				if daemon and dname != daemon:
 					continue
-				self._test_proc_alive(proc, expect, "%s on %s %s" % (dname, inst.name, how))
+				self._test_proc_alive(proc, expect, sig_ok, "%s on %s %s" % (dname, inst.name, how))
 
 		self.tap.verbose = old_verbose
 		if self.tap.failed > pretest_failed:
-			self.shutdown('Daemons have crashed. Bailing out')
+			self.shutdown('Daemons are misbehaving. Bad daemons!')
 		return True
 
 	def test_connections(self):
@@ -668,7 +679,7 @@ class fake_mesh:
 		"""
 		for inst in self.instances:
 			inst.nslog_size = inst.fsize('nagios.log')
-		ret = self._test_restarts('nagios', 3, 2)
+		ret = self._test_restarts('nagios', 8, 3)
 		for inst in self.instances:
 			lsize = inst.fsize('nagios.log')
 			self.tap.test(lsize > inst.nslog_size, True, "%s must keep nagios.log" % inst.name)
