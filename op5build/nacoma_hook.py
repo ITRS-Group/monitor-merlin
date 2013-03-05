@@ -4,7 +4,7 @@ import sys
 from nacoma.hooks import Change
 reportable_types = ['host', 'service']
 
-libexec_dir = "/usr/lib/merlin/mon/modules"
+libexec_dir = "@@LIBEXECDIR@@/mon/modules"
 sys.path.insert(0, libexec_dir)
 import merlin_conf as mconf
 mconf.parse()

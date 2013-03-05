@@ -145,6 +145,7 @@ mkdir -p %buildroot%_sysconfdir/cron.d
 cp apps/*.cron %buildroot%_sysconfdir/cron.d/
 
 mkdir -p %buildroot/opt/monitor/op5/nacoma/hooks/save/
+sed -i 's#@@LIBEXECDIR@@#%_libdir/merlin#' op5build/nacoma_hook.py
 install -m 0755 op5build/nacoma_hook.py %buildroot/opt/monitor/op5/nacoma/hooks/save/merlin_hook.py
 
 mkdir -p %buildroot%_sysconfdir/op5kad/conf.d
