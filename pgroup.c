@@ -147,7 +147,7 @@ static merlin_peer_group *pgroup_create(char *hostgroups)
 	if (!(pg = calloc(1, sizeof(*pg))))
 		return NULL;
 
-	if (!(ary = realloc(peer_group, num_peer_groups + 1 * sizeof(merlin_peer_group *)))) {
+	if (!(ary = realloc(peer_group, (num_peer_groups + 1) * sizeof(merlin_peer_group *)))) {
 		free(pg);
 		return NULL;
 	}
