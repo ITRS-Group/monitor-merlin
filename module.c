@@ -34,7 +34,7 @@ extern comment *comment_list;
 extern hostgroup *hostgroup_list;
 static int mrm_reap_interval = 2;
 static int merlin_sendpath_interval = MERLIN_SENDPATH_INTERVAL;
-static int db_track_current = 0;
+static int db_track_current = 1;
 
 /*
  * the sending node, in case it triggers more
