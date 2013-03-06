@@ -106,9 +106,6 @@ sed -i 's/^DEF_VER=.*/DEF_VER=%{version}-%{release}/' gen-version.sh
 %if ( 0%{?rhel} <= 5)
 # use python26 for 'mon'
 sed -i '1s#/bin/python.*#/bin/python26#' apps/mon.py
-
-# Track current status to database by default
-sed -i 's/^\(int db_track_current\).*/\1 = 1;/' daemon.c
 %endif
 
 
