@@ -16,7 +16,7 @@ static int killing;
 static int user_sig;
 int db_log_reports = 1;
 int db_log_notifications = 1;
-int db_track_current = 0;
+int db_track_current = 1;
 static merlin_nodeinfo merlind;
 static int merlind_sig;
 
