@@ -56,6 +56,9 @@ int merlin_qh(int sd, char *buf, unsigned int len)
 {
 	int i;
 
+	if (len == 0)
+		return help(sd, NULL, 0);
+
 	/* last byte is always nul */
 	while (buf[len - 1] == 0 || buf[len - 1] == '\n')
 		buf[--len] = 0;
