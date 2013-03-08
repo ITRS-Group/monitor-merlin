@@ -106,6 +106,7 @@ sed -i 's/^DEF_VER=.*/DEF_VER=%{version}-%{release}/' gen-version.sh
 %if ( 0%{?rhel} <= 5)
 # use python26 for 'mon'
 sed -i '1s#/bin/python.*#/bin/python26#' apps/mon.py
+sed -i '1s#/bin/python.*#/bin/python26#' op5build/nacoma_hook.py
 %endif
 
 
