@@ -1,3 +1,4 @@
+import sys
 conn = False
 
 def connect(mconf, reuse_conn=True):
