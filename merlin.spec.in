@@ -61,8 +61,8 @@ Summary: Applications used to set up and aid a merlin/ninja installation
 Group: op5/Monitor
 Requires: rsync
 %if 0%{?suse_version}
-Requires: libdbi0
-Requires: python-MySQLdb
+Requires: libdbi1
+Requires: python-mysql
 %else
 %if 0%{?rhel} <= 5
 Requires: python26
@@ -103,7 +103,7 @@ Some additional test files for merlin
 sed -i 's/^DEF_VER=.*/DEF_VER=%{version}-%{release}/' gen-version.sh
 
 # If we're building for CentOS 5 we have some sed'ing to do
-%if ( 0%{?rhel} <= 5)
+%if ( ! 0%{?suse_version} ) && ( 0%{?rhel} <= 5 )
 # use python26 for 'mon'
 sed -i '1s#/bin/python.*#/bin/python26#' apps/mon.py
 %endif
