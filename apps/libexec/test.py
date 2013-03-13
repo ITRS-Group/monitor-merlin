@@ -937,12 +937,42 @@ class fake_mesh:
 
 		master = self.masters.nodes[0]
 		poller = self.get_first_poller(master)
+
+		# expiring downtime
+		print("Submitting fixed expiring downtime to master %s" % master.name)
+		start_time = int(time.time()) + 1
+		end_time = start_time + 20
+		duration = end_time - start_time
+		for h in master.group.have_objects['host']:
+			master.submit_raw_command('SCHEDULE_HOST_DOWNTIME;%s;%d;%d;1;0;%d;mon test suite;expire downtime test for %s' %
+				(h, start_time, end_time, duration, h))
+		for s in master.group.have_objects['service']:
+			master.submit_raw_command('SCHEDULE_SVC_DOWNTIME;%s;%d;%d;1;0;%d;mon test suite;expire downtime test for %s' %
+				(s, start_time, end_time, duration, s))
+		self.intermission("Letting downtime spread", 10)
+		for inst in self.instances:
+			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
+			self.tap.test(value, inst.group.num_objects['host'],
+				'All host downtime should spread to %s' % inst.name)
+			value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
+			self.tap.test(value, inst.group.num_objects['service'],
+				'All service downtime should spread to %s' % inst.name)
+		self.intermission('Letting downtime expire', 15)
+		for inst in self.instances:
+			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
+			self.tap.test(value, 0,
+				'All host downtime should be gone from %s' % inst.name)
+			value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
+			self.tap.test(value, 0,
+				'All service downtime should be gone from %s' % inst.name)
+
+
 		print("Submitting downtime to poller %s" % poller.name)
 		self._schedule_downtime(poller)
 		self._schedule_downtime(master, poller.group.have_objects)
 
-		# give all nodes some time before we check to make
-		# sure the ack has spread
+		# give all nodes some time before we check to
+		# make sure the downtime has spread
 		self.intermission("Letting downtime spread")
 		for inst in self.instances:
 			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
@@ -973,6 +1003,7 @@ class fake_mesh:
 			self.tap.test(value, 0,
 				'All service downtime should be gone on %s' % inst.name)
 
+		# propagating triggered
 		print("Submitting propagating downtime to master %s" % master.name)
 		master.submit_raw_command('SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME;%s;%d;%d;%d;%d;%d;%s;%s' %
 			(poller.group_name + '.0001', time.time(), time.time() + 54321, 1, 0, 0, poller.group_name + '.0001', master.name))
