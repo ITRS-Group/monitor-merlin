@@ -982,25 +982,6 @@ static int post_config_init(int cb, void *ds)
 }
 
 /*
- * this gets run for all nodes belonging to peer groups and
- * lets us trigger peer id reassignment and whatnot. The ipc
- * action handler runs it as part of its hook.
- */
-static int node_action_handler(merlin_node *node, int prev_state)
-{
-	if (!node->pgroup)
-		return 0;
-
-	if (node->state == STATE_CONNECTED) {
-		node->pgroup->active_nodes++;
-	} else {
-		node->pgroup->active_nodes--;
-	}
-
-	return 0;
-}
-
-/*
  * This gets run when we create an ipc connection, or when that
  * connection is lost. A CTRL_ACTIVE packet should always be
  * the first to go through the ipc socket
@@ -1028,20 +1009,12 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 		merlin_should_send_paths = 1;
 	}
 
-	if (ipc.state == STATE_CONNECTED) {
-		ret = iobroker_register(nagios_iobs, ipc.sock, (void *)&ipc, ipc_reaper);
-		if (ret)
-			lerr("  ipc_action_handler(): iobroker_register(%p, %d, %p, %p) returned %d: %s",
-				 nagios_iobs, ipc.sock, (void *)&ipc, ipc_reaper, ret, iobroker_strerror(ret));
-	} else {
+	if (ipc.state != STATE_CONNECTED) {
+		int i;
 		ret = iobroker_unregister(nagios_iobs, ipc.sock);
 		if (ret)
 			ldebug("  ipc_action_handler(): iobroker_unregister(%p, %d) returned %d: %s",
 				   nagios_iobs, ipc.sock, ret, iobroker_strerror(ret));
-	}
-
-	if (node->state != STATE_CONNECTED) {
-		int i;
 
 		/*
 		 * if we went from connected to anything else, we must
@@ -1054,11 +1027,16 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 			node_set_state(node, STATE_NONE, "Daemon disconnected");
 			memset(&node->info, 0, sizeof(node->info));
 		}
-		node_action_handler(&ipc, prev_state);
 		return 0;
 	}
 
-	/* this is a connect event */
+	/* this is a connect event, so register for input */
+	ret = iobroker_register(nagios_iobs, ipc.sock, (void *)&ipc, ipc_reaper);
+	if (ret) {
+		/* this is *really* bad */
+		lerr("  ipc_action_handler(): iobroker_register(%p, %d, %p, %p) returned %d: %s",
+			 nagios_iobs, ipc.sock, (void *)&ipc, ipc_reaper, ret, iobroker_strerror(ret));
+	}
 
 	/*
 	 * we must use node_send_ctrl_active() here or we'll
@@ -1069,8 +1047,6 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	 * adds before trying to send.
 	 */
 	node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info, 100);
-
-	node_action_handler(&ipc, prev_state);
 
 	/* now we wait for inbound connections */
 	for (gettimeofday(&start, NULL);;) {
@@ -1099,7 +1075,6 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
  */
 int nebmodule_init(int flags, char *arg, nebmodule *handle)
 {
-	int i;
 	neb_handle = (void *)handle;
 
 	self = &ipc.info;
@@ -1167,10 +1142,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	/* this gets de-registered immediately, so we need to add it manually */
 	neb_register_callback(NEBCALLBACK_PROCESS_DATA, neb_handle, 0, post_config_init);
 
-	/* now we set the node action handlers */
-	for (i = 0; i < num_nodes; i++) {
-		node_table[i]->action = node_action_handler;
-	}
+	/* only the ipc node has an action handler */
 	ipc.action = ipc_action_handler;
 
 	linfo("Merlin module %s initialized successfully", merlin_version);
