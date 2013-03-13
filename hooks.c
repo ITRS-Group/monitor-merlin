@@ -492,11 +492,6 @@ static int hook_downtime(merlin_event *pkt, void *data)
 	nebstruct_downtime_data *ds = (nebstruct_downtime_data *)data;
 
 	/*
-	 * set the poller id properly for downtime packets
-	 */
-	pkt->hdr.selection = get_selection(ds->host_name);
-
-	/*
 	 * Downtime delete and stop events are transferred.
 	 * Adding is done on all nodes from the downtime command
 	 * that always gets transferred, but if a user cancels
@@ -505,7 +500,9 @@ static int hook_downtime(merlin_event *pkt, void *data)
 	 * properly, or the other node (which might be notifying)
 	 * will think the node is still in downtime.
 	 */
-	if (ds->attr != NEBATTR_DOWNTIME_STOP_CANCELLED)
+	if (ds->attr == NEBATTR_DOWNTIME_STOP_CANCELLED)
+		pkt->hdr.selection = get_selection(ds->host_name);
+	else
 		pkt->hdr.code = MAGIC_NONET;
 
 	return send_generic(pkt, data);
