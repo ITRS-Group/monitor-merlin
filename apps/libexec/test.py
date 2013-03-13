@@ -1596,7 +1596,7 @@ def cmd_dist(args):
 				mesh.shutdown('Global command tests failed')
 		if 'passive_checks' in tests:
 			if mesh.test_passive_checks() == False:
-				mesh.shutdown(mesh, 'Passive checks are broken')
+				mesh.shutdown('Passive checks are broken')
 			# acks must follow immediately upon passive checks
 			if 'acks' in tests:
 				mesh.test_acks()
