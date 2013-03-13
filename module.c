@@ -68,10 +68,11 @@ void set_host_check_node(merlin_node *node, host *h)
 		old = &untracked_checks_node;
 	}
 
-	ldebug("Migrating hostcheck '%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u)",
+	ldebug("Migrating hostcheck '%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u; sa-p-id=%u)",
 		   h->name, h->id,
 		   node_type(old), old->name, old->peer_id,
-		   node_type(node), node->name, node->peer_id);
+		   node_type(node), node->name, node->peer_id,
+		   node->info.peer_id);
 
 	old->host_checks--;
 	node->host_checks++;
