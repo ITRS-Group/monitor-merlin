@@ -124,14 +124,8 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 	}
 	switch (pkt->hdr.code) {
 	case CTRL_INACTIVE:
-		/*
-		 * must memset() node->info before the disconnect handler
-		 * so we discard it in the peer id calculation dance if
-		 * we get data from it before it sends us a CTRL_ACTIVE
-		 * packet
-		 */
-		memset(&node->info, 0, sizeof(node->info));
 		node_set_state(node, STATE_NONE, "Received CTRL_INACTIVE");
+		pgroup_assign_peer_ids(node->pgroup);
 		break;
 	case CTRL_ACTIVE:
 		/*
