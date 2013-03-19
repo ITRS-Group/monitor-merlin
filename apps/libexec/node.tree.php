@@ -1,5 +1,4 @@
 #!/usr/bin/php
-
 <?php
 
 /*  Author: Philip Eklof <peklof@op5.com>
@@ -62,6 +61,17 @@ class NodeTree
 			);
 		}
 		exit(1);
+	}
+
+	public function syntaxdie($code=1)
+	{
+		$text = <<<EOSYNTAX
+
+Prints an ascii map of the node network.
+
+EOSYNTAX;
+		echo $text;
+		exit($code);
 	}
 
 	// finds the system binary path
@@ -833,6 +843,11 @@ if(!is_object($o))
         die('MAIN_OBJECT_NOT_CREATED');
 
 try {
+	if(isset($argv[1]))
+		if($argv[1] == '--help')
+			$o->syntaxdie(0);
+		else
+			$o->syntaxdie(1);
 
 	// parse node data
 	$o->nodes_parse_show($o->execute('mon', 'node show'));
