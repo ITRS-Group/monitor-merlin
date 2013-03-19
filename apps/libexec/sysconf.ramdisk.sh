@@ -11,19 +11,13 @@ process_service_perfdata='command_line                   /bin/mv /dev/shm/monito
 usage()
 {
     cat << END_OF_HELP
+<enable>
+Configure the Monitor system to use ramdisk (tmpfs) for temporary
+performance data files.
 
-usage: mon conf ramdisk [enable|options]
-Configure your system to use RAMDISK for temporary results
-
-Where options can be any combination of:
-  -h --help           This helptext
-
-Note that this option is potentially dangerous if the system has
-limited RAM, so you must use
-
-	mon sysconf ramdisk enable
-
-for the changes to take effect.
+NOTE: This operation is potentially dangerous in case the system
+has a limited amount of RAM. Due to this the changes will not take
+effect until the command is run with the "enable" argument.
 
 END_OF_HELP
 }
