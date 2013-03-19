@@ -5,6 +5,14 @@ state_dir=/etc/op5/distributed/state/
 state_file="$state_dir"/log.push.last
 nagios_cfg=/opt/monitor/etc/nagios.cfg
 
+if [ "$1" == '--help' ]; then
+	cat << EOSYNTAX
+[--push-all|--since <time>]
+Pushes logs to other nodes. Used by log fetch.
+EOSYNTAX
+	exit
+fi
+
 if ! test -f $nagios_cfg; then
 	echo "$nagios_cfg doesn't exist"
 	exit 1
