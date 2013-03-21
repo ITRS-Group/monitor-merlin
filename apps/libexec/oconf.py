@@ -59,12 +59,11 @@ parse_order = [
 # grab object configuration files from a cfg_dir directive
 def recurse_grab_object_cfg_files(v, basepath=''):
 	obj_files = []
-	if v[0] == '/':
-		f_ary = os.listdir(v)
-	else:
-		f_ary = os.listdir(basepath + '/' + v)
+	if v[0] != '/':
+		v = basepath + '/' + v
+	f_ary = os.listdir(v)
 	for f in f_ary:
-		path = '%s%s/%s' % (basepath, v, f)
+		path = '%s/%s' % (v, f)
 		if os.path.isdir(path):
 			obj_files += recurse_grab_object_cfg_files(path, '')
 		elif os.path.isfile(path) and f[-4:] == '.cfg':
