@@ -269,7 +269,7 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 	return dupes;
 }
 
-static void pgroup_map_objects(void)
+static int pgroup_map_objects(void)
 {
 	int i, x, dupes = 0;
 
@@ -287,8 +287,10 @@ static void pgroup_map_objects(void)
 			hg = find_hostgroup(p);
 			if (!hg) {
 				lerr("Fatal: Hostgroup '%s' not found", p);
+				logit(NSLOG_CONFIG_ERROR, TRUE, "Error: Hostgroup '%s' configured for merlin poller '%s' not found\n",
+					  p, pg->nodes[0]->name);
 				sigshutdown = TRUE;
-				return;
+				return -1;
 			}
 
 			dupes = map_pgroup_hgroup(pg, hg);
@@ -360,6 +362,8 @@ static void pgroup_map_objects(void)
 			}
 		}
 	}
+
+	return 0;
 }
 
 static int cmpstringp(const void *p1, const void *p2)
@@ -428,7 +432,7 @@ static char *get_sorted_csstr(const char *orig_str)
 	return ret;
 }
 
-void pgroup_init(void)
+int pgroup_init(void)
 {
 	int i;
 	merlin_peer_group *pg;
@@ -457,7 +461,7 @@ void pgroup_init(void)
 		pgroup_add_node(pg, node);
 	}
 
-	pgroup_map_objects();
+	return pgroup_map_objects();
 }
 
 void pgroup_deinit(void)
