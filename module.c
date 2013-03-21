@@ -951,7 +951,8 @@ static int post_config_init(int cb, void *ds)
 	neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);
 
 	linfo("Object configuration parsed.");
-	pgroup_init();
+	if (pgroup_init() < 0)
+		return -1;
 	setup_host_hash_tables();
 	pgroup_assign_peer_ids(ipc.pgroup);
 

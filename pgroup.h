@@ -3,6 +3,6 @@
 #include "node.h"
 
 void pgroup_assign_peer_ids(merlin_peer_group *pg);
-void pgroup_init(void);
+int pgroup_init(void);
 void pgroup_deinit(void);
 #endif
