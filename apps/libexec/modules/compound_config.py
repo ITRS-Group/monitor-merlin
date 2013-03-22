@@ -119,7 +119,6 @@ def parse_nagios_cfg(path):
 			ary = v.split(' ')
 			modpath = ary[0]
 			if modpath[0] == '/':
-				print("early cont")
 				continue
 			else:
 				ary[0] = os.path.abspath(main_config_dir + '/' + modpath)
@@ -135,8 +134,8 @@ def parse_nagios_cfg(path):
 			temp_file_i = i
 			temp_file = v
 		if v[0] != '/':
-			rel_v = os.path.abspath(main_config_dir + '/' + v)
-			comp.params[i] = (k, rel_v)
+			v = os.path.abspath(main_config_dir + '/' + v)
+		comp.params[i] = (k, v)
 		if k == 'command_file':
 			comp.command_file = v
 		elif k == 'query_socket':
