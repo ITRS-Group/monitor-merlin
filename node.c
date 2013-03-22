@@ -429,7 +429,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 	if (!address)
 		address = node->name;
 
-	if (resolve(address, &node->sain.sin_addr) < 0)
+	if (!is_module && resolve(address, &node->sain.sin_addr) < 0)
 		cfg_error(c, address_var, "Unable to resolve '%s'\n", address);
 
 	for (i = 0; i < c->nested; i++) {
