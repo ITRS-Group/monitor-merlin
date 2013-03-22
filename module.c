@@ -1160,6 +1160,8 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
  */
 int nebmodule_deinit(int flags, int reason)
 {
+	int i;
+
 	linfo("Unloading Merlin module");
 
 	ipc_deinit();
@@ -1177,7 +1179,15 @@ int nebmodule_deinit(int flags, int reason)
 	 * the ipc binlog, if any, which is slightly annoying
 	 */
 	iocache_destroy(ipc.ioc);
+	for (i = 0; i < num_nodes; i++) {
+		struct merlin_node *node = node_table[i];
+		free(node->name);
+		free(node->csync);
+		free(node->source_name);
+		free(node->hostgroups);
+	}
 	safe_free(node_table);
+
 	binlog_wipe(ipc.binlog, BINLOG_UNLINK);
 
 	pgroup_deinit();
