@@ -376,6 +376,8 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 {
 	unsigned int i;
 	int sel_id = -1;
+	char *address = NULL;
+	struct cfg_var *address_var = NULL;
 
 	if (!node)
 		return;
@@ -405,8 +407,8 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			sel_id = add_selection(v->value, node);
 		}
 		else if (!strcmp(v->key, "address") || !strcmp(v->key, "host")) {
-			if (resolve(v->value, &node->sain.sin_addr) < 0)
-				cfg_error(c, v, "Unable to resolve '%s'\n", v->value);
+			address = v->value;
+			address_var = v;
 		}
 		else if (!strcmp(v->key, "port")) {
 			node->sain.sin_port = htons((unsigned short)atoi(v->value));
@@ -423,6 +425,12 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			cfg_error(c, v, "Unknown variable\n");
 		}
 	}
+
+	if (!address)
+		address = node->name;
+
+	if (resolve(address, &node->sain.sin_addr) < 0)
+		cfg_error(c, address_var, "Unable to resolve '%s'\n", address);
 
 	for (i = 0; i < c->nested; i++) {
 		struct cfg_comp *comp = c->nest[i];
