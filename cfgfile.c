@@ -11,6 +11,10 @@
 
 #include "cfgfile.h"
 
+/* have a care with this one. It can't be used when (c) has side-effects */
+#undef ISSPACE
+#define ISSPACE(c) ((c) == ' ' || (c) == '\t' || (c) == '\r')
+
 /* read a file and return it in a buffer. Size is stored in *len.
  * If there are errors, return NULL and set *len to -errno */
 static char *cfg_read_file(const char *path, unsigned *len)
@@ -99,7 +103,6 @@ static struct cfg_comp *start_compound(const char *name, struct cfg_comp *cur, u
 static struct cfg_comp *close_compound(struct cfg_comp *comp, unsigned line)
 {
 	if (comp) {
-		comp->end = line;
 		if (!comp->parent) {
 			cfg_error(comp, NULL, "Compound closed on line %d was never opened\n", line);
 		}
@@ -156,7 +159,7 @@ static struct cfg_comp *parse_file(const char *path, struct cfg_comp *parent, un
 	}
 
 	comp->buf = buf; /* save a pointer to free() later */
-	comp->start = comp->end = line;
+	comp->start = line;
 
 	memset(&v, 0, sizeof(v));
 	for (i = 0; i < buflen; i++) {
@@ -279,20 +282,6 @@ static void cfg_print_error(struct cfg_comp *comp, struct cfg_var *v,
 }
 
 /** public functions **/
-
-/* this is significantly faster than doing strdup(), since
- * it can copy word-wise rather than byte-wise */
-char *cfg_copy_value(struct cfg_var *v)
-{
-	char *ptr;
-
-	if ((ptr = calloc(v->value_len + 1, 1)))
-		return memcpy(ptr, v->value, v->value_len);
-
-	fprintf(stderr, "Failed to calloc() for a var\n");
-	return NULL;
-}
-
 void cfg_warn(struct cfg_comp *comp, struct cfg_var *v, const char *fmt, ...)
 {
 	va_list ap;
