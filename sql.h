@@ -8,6 +8,7 @@
 extern char *host_perf_table;
 extern char *service_perf_table;
 extern unsigned long total_queries;
+extern int sql_table_crashed;
 
 /*typedef dbi_result SQL_RESULT;*/
 

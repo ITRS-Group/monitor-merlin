@@ -6,6 +6,7 @@
 /* where to (optionally) stash performance data */
 char *host_perf_table = NULL;
 char *service_perf_table = NULL;
+int sql_table_crashed = 0;
 static long int commit_interval, commit_queries;
 static time_t last_commit;
 unsigned long total_queries = 0;
@@ -190,6 +191,22 @@ static int run_query(char *query, size_t len, int rerunIGNORED)
 	return rc;
 }
 
+void sql_log_crashed(char *query)
+{
+	static time_t now, last_log = 0;
+
+	sql_table_crashed = 1;
+
+	now = time(NULL);
+	if (last_log + 30 > now)
+		return;
+
+	last_log = now;
+	lerr("FATAL: One or more of your SQL tables have crashed. Please run 'mysqlrepair %s'",
+		 sql_db_name());
+	lerr("  Query was: %s", query);
+}
+
 int sql_vquery(const char *fmt, va_list ap)
 {
 	int len;
@@ -225,8 +242,16 @@ int sql_vquery(const char *fmt, va_list ap)
 		int db_error = sql_error(&error_msg);
 		int reconnect = 0;
 
-		lerr("Failed to run query [%s] due to error-code %d: %s",
-		     query, db_error, error_msg);
+		/*
+		 * "table crashed" can get *very* spammy, so we put that in
+		 * a logging function of its own
+		 */
+		if (db_type != MERLIN_DBT_MYSQL ||
+			(db_error != 145 && db_error != 1194 && db_error != 1195))
+		{
+			lerr("Failed to run query [%s] due to error-code %d: %s",
+				 query, db_error, error_msg);
+		}
 #ifdef ENABLE_LIBDBI
 		if (db_type == MERLIN_DBT_MYSQL) {
 			/*
@@ -241,8 +266,10 @@ int sql_vquery(const char *fmt, va_list ap)
 			case 2029: /* null pointer */
 				break;
 
+			case 145: /* crashed table. ugh... */
 			case 1194: /* ER_CRASHED_ON_USAGE */
 			case 1195: /* ER_CRASHED_ON_REPAIR */
+				sql_log_crashed(query);
 				/*
 				 * XXX: autofix by repairing the table and
 				 * caching inbound queries while repair is running.
