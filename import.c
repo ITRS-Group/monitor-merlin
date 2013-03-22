@@ -38,6 +38,7 @@ static struct timeval import_start;
 static time_t daemon_start, daemon_stop, incremental;
 static int daemon_is_running;
 static uint max_dt_depth, skipped_files;
+static int repair_table;
 
 static time_t next_dt_purge; /* when next to purge expired downtime */
 #define DT_PURGE_GRACETIME 300 /* seconds to add to next_dt_purge */
@@ -124,6 +125,21 @@ static struct string_code command_codes[] = {
 	{ 0, NULL, 0, 0 },
 };
 
+
+static void handle_sql_result(int errors, const char *table)
+{
+	if (!errors || !sql_table_crashed)
+		return;
+
+	if (repair_table) {
+		printf("Repairing table '%s'. This may take a very long time. Please be patient\n", table);
+		sql_repair_table(table);
+	}
+	else {
+		crash("Database table '%s' appears to have crashed. Please run\n  mysqlrepair %s.%s",
+		      table, sql_db_name(), table);
+	}
+}
 
 static int insert_host_result(nebstruct_host_check_data *ds)
 {
@@ -361,7 +377,7 @@ static void insert_extras(void)
 
 static void enable_indexes(void)
 {
-		db_wrap_result * result = NULL;
+	db_wrap_result *result = NULL;
 	int64_t entries;
 	time_t start;
 
@@ -1142,7 +1158,7 @@ static inline void handle_stop_event(void)
 static int parse_line(char *line, uint len)
 {
 	char *ptr, *colon;
-	int nvecs = 0;
+	int result, nvecs = 0;
 	struct string_code *sc;
 	static time_t last_ltime = 0;
 
@@ -1307,23 +1323,28 @@ static int parse_line(char *line, uint len)
 		break;
 
 	case NEBTYPE_HOSTCHECK_PROCESSED:
-		return insert_host_check(sc);
+		result = insert_host_check(sc);
+		break;
 
 	case NEBTYPE_SERVICECHECK_PROCESSED:
-		return insert_service_check(sc);
+		result = insert_service_check(sc);
+		break;
 
 	case NEBTYPE_DOWNTIME_LOAD + CONCERNS_HOST:
 	case NEBTYPE_DOWNTIME_LOAD + CONCERNS_SERVICE:
-		return insert_downtime(sc);
+		result = insert_downtime(sc);
+		break;
 
 	case NEBTYPE_NOTIFICATION_END + CONCERNS_HOST:
 	case NEBTYPE_NOTIFICATION_END + CONCERNS_SERVICE:
-		return insert_notification(sc);
+		result = insert_notification(sc);
+		break;
 
 	case IGNORE_LINE:
 		return 0;
 	}
 
+	handle_sql_result(result, db_table);
 	return 0;
 }
 
@@ -1381,6 +1402,7 @@ static void usage(const char *fmt, ...)
 	printf("  --db-port                          database port\n");
 	printf("  --db-type                          database type\n");
 	printf("  --db-conn-str                      database connection string\n");
+	printf("  --[no-]repair]                     should we autorepair tables?\n");
 	printf("  --incremental[=<when>]             do an incremental import (since $when)\n");
 	printf("  --truncate-db                      truncate database before importing\n");
 	printf("  --only-notifications               only import notifications\n");
@@ -1456,6 +1478,14 @@ int main(int argc, char **argv)
 		}
 		if (!prefixcmp(arg, "--no-sql")) {
 			use_database = 0;
+			continue;
+		}
+		if (!prefixcmp(arg, "--no-repair")) {
+			repair_table = 0;
+			continue;
+		}
+		if (!prefixcmp(arg, "--repair")) {
+			repair_table = 1;
 			continue;
 		}
 		if (!prefixcmp(arg, "--only-notifications")) {
