@@ -333,6 +333,19 @@ int sql_is_connected(int reconnect)
 	return sql_init() == 0;
 }
 
+int sql_repair_table(const char *table)
+{
+	int result;
+
+	if (db_type != MERLIN_DBT_MYSQL)
+		return 0;
+
+	result = sql_query("REPAIR TABLE %s", table);
+	if (!result)
+		sql_table_crashed = 0;
+	return result;
+}
+
 int sql_init(void)
 {
 	const char *env;
