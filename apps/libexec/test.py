@@ -1557,11 +1557,11 @@ def cmd_dist(args):
 	if sleeptime == False:
 		sleeptime = 3 + (num_masters + (poller_groups * pollers_per_group))
 
-	if not poller_groups or not pollers_per_group:
+	if (not poller_groups or not pollers_per_group) and not confgen_only:
 		print("Can't run tests with zero pollers")
 		sys.exit(1)
 
-	if num_masters < 2:
+	if num_masters < 2 and not confgen_only:
 		print("Can't run proper tests with less than two masters")
 		sys.exit(1)
 
