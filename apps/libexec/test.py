@@ -919,6 +919,30 @@ class fake_mesh:
 			ret &= node.submit_raw_command('DEL_SVC_DOWNTIME;%d' % dt);
 		self.tap.test(ret, True, "Deleting downtimes on %s" % (node.name))
 
+	def _test_downtime_count(self, inst, hosts=0, services=0):
+		start_failed = self.tap.failed
+		value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
+		self.tap.test(value, hosts,
+			'%s: %d/%d hosts have scheduled_downtime_depth > 0' % (inst.name, value, hosts))
+		value = inst.live.query('GET downtimes\nStats: downtime_type = 2')[0][0]
+		self.tap.test(value, hosts,
+			'%s: %d/%d host downtime entries' % (inst.name, value, hosts))
+		value = inst.live.query('GET comments\nStats: type = 1\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
+		self.tap.test(value, hosts,
+			'%s: %d/%d host downtime comments present' % (inst.name, value, hosts))
+
+		value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
+		self.tap.test(value, services,
+			'%s: %d/%d services have scheduled_downtime_depth > 0' % (inst.name, value, services))
+		value = inst.live.query('GET downtimes\nStats: downtime_type = 1')[0][0]
+		self.tap.test(value, services,
+			'%s: %d/%d service downtime entries' % (inst.name, value, services))
+		value = inst.live.query('GET comments\nStats: type = 2\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
+		self.tap.test(value, services,
+			'%s: %d/%d service downtime comments present' % (inst.name, value, services))
+
+		# return false if any of our tests failed
+		return start_failed == self.tap.failed
 
 	def test_downtime(self):
 		"""
@@ -951,21 +975,10 @@ class fake_mesh:
 				(s, start_time, end_time, duration, s))
 		self.intermission("Letting downtime spread", 10)
 		for inst in self.instances:
-			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, inst.group.num_objects['host'],
-				'All host downtime should spread to %s' % inst.name)
-			value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, inst.group.num_objects['service'],
-				'All service downtime should spread to %s' % inst.name)
+			self._test_downtime_count(inst, inst.group.num_objects['host'], inst.group.num_objects['service'])
 		self.intermission('Letting downtime expire', 15)
 		for inst in self.instances:
-			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, 0,
-				'All host downtime should be gone from %s' % inst.name)
-			value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, 0,
-				'All service downtime should be gone from %s' % inst.name)
-
+			self._test_downtime_count(inst, 0, 0)
 
 		print("Submitting downtime to poller %s" % poller.name)
 		self._schedule_downtime(poller)
@@ -975,51 +988,29 @@ class fake_mesh:
 		# make sure the downtime has spread
 		self.intermission("Letting downtime spread")
 		for inst in self.instances:
-			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, len(inst.group.have_objects['host']),
-				'All host downtime should spread to %s' % inst.name)
-
-			value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, len(inst.group.have_objects['service']),
-				'All service downtime should spread to %s' % inst.name)
-
-			value = inst.live.query('GET comments\nStats: type = 1\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
-			self.tap.test(value, len(inst.group.have_objects['host']),
-				"Host downtime should generate one comment each on %s" % inst.name)
-			value = inst.live.query('GET comments\nStats: type = 2\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
-			self.tap.test(value, len(inst.group.have_objects['service']),
-				'Service downtime should generate one comment each on %s' % inst.name)
+			self._test_downtime_count(inst, inst.group.num_objects['host'], inst.group.num_objects['service'])
 
 		host_downtimes = [x[0] for x in master.live.query('GET downtimes\nColumns: id\nFilter: is_service = 0')]
 		service_downtimes = [x[0] for x in master.live.query('GET downtimes\nColumns: id\nFilter: is_service = 1')]
 		self._unschedule_downtime(master, host_downtimes, service_downtimes)
 		self.intermission("Letting downtime deletion spread")
 		for inst in self.instances:
-			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, 0,
-				'All host downtime should be gone on %s' % inst.name)
-
-			value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, 0,
-				'All service downtime should be gone on %s' % inst.name)
+			self._test_downtime_count(inst, 0, 0)
 
 		# propagating triggered
 		print("Submitting propagating downtime to master %s" % master.name)
 		master.submit_raw_command('SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME;%s;%d;%d;%d;%d;%d;%s;%s' %
 			(poller.group_name + '.0001', time.time(), time.time() + 54321, 1, 0, 0, poller.group_name + '.0001', master.name))
 		self.intermission("Letting downtime spread")
-		for inst in self.masters.nodes:
-			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, len(poller.group.have_objects['host']),
-				'All host downtime should spread to %s' % inst.name)
+		for inst in self.masters.nodes + poller.group.nodes:
+			self._test_downtime_count(inst, poller.group.num_objects['host'], 0)
+
 		parent_downtime = master.live.query('GET downtimes\nColumns: id\nFilter: host_name = %s\nFilter: is_service = 0' %
 		    (poller.group_name + '.0001'))[0]
 		self._unschedule_downtime(master, parent_downtime, [])
 		self.intermission("Letting downtime deletion spread")
 		for inst in self.instances:
-			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, 0,
-				'All host downtime should be gone on %s' % inst.name)
+			self._test_downtime_count(inst, 0, 0)
 
 		return None
 
