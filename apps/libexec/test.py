@@ -1105,6 +1105,22 @@ class fake_mesh:
 		if not self.shutting_down and deathtime > 0:
 			self.intermission('Letting %s daemons die' % msgname, deathtime)
 			self.test_alive(daemon=dname, verbose=True, expect=False, sig_ok=15)
+		# processes must get to exit nicely when we're running in valgrind
+		if self.shutting_down:
+			reaped = 0
+			ary = (0, 0)
+			now = time.time()
+			while time.time() < now + 5 and reaped < (len(self.instances) * 2):
+				status = 0
+				try:
+					ary = os.waitpid(0, os.WNOHANG)
+				except OSError, e:
+					print(e)
+				if len(ary) == 2:
+					reaped += 1
+					continue
+				time.sleep(0.1)
+
 		for inst in self.instances:
 			inst.slay_daemons(dname)
 		if not self.shutting_down:
