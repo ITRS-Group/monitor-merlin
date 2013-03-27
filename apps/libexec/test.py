@@ -1157,8 +1157,9 @@ class fake_mesh:
 
 		print("Stopping daemons")
 		self.stop_daemons()
-		print("Destroying playground")
-		self.destroy()
+		if self.batch:
+			self.destroy()
+
 		self.close_db()
 
 		if self.tap.failed == 0:
@@ -1170,6 +1171,10 @@ class fake_mesh:
 		"""
 		Sets up the directories and configuration required for testing
 		"""
+		# first we wipe any and all traces from earlier runs
+		print("Wiping the slate clean")
+		self.destroy()
+
 		port = self.baseport
 		self.masters = fake_peer_group(self.basepath, 'master', self.num_masters, port, valgrind = self.valgrind)
 		port += self.num_masters
