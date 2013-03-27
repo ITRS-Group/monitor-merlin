@@ -21,7 +21,8 @@ static const char *daemon_pidfile;
  */
 void daemon_shutdown(void)
 {
-	unlink(daemon_pidfile);
+	if (daemon_pidfile)
+		unlink(daemon_pidfile);
 }
 
 
