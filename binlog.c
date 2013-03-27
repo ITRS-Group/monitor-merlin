@@ -24,6 +24,7 @@ struct binlog {
 	unsigned int write_index, read_index, file_entries;
 	unsigned int alloc, max_mem_usage;
 	unsigned int mem_size, max_mem_size;
+	unsigned int mem_avail;
 	off_t max_file_size, file_size, file_read_pos, file_write_pos;
 	int is_valid;
 	char *path;
@@ -247,6 +248,7 @@ static int binlog_mem_read(binlog *bl, void **buf, unsigned int *len)
 
 	*buf = bl->cache[bl->read_index]->data;
 	*len = bl->cache[bl->read_index]->size;
+	bl->mem_avail -= *len;
 
 	/* free the entry and mark it as empty */
 	free(bl->cache[bl->read_index]);
@@ -259,8 +261,10 @@ static int binlog_mem_read(binlog *bl, void **buf, unsigned int *len)
 	 * later and not just steadily increase the array
 	 * size
 	 */
-	if (bl->read_index >= bl->write_index)
+	if (bl->read_index >= bl->write_index) {
 		bl->read_index = bl->write_index = 0;
+		bl->mem_avail = 0;
+	}
 
 	return 0;
 }
@@ -326,6 +330,7 @@ static int binlog_mem_unread(binlog *bl, void *buf, unsigned int len)
 	if (!entry)
 		return BINLOG_EDROPPED;
 
+	bl->mem_avail += len;
 	entry->size = len;
 	entry->data = buf;
 	if (!bl->read_index) {
@@ -435,6 +440,7 @@ static int binlog_mem_add(binlog *bl, void *buf, unsigned int len)
 	memcpy(entry->data, buf, len);
 	bl->cache[bl->write_index++] = entry;
 	bl->mem_size += entry_size(entry);
+	bl->mem_avail += len;
 
 	return 0;
 }
@@ -532,4 +538,12 @@ unsigned int binlog_fsize(binlog *bl)
 unsigned int binlog_size(binlog *bl)
 {
 	return binlog_fsize(bl) + binlog_msize(bl);
+}
+
+unsigned int binlog_available(binlog *bl)
+{
+	if (!bl)
+		return 0;
+
+	return (bl->file_size - bl->file_read_pos) + bl->mem_avail;
 }

@@ -151,6 +151,13 @@ extern unsigned int binlog_fsize(binlog *bl);
  */
 extern unsigned int binlog_size(binlog *bl);
 
+/**
+ * Get number of available entries in the binlog
+ * @param bl The binary log objects.
+ * @return Number of bytes available for reading from this log
+ */
+extern unsigned int binlog_available(binlog *bl);
+
 /** warning condition for backlog base path having insecure permissions */
 #define BINLOG_UNSAFE  1
 
