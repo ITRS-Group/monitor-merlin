@@ -223,6 +223,7 @@ class fake_instance:
 	all of the above.
 	"""
 	def __init__(self, basepath, group_name, group_id, port=15551, **kwargs):
+		self.valgrind_log = {}
 		self.valgrind = False
 		self.group = False
 		self.group_name = group_name
@@ -308,7 +309,11 @@ class fake_instance:
 				cmd = [program, '-d', '-c', '%s/merlin/merlin.conf' % self.home]
 
 			if self.valgrind:
-				real_cmd = ['valgrind', '--child-silent-after-fork=yes', '--leak-check=full', '--log-file=%s/valgrind.log' % self.home] + cmd
+				# get a unique log-id for this daemon
+				log_id = self.valgrind_log.get(name, 0)
+				self.valgrind_log[name] = log_id + 1
+
+				real_cmd = ['valgrind', '--child-silent-after-fork=yes', '--leak-check=full', '--log-file=%s/valgrind.%s.%d' % (self.home, name, log_id)] + cmd
 				cmd = real_cmd
 			self.proc[name] = subprocess.Popen(cmd, stdout=fd, stderr=fd)
 
