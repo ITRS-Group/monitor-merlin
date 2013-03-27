@@ -47,6 +47,12 @@ static void pgroup_reassign_checks(merlin_peer_group *pgrp)
 		ldebug("Peer group is active. Neato");
 		for (x = 0; x < pg->total_nodes; x++) {
 			merlin_node *node = pg->nodes[x];
+
+			if (node->state != STATE_CONNECTED) {
+				node->assigned.current.hosts = 0;
+				node->assigned.current.services = 0;
+				continue;
+			}
 			node->assigned.current.hosts = pg->assign[active - 1][node->peer_id].hosts;
 			node->assigned.current.services = pg->assign[active - 1][node->peer_id].services;
 		}
