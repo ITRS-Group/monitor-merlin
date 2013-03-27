@@ -203,6 +203,7 @@ static void pgroup_destroy(merlin_peer_group *pg)
 	for (i = 0; i < max(pg->total_nodes, num_peers); i++) {
 		free(pg->assign[i]);
 	}
+	free(pg->hostgroups);
 }
 
 static int pgroup_add_node(merlin_peer_group *pg, merlin_node *node)
