@@ -1188,6 +1188,8 @@ int nebmodule_deinit(int flags, int reason)
 	}
 	safe_free(node_table);
 
+	dkhash_destroy(host_hash_table);
+
 	binlog_wipe(ipc.binlog, BINLOG_UNLINK);
 
 	pgroup_deinit();
