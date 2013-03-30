@@ -23,12 +23,6 @@ static char *cfg_read_file(const char *path, unsigned *len)
 	struct stat st;
 	char *buf = NULL;
 
-	if (access(path, R_OK) < 0) {
-		*len = -errno;
-		fprintf(stderr, "Failed to access '%s': %s\n", path, strerror(errno));
-		return NULL;
-	}
-
 	/* open, stat, malloc, read. caller handles errors (errno will be set) */
 	fd = open(path, O_RDONLY);
 	if (fd < 0) {
