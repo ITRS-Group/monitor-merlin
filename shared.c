@@ -432,7 +432,7 @@ const char *tv_delta(const struct timeval *start, const struct timeval *stop)
 {
 	static char buf[50];
 	unsigned long weeks, days, hours, mins, secs, usecs;
-	unsigned long stop_usec;
+	time_t stop_usec;
 
 	secs = stop->tv_sec - start->tv_sec;
 	stop_usec = stop->tv_usec;

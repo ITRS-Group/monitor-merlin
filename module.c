@@ -1011,7 +1011,7 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	}
 
 	if (ipc.state != STATE_CONNECTED) {
-		int i;
+		unsigned int i;
 		ret = iobroker_unregister(nagios_iobs, ipc.sock);
 		if (ret)
 			ldebug("  ipc_action_handler(): iobroker_unregister(%p, %d) returned %d: %s",
@@ -1160,7 +1160,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
  */
 int nebmodule_deinit(int flags, int reason)
 {
-	int i;
+	unsigned int i;
 
 	linfo("Unloading Merlin module");
 

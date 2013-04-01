@@ -325,7 +325,8 @@ static int grok_config(char *path)
  */
 static void reap_child_process(void)
 {
-	int status, pid, i;
+	int status, pid;
+	unsigned int i;
 
 	if (!num_children)
 		return;
@@ -815,7 +816,8 @@ static int io_poll_sockets(void)
 
 static void dump_daemon_nodes(void)
 {
-	int fd, i;
+	int fd;
+	unsigned int i;
 
 	user_sig &= ~(1 << SIGUSR1);
 

@@ -8,7 +8,7 @@ bitmap *poller_handled_services = NULL;
 
 static void pgroup_reassign_checks(merlin_peer_group *pgrp)
 {
-	int i, x;
+	unsigned int i, x;
 
 	/* first reset top-level hosts */
 	ldebug("Reassigning checks for group ipc");
@@ -168,7 +168,7 @@ static merlin_peer_group *pgroup_create(char *hostgroups)
 
 static merlin_peer_group *pgroup_get_by_cshgs(char *hgs)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < num_peer_groups; i++) {
 		if (!peer_group[i]->hostgroups)
@@ -183,7 +183,7 @@ static merlin_peer_group *pgroup_get_by_cshgs(char *hgs)
 
 static void pgroup_alloc_counters(merlin_peer_group *pg)
 {
-	int i;
+	unsigned int i;
 
 	pg->host_map = bitmap_create(num_objects.hosts);
 	pg->service_map = bitmap_create(num_objects.services);
@@ -229,7 +229,7 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 	for (hm = hg->members; hm; hm = hm->next) {
 		servicesmember *sm;
 		host *h = hm->host_ptr;
-		int x, peer_id;
+		unsigned int x, peer_id;
 
 		ldebug("  Looking at host %d: '%s'\n", h->id, h->name);
 
@@ -278,7 +278,7 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 
 static int pgroup_map_objects(void)
 {
-	int i, x, dupes = 0;
+	unsigned int i, x, dupes = 0;
 
 	for (i = 0; i < num_peer_groups; i++) {
 		char *p, *comma;
@@ -360,7 +360,7 @@ static int pgroup_map_objects(void)
 		linfo("  assigned services: %u", pg->assigned.services);
 		linfo("  Check/takeover accounting:");
 		for (x = 1; x < pg->alloc; x++) {
-			int y;
+			unsigned int y;
 			linfo("    %d node%s online:", x + 1, x ? "s" : "");
 			for (y = 0; y < x + 1; y++) {
 				linfo("      peer %d takes %d hosts, %d services", y,
@@ -441,7 +441,7 @@ static char *get_sorted_csstr(const char *orig_str)
 
 int pgroup_init(void)
 {
-	int i;
+	unsigned int i;
 	merlin_peer_group *pg;
 
 	linfo("Initializing peer-groups");
@@ -473,7 +473,7 @@ int pgroup_init(void)
 
 void pgroup_deinit(void)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < num_peer_groups; i++)
 		pgroup_destroy(peer_group[i]);

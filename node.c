@@ -726,7 +726,7 @@ int node_recv(merlin_node *node)
  * into sending errors. It's up to the caller to poll the socket
  * for writability, or pass the proper flags and ignore errors
  */
-int node_send(merlin_node *node, void *data, int len, int flags)
+int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 {
 	merlin_event *pkt = (merlin_event *)data;
 	int sent, sd = 0;
@@ -747,7 +747,7 @@ int node_send(merlin_node *node, void *data, int len, int flags)
 
 	sent = io_send_all(node->sock, data, len);
 	/* success. Should be the normal case */
-	if (sent == len) {
+	if (sent == (int)len) {
 		node->stats.bytes.sent += sent;
 		node->last_action = node->last_sent = time(NULL);
 		return sent;

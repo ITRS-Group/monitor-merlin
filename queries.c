@@ -54,7 +54,7 @@ static int help(int sd, char *buf, unsigned int len)
 /* Our primary query handler */
 int merlin_qh(int sd, char *buf, unsigned int len)
 {
-	int i;
+	unsigned int i;
 
 	if (len == 0)
 		return help(sd, NULL, 0);
