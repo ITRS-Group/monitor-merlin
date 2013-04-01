@@ -420,7 +420,7 @@ struct db_wrap_conn_params
 typedef struct db_wrap_conn_params db_wrap_conn_params;
 /** Empty-initialized db_wrap_conn_params object. */
 #define db_wrap_conn_params_empty_m { \
-		NULL/*host*/,0/*port*/,NULL/*user*/,NULL/*password*/,NULL/*dbname*/   \
+		NULL/*host*/,0/*port*/,NULL/*user*/,NULL/*password*/,NULL/*dbname*/,NULL/*conn_str*/   \
 	}
 /** Empty-initialized db_wrap_conn_params object. */
 extern const db_wrap_conn_params db_wrap_conn_params_empty;
