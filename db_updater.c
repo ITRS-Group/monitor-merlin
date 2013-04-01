@@ -61,7 +61,7 @@ static int handle_host_status(merlin_node *node, int cb, const merlin_host_statu
 {
 	char *host_name;
 	char *output = NULL, *long_output = NULL, *perf_data = NULL;
-	int result, node_id, rpt_log = 0, perf_log = 0;
+	int result = 0, node_id, rpt_log = 0, perf_log = 0;
 
 	if (cb == NEBCALLBACK_HOST_CHECK_DATA) {
 		if (db_log_reports && host_has_new_state(p->name, p->state.current_state, p->state.state_type))
@@ -125,7 +125,7 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 {
 	char *host_name, *service_description;
 	char *output = NULL, *long_output = NULL, *perf_data = NULL;
-	int result, node_id, rpt_log = 0, perf_log = 0;
+	int result = 0, node_id, rpt_log = 0, perf_log = 0;
 
 	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA) {
 		if (db_log_reports && service_has_new_state(p->host_name, p->service_description, p->state.current_state, p->state.state_type))
@@ -464,7 +464,7 @@ static int handle_downtime(merlin_node *node, const nebstruct_downtime_data *p)
 
 static int handle_comment(merlin_node *node, const nebstruct_comment_data *p)
 {
-	int result;
+	int result = 0;
 	char *host_name, *author_name, *comment_data, *service_description;
 
 	if (!db_track_current)

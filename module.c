@@ -422,7 +422,7 @@ static int handle_flapping_data(merlin_node *node, void *buf)
 /* events that require status updates return 1, others return 0 */
 int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 {
-	int ret;
+	int ret = 0;
 
 	if (!pkt) {
 		lerr("MM: pkt is NULL in handle_ipc_event()");

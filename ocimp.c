@@ -848,7 +848,7 @@ static int is_valid_timedecl(const char *str)
 static void resplit_timeperiod_decl(char **key, char **value)
 {
 	int i;
-	char *new_key, *new_value, *p;
+	char *new_key, *new_value = NULL, *p;
 
 	for (p = *value; p && *p; p++) {
 		if (is_valid_timedecl(p)) {
@@ -1028,7 +1028,7 @@ static void parse_group(int *gid, slist *sl, struct cfg_comp *comp)
 	}
 
 	if (sl == cg_slist) {
-		sql_query("INSERT INTO contactgroup(" 
+		sql_query("INSERT INTO contactgroup("
 				  "instance_id, id, contactgroup_name, alias) "
 				  "VALUES(0, %d, %s, %s)",
 				  obj->id, name, alias);
@@ -1122,9 +1122,9 @@ static void parse_contact(struct cfg_comp *comp)
 	int host_notifications_enabled = 0;
 	int service_notifications_enabled = 0;
 	int can_submit_commands = 0;
-	int retain_status_information;
-	int retain_nonstatus_information;
-	int minimum_value;
+	int retain_status_information = 0;
+	int retain_nonstatus_information = 0;
+	int minimum_value = 0;
 	char *address1 = NULL;
 	char *address2 = NULL;
 	char *address3 = NULL;

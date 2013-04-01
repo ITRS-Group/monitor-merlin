@@ -883,8 +883,8 @@ static int hook_notification(merlin_event *pkt, void *data)
 	char *what = "host";
 	char *host_name, *sdesc = NULL;
 	struct merlin_notify_stats *mns = NULL;
-	struct service *s;
-	struct host *h;
+	struct service *s = NULL;
+	struct host *h = NULL;
 
 	/* don't count or (try to) block notifications after they're sent */
 	if (ds->type != NEBTYPE_NOTIFICATION_START)

@@ -1158,7 +1158,7 @@ static inline void handle_stop_event(void)
 static int parse_line(char *line, uint len)
 {
 	char *ptr, *colon;
-	int result, nvecs = 0;
+	int result = 0, nvecs = 0;
 	struct string_code *sc;
 	static time_t last_ltime = 0;
 
