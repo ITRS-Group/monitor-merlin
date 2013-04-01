@@ -522,7 +522,7 @@ const char *sql_db_host(void)
 	return db.host ? db.host : "localhost";
 }
 
-const unsigned int sql_db_port(void)
+unsigned int sql_db_port(void)
 {
 	return db.port;
 }

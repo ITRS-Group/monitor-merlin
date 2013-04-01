@@ -32,7 +32,7 @@ extern const char *sql_db_name(void);
 extern const char *sql_db_user(void);
 extern const char *sql_db_pass(void);
 extern const char *sql_db_host(void);
-extern const unsigned int sql_db_port(void);
+extern unsigned int sql_db_port(void);
 extern const char *sql_db_type(void);
 extern const char *sql_db_conn_str(void);
 #endif
