@@ -342,9 +342,11 @@ void cfg_destroy_compound(struct cfg_comp *comp)
 
 struct cfg_comp *cfg_parse_file(const char *path)
 {
+	struct cfg_comp *comp;
+
 	if (path == NULL)
 		return NULL;
-	struct cfg_comp *comp = parse_file(path, NULL, 0);
+	comp = parse_file(path, NULL, 0);
 
 	/* this is the public API, so make sure all compounds are closed */
 	if (comp && comp->parent) {

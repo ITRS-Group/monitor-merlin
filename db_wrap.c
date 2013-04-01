@@ -35,12 +35,14 @@ const db_wrap_conn_params db_wrap_conn_params_empty = db_wrap_conn_params_empty_
 */
 static int db_wrap_query_number_prepare(db_wrap * db, char const * sql, size_t len, db_wrap_result ** tgt)
 {
+	db_wrap_result * res = NULL;
+	int rc;
+
 	if (!(db && sql && *sql && len && tgt) )
 	{
 		return DB_WRAP_E_BAD_ARG;
 	}
-	db_wrap_result * res = NULL;
-	int rc = db->api->query_result(db, sql, len, &res);
+	rc = db->api->query_result(db, sql, len, &res);
 	if (rc) return rc;
 	assert(NULL != res);
 	if (! res)
@@ -137,12 +139,14 @@ int db_wrap_query_string(db_wrap * db, char const * sql, size_t len, char const 
 
 int db_wrap_query_exec(db_wrap * db, char const * sql, size_t len)
 {
+	db_wrap_result * res = NULL;
+	int rc;
+
 	if (!(db && sql && *sql && len) )
 	{
 		return DB_WRAP_E_BAD_ARG;
 	}
-	db_wrap_result * res = NULL;
-	int rc = db->api->query_result(db, sql, len, &res);
+	rc = db->api->query_result(db, sql, len, &res);
 	if (rc) return rc;
 	assert(NULL != res);
 	res->api->finalize(res);
@@ -151,9 +155,10 @@ int db_wrap_query_exec(db_wrap * db, char const * sql, size_t len)
 
 int db_wrap_result_string_copy_ndx(db_wrap_result * res, unsigned int ndx, char ** sql, size_t *len)
 {
-	if (! res || !sql) return DB_WRAP_E_BAD_ARG;
 	char const * str = NULL;
-	int const rc = res->api->get_string_ndx(res, ndx, &str, len);
+	int rc;
+	if (! res || !sql) return DB_WRAP_E_BAD_ARG;
+	rc = res->api->get_string_ndx(res, ndx, &str, len);
 	if ((0 == rc) && str) *sql = strdup(str);
 	return rc;
 }

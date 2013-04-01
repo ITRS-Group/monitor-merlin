@@ -581,8 +581,8 @@ static int add_naglog_directory(const char *dir)
 	memcpy(path, dir, dlen);
 	path[dlen++] = '/';
 	while ((de = readdir(dirp))) {
+		unsigned int name_len;
 		path[dlen] = 0;
-		uint name_len;
 		if (prefixcmp(de->d_name, "nagios"))
 			continue;
 		name_len = strlen(de->d_name);

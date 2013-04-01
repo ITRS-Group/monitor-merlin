@@ -351,6 +351,7 @@ int sql_init(void)
 	const char *env;
 	int result, log_attempt = 0;
 	static time_t last_logged = 0;
+	db_wrap_conn_params connparam = db_wrap_conn_params_empty;
 
 	if (!use_database)
 		return -1;
@@ -395,7 +396,6 @@ int sql_init(void)
 		db_type = MERLIN_DBT_SQLITE;
 	}
 
-	db_wrap_conn_params connparam = db_wrap_conn_params_empty;
 	connparam.host = db.host;
 	connparam.dbname = db.name;
 	connparam.username = db.user;
