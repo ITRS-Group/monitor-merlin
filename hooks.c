@@ -1079,8 +1079,8 @@ int merlin_mod_hook(int cb, void *data)
 static struct callback_struct {
 	int network_only;
 	int type;
-	char *name;
-	char *hook_name;
+	const char *name;
+	const char *hook_name;
 } callback_table[] = {
 	CB_ENTRY(0, NEBCALLBACK_PROCESS_DATA, hook_generic),
 /*

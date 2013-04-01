@@ -167,7 +167,8 @@ const char *isotime(struct timeval *tv, int precision)
 	static int bufi = 0;
 	struct timeval now;
 	struct tm tm;
-	char *buf, *fmt_string;
+	char *buf;
+	const char *fmt_string;
 	int bufsize;
 	size_t len;
 
