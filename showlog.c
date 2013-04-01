@@ -1034,9 +1034,9 @@ int main(int argc, char **argv)
 
 		conf = cfg_parse_file(cgi_cfg ? cgi_cfg : "/opt/monitor/etc/cgi.cfg");
 		if (conf) {
-			uint i;
-			for (i = 0; i < conf->vars; i++) {
-				struct cfg_var *v = conf->vlist[i];
+			unsigned int vi;
+			for (vi = 0; vi < conf->vars; vi++) {
+				struct cfg_var *v = conf->vlist[vi];
 				if (!nagios_cfg && !strcmp(v->key, "main_config_file")) {
 					nagios_cfg = strdup(v->value);
 				}

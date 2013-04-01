@@ -95,11 +95,11 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 		}
 
 		for (i = 0; i < num_nodes; i++) {
-			merlin_node *node = node_table[i];
-			if (node->state == STATE_CONNECTED && node->info.start.tv_sec > 0)
-				ipc_send_ctrl_active(node->id, &node->info);
+			merlin_node *n = node_table[i];
+			if (n->state == STATE_CONNECTED && n->info.start.tv_sec > 0)
+				ipc_send_ctrl_active(n->id, &n->info);
 			else
-				ipc_send_ctrl_inactive(node->id);
+				ipc_send_ctrl_inactive(n->id);
 
 			/*
 			 * we mustn't notify our connected nodes that the module once
@@ -121,8 +121,8 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 
 		/* also tell our peers and masters */
 		for (i = 0; i < num_masters + num_peers; i++) {
-			merlin_node *node = node_table[i];
-			node_send_ctrl_inactive(node, CTRL_GENERIC, 100);
+			merlin_node *n = node_table[i];
+			node_send_ctrl_inactive(n, CTRL_GENERIC, 100);
 		}
 	}
 

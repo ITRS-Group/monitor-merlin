@@ -1023,10 +1023,10 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 		 * fail over properly
 		 */
 		for (i = 0; i < num_nodes; i++) {
-			merlin_node *node = node_table[i];
+			merlin_node *n = node_table[i];
 			/* this handles peer-count and peer-id as well */
-			node_set_state(node, STATE_NONE, "Daemon disconnected");
-			memset(&node->info, 0, sizeof(node->info));
+			node_set_state(n, STATE_NONE, "Daemon disconnected");
+			memset(&n->info, 0, sizeof(node->info));
 		}
 		return 0;
 	}

@@ -945,7 +945,7 @@ static int hook_notification(merlin_event *pkt, void *data)
 			return NEBERROR_CALLBACKCANCEL;
 		}
 	} else {
-		host *h = (host *)ds->object_ptr;
+		h = (host *)ds->object_ptr;
 		host_name = h->name;
 
 		/* never block normal local notificatons from passive checks */
@@ -1057,7 +1057,7 @@ int merlin_mod_hook(int cb, void *data)
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
 		result = hook_service_status(&pkt, data);
 		break;
-	
+
 	case NEBCALLBACK_PROCESS_DATA:
 		result = send_generic(&pkt, data);
 		break;
