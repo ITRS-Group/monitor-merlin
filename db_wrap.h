@@ -13,44 +13,43 @@
 #  define DB_WRAP_CONFIG_ENABLE_OCILIB 0
 #endif
 
-enum db_wrap_constants
-{
-/**
-   The non-error code.
-*/
-DB_WRAP_E_OK = 0,
-/** Signifies that looping over a result set has successfully
-	reached the end of the set.
-*/
-DB_WRAP_E_DONE = 1,
-/** Signifies that some argument is illegal. */
-DB_WRAP_E_BAD_ARG = 2,
-/** Signifies that some argument is not of the required type. */
-DB_WRAP_E_TYPE_ERROR = 3,
-/** Signifies an allocation error. */
-DB_WRAP_E_ALLOC_ERROR = 4,
-/**
-	Signifies an unknown error, probably coming from an underying API
-	(*ahem*libdbi*ahem*) which cannot, for reasons of its own, tell us
-	what went wrong.
+enum db_wrap_constants {
+	/**
+	   The non-error code.
+	*/
+	DB_WRAP_E_OK = 0,
+	/** Signifies that looping over a result set has successfully
+		reached the end of the set.
+	*/
+	DB_WRAP_E_DONE = 1,
+	/** Signifies that some argument is illegal. */
+	DB_WRAP_E_BAD_ARG = 2,
+	/** Signifies that some argument is not of the required type. */
+	DB_WRAP_E_TYPE_ERROR = 3,
+	/** Signifies an allocation error. */
+	DB_WRAP_E_ALLOC_ERROR = 4,
+	/**
+		Signifies an unknown error, probably coming from an underying API
+		(*ahem*libdbi*ahem*) which cannot, for reasons of its own, tell us
+		what went wrong.
 
-*/
-DB_WRAP_E_UNKNOWN_ERROR = 5,
+	*/
+	DB_WRAP_E_UNKNOWN_ERROR = 5,
 
-/**
-   This code signifies that the caller should check the database
-   error data via db_wrap_api::error_message().
-*/
-DB_WRAP_E_CHECK_DB_ERROR = 6,
-/** Signifies an unsupported operation. */
-DB_WRAP_E_UNSUPPORTED
-/*
-  TODOs:
+	/**
+	   This code signifies that the caller should check the database
+	   error data via db_wrap_api::error_message().
+	*/
+	DB_WRAP_E_CHECK_DB_ERROR = 6,
+	/** Signifies an unsupported operation. */
+	DB_WRAP_E_UNSUPPORTED
+	/*
+	  TODOs:
 
-  authentication errors, connection errors, etc., etc., etc., etc.
-  We don't need to cover every code of every underlying db, but
-  we need the basics.
-*/
+	  authentication errors, connection errors, etc., etc., etc., etc.
+	  We don't need to cover every code of every underlying db, but
+	  we need the basics.
+	*/
 };
 typedef enum db_wrap_constants db_wrap_constants;
 
@@ -59,12 +58,11 @@ typedef enum db_wrap_constants db_wrap_constants;
    and db_wrap_result APIs. Holds implementation-specific
    data.
 */
-struct db_wrap_impl
-{
+struct db_wrap_impl {
 	/**
 	   Arbitrary implementation-dependent data.
 	*/
-	void * data;
+	void *data;
 
 	/**
 	   Wrapper-specific type ID specifier. May have any internal
@@ -73,7 +71,7 @@ struct db_wrap_impl
 	   various functions are only passed values of the proper concrete
 	   type.
 	*/
-	void const * typeID;
+	void const *typeID;
 };
 /** Convenience typedef. */
 typedef struct db_wrap_impl db_wrap_impl;
@@ -97,10 +95,9 @@ typedef struct db_wrap db_wrap;
    objects. All instances for a given db wrapper back-end share a
    single instance of this class.
 */
-struct db_wrap_api
-{
+struct db_wrap_api {
 	/** Must connect to the underlying database and return 0 on succes. */
-	int (*connect)(db_wrap * db);
+	int (*connect)(db_wrap *db);
 	/**
 	   Must quote the first len bytes of the given string as SQL, add
 	   SQL quote characters around it, write the quoted string to
@@ -117,7 +114,7 @@ struct db_wrap_api
 	   ACHTUNG: this is itended for use with individual SQL statement
 	   parts, not whole SQL statements.
 	*/
-	size_t (*sql_quote)(db_wrap * db, char const * src, size_t len, char ** dest);
+	size_t (*sql_quote)(db_wrap *db, char const *src, size_t len, char **dest);
 
 	/**
 	   Frees a string allocated by sql_quote(). Results are undefined
@@ -125,7 +122,7 @@ struct db_wrap_api
 	   success. It must, like free(), it must gracefully ignore
 	   a NULL string value.
 	*/
-	int (*free_string)(db_wrap * db, char * str);
+	int (*free_string)(db_wrap *db, char *str);
 
 	/**
 	   Must initialize a result object for the given db from the first
@@ -138,7 +135,7 @@ struct db_wrap_api
 	   Implementations may optionally stream (len==0) as an indicator
 	   that they should use strlen() to count the length of src.
 	*/
-	int (*query_result)(db_wrap * db, char const * sql, size_t len, struct db_wrap_result ** tgt);
+	int (*query_result)(db_wrap *db, char const *sql, size_t len, struct db_wrap_result **tgt);
 
 	/**
 	   Must return the last error information associated with the
@@ -177,7 +174,7 @@ struct db_wrap_api
 	   uncertain due to documentation deficiencies in the underlying
 	   sqlite3 abstraction code.
 	*/
-	int (*error_info)(db_wrap * db, char const ** dest, size_t * len, int * errorCode);
+	int (*error_info)(db_wrap *db, char const **dest, size_t *len, int *errorCode);
 
 	/**
 	   Sets a driver-specific option to the given value. The exact
@@ -186,7 +183,7 @@ struct db_wrap_api
 
 	   Returns 0 on success.
 	*/
-	int (*option_set)(db_wrap * db, char const * key, void const * val);
+	int (*option_set)(db_wrap *db, char const *key, void const *val);
 	/**
 	   Gets a driver-specific option and assigns its value to
 	   *val. The exact type of val is driver-specific, and the client
@@ -203,7 +200,7 @@ struct db_wrap_api
 
 	   Returns 0 on success.
 	*/
-	int (*option_get)(db_wrap * db, char const * key, void * val);
+	int (*option_get)(db_wrap *db, char const *key, void *val);
 
 	/**
 	   Must return non-zero (true) if the db object is connected, or
@@ -216,7 +213,7 @@ struct db_wrap_api
 	   here because the sql.{c, h} APIs have it, but we may not need
 	   it at this level.
 	*/
-	char (*is_connected)(db_wrap * db);
+	char(*is_connected)(db_wrap *db);
 
 	/**
 	   Must free up any dynamic resources used by db, but must not
@@ -228,12 +225,12 @@ struct db_wrap_api
 	   finalize() implementation, but such an implementation may not
 	   work with stack- or custom-allocated db_wrap objects.
 	*/
-	int (*cleanup)(db_wrap * db);
+	int (*cleanup)(db_wrap *db);
 	/**
 	   Must call cleanup() and then free the db object using a
 	   mechanism appropriate for its allocation.
 	*/
-	int (*finalize)(db_wrap * db);
+	int (*finalize)(db_wrap *db);
 
 	/**
 	 * Commit a started transaction. Should do nothing if autocommit
@@ -256,15 +253,14 @@ typedef struct db_wrap_api db_wrap_api;
    must be provided which provide the features called for by the
    interface.
 */
-struct db_wrap
-{
+struct db_wrap {
 	/**
 	   The "virtual" member functions of this class. It is illegal for
 	   this to be NULL, and all instances for a given database
 	   back-end typically share a pointer to the same immutable
 	   instance.
 	*/
-	db_wrap_api const * api;
+	db_wrap_api const *api;
 	/**
 	   Implementation-specific private details.
 	*/
@@ -284,8 +280,7 @@ extern const db_wrap db_wrap_empty;
    db wrapper back-end share a single instance of
    this class.
 */
-struct db_wrap_result_api
-{
+struct db_wrap_result_api {
 	/** Must "step" the cursor one position and return:
 
 	- DB_WRAP_E_OK on success.
@@ -298,7 +293,7 @@ struct db_wrap_result_api
 	sqlite3, which uses something very similar.
 
 	*/
-	int (*step)(db_wrap_result * self);
+	int (*step)(db_wrap_result *self);
 
 	/**
 	   Must fetch an integer value at the given query index position (0-based!),
@@ -310,20 +305,20 @@ struct db_wrap_result_api
 	   used in bind() APIs and 1-based also makes sense for
 	   field-getter APIs).
 	 */
-	int (*get_int32_ndx)(db_wrap_result * self, unsigned int ndx, int32_t * val);
+	int (*get_int32_ndx)(db_wrap_result *self, unsigned int ndx, int32_t *val);
 
 	/**
 	   Must fetch an integer value at the given query index position (0-based!),
 	   write its value to *val, and return 0 on success.
 	 */
-	int (*get_int64_ndx)(db_wrap_result * self, unsigned int ndx, int64_t * val);
+	int (*get_int64_ndx)(db_wrap_result *self, unsigned int ndx, int64_t *val);
 
 	/**
 	   Must fetch an double value at the given query index position (0-based!),
 	   write its value to *val, and return 0 on success.
 
 	 */
-	int (*get_double_ndx)(db_wrap_result * self, unsigned int ndx, double * val);
+	int (*get_double_ndx)(db_wrap_result *self, unsigned int ndx, double *val);
 
 	/**
 	   Must fetch a string value at the given query index position
@@ -340,7 +335,7 @@ struct db_wrap_result_api
 	   If the fetched string has a length of 0, implementations must
 	   assign *val to NULL, *len (if not NULL) to 0, and return 0.
 	 */
-	int (*get_string_ndx)(db_wrap_result * self, unsigned int ndx, char const ** val, size_t * len);
+	int (*get_string_ndx)(db_wrap_result *self, unsigned int ndx, char const **val, size_t *len);
 
 	/**
 	   Must return the number of result rows for the given result set
@@ -352,25 +347,25 @@ struct db_wrap_result_api
 	   rows TRAVERSED SO FAR (which is kinda dumb, since we already know
 	   that number). Calling this directly after a SELECT will return 0.
 	*/
-	int (*num_rows)(db_wrap_result * self, size_t * num);
+	int (*num_rows)(db_wrap_result *self, size_t *num);
 
 	/**
 	   Must free all resources associated with self and then
 	   deallocate self in a manner appropriate to its allocation
 	   method.
 	*/
-	int (*finalize)(db_wrap_result * self);
+	int (*finalize)(db_wrap_result *self);
 
 
-    /*
-      Missing functions which we will/might eventually need:
+	/*
+	  Missing functions which we will/might eventually need:
 
-      - get column count
+	  - get column count
 
-      - get column name by index
+	  - get column name by index
 
-      - get values by column name? Seems like overkill for this project.
-     */
+	  - get values by column name? Seems like overkill for this project.
+	 */
 };
 /**
    Convenience typedef.
@@ -380,9 +375,8 @@ typedef struct db_wrap_result_api db_wrap_result_api;
    Wraps the basic functionality of "db result" objects, for looping
    over result sets.
 */
-struct db_wrap_result
-{
-	db_wrap_result_api const * api;
+struct db_wrap_result {
+	db_wrap_result_api const *api;
 	/*
 	  TODOs???
 
@@ -408,14 +402,13 @@ extern const db_wrap_result db_wrap_result_empty;
    A helper type for db-specific functions which need to take some
    common information in their initialization routine(s).
 */
-struct db_wrap_conn_params
-{
-	char const * host;
+struct db_wrap_conn_params {
+	char const *host;
 	int port;
-	char const * username;
-	char const * password;
-	char const * dbname;
-	char const * conn_str;
+	char const *username;
+	char const *password;
+	char const *dbname;
+	char const *conn_str;
 };
 typedef struct db_wrap_conn_params db_wrap_conn_params;
 /** Empty-initialized db_wrap_conn_params object. */
@@ -431,24 +424,24 @@ extern const db_wrap_conn_params db_wrap_conn_params_empty;
 
    Returns 0 on success.
 */
-int db_wrap_query_exec(db_wrap * db, char const * sql, size_t len);
+int db_wrap_query_exec(db_wrap *db, char const *sql, size_t len);
 
 /**
    Runs a query which is expected to return exactly 1 int32-compatible result.
    On success 0 is returned and *tgt is set to its value. If the query returns no
    results then *tgt is set to 0.
 */
-int db_wrap_query_int32(db_wrap * db, char const * sql, size_t len, int32_t * tgt);
+int db_wrap_query_int32(db_wrap *db, char const *sql, size_t len, int32_t *tgt);
 
 /**
    Identical to db_wrap_query_int32(), but takes an int64_t instead.
 */
-int db_wrap_query_int64(db_wrap * db, char const * sql, size_t len, int64_t * tgt);
+int db_wrap_query_int64(db_wrap *db, char const *sql, size_t len, int64_t *tgt);
 
 /**
    Identical to db_wrap_query_int32(), but takes a double instead.
 */
-int db_wrap_query_double(db_wrap * db, char const * sql, size_t len, double * tgt);
+int db_wrap_query_double(db_wrap *db, char const *sql, size_t len, double *tgt);
 
 /**
    A convenience wrapper for db_wrap_result::get_string_ndx(), with
@@ -456,7 +449,7 @@ int db_wrap_query_double(db_wrap * db, char const * sql, size_t len, double * tg
 
    Returns 0 on success.
 */
-int db_wrap_query_string(db_wrap * db, char const * sql, size_t len, char const ** tgt, size_t * tgtLen);
+int db_wrap_query_string(db_wrap *db, char const *sql, size_t len, char const **tgt, size_t *tgtLen);
 
 /**
    Functions like db_wrap_result_api::get_string_ndx(), but copies the
@@ -467,7 +460,7 @@ int db_wrap_query_string(db_wrap * db, char const * sql, size_t len, char const 
    len may be NULL.
 
 */
-int db_wrap_result_string_copy_ndx(db_wrap_result * res, unsigned int ndx, char ** sql, size_t *len);
+int db_wrap_result_string_copy_ndx(db_wrap_result *res, unsigned int ndx, char **sql, size_t *len);
 
 
 /**
@@ -500,7 +493,7 @@ int db_wrap_result_string_copy_ndx(db_wrap_result * res, unsigned int ndx, char 
    or cannot load the driver dynamically. e.g. passing "dbi:postgres"
    will fail if the local libdbi cannot load the "postgres" driver.
 */
-int db_wrap_driver_init(char const * driver, db_wrap_conn_params const * param, db_wrap ** tgt);
+int db_wrap_driver_init(char const *driver, db_wrap_conn_params const *param, db_wrap **tgt);
 
 
 #endif /* _MERLIN_DB_WRAP_H_INCLUDED */
