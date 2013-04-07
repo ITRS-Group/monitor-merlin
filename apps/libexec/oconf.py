@@ -79,14 +79,11 @@ def grab_nagios_cfg(nagios_cfg_path):
 	global force_include_commands
 
 	obj_files = []
-	comp = parse_conf(nagios_cfg_path)
+	comp = parse_nagios_cfg(nagios_cfg_path)
 	basepath = os.path.dirname(os.path.abspath(nagios_cfg_path))
 	for (k, v) in comp.params:
 		if k == 'cfg_file':
-			if v[0] == '/':
-				obj_files.append(v)
-			else:
-				obj_files.append(basepath + '/' + v)
+			obj_files.append(v)
 		elif k == 'cfg_dir':
 			obj_files += recurse_grab_object_cfg_files(v, basepath + '/')
 		elif k.endswith("_command"):
