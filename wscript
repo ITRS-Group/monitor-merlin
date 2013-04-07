@@ -23,6 +23,7 @@ out = 'WAFBUILD'
 
 
 db_sources = 'sql.c db_wrap.c'.split()
+oconf_sources = 'sha1.c misc.c'
 common_sources = 'cfgfile.c shared.c version.c logging.c'.split()
 shared_sources = 'ipc.c io.c node.c binlog.c codec.c'.split()
 daemon_sources = '''
@@ -177,13 +178,19 @@ def build(bld):
 		target = 'merlin',
 		install_path = None)  # do not install this library
 
+	bld.program(
+		source = 'oconf.c ' + oconf_sources,
+		target = 'oconf',
+		lib = 'nagios',
+		install_path = None)
+
 	# merlind
 	bld.program(
 		source = daemon_sources,
 		use = ['common-objects', 'shared-objects', 'db-objects'],
 		lib = ['nagios'] + bld.env.dblibs,
 		target = 'merlind',
-		install_path    = None)  # do not install this library
+		install_path = None)  # do not install this library
 
 	# ocimp
 	bld.program(
