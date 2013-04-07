@@ -815,6 +815,10 @@ def cmd_nodesplit(args):
 	"""
 	global cache_dir, config_dir
 
+	if not mconf.num_nodes['poller']:
+		print("No pollers configured. No way to nodesplit config.")
+		return True
+
 	wanted_nodes = {}
 	force = False
 	for arg in args:
@@ -827,9 +831,6 @@ def cmd_nodesplit(args):
 		if node and node.ntype == 'poller':
 			wanted_nodes[node.name] = node
 
-	if not mconf.num_nodes['poller']:
-		print("No pollers configured. No need to split config.")
-		return True
 
 	if not wanted_nodes:
 		wanted_nodes = mconf.configured_nodes
@@ -878,7 +879,7 @@ def cmd_nodesplit(args):
 
 	# If there are no pollers with hostgroups, we might as well
 	# go home.
-	if not len(to_create):
+	if not len(params):
 		print("No splitting to do. Quitting")
 		return
 
