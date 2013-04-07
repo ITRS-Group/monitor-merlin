@@ -77,6 +77,7 @@ def recurse_grab_object_cfg_files(v, basepath=''):
 
 def grab_nagios_cfg(nagios_cfg_path):
 	global force_include_commands
+	global object_cache
 
 	obj_files = []
 	comp = parse_nagios_cfg(nagios_cfg_path)
@@ -88,6 +89,8 @@ def grab_nagios_cfg(nagios_cfg_path):
 			obj_files += recurse_grab_object_cfg_files(v, basepath + '/')
 		elif k.endswith("_command"):
 			force_include_commands[k] = v;
+		elif k == 'object_cache_file':
+			object_cache = v
 
 	return obj_files
 
