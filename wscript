@@ -89,7 +89,7 @@ def configure(conf):
 	else:
 		have_ocilib = conf.check_cc(
 			function_name='OCI_ConnectionCreate',
-			lib='oci',
+			lib='ocilib',
 			header_name='ocilib.h',
 			mandatory=conf.options.ocilib.startswith('enable'),
 		)
