@@ -315,7 +315,12 @@ class fake_instance:
 
 				real_cmd = ['valgrind', '--child-silent-after-fork=yes', '--leak-check=full', '--log-file=%s/valgrind.%s.%d' % (self.home, name, log_id)] + cmd
 				cmd = real_cmd
-			self.proc[name] = subprocess.Popen(cmd, stdout=fd, stderr=fd)
+			try:
+				self.proc[name] = subprocess.Popen(cmd, stdout=fd, stderr=fd)
+			except OSError, e:
+				print("Failed to run command '%s'" % cmd)
+				print(e)
+				raise OSError(e)
 
 		# do NOT close 'fd' here, or we'll end up getting a bazillion
 		# "Inappropriate ioctl for device" due to a lot of failed
