@@ -724,6 +724,11 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 				struct cfg_var *v = c->vlist[vi];
 				if (!prefixcmp(v->key, "track_current")) {
 					db_track_current = strtobool(v->value);
+					continue;
+				}
+				if (!prefixcmp(v->key, "enabled")) {
+					use_database = strtobool(v->value);
+					continue;
 				}
 			}
 			break;
