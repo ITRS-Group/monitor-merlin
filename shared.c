@@ -167,7 +167,7 @@ const char *isotime(struct timeval *tv, int precision)
 	static int bufi = 0;
 	struct timeval now;
 	struct tm tm;
-	char *buf, *fmt_string;
+	char *buf;
 	int bufsize;
 	size_t len;
 
@@ -183,28 +183,27 @@ const char *isotime(struct timeval *tv, int precision)
 
 	switch (precision) {
 	case ISOTIME_PREC_YEAR:
-		fmt_string = "%Y";
+		len = strftime(buf, sizeof(buffers[0]) - 1, "%Y", &tm);
 		break;
 	case ISOTIME_PREC_MONTH:
-		fmt_string = "%Y-%m";
+		len = strftime(buf, sizeof(buffers[0]) - 1, "%Y-%m", &tm);
 		break;
 	case ISOTIME_PREC_DAY:
-		fmt_string = "%F";
+		len = strftime(buf, sizeof(buffers[0]) - 1, "%F", &tm);
 		break;
 	case ISOTIME_PREC_HOUR:
-		fmt_string = "%F %H";
+		len = strftime(buf, sizeof(buffers[0]) - 1, "%F %H", &tm);
 		break;
 	case ISOTIME_PREC_MINUTE:
-		fmt_string = "%F %H:%M";
+		len = strftime(buf, sizeof(buffers[0]) - 1, "%F %H:%M", &tm);
 		break;
 	case ISOTIME_PREC_SECOND:
 	case ISOTIME_PREC_USECOND:
 	default: /* second precision is the default */
-		fmt_string = "%F %H:%M:%S";
+		len = strftime(buf, sizeof(buffers[0]) - 1, "%F %H:%M:%S", &tm);
 		break;
 	}
 
-	len = strftime(buf, bufsize, fmt_string, &tm);
 	if (precision != ISOTIME_PREC_USECOND)
 		return buf;
 	snprintf(&buf[len], bufsize - len, ".%4lu", (unsigned long)tv->tv_usec);
@@ -431,7 +430,7 @@ const char *tv_delta(const struct timeval *start, const struct timeval *stop)
 {
 	static char buf[50];
 	unsigned long weeks, days, hours, mins, secs, usecs;
-	unsigned long stop_usec;
+	time_t stop_usec;
 
 	secs = stop->tv_sec - start->tv_sec;
 	stop_usec = stop->tv_usec;

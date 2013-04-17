@@ -68,10 +68,11 @@ void set_host_check_node(merlin_node *node, host *h)
 		old = &untracked_checks_node;
 	}
 
-	ldebug("Migrating hostcheck '%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u)",
+	ldebug("Migrating hostcheck '%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u; sa-p-id=%u)",
 		   h->name, h->id,
 		   node_type(old), old->name, old->peer_id,
-		   node_type(node), node->name, node->peer_id);
+		   node_type(node), node->name, node->peer_id,
+		   node->info.peer_id);
 
 	old->host_checks--;
 	node->host_checks++;
@@ -123,14 +124,8 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 	}
 	switch (pkt->hdr.code) {
 	case CTRL_INACTIVE:
-		/*
-		 * must memset() node->info before the disconnect handler
-		 * so we discard it in the peer id calculation dance if
-		 * we get data from it before it sends us a CTRL_ACTIVE
-		 * packet
-		 */
-		memset(&node->info, 0, sizeof(node->info));
 		node_set_state(node, STATE_NONE, "Received CTRL_INACTIVE");
+		pgroup_assign_peer_ids(node->pgroup);
 		break;
 	case CTRL_ACTIVE:
 		/*
@@ -427,7 +422,7 @@ static int handle_flapping_data(merlin_node *node, void *buf)
 /* events that require status updates return 1, others return 0 */
 int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 {
-	int ret;
+	int ret = 0;
 
 	if (!pkt) {
 		lerr("MM: pkt is NULL in handle_ipc_event()");
@@ -951,7 +946,8 @@ static int post_config_init(int cb, void *ds)
 	neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);
 
 	linfo("Object configuration parsed.");
-	pgroup_init();
+	if (pgroup_init() < 0)
+		return -1;
 	setup_host_hash_tables();
 	pgroup_assign_peer_ids(ipc.pgroup);
 
@@ -987,25 +983,6 @@ static int post_config_init(int cb, void *ds)
 }
 
 /*
- * this gets run for all nodes belonging to peer groups and
- * lets us trigger peer id reassignment and whatnot. The ipc
- * action handler runs it as part of its hook.
- */
-static int node_action_handler(merlin_node *node, int prev_state)
-{
-	if (!node->pgroup)
-		return 0;
-
-	if (node->state == STATE_CONNECTED) {
-		node->pgroup->active_nodes++;
-	} else {
-		node->pgroup->active_nodes--;
-	}
-
-	return 0;
-}
-
-/*
  * This gets run when we create an ipc connection, or when that
  * connection is lost. A CTRL_ACTIVE packet should always be
  * the first to go through the ipc socket
@@ -1033,20 +1010,12 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 		merlin_should_send_paths = 1;
 	}
 
-	if (ipc.state == STATE_CONNECTED) {
-		ret = iobroker_register(nagios_iobs, ipc.sock, (void *)&ipc, ipc_reaper);
-		if (ret)
-			lerr("  ipc_action_handler(): iobroker_register(%p, %d, %p, %p) returned %d: %s",
-				 nagios_iobs, ipc.sock, (void *)&ipc, ipc_reaper, ret, iobroker_strerror(ret));
-	} else {
+	if (ipc.state != STATE_CONNECTED) {
+		unsigned int i;
 		ret = iobroker_unregister(nagios_iobs, ipc.sock);
 		if (ret)
 			ldebug("  ipc_action_handler(): iobroker_unregister(%p, %d) returned %d: %s",
 				   nagios_iobs, ipc.sock, ret, iobroker_strerror(ret));
-	}
-
-	if (node->state != STATE_CONNECTED) {
-		int i;
 
 		/*
 		 * if we went from connected to anything else, we must
@@ -1054,16 +1023,21 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 		 * fail over properly
 		 */
 		for (i = 0; i < num_nodes; i++) {
-			merlin_node *node = node_table[i];
+			merlin_node *n = node_table[i];
 			/* this handles peer-count and peer-id as well */
-			node_set_state(node, STATE_NONE, "Daemon disconnected");
-			memset(&node->info, 0, sizeof(node->info));
+			node_set_state(n, STATE_NONE, "Daemon disconnected");
+			memset(&n->info, 0, sizeof(node->info));
 		}
-		node_action_handler(&ipc, prev_state);
 		return 0;
 	}
 
-	/* this is a connect event */
+	/* this is a connect event, so register for input */
+	ret = iobroker_register(nagios_iobs, ipc.sock, (void *)&ipc, ipc_reaper);
+	if (ret) {
+		/* this is *really* bad */
+		lerr("  ipc_action_handler(): iobroker_register(%p, %d, %p, %p) returned %d: %s",
+			 nagios_iobs, ipc.sock, (void *)&ipc, ipc_reaper, ret, iobroker_strerror(ret));
+	}
 
 	/*
 	 * we must use node_send_ctrl_active() here or we'll
@@ -1074,8 +1048,6 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	 * adds before trying to send.
 	 */
 	node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info, 100);
-
-	node_action_handler(&ipc, prev_state);
 
 	/* now we wait for inbound connections */
 	for (gettimeofday(&start, NULL);;) {
@@ -1104,7 +1076,6 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
  */
 int nebmodule_init(int flags, char *arg, nebmodule *handle)
 {
-	int i;
 	neb_handle = (void *)handle;
 
 	self = &ipc.info;
@@ -1172,10 +1143,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	/* this gets de-registered immediately, so we need to add it manually */
 	neb_register_callback(NEBCALLBACK_PROCESS_DATA, neb_handle, 0, post_config_init);
 
-	/* now we set the node action handlers */
-	for (i = 0; i < num_nodes; i++) {
-		node_table[i]->action = node_action_handler;
-	}
+	/* only the ipc node has an action handler */
 	ipc.action = ipc_action_handler;
 
 	linfo("Merlin module %s initialized successfully", merlin_version);
@@ -1192,6 +1160,8 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
  */
 int nebmodule_deinit(int flags, int reason)
 {
+	unsigned int i;
+
 	linfo("Unloading Merlin module");
 
 	ipc_deinit();
@@ -1209,7 +1179,17 @@ int nebmodule_deinit(int flags, int reason)
 	 * the ipc binlog, if any, which is slightly annoying
 	 */
 	iocache_destroy(ipc.ioc);
+	for (i = 0; i < num_nodes; i++) {
+		struct merlin_node *node = node_table[i];
+		free(node->name);
+		free(node->csync);
+		free(node->source_name);
+		free(node->hostgroups);
+	}
 	safe_free(node_table);
+
+	dkhash_destroy(host_hash_table);
+
 	binlog_wipe(ipc.binlog, BINLOG_UNLINK);
 
 	pgroup_deinit();

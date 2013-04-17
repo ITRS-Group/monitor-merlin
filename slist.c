@@ -198,7 +198,7 @@ void *slist_get_list(slist *sl)
 
 void slist_walk(slist *sl, void *arg, int (*cb)(void *, void *))
 {
-	int i;
+	unsigned int i;
 
 	if (!sl || !sl->list || !sl->pos)
 		return;

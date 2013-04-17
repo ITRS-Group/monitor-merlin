@@ -44,23 +44,20 @@ fi
 usage()
 {
 	cat << END_OF_HELP
+[--key=<keyfile>] [--all|--type=<peer|poller|master>] [destination]..
+Push public ssh key to specified remote node(s) (destinations).
 
-usage: mon sshkey push [options] <destinations>
+The key will be read from specified keyfile, or if not
+specified, default to: ~/.ssh/id_rsa.pub
 
-Where options can be any combination of:
+If no key exists, a new key will be generated automatically.
 
-  --all               Add all configured nodes as destinations
-  --type=<types>      Make all configured nodes of type destinations
-                      <types> can be a comma-separated list containing any
-                      combination of peer, poller and master
-  --key=<keyfile>     The key to install. Defaults to ~/.ssh/id_rsa.pub
-                      If not specified and no key exists, one will be
-                      generated. Note that the key must have no password.
-
-If nodes are configured and either option is either --type or --all,
-no destinations need to be specified.
+A combination of different node types as well as specific nodes
+can be specified at the same time.
 
 END_OF_HELP
+
+	exit # since the script wont need to do anything more
 }
 
 key= destinations=

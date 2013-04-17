@@ -8,11 +8,13 @@
 extern char *host_perf_table;
 extern char *service_perf_table;
 extern unsigned long total_queries;
+extern int sql_table_crashed;
 
 /*typedef dbi_result SQL_RESULT;*/
 
 extern int sql_config(const char *key, const char *value);
 extern int sql_is_connected(int reconnect);
+extern int sql_repair_table(const char *table);
 extern int sql_init(void);
 extern int sql_close(void);
 extern int sql_reinit(void);
@@ -30,7 +32,7 @@ extern const char *sql_db_name(void);
 extern const char *sql_db_user(void);
 extern const char *sql_db_pass(void);
 extern const char *sql_db_host(void);
-extern const unsigned int sql_db_port(void);
+extern unsigned int sql_db_port(void);
 extern const char *sql_db_type(void);
 extern const char *sql_db_conn_str(void);
 #endif

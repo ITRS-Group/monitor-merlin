@@ -3,17 +3,14 @@
 usage()
 {
 	cat << END_OF_HELP
-usage: mon oconf fetch [options] <node>
+<master node>
+Fetch split configuration from a master node.
 
-Where options can be any of:
+NOTE: A configuration variable called "oconf_fetch_name" is
+required in the poller's merlin.cfg for the specified master
+node. The variable should be set to the name of this node,
+as seen by the master.
 
-	<node>           Try to fetch config from this node
-	--help           This helptext
-
-NOTE: this script requires that you have a object_config variable
-named fetch_name where it equals to the name the node has on the 
-master, to be able to fetch the right config.
-	
 END_OF_HELP
 exit
 }

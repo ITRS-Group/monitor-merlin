@@ -14,6 +14,7 @@
 
 import os, sys, posix, re, copy, random
 import itertools
+import subprocess
 
 modpath = os.path.dirname(__file__) + '/modules'
 if not modpath in sys.path:
@@ -33,6 +34,9 @@ def idx_get(otype):
 
 
 # when whatever config file we're reading was last changed
+use_nsplit_helper = False
+nsplit_path = '/opt/monitor/bin/oconfsplit'
+nsplit_helper_args = []
 last_changed = 0
 nagios_cfg = '/opt/monitor/etc/nagios.cfg'
 object_cfg_files = {}
@@ -59,12 +63,11 @@ parse_order = [
 # grab object configuration files from a cfg_dir directive
 def recurse_grab_object_cfg_files(v, basepath=''):
 	obj_files = []
-	if v[0] == '/':
-		f_ary = os.listdir(v)
-	else:
-		f_ary = os.listdir(basepath + '/' + v)
+	if v[0] != '/':
+		v = basepath + '/' + v
+	f_ary = os.listdir(v)
 	for f in f_ary:
-		path = '%s%s/%s' % (basepath, v, f)
+		path = '%s/%s' % (v, f)
 		if os.path.isdir(path):
 			obj_files += recurse_grab_object_cfg_files(path, '')
 		elif os.path.isfile(path) and f[-4:] == '.cfg':
@@ -74,20 +77,20 @@ def recurse_grab_object_cfg_files(v, basepath=''):
 
 def grab_nagios_cfg(nagios_cfg_path):
 	global force_include_commands
+	global object_cache
 
 	obj_files = []
-	comp = parse_conf(nagios_cfg_path)
+	comp = parse_nagios_cfg(nagios_cfg_path)
 	basepath = os.path.dirname(os.path.abspath(nagios_cfg_path))
 	for (k, v) in comp.params:
 		if k == 'cfg_file':
-			if v[0] == '/':
-				obj_files.append(v)
-			else:
-				obj_files.append(basepath + '/' + v)
+			obj_files.append(v)
 		elif k == 'cfg_dir':
 			obj_files += recurse_grab_object_cfg_files(v, basepath + '/')
 		elif k.endswith("_command"):
 			force_include_commands[k] = v;
+		elif k == 'object_cache_file':
+			object_cache = v
 
 	return obj_files
 
@@ -680,6 +683,31 @@ def hg_pregen(li):
 		psel[r] = nagios_objects['hostgroup'][r]
 	return psel.keys()
 
+
+# Run the nsplit helper in parallell for all targeted hostgroups
+def run_nsplit(params):
+	splitters = {}
+	started = 0
+	reaped = 0
+	for p in params:
+		outfile = p['file']
+		groups = p['hostgroups']
+		groups = ','.join(groups)
+		cmd = [nsplit_path] + nsplit_helper_args + ['-q', '-o', outfile, '-g', groups]
+		subp = subprocess.Popen(cmd, stdout=sys.stdout.fileno(), stderr=sys.stderr.fileno())
+		splitters[subp.pid] = outfile
+		started += 1
+
+	while reaped < started:
+		(pid, status) = os.wait()
+		if status != 0:
+			print("process with pid %d exited with status %d" % (pid, status))
+		else:
+			os.utime(splitters[pid], (last_changed, last_changed))
+			del(splitters[pid])
+		reaped += 1
+
+
 # warning!
 # interesting does Not contain all objects that will be exported
 # instead, it contains only some bits deemed convenient
@@ -815,22 +843,41 @@ def cmd_nodesplit(args):
 	configuration files suitable for poller consumption
 	"""
 	global cache_dir, config_dir
+	global use_nsplit_helper, nsplit_path, nsplit_helper_args
+
+	if not mconf.num_nodes['poller']:
+		print("No pollers configured. No way to nodesplit config.")
+		return True
 
 	wanted_nodes = {}
 	force = False
+	nsplit_helper_args = []
 	for arg in args:
-		if arg == '--force':
-			force = True
+		if arg.startswith('--use-helper='):
+			use_nsplit_helper = True
+			nsplit_path = arg.split('=', 1)[1]
+			continue
+		if arg == '--use-helper':
+			use_nsplit_helper = True
+			continue
 		if arg.startswith('--cache-dir='):
 			config_dir = arg.split('=', 1)[1]
+			continue
+		if arg == '--force':
+			force = True
+			nsplit_helper_args.append('-f')
+			continue
 		# check if it's a poller node
 		node = mconf.configured_nodes.get(arg)
 		if node and node.ntype == 'poller':
 			wanted_nodes[node.name] = node
+			continue
+		# some random argument; so pass it to the helper
+		nsplit_helper_args.append(arg)
 
-	if not mconf.num_nodes['poller']:
-		print("No pollers configured. No need to split config.")
-		return True
+	if use_nsplit_helper and not os.access(nsplit_path, os.X_OK):
+		print("Config splitter %s unavailable. Reverting to old codepath" % nsplit_path)
+		use_nsplit_helper = False
 
 	if not wanted_nodes:
 		wanted_nodes = mconf.configured_nodes
@@ -879,7 +926,7 @@ def cmd_nodesplit(args):
 
 	# If there are no pollers with hostgroups, we might as well
 	# go home.
-	if not len(to_create):
+	if not len(params):
 		print("No splitting to do. Quitting")
 		return
 
@@ -888,15 +935,20 @@ def cmd_nodesplit(args):
 	# objects.cache file or, if that file doesn't exist, from the
 	# regular object config.
 	files = grab_nagios_cfg(nagios_cfg)
-	if os.path.isfile(object_cache):
-		parse_object_config([object_cache])
-	else:
-		parse_object_config(files)
+	if not use_nsplit_helper:
+		if os.path.isfile(object_cache):
+			parse_object_config([object_cache])
+		else:
+			print("Warning! Parsing objects from raw files. This will go soo bad...")
+			parse_object_config(files)
 
 	# make sure files are created with the proper mode
 	# for the target system
 	old_umask = os.umask(002)
-	map(run_param, params)
+	if use_nsplit_helper:
+		run_nsplit(params)
+	else:
+		map(run_param, params)
 	os.umask(old_umask)
 
 	# now create the hardlinks we know we need

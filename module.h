@@ -91,6 +91,7 @@ extern void set_service_check_node(merlin_node *node, service *s);
 	mrln.event_handler_enabled = nag->event_handler_enabled; \
 	mrln.problem_has_been_acknowledged = nag->problem_has_been_acknowledged; \
 	mrln.acknowledgement_type = nag->acknowledgement_type; \
+	mrln.has_been_checked = nag->has_been_checked; \
 	mrln.check_type = nag->check_type; \
 	mrln.current_state = nag->current_state; \
 	mrln.last_state = nag->last_state; \
@@ -182,7 +183,6 @@ struct tmp_net2mod_data {
 	nag->last_check = mrln.last_check; \
 	nag->last_state_change = mrln.last_state_change; \
 	nag->last_hard_state_change = mrln.last_hard_state_change; \
-	nag->has_been_checked = mrln.has_been_checked; \
 	nag->current_notification_number = mrln.current_notification_number; \
 	nag->current_notification_id = mrln.current_notification_id; \
 	nag->check_flapping_recovery_notification = mrln.check_flapping_recovery_notification; \

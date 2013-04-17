@@ -12,25 +12,10 @@ verbose=0 # verbose >= 2 means echoing all commands passed to "ok" ("info" comma
 
 function usage {
 	cat <<CHECK
-mon sysconf check
-mon sysconf check -v
-mon sysconf check -v -v
-mon sysconf check --help
+[-v] [-v]
+A system diagnostics utility.
 
-A system diagnostics utility. Uses root privileges.
-
-If you wish to use it to debug yourself, run it multiple times with more and more
-verbosity applied:
-	mon sysconf check
-	mon sysconf check -v
-	mon sysconf check -v -v
-
-To help op5 help you, please execute this:
-	mon sysconf check -v -v > our_op5system.log
-and include it with your support errand. Thank you!
-
-OPTIONS
-	-v	Verbose mode, pass multiple -v to increase output
+Additional verbose flags (-v) increases output verbosity.
 CHECK
 }
 

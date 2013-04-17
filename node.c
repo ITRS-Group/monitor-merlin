@@ -376,6 +376,8 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 {
 	unsigned int i;
 	int sel_id = -1;
+	char *address = NULL;
+	struct cfg_var *address_var = NULL;
 
 	if (!node)
 		return;
@@ -405,8 +407,8 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			sel_id = add_selection(v->value, node);
 		}
 		else if (!strcmp(v->key, "address") || !strcmp(v->key, "host")) {
-			if (resolve(v->value, &node->sain.sin_addr) < 0)
-				cfg_error(c, v, "Unable to resolve '%s'\n", v->value);
+			address = v->value;
+			address_var = v;
 		}
 		else if (!strcmp(v->key, "port")) {
 			node->sain.sin_port = htons((unsigned short)atoi(v->value));
@@ -423,6 +425,12 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			cfg_error(c, v, "Unknown variable\n");
 		}
 	}
+
+	if (!address)
+		address = node->name;
+
+	if (!is_module && resolve(address, &node->sain.sin_addr) < 0)
+		cfg_error(c, address_var, "Unable to resolve '%s'\n", address);
 
 	for (i = 0; i < c->nested; i++) {
 		struct cfg_comp *comp = c->nest[i];
@@ -718,7 +726,7 @@ int node_recv(merlin_node *node)
  * into sending errors. It's up to the caller to poll the socket
  * for writability, or pass the proper flags and ignore errors
  */
-int node_send(merlin_node *node, void *data, int len, int flags)
+int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 {
 	merlin_event *pkt = (merlin_event *)data;
 	int sent, sd = 0;
@@ -739,7 +747,7 @@ int node_send(merlin_node *node, void *data, int len, int flags)
 
 	sent = io_send_all(node->sock, data, len);
 	/* success. Should be the normal case */
-	if (sent == len) {
+	if (sent == (int)len) {
 		node->stats.bytes.sent += sent;
 		node->last_action = node->last_sent = time(NULL);
 		return sent;
@@ -875,7 +883,8 @@ int node_send_binlog(merlin_node *node, merlin_event *pkt)
 	merlin_event *temp_pkt;
 	uint len;
 
-	ldebug("Emptying backlog for %s", node->name);
+	ldebug("Emptying backlog for %s (%u entries, %s)", node->name,
+		   binlog_num_entries(node->binlog), human_bytes(binlog_available(node->binlog)));
 	while (io_write_ok(node->sock, 10) && !binlog_read(node->binlog, (void **)&temp_pkt, &len)) {
 		int result;
 		if (!temp_pkt || packet_size(temp_pkt) != (int)len ||

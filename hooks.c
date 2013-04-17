@@ -492,11 +492,6 @@ static int hook_downtime(merlin_event *pkt, void *data)
 	nebstruct_downtime_data *ds = (nebstruct_downtime_data *)data;
 
 	/*
-	 * set the poller id properly for downtime packets
-	 */
-	pkt->hdr.selection = get_selection(ds->host_name);
-
-	/*
 	 * Downtime delete and stop events are transferred.
 	 * Adding is done on all nodes from the downtime command
 	 * that always gets transferred, but if a user cancels
@@ -505,7 +500,9 @@ static int hook_downtime(merlin_event *pkt, void *data)
 	 * properly, or the other node (which might be notifying)
 	 * will think the node is still in downtime.
 	 */
-	if (ds->attr != NEBATTR_DOWNTIME_STOP_CANCELLED)
+	if (ds->attr == NEBATTR_DOWNTIME_STOP_CANCELLED)
+		pkt->hdr.selection = get_selection(ds->host_name);
+	else
 		pkt->hdr.code = MAGIC_NONET;
 
 	return send_generic(pkt, data);
@@ -886,8 +883,8 @@ static int hook_notification(merlin_event *pkt, void *data)
 	char *what = "host";
 	char *host_name, *sdesc = NULL;
 	struct merlin_notify_stats *mns = NULL;
-	struct service *s;
-	struct host *h;
+	struct service *s = NULL;
+	struct host *h = NULL;
 
 	/* don't count or (try to) block notifications after they're sent */
 	if (ds->type != NEBTYPE_NOTIFICATION_START)
@@ -948,7 +945,7 @@ static int hook_notification(merlin_event *pkt, void *data)
 			return NEBERROR_CALLBACKCANCEL;
 		}
 	} else {
-		host *h = (host *)ds->object_ptr;
+		h = (host *)ds->object_ptr;
 		host_name = h->name;
 
 		/* never block normal local notificatons from passive checks */
@@ -1060,7 +1057,7 @@ int merlin_mod_hook(int cb, void *data)
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
 		result = hook_service_status(&pkt, data);
 		break;
-	
+
 	case NEBCALLBACK_PROCESS_DATA:
 		result = send_generic(&pkt, data);
 		break;
@@ -1082,8 +1079,8 @@ int merlin_mod_hook(int cb, void *data)
 static struct callback_struct {
 	int network_only;
 	int type;
-	char *name;
-	char *hook_name;
+	const char *name;
+	const char *hook_name;
 } callback_table[] = {
 	CB_ENTRY(0, NEBCALLBACK_PROCESS_DATA, hook_generic),
 /*

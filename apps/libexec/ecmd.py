@@ -4,6 +4,7 @@ if not modpath in sys.path:
 	sys.path.append(modpath)
 from merlin_apps_utils import *
 from nagios_command import *
+from compound_config import parse_nagios_cfg
 
 
 def search(arg):
@@ -51,7 +52,8 @@ def cmd_submit(args):
 	"""
 
 	cname = False
-	pipe_path = '/opt/monitor/var/rw/nagios.cmd'
+	nconf = parse_nagios_cfg(nagios_cfg)
+	pipe_path = nconf.command_file
 	i = 0
 	params = []
 	cmd = False

@@ -144,8 +144,9 @@ find_renames(renames **rename_ptr)
 {
 	int i;
 	db_wrap_result *result;
-	rename_len = 0;
 	renames *renames;
+
+	rename_len = 0;
 
 	sql_query("SELECT COUNT(1) FROM rename_log");
 	result = sql_get_result();

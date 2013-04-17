@@ -117,6 +117,7 @@ class merlin_node:
 			self.connect = v
 
 		if k == 'hostgroup' or k == 'hostgroups':
+			k = 'hostgroup'
 			v = re.split("[\t ]*,[\t ]*", v)
 			if self.options.has_key(k):
 				self.options[k] += v

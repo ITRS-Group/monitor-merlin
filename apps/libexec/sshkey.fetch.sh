@@ -29,21 +29,21 @@ cat $keyfile
 usage()
 {
 	cat << END_OF_HELP
+[--outfile=<outfile>] [--all|--type=<peer|poller|master>] [source]..
+Fetch public ssh keys from specified remote node(s) (sources).
 
-usage: mon sshkey fetch [options] <sources>
+The keys will be written to the specified outfile, or if not
+specified, default to: ~/.ssh/authorized_keys
 
-Where options can be any combination of:
+If no key exists on any of the specified remote nodes, a new key
+will be generated automatically.
 
-  --all               Add all configured nodes as sources
-  --type=<types>      Make all configured nodes of type sources.
-                      <types> can be a comma-separated list containing any
-                      combination of peer, poller and master
-  --outfile=<outfile> The target file. Defaults to ~/.ssh/authorized_keys
-
-If nodes are configured and either option is either --type or --all,
-no sources need to be specified.
+A combination of different node types as well as specific nodes
+can be specified at the same time.
 
 END_OF_HELP
+
+	exit # since the script wont need to do anything more
 }
 
 outfile= destinations=

@@ -1,6 +1,7 @@
 #!/usr/bin/python -tt
 
 import os, sys, subprocess, tempfile
+from subprocess import Popen, PIPE
 
 merlin_dir = "@@DESTDIR@@"
 libexec_dir = "@@LIBEXECDIR@@/mon/"
@@ -69,7 +70,12 @@ def load_command_module(path):
 	module.module_dir = module_dir
 	module.nagios_cfg = nagios_cfg
 
-	docstrings[modname] = {'__doc__': module.__doc__}
+	# only initialize category (modname) when needed
+	try:
+		docstrings[modname]
+	except KeyError:
+		docstrings[modname] = {}
+	docstrings[modname]['__doc__'] = module.__doc__
 
 	# we grab the init function here, but delay running it
 	# until we know which module we'll be using.
@@ -89,8 +95,42 @@ def load_command_module(path):
 
 	return ret
 
+def get_executable_syntax(bin_path):
+	global docstrings
+
+	basename_parts = os.path.basename(bin_path).split('.')
+
+	try:
+		basename_parts[2]
+	except IndexError:
+		return False
+
+	modname = basename_parts[0]
+	funcname = '.'.join(basename_parts[1:][:-1])
+
+	proc = Popen([bin_path, '--help'], stdout=PIPE, stderr=PIPE)
+	proc_streams = proc.communicate()
+
+	if proc.returncode != 0:
+		return False # --help arg exited with non-zero return code - skip it
+
+	if proc_streams[1]:
+		return False # --help showed something on stderr - skip command
+
+	if not proc_streams[0].strip():
+		return True # no useful stdout for --help - show command as undocumented
+
+	try:
+		docstrings[modname]
+	except KeyError:
+		docstrings[modname] = {}
+
+	docstrings[modname][funcname] = proc_streams[0]
+
+	return True
+
 def load_commands(name=False):
-	global commands, categories, helpers, help_helpers
+	global args, commands, categories, helpers, help_helpers
 
 	if os.access(libexec_dir, os.X_OK):
 		raw_helpers = os.listdir(libexec_dir)
@@ -124,6 +164,10 @@ def load_commands(name=False):
 					# bother presenting it as a standalone helper
 					if command_mod_load_fail.get(rh, False) != -1:
 						continue
+				elif len(args) < 2: # gather syntax texts only when showing help
+					if len(ary) >= 3 and ary[-1] != 'py': # non-python commands
+						if not get_executable_syntax(libexec_dir + '/' + rh):
+							continue
 
 				helper = '.'.join(ary[:-1])
 			else:

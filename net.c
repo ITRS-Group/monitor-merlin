@@ -558,8 +558,8 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		    pkt->hdr.type != NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA)
 		{
 			for (i = 0; i < num_pollers; i++) {
-				merlin_node *node = poller_table[i];
-				net_sendto(node, pkt);
+				merlin_node *n = poller_table[i];
+				net_sendto(n, pkt);
 			}
 		}
 	}

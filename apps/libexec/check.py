@@ -162,7 +162,7 @@ def cmd_distribution(args):
 		sc_delta = 0
 
 	for n in nodes:
-		exp = {
+		should[n.name] = {
 			'host': (
 				int(n.get('assigned_hosts')) - hc_delta,
 				int(n.get('assigned_hosts')) + hc_delta
@@ -172,7 +172,7 @@ def cmd_distribution(args):
 				int(n.get('assigned_services')) + sc_delta
 			)
 		}
-		o.verify_executed_checks(n, exp)
+		o.verify_executed_checks(n, should[n.name])
 
 	for name, b in o.bad.items():
 		if not len(b):

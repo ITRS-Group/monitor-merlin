@@ -223,6 +223,7 @@ class fake_instance:
 	all of the above.
 	"""
 	def __init__(self, basepath, group_name, group_id, port=15551, **kwargs):
+		self.valgrind_log = {}
 		self.valgrind = False
 		self.group = False
 		self.group_name = group_name
@@ -308,9 +309,18 @@ class fake_instance:
 				cmd = [program, '-d', '-c', '%s/merlin/merlin.conf' % self.home]
 
 			if self.valgrind:
-				real_cmd = ['valgrind', '--child-silent-after-fork=yes', '--leak-check=full', '--log-file=%s/valgrind.log' % self.home] + cmd
+				# get a unique log-id for this daemon
+				log_id = self.valgrind_log.get(name, 0)
+				self.valgrind_log[name] = log_id + 1
+
+				real_cmd = ['valgrind', '--child-silent-after-fork=yes', '--leak-check=full', '--log-file=%s/valgrind.%s.%d' % (self.home, name, log_id)] + cmd
 				cmd = real_cmd
-			self.proc[name] = subprocess.Popen(cmd, stdout=fd, stderr=fd)
+			try:
+				self.proc[name] = subprocess.Popen(cmd, stdout=fd, stderr=fd)
+			except OSError, e:
+				print("Failed to run command '%s'" % cmd)
+				print(e)
+				raise OSError(e)
 
 		# do NOT close 'fd' here, or we'll end up getting a bazillion
 		# "Inappropriate ioctl for device" due to a lot of failed
@@ -919,6 +929,30 @@ class fake_mesh:
 			ret &= node.submit_raw_command('DEL_SVC_DOWNTIME;%d' % dt);
 		self.tap.test(ret, True, "Deleting downtimes on %s" % (node.name))
 
+	def _test_downtime_count(self, inst, hosts=0, services=0):
+		start_failed = self.tap.failed
+		value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
+		self.tap.test(value, hosts,
+			'%s: %d/%d hosts have scheduled_downtime_depth > 0' % (inst.name, value, hosts))
+		value = inst.live.query('GET downtimes\nStats: downtime_type = 2')[0][0]
+		self.tap.test(value, hosts,
+			'%s: %d/%d host downtime entries' % (inst.name, value, hosts))
+		value = inst.live.query('GET comments\nStats: type = 1\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
+		self.tap.test(value, hosts,
+			'%s: %d/%d host downtime comments present' % (inst.name, value, hosts))
+
+		value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
+		self.tap.test(value, services,
+			'%s: %d/%d services have scheduled_downtime_depth > 0' % (inst.name, value, services))
+		value = inst.live.query('GET downtimes\nStats: downtime_type = 1')[0][0]
+		self.tap.test(value, services,
+			'%s: %d/%d service downtime entries' % (inst.name, value, services))
+		value = inst.live.query('GET comments\nStats: type = 2\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
+		self.tap.test(value, services,
+			'%s: %d/%d service downtime comments present' % (inst.name, value, services))
+
+		# return false if any of our tests failed
+		return start_failed == self.tap.failed
 
 	def test_downtime(self):
 		"""
@@ -937,58 +971,56 @@ class fake_mesh:
 
 		master = self.masters.nodes[0]
 		poller = self.get_first_poller(master)
+
+		# expiring downtime
+		print("Submitting fixed expiring downtime to master %s" % master.name)
+		start_time = int(time.time()) + 1
+		end_time = start_time + 20
+		duration = end_time - start_time
+		for h in master.group.have_objects['host']:
+			master.submit_raw_command('SCHEDULE_HOST_DOWNTIME;%s;%d;%d;1;0;%d;mon test suite;expire downtime test for %s' %
+				(h, start_time, end_time, duration, h))
+		for s in master.group.have_objects['service']:
+			master.submit_raw_command('SCHEDULE_SVC_DOWNTIME;%s;%d;%d;1;0;%d;mon test suite;expire downtime test for %s' %
+				(s, start_time, end_time, duration, s))
+		self.intermission("Letting downtime spread", 10)
+		for inst in self.instances:
+			self._test_downtime_count(inst, inst.group.num_objects['host'], inst.group.num_objects['service'])
+		self.intermission('Letting downtime expire', 15)
+		for inst in self.instances:
+			self._test_downtime_count(inst, 0, 0)
+
 		print("Submitting downtime to poller %s" % poller.name)
 		self._schedule_downtime(poller)
 		self._schedule_downtime(master, poller.group.have_objects)
 
-		# give all nodes some time before we check to make
-		# sure the ack has spread
+		# give all nodes some time before we check to
+		# make sure the downtime has spread
 		self.intermission("Letting downtime spread")
 		for inst in self.instances:
-			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, len(inst.group.have_objects['host']),
-				'All host downtime should spread to %s' % inst.name)
-
-			value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, len(inst.group.have_objects['service']),
-				'All service downtime should spread to %s' % inst.name)
-
-			value = inst.live.query('GET comments\nStats: type = 1\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
-			self.tap.test(value, len(inst.group.have_objects['host']),
-				"Host downtime should generate one comment each on %s" % inst.name)
-			value = inst.live.query('GET comments\nStats: type = 2\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
-			self.tap.test(value, len(inst.group.have_objects['service']),
-				'Service downtime should generate one comment each on %s' % inst.name)
+			self._test_downtime_count(inst, inst.group.num_objects['host'], inst.group.num_objects['service'])
 
 		host_downtimes = [x[0] for x in master.live.query('GET downtimes\nColumns: id\nFilter: is_service = 0')]
 		service_downtimes = [x[0] for x in master.live.query('GET downtimes\nColumns: id\nFilter: is_service = 1')]
 		self._unschedule_downtime(master, host_downtimes, service_downtimes)
 		self.intermission("Letting downtime deletion spread")
 		for inst in self.instances:
-			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, 0,
-				'All host downtime should be gone on %s' % inst.name)
+			self._test_downtime_count(inst, 0, 0)
 
-			value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, 0,
-				'All service downtime should be gone on %s' % inst.name)
-
+		# propagating triggered
 		print("Submitting propagating downtime to master %s" % master.name)
 		master.submit_raw_command('SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME;%s;%d;%d;%d;%d;%d;%s;%s' %
 			(poller.group_name + '.0001', time.time(), time.time() + 54321, 1, 0, 0, poller.group_name + '.0001', master.name))
 		self.intermission("Letting downtime spread")
-		for inst in self.masters.nodes:
-			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, len(poller.group.have_objects['host']),
-				'All host downtime should spread to %s' % inst.name)
+		for inst in self.masters.nodes + poller.group.nodes:
+			self._test_downtime_count(inst, poller.group.num_objects['host'], 0)
+
 		parent_downtime = master.live.query('GET downtimes\nColumns: id\nFilter: host_name = %s\nFilter: is_service = 0' %
 		    (poller.group_name + '.0001'))[0]
 		self._unschedule_downtime(master, parent_downtime, [])
 		self.intermission("Letting downtime deletion spread")
 		for inst in self.instances:
-			value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
-			self.tap.test(value, 0,
-				'All host downtime should be gone on %s' % inst.name)
+			self._test_downtime_count(inst, 0, 0)
 
 		return None
 
@@ -1078,6 +1110,22 @@ class fake_mesh:
 		if not self.shutting_down and deathtime > 0:
 			self.intermission('Letting %s daemons die' % msgname, deathtime)
 			self.test_alive(daemon=dname, verbose=True, expect=False, sig_ok=15)
+		# processes must get to exit nicely when we're running in valgrind
+		if self.shutting_down:
+			reaped = 0
+			ary = (0, 0)
+			now = time.time()
+			while time.time() < now + 5 and reaped < (len(self.instances) * 2):
+				status = 0
+				try:
+					ary = os.waitpid(0, os.WNOHANG)
+				except OSError, e:
+					print(e)
+				if len(ary) == 2:
+					reaped += 1
+					continue
+				time.sleep(0.1)
+
 		for inst in self.instances:
 			inst.slay_daemons(dname)
 		if not self.shutting_down:
@@ -1114,8 +1162,9 @@ class fake_mesh:
 
 		print("Stopping daemons")
 		self.stop_daemons()
-		print("Destroying playground")
-		self.destroy()
+		if self.batch:
+			self.destroy()
+
 		self.close_db()
 
 		if self.tap.failed == 0:
@@ -1127,6 +1176,10 @@ class fake_mesh:
 		"""
 		Sets up the directories and configuration required for testing
 		"""
+		# first we wipe any and all traces from earlier runs
+		print("Wiping the slate clean")
+		self.destroy()
+
 		port = self.baseport
 		self.masters = fake_peer_group(self.basepath, 'master', self.num_masters, port, valgrind = self.valgrind)
 		port += self.num_masters
@@ -1565,7 +1618,7 @@ def cmd_dist(args):
 				mesh.shutdown('Global command tests failed')
 		if 'passive_checks' in tests:
 			if mesh.test_passive_checks() == False:
-				mesh.shutdown(mesh, 'Passive checks are broken')
+				mesh.shutdown('Passive checks are broken')
 			# acks must follow immediately upon passive checks
 			if 'acks' in tests:
 				mesh.test_acks()

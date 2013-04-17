@@ -25,7 +25,7 @@ static char *cache_path, *status_path;
 static int no_ca_query;
 
 struct id_tracker {
-	int min, max, cur;
+	unsigned int min, max, cur;
 };
 typedef struct id_tracker id_tracker;
 static id_tracker cid, hid, sid;
@@ -62,7 +62,7 @@ static int nsort_contact(const void *a_, const void *b_)
  */
 static void grok_nagios_config(const char *path)
 {
-	int i;
+	unsigned int i;
 	struct cfg_comp *ncfg;
 
 	if (!path)
@@ -92,7 +92,7 @@ static void grok_nagios_config(const char *path)
  */
 static void grok_merlin_compound(struct cfg_comp *comp)
 {
-	int i;
+	unsigned int i;
 	struct cfg_var *v;
 
 	if (!comp || (!comp->nested && !comp->vars))
@@ -558,7 +558,8 @@ static int parse_status(struct cfg_comp *comp)
 {
 	state_object *obj = NULL;
 	char *host_name, *service_description = NULL;
-	int located = 0, i = 0;
+	int located = 0;
+	unsigned int i = 0;
 
 	if (!comp || !comp->vars)
 		return -1;
@@ -774,7 +775,7 @@ static int parse_status(struct cfg_comp *comp)
 
 static int parse_status_log(struct cfg_comp *comp)
 {
-	int i;
+	unsigned int i;
 
 	if (!comp)
 		return -1;
@@ -848,7 +849,7 @@ static int is_valid_timedecl(const char *str)
 static void resplit_timeperiod_decl(char **key, char **value)
 {
 	int i;
-	char *new_key, *new_value, *p;
+	char *new_key, *new_value = NULL, *p;
 
 	for (p = *value; p && *p; p++) {
 		if (is_valid_timedecl(p)) {
@@ -903,7 +904,7 @@ static int parse_timeperiod(struct cfg_comp *comp)
 	static int id = 0;
 	char *sunday = NULL, *monday = NULL, *tuesday = NULL, *wednesday = NULL;
 	char *thursday = NULL, *friday = NULL, *saturday = NULL;
-	int i = 0;
+	unsigned int i = 0;
 
 	obj = calloc(1, sizeof(*obj));
 	if (!obj) {
@@ -990,7 +991,7 @@ static void parse_group(int *gid, slist *sl, struct cfg_comp *comp)
 {
 	ocimp_group_object *obj;
 
-	int i = 0;
+	unsigned int i = 0;
 	char *name, *alias;
 	char *notes = NULL, *notes_url = NULL, *action_url = NULL;
 
@@ -1028,7 +1029,7 @@ static void parse_group(int *gid, slist *sl, struct cfg_comp *comp)
 	}
 
 	if (sl == cg_slist) {
-		sql_query("INSERT INTO contactgroup(" 
+		sql_query("INSERT INTO contactgroup("
 				  "instance_id, id, contactgroup_name, alias) "
 				  "VALUES(0, %d, %s, %s)",
 				  obj->id, name, alias);
@@ -1107,7 +1108,7 @@ static void preload_contact_ids(void)
 
 static void parse_contact(struct cfg_comp *comp)
 {
-	int i = 0;
+	unsigned int i = 0;
 	ocimp_contact_object *obj = NULL;
 	char *name = NULL;
 	char *alias = NULL;
@@ -1122,9 +1123,9 @@ static void parse_contact(struct cfg_comp *comp)
 	int host_notifications_enabled = 0;
 	int service_notifications_enabled = 0;
 	int can_submit_commands = 0;
-	int retain_status_information;
-	int retain_nonstatus_information;
-	int minimum_value;
+	int retain_status_information = 0;
+	int retain_nonstatus_information = 0;
+	int minimum_value = 0;
 	char *address1 = NULL;
 	char *address2 = NULL;
 	char *address3 = NULL;
@@ -1254,7 +1255,7 @@ static void parse_contact(struct cfg_comp *comp)
 
 static int parse_escalation(int *oid, struct cfg_comp *comp)
 {
-	int i = 0;
+	unsigned int i = 0;
 	char *hname, *sdesc = NULL;
 	int first_notification, last_notification, notification_interval;
 	char *escalation_period = NULL;
@@ -1358,7 +1359,7 @@ static int parse_escalation(int *oid, struct cfg_comp *comp)
 		return 0;
 
 	for (i = 0; i < sv->entries; i++) {
-		int x, errors = 0;
+		unsigned int x, errors = 0;
 		ocimp_group_object *cg;
 		strvec *members;
 
@@ -1427,7 +1428,7 @@ static int parse_escalation(int *oid, struct cfg_comp *comp)
 
 static int parse_dependency(int *oid, struct cfg_comp *comp)
 {
-	int i = 0;
+	unsigned int i = 0;
 	state_object *obj, *dep_obj;
 	char *what;
 	char *hname, *dep_hname;
@@ -1528,7 +1529,7 @@ static struct tbl_info {
 
 static int parse_object_cache(struct cfg_comp *comp)
 {
-	int i;
+	unsigned int i;
 
 	if (!comp)
 		return -1;
@@ -1588,7 +1589,7 @@ static int parse_object_cache(struct cfg_comp *comp)
 
 	for (i = 0; i < comp->nested; i++) {
 		struct cfg_comp *c = comp->nest[i];
-		int x;
+		unsigned int x;
 		struct tbl_info *table = NULL;
 
 		/*
@@ -1655,7 +1656,7 @@ static int parse_object_cache(struct cfg_comp *comp)
 
 static void fix_contacts(const char *what, state_object *o)
 {
-	int i;
+	unsigned int i;
 	struct strvec *contacts;
 
 	if (!o || !o->contacts)
@@ -1685,7 +1686,7 @@ static void fix_contacts(const char *what, state_object *o)
 
 static void fix_contactgroups(const char *what, state_object *o)
 {
-	int i, x;
+	unsigned int i, x;
 	struct strvec *cgroups;
 
 	if (!o || !o->contact_groups)
@@ -1732,7 +1733,7 @@ static void fix_contactgroups(const char *what, state_object *o)
 
 static int fix_host_junctions(void *discard, void *obj)
 {
-	int i, host_id;
+	unsigned int i, host_id;
 	state_object *o = (state_object *)obj;
 	strvec *parents;
 	char *host_name;
@@ -1789,7 +1790,7 @@ static int fix_service_junctions(void *discard, void *obj)
 
 static int fix_cg_members(void *discard, void *base_obj)
 {
-	int i;
+	unsigned int i;
 	ocimp_group_object *obj = (ocimp_group_object *)base_obj;
 	strvec *strv;
 
@@ -1837,7 +1838,7 @@ static int fix_cg_members(void *discard, void *base_obj)
 
 static int fix_hg_members(void *discard, void *base_obj)
 {
-	int i;
+	unsigned int i;
 	ocimp_group_object *obj = (ocimp_group_object *)base_obj;
 	strvec *strv;
 
@@ -1863,7 +1864,7 @@ static int fix_hg_members(void *discard, void *base_obj)
 
 static int fix_sg_members(void *discard, void *base_obj)
 {
-	int i = 0;
+	unsigned int i = 0;
 	ocimp_group_object *obj = (ocimp_group_object *)base_obj;
 	strvec *strv;
 
@@ -1894,7 +1895,7 @@ static int fix_sg_members(void *discard, void *base_obj)
 
 static int fix_timeperiod_excludes(void *discard, void *base_obj)
 {
-	int i = 0;
+	unsigned int i = 0;
 	ocimp_group_object *obj = (ocimp_group_object *)base_obj;
 	strvec *strv;
 
@@ -2128,8 +2129,8 @@ static void load_instance_ids(void)
 	}
 	loops = 0;
 	while (result->api->step(result) == 0) {
-		loops++;
 		const char *service_description;
+		loops++;
 		result->api->get_string_ndx(result, 2, &host_name, &len);
 		result->api->get_string_ndx(result, 3, &service_description, &len);
 		obj = ocimp_find_status(host_name, service_description);
@@ -2374,7 +2375,7 @@ int main(int argc, char **argv)
 
 	qsort(slog_options, ARRAY_SIZE(slog_options), sizeof(*slog_options), cfg_code_cmp);
 	if(print_keys) {
-		for(i = 0; i < ARRAY_SIZE(slog_options); i++) {
+		for(i = 0; i < (int)ARRAY_SIZE(slog_options); i++) {
 			printf("%s\n", slog_options[i].key);
 		}
 		exit(0);
