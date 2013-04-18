@@ -1561,9 +1561,6 @@ def cmd_dist(args):
 	if not have_pollers:
 		print("Can't run tests with zero pollers")
 		sys.exit(1)
-	if num_masters < 2:
-		print("Can't run proper tests with less than two masters")
-		sys.exit(1)
 
 	# done parsing arguments, so get real paths to merlin and nagios
 	if nagios_binary[0] != '/':
