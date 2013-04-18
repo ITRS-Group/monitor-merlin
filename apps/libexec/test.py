@@ -447,8 +447,7 @@ class fake_mesh:
 		self.basepath = basepath
 		self.baseport = 16000
 		self.num_masters = 3
-		self.poller_groups = 1
-		self.pollers_per_group = 3
+		self.opt_pgroups = [5,3,1]
 		self.instances = []
 		self.db = False
 		self.pgroups = []
@@ -1180,11 +1179,11 @@ class fake_mesh:
 		port += self.num_masters
 		i = 0
 		self.pgroups = []
-		while i < self.poller_groups:
+		for p in self.opt_pgroups:
 			i += 1
 			group_name = "pg%d" % i
-			self.pgroups.append(fake_peer_group(self.basepath, group_name, self.pollers_per_group, port, valgrind = self.valgrind))
-			port += self.pollers_per_group
+			self.pgroups.append(fake_peer_group(self.basepath, group_name, p, port, valgrind=self.valgrind))
+			port += p
 
 		for inst in self.masters.nodes:
 			self.instances.append(inst)
@@ -1390,8 +1389,7 @@ def cmd_dist(args):
 	  --basepath=<basepath>     basepath to use
 	  --sleeptime=<int>         seconds to sleep before testing
 	  --masters=<int>           number of masters to create
-	  --poller-groups=<int>     number of poller groups to create
-	  --pollers-per-group=<int> number of pollers per created group
+	  --pgroups=<csv>           poller-group sizes [default: 5,3,1]
 	  --merlin-binary=<path>    path to merlin daemon binary
 	  --nagios-binary=<path>    path to nagios daemon binary
 	  --destroy-databases       only destroy databases
@@ -1422,8 +1420,7 @@ def cmd_dist(args):
 	db_host = 'localhost'
 	sql_schema_paths = []
 	num_masters = 3
-	poller_groups = 1
-	pollers_per_group = 3
+	opt_pgroups = [5,3,1]
 	merlin_path = '/opt/monitor/op5/merlin'
 	merlin_mod_path = '%s/merlin.so' % merlin_path
 	merlin_binary = '%s/merlind' % merlin_path
@@ -1473,12 +1470,10 @@ def cmd_dist(args):
 			db_host = arg.split('=', 1)[1]
 		elif arg.startswith('--masters='):
 			num_masters = int(arg.split('=', 1)[1])
-		elif arg.startswith('--poller-groups='):
-			poller_groups = int(arg.split('=', 1)[1])
-		elif arg.startswith('--pollers-per-group='):
-			pollers_per_group = int(arg.split('=', 1)[1])
-		elif arg.startswith('--masters='):
-			num_masters = int(arg.split('=', 1)[1])
+		elif arg.startswith('--pgroups='):
+			opt_pgroups = []
+			for p in arg.split('=', 1)[1].split(','):
+				opt_pgroups.append(int(p))
 		elif arg.startswith('--merlin-binary='):
 			merlin_binary = arg.split('=', 1)[1]
 		elif arg.startswith('--nagios-binary=') or arg.startswith('--monitor-binary='):
@@ -1555,12 +1550,16 @@ def cmd_dist(args):
 				tests.append(t)
 
 	if sleeptime == False:
-		sleeptime = 3 + (num_masters + (poller_groups * pollers_per_group))
+		sleeptime = 10
 
-	if not poller_groups or not pollers_per_group:
+	have_pollers = False
+	for p in opt_pgroups:
+		if p > 0:
+			have_pollers = True
+			break
+	if not have_pollers:
 		print("Can't run tests with zero pollers")
 		sys.exit(1)
-
 	if num_masters < 2:
 		print("Can't run proper tests with less than two masters")
 		sys.exit(1)
@@ -1582,8 +1581,7 @@ def cmd_dist(args):
 		prog_merlin=merlin_binary,
 		prog_nagios=nagios_binary,
 		num_masters=num_masters,
-		poller_groups=poller_groups,
-		pollers_per_group=pollers_per_group,
+		opt_pgroups=opt_pgroups,
 		merlin_mod_path=merlin_mod_path,
 		ocimp_path=ocimp_path,
 		livestatus_o=livestatus_o,
