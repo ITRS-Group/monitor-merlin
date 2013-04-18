@@ -1378,6 +1378,11 @@ def cmd_ocount(args):
 		sys.exit(1)
 	sys.exit(0)
 
+def _verify_path(p, perms, critical=True):
+	if os.access(p, perms) < 0 and critical:
+		print("Unable to access %s. Did you forget to build?")
+		sys.exit(1)
+
 
 def cmd_dist(args):
 	"""[options]
@@ -1565,6 +1570,12 @@ def cmd_dist(args):
 		nagios_binary = os.path.abspath(nagios_binary)
 	if merlin_binary[0] != '/':
 		merlin_binary = os.path.abspath(merlin_binary)
+
+	_verify_path(nagios_binary, os.X_OK)
+	_verify_path(merlin_binary, os.X_OK)
+	_verify_path(livestatus_o, os.R_OK)
+	_verify_path(ocimp_path, os.X_OK, use_database)
+	_verify_path(merlin_mod_path, os.R_OK)
 
 	mesh = fake_mesh(
 		basepath,
