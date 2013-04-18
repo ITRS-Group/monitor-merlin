@@ -1537,6 +1537,7 @@ def cmd_dist(args):
 			stash.append(t)
 		else:
 			print("No such test: %s" % t)
+			sys.exit(1)
 
 	if not len(selected_tests) and not len(deselected_tests):
 		if not len(arg_tests):
