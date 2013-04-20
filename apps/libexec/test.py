@@ -203,10 +203,9 @@ class fake_peer_group:
 			node.write_file('etc/oconf/generated.cfg', self.oconf_buf)
 
 		print("Peer group %s objects:" % self.group_name)
-		print("        hosts: %d" % self.num_objects['host'])
-		print("     services: %d" % self.num_objects['service'])
-		print("   hostgroups: %d" % self.num_objects['hostgroup'])
-		print("servicegroups: %d" % self.num_objects['servicegroup'])
+		print("  hosts=%d; services=%d; hostgroups=%d; servicegroups=%d" %
+			(self.num_objects['host'], self.num_objects['service'],
+			self.num_objects['hostgroup'], self.num_objects['servicegroup']))
 		return True
 
 
