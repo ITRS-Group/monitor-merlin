@@ -90,12 +90,16 @@ class fake_peer_group:
 			mg.add_object(otype, name)
 
 
-	def create_object_config(self, num_hosts=3, num_services_per_host=2):
+	def create_object_config(self, num_hosts, num_services_per_host):
 		# master groups will call this for their pollers when
 		# asked to create their own object configuration
 		if self.oconf_file:
 			return True
 
+		if not num_hosts:
+			num_hosts = 1 + (len(self.nodes) * 2)
+		if not num_services_per_host:
+			num_services_per_host = len(self.nodes)
 		self.oconf_file = self.nodes[0].get_path("etc/oconf/generated.cfg")
 		f = self.nodes[0].create_file(self.oconf_file)
 
@@ -1183,7 +1187,7 @@ class fake_mesh:
 		sys.exit(1)
 
 
-	def create_playground(self, num_hosts=3, num_services_per_host=5):
+	def create_playground(self, num_hosts=False, num_services_per_host=False):
 		"""
 		Sets up the directories and configuration required for testing
 		"""
@@ -1426,8 +1430,8 @@ def cmd_dist(args):
 	"""
 	global dist_test_mesh
 
-	num_hosts = 3
-	num_services_per_host = 6
+	num_hosts = False
+	num_services_per_host = False
 	setup = True
 	destroy = True
 	basepath = '/tmp/merlin-dtest'
