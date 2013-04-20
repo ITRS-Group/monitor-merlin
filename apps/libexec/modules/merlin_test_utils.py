@@ -168,6 +168,9 @@ daemon {
 		commit_interval = 3
 		commit_queries = 2000
 	}
+	object_config {
+		push = mon test mark --oneline --mark-file='@@DIR@@/oconf-push.log' --mark-name='@@NODENAME@@'
+	}
 }
 #NODECONFIG
 """
