@@ -261,8 +261,11 @@ class fake_instance:
 	def stat(self, path):
 		return os.stat('%s/%s' (self.home, path))
 
+	def fpath(self, path):
+		return "%s/%s" % (self.home, path)
+
 	def fsize(self, path):
-		st = os.stat('%s/%s' % (self.home, path))
+		st = os.stat(self.fpath(path))
 		return st.st_size
 
 	def get_nodeinfo(self):
@@ -678,14 +681,28 @@ class fake_mesh:
 	def test_nagios_restarts(self):
 		"""Verifies that nodes reconnect after a restart of Nagios
 		2 second intermission to allow reconnect
-		Also tests for log truncation
+		Also tests for log truncation and config pushing
 		"""
+
+		# this updates both timestamp and hash, so master1 should push
+		if self.num_masters > 1 or len(self.pgroups):
+			f = open(self.master1.fpath('etc/oconf/generated.cfg'), 'a')
+			f.write("\n")
+			f.close()
+
 		for inst in self.instances:
 			inst.nslog_size = inst.fsize('nagios.log')
 		ret = self._test_restarts('nagios', 8, 3)
 		for inst in self.instances:
 			lsize = inst.fsize('nagios.log')
 			self.tap.test(lsize > inst.nslog_size, True, "%s must keep nagios.log" % inst.name)
+
+		# check to make sure pushing works as expected
+		if self.num_masters > 1 or len(self.pgroups):
+			has_pushed = os.path.exists(self.master1.fpath('oconf-push.log'))
+			if not self.tap.test(has_pushed, True, "master1 must push config"):
+				ret = False
+
 		return ret
 
 
