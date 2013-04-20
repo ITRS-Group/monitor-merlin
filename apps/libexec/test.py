@@ -1177,6 +1177,7 @@ class fake_mesh:
 		port = self.baseport
 		self.masters = fake_peer_group(self.basepath, 'master', self.num_masters, port, valgrind = self.valgrind)
 		port += self.num_masters
+		self.master1 = self.masters.nodes[0]
 		i = 0
 		self.pgroups = []
 		for p in self.opt_pgroups:
