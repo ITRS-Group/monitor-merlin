@@ -22,10 +22,14 @@ class nagios_qh:
 
 			self.socket.send(query + '\0')
 			while True:
-				out = self.socket.recv(self.read_size)
-				if not out:
+				try:
+					out = self.socket.recv(self.read_size)
+					if not out:
+						break
+					yield out
+				except KeyboardInterrupt:
+					print "Good bye."
 					break
-				yield out
 			self.socket.close()
 		except socket.error, e:
 			print "Couldn't connect to nagios socket: " + str(e)
