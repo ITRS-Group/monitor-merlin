@@ -1,0 +1,3 @@
+post:
+ steps: |
+  su - monitor -c "mon test dist"
