@@ -225,13 +225,13 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 	hostsmember *hm;
 	int dupes = 0;
 
-	ldebug("Mapping hostgroup '%s' to peer group %d\n", hg->group_name, pg->id);
+	ldebug("Mapping hostgroup '%s' to peer group %d", hg->group_name, pg->id);
 	for (hm = hg->members; hm; hm = hm->next) {
 		servicesmember *sm;
 		host *h = hm->host_ptr;
 		unsigned int x, peer_id;
 
-		ldebug("  Looking at host %d: '%s'\n", h->id, h->name);
+		ldebug("  Looking at host %d: '%s'", h->id, h->name);
 
 		/*
 		 * if the host is already in this selection, such as
@@ -240,7 +240,7 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 		 * services).
 		 */
 		if (bitmap_isset(pg->host_map, h->id)) {
-			ldebug("       already in this group\n");
+			ldebug("       already in this group");
 			continue;
 		}
 
