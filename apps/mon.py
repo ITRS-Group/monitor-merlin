@@ -235,10 +235,7 @@ Where category is sometimes optional.\n''')
 		topic = "Commands without category:"
 		print("\n%s\n%s\n   %s" % (topic, '-' * len(topic), ', '.join(help_helpers)))
 
-	print('''\nOptions naturally depend on which command you choose.
-
-Some commands accept a --help flag to print some helptext, and some
-categories have a help-command associated with them.
+	print('''\nCategorized commands are described by running: mon <category>
 ''')
 
 	for mod in command_mod_load_fail.keys():
