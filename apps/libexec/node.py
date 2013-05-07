@@ -386,14 +386,14 @@ def _cmd_rename(args):
 	node.rename(dest)
 
 def cmd_info(args):
-    """
-    Print verbose information about all merlin nodes
-    """
-    nodes = get_merlin_nodeinfo(qh)
-    for node in nodes:
-        print node['name']
-        items = node.items()
-        items.sort()
-        for key, val in items:
-            print '    %s = %s' % (key, val)
-        print ''
+	"""
+	Print verbose information about all merlin nodes
+	"""
+	nodes = get_merlin_nodeinfo(qh)
+	for node in nodes:
+		print node['name']
+		items = node.items()
+		items.sort()
+		for key, val in items:
+			print '    %s = %s' % (key, val)
+		print ''
