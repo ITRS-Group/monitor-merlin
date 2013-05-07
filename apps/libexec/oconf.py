@@ -749,7 +749,7 @@ def oconf_helper(args):
 
 def cmd_reload(args):
 	"""[--unsafe] [</path/to/nagios>]
-	Reload object config by submitting an external command
+	Reloads object config by submitting an external command.
 	"""
 	global nagios_cfg
 	safe = True
@@ -786,25 +786,25 @@ def cmd_reload(args):
 
 def cmd_hash(args):
 	"""
-	Print sha1 hash of running configuration
+	Prints an SHA-1 hash of the running configuration.
 	"""
 	sys.exit(oconf_helper(['hash'] + args))
 
 def cmd_changed(args):
 	"""
-	Print last modification time of all object configuration files
+	Prints last modification time of all object configuration files.
 	"""
 	sys.exit(oconf_helper(['last-changed'] + args))
 
 def cmd_files(args):
 	"""
-	Print the configuration files in alphabetical order
+	Prints the configuration files in alphabetical order.
 	"""
 	sys.exit(oconf_helper(['files'] + args))
 
 def cmd_split(args):
 	"""<outfile:hostgroup1,hostgroup2,hostgroupN>
-	write config for hostgroup1,hostgroup2 and hostgroupN into outfile
+	Writes config for hostgroup1,hostgroup2 and hostgroupN into outfile.
 	"""
 
 	usg = "\n\nusage: split %s" % cmd_split.__doc__.split('\n', 1)[0]
@@ -840,7 +840,7 @@ config_dir = cache_dir + '/config'
 def cmd_nodesplit(args):
 	"""
 	Same as 'split', but use merlin's config to split config into
-	configuration files suitable for poller consumption
+	configuration files suitable for poller consumption.
 	"""
 	global cache_dir, config_dir
 	global use_nsplit_helper, nsplit_path, nsplit_helper_args
@@ -987,10 +987,11 @@ def get_ssh_key(node):
 
 def cmd_push(args):
 	"""
-	Split configuration based on merlin's peer and poller configuration
-	and send object configuration to all peers and pollers, restarting
-	those that receive a configuration update. ssh keys need to be set
-	up for this to be usable without admin supervision.
+	Splits configuration based on merlin's peer and poller configuration
+	and sends object configuration to all peers and pollers, restarting
+	those that receive a configuration update.
+
+	SSH keys needs to be set up for this to be usable without admin supervision.
 	This command uses 'nodesplit' as its backend.
 	"""
 	errors = 0
@@ -1107,7 +1108,7 @@ def cmd_push(args):
 
 def cmd_hglist(args):
 	"""
-	Print a sorted list of all configured hostgroups
+	Prints a sorted list of all configured hostgroups.
 	"""
 	parse_object_config([object_cache])
 	for k in sorted(nagios_objects['hostgroup'].keys()):

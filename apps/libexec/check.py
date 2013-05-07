@@ -90,9 +90,9 @@ class _dict2obj:
 
 def cmd_distribution(args):
 	"""[--no-perfdata]
-	Checks to make sure work distribution works ok. Note that it's
+	Checks to make sure work distribution works ok. Note that it is
 	not expected to work properly the first couple of minutes after
-	a new machine has been brought online or taken offline
+	a new machine has been brought online or taken offline.
 	"""
 
 	print_perfdata = True
@@ -266,8 +266,8 @@ def check_min_avg_max(args, col, defaults=False, filter=False):
 
 
 def cmd_exectime(args=False):
-	"""[host|service] --warning=<min,max,avg> --critical=<min,max,avg>
-	Checks execution time of active checks
+	"""<host|service> --warning=<min,max,avg> --critical=<min,max,avg>
+	Checks execution time of active checks.
 	"""
 	thresh = {
 		'warning': [5, 30, 65],
@@ -276,8 +276,8 @@ def cmd_exectime(args=False):
 	check_min_avg_max(args, 'execution_time', thresh)
 
 def cmd_latency(args=False):
-	"""[host|service] --warning=<min,max,avg> --critical=<min,max,avg>
-	Checks latency of active checks
+	"""<host|service> --warning=<min,max,avg> --critical=<min,max,avg>
+	Checks latency of active checks.
 	"""
 	thresh = {
 		'warning': [30, 60, 90],
@@ -287,7 +287,7 @@ def cmd_latency(args=False):
 
 def cmd_orphans(args=False):
 	"""
-	Checks for checks that haven't been run in too long a time
+	Checks for checks that have not been run in too long a time.
 	"""
 	state = nplug.OK
 	otype = 'service'
@@ -337,7 +337,9 @@ def cmd_orphans(args=False):
 	sys.exit(state)
 
 def cmd_status(args=False):
-	"""Check that all nodes are connected and run checks (analogous to mon node check)"""
+	"""
+	Checks that all nodes are connected and run checks (analogous to mon node check).
+	"""
 	state = nplug.OK
 	sinfo = list(get_merlin_nodeinfo(qh))
 	if not sinfo:
@@ -427,13 +429,13 @@ def get_files(dir, regex=False, result=[]):
 def cmd_spool(args=False):
 	"""[--maxage=<seconds>] [--warning=X] [--critical=X] <path> [--delete]
 	Checks a certain spool directory for files (and files only) that
-	are older than 'maxage'. It's intended to prevent buildup of
+	are older than 'maxage'. It is intended to prevent buildup of
 	checkresult files and unprocessed performance-data files in the
 	various spool directories used by op5 Monitor.
 	  --delete causes too old files to be removed.
 	  --maxage is given in seconds and defaults to 300 (5 minutes).
 	  <path> may be 'perfdata' or 'checks', in which case directory
-	  names will be taken from op5 defaults
+	  names will be taken from op5 defaults.
 	  --warning and --critical have no effect if '--delete' is given
 	  and will otherwise specify threshold values.
 

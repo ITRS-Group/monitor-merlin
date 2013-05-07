@@ -56,9 +56,9 @@ def module_init(args):
 
 def cmd_status(args):
 	"""
-	Show status of all nodes configured in the running Merlin daemon
+	Shows status of all nodes configured in the running Merlin daemon.
 	Red text points to problem areas, such as high latency or the node
-	being inactive, not handling any checks,  or not sending regular
+	being inactive, not handling any checks, or not sending regular
 	enough program_status updates.
 	"""
 
@@ -175,7 +175,7 @@ def cmd_status(args):
 # list configured nodes, capable of filtering by type
 def cmd_list(args):
 	"""[--type=poller,peer,master]
-	Lists all nodes of the (optionally) specified type
+	Lists all nodes of the (optionally) specified type.
 	"""
 	global wanted_types
 	for node in mconf.configured_nodes.values():
@@ -189,7 +189,7 @@ def cmd_show(args):
 	Display all variables for all nodes, or for one node in a fashion
 	suitable for being used as
 	  eval $(mon node show nodename)
-	from shell scripts and scriptlets
+	from shell scripts and scriptlets.
 	"""
 
 	if len(mconf.configured_nodes) == 0:
@@ -223,7 +223,7 @@ def cmd_show(args):
 
 def cmd_add(args):
 	"""<name> type=[peer|poller|master] [var1=value] [varN=value]
-	Adds a node with the designated type and variables
+	Adds a node with the designated type and variables.
 	"""
 	if len(args) < 1:
 		return False
@@ -387,7 +387,7 @@ def _cmd_rename(args):
 
 def cmd_info(args):
 	"""
-	Print verbose information about all merlin nodes
+	Prints verbose information about all merlin nodes.
 	"""
 	nodes = get_merlin_nodeinfo(qh)
 	for node in nodes:

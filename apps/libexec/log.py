@@ -92,7 +92,7 @@ def cmd_sortmerge(args):
 # run the import program
 def cmd_import(args):
 	"""[--fetch]
-	This commands run the external log import helper.
+	Runs the external log import helper.
 	If --fetch is specified, logs are first fetched from remote systems
 	and sorted using the merge sort algorithm provided by the sortmerge
 	command.
@@ -172,7 +172,7 @@ def cmd_show(args):
 
 def cmd_purge(args):
 	"""[--remove-older-than=<difference>]
-	Remove data no longer in use.
+	Removes data no longer in use.
 
 	If --remove-older-than is specified, also removes log files and database
 	entries older than <difference>. The difference is specified as a number,

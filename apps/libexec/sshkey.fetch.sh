@@ -30,7 +30,7 @@ usage()
 {
 	cat << END_OF_HELP
 [--outfile=<outfile>] [--all|--type=<peer|poller|master>] [source]..
-Fetch public ssh keys from specified remote node(s) (sources).
+Fetches public SSH keys from specified remote node(s) (sources).
 
 The keys will be written to the specified outfile, or if not
 specified, default to: ~/.ssh/authorized_keys

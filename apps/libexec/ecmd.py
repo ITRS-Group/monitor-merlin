@@ -26,7 +26,7 @@ def search(arg):
 def cmd_search(args):
 	"""<regex>
 	Prints 'templates' for all available commands matching <regex>. The
-	search is case insensitive
+	search is case insensitive.
 	"""
 	for arg in args:
 		search(arg)

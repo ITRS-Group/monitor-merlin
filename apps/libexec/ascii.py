@@ -7,7 +7,7 @@ from merlin_apps_utils import *
 
 def cmd_merlin(discard):
 	"""
-	Draw the Merlin logo in ascii art
+	Draws the Merlin logo in ascii art.
 	"""
 	print(color)
 	print("""%s%s
@@ -53,7 +53,7 @@ def cmd_merlin(discard):
 
 def cmd_ninja(discard):
 	"""
-	Draw the Ninja logo in ascii art
+	Draws the Ninja logo in ascii art.
 	"""
 	print("""%s%s%s%s                                                                   
              ..     ...::::::::::::::::::::...     ..                
@@ -98,7 +98,9 @@ def cmd_ninja(discard):
 (color.bright + color.esc, "40;7m", ' ', ' ', color.reset))
 
 def cmd_screensaver(args):
-	"""The most awesomest console-based screensaver in the entire world"""
+	"""
+	The most awesomest console-based screensaver in the entire world.
+	"""
 	interval = 5
 	for arg in args:
 		interval = arg

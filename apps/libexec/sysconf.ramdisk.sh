@@ -12,7 +12,7 @@ usage()
 {
     cat << END_OF_HELP
 <enable>
-Configure the Monitor system to use ramdisk (tmpfs) for temporary
+Configures the Monitor system to use ramdisk (tmpfs) for temporary
 performance data files.
 
 NOTE: This operation is potentially dangerous in case the system

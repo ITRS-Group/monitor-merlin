@@ -45,7 +45,7 @@ usage()
 {
 	cat << END_OF_HELP
 [--key=<keyfile>] [--all|--type=<peer|poller|master>] [destination]..
-Push public ssh key to specified remote node(s) (destinations).
+Pushes public SSH key to specified remote node(s) (destinations).
 
 The key will be read from specified keyfile, or if not
 specified, default to: ~/.ssh/id_rsa.pub

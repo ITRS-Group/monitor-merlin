@@ -38,9 +38,10 @@ def args_to_query(args):
 
 def cmd_query(args):
 	"""--socket=</path/to/query-socket> <query>
-	Run an arbitrary query with the nagios query handler and print its
-	raw output. Queries need not include the trailing nulbyte or
-	leading hash- or at-sign."""
+	Runs an arbitrary query with the nagios query handler and prints its
+	raw output. Queries need not include the trailing nulbyte or leading
+	hash- or at-sign.
+	"""
 	handler = nagios_qh(qh)
 	query = args_to_query(args)
 	if not query:
@@ -52,9 +53,10 @@ def cmd_query(args):
 
 def cmd_get(args):
 	"""--socket=</path/to/query-socket> <query>
-	Run an arbitrary query with the nagios query handler and pretty-print
+	Runs an arbitrary query with the nagios query handler and pretty-prints
 	the output. Queries need not include the trailing nulbyte or leading
-	hash- or at-sign."""
+	hash- or at-sign.
+	"""
 	handler = nagios_qh(qh)
 	query = args_to_query(args)
 	if not query:
