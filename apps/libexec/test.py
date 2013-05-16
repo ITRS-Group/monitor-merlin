@@ -1,4 +1,5 @@
 import time, os, sys
+import errno
 import random
 import posix
 import signal
@@ -526,11 +527,14 @@ class fake_mesh:
 	# state.
 	def _test_proc_alive(self, proc, exp, sig_ok, msg_prefix):
 		msg = msg_prefix
+		flags = (os.WNOHANG, 0)[self.shutting_down]
 
 		try:
-			result = os.waitpid(proc.pid, os.WNOHANG)
+			result = os.waitpid(proc.pid, flags)
 		except OSError, e:
-			return self.tap.fail("EXCEPTION for '%s': %s" % msg)
+			if e.errno == errno.ENOCHILD:
+				return self.tap.test(False == exp, msg)
+			return self.tap.fail("EXCEPTION for '%s': %s" % (msg, e))
 
 		pid, status = result
 		if not pid and not status:
