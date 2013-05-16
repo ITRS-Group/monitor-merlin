@@ -144,7 +144,7 @@ class fake_peer_group:
 		ocbuf.append(obuf)
 		while i < num_hosts:
 			i += 1
-			if os.isatty(sys.stdout.fileno()) and not i % 7:
+			if num_hosts > 50 and os.isatty(sys.stdout.fileno()) and not i % 7:
 				sys.stdout.write("\r%d hosts and %d services created" % (i, i * num_services_per_host))
 
 			hobj = host
@@ -183,7 +183,8 @@ class fake_peer_group:
 				obuf += "}"
 				ocbuf.append(obuf)
 
-		print("\r%d hosts and %d services created" % (i, i * num_services_per_host))
+		if num_hosts > 50:
+			print("\r%d hosts and %d services created" % (i, i * num_services_per_host))
 		self.oconf_buf = "\n".join(ocbuf)
 		ocbuf = False
 		poller_oconf_buf = ''
@@ -296,10 +297,6 @@ class fake_instance:
 		return True
 
 	def start_daemons(self, daemons, dname=False):
-		if dname:
-			print("Launching %s daemon for instance %s" % (dname, self.name))
-		else:
-			print("Launching daemons for instance %s" % self.name)
 		fd = os.open("/dev/null", os.O_WRONLY)
 		for name, program in daemons.items():
 			if dname and name != dname:
@@ -377,7 +374,6 @@ class fake_instance:
 
 
 	def create_core_config(self):
-		print("Writing core config for %s" % self.name)
 		configs = {}
 		conode_types = self.nodes.keys()
 		conode_types.sort()
@@ -1109,11 +1105,19 @@ class fake_mesh:
 
 	def start_daemons(self, dname=False, stagger=True):
 		i = 0
+		if dname:
+			sys.stdout.write("Launching %s daemons " % (dname))
+		else:
+			sys.stdout.write("Launching daemons ")
 		for inst in self.instances:
 			i += 1
+			sys.stdout.write('.')
+			sys.stdout.flush()
 			inst.start_daemons(self.progs, dname)
 			if stagger and i < len(self.instances):
-				self.intermission("Staggering daemon starts to enfore peer id's", 0.25)
+				time.sleep(0.25)
+
+		sys.stdout.write("\n")
 		return
 
 
@@ -1218,12 +1222,18 @@ class fake_mesh:
 
 		self.groups = self.pgroups + [self.masters]
 
-		for inst in self.instances:
-			inst.add_subst('@@OCIMP_PATH@@', self.ocimp_path)
-			inst.add_subst('@@MODULE_PATH@@', self.merlin_mod_path)
-			inst.add_subst('@@LIVESTATUS_O@@', self.livestatus_o)
-			inst.create_directories()
-			inst.create_core_config()
+		for pg in self.groups:
+			sys.stdout.write("Creating core config for peer-group %s with %d nodes\n  " %
+				(pg.group_name, len(pg.nodes)))
+			for inst in pg.nodes:
+				sys.stdout.write("%s " % inst.name)
+				sys.stdout.flush()
+				inst.add_subst('@@OCIMP_PATH@@', self.ocimp_path)
+				inst.add_subst('@@MODULE_PATH@@', self.merlin_mod_path)
+				inst.add_subst('@@LIVESTATUS_O@@', self.livestatus_o)
+				inst.create_directories()
+				inst.create_core_config()
+			sys.stdout.write("\n")
 
 		self.masters.create_object_config(num_hosts, num_services_per_host)
 
