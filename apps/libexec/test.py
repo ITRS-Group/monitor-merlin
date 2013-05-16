@@ -1458,7 +1458,7 @@ def cmd_dist(args):
 	db_host = 'localhost'
 	sql_schema_paths = []
 	num_masters = 3
-	opt_pgroups = [5,3,1]
+	opt_pgroups = [4,2,1]
 	merlin_path = '/opt/monitor/op5/merlin'
 	merlin_mod_path = '%s/merlin.so' % merlin_path
 	merlin_binary = '%s/merlind' % merlin_path
