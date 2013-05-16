@@ -468,6 +468,10 @@ class fake_mesh:
 					sys.exit(1)
 			else:
 				setattr(self, k, v)
+		if self.valgrind:
+			self.valgrind_multiplier = 5
+		else:
+			self.valgrind_multiplier = 1
 
 	def signal_daemons(self, signo):
 		"""Sends the designated signal to all attached daemons"""
@@ -485,8 +489,7 @@ class fake_mesh:
 		if sleeptime == False:
 			sleeptime = self.sleeptime
 
-		if self.valgrind:
-			sleeptime *= 4
+		sleeptime *= self.valgrind_multiplier
 
 		# only print the animation if anyone's looking
 		if os.isatty(sys.stdout.fileno()) == False:
@@ -1115,7 +1118,7 @@ class fake_mesh:
 			sys.stdout.flush()
 			inst.start_daemons(self.progs, dname)
 			if stagger and i < len(self.instances):
-				time.sleep(0.25)
+				time.sleep(0.25 * self.valgrind_multiplier)
 
 		sys.stdout.write("\n")
 		return
