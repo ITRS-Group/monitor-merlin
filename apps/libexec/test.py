@@ -1562,16 +1562,11 @@ def cmd_dist(args):
 			print("No such test: %s" % t)
 			sys.exit(1)
 
-	if not len(selected_tests) and not len(deselected_tests):
-		if not len(arg_tests):
-			tests = avail_tests
-		else:
-			print("You seem to have serious typing issues")
-			sys.exit(1)
-	else:
-		for t in selected_tests:
-			if t not in deselected_tests:
-				tests.append(t)
+	if not len(selected_tests):
+		selected_tests = avail_tests
+	for t in selected_tests:
+		if t not in deselected_tests:
+			tests.append(t)
 
 	if sleeptime == False:
 		sleeptime = 10
