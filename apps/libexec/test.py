@@ -1556,6 +1556,8 @@ def cmd_dist(args):
 			t = t.replace('-', '_')
 		if test_doc.get(t):
 			stash.append(t)
+			if t == 'acks':
+				stash.append('passive_checks')
 		else:
 			print("No such test: %s" % t)
 			sys.exit(1)
