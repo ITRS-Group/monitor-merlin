@@ -1680,7 +1680,7 @@ def cmd_dist(args):
 		print 'Exception while running tests:'
 		traceback.print_exc()
 		print '*'*40
-		mesh.tap.failed = True
+		mesh.tap.fail("System exception caught")
 		mesh.shutdown()
 		raise
 
