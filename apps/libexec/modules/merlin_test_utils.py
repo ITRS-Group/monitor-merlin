@@ -1,54 +1,5 @@
 from merlin_apps_utils import *
 
-class tap:
-	"""Nifty class for testing particular subsystems"""
-	def __init__(self, name, master=False):
-		self.passed = 0
-		self.failed = 0
-		self.verbose = 1
-		self.failures = []
-		self.faildiag = []
-
-	def test(self, a, b, msg):
-		if a == b:
-			return self.ok(msg)
-
-		return self.fail(msg, a, b)
-
-
-	def ok(self, msg):
-		if self.verbose:
-			print("  %sok%s   %s" % (color.green, color.reset, msg))
-		self.passed += 1
-		return True
-
-
-	def fail(self, msg, a=False, b=False):
-		self.failed += 1
-		msg = "  %sfail%s %s" % (color.red, color.reset, msg)
-		self.failures.append(msg)
-		self.faildiag.append((a, b))
-		print(msg)
-		print(a, b)
-		return False
-
-
-failed = 0
-passed = 0
-def test(a, b, msg):
-	global passed, failed
-
-	if a == b:
-		if verbose:
-			print("  %sok%s   %s" % (color.green, color.reset, msg))
-		passed += 1
-	else:
-		print("  %sfail%s %s" % (color.red, color.reset, msg))
-		print(a, b)
-		failed += 1
-	return a == b
-
-
 class test_config_in:
 	nagios_config_in = """log_file=@@DIR@@/nagios.log
 broker_module=@@MODULE_PATH@@ @@DIR@@/merlin/merlin.conf
@@ -167,6 +118,9 @@ daemon {
 		type = mysql;
 		commit_interval = 3
 		commit_queries = 2000
+	}
+	object_config {
+		push = mon test mark --oneline --mark-file='@@DIR@@/oconf-push.log' --mark-name='@@NODENAME@@'
 	}
 }
 #NODECONFIG

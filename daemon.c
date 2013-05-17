@@ -570,7 +570,8 @@ static int csync_config_cmp(merlin_node *node)
 	/* For non-peers, we simply move on from here. */
 	mtime_delta = node->info.last_cfg_change - ipc.info.last_cfg_change;
 	if (mtime_delta || node->type != MODE_PEER) {
-		ldebug("CSYNC: %s: mtime_delta: %d", node->name, mtime_delta);
+		ldebug("CSYNC: %s: mtime_delta (%lu - %lu): %d", node->name,
+			node->info.last_cfg_change, ipc.info.last_cfg_change, mtime_delta);
 		return mtime_delta;
 	}
 

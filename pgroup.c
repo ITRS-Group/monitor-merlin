@@ -225,13 +225,13 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 	hostsmember *hm;
 	int dupes = 0;
 
-	ldebug("Mapping hostgroup '%s' to peer group %d\n", hg->group_name, pg->id);
+	ldebug("Mapping hostgroup '%s' to peer group %d", hg->group_name, pg->id);
 	for (hm = hg->members; hm; hm = hm->next) {
 		servicesmember *sm;
 		host *h = hm->host_ptr;
 		unsigned int x, peer_id;
 
-		ldebug("  Looking at host %d: '%s'\n", h->id, h->name);
+		ldebug("  Looking at host %d: '%s'", h->id, h->name);
 
 		/*
 		 * if the host is already in this selection, such as
@@ -240,7 +240,7 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 		 * services).
 		 */
 		if (bitmap_isset(pg->host_map, h->id)) {
-			ldebug("       already in this group\n");
+			ldebug("       already in this group");
 			continue;
 		}
 
@@ -256,9 +256,14 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 		bitmap_set(poller_handled_hosts, h->id);
 
 		for (x = 0; x < pg->alloc; x++) {
-			peer_id = h->id % (x + 1);
+			/*
+			 * the poller won't have the same id's as we do,
+			 * so we use the counter to get object id
+			 */
+			peer_id = pg->assigned.hosts % (x + 1);
 			pg->assign[x][peer_id].hosts++;
 		}
+		pg->assigned.hosts++;
 
 		bitmap_set(pg->host_map, h->id);
 		for (sm = h->services; sm; sm = sm->next) {
@@ -267,9 +272,10 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 			bitmap_set(pg->service_map, s->id);
 			bitmap_set(poller_handled_services, s->id);
 			for (x = 0; x < pg->alloc; x++) {
-				peer_id = s->id % (x + 1);
+				peer_id = pg->assigned.services % (x + 1);
 				pg->assign[x][peer_id].services++;
 			}
+			pg->assigned.services++;
 		}
 	}
 
@@ -311,8 +317,6 @@ static int pgroup_map_objects(void)
 			else
 				break;
 		}
-		pg->assigned.hosts = bitmap_count_set_bits(pg->host_map);
-		pg->assigned.services = bitmap_count_set_bits(pg->service_map);
 	}
 
 	for (i = 0; i < num_objects.hosts; i++) {
