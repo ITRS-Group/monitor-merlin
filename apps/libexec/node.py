@@ -12,18 +12,12 @@ wanted_names = []
 have_type_arg = False
 have_name_arg = False
 
-qh = '/opt/monitor/var/rw/nagios.qh'
+query_socket = False
 
 def module_init(args):
 	global wanted_types, wanted_names
 	global have_type_arg, have_name_arg
-	global qh
-
-	comp = cconf.parse_conf(nagios_cfg)
-	for v in comp.params:
-		if v[0] == 'query_socket':
-			qh = v[1]
-			break
+	global query_socket
 
 	wanted_types = mconf.merlin_node.valid_types
 	rem_args = []
@@ -44,11 +38,18 @@ def module_init(args):
 			wanted_names = arg.split('=')[1].split(',')
 			have_name_arg = True
 		elif arg.startswith('--socket='):
-			qh = arg.split('=', 1)[1]
+			query_socket = arg.split('=', 1)[1]
 		else:
 			# not an argument we recognize, so stash it and move on
 			rem_args += [arg]
 			continue
+
+	if not query_socket:
+		if os.access(nagios_cfg, os.R_OK):
+			comp = cconf.parse_nagios_cfg(nagios_cfg)
+			query_socket = comp.query_socket
+		else:
+			query_socket = '/opt/monitor/var/rw/nagios.qh'
 
 	# load the merlin configuration, and thus all nodes
 	mconf.parse()
@@ -66,7 +67,7 @@ def cmd_status(args):
 	inactive = {}
 	mentioned = {}
 
-	sinfo = list(get_merlin_nodeinfo(qh))
+	sinfo = list(get_merlin_nodeinfo(query_socket))
 
 	if not sinfo:
 		print("Found no checks")
