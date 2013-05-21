@@ -125,13 +125,13 @@ def cmd_status(args):
 		)
 
 		if is_running:
-			name += " (%sACTIVE%s - %s%.3fs%s latency)" % (color.green, color.reset, lat_color, latency, color.reset)
+			name += ": %sACTIVE%s - %s%.3fs%s latency" % (color.green, color.reset, lat_color, latency, color.reset)
 			name_len = len(name) - (len(color.green) + len(lat_color) + (len(color.reset) * 2))
 		else:
 			name += " (%sINACTIVE%s)" % (color.red, color.reset)
 			name_len = len(name) - (len(color.red) + len(color.reset))
 
-		print("%s\n%s" % (name, '-' * name_len))
+		print("%s" % name)
 
 		sa_peer_id = int(info.get('self_assigned_peer_id', 0))
 		conn_time = int(info.get('connect_time', 0))
@@ -146,7 +146,17 @@ def cmd_status(args):
 			print("%sThis node is currently not in the configuration file%s" %
 				(color.yellow, color.reset))
 
+		proc_start = float(info.get('start', False))
+		if proc_start:
+			uptime = time_delta(proc_start)
+		else:
+			uptime = 'unknown'
 		last_alive = int(info.get('last_action'))
+		conn_time = int(info.get('connect_time', False))
+		if conn_time:
+			conn_delta = time_delta(conn_time)
+		else:
+			conn_delta = 'an indeterminate time'
 		if not last_alive:
 			print("%sUnable to determine when this node was last alive%s" %
 				(color.red, color.reset))
@@ -158,12 +168,8 @@ def cmd_status(args):
 
 			delta = time_delta(last_alive)
 			dtime = time.strftime("%F %H:%M:%S", time.localtime(last_alive))
-			print("Last alive: %s (%d) (%s%s ago%s)" %
-				(dtime,	last_alive, la_color, delta, color.reset))
-
-		proc_start = float(info.pop('start'))
-		if proc_start:
-			print time.strftime("Process start: %F %H:%M:%S", time.localtime(proc_start)) + ' (%s)' % int(proc_start)
+			print("Uptime: %s. Connected: %s. Last alive: %s%s ago%s" %
+				(uptime, conn_delta, la_color, delta, color.reset))
 
 		hchecks = int(info.get('host_checks_executed'))
 		schecks = int(info.get('service_checks_executed'))
