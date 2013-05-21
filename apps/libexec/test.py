@@ -1216,8 +1216,6 @@ class fake_mesh:
 
 		for inst in self.instances:
 			inst.slay_daemons(dname)
-		if not self.shutting_down:
-			self.test_alive(daemon=dname, verbose=False, expect=False, sig_ok=9)
 
 
 	def destroy_playground(self):
