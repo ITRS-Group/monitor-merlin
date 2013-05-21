@@ -641,14 +641,17 @@ static int parse_event_filter(const char *orig_str, uint32_t *evt_mask)
 		if (comma)
 			*comma = 0;
 
-		if (!strcmp(str, "all"))
+		if (!strcmp(str, "all")) {
+			*evt_mask = ~0;
 			return ~0;
+		}
 
 		code = callback_id(str);
 		if (code >= 0 && code < 32) {
 			mask |= 1 << code;
 		} else {
 			lwarn("Unable to find a callback id for '%s'\n", str);
+			return -1;
 		}
 
 		str = comma;
