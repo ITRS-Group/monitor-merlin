@@ -1741,13 +1741,13 @@ def cmd_dist(args):
 		# Some of the helper functions call sys.exit(1) to bail out.
 		# Let's assume they take care of cleaning up before doing so
 		raise
-	except:
+	except Exception, e:
 		# Don't leave stuff running, just because we messed up
 		print '*'*40
 		print 'Exception while running tests:'
 		traceback.print_exc()
 		print '*'*40
-		mesh.tap.fail("System exception caught")
+		mesh.tap.fail("System exception caught: %s" % e)
 		mesh.shutdown()
 		raise
 
