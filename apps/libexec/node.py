@@ -66,6 +66,8 @@ def cmd_status(args):
 	high_latency = {}
 	inactive = {}
 	mentioned = {}
+	pg_oconf_hash = {}
+	pg_conf = {}
 
 	sinfo = list(get_merlin_nodeinfo(query_socket))
 
@@ -95,6 +97,22 @@ def cmd_status(args):
 				lat_color = color.yellow
 			else:
 				lat_color = color.green
+			pg_id = int(info.get('pgroup_id', -1))
+			if pg_id != -1:
+				oconf_hash = info.get('oconf_hash', False)
+				if not pg_oconf_hash.get(pg_id, False):
+					pg_oconf_hash[pg_id] = {}
+				pg_oconf_hash[pg_id][info['name']] = oconf_hash
+				confed_masters = info['configured_masters']
+				confed_peers = info['configured_peers']
+				confed_pollers = info['configured_pollers']
+				if not pg_conf.get(pg_id):
+					pg_conf[pg_id] = {}
+				pg_conf[pg_id][info['name']] = {
+					'masters': confed_masters,
+					'peers': confed_peers,
+					'pollers': confed_pollers,
+				}
 
 		if info['type'] == 'peer':
 			peer_id = int(info.get('peer_id', 0))
@@ -171,6 +189,57 @@ def cmd_status(args):
 			(hc_color, hchecks, color.reset, sc_color, schecks, color.reset,
 			hc_color, hpercent, color.reset,
 			sc_color, spercent, color.reset))
+
+	oconf_bad = {}
+	for pg_id, d in pg_oconf_hash.items():
+		last = None
+		if len(d) == 1:
+			continue
+		for name, hash in d.items():
+			if last != None and last != hash:
+				oconf_bad[pg_id] = d
+				break
+
+	if len(oconf_bad):
+		print("\n%s%sObject config sync problem detected in the following groups%s" %
+			(color.red, color.bright, color.reset))
+		for pg_id, bad_nodes in oconf_bad.items():
+			bad = bad_nodes.keys()
+			bad.sort()
+			print("  peer-group %d: %s" % (pg_id, ', '.join(bad)))
+		print("%sPlease ensure that configuration synchronization works properly%s" %
+			(color.yellow, color.reset))
+
+	# now check merlin configuration
+	pconf_bad = {}
+	for pg_id, d in pg_conf.items():
+		have_first = False
+		if len(d) == 1:
+			continue
+		for name, d2 in d.items():
+			cur_masters = d2.get('masters', -1)
+			cur_peers = d2.get('peers', -1)
+			cur_pollers = d2.get('pollers', -1)
+			if have_first:
+				if last_masters != cur_masters or last_peers != cur_peers or last_pollers != cur_pollers:
+					pconf_bad[pg_id] = d
+
+			last_masters = d2.get('masters', -1)
+			last_peers = d2.get('peers', -1)
+			last_pollers = d2.get('pollers', -1)
+			have_first = True
+
+
+	if len(pconf_bad):
+		print("\n%s%sMerlin config error detected in the following groups%s" %
+			(color.red, color.bright, color.reset))
+		for pg_id, bad_nodes in pconf_bad.items():
+			bad = bad_nodes.keys()
+			bad.sort()
+			print("  peer-group %d: %s" % (pg_id, ', '.join(bad)))
+		print("%sPlease ensure that all peered nodes share neighbours%s" %
+			(color.yellow, color.reset))
+
 
 ## node commands ##
 # list configured nodes, capable of filtering by type
