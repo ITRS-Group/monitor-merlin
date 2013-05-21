@@ -85,24 +85,24 @@ def cmd_status(args):
 
 	for info in sinfo:
 		print("")
-		iid = int(info.pop('instance_id', 0))
+		iid = int(info.get('instance_id', 0))
 		node = mconf.configured_nodes.get(info['name'], False)
-		is_running = info.pop('state') == 'STATE_CONNECTED'
+		is_running = info.get('state') == 'STATE_CONNECTED'
 		if is_running:
 			# latency is in milliseconds, so convert to float
-			latency = float(info.pop('latency')) / 1000.0
+			latency = float(info.get('latency')) / 1000.0
 			if latency > 5.0 or latency < -2.0:
 				lat_color = color.yellow
 			else:
 				lat_color = color.green
 
 		if info['type'] == 'peer':
-			peer_id = int(info.pop('peer_id', 0))
+			peer_id = int(info.get('peer_id', 0))
 		else:
-			peer_id = int(info.pop('self_assigned_peer_id', 0))
+			peer_id = int(info.get('self_assigned_peer_id', 0))
 		name = "#%02d %d/%d:%d %s %s" % (
 			iid, peer_id,
-			int(info.pop('active_peers', -1)), int(info.pop('configured_peers', -1)),
+			int(info.get('active_peers', -1)), int(info.get('configured_peers', -1)),
 			info['type'], info['name']
 		)
 
@@ -115,8 +115,8 @@ def cmd_status(args):
 
 		print("%s\n%s" % (name, '-' * name_len))
 
-		sa_peer_id = int(info.pop('self_assigned_peer_id', 0))
-		conn_time = int(info.pop('connect_time', 0))
+		sa_peer_id = int(info.get('self_assigned_peer_id', 0))
+		conn_time = int(info.get('connect_time', 0))
 		if is_running and info['type'] == 'peer' and sa_peer_id != peer_id:
 			if conn_time + 30 > int(time.time()):
 				print("%sPeer id negotiation in progress%s" % (color.green, color.reset))
@@ -128,7 +128,7 @@ def cmd_status(args):
 			print("%sThis node is currently not in the configuration file%s" %
 				(color.yellow, color.reset))
 
-		last_alive = int(info.pop('last_action'))
+		last_alive = int(info.get('last_action'))
 		if not last_alive:
 			print("%sUnable to determine when this node was last alive%s" %
 				(color.red, color.reset))
@@ -147,10 +147,10 @@ def cmd_status(args):
 		if proc_start:
 			print time.strftime("Process start: %F %H:%M:%S", time.localtime(proc_start)) + ' (%s)' % int(proc_start)
 
-		hchecks = int(info.pop('host_checks_executed'))
-		schecks = int(info.pop('service_checks_executed'))
-		assigned_hchecks = int(info.pop('assigned_hosts'))
-		assigned_schecks = int(info.pop('assigned_services'))
+		hchecks = int(info.get('host_checks_executed'))
+		schecks = int(info.get('service_checks_executed'))
+		assigned_hchecks = int(info.get('assigned_hosts'))
+		assigned_schecks = int(info.get('assigned_services'))
 
 		hc_color = ''
 		sc_color = ''
