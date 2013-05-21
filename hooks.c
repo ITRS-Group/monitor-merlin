@@ -361,6 +361,13 @@ static int hook_service_result(merlin_event *pkt, void *data)
 			set_service_check_node(merlin_sender, ds->object_ptr);
 		else
 			set_service_check_node(&ipc, ds->object_ptr);
+
+		/* We fiddle with the last_check time here so that the time
+		 * shown in nagios.log (for a service alert, e.g) is the same
+		 * as that in the report_data to avoid (user) confusion
+		 * - alofgren 2013-05-21
+		 * */
+		((service *)(ds->object_ptr))->last_check = (time_t) ds->end_time.tv_sec;
 		return send_service_status(pkt, ds->object_ptr);
 	}
 
@@ -414,6 +421,12 @@ static int hook_host_result(merlin_event *pkt, void *data)
 			set_host_check_node(merlin_sender, ds->object_ptr);
 		else
 			set_host_check_node(&ipc, ds->object_ptr);
+		/* We fiddle with the last_check time here so that the time
+		 * shown in nagios.log (for a service alert, e.g) is the same
+		 * as that in the report_data to avoid (user) confusion
+		 * - alofgren 2013-05-21
+		 * */
+		((host *)(ds->object_ptr))->last_check = (time_t) ds->end_time.tv_sec;
 		return send_host_status(pkt, ds->object_ptr);
 	}
 
