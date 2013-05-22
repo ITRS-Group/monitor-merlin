@@ -17,6 +17,7 @@ import compound_config as cconf
 ls_path = '/opt/monitor/var/rw/live'
 qh = '/opt/monitor/var/rw/nagios.qh'
 
+check_result_path = '/opt/monitor/var/spool/checkresults'
 lsc = False
 wanted_types = False
 wanted_names = False
@@ -61,6 +62,8 @@ def module_init(args):
 					if not '=' in p:
 						ls_path = p
 						break
+			elif k == 'check_result_path':
+				check_result_path = v
 
 	if qh_path:
 		qh = qh_path
@@ -460,7 +463,7 @@ def cmd_spool(args=False):
 		nplug.unknown("'path' is a required argument")
 
 	if path == 'checks':
-		path = '/opt/monitor/var/spool/checkresults'
+		path = check_result_path
 	elif path == 'perfdata':
 		if os.access(npcd_config, os.R_OK):
 			comp = cconf.parse_conf(npcd_config)
