@@ -18,7 +18,6 @@ ls_path = '/opt/monitor/var/rw/live'
 qh = '/opt/monitor/var/rw/nagios.qh'
 
 lsc = False
-mst = False
 wanted_types = False
 wanted_names = False
 have_type_arg = False
@@ -66,7 +65,6 @@ def module_init(args):
 	if qh_path:
 		qh = qh_path
 	lsc = livestatus.SingleSiteConnection('unix:' + ls_path)
-	mst = merlin_status(lsc, qh)
 	return rem_args
 
 
@@ -198,6 +196,7 @@ def check_min_avg_max(args, col, defaults=False, filter=False):
 	thresh = {}
 	otype = False
 
+	mst = merlin_status(lsc, qh)
 	if filter == False:
 		filter = 'Filter: should_be_scheduled = 1\nFilter: active_checks_enabled = 1\nAnd: 2\n'
 
