@@ -52,16 +52,16 @@ def module_init(args):
 			rem_args += [arg]
 			continue
 
-	comp = cconf.parse_conf(nagios_cfg)
-	for v in comp.params:
-		if v[0] == 'query_socket':
-			qh = v[1]
-		elif v[0] == 'broker_module' and 'livestatus' in v[1]:
-			ary = v[1].rsplit(' ')
-			for p in ary[1:]:
-				if not '=' in p:
-					ls_path = p
-					break
+	if os.access(nagios_cfg, os.R_OK):
+		comp = cconf.parse_nagios_cfg(nagios_cfg)
+		qh = comp.query_socket
+		for k, v in comp.params:
+			if k == 'broker_module' and 'livestatus' in v:
+				ary = v[1].rsplit(' ')
+				for p in ary[1:]:
+					if not '=' in p:
+						ls_path = p
+						break
 
 	if qh_path:
 		qh = qh_path
