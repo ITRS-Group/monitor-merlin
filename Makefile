@@ -95,6 +95,7 @@ MOD_LDFLAGS = -shared -ggdb3 -fPIC
 DAEMON_LIBS = $(LIB_NET)
 DAEMON_LDFLAGS = $(DAEMON_LIBS) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) -ggdb3
 DBTEST_LDFLAGS = $(LIB_NET) $(LIBNAGIOS_LDFLAGS) $(DB_LDFLAGS) -ggdb3
+HOOKTEST_LDFLAGS = -lcmockery $(LIBNAGIOS_LDFLAGS) -ggdb3
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
 
@@ -164,7 +165,7 @@ rename: $(RENAME_OBJS)
 	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@
 
 #test: test-binlog test-slist test__lparse
-test: test-slist test__lparse
+test: test-slist test__lparse test-hooks
 
 test-slist: sltest
 	@./sltest
@@ -175,11 +176,17 @@ test-binlog: bltest
 test__lparse: test-lparse
 	@./test-lparse
 
+test-hooks:	hooktest
+	@./hooktest
+
 sltest: sltest.o test_utils.o slist.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
 bltest: binlog.o bltest.o test_utils.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $(DAEMON_LDFLAGS) $^ -o $@
+
+hooktest: test-hooks.o hooks.o $(SHARED_OBJS)
+	$(QUIET_LINK)$(CC) $(CFLAGS) $^ -o $@ $(HOOKTEST_LDFLAGS)
 
 bltest.o: bltest.c binlog.h
 
