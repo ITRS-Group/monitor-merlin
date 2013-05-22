@@ -444,6 +444,7 @@ def cmd_spool(args=False):
 	critical = 10
 	path = False
 	delete = False
+	npcd_config = '/opt/monitor/etc/pnp/npcd.cfg'
 	for arg in args:
 		if arg.startswith('--maxage='):
 			maxage = str_to_seconds(arg.split('=', 1)[1])
@@ -462,7 +463,15 @@ def cmd_spool(args=False):
 	if path == 'checks':
 		path = '/opt/monitor/var/spool/checkresults'
 	elif path == 'perfdata':
-		path = '/opt/monitor/var/spool/perfdata'
+		if os.access(npcd_config, os.R_OK):
+			comp = cconf.parse_conf(npcd_config)
+			for k, v in comp.params:
+				if k == 'perfdata_spool_dir':
+					path = v
+					break
+			comp = False
+		else:
+			path = '/opt/monitor/var/spool/perfdata'
 
 	bad = 0
 	bad_paths = []
