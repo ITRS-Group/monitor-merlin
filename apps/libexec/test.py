@@ -838,7 +838,7 @@ class fake_mesh:
 					else:
 						for l in value:
 							sub.diag('  %s;%s' % (l[0], l[1]))
-		return sub.get_status() < 2
+		return sub.get_status() == 0
 
 
 	def test_passive_checks(self):
