@@ -451,6 +451,10 @@ static int hook_comment(merlin_event *pkt, void *data)
 	if (ds->type == NEBTYPE_COMMENT_ADD)
 		return 0;
 
+	/* avoid sending network-triggered comment events */
+	if (merlin_sender != NULL)
+		return 0;
+
 	/*
 	 * Downtime is notoriously tricky to handle since there are so many
 	 * commands for scheduling it. We propagate downtime commands, but
@@ -503,6 +507,10 @@ static int hook_comment(merlin_event *pkt, void *data)
 static int hook_downtime(merlin_event *pkt, void *data)
 {
 	nebstruct_downtime_data *ds = (nebstruct_downtime_data *)data;
+
+	/* avoid sending network-triggered downtime events */
+	if (merlin_sender)
+		return 0;
 
 	/*
 	 * Downtime delete and stop events are transferred.

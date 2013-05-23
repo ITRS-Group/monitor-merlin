@@ -528,8 +528,8 @@ static int ipc_reaper(int sd, int events, void *arg)
 			}
 			node->last_action = node->last_recv = tv.tv_sec;
 			node->stats.cb_count[type].in++;
-			ldebug("Received type %d event from %s node %s",
-				   pkt->hdr.type, node_type(node), node->name);
+			ldebug("Received type %s event from %s node %s",
+				   callback_name(pkt->hdr.type), node_type(node), node->name);
 		}
 
 		/* control packets are handled separately */
@@ -641,14 +641,17 @@ static int parse_event_filter(const char *orig_str, uint32_t *evt_mask)
 		if (comma)
 			*comma = 0;
 
-		if (!strcmp(str, "all"))
+		if (!strcmp(str, "all")) {
+			*evt_mask = ~0;
 			return ~0;
+		}
 
 		code = callback_id(str);
 		if (code >= 0 && code < 32) {
 			mask |= 1 << code;
 		} else {
 			lwarn("Unable to find a callback id for '%s'\n", str);
+			return -1;
 		}
 
 		str = comma;
@@ -664,7 +667,7 @@ static int parse_event_filter(const char *orig_str, uint32_t *evt_mask)
 static void grok_module_compound(struct cfg_comp *comp)
 {
 	uint i;
-	uint32_t handle_events = ~0; /* events to filter in */
+	uint32_t handle_events = ~((1 << NEBCALLBACK_HOST_STATUS_DATA) | (1 << NEBCALLBACK_SERVICE_STATUS_DATA)); /* events to filter in */
 	uint32_t ignore_events = 0;  /* events to filter out */
 
 	for (i = 0; i < comp->vars; i++) {

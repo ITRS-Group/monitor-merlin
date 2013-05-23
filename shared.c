@@ -271,10 +271,14 @@ static struct {
 
 const char *callback_name(int id)
 {
+	static char *num_name = NULL;
 	if (id < 0 || id > NEBCALLBACK_NUMITEMS - 1) {
-		if (id == NEBCALLBACK_NUMITEMS)
+		if (id == CTRL_PACKET)
 			return "CTRL_PACKET";
-		return "(invalid/unknown)";
+		if (num_name)
+			free(num_name);
+		asprintf(&num_name, "(invalid/unknown %d)", id);
+		return num_name;
 	}
 
 	return callback_list[id].name;

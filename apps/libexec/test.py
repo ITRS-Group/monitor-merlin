@@ -1,4 +1,5 @@
 import time, os, sys
+import errno
 import random
 import posix
 import signal
@@ -6,6 +7,8 @@ import re
 import copy
 import subprocess
 import livestatus
+import traceback
+from pprint import *
 import traceback
 
 try:
@@ -22,8 +25,12 @@ from nagios_command import nagios_command
 import merlin_db
 from qhcheck import QhChannel
 import nagios_plugin as nplug
-
 import compound_config as cconf
+
+modpytap_path = modpath + '/pytap'
+if not modpytap_path in sys.path:
+	sys.path.insert(0, modpytap_path)
+import pytap
 
 __doc__ = """  %s%s!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!%s
 
@@ -90,12 +97,16 @@ class fake_peer_group:
 			mg.add_object(otype, name)
 
 
-	def create_object_config(self, num_hosts=3, num_services_per_host=2):
+	def create_object_config(self, num_hosts, num_services_per_host):
 		# master groups will call this for their pollers when
 		# asked to create their own object configuration
 		if self.oconf_file:
 			return True
 
+		if not num_hosts:
+			num_hosts = 1 + (len(self.nodes) * 2)
+		if not num_services_per_host:
+			num_services_per_host = len(self.nodes)
 		self.oconf_file = self.nodes[0].get_path("etc/oconf/generated.cfg")
 		f = self.nodes[0].create_file(self.oconf_file)
 
@@ -140,7 +151,7 @@ class fake_peer_group:
 		ocbuf.append(obuf)
 		while i < num_hosts:
 			i += 1
-			if os.isatty(sys.stdout.fileno()) and not i % 7:
+			if num_hosts > 50 and os.isatty(sys.stdout.fileno()) and not i % 7:
 				sys.stdout.write("\r%d hosts and %d services created" % (i, i * num_services_per_host))
 
 			hobj = host
@@ -179,7 +190,8 @@ class fake_peer_group:
 				obuf += "}"
 				ocbuf.append(obuf)
 
-		print("\r%d hosts and %d services created" % (i, i * num_services_per_host))
+		if num_hosts > 50:
+			print("\r%d hosts and %d services created" % (i, i * num_services_per_host))
 		self.oconf_buf = "\n".join(ocbuf)
 		ocbuf = False
 		poller_oconf_buf = ''
@@ -199,10 +211,9 @@ class fake_peer_group:
 			node.write_file('etc/oconf/generated.cfg', self.oconf_buf)
 
 		print("Peer group %s objects:" % self.group_name)
-		print("        hosts: %d" % self.num_objects['host'])
-		print("     services: %d" % self.num_objects['service'])
-		print("   hostgroups: %d" % self.num_objects['hostgroup'])
-		print("servicegroups: %d" % self.num_objects['servicegroup'])
+		print("  hosts=%d; services=%d; hostgroups=%d; servicegroups=%d" %
+			(self.num_objects['host'], self.num_objects['service'],
+			self.num_objects['hostgroup'], self.num_objects['servicegroup']))
 		return True
 
 
@@ -261,8 +272,11 @@ class fake_instance:
 	def stat(self, path):
 		return os.stat('%s/%s' (self.home, path))
 
+	def fpath(self, path):
+		return "%s/%s" % (self.home, path)
+
 	def fsize(self, path):
-		st = os.stat('%s/%s' % (self.home, path))
+		st = os.stat(self.fpath(path))
 		return st.st_size
 
 	def get_nodeinfo(self):
@@ -290,10 +304,6 @@ class fake_instance:
 		return True
 
 	def start_daemons(self, daemons, dname=False):
-		if dname:
-			print("Launching %s daemon for instance %s" % (dname, self.name))
-		else:
-			print("Launching daemons for instance %s" % self.name)
 		fd = os.open("/dev/null", os.O_WRONLY)
 		for name, program in daemons.items():
 			if dname and name != dname:
@@ -376,7 +386,6 @@ class fake_instance:
 
 
 	def create_core_config(self):
-		print("Writing core config for %s" % self.name)
 		configs = {}
 		conode_types = self.nodes.keys()
 		conode_types.sort()
@@ -452,13 +461,13 @@ class fake_mesh:
 		self.basepath = basepath
 		self.baseport = 16000
 		self.num_masters = 3
-		self.poller_groups = 1
-		self.pollers_per_group = 3
+		self.opt_pgroups = [5,3,1]
 		self.instances = []
 		self.db = False
 		self.pgroups = []
 		self.masters = []
-		self.tap = tap("Merlin distribution tests")
+		self.tap = pytap.pytap("Merlin distribution tests")
+		self.tap.verbose = 1
 		self.sleeptime = False
 		self.use_database = False
 		self.progs = {}
@@ -472,6 +481,10 @@ class fake_mesh:
 					sys.exit(1)
 			else:
 				setattr(self, k, v)
+		if self.valgrind:
+			self.valgrind_multiplier = 5
+		else:
+			self.valgrind_multiplier = 1
 
 	def signal_daemons(self, signo):
 		"""Sends the designated signal to all attached daemons"""
@@ -489,8 +502,7 @@ class fake_mesh:
 		if sleeptime == False:
 			sleeptime = self.sleeptime
 
-		if self.valgrind:
-			sleeptime *= 4
+		sleeptime *= self.valgrind_multiplier
 
 		# only print the animation if anyone's looking
 		if os.isatty(sys.stdout.fileno()) == False:
@@ -525,24 +537,27 @@ class fake_mesh:
 	# and if one of them fails, we must break out early and print
 	# an error, since the rest of the tests will be in unknown
 	# state.
-	def _test_proc_alive(self, proc, exp, sig_ok, msg_prefix):
+	def _test_proc_alive(self, proc, exp, sig_ok, msg_prefix, sub):
 		msg = msg_prefix
+		flags = (os.WNOHANG, 0)[self.shutting_down]
 
 		try:
-			result = os.waitpid(proc.pid, os.WNOHANG)
+			result = os.waitpid(proc.pid, flags)
 		except OSError, e:
-			return self.tap.fail("EXCEPTION for '%s': %s" % msg)
+			if e.errno == errno.ENOCHILD:
+				return sub.test(False == exp, msg)
+			return sub.fail("EXCEPTION for '%s': %s" % (msg, e))
 
 		pid, status = result
 		if not pid and not status:
-			return self.tap.test(True, exp, msg)
+			return sub.test(True, exp, msg)
 
 		# we got a pid and a status, so check what happened
 		if os.WIFEXITED(status):
 			msg = "%s: Exited with status %d" % (msg, os.WEXITSTATUS(status))
 			if exp == False:
-				return self.tap.test(os.WEXITSTATUS(status), 0, msg)
-			return self.tap.fail(msg)
+				return sub.test(os.WEXITSTATUS(status), 0, msg)
+			return sub.fail(msg)
 
 		if os.WIFSIGNALED(status):
 			if exp == False and os.WTERMSIG(status) in sig_ok:
@@ -552,74 +567,77 @@ class fake_mesh:
 			msg = "%s: %sTerminated by sig %d%s" % (msg, clr, os.WTERMSIG(status), color.reset)
 			if os.WCOREDUMP(status):
 				msg = "%s (%score dumped%s)" % (color.red, msg, color.reset)
-				return self.tap.fail(msg)
+				return sub.fail(msg)
 			if exp == False and os.WTERMSIG(status) in sig_ok:
-				return self.tap.ok(msg)
-			return self.tap.test(os.WTERMSIG(status) in sig_ok, True, msg)
+				return sub.ok(True, msg)
+			return sub.test(os.WTERMSIG(status) in sig_ok, True, msg)
 
 		msg = "%s: pid=%d; status=%d; %sunknown exit reason%s" % (msg, pid, status, color.red, color.reset)
-		self.tap.fail(msg)
+		sub.fail(msg)
 
 
-	def test_alive(self, **kwargs):
+	def test_alive(self, sub=False, **kwargs):
 		"""Tests to make sure daemons are still alive"""
 		daemon = False
 		what = False
-		pretest_failed = self.tap.failed
 		expect = True
-		verbose = True
 		sig_ok = []
+		arg_sub = sub
 
 		for k, v in kwargs.items():
 			if k == 'daemon' and v != False:
 				daemon = v
-			elif k == 'verbose':
-				verbose = v
 			elif k == 'expect':
 				expect = v
-			elif k == 'quiet':
-				verbose = not v
 			elif k == 'sig_ok':
 				if type(v) == type([]):
 					sig_ok = v
 				else:
 					sig_ok = [v]
 
-		old_verbose = self.tap.verbose
-		self.tap.verbose = verbose
-
 		if expect == True:
+			what = 'aliveness'
 			how = "must live"
 		else:
+			what = 'shutdown'
 			how = "must exit nicely"
+
+		if not sub:
+			if daemon:
+				sub = self.tap.sub_init("%s %s" % (daemon, what))
+			else:
+				sub = self.tap.sub_init("daemon %s" % (what))
+
 		for inst in self.instances:
 			for dname, proc in inst.proc.items():
 				if daemon and dname != daemon:
 					continue
-				self._test_proc_alive(proc, expect, sig_ok, "%s on %s %s" % (dname, inst.name, how))
+				self._test_proc_alive(proc, expect, sig_ok, "%s on %s %s" % (dname, inst.name, how), sub)
 
-		self.tap.verbose = old_verbose
-		if self.tap.failed > pretest_failed:
+		if arg_sub == False:
+			ret = sub.done()
+		else:
+			ret = sub.get_status()
+		if ret != 0:
 			self.shutdown('Daemons are misbehaving. Bad daemons!')
+			return False
 		return True
 
-	def test_connections(self):
-		"""Tests connections between nodes in the mesh.
-		This is a mandatory test"""
-		status = True
-		start_failed = self.tap.failed
 
-		self.test_alive()
-
+	def _test_connections(self, sub, **kwargs):
+		old_verbose = sub.verbose
+		sub.verbose = 1
+		self.test_alive(sub)
+		sub.verbose = old_verbose
 		for inst in self.instances:
 			inst.get_nodeinfo()
 
 			exp_peer_id = int(inst.name.split('-', 1)[1]) - 1
 			exp_num_peers = inst.group.num_nodes - 1
 
-			self.tap.test(int(inst.info.peer_id), exp_peer_id,
+			sub.test(int(inst.info.peer_id), exp_peer_id,
 				'%s should have peer-id %d' % (inst.name, exp_peer_id))
-			self.tap.test(int(inst.info.configured_peers), exp_num_peers,
+			sub.test(int(inst.info.configured_peers), exp_num_peers,
 				'%s should have %d peers' % (inst.name, exp_num_peers))
 
 			calc_con = int(inst.info.active_peers) + int(inst.info.active_pollers) + int(inst.info.active_masters)
@@ -627,54 +645,54 @@ class fake_mesh:
 				calc_con += 1
 			tot_con = 0
 			for i in inst.nodeinfo:
-				if self.tap.test(i.state, 'STATE_CONNECTED', "%s -> %s connection" % (inst.name, i.name)):
+				if sub.test(i.state, 'STATE_CONNECTED', "%s -> %s connection" % (inst.name, i.name)):
 					tot_con += 1
-				else:
-					# no point pressing on if we're not connected
-					continue
 				if i.type == 'peer':
-					self.tap.test(i.peer_id, i.self_assigned_peer_id, "%s -> %s peer id agreement" % (inst.name, i.name))
+					sub.test(i.peer_id, i.self_assigned_peer_id, "%s -> %s peer id agreement" % (inst.name, i.name))
 				if int(i.instance_id) == 0:
 					continue
-				self.tap.test(i.active_peers, i.configured_peers,
+				sub.test(i.active_peers, i.configured_peers,
 					"%s thinks %s has %s/%s active peers" %
 					(inst.name, i.name, i.active_peers, i.configured_peers))
 
-				self.tap.test(i.active_pollers, i.configured_pollers,
+				sub.test(i.active_pollers, i.configured_pollers,
 					"%s thinks %s has %s/%s active pollers" %
 					(inst.name, i.name, i.active_pollers, i.configured_pollers))
 
-				self.tap.test(i.active_masters, i.configured_masters,
+				sub.test(i.active_masters, i.configured_masters,
 					"%s thinks %s has %s/%s active masters" %
 					(inst.name, i.name, i.active_masters, i.configured_masters))
 
-			self.tap.test(tot_con, inst.num_nodes, "%s has %d/%d connected systems" %
+			sub.test(tot_con, inst.num_nodes, "%s has %d/%d connected systems" %
 				(inst.name, tot_con, inst.num_nodes))
-			self.tap.test(tot_con, calc_con, "%s should count connections properly" % inst.name)
+			sub.test(tot_con, calc_con, "%s should count connections properly" % inst.name)
+		return sub.get_status() == 0
 
-		if self.tap.failed > start_failed:
-			status = False
-		return status
+	def test_connections(self):
+		"""Tests connections between nodes in the mesh.
+		This is a mandatory test"""
+		self.intermission('Allowing nodes to connect', 2.5)
+		return self.ptest('connections', self._test_connections)
+
 
 	def test_imports(self):
 		"""make sure ocimp has run properly"""
 		if not self.use_database:
 			return True
-		status = True
+		sub = self.tap.sub_init('ocimp imports')
 		for inst in self.instances:
 			res = inst.dbc.execute('SELECT COUNT(1) FROM timeperiod')
 			row = inst.dbc.fetchone()
 			tps = row[0]
-			ret = self.tap.test(tps, 2, "%s must import timeperiods" % inst.name)
+			sub.test(tps, 2, "%s must import timeperiods" % inst.name)
 			if ret == False:
 				status = False
-		return status
+		return sub.done() == 0
 
 	def _test_restarts(self, daemon, deathtime=3, recontime=3, stagger=True):
 		status = True
 		self.stop_daemons(daemon, deathtime)
 		self.start_daemons(daemon, stagger)
-		self.intermission("Letting systems reconnect and renegotiate", recontime)
 		return self.test_connections()
 
 	def test_merlin_restarts(self):
@@ -684,14 +702,28 @@ class fake_mesh:
 	def test_nagios_restarts(self):
 		"""Verifies that nodes reconnect after a restart of Nagios
 		2 second intermission to allow reconnect
-		Also tests for log truncation
+		Also tests for log truncation and config pushing
 		"""
+
+		# this updates both timestamp and hash, so master1 should push
+		if self.num_masters > 1 or len(self.pgroups):
+			f = open(self.master1.fpath('etc/oconf/generated.cfg'), 'a')
+			f.write("\n")
+			f.close()
+
 		for inst in self.instances:
 			inst.nslog_size = inst.fsize('nagios.log')
 		ret = self._test_restarts('nagios', 8, 3)
 		for inst in self.instances:
 			lsize = inst.fsize('nagios.log')
 			self.tap.test(lsize > inst.nslog_size, True, "%s must keep nagios.log" % inst.name)
+
+		# check to make sure pushing works as expected
+		if self.num_masters > 1 or len(self.pgroups):
+			has_pushed = os.path.exists(self.master1.fpath('oconf-push.log'))
+			if not self.tap.test(has_pushed, True, "master1 must push config"):
+				ret = False
+
 		return ret
 
 
@@ -702,6 +734,7 @@ class fake_mesh:
 		care of them.
 		Checks can be tracked by monitoring @@BASEPATH@@/*-checks.log
 		"""
+		sub = self.tap.sub_init('active checks')
 		master = self.masters.nodes[0]
 		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('START_EXECUTING_SVC_CHECKS')
@@ -722,15 +755,42 @@ class fake_mesh:
 				schecks += int(i.service_checks_executed)
 				self.tap.test(i.assigned_hosts, i.host_checks_executed,
 					"host checks for %s from %s" % (i.name, inst.name))
-				self.tap.test(i.assigned_services, i.service_checks_executed,
+				sub.test(i.assigned_services, i.service_checks_executed,
 					"service checks for %s from %s" % (i.name, inst.name))
-			self.tap.test(hchecks, inst.group.num_objects['host'],
+			sub.test(hchecks, inst.group.num_objects['host'],
 				"%s should have all host checks accounted for" % inst.name)
-			self.tap.test(schecks, inst.group.num_objects['service'],
+			sub.test(schecks, inst.group.num_objects['service'],
 				"%s should have all service checks accounted for" % inst.name)
 
 		self.intermission('Letting active check disabling spread', 10)
+		return sub.done() == 0
 
+	def _test_global_command_spread(self, sub):
+		queries = [
+			'enable_flap_detection = 1',
+			'execute_host_checks = 1',
+			'execute_service_checks = 1',
+			'obsess_over_hosts = 1',
+			'obsess_over_services = 1',
+			'accept_passive_host_checks = 0',
+			'accept_passive_service_checks = 0',
+			'enable_notifications = 0',
+		]
+		i = 0
+		for query in queries:
+			cmd = self._global_commands[i]
+			i += 1
+			for inst in self.instances:
+				lq = 'GET status\nFilter: %s\nColumns: %s' % (query, query.split('=')[0].strip())
+				live_result = inst.live.query(lq)
+				ret = sub.test(len(live_result), 0,
+					"%s should spread and bounce to %s" % (cmd, inst.name))
+				if ret == False:
+					status = False
+					sub.diag("  Command failed on '%s'" % inst.name)
+					sub.diag("  query was:")
+					sub.diag("%s" % lq)
+		return sub.get_status() == 0
 
 	def test_global_commands(self):
 		"""
@@ -742,8 +802,7 @@ class fake_mesh:
 		ourselves, so it must be run first thing after we that all
 		nodes are connected to each other.
 		"""
-		status = True
-		raw_commands = [
+		self._global_commands = [
 			'DISABLE_FLAP_DETECTION',
 			'STOP_EXECUTING_HOST_CHECKS',
 			'STOP_EXECUTING_SVC_CHECKS',
@@ -753,77 +812,115 @@ class fake_mesh:
 			'START_ACCEPTING_PASSIVE_SVC_CHECKS',
 			'ENABLE_NOTIFICATIONS',
 		]
-
-		queries = [
-			'enable_flap_detection = 1',
-			'execute_host_checks = 1',
-			'execute_service_checks = 1',
-			'obsess_over_hosts = 1',
-			'obsess_over_services = 1',
-			'accept_passive_host_checks = 0',
-			'accept_passive_service_checks = 0',
-			'enable_notifications = 0',
-		]
-		master = self.masters.nodes[0]
-		for cmd in raw_commands:
-			ret = master.submit_raw_command(cmd)
-			self.tap.test(ret, True, "Should be able to submit %s" % cmd)
-		self.intermission("Letting global commands spread", 10)
-		i = 0
-		for query in queries:
-			cmd = raw_commands[i]
-			i += 1
-			for inst in self.instances:
-				lq = 'GET status\nFilter: %s\nColumns: %s' % (query, query.split('=')[0].strip())
-				live_result = inst.live.query(lq)
-				ret = self.tap.test(len(live_result), 0,
-					"%s should spread and bounce to %s" % (cmd, inst.name))
-				if ret == False:
-					status = False
-					print("  Command failed on '%s'" % inst.name)
-					print("  query was:")
-					print("%s" % lq)
-		return status
-
-
-	def test_passive_checks(self):
-		"""
-		Submits a passive checkresult with status 2 (CRITICAL) for
-		services and 1 (DOWN) for hosts.
-		"""
 		status = True
+		sub = self.tap.sub_init("global command submission")
 		master = self.masters.nodes[0]
-		for host in self.masters.have_objects['host']:
-			ret = master.submit_raw_command('PROCESS_HOST_CHECK_RESULT;%s;1;Plugin output for host %s' % (host, host))
-			if ret == False:
-				status = False
-			ret = self.tap.test(ret, True, "Setting status of host %s" % host)
-			if ret == False:
-				status = False
-		for srv in self.masters.have_objects['service']:
-			ret = master.submit_raw_command('PROCESS_SERVICE_CHECK_RESULT;%s;2;Service plugin output' % (srv))
-			if ret == False:
-				status = False
-			ret = self.tap.test(ret, True, "Setting status of service %s" % srv)
-			if ret == False:
-				status = False
+		for cmd in self._global_commands:
+			ret = master.submit_raw_command(cmd)
+			sub.test(ret, True, "Should be able to submit %s" % cmd)
+		if sub.done() != 0:
+			return False
+		return self.ptest('global command spreading', self._test_global_command_spread)
 
-		self.intermission('Letting passive checks spread', 10)
+
+	def _test_notifications(self, sub, inst, **kwargs):
+		"""Tests for the presence of notifications"""
+		hosts = kwargs.get('hosts', False)
+		services = kwargs.get('services', False)
+		suffix = kwargs.get('suffix', False)
+		if suffix:
+			suffix = suffix.replace(' ', '-')
+		hpath = "%s/hnotify.log" % inst.home
+		spath = "%s/snotify.log" % inst.home
+		if not sub.test(os.access(hpath, os.R_OK), hosts,
+			'%s should %ssend host notifications' % (inst.name, ('', 'not ')[hosts == False])):
+			if suffix:
+				os.rename(hpath, "%s.%s" % (hpath, suffix))
+		if not sub.test(os.access(spath, os.R_OK), services,
+			'%s should %ssend service notifications' % (inst.name, ('', 'not ')[services == False])):
+			if suffix:
+				os.rename(spath, "%s.%s" % (spath, suffix))
+
+
+	def _test_passive_checks(self, sub):
+		"""verifies passive check propagation"""
 		queries = {
-			'host': 'GET hosts\nStats: state = 1',
-			'service': 'GET services\nStats: state = 2',
+			'host': 'GET hosts\nColumns: host_name\nFilter: state != 1',
+			'service': 'GET services\nColumns: host_name service_description\nFilter: state != 2',
 		}
 		for inst in self.instances:
 			for otype, query in queries.items():
-				value = inst.live.query(query)[0][0]
-				ret = (self.tap.test(value, len(inst.group.have_objects[otype]),
+				value = inst.live.query(query)
+				ret = (sub.test(len(value), 0,
 					'Passive %s checks should propagate to %s' %
 						(otype, inst.name))
 				)
 				if ret == False:
-					status = False
+					sub.diag('not updated:')
+					if otype == 'host':
+						for l in value:
+							sub.diag('  %s' % l[0])
+					else:
+						for l in value:
+							sub.diag('  %s;%s' % (l[0], l[1]))
+		return sub.get_status() == 0
 
-		return status
+
+	def test_passive_checks(self):
+		"""Verify that passive checks are working properly"""
+		master = self.masters.nodes[0]
+
+		# services first, or the host state will block service
+		# notifications
+		sub = self.tap.sub_init("passive check submission")
+		# must submit 3 check results per service to get notified
+		for x in range(1, 4):
+			for srv in self.masters.have_objects['service']:
+				ret = master.submit_raw_command('PROCESS_SERVICE_CHECK_RESULT;%s;2;Service plugin output' % (srv))
+				sub.test(ret, True, "Setting status of service %s" % srv)
+
+		for host in self.masters.have_objects['host']:
+			ret = master.submit_raw_command('PROCESS_HOST_CHECK_RESULT;%s;1;Plugin output for host %s' % (host, host))
+			sub.test(ret, True, "Setting status of host %s" % host)
+
+		# no point verifying if we couldn't even submit results
+		if sub.done() != 0:
+			return False
+
+		# if passive checks don't spread, there's no point checking
+		# for notifications
+		if not self.ptest("passive check distribution", self._test_passive_checks):
+			return sub.done() == 0
+
+		# make sure 'master1' has sent notifications
+		sub = self.tap.sub_init('passive check notifications')
+		self._test_notifications(sub, master, suffix='passive-checks', hosts=True, services=True)
+		for n in self.instances[1:]:
+			self._test_notifications(sub, n, suffix='passive-checks', hosts=False, services=False)
+		return sub.done() == 0
+
+	def _test_ack_spread(self, sub):
+		for inst in self.instances:
+			value = inst.live.query('GET hosts\nColumns: host_name\nFilter: acknowledged = 0')
+			ret = sub.test(0, len(value), "All host acks should register on %s" % inst.name)
+			if not ret:
+				sub.diag("unacked hosts:")
+				for l in value:
+					sub.diag("  %s" % (l[0]))
+
+			value = inst.live.query('GET services\nColumns: host_name service_description\nFilter: acknowledged = 0')
+			ret = sub.test(0, len(value), 'All service acks should register on %s' % inst.name)
+			if not ret:
+				sub.diag("%d unacked services:" % len(value))
+				for l in value:
+					sub.diag("  %s;%s" % (l[0], l[1]))
+
+			value = inst.live.query('GET comments\nStats: entry_type = 4\nStats: type = 1\nStatsAnd: 2')[0][0]
+			sub.test(value, len(inst.group.have_objects['host']), "Host acks should generate one comment each on %s" % inst.name)
+			value = inst.live.query('GET comments\nStats: entry_type = 4\nStats: type = 2\nStatsAnd: 2')[0][0]
+			sub.test(value, len(inst.group.have_objects['service']), 'Service acks should generate one comment each on %s' % inst.name)
+
+		return sub.get_status() == 0
 
 
 	def test_acks(self):
@@ -833,51 +930,35 @@ class fake_mesh:
 		know about them.
 		XXX: Should also spawn notifications and check for them
 		"""
+		sub = self.tap.sub_init('ack submission')
 		master = self.masters.nodes[0]
 		for host in self.masters.have_objects['host']:
 			ret = master.submit_raw_command(
-				'ACKNOWLEDGE_HOST_PROBLEM;%s;0;0;0;mon testsuite;ack comment for host %s'
+				'ACKNOWLEDGE_HOST_PROBLEM;%s;0;1;0;mon testsuite;ack comment for host %s'
 				% (host, host)
 			)
-			self.tap.test(ret, True, "Acking %s on %s" % (host, master.name))
+			sub.test(ret, True, "Acking %s on %s" % (host, master.name))
 		for srv in self.masters.have_objects['service']:
 			(_hst, _srv) = srv.split(';')
 			ret = master.submit_raw_command(
-				'ACKNOWLEDGE_SVC_PROBLEM;%s;0;0;0;mon testsuite;ack comment for service %s on %s'
+				'ACKNOWLEDGE_SVC_PROBLEM;%s;0;1;0;mon testsuite;ack comment for service %s on %s'
 				% (srv, _srv, _hst)
 			)
-			self.tap.test(ret, True, "Acking %s on %s" % (srv, master.name))
+			sub.test(ret, True, "Acking %s on %s" % (srv, master.name))
 
-		# give all nodes some time before we check to make
-		# sure the ack has spread
-		self.intermission("Letting acks spread")
-		for inst in self.instances:
-			value = inst.live.query('GET hosts\nStats: acknowledged = 1')[0][0]
-			self.tap.test(value, len(inst.group.have_objects['host']),
-				"All host acks should register on %s" % inst.name)
+		if sub.done() != 0:
+			return False
+		if not self.ptest('ack distribution', self._test_ack_spread, 10):
+			return False
 
-			value = inst.live.query('GET services\nStats: acknowledged = 1')[0][0]
-			self.tap.test(value, len(inst.group.have_objects['service']),
-				'All service acks should register on %s' % inst.name)
+		# ack notifications
+		sub = self.tap.sub_init('ack notifications')
+		self._test_notifications(sub, master, suffix='ack-notifications', hosts=True, services=True)
+		for inst in self.instances[1:]:
+			self._test_notifications(sub, inst, suffix='ack-notifications', hosts=False, services=False)
+		return sub.done() == 0
 
-			value = inst.live.query('GET comments\nStats: entry_type = 4\nStats: type = 1\nStatsAnd: 2')[0][0]
-			self.tap.test(value, len(inst.group.have_objects['host']), "Host acks should generate one comment each on %s" % inst.name)
-			value = inst.live.query('GET comments\nStats: entry_type = 4\nStats: type = 2\nStatsAnd: 2')[0][0]
-			self.tap.test(value, len(inst.group.have_objects['service']), 'Service acks should generate one comment each on %s' % inst.name)
-
-		return None
-
-	def get_first_poller(self, master):
-		"""
-		There's no real concept of 'first' here, since the instances is a dict,
-		but we'll at least be consistent in that we return the same poller each
-		time we're called.
-		"""
-		for name, p in master.group.poller_groups.items():
-			return p.nodes[0]
-
-
-	def _schedule_downtime(self, node, ignore={'host': {}, 'service': {}}):
+	def _schedule_downtime(self, sub, node, ignore={'host': {}, 'service': {}}):
 		"""
 		Schedules downtime for all objects on a particular node from that
 		particular node.
@@ -890,7 +971,7 @@ class fake_mesh:
 					('SCHEDULE_HOST_DOWNTIME', host, time.time(),
 					time.time() + 54321, host, node.name)
 			)
-			self.tap.test(ret, True, "Scheduling downtime for %s on %s" %
+			sub.test(ret, True, "Scheduling downtime for %s on %s" %
 				(host, node.name)
 			)
 			ret = node.submit_raw_command(
@@ -898,7 +979,7 @@ class fake_mesh:
 					(host, time.time() + 1, time.time() + 5,
 					host, node.name)
 			)
-			self.tap.test(ret, True, "Adding flexible downtime for host %s from %s" % (host, node.name))
+			sub.test(ret, True, "Adding flexible downtime for host %s from %s" % (host, node.name))
 
 
 		for srv in node.group.have_objects['service']:
@@ -910,49 +991,55 @@ class fake_mesh:
 				('SCHEDULE_SVC_DOWNTIME', srv, time.time(),
 				time.time() + 54321, _service_description, _host_name, node.name)
 			)
-			self.tap.test(ret, True, "Scheduling downtime for %s on %s" %
+			sub.test(ret, True, "Scheduling downtime for %s on %s" %
 				(srv, node.name))
 			ret = node.submit_raw_command(
 				'SCHEDULE_SVC_DOWNTIME;%s;%d;%d;0;0;10;mon testsuite;Flexible downtime for service %s on %s from %s' %
 					(srv, time.time() + 1, time.time() + 5,
 					_service_description, _host_name, node.name)
 			)
-			self.tap.test(ret, True, "Adding flexible downtime for service %s on %s" % (srv, node.name))
+			sub.test(ret, True, "Adding flexible downtime for service %s on %s" % (srv, node.name))
 
-		return self.tap.failed == 0
+		return self.tap.get_status() == 0
 
-	def _unschedule_downtime(self, node, host_ids, svc_ids):
+	def _unschedule_downtime(self, sub, node, host_ids, svc_ids):
 		ret = True
 		for dt in host_ids:
 			ret &= node.submit_raw_command('DEL_HOST_DOWNTIME;%d' % dt);
 		for dt in svc_ids:
 			ret &= node.submit_raw_command('DEL_SVC_DOWNTIME;%d' % dt);
-		self.tap.test(ret, True, "Deleting downtimes on %s" % (node.name))
+		sub.test(ret, True, "Deleting downtimes on %s" % (node.name))
 
-	def _test_downtime_count(self, inst, hosts=0, services=0):
-		start_failed = self.tap.failed
+
+	def _test_downtime_count(self, sub, inst, hosts=0, services=0):
+		start_failed = sub.tcount.get('fail', 0)
 		value = inst.live.query('GET hosts\nStats: scheduled_downtime_depth > 0')[0][0]
-		self.tap.test(value, hosts,
-			'%s: %d/%d hosts have scheduled_downtime_depth > 0' % (inst.name, value, hosts))
+		sub.test(value, hosts, '%s: %d/%d hosts have scheduled_downtime_depth > 0' % (inst.name, value, hosts))
 		value = inst.live.query('GET downtimes\nStats: downtime_type = 2')[0][0]
-		self.tap.test(value, hosts,
-			'%s: %d/%d host downtime entries' % (inst.name, value, hosts))
+		sub.test(value, hosts, '%s: %d/%d host downtime entries' % (inst.name, value, hosts))
 		value = inst.live.query('GET comments\nStats: type = 1\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
-		self.tap.test(value, hosts,
-			'%s: %d/%d host downtime comments present' % (inst.name, value, hosts))
+		sub.test(value, hosts, '%s: %d/%d host downtime comments present' % (inst.name, value, hosts))
 
 		value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
-		self.tap.test(value, services,
-			'%s: %d/%d services have scheduled_downtime_depth > 0' % (inst.name, value, services))
+		sub.test(value, services, '%s: %d/%d services have scheduled_downtime_depth > 0' % (inst.name, value, services))
 		value = inst.live.query('GET downtimes\nStats: downtime_type = 1')[0][0]
-		self.tap.test(value, services,
-			'%s: %d/%d service downtime entries' % (inst.name, value, services))
+		sub.test(value, services, '%s: %d/%d service downtime entries' % (inst.name, value, services))
 		value = inst.live.query('GET comments\nStats: type = 2\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
-		self.tap.test(value, services,
-			'%s: %d/%d service downtime comments present' % (inst.name, value, services))
+		sub.test(value, services, '%s: %d/%d service downtime comments present' % (inst.name, value, services))
 
 		# return false if any of our tests failed
-		return start_failed == self.tap.failed
+		return start_failed == sub.tcount.get('fail', 0)
+
+	def _test_dt_count(self, sub, **kwargs):
+		arg_hosts = kwargs.get('hosts', None)
+		arg_services = kwargs.get('services', None)
+		nodes = kwargs.get('nodes', self.instances)
+		for inst in nodes:
+			hosts = (arg_hosts, inst.group.num_objects['host'])[arg_hosts == None]
+			services = (arg_services, inst.group.num_objects['service'])[arg_services == None]
+			self._test_downtime_count(sub, inst, hosts=hosts, services=services)
+		return sub.get_status() == 0
+
 
 	def test_downtime(self):
 		"""
@@ -970,12 +1057,12 @@ class fake_mesh:
 		scheduled = {'host': {}, 'service': {}}
 
 		master = self.masters.nodes[0]
-		poller = self.get_first_poller(master)
+		poller = self.pgroups[0].nodes[0]
 
-		# expiring downtime
+		sub = self.tap.sub_init('expiring downtime')
 		print("Submitting fixed expiring downtime to master %s" % master.name)
 		start_time = int(time.time()) + 1
-		end_time = start_time + 20
+		end_time = start_time + 15
 		duration = end_time - start_time
 		for h in master.group.have_objects['host']:
 			master.submit_raw_command('SCHEDULE_HOST_DOWNTIME;%s;%d;%d;1;0;%d;mon test suite;expire downtime test for %s' %
@@ -983,65 +1070,68 @@ class fake_mesh:
 		for s in master.group.have_objects['service']:
 			master.submit_raw_command('SCHEDULE_SVC_DOWNTIME;%s;%d;%d;1;0;%d;mon test suite;expire downtime test for %s' %
 				(s, start_time, end_time, duration, s))
-		self.intermission("Letting downtime spread", 10)
-		for inst in self.instances:
-			self._test_downtime_count(inst, inst.group.num_objects['host'], inst.group.num_objects['service'])
-		self.intermission('Letting downtime expire', 15)
-		for inst in self.instances:
-			self._test_downtime_count(inst, 0, 0)
+		self.ptest('downtime spread', self._test_dt_count, 20, sub)
+		expire_start = time.time()
+		self.intermission("Letting downtime expire", 10)
+		self.ptest("downtime expiration", self._test_dt_count,
+			15, sub, hosts=0, services=0
+		)
+		sub.done()
 
+		sub = self.tap.sub_init('poller-scheduled downtime')
 		print("Submitting downtime to poller %s" % poller.name)
-		self._schedule_downtime(poller)
-		self._schedule_downtime(master, poller.group.have_objects)
+		self._schedule_downtime(sub, poller)
+		self._schedule_downtime(sub, master, poller.group.have_objects)
 
 		# give all nodes some time before we check to
 		# make sure the downtime has spread
-		self.intermission("Letting downtime spread")
-		for inst in self.instances:
-			self._test_downtime_count(inst, inst.group.num_objects['host'], inst.group.num_objects['service'])
+		self.ptest('poller-scheduled downtime: spread', self._test_dt_count, 20, sub)
 
 		host_downtimes = [x[0] for x in master.live.query('GET downtimes\nColumns: id\nFilter: is_service = 0')]
 		service_downtimes = [x[0] for x in master.live.query('GET downtimes\nColumns: id\nFilter: is_service = 1')]
-		self._unschedule_downtime(master, host_downtimes, service_downtimes)
-		self.intermission("Letting downtime deletion spread")
-		for inst in self.instances:
-			self._test_downtime_count(inst, 0, 0)
+		self._unschedule_downtime(sub, master, host_downtimes, service_downtimes)
+		self.ptest('poller-scheduled downtime: deletion', self._test_dt_count, 20, sub, hosts=0, services=0)
+		sub.done()
 
+		sub = self.tap.sub_init('propagating triggered downtime')
 		# propagating triggered
 		print("Submitting propagating downtime to master %s" % master.name)
 		master.submit_raw_command('SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME;%s;%d;%d;%d;%d;%d;%s;%s' %
 			(poller.group_name + '.0001', time.time(), time.time() + 54321, 1, 0, 0, poller.group_name + '.0001', master.name))
-		self.intermission("Letting downtime spread")
-		for inst in self.masters.nodes + poller.group.nodes:
-			self._test_downtime_count(inst, poller.group.num_objects['host'], 0)
+		self.ptest('propagating downtime: spread', self._test_dt_count, 20, sub,
+				hosts=poller.group.num_objects['host'],
+				services=0,
+				nodes=self.masters.nodes + poller.group.nodes
+		)
 
 		parent_downtime = master.live.query('GET downtimes\nColumns: id\nFilter: host_name = %s\nFilter: is_service = 0' %
-		    (poller.group_name + '.0001'))[0]
-		self._unschedule_downtime(master, parent_downtime, [])
-		self.intermission("Letting downtime deletion spread")
-		for inst in self.instances:
-			self._test_downtime_count(inst, 0, 0)
+		    (poller.group_name + '.0001'))
+		sub.test(len(parent_downtime), 1, "There should be exactly one parent downtime")
+		self._unschedule_downtime(sub, master, parent_downtime[0], [])
+		self.ptest('propagating downtime: deletion', self._test_dt_count, 20, sub, hosts=0, services=0)
+		sub.done()
 
 		return None
 
 
-	def _add_comments(self, node, ignore={'host': {}, 'service': {}}):
+	def _add_comments(self, sub, node):
 		"""
 		Schedules downtime for all objects on a particular node from that
 		particular node.
 		"""
+		is_master = node.name.startswith('master')
 		for host in node.group.have_objects['host']:
-			if host in ignore['host']:
+			if is_master and host.startswith('pg'):
 				continue
 			ret = node.submit_raw_command(
 				'%s;%s;1;mon testsuite;comment for host %s from %s' %
 					('ADD_HOST_COMMENT', host, host, node.name)
 			)
-			self.tap.test(ret, True, "Adding comment for %s from %s" %
+			sub.test(ret, True, "Adding comment for %s from %s" %
 				(host, node.name)
 			)
 		for srv in node.group.have_objects['service']:
-			if srv in ignore['service']:
+			if is_master and srv.startswith('pg'):
 				continue
 			(_host_name, _service_description) = srv.split(';', 1)
 			ret = node.submit_raw_command(
@@ -1049,10 +1139,20 @@ class fake_mesh:
 				('ADD_SVC_COMMENT', srv,
 				_service_description, _host_name, node.name)
 			)
-			self.tap.test(ret, True, "Adding comment for service %s on %s from %s" %
+			sub.test(ret, True, "Adding comment for service %s on %s from %s" %
 				(_service_description, _host_name, node.name))
 
-		return self.tap.failed == 0
+		return sub.get_status() == 0
+
+	def _test_comment_spread(self, sub):
+		for inst in self.instances:
+			value = inst.live.query('GET comments\nStats: type = 1\nStats: entry_type = 1\nStatsAnd: 2')[0][0]
+			sub.test(value, len(inst.group.have_objects['host']),
+				"Host comments should spread to %s" % inst.name)
+			value = inst.live.query('GET comments\nStats: type = 2\nStats: entry_type = 1\nStatsAnd: 2')[0][0]
+			sub.test(value, len(inst.group.have_objects['service']),
+				'Service comments should spread to %s' % inst.name)
+		return sub.get_status() == 0
 
 	def test_comments(self):
 		"""
@@ -1060,46 +1160,78 @@ class fake_mesh:
 		and makes sure they get propagated to the nodes that need to
 		know about them.
 		"""
+		sub = self.tap.sub_init('comments')
 		master = self.masters.nodes[0]
-		poller = self.get_first_poller(master)
-		print("Submitting comments to poller %s" % poller.name)
-		self._add_comments(poller)
-		self._add_comments(master, poller.group.have_objects)
+		for pg in self.pgroups:
+			self._add_comments(sub, pg.nodes[0])
+		self._add_comments(sub, master)
+		ret = sub.done()
 
 		# give all nodes some time before we check to make
 		# sure the ack has spread
-		self.intermission("Letting comments spread")
-		for inst in self.instances:
-			value = inst.live.query('GET comments\nStats: type = 1\nStats: entry_type = 1\nStatsAnd: 2')[0][0]
-			self.tap.test(value, len(inst.group.have_objects['host']),
-				"Host comments should spread to %s" % inst.name)
-			value = inst.live.query('GET comments\nStats: type = 2\nStats: entry_type = 1\nStatsAnd: 2')[0][0]
-			self.tap.test(value, len(inst.group.have_objects['service']),
-				'Service comments should spread to %s' % inst.name)
-		return None
-
+		if ret or self.ptest('comment spread', self._test_comment_spread, 30):
+			return False
+		return True
 
 	#
 	# Actual tests end here
 	#
 	##########################################################
 
-	def finalize_tests(self):
-		if self.tap.failed:
-			print("passed: %s%d%s" % (color.green, self.tap.passed, color.reset))
-			print("failed: %s%d%s" % (color.red, self.tap.failed, color.reset))
-			return False
-		print("All %s%d%s tests passed. Yay! :)" % (color.green, self.tap.passed, color.reset))
-		return self.tap.failed == 0
+	def write_progress(self, sub, start):
+		"""Write progress output for sub-suite sub"""
+		if not os.isatty(sys.stdout.fileno()):
+			return
+		now = time.time()
+		ok = sub.tcount.get('ok', 0) + sub.tcount.get('fixed', 0)
+		sys.stdout.write("%.2fs %d / %d passed (other: %d)\r" %
+			(now - start, ok, sub.num_tests, sub.tcount.get('todo', 0))
+		)
+		sys.stdout.flush()
+
+	def ptest(self, sub_name, func, max_time=30, tap=False, **kwargs):
+		"""progressively run tests and output status
+		sub_name: name of subsuite
+		func: Function to use for testing subsuite
+		max_time: Max runtime of subsuite
+		tap: tap object to create subsuite from
+		"""
+		if not tap:
+			tap = self.tap
+		sub = tap.sub_init(sub_name)
+		start = time.time()
+		max_time *= self.valgrind_multiplier
+		interval = 0.25 * self.valgrind_multiplier
+		while True:
+			last = start + max_time < time.time()
+			sub.verbose = last
+			ret = func(sub, **kwargs)
+			self.write_progress(sub, start)
+			if sub.get_status() == 0 or last:
+				break
+			time.sleep(interval)
+			sub.reset()
+
+		if sub.done() == 0:
+			return True
+		return ret
 
 
 	def start_daemons(self, dname=False, stagger=True):
 		i = 0
+		if dname:
+			sys.stdout.write("Launching %s daemons " % (dname))
+		else:
+			sys.stdout.write("Launching daemons ")
 		for inst in self.instances:
 			i += 1
+			sys.stdout.write('.')
+			sys.stdout.flush()
 			inst.start_daemons(self.progs, dname)
 			if stagger and i < len(self.instances):
-				self.intermission("Staggering daemon starts to enfore peer id's", 0.25)
+				time.sleep(0.25 * self.valgrind_multiplier)
+
+		sys.stdout.write("\n")
 		return
 
 
@@ -1128,8 +1260,6 @@ class fake_mesh:
 
 		for inst in self.instances:
 			inst.slay_daemons(dname)
-		if not self.shutting_down:
-			self.test_alive(daemon=dname, verbose=False, expect=False, sig_ok=9)
 
 
 	def destroy_playground(self):
@@ -1155,7 +1285,7 @@ class fake_mesh:
 		if msg != False:
 			print("%s" % msg)
 
-		self.finalize_tests()
+		ret = self.tap.done()
 		if not self.batch:
 			print("When done testing and examining, just press enter")
 			buf = sys.stdin.readline()
@@ -1167,12 +1297,10 @@ class fake_mesh:
 
 		self.close_db()
 
-		if self.tap.failed == 0:
-			sys.exit(0)
-		sys.exit(1)
+		sys.exit(ret)
 
 
-	def create_playground(self, num_hosts=3, num_services_per_host=5):
+	def create_playground(self, num_hosts=False, num_services_per_host=False):
 		"""
 		Sets up the directories and configuration required for testing
 		"""
@@ -1183,13 +1311,14 @@ class fake_mesh:
 		port = self.baseport
 		self.masters = fake_peer_group(self.basepath, 'master', self.num_masters, port, valgrind = self.valgrind)
 		port += self.num_masters
+		self.master1 = self.masters.nodes[0]
 		i = 0
 		self.pgroups = []
-		while i < self.poller_groups:
+		for p in self.opt_pgroups:
 			i += 1
 			group_name = "pg%d" % i
-			self.pgroups.append(fake_peer_group(self.basepath, group_name, self.pollers_per_group, port, valgrind = self.valgrind))
-			port += self.pollers_per_group
+			self.pgroups.append(fake_peer_group(self.basepath, group_name, p, port, valgrind=self.valgrind))
+			port += p
 
 		for inst in self.masters.nodes:
 			self.instances.append(inst)
@@ -1203,12 +1332,18 @@ class fake_mesh:
 
 		self.groups = self.pgroups + [self.masters]
 
-		for inst in self.instances:
-			inst.add_subst('@@OCIMP_PATH@@', self.ocimp_path)
-			inst.add_subst('@@MODULE_PATH@@', self.merlin_mod_path)
-			inst.add_subst('@@LIVESTATUS_O@@', self.livestatus_o)
-			inst.create_directories()
-			inst.create_core_config()
+		for pg in self.groups:
+			sys.stdout.write("Creating core config for peer-group %s with %d nodes\n  " %
+				(pg.group_name, len(pg.nodes)))
+			for inst in pg.nodes:
+				sys.stdout.write("%s " % inst.name)
+				sys.stdout.flush()
+				inst.add_subst('@@OCIMP_PATH@@', self.ocimp_path)
+				inst.add_subst('@@MODULE_PATH@@', self.merlin_mod_path)
+				inst.add_subst('@@LIVESTATUS_O@@', self.livestatus_o)
+				inst.create_directories()
+				inst.create_core_config()
+			sys.stdout.write("\n")
 
 		self.masters.create_object_config(num_hosts, num_services_per_host)
 
@@ -1383,6 +1518,11 @@ def cmd_ocount(args):
 		sys.exit(1)
 	sys.exit(0)
 
+def _verify_path(p, perms, critical=True):
+	if os.access(p, perms) < 0 and critical:
+		print("Unable to access %s. Did you forget to build?")
+		sys.exit(1)
+
 
 def cmd_dist(args):
 	"""[options]
@@ -1390,8 +1530,7 @@ def cmd_dist(args):
 	  --basepath=<basepath>     basepath to use
 	  --sleeptime=<int>         seconds to sleep before testing
 	  --masters=<int>           number of masters to create
-	  --poller-groups=<int>     number of poller groups to create
-	  --pollers-per-group=<int> number of pollers per created group
+	  --pgroups=<csv>           poller-group sizes [default: 5,3,1]
 	  --merlin-binary=<path>    path to merlin daemon binary
 	  --nagios-binary=<path>    path to nagios daemon binary
 	  --destroy-databases       only destroy databases
@@ -1410,8 +1549,8 @@ def cmd_dist(args):
 	"""
 	global dist_test_mesh
 
-	num_hosts = 3
-	num_services_per_host = 6
+	num_hosts = False
+	num_services_per_host = False
 	setup = True
 	destroy = True
 	basepath = '/tmp/merlin-dtest'
@@ -1422,8 +1561,7 @@ def cmd_dist(args):
 	db_host = 'localhost'
 	sql_schema_paths = []
 	num_masters = 3
-	poller_groups = 1
-	pollers_per_group = 3
+	opt_pgroups = [4,2,1]
 	merlin_path = '/opt/monitor/op5/merlin'
 	merlin_mod_path = '%s/merlin.so' % merlin_path
 	merlin_binary = '%s/merlind' % merlin_path
@@ -1473,12 +1611,10 @@ def cmd_dist(args):
 			db_host = arg.split('=', 1)[1]
 		elif arg.startswith('--masters='):
 			num_masters = int(arg.split('=', 1)[1])
-		elif arg.startswith('--poller-groups='):
-			poller_groups = int(arg.split('=', 1)[1])
-		elif arg.startswith('--pollers-per-group='):
-			pollers_per_group = int(arg.split('=', 1)[1])
-		elif arg.startswith('--masters='):
-			num_masters = int(arg.split('=', 1)[1])
+		elif arg.startswith('--pgroups='):
+			opt_pgroups = []
+			for p in arg.split('=', 1)[1].split(','):
+				opt_pgroups.append(int(p))
 		elif arg.startswith('--merlin-binary='):
 			merlin_binary = arg.split('=', 1)[1]
 		elif arg.startswith('--nagios-binary=') or arg.startswith('--monitor-binary='):
@@ -1540,24 +1676,25 @@ def cmd_dist(args):
 			t = t.replace('-', '_')
 		if test_doc.get(t):
 			stash.append(t)
+			if t == 'acks':
+				stash.append('passive_checks')
 		else:
 			print("No such test: %s" % t)
-
-	if not len(selected_tests) and not len(deselected_tests):
-		if not len(arg_tests):
-			tests = avail_tests
-		else:
-			print("You seem to have serious typing issues")
 			sys.exit(1)
-	else:
-		for t in selected_tests:
-			if t not in deselected_tests:
-				tests.append(t)
 
-	if sleeptime == False:
-		sleeptime = 3 + (num_masters + (poller_groups * pollers_per_group))
+	if not len(selected_tests):
+		selected_tests = avail_tests
+	for t in selected_tests:
+		if t not in deselected_tests:
+			tests.append(t)
 
-	if (not poller_groups or not pollers_per_group) and not confgen_only:
+	have_pollers = False
+	for p in opt_pgroups:
+		if p > 0:
+			have_pollers = True
+			break
+
+	if not have_pollers and not confgen_only:
 		print("Can't run tests with zero pollers")
 		sys.exit(1)
 
@@ -1565,19 +1702,27 @@ def cmd_dist(args):
 		print("Can't run proper tests with less than two masters")
 		sys.exit(1)
 
+	if sleeptime == False:
+		sleeptime = 10
+
 	# done parsing arguments, so get real paths to merlin and nagios
 	if nagios_binary[0] != '/':
 		nagios_binary = os.path.abspath(nagios_binary)
 	if merlin_binary[0] != '/':
 		merlin_binary = os.path.abspath(merlin_binary)
 
+	_verify_path(nagios_binary, os.X_OK)
+	_verify_path(merlin_binary, os.X_OK)
+	_verify_path(livestatus_o, os.R_OK)
+	_verify_path(ocimp_path, os.X_OK, use_database)
+	_verify_path(merlin_mod_path, os.R_OK)
+
 	mesh = fake_mesh(
 		basepath,
 		prog_merlin=merlin_binary,
 		prog_nagios=nagios_binary,
 		num_masters=num_masters,
-		poller_groups=poller_groups,
-		pollers_per_group=pollers_per_group,
+		opt_pgroups=opt_pgroups,
 		merlin_mod_path=merlin_mod_path,
 		ocimp_path=ocimp_path,
 		livestatus_o=livestatus_o,
@@ -1606,7 +1751,6 @@ def cmd_dist(args):
 	# break out early in case one or more of the required
 	# ones fail hard.
 	try:
-		mesh.intermission("Allowing nodes to connect to each other", 5)
 		if mesh.test_connections() == False:
 			mesh.shutdown('Connection tests failed. Bailing out')
 
@@ -1644,13 +1788,13 @@ def cmd_dist(args):
 		# Some of the helper functions call sys.exit(1) to bail out.
 		# Let's assume they take care of cleaning up before doing so
 		raise
-	except:
+	except Exception, e:
 		# Don't leave stuff running, just because we messed up
 		print '*'*40
 		print 'Exception while running tests:'
 		traceback.print_exc()
 		print '*'*40
-		mesh.tap.failed = True
+		mesh.tap.fail("System exception caught: %s" % e)
 		mesh.shutdown()
 		raise
 
