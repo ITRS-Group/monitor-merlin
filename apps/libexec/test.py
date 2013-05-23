@@ -845,16 +845,18 @@ class fake_mesh:
 		"""Verify that passive checks are working properly"""
 		master = self.masters.nodes[0]
 
+		# services first, or the host state will block service
+		# notifications
 		sub = self.tap.sub_init("passive check submission")
+		# must submit 3 check results per service to get notified
+		for x in range(1, 4):
+			for srv in self.masters.have_objects['service']:
+				ret = master.submit_raw_command('PROCESS_SERVICE_CHECK_RESULT;%s;2;Service plugin output' % (srv))
+				sub.test(ret, True, "Setting status of service %s" % srv)
+
 		for host in self.masters.have_objects['host']:
 			ret = master.submit_raw_command('PROCESS_HOST_CHECK_RESULT;%s;1;Plugin output for host %s' % (host, host))
 			sub.test(ret, True, "Setting status of host %s" % host)
-			if ret == False:
-				status = False
-
-		for srv in self.masters.have_objects['service']:
-			ret = master.submit_raw_command('PROCESS_SERVICE_CHECK_RESULT;%s;2;Service plugin output' % (srv))
-			sub.test(ret, True, "Setting status of service %s" % srv)
 
 		# no point verifying if we couldn't even submit results
 		if sub.done() != 0:
