@@ -817,6 +817,26 @@ class fake_mesh:
 			return False
 		return self.ptest('global command spreading', self._test_global_command_spread)
 
+
+	def _test_notifications(self, sub, inst, **kwargs):
+		"""Tests for the presence of notifications"""
+		hosts = kwargs.get('hosts', False)
+		services = kwargs.get('services', False)
+		suffix = kwargs.get('suffix', False)
+		if suffix:
+			suffix = suffix.replace(' ', '-')
+		hpath = "%s/hnotify.log" % inst.home
+		spath = "%s/snotify.log" % inst.home
+		if not sub.test(os.access(hpath, os.R_OK), hosts,
+			'%s should %ssend host notifications' % (inst.name, ('', 'not ')[hosts == False])):
+			if suffix:
+				os.rename(hpath, "%s.%s" % (hpath, suffix))
+		if not sub.test(os.access(spath, os.R_OK), services,
+			'%s should %ssend service notifications' % (inst.name, ('', 'not ')[services == False])):
+			if suffix:
+				os.rename(spath, "%s.%s" % (spath, suffix))
+
+
 	def _test_passive_checks(self, sub):
 		"""verifies passive check propagation"""
 		queries = {
@@ -862,7 +882,17 @@ class fake_mesh:
 		if sub.done() != 0:
 			return False
 
-		return self.ptest("passive check distribution", self._test_passive_checks)
+		# if passive checks don't spread, there's no point checking
+		# for notifications
+		if not self.ptest("passive check distribution", self._test_passive_checks):
+			return sub.done() == 0
+
+		# make sure 'master1' has sent notifications
+		sub = self.tap.sub_init('passive check notifications')
+		self._test_notifications(sub, master, suffix='passive-checks', hosts=True, services=True)
+		for n in self.instances[1:]:
+			self._test_notifications(sub, n, suffix='passive-checks', hosts=False, services=False)
+		return sub.done() == 0
 
 	def _test_ack_spread(self, sub):
 		for inst in self.instances:
@@ -899,22 +929,29 @@ class fake_mesh:
 		master = self.masters.nodes[0]
 		for host in self.masters.have_objects['host']:
 			ret = master.submit_raw_command(
-				'ACKNOWLEDGE_HOST_PROBLEM;%s;0;0;0;mon testsuite;ack comment for host %s'
+				'ACKNOWLEDGE_HOST_PROBLEM;%s;0;1;0;mon testsuite;ack comment for host %s'
 				% (host, host)
 			)
 			sub.test(ret, True, "Acking %s on %s" % (host, master.name))
 		for srv in self.masters.have_objects['service']:
 			(_hst, _srv) = srv.split(';')
 			ret = master.submit_raw_command(
-				'ACKNOWLEDGE_SVC_PROBLEM;%s;0;0;0;mon testsuite;ack comment for service %s on %s'
+				'ACKNOWLEDGE_SVC_PROBLEM;%s;0;1;0;mon testsuite;ack comment for service %s on %s'
 				% (srv, _srv, _hst)
 			)
 			sub.test(ret, True, "Acking %s on %s" % (srv, master.name))
 
 		if sub.done() != 0:
 			return False
-		return self.ptest('ack distribution', self._test_ack_spread, 10)
+		if not self.ptest('ack distribution', self._test_ack_spread, 10):
+			return False
 
+		# ack notifications
+		sub = self.tap.sub_init('ack notifications')
+		self._test_notifications(sub, master, suffix='ack-notifications', hosts=True, services=True)
+		for inst in self.instances[1:]:
+			self._test_notifications(sub, inst, suffix='ack-notifications', hosts=False, services=False)
+		return sub.done() == 0
 
 	def _schedule_downtime(self, sub, node, ignore={'host': {}, 'service': {}}):
 		"""
