@@ -1916,7 +1916,7 @@ def cmd_pasv(args):
 	  --delay=<int>         delay between submitting and checking (def 25)
 
 	!!! WARNING !!!     !!! WARNING !!!
-	This command will disble active checks on your system and have other
+	This command will disable active checks on your system and have other
 	side-effects as well.
 	!!! WARNING !!!     !!! WARNING !!!
 	"""
