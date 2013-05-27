@@ -685,7 +685,7 @@ class fake_mesh:
 			row = inst.dbc.fetchone()
 			tps = row[0]
 			sub.test(tps, 2, "%s must import timeperiods" % inst.name)
-			if ret == False:
+			if res == False:
 				status = False
 		return sub.done() == 0
 
