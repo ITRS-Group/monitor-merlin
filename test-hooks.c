@@ -2,7 +2,7 @@
 #include "test_utils.h"
 
 #define T_ASSERT(pred, msg) do {\
-	if ((pred)) { t_pass(msg); } else { t_fail(msg); exit(1); } \
+	if ((pred)) { t_pass(msg); } else { t_fail(msg); } \
 	} while (0)
 /* extern STUBS */
 merlin_node *merlin_sender = NULL;
@@ -65,11 +65,12 @@ void test_callback_host_status() {
 
 void test_callback_host_check() {
 	time_t expected_last_check = time(NULL);
+	time_t not_expected_last_check = 2147123099;
 	host hst;
 	memset(&hst, 0, sizeof(host));
 	hst.id = 1;
 	hst.name = "test-host";
-	hst.last_check = time(NULL);
+	hst.last_check = not_expected_last_check;
 	nebstruct_host_check_data ev_data;
 	merlin_host_status *event_body;
 	struct timeval tv;
