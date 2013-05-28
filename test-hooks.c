@@ -2,7 +2,7 @@
 #include "test_utils.h"
 
 #define T_ASSERT(pred, msg) do {\
-	if ((pred)) { t_pass(msg); } else { t_fail(msg); } \
+	if ((pred)) { t_pass("%s: %s", __FUNCTION__, msg); } else { t_fail("%s: %s", __FUNCTION__, msg); } \
 	} while (0)
 /* extern STUBS */
 merlin_node *merlin_sender = NULL;
