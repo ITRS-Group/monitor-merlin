@@ -185,7 +185,7 @@ sltest: sltest.o test_utils.o slist.o
 bltest: binlog.o bltest.o test_utils.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $(DAEMON_LDFLAGS) $^ -o $@
 
-hooktest: test-hooks.o test_utils.o hooks.o $(SHARED_OBJS)
+hooktest: test-hooks.o test_utils.o hooks.o $(COMMON_OBJS) codec.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $^ -o $@ $(HOOKTEST_LDFLAGS)
 
 bltest.o: bltest.c binlog.h
