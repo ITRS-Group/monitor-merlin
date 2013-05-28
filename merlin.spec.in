@@ -49,6 +49,7 @@ Summary: A Nagios module designed to communicate with the Merlin daemon
 Group: op5/Monitor
 Requires: op5-nagios >= 3.99.99.7, merlin = %version-%release
 Requires: monitor-config
+Requires: op5-monitor-supported-database
 
 %description -n monitor-merlin
 monitor-merlin is an event broker module running inside Nagios. Its
@@ -60,6 +61,7 @@ merlin daemon, which then takes appropriate action.
 Summary: Applications used to set up and aid a merlin/ninja installation
 Group: op5/Monitor
 Requires: rsync
+Requires: op5-monitor-supported-database
 %if 0%{?suse_version}
 Requires: libdbi1
 Requires: python-mysql
@@ -158,6 +160,15 @@ cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
 /etc/init.d/merlind stop >/dev/null || :
 
 # Verify that mysql-server is installed and running before executing sql scripts
+%if 0%{?suse_version}
+if ! service mysql status; then
+service mysql start
+fi
+%else
+if ! service mysqld status; then
+service mysqld start
+fi
+%endif
 $(mysql -Be "quit" 2>/dev/null) && MYSQL_AVAILABLE=1
 if [ -n "$MYSQL_AVAILABLE" ]; then
   %mod_path/install-merlin.sh %install_args --batch --install=db
