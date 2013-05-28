@@ -1,9 +1,9 @@
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <google/cmockery.h>
 #include "module.h"
+#include "test_utils.h"
 
+#define T_ASSERT(pred, msg) do {\
+	if ((pred)) { t_pass(msg); } else { t_fail(msg); } \
+	} while (0)
 /* extern STUBS */
 merlin_node *merlin_sender = NULL;
 struct merlin_notify_stats merlin_notify_stats[9][2][2];
@@ -24,7 +24,7 @@ int neb_deregister_callback(int callback_type, int (*callback_func)(int, void *)
 }
 /* extern STUBS */
 
-void callback_host_status_test(void **state) {
+void test_callback_host_status() {
 	host *hst =NULL;
 	nebstruct_host_check_data ev_data;
 	struct timeval tv;
@@ -35,13 +35,13 @@ void callback_host_status_test(void **state) {
 	ev_data.timestamp = tv;
 	ev_data.object_ptr = (void *)hst;
 	merlin_mod_hook(NEBCALLBACK_HOST_STATUS_DATA, &ev_data);
+	T_ASSERT(0 == 0, "zero should equal itself!");
 }
 
 int main(int argc, char *argv[]) {
-	const UnitTest tests[] = {
-		unit_test(callback_host_status_test),
-	};
+	t_set_colors(0);
+	t_verbose = 1;
 
-	return run_tests(tests);
-
+	t_start("testing neb module to daemon interface");
+	test_callback_host_status();
 }
