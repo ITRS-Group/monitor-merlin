@@ -88,7 +88,54 @@ void test_callback_host_check() {
 	T_ASSERT(expected_last_check == event_body->state.last_check, "last_check field is updated to reflect nagios.log entry");
 }
 
-
+void test_callback_service_status() {
+	time_t expected_last_check = time(NULL);
+	service svc;
+	memset(&svc, 0, sizeof(service));
+	svc.id = 1;
+	svc.host_name = "test-host";
+	svc.description = "test-service";
+	svc.last_check = expected_last_check;
+	nebstruct_service_status_data ev_data;
+	merlin_service_status *event_body;
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	ev_data.type = NEBTYPE_SERVICESTATUS_UPDATE;
+	ev_data.flags = 0;
+	ev_data.attr = 0;
+	ev_data.timestamp = tv;
+	ev_data.object_ptr = &svc;
+	merlin_mod_hook(NEBCALLBACK_SERVICE_STATUS_DATA, &ev_data);
+	T_ASSERT(last_decoded_event->hdr.type == NEBCALLBACK_SERVICE_STATUS_DATA, "event type is left untouched");
+	event_body = (merlin_service_status *)last_decoded_event->body;
+	T_ASSERT(0 == strcmp(event_body->host_name, svc.host_name), "host name is left untouched");
+	T_ASSERT(expected_last_check == event_body->state.last_check, "last_check field is left untouched");
+}
+void test_callback_service_check() {
+	time_t expected_last_check = time(NULL);
+	time_t not_expected_last_check = 2147123099;
+	service svc;
+	memset(&svc, 0, sizeof(service));
+	svc.id = 1;
+	svc.host_name = "test-host";
+	svc.description = "test-service";
+	svc.last_check = not_expected_last_check;
+	nebstruct_service_check_data ev_data;
+	merlin_service_status *event_body;
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	ev_data.type = NEBTYPE_SERVICECHECK_PROCESSED;
+	ev_data.flags = 0;
+	ev_data.attr = 0;
+	ev_data.timestamp = tv;
+	ev_data.object_ptr = &svc;
+	ev_data.end_time.tv_sec =  expected_last_check;
+	merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, &ev_data);
+	T_ASSERT(last_decoded_event->hdr.type == NEBCALLBACK_SERVICE_CHECK_DATA, "event type is left untouched");
+	event_body = (merlin_service_status *)last_decoded_event->body;
+	T_ASSERT(0 == strcmp(event_body->host_name, svc.host_name), "host name is left untouched");
+	T_ASSERT(expected_last_check == event_body->state.last_check, "last_check field is updated to reflect nagios.log entry");
+}
 int main(int argc, char *argv[]) {
 	t_set_colors(0);
 	t_verbose = 1;
@@ -96,6 +143,8 @@ int main(int argc, char *argv[]) {
 	t_start("testing neb module to daemon interface");
 	test_callback_host_status();
 	test_callback_host_check();
+	test_callback_service_status();
+	test_callback_service_check();
 	t_end();
 	return 0;
 }
