@@ -726,22 +726,7 @@ class fake_mesh:
 
 		return ret
 
-
-	def test_active_checks(self):
-		"""
-		Enables active checks and checks (via ochp and ocsp commands)
-		that checks are properly run by the nodes supposed to take
-		care of them.
-		Checks can be tracked by monitoring @@BASEPATH@@/*-checks.log
-		"""
-		sub = self.tap.sub_init('active checks')
-		master = self.masters.nodes[0]
-		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
-		master.submit_raw_command('START_EXECUTING_SVC_CHECKS')
-		self.intermission("Running active checks", 120)
-		master.submit_raw_command('STOP_EXECUTING_HOST_CHECKS')
-		master.submit_raw_command('STOP_EXECUTING_SVC_CHECKS')
-
+	def _test_active_checks(self, sub):
 		# now get nodeinfo snapshot and check to make sure
 		# * All nodes have all checks accounted for
 		# * All nodes agree on which node ran which check
@@ -753,7 +738,7 @@ class fake_mesh:
 			for i in inst.nodeinfo:
 				hchecks += int(i.host_checks_executed)
 				schecks += int(i.service_checks_executed)
-				self.tap.test(i.assigned_hosts, i.host_checks_executed,
+				sub.test(i.assigned_hosts, i.host_checks_executed,
 					"host checks for %s from %s" % (i.name, inst.name))
 				sub.test(i.assigned_services, i.service_checks_executed,
 					"service checks for %s from %s" % (i.name, inst.name))
@@ -761,9 +746,23 @@ class fake_mesh:
 				"%s should have all host checks accounted for" % inst.name)
 			sub.test(schecks, inst.group.num_objects['service'],
 				"%s should have all service checks accounted for" % inst.name)
+		return sub.get_status() == 0
 
+	def test_active_checks(self):
+		"""
+		Enables active checks and checks (via ochp and ocsp commands)
+		that checks are properly run by the nodes supposed to take
+		care of them.
+		Checks can be tracked by monitoring @@BASEPATH@@/*-checks.log
+		"""
+		master = self.masters.nodes[0]
+		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
+		master.submit_raw_command('START_EXECUTING_SVC_CHECKS')
+		status = self.ptest('active checks', self._test_active_checks, 60)
+		master.submit_raw_command('STOP_EXECUTING_HOST_CHECKS')
+		master.submit_raw_command('STOP_EXECUTING_SVC_CHECKS')
 		self.intermission('Letting active check disabling spread', 10)
-		return sub.done() == 0
+		return self.tap.get_status() == 0
 
 	def _test_global_command_spread(self, sub):
 		queries = [
