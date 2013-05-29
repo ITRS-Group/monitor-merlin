@@ -843,21 +843,30 @@ class fake_mesh:
 
 
 	def _test_passive_checks(self, sub):
-		"""verifies passive check propagation"""
+		"""verifies passive check propagation
+		One host per peer-group should be DOWN, the rest should be
+		UNREACHABLE.
+		"""
 		queries = {
-			'host': 'GET hosts\nColumns: host_name\nFilter: state != 1',
-			'service': 'GET services\nColumns: host_name service_description\nFilter: state != 2',
+			'DOWN hosts': 'GET hosts\nColumns: host_name\nFilter: state = 1',
+			'UNRACHABLE hosts': 'GET hosts\nColumns: host_name\nFilter: state = 2',
+			'CRITICAL services': 'GET services\nColumns: host_name service_description\nFilter: state = 2',
 		}
 		for inst in self.instances:
+			expect_down = 1
+			if inst.name.startswith('master'):
+				expect_down += len(self.pgroups)
+			expected = {
+				'DOWN hosts': expect_down,
+				'UNRACHABLE hosts': inst.group.num_objects['host'] - expect_down,
+				'CRITICAL services': inst.group.num_objects['service'],
+			}
 			for otype, query in queries.items():
 				value = inst.live.query(query)
-				ret = (sub.test(len(value), 0,
-					'Passive %s checks should propagate to %s' %
-						(otype, inst.name))
-				)
+				ret = (sub.test(len(value), expected[otype], '%s should have right amount of %s' % (inst.name, otype)))
 				if ret == False:
 					sub.diag('not updated:')
-					if otype == 'host':
+					if 'host' in otype:
 						for l in value:
 							sub.diag('  %s' % l[0])
 					else:
@@ -889,7 +898,7 @@ class fake_mesh:
 
 		# if passive checks don't spread, there's no point checking
 		# for notifications
-		if not self.ptest("passive check distribution", self._test_passive_checks):
+		if not self.ptest("passive check distribution", self._test_passive_checks, 15):
 			return sub.done() == 0
 
 		# make sure 'master1' has sent notifications
