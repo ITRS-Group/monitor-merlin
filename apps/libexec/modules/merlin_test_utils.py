@@ -143,6 +143,18 @@ define timeperiod{
     alias                          No Time Is A Good Time
     }
 define command{
+    command_name                   check-host-tier1
+    command_line                   mon test check --mark-file=@@BASEPATH@@/tier1.log --oneline --mark-name='@@NODENAME@@ $HOSTNAME$ $HOSTATTEMPT$/$MAXHOSTATTEMPTS$' @@BASEPATH@@/tier1-host-ok --output=tier1
+    }
+define command{
+    command_name                   check-host-tier2
+    command_line                   mon test check --mark-file=@@BASEPATH@@/tier2.log --oneline --mark-name='@@NODENAME@@ $HOSTNAME$ $HOSTATTEMPT$/$MAXHOSTATTEMPTS$' @@BASEPATH@@/tier2-host-ok --output=tier2
+    }
+define command{
+    command_name                   check-host-tier3
+    command_line                   mon test check --mark-file=@@BASEPATH@@/tier3.log --oneline --mark-name='@@NODENAME@@ $HOSTNAME$ $HOSTATTEMPT$/$MAXHOSTATTEMPTS$' @@BASEPATH@@/tier3-host-ok --output=tier3
+    }
+define command{
     command_name                   check-up-shared
     command_line                   mon test check --mark-file=@@BASEPATH@@/host-checks.log --oneline --mark-name='@@NODENAME@@ $HOSTNAME$' /dev/null/check-host-ok --output=output
     }
@@ -223,7 +235,6 @@ define contact{
     }
 define host{
     name                           default-host-template
-    check_command                  check-host-alive
     max_check_attempts             3
     check_interval                 1
     retry_interval                 1

@@ -156,8 +156,15 @@ class fake_peer_group:
 
 			hobj = host
 			hobj['host_name'] = hname.replace('@@host_num@@', "%04d" % i)
-			if i != 1:
+			if i == 1:
+				hobj['check_command'] = 'check-host-tier%d' % i
+			elif i == 2:
 				hobj['parents'] = self.group_name + '.0001'
+				hobj['check_command'] = 'check-host-tier%d' % i
+			elif i > 2:
+				hobj['parents'] = self.group_name + '.0002'
+				hobj['check_command'] = 'check-host-tier3'
+
 			self.add_object('host', hobj['host_name'])
 			obuf = "define host{\n"
 			for (k, v) in hobj.items():
@@ -726,6 +733,38 @@ class fake_mesh:
 
 		return ret
 
+
+	def test_parents(self):
+		"""Test that parenting works as expected.
+		This test is run after the 'active check' tests so that all
+		hosts are UP when we start. We force-schedule checks to be
+		run so that child hosts are checked prior to their parents.
+		Test results can be verified by checking self.basepath/tier?.log
+		as well as inst.home/hnotify.log.
+		For now, these tests don't cover master/poller setups.
+		"""
+		master = self.masters.nodes[0]
+		sub = self.tap.sub_init('parents')
+		vlist = {'state': 'CRITICAL', 'output': 'Down for parent tests'}
+		now = time.time()
+		print("Rigging plugin states for parent and child hosts")
+		for i in xrange(1, 4):
+			fname = "%s/tier%d-host-ok" % (self.basepath, i)
+			fd = os.open(fname, os.O_WRONLY | os.O_TRUNC | os.O_CREAT, 0644)
+			for k, v in vlist.items():
+				os.write(fd, "%s=%s\n" % (k, v))
+			hname = 'master.%04d' % i
+			offset = 20 - (i * 5)
+			print("Scheduling check of tier %d host %s in %d seconds" % (i, hname, offset))
+			master.submit_raw_command('SCHEDULE_HOST_CHECK;%s;%d' % (hname, now + offset))
+		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
+		self.intermission('parent tests', 30)
+
+		master.submit_raw_command('STOP_EXECUTING_HOST_CHECKS')
+		self.intermission('Letting active check disabling spread', 10)
+		return sub.done() == 0
+
+
 	def _test_active_checks(self, sub):
 		# now get nodeinfo snapshot and check to make sure
 		# * All nodes have all checks accounted for
@@ -750,7 +789,7 @@ class fake_mesh:
 
 	def test_active_checks(self):
 		"""
-		Enables active checks and checks (via ochp and ocsp commands)
+		Enables active checks and verifies (via the query handler)
 		that checks are properly run by the nodes supposed to take
 		care of them.
 		Checks can be tracked by monitoring @@BASEPATH@@/*-checks.log
@@ -1777,6 +1816,8 @@ def cmd_dist(args):
 
 		if 'active_checks' in tests:
 			mesh.test_active_checks()
+		if 'parents' in tests:
+			mesh.test_parents()
 		if 'downtime' in tests:
 			mesh.test_downtime()
 		if 'comments' in tests:
