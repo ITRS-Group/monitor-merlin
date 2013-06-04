@@ -2228,13 +2228,7 @@ def cmd_check(args):
 			f = False
 			pass
 
-	if not f:
-		stext = path.split('-')[-1].upper()
-		if stext.lower() == 'random':
-			state = random.randint(0, 3)
-			stext = nplug.state_name(state)
-			output = "Randomized check"
-	else:
+	if f:
 		for line in f:
 			line = line.strip()
 			if line.startswith('state='):
@@ -2244,6 +2238,14 @@ def cmd_check(args):
 				output = line.split('=', 1)[1]
 			elif line.startswith('perfdata='):
 				perfdata = line.split('=', 1)[1]
+
+	if not f or stext == 'unset':
+		stext = path.split('-')[-1].upper()
+		if stext.lower() == 'random':
+			state = random.randint(0, 3)
+			stext = nplug.state_name(state)
+			if not output:
+				output = "Randomized check"
 
 	if not output:
 		output = ' '.join(args)
