@@ -35,4 +35,5 @@ extern const char *sql_db_host(void);
 extern unsigned int sql_db_port(void);
 extern const char *sql_db_type(void);
 extern const char *sql_db_conn_str(void);
+extern int sql_table_exists(const char *tablename);
 #endif

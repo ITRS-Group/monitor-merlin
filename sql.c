@@ -323,6 +323,17 @@ int sql_query(const char *fmt, ...)
 	return ret;
 }
 
+int sql_table_exists(const char *tablename)
+{
+	db_wrap_result *result;
+	sql_query("SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_name = '%s'", tablename);
+	result = sql_get_result();
+	if (!result) {
+		return -1;
+	}
+	return !(result->api->step(result) == DB_WRAP_E_DONE);
+}
+
 int sql_is_connected(int reconnect)
 {
 	int ret = (db.conn && db.conn->api->is_connected(db.conn)) ? 1 : 0;
