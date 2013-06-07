@@ -42,7 +42,7 @@ rename_db(renames *renames)
 			          "WHERE host_name=%s AND service_description=%s",
 			          quoted_to_host, quoted_to_service,
 			          quoted_from_host, quoted_from_service);
-			if (sql_table_exists("report_data_synergy")) {
+			if (sql_table_exists("report_data_synergy") > 0) {
 				sql_query("UPDATE report_data_synergy SET host_name=%s, service_description=%s "
 						          "WHERE host_name=%s AND service_description=%s",
 						          quoted_to_host, quoted_to_service,
@@ -55,7 +55,7 @@ rename_db(renames *renames)
 			sql_query("UPDATE report_data SET host_name=%s "
 			          "WHERE host_name=%s",
 			          quoted_to_host, quoted_from_host);
-			if (sql_table_exists("report_data_synergy")) {
+			if (sql_table_exists("report_data_synergy") > 0) {
 				sql_query("UPDATE report_data_synergy SET host_name=%s "
 				          "WHERE host_name=%s",
 				          quoted_to_host, quoted_from_host);
