@@ -870,14 +870,12 @@ class fake_mesh:
 			suffix = suffix.replace(' ', '-')
 		hpath = "%s/hnotify.log" % inst.home
 		spath = "%s/snotify.log" % inst.home
-		if not sub.test(os.access(hpath, os.R_OK), hosts,
-			'%s should %ssend host notifications' % (inst.name, ('', 'not ')[hosts == False])):
-			if suffix:
-				os.rename(hpath, "%s.%s" % (hpath, suffix))
-		if not sub.test(os.access(spath, os.R_OK), services,
-			'%s should %ssend service notifications' % (inst.name, ('', 'not ')[services == False])):
-			if suffix:
-				os.rename(spath, "%s.%s" % (spath, suffix))
+		ret = sub.test(os.access(hpath, os.R_OK), hosts, '%s should %ssend host notifications' % (inst.name, ('', 'not ')[hosts == False]))
+		if suffix and ((hosts and ret) or (not hosts and not ret)):
+			os.rename(hpath, "%s.%s" % (hpath, suffix))
+		ret = sub.test(os.access(spath, os.R_OK), services, '%s should %ssend service notifications' % (inst.name, ('', 'not ')[services == False]))
+		if suffix and ((services and ret) or (not services and not ret)):
+			os.rename(spath, "%s.%s" % (spath, suffix))
 
 
 	def _test_passive_checks(self, sub):
