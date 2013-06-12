@@ -151,25 +151,24 @@ def cmd_status(args):
 			uptime = time_delta(proc_start)
 		else:
 			uptime = 'unknown'
-		last_alive = int(info.get('last_action'))
 		conn_time = int(info.get('connect_time', False))
 		if conn_time:
 			conn_delta = time_delta(conn_time)
 		else:
-			conn_delta = 'an indeterminate time'
+			conn_delta = 'unknown'
+		last_alive = int(info.get('last_action'))
 		if not last_alive:
-			print("%sUnable to determine when this node was last alive%s" %
-				(color.red, color.reset))
+			alive_delta = 'UNKNOWN'
+			la_color = color.red
 		else:
+			alive_delta = time_delta(last_alive) + ' ago'
 			if last_alive + 30 > time.time():
 				la_color = color.green
 			else:
 				la_color = color.red
 
-			delta = time_delta(last_alive)
-			dtime = time.strftime("%F %H:%M:%S", time.localtime(last_alive))
-			print("Uptime: %s. Connected: %s. Last alive: %s%s ago%s" %
-				(uptime, conn_delta, la_color, delta, color.reset))
+		print("Uptime: %s. Connected: %s. Last alive: %s%s%s" %
+			(uptime, conn_delta, la_color, alive_delta, color.reset))
 
 		hchecks = int(info.get('host_checks_executed'))
 		schecks = int(info.get('service_checks_executed'))
