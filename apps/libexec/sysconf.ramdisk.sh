@@ -126,9 +126,16 @@ else
 	echo 'USE_RAMDISK=1' >> /etc/sysconfig/monitor
 fi
 
-echo "Your configuration is now configured to utilize ramdisk"
-echo "Please run the following commands:"
-echo "mon stop"
-echo "Wait a few seconds to let ncpd take care of all the old data"
-echo "service npcd restart"
-echo "mon start"
+cat << EOF
+Your configuration is now configured to utilize ramdisk
+
+ACTIVATION INSTRUCTIONS
+-----------------------
+In order to activate the new configuration, please run the following
+commands at your earliest convenience:
+   mon stop
+   sleep 20
+   service npcd restart
+   mon start
+
+EOF
