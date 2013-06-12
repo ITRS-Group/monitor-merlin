@@ -938,6 +938,7 @@ class fake_mesh:
 			return sub.done() == 0
 
 		# make sure 'master1' has sent notifications
+		self.intermission("Letting notifications trigger", 5)
 		sub = self.tap.sub_init('passive check notifications')
 		self._test_notifications(sub, master, suffix='passive-checks', hosts=True, services=True)
 		for n in self.instances[1:]:
