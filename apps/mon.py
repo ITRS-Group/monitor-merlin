@@ -35,6 +35,8 @@ def run_helper(helper, args):
 	if ret < 0:
 		print("Helper %s was killed by signal %d" % (app, ret))
 
+	sys.exit(ret)
+
 # the list of commands
 commands = {}
 categories = {}
