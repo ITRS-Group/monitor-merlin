@@ -102,7 +102,7 @@ add_key_for_all()
 	# if we're root, we should setup
 	# root->root, root->monitor, monitor->monitor
 	# without doing monitor->root
-	if [ `whoami` == "root" ]; then
+	if [ "`whoami`" == "root" ]; then
 		export -f add_key_locally grab_key
 		su monitor --session-command "export outfile=~monitor/.ssh/authorized_keys; add_key_locally $1"
 		su monitor --session-command "export outfile=~monitor/.ssh/authorized_keys; add_key_locally root@$1"
