@@ -91,11 +91,12 @@ def cmd_sortmerge(args):
 
 # run the import program
 def cmd_import(args):
-	"""[--fetch]
+	"""[--fetch|--help]
 	Runs the external log import helper.
 	If --fetch is specified, logs are first fetched from remote systems
 	and sorted using the merge sort algorithm provided by the sortmerge
 	command.
+	--help will list a more extensive list of options
 	"""
 	since = ''
 	fetch = False
@@ -159,10 +160,11 @@ def cmd_import(args):
 
 # run the showlog program
 def cmd_show(args):
-	"""
+	"""[--help]
 	Runs the showlog helper program. Arguments passed to this command
 	will get sent to the showlog helper. Use 'mon log show --help' for
 	details.
+	--help will show a more extensive list of options
 	"""
 	app = merlin_dir + "/showlog"
 	ret = os.spawnv(os.P_WAIT, app, [app] + args)
