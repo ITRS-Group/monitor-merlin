@@ -4,6 +4,8 @@
 #include <nagios/defaults.h>
 #include <string.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <pwd.h>
 
 #ifdef __GLIBC__
 #include <malloc.h>
@@ -278,6 +280,17 @@ main(int argc, char **argv)
 	char *db_type = NULL, *db_name = NULL, *db_user = NULL, *db_pass = NULL, *db_host = NULL;
 	renames *renames = NULL;
 	struct timeval start, stop;
+
+	/* first drop to a more appropriate user */
+	if (getuid() == 0) {
+		struct passwd *pwd = getpwnam("monitor");
+		if (pwd) {
+			setgid(pwd->pw_gid);
+			setegid(pwd->pw_gid);
+			seteuid(pwd->pw_uid);
+			setuid(pwd->pw_uid);
+		}
+	}
 
 	gettimeofday(&start, NULL);
 
