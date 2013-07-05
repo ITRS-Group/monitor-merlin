@@ -38,7 +38,7 @@ Retrieves everything we know about commands, in JSON form.
 This command shouldn't be that useful for the ordinary user, but it's
 needed for some internal API:s.
 	"""
-	print(json.dumps(nagios_command.command_info))
+	print(json.dumps(nagios_command.command_info, sort_keys=True, indent=2))
 
 
 def cmd_submit(args):
