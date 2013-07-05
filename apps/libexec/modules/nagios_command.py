@@ -10,6 +10,10 @@ def _cmd_pipe_sighandler(one, two):
 
 
 class nagios_command:
+	# @TODO: change 'ADD_HOST_COMMENT;host_name;persistent;author;comment'
+	# to
+	# 'ADD_HOST_COMMENT;host=host_name;boolean=persistent;integer=author;string=comment'
+	# to get something like a schema, for validating types at least
 	command_info = {
 		'ADD_HOST_COMMENT': {
 			'nagios_id': 1,

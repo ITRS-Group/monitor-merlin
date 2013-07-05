@@ -1,4 +1,4 @@
-import os, sys, re, time, errno
+import os, sys, re, time, errno, json
 modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
 if not modpath in sys.path:
 	sys.path.append(modpath)
@@ -30,6 +30,15 @@ def cmd_search(args):
 	"""
 	for arg in args:
 		search(arg)
+
+def cmd_json(args):
+	"""
+Retrieves everything we know about commands, in JSON form.
+
+This command shouldn't be that useful for the ordinary user, but it's
+needed for some internal API:s.
+	"""
+	print(json.dumps(nagios_command.command_info))
 
 
 def cmd_submit(args):
