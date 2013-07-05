@@ -35,3 +35,4 @@ rename
 /Documentation
 .waf*
 WAFBUILD
+*.swp
