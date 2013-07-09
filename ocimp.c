@@ -428,9 +428,9 @@ static int parse_downtime(struct cfg_comp *comp)
 			  ++internal_id,
 			  host_name, safe_str(service_description),
 			  comp->vlist[i]->value, comp->vlist[i + 1]->value,
-			  comp->vlist[i + 2]->value, comp->vlist[i + 3]->value,
-			  comp->vlist[i + 4]->value, comp->vlist[i + 5]->value,
-			  comp->vlist[i + 6]->value,
+			  comp->vlist[i + 2]->value, comp->vlist[i + 4]->value,
+			  comp->vlist[i + 5]->value, comp->vlist[i + 6]->value,
+			  comp->vlist[i + 7]->value,
 			  safe_str(author), safe_str(comment_data),
 			  service_description == NULL ? 2 : 1);
 
