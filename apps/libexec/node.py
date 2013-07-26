@@ -356,11 +356,14 @@ def cmd_remove(args):
 		return
 
 	for arg in args:
-		if not arg in mconf.configured_nodes:
+		# we must re-parse for every arg, since we'll otherwise
+		# get the sed-lines wrong when deleting multiple nodes.
+		mconf.parse()
+		node = mconf.configured_nodes.get(arg, False)
+		if not node:
 			print("'%s' is not a configured node. Try the 'list' command" % arg)
 			continue
 
-		node = mconf.configured_nodes.pop(arg)
 		sed_range = str(node.comp.line_start) + ',' + str(node.comp.line_end)
 		cmd_args = ['sed', '-i', sed_range + 'd', mconf.config_file]
 		os.spawnvp(os.P_WAIT, 'sed', cmd_args)
