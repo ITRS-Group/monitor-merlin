@@ -251,7 +251,11 @@ def cmd_list(args):
 	Lists all nodes of the (optionally) specified type.
 	"""
 	global wanted_types
-	for node in mconf.configured_nodes.values():
+
+	names = mconf.configured_nodes.keys()
+	names.sort()
+	for name in names:
+		node = mconf.configured_nodes[name]
 		if not node.ntype in wanted_types:
 			continue
 		print("  %s" % node.name)
