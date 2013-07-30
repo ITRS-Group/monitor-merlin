@@ -189,13 +189,19 @@ def cmd_status(args):
 		spercent = 0
 		if service_checks != 0:
 			spercent = float(schecks) / float(service_checks) * 100
+		pg_hpercent = 0
+		if pg_hosts:
+			pg_hpercent = float(hchecks) / float(pg_hosts) * 100
+		pg_spercent = 0
+		if pg_services:
+			pg_spercent = float(schecks) / float(pg_hosts) * 100
 
 		print("Host checks (handled/assigned/total)   : %s%d%s/%d (%d) (%s%.2f%%%s : %.2f%%)" %
 			(hc_color, hchecks, color.reset, assigned_hchecks, pg_hosts,
-			hc_color, float(hchecks) / pg_hosts * 100, color.reset, hpercent))
+			hc_color, pg_hpercent, color.reset, hpercent))
 		print("Service checks (handled/assigned/total): %s%d%s/%d (%d) (%s%.2f%%%s - %.2f%%)" %
 			(sc_color, schecks, color.reset, assigned_schecks, pg_services,
-			sc_color, float(schecks) / pg_services * 100, color.reset, spercent))
+			sc_color, pg_spercent, color.reset, spercent))
 
 	oconf_bad = {}
 	for pg_id, d in pg_oconf_hash.items():
