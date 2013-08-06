@@ -32,7 +32,7 @@ class nagios_qh:
 					break
 			self.socket.close()
 		except socket.error, e:
-			print "Couldn't connect to nagios socket: " + str(e)
+			print "Couldn't connect to nagios socket %s: %s" % (self.query_handler, str(e))
 
 	def format(self, data, rowsep='\n', pairsep=';', kvsep='='):
 		"""Lazily format a response into a sequence of dicts"""
