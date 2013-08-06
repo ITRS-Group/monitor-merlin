@@ -1333,6 +1333,7 @@ class fake_mesh:
 
 		ret = self.tap.done()
 		if not self.batch:
+			print("Tests completed at %f (%s)" % (time.time(), time.ctime()))
 			print("When done testing and examining, just press enter")
 			buf = sys.stdin.readline()
 
