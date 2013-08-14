@@ -880,9 +880,9 @@ class fake_mesh:
 		if not self.ptest("passive check distribution", self._test_passive_checks):
 			return sub.done() == 0
 
-		# make sure 'master1' has sent notifications
 		sub = self.tap.sub_init('passive check notifications')
-		self._test_notifications(sub, master, hosts=True, services=True)
+		# make sure 'master1' has sent notifications
+		self.ptest('passive check notifications', self._test_notifications, tap=sub, inst=master, hosts=True, services=True)
 		for n in self.instances[1:]:
 			self._test_notifications(sub, n, hosts=False, services=False)
 		return sub.done() == 0
