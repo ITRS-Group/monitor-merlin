@@ -1,3 +1,4 @@
 post:
  steps: |
-  su - monitor -c "mon test dist"
+  chmod o+rwx /mnt/logs
+  su - monitor -c "mon test dist --batch --basepath=/mnt/logs"
