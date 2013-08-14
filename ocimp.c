@@ -406,6 +406,8 @@ static int parse_downtime(struct cfg_comp *comp)
 	int i = 0;
 	char *author = NULL, *comment_data = NULL;
 	char *host_name, *service_description = NULL;
+	char *downtime_id, *entry_time, *start_time, *end_time;
+	char *triggered_by, fixed, *duration;
 
 	if (!comp || !comp->vars)
 		return -1;
@@ -414,8 +416,26 @@ static int parse_downtime(struct cfg_comp *comp)
 	if (*comp->name == 's') {
 		sql_quote(comp->vlist[i++]->value, &service_description);
 	}
-	sql_quote(comp->vlist[i + 7]->value, &author);
-	sql_quote(comp->vlist[i + 8]->value, &comment_data);
+	downtime_id = comp->vlist[i++]->value;
+	for (; i < (int)comp->vlist_len; i++) {
+		struct cfg_var *kv = comp->vlist[i];
+		if (!strcmp(kv->key, "entry_time"))
+			entry_time = kv->value;
+		else if (!strcmp(kv->key, "start_time"))
+			start_time = kv->value;
+		else if (!strcmp(kv->key, "end_time"))
+			end_time = kv->value;
+		else if (!strcmp(kv->key, "triggered_by"))
+			triggered_by = kv->value;
+		else if (!strcmp(kv->key, "fixed"))
+			fixed = *kv->value;
+		else if (!strcmp(kv->key, "duration"))
+			duration = kv->value;
+		else if (!strcmp(kv->key, "author"))
+			sql_quote(kv->value, &author);
+		else if (!strcmp(kv->key, "comment"))
+			sql_quote(kv->value, &comment_data);
+	}
 
 	sql_query("INSERT INTO scheduled_downtime(instance_id, id, "
 			  "host_name, service_description, "
@@ -424,13 +444,11 @@ static int parse_downtime(struct cfg_comp *comp)
 			  "triggered_by, fixed, "
 			  "duration,"
 			  "author_name, comment_data, downtime_type) "
-			  "VALUES(0, %d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %d)",
+			  "VALUES(0, %d, %s, %s, %s, %s, %s, %s, %s, %c, %s, %s, %s, %d)",
 			  ++internal_id,
 			  host_name, safe_str(service_description),
-			  comp->vlist[i]->value, comp->vlist[i + 1]->value,
-			  comp->vlist[i + 2]->value, comp->vlist[i + 4]->value,
-			  comp->vlist[i + 5]->value, comp->vlist[i + 6]->value,
-			  comp->vlist[i + 7]->value,
+			  downtime_id, entry_time, start_time, end_time,
+			  triggered_by, fixed, duration,
 			  safe_str(author), safe_str(comment_data),
 			  service_description == NULL ? 2 : 1);
 
