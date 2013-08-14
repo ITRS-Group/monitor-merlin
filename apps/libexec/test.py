@@ -1280,7 +1280,7 @@ class fake_mesh:
 
 		print("Stopping daemons")
 		self.stop_daemons()
-		if self.batch:
+		if not self.batch:
 			self.destroy()
 
 		self.close_db()
