@@ -658,7 +658,8 @@ void csync_node_active(merlin_node *node)
 		return;
 	}
 
-	ldebug("CSYNC: node %s; val: %d; sync-command: [%s]", node->name, val, child->cmd);
+	linfo("CSYNC: triggered to %s node %s; val: %d; command: [%s]",
+	      node_type(node), node->name, val, child->cmd);
 	run_program("csync", child->cmd, &child->pid);
 	if (child->pid > 0) {
 		ldebug("CSYNC: command has pid %d", child->pid);
