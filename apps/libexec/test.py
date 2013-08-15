@@ -865,17 +865,12 @@ class fake_mesh:
 		"""Tests for the presence of notifications"""
 		hosts = kwargs.get('hosts', False)
 		services = kwargs.get('services', False)
-		suffix = kwargs.get('suffix', False)
-		if suffix:
-			suffix = suffix.replace(' ', '-')
 		hpath = "%s/hnotify.log" % inst.home
 		spath = "%s/snotify.log" % inst.home
-		ret = sub.test(os.access(hpath, os.R_OK), hosts, '%s should %ssend host notifications' % (inst.name, ('', 'not ')[hosts == False]))
-		if suffix and ((hosts and ret) or (not hosts and not ret)):
-			os.rename(hpath, "%s.%s" % (hpath, suffix))
-		ret = sub.test(os.access(spath, os.R_OK), services, '%s should %ssend service notifications' % (inst.name, ('', 'not ')[services == False]))
-		if suffix and ((services and ret) or (not services and not ret)):
-			os.rename(spath, "%s.%s" % (spath, suffix))
+		sub.test(os.access(hpath, os.R_OK), hosts,
+			'%s should %ssend host notifications' % (inst.name, ('', 'not ')[hosts == False]))
+		sub.test(os.access(spath, os.R_OK), services,
+			'%s should %ssend service notifications' % (inst.name, ('', 'not ')[services == False]))
 
 
 	def _test_passive_checks(self, sub):
@@ -940,9 +935,10 @@ class fake_mesh:
 		# make sure 'master1' has sent notifications
 		self.intermission("Letting notifications trigger", 5)
 		sub = self.tap.sub_init('passive check notifications')
-		self._test_notifications(sub, master, suffix='passive-checks', hosts=True, services=True)
+		# make sure 'master1' has sent notifications
+		self.ptest('passive check notifications', self._test_notifications, tap=sub, inst=master, hosts=True, services=True)
 		for n in self.instances[1:]:
-			self._test_notifications(sub, n, suffix='passive-checks', hosts=False, services=False)
+			self._test_notifications(sub, n, hosts=False, services=False)
 		return sub.done() == 0
 
 	def _test_ack_spread(self, sub):
@@ -999,9 +995,9 @@ class fake_mesh:
 
 		# ack notifications
 		sub = self.tap.sub_init('ack notifications')
-		self._test_notifications(sub, master, suffix='ack-notifications', hosts=True, services=True)
+		self._test_notifications(sub, master, hosts=True, services=True)
 		for inst in self.instances[1:]:
-			self._test_notifications(sub, inst, suffix='ack-notifications', hosts=False, services=False)
+			self._test_notifications(sub, inst, hosts=False, services=False)
 		return sub.done() == 0
 
 	def _schedule_downtime(self, sub, node, ignore={'host': {}, 'service': {}}):
@@ -1339,7 +1335,7 @@ class fake_mesh:
 
 		print("Stopping daemons")
 		self.stop_daemons()
-		if self.batch:
+		if not self.batch:
 			self.destroy()
 
 		self.close_db()
