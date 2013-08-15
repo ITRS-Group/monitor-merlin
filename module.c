@@ -32,7 +32,6 @@ extern comment *comment_list;
 
 /** code start **/
 extern hostgroup *hostgroup_list;
-static int mrm_reap_interval = 2;
 static int merlin_sendpath_interval = MERLIN_SENDPATH_INTERVAL;
 static int db_track_current = 0;
 
@@ -674,10 +673,7 @@ static void grok_module_compound(struct cfg_comp *comp)
 		struct cfg_var *v = comp->vlist[i];
 
 		if (!strcmp(v->key, "ipc_reap_interval")) {
-			char *endp;
-			mrm_reap_interval = (int)strtoul(v->value, &endp, 0);
-			if (mrm_reap_interval < 0 || *endp != '\0')
-				cfg_error(comp, v, "Illegal value for %s", v->key);
+			lwarn("Warning: ipc_reap_interval is deprecated and no longer used");
 			continue;
 		}
 
@@ -709,9 +705,6 @@ static void grok_module_compound(struct cfg_comp *comp)
 
 	/* remove the ignored events from the handled ones */
 	event_mask = handle_events & (~ignore_events);
-
-	if (!mrm_reap_interval)
-		mrm_reap_interval = 2;
 }
 
 static void grok_daemon_compound(struct cfg_comp *comp)
