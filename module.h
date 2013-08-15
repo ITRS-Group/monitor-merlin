@@ -34,6 +34,9 @@ struct merlin_notify_stats {
 /* 9 = "reason_type", 2 = host/service, 2 = last check active/passive */
 extern struct merlin_notify_stats merlin_notify_stats[9][2][2];
 
+extern struct host *merlin_recv_host;
+extern struct service *merlin_recv_service;
+
 extern bitmap *poller_handled_hosts;
 extern bitmap *poller_handled_services;
 

@@ -217,6 +217,9 @@ static int send_host_status(merlin_event *pkt, host *obj)
 	merlin_host_status st_obj;
 	static host *last_obj = NULL;
 
+	if (obj == merlin_recv_host)
+		return 0;
+
 	if (!obj) {
 		lerr("send_host_status() called with NULL obj");
 		return -1;
@@ -231,7 +234,7 @@ static int send_host_status(merlin_event *pkt, host *obj)
 
 	st_obj.name = obj->name;
 	MOD2NET_STATE_VARS(st_obj.state, obj);
-	if (obj->check_type == CHECK_TYPE_PASSIVE && merlin_sender)
+	if (merlin_sender && merlin_recv_host == obj)
 		pkt->hdr.code = MAGIC_NONET;
 	else
 		pkt->hdr.selection = get_selection(obj->name);
@@ -243,6 +246,9 @@ static int send_service_status(merlin_event *pkt, service *obj)
 {
 	merlin_service_status st_obj;
 	static service *last_obj = NULL;
+
+	if (obj == merlin_recv_service)
+		return 0;
 
 	if (!obj) {
 		lerr("send_service_status() called with NULL obj");
@@ -357,17 +363,25 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		return 0;
 
 	case NEBTYPE_SERVICECHECK_PROCESSED:
-		if (merlin_sender && ds->check_type == CHECK_TYPE_PASSIVE)
-			set_service_check_node(merlin_sender, ds->object_ptr);
-		else
-			set_service_check_node(&ipc, ds->object_ptr);
+		/* any check via check result transfer */
+		if (merlin_recv_service == s)
+			return 0;
 
-		/* We fiddle with the last_check time here so that the time
+		/* passive check via external command transfer */
+		if (merlin_sender && ds->check_type == CHECK_TYPE_PASSIVE) {
+			set_service_check_node(merlin_sender, s);
+			pkt->hdr.code = MAGIC_NONET;
+		} else {
+			/* we generated this result, so claim it */
+			set_service_check_node(&ipc, ds->object_ptr);
+		}
+
+		/*
+		 * We fiddle with the last_check time here so that the time
 		 * shown in nagios.log (for a service alert, e.g) is the same
 		 * as that in the report_data to avoid (user) confusion
-		 * - alofgren 2013-05-21
-		 * */
-		((service *)(ds->object_ptr))->last_check = (time_t) ds->end_time.tv_sec;
+		 */
+		s->last_check = (time_t) ds->end_time.tv_sec;
 		return send_service_status(pkt, ds->object_ptr);
 	}
 
@@ -378,12 +392,11 @@ static int hook_host_result(merlin_event *pkt, void *data)
 {
 	nebstruct_host_check_data *ds = (nebstruct_host_check_data *)data;
 	int ret;
-	struct host *h;
+	struct host *h = (struct host *)ds->object_ptr;
 
 	/* block status data events for this host in the imminent future */
-	h_block.obj = ds->object_ptr;
+	h_block.obj = h;
 	h_block.when = time(NULL);
-	h = (struct host *)ds->object_ptr;
 
 	switch (ds->type) {
 	case NEBTYPE_HOSTCHECK_ASYNC_PRECHECK:
@@ -417,16 +430,29 @@ static int hook_host_result(merlin_event *pkt, void *data)
 
 	/* only send processed host checks */
 	case NEBTYPE_HOSTCHECK_PROCESSED:
-		if (merlin_sender && ds->check_type == CHECK_TYPE_PASSIVE)
+		/* any check via check result transfer */
+		if (merlin_recv_host == h)
+			return 0;
+
+		/* passive check via external command transfer */
+		if (merlin_sender && ds->check_type == CHECK_TYPE_PASSIVE) {
 			set_host_check_node(merlin_sender, ds->object_ptr);
-		else
+			pkt->hdr.code = MAGIC_NONET;
+		} else {
+			/* it appears we ran this check */
 			set_host_check_node(&ipc, ds->object_ptr);
-		/* We fiddle with the last_check time here so that the time
+		}
+
+		/* passive checks get sent as external commands, so skip */
+		if (ds->check_type == CHECK_TYPE_PASSIVE)
+			return 0;
+
+		/*
+		 * We fiddle with the last_check time here so that the time
 		 * shown in nagios.log (for a service alert, e.g) is the same
 		 * as that in the report_data to avoid (user) confusion
-		 * - alofgren 2013-05-21
-		 * */
-		((host *)(ds->object_ptr))->last_check = (time_t) ds->end_time.tv_sec;
+		 */
+		h->last_check = (time_t) ds->end_time.tv_sec;
 		return send_host_status(pkt, ds->object_ptr);
 	}
 

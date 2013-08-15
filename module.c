@@ -20,6 +20,9 @@ static merlin_node untracked_checks_node = {
 
 extern iobroker_set *nagios_iobs;
 
+struct host *merlin_recv_host;
+struct service *merlin_recv_service;
+
 time_t merlin_should_send_paths = 1;
 
 /*
@@ -164,6 +167,34 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 	}
 }
 
+/* currently only called from "handle_{host,service}_status" */
+static int handle_checkresult(struct check_result *cr, monitored_object_state *st)
+{
+	int ret;
+
+	if (st->perf_data && st->long_plugin_output) {
+		asprintf(&cr->output, "%s\n%s|%s", st->plugin_output, st->long_plugin_output, st->perf_data);
+	} else if (st->perf_data) {
+		asprintf(&cr->output, "%s|%s", st->plugin_output, st->perf_data);
+	} else if (st->long_plugin_output) {
+		asprintf(&cr->output, "%s\n%s", st->plugin_output, st->long_plugin_output);
+	} else {
+		cr->output = strdup(st->plugin_output);
+	}
+
+	cr->scheduled_check = 1;
+	cr->reschedule_check = 1;
+	cr->exited_ok = 1;
+	cr->latency = st->latency;
+	cr->start_time.tv_sec = 0;
+	cr->start_time.tv_usec = 0;
+	cr->finish_time.tv_sec = (time_t)st->execution_time;
+	cr->finish_time.tv_usec = 1000000 * ((time_t)st->execution_time) - (cr->finish_time.tv_sec);
+	ret = process_check_result(cr);
+	free(cr->output);
+	return ret;
+}
+
 /*
  * handle_{host,service}_result() is basically identical to
  * handle_{host,service}_status(), with the added exception
@@ -193,12 +224,32 @@ static int handle_host_status(merlin_node *node, merlin_header *hdr, void *buf)
 
 	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
 	if (hdr->type == NEBCALLBACK_HOST_CHECK_DATA) {
+		struct check_result cr;
+		int ret;
+
+		linfo("migrate: Inbound host check of '%s' from %s %s. state=%s",
+		      obj->name, node_type(node), node->name, host_state_name(st_obj->state.current_state));
 		set_host_check_node(node, obj);
-		obj->check_source = node->source_name;
-		obj->has_been_checked = 1;
-		if (obj->perf_data) {
-			update_host_performance_data(obj);
-		}
+
+		init_check_result(&cr);
+		cr.object_check_type = HOST_CHECK;
+		cr.check_type = CHECK_TYPE_ACTIVE;
+		cr.host_name = st_obj->name;
+		cr.service_description = NULL;
+		cr.engine = NULL;
+		cr.source = node->source_name;
+		/*
+		 * host DOWN states must always be critical, or Nagios will
+		 * sometimes translate them to be UP (yes, it's that stupid).
+		 */
+		cr.return_code = st_obj->state.current_state == 0 ? 0 : 2;
+		merlin_recv_host = obj;
+		remove_event(nagios_squeue, obj->next_check_event);
+		ret = handle_checkresult(&cr, &st_obj->state);
+		merlin_recv_host = NULL;
+		return ret;
+	} else {
+		NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
 	}
 
 	return 0;
@@ -223,14 +274,29 @@ static int handle_service_status(merlin_node *node, merlin_header *hdr, void *bu
 	if(obj->last_check > st_obj->state.last_check)
 		return 0;
 
-	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
 	if (hdr->type == NEBCALLBACK_SERVICE_CHECK_DATA) {
+		struct check_result cr;
+		int ret;
+
+		linfo("migrate: Active service check of '%s;%s' from %s %s",
+			  obj->host_name, obj->description, node_type(node), node->name);
 		set_service_check_node(node, obj);
-		obj->check_source = node->source_name;
-		obj->has_been_checked = 1;
-		if (obj->perf_data) {
-			update_service_performance_data(obj);
-		}
+
+		init_check_result(&cr);
+		cr.object_check_type = SERVICE_CHECK;
+		cr.check_type = CHECK_TYPE_ACTIVE;
+		cr.host_name = obj->host_name;
+		cr.service_description = obj->description;
+		cr.return_code = st_obj->state.current_state;
+		cr.engine = NULL;
+		cr.source = node->source_name;
+		merlin_recv_service = obj;
+		remove_event(nagios_squeue, obj->next_check_event);
+		ret = handle_checkresult(&cr, &st_obj->state);
+		merlin_recv_service = NULL;
+		return ret;
+	} else {
+		NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
 	}
 
 	return 0;
