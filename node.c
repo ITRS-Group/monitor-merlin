@@ -917,6 +917,9 @@ int node_send_binlog(merlin_node *node, merlin_event *pkt)
 			continue;
 		}
 
+		if (result == BINLOG_EMPTY || !binlog_num_entries(node->binlog))
+			binlog_wipe(node->binlog, BINLOG_UNLINK);
+
 		/*
 		 * we can recover from total failures by unread()'ing
 		 * the entry we just read and then adding the new entry
