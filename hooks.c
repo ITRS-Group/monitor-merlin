@@ -948,7 +948,7 @@ static int hook_notification(merlin_event *pkt, void *data)
 	rtype = ds->reason_type;
 	if (rtype > 8)
 		rtype = 8;
-	mns = &merlin_notify_stats[ds->reason_type][ds->notification_type][check_type];
+	mns = &merlin_notify_stats[rtype][ds->notification_type][check_type];
 
 	/* we must *never* notify on network events */
 	if (merlin_sender) {
