@@ -194,7 +194,7 @@ def cmd_status(args):
 			pg_hpercent = float(hchecks) / float(pg_hosts) * 100
 		pg_spercent = 0
 		if pg_services:
-			pg_spercent = float(schecks) / float(pg_hosts) * 100
+			pg_spercent = float(schecks) / float(pg_services) * 100
 
 		print("Host checks (handled/assigned/total)   : %s%d%s/%d (%d) (%s%.2f%%%s : %.2f%%)" %
 			(hc_color, hchecks, color.reset, assigned_hchecks, pg_hosts,
