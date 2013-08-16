@@ -9,12 +9,15 @@ merlin_node *merlin_sender = NULL;
 merlin_node ipc;
 struct merlin_notify_stats merlin_notify_stats[9][2][2];
 time_t merlin_should_send_paths = 1;
+struct host *merlin_recv_host = NULL;
+struct service *merlin_recv_service = NULL;
 void *neb_handle = NULL;
 
 void set_host_check_node(merlin_node *node, host *h) {}
 node_selection *node_selection_by_name(const char *name){ return NULL; }
 node_selection *node_selection_by_hostname(const char *name){ return NULL; }
 void set_service_check_node(merlin_node *node, service *s) {}
+const char *node_type(merlin_node *node) { return "local"; }
 
 
 static merlin_event *last_decoded_event;
