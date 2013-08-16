@@ -82,6 +82,7 @@ void ipc_init_struct(void)
 	ipc.id = CTRL_GENERIC;
 	ipc.type = MODE_LOCAL;
 	ipc.name = "ipc";
+	ipc.flags = MERLIN_NODE_DEFAULT_IPC_FLAGS;
 	ipc.ioc = iocache_create(MERLIN_IOC_BUFSIZE);
 	if (ipc.ioc == NULL) {
 		lerr("Failed to malloc() %d bytes for ipc io cache: %s",

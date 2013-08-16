@@ -758,6 +758,14 @@ static void grok_module_compound(struct cfg_comp *comp)
 				cfg_error(comp, v, "Illegal value for %s", v->key);
 			continue;
 		}
+		if (!strcmp(v->key, "notifies")) {
+			if (!strtobool(v->value)) {
+				ipc.flags &= ~(MERLIN_NODE_NOTIFIES);
+			} else {
+				ipc.flags |= MERLIN_NODE_NOTIFIES;
+			}
+			continue;
+		}
 
 		if (grok_common_var(comp, v))
 			continue;

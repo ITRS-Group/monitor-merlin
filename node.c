@@ -343,6 +343,7 @@ static struct {
 } node_config_flags[] = {
 	MRLN_ADD_NODE_FLAG(TAKEOVER),
 	MRLN_ADD_NODE_FLAG(CONNECT),
+	MRLN_ADD_NODE_FLAG(NOTIFIES),
 };
 
 static int grok_node_flag(int *flags, const char *key, const char *value)
