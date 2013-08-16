@@ -394,6 +394,8 @@ class fake_instance:
 
 	def create_core_config(self):
 		configs = {}
+		if self.name.startswith('pg1'):
+			self.substitutions['#@@MERLIN_MODULE_EXTRAS@@'] = 'notifies = no'
 		conode_types = self.nodes.keys()
 		conode_types.sort()
 		for ntype in conode_types:
@@ -408,6 +410,8 @@ class fake_instance:
 				if ntype == 'poller':
 					group_name = name.split('-', 1)[0]
 					nconf += "\thostgroup = %s\n" % group_name
+					if group_name == 'pg1':
+						nconf += "\tnotifies = no\n"
 				self.merlin_config += "%s}\n" % nconf
 
 		configs[self.nagios_cfg_path] = self.nagios_config

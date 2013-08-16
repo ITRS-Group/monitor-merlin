@@ -104,6 +104,7 @@ log_level = debug
 
 module {
 	log_file = @@DIR@@/neb.log;
+	#@@MERLIN_MODULE_EXTRAS@@
 }
 
 daemon {
@@ -111,6 +112,7 @@ daemon {
 	log_file = @@DIR@@/daemon.log;
 	import_program = @@OCIMP_PATH@@ --force
 	port = @@NETWORK_PORT@@;
+	#@@MERLIN_DAEMON_EXTRAS@@
 	database {
 		name = @@DB_NAME@@;
 		user = merlin;
