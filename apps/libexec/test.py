@@ -737,6 +737,12 @@ class fake_mesh:
 
 		return ret
 
+	def _test_parents(self, sub):
+		"""test that parent notifications work as intended"""
+		for inst in self.instances:
+			baseline = not inst.name.startswith('pg1')
+			sub.test(baseline, os.path.exists(inst.fpath('hnotify.log')), "%s should send a host notification" % (inst.name))
+		return sub.get_status() == 0
 
 	def test_parents(self):
 		"""Test that parenting works as expected.
@@ -748,10 +754,8 @@ class fake_mesh:
 		For now, these tests don't cover master/poller setups.
 		"""
 		master = self.masters.nodes[0]
-		sub = self.tap.sub_init('parents')
 		vlist = {'state': 'CRITICAL', 'output': 'Down for parent tests'}
 		now = time.time()
-		print("Rigging plugin states for parent and child hosts")
 		for i in xrange(1, 4):
 			fname = "%s/tier%d-host-ok" % (self.basepath, i)
 			fd = os.open(fname, os.O_WRONLY | os.O_TRUNC | os.O_CREAT, 0644)
@@ -759,14 +763,15 @@ class fake_mesh:
 				os.write(fd, "%s=%s\n" % (k, v))
 			hname = 'master.%04d' % i
 			offset = 20 - (i * 5)
-			print("Scheduling check of tier %d host %s in %d seconds" % (i, hname, offset))
 			master.submit_raw_command('SCHEDULE_HOST_CHECK;%s;%d' % (hname, now + offset))
-		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
-		self.intermission('parent tests', 30)
 
+		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
+		master.submit_raw_command('START_EXECUTING_SVC_CHECKS')
+		status = self.ptest('parents', self._test_parents, 90)
 		master.submit_raw_command('STOP_EXECUTING_HOST_CHECKS')
+		master.submit_raw_command('STOP_EXECUTING_SVC_CHECKS')
 		self.intermission('Letting active check disabling spread', 10)
-		return sub.done() == 0
+		return status == 0
 
 
 	def _test_active_checks(self, sub):
