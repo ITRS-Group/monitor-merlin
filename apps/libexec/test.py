@@ -574,10 +574,10 @@ class fake_mesh:
 			if exp == False and os.WTERMSIG(status) in sig_ok:
 				clr = color.green
 			else:
-				clr = color.red
-			msg = "%s: %sTerminated by sig %d%s" % (msg, clr, os.WTERMSIG(status), color.reset)
+				clr = color.bright_red
+			msg = "%s: %sGot sig %d%s" % (msg, clr, os.WTERMSIG(status), color.reset)
 			if os.WCOREDUMP(status):
-				msg = "%s (%score dumped%s)" % (color.red, msg, color.reset)
+				msg = "%s (%score dumped%s)" % (msg, color.bright_red, color.reset)
 				return sub.fail(msg)
 			if exp == False and os.WTERMSIG(status) in sig_ok:
 				return sub.ok(True, msg)
