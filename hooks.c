@@ -382,13 +382,15 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		if (merlin_recv_service == s)
 			return 0;
 
-		/* passive check via external command transfer */
-		if (merlin_sender && ds->check_type == CHECK_TYPE_PASSIVE) {
+		if (merlin_sender) {
 			set_service_check_node(merlin_sender, s);
-			pkt->hdr.code = MAGIC_NONET;
 		} else {
-			/* we generated this result, so claim it */
-			set_service_check_node(&ipc, ds->object_ptr);
+			set_service_check_node(&ipc, s);
+		}
+
+		if (ds->check_type == CHECK_TYPE_PASSIVE) {
+			/* never transfer passive checks to other nodes */
+			pkt->hdr.code = MAGIC_NONET;
 		}
 
 		/*
@@ -448,19 +450,16 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		/* any check via check result transfer */
 		if (merlin_recv_host == h)
 			return 0;
-
-		/* passive check via external command transfer */
-		if (merlin_sender && ds->check_type == CHECK_TYPE_PASSIVE) {
-			set_host_check_node(merlin_sender, ds->object_ptr);
-			pkt->hdr.code = MAGIC_NONET;
+		if (merlin_sender) {
+			set_host_check_node(merlin_sender, h);
 		} else {
-			/* it appears we ran this check */
-			set_host_check_node(&ipc, ds->object_ptr);
+			set_host_check_node(&ipc, h);
 		}
 
-		/* passive checks get sent as external commands, so skip */
-		if (ds->check_type == CHECK_TYPE_PASSIVE)
-			return 0;
+		if (ds->check_type == CHECK_TYPE_PASSIVE) {
+			/* never transfer passive checks to other nodes */
+			pkt->hdr.code = MAGIC_NONET;
+		}
 
 		/*
 		 * We fiddle with the last_check time here so that the time
