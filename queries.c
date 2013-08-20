@@ -31,9 +31,9 @@ static int dump_notify_stats(int sd)
 				const char *ctype = c == CHECK_TYPE_ACTIVE ? "ACTIVE" : "PASSIVE";
 				struct merlin_notify_stats *mns = &merlin_notify_stats[a][b][c];
 				nsock_printf(sd, "type=%s;reason=%s;checktype=%s;"
-					"peer=%lu;poller=%lu;net=%lu;sent=%lu\n",
+					"peer=%lu;poller=%lu;master=%lu;net=%lu;sent=%lu\n",
 					ntype, rtype, ctype,
-					mns->peer, mns->poller, mns->net, mns->sent);
+					mns->peer, mns->poller, mns->net, mns->master, mns->sent);
 			}
 		}
 	}

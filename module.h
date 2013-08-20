@@ -28,6 +28,7 @@ struct merlin_notify_stats {
 	unsigned long net;    /* blocked due to network origin */
 	unsigned long peer;   /* blocked due to peer managing it */
 	unsigned long poller; /* blocked due to active poller */
+	unsigned long master; /* blocked due to config (master sends it) */
 	unsigned long sent;   /* allowed through */
 };
 

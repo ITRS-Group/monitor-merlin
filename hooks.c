@@ -105,24 +105,6 @@ static const char *mos_offset_name(int offset)
 }
 #endif
 
-static int can_notify(struct merlin_node *node)
-{
-	int ret;
-
-	/* null nodes can never notify */
-	if (!node)
-		return 0;
-
-	/* peers and masters must always be able to notify */
-	if (node->type != MODE_POLLER)
-		return 1;
-
-	ret = !!(node->flags & MERLIN_NODE_NOTIFIES);
-	ldebug("can_notify(): %s %s -> flags = %d; ret=%d",
-		   node_type(node), node->name, node->flags, ret);
-	return ret;
-}
-
 static int is_dupe(merlin_event *pkt)
 {
 	if (!check_dupes) {
@@ -940,9 +922,7 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
 static int hook_notification(merlin_event *pkt, void *data)
 {
 	nebstruct_notification_data *ds = (nebstruct_notification_data *)data;
-	unsigned int check_type = 0, rtype;
-	char *what = "host";
-	char *host_name, *sdesc = NULL;
+	unsigned int id, check_type = 0, rtype;
 	struct merlin_notify_stats *mns = NULL;
 	struct service *s = NULL;
 	struct host *h = NULL;
@@ -954,10 +934,12 @@ static int hook_notification(merlin_event *pkt, void *data)
 	if (ds->notification_type == SERVICE_NOTIFICATION) {
 		s = (service *)ds->object_ptr;
 		check_type = s->check_type;
+		id = s->id;
 		ldebug("notif: Checking service notification for %s;%s",
 		       s->host_name, s->description);
 	} else {
 		h = (struct host *)ds->object_ptr;
+		id = h->id;
 		check_type = h->check_type;
 		ldebug("notif: Checking host notification for %s", h->name);
 	}
@@ -971,24 +953,54 @@ static int hook_notification(merlin_event *pkt, void *data)
 	/* Break out if we only notify when no masters are present and we have masters */
 	if (online_masters && !(ipc.flags & MERLIN_NODE_NOTIFIES)) {
 		ldebug("notif: poller blocking notification in favour of master");
-		mns->net++;
+		mns->master++;
 		return NEBERROR_CALLBACKCANCEL;
 	}
 
 	/*
-	 * block notifications from non-poller neighbours and from
-	 * pollers that can (and thus should) notify themselves
+	 * network-received events can go one of two ways:
+	 * If the sender is a poller that can't notify on its own, we may
+	 * have to send the notification, unless one of our peers is
+	 * supposed to do it.
+	 * If the sender is not a poller, or the poller can notify, we
+	 * must never notify on this state.
 	 */
-	if (merlin_sender && can_notify(merlin_sender))	{
-		mns->net++;
-		ldebug("notif: out 2 (merlin_sender: %p; type: %d; can_notify() == %d; flags: %d",
-			   merlin_sender, merlin_sender ? merlin_sender->type : -9, can_notify(merlin_sender),
-			   merlin_sender ? merlin_sender->type : 0);
+	if (merlin_sender) {
+		ldebug("notif: merlin_sender is %s %s", node_type(merlin_sender), merlin_sender->name);
+		if (merlin_sender->type != MODE_POLLER) {
+			mns->net++;
+			ldebug("notif: Sender is not a poller. Cancelling notification");
+			return NEBERROR_CALLBACKCANCEL;
+		}
+		if (merlin_sender->flags & MERLIN_NODE_NOTIFIES) {
+			ldebug("notif: Poller can notify. Cancelling notification");
+			return NEBERROR_CALLBACKCANCEL;
+		}
+		/*
+		 * seems the sender is a poller that can't notify, so check if
+		 * we should do it and, if so, allow it
+		 */
+		if (!num_peers || should_run_check(id)) {
+			mns->sent++;
+			ldebug("notif: Poller can't notify and we're responsible, so notifying");
+			return 0;
+		}
+
+		ldebug("notif: A peer handles poller-sent check. Blocking notifications");
+		mns->peer++;
 		return NEBERROR_CALLBACKCANCEL;
+	}
+
+	/* never block normal, local notificatons from passive checks */
+	if (check_type == CHECK_TYPE_PASSIVE && ds->reason_type == NOTIFICATION_NORMAL) {
+		ldebug("notif: passive check delivered to us, so we notify");
+		mns->sent++;
+		return 0;
 	}
 
 	/* if we have no peers we won't block the notification at this point */
 	if (!num_peers) {
+		ldebug("notif: We have no peers, so won't block notification");
 		mns->sent++;
 		return 0;
 	}
@@ -1001,47 +1013,18 @@ static int hook_notification(merlin_event *pkt, void *data)
 	switch (ds->reason_type) {
 	case NOTIFICATION_ACKNOWLEDGEMENT:
 	case NOTIFICATION_CUSTOM:
-		if (!merlin_sender) {
-			mns->sent++;
-			return 0;
-		}
-		mns->net++;
-		return NEBERROR_CALLBACKCANCEL;
+		ldebug("notif: command-triggered and delivered to us, so allowing");
+		mns->sent++;
+		return 0;
 	}
 
-	if (ds->notification_type == SERVICE_NOTIFICATION) {
-		host_name = s->host_name;
-		sdesc = s->description;
-
-		/* never block normal, local notificatons from passive checks */
-		if(!merlin_sender && ds->reason_type == NOTIFICATION_NORMAL && s->check_type == SERVICE_CHECK_PASSIVE) {
-			mns->sent++;
-			return 0;
-		}
-
-		what = "service";
-		if (!should_run_check(s->id)) {
-			ldebug("notif: Blocked notification for %s %s;%s. A peer is supposed to send it.",
-				   what, host_name, sdesc);
-			mns->peer++;
-			return NEBERROR_CALLBACKCANCEL;
-		}
+	if (!num_peers || should_run_check(id)) {
+		ldebug("notif: We're responsible for this notification, so allowing it");
+		return 0;
 	} else {
-		h = (host *)ds->object_ptr;
-		host_name = h->name;
-
-		/* never block normal local notificatons from passive checks */
-		if(ds->reason_type == NOTIFICATION_NORMAL && h->check_type == HOST_CHECK_PASSIVE) {
-			mns->sent++;
-			return 0;
-		}
-
-		if (!should_run_check(h->id)) {
-			ldebug("notif: Blocked notification for %s %s. A peer is supposed to send it",
-				   what, host_name);
-			mns->peer++;
-			return NEBERROR_CALLBACKCANCEL;
-		}
+		ldebug("notif: Blocking notification. A peer is supposed to send it");
+		mns->peer++;
+		return NEBERROR_CALLBACKCANCEL;
 	}
 
 	mns->sent++;
