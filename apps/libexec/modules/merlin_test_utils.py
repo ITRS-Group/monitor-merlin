@@ -237,7 +237,7 @@ define contact{
     }
 define host{
     name                           default-host-template
-    max_check_attempts             3
+    max_check_attempts             2
     check_interval                 1
     retry_interval                 1
     active_checks_enabled          1

@@ -158,9 +158,11 @@ class fake_peer_group:
 			hobj['host_name'] = hname.replace('@@host_num@@', "%04d" % i)
 			if i == 1:
 				hobj['check_command'] = 'check-host-tier%d' % i
+				hobj['max_check_attempts'] = '4'
 			elif i == 2:
 				hobj['parents'] = self.group_name + '.0001'
 				hobj['check_command'] = 'check-host-tier%d' % i
+				hobj['max_check_attempts'] = '3'
 			elif i > 2:
 				hobj['parents'] = self.group_name + '.0002'
 				hobj['check_command'] = 'check-host-tier3'
