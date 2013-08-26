@@ -232,6 +232,7 @@ static int handle_host_status(merlin_node *node, merlin_header *hdr, void *buf)
 		set_host_check_node(node, obj);
 
 		init_check_result(&cr);
+		cr.start_time.tv_sec = obj->last_check;
 		cr.object_check_type = HOST_CHECK;
 		cr.check_type = CHECK_TYPE_ACTIVE;
 		cr.host_name = st_obj->name;
@@ -283,6 +284,7 @@ static int handle_service_status(merlin_node *node, merlin_header *hdr, void *bu
 		set_service_check_node(node, obj);
 
 		init_check_result(&cr);
+		cr.start_time.tv_sec = obj->last_check;
 		cr.object_check_type = SERVICE_CHECK;
 		cr.check_type = CHECK_TYPE_ACTIVE;
 		cr.host_name = obj->host_name;
