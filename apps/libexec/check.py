@@ -17,8 +17,8 @@ import compound_config as cconf
 ls_path = '/opt/monitor/var/rw/live'
 qh = '/opt/monitor/var/rw/nagios.qh'
 
+check_result_path = '/opt/monitor/var/spool/checkresults'
 lsc = False
-mst = False
 wanted_types = False
 wanted_names = False
 have_type_arg = False
@@ -52,21 +52,22 @@ def module_init(args):
 			rem_args += [arg]
 			continue
 
-	comp = cconf.parse_conf(nagios_cfg)
-	for v in comp.params:
-		if v[0] == 'query_socket':
-			qh = v[1]
-		elif v[0] == 'broker_module' and 'livestatus' in v[1]:
-			ary = v[1].rsplit(' ')
-			for p in ary[1:]:
-				if not '=' in p:
-					ls_path = p
-					break
+	if os.access(nagios_cfg, os.R_OK):
+		comp = cconf.parse_nagios_cfg(nagios_cfg)
+		qh = comp.query_socket
+		for k, v in comp.params:
+			if k == 'broker_module' and 'livestatus' in v:
+				ary = v[1].rsplit(' ')
+				for p in ary[1:]:
+					if not '=' in p:
+						ls_path = p
+						break
+			elif k == 'check_result_path':
+				check_result_path = v
 
 	if qh_path:
 		qh = qh_path
 	lsc = livestatus.SingleSiteConnection('unix:' + ls_path)
-	mst = merlin_status(lsc, qh)
 	return rem_args
 
 
@@ -198,6 +199,7 @@ def check_min_avg_max(args, col, defaults=False, filter=False):
 	thresh = {}
 	otype = False
 
+	mst = merlin_status(lsc, qh)
 	if filter == False:
 		filter = 'Filter: should_be_scheduled = 1\nFilter: active_checks_enabled = 1\nAnd: 2\n'
 
@@ -444,6 +446,7 @@ def cmd_spool(args=False):
 	critical = 10
 	path = False
 	delete = False
+	npcd_config = '/opt/monitor/etc/pnp/npcd.cfg'
 	for arg in args:
 		if arg.startswith('--maxage='):
 			maxage = str_to_seconds(arg.split('=', 1)[1])
@@ -460,9 +463,17 @@ def cmd_spool(args=False):
 		nplug.unknown("'path' is a required argument")
 
 	if path == 'checks':
-		path = '/opt/monitor/var/spool/checkresults'
+		path = check_result_path
 	elif path == 'perfdata':
-		path = '/opt/monitor/var/spool/perfdata'
+		if os.access(npcd_config, os.R_OK):
+			comp = cconf.parse_conf(npcd_config)
+			for k, v in comp.params:
+				if k == 'perfdata_spool_dir':
+					path = v
+					break
+			comp = False
+		else:
+			path = '/opt/monitor/var/spool/perfdata'
 
 	bad = 0
 	bad_paths = []

@@ -12,18 +12,12 @@ wanted_names = []
 have_type_arg = False
 have_name_arg = False
 
-qh = '/opt/monitor/var/rw/nagios.qh'
+query_socket = False
 
 def module_init(args):
 	global wanted_types, wanted_names
 	global have_type_arg, have_name_arg
-	global qh
-
-	comp = cconf.parse_conf(nagios_cfg)
-	for v in comp.params:
-		if v[0] == 'query_socket':
-			qh = v[1]
-			break
+	global query_socket
 
 	wanted_types = mconf.merlin_node.valid_types
 	rem_args = []
@@ -44,11 +38,18 @@ def module_init(args):
 			wanted_names = arg.split('=')[1].split(',')
 			have_name_arg = True
 		elif arg.startswith('--socket='):
-			qh = arg.split('=', 1)[1]
+			query_socket = arg.split('=', 1)[1]
 		else:
 			# not an argument we recognize, so stash it and move on
 			rem_args += [arg]
 			continue
+
+	if not query_socket:
+		if os.access(nagios_cfg, os.R_OK):
+			comp = cconf.parse_nagios_cfg(nagios_cfg)
+			query_socket = comp.query_socket
+		else:
+			query_socket = '/opt/monitor/var/rw/nagios.qh'
 
 	# load the merlin configuration, and thus all nodes
 	mconf.parse()
@@ -65,8 +66,10 @@ def cmd_status(args):
 	high_latency = {}
 	inactive = {}
 	mentioned = {}
+	pg_oconf_hash = {}
+	pg_conf = {}
 
-	sinfo = list(get_merlin_nodeinfo(qh))
+	sinfo = list(get_merlin_nodeinfo(query_socket))
 
 	if not sinfo:
 		print("Found no checks")
@@ -84,38 +87,54 @@ def cmd_status(args):
 
 	for info in sinfo:
 		print("")
-		iid = int(info.pop('instance_id', 0))
+		iid = int(info.get('instance_id', 0))
 		node = mconf.configured_nodes.get(info['name'], False)
-		is_running = info.pop('state') == 'STATE_CONNECTED'
+		is_running = info.get('state') == 'STATE_CONNECTED'
 		if is_running:
 			# latency is in milliseconds, so convert to float
-			latency = float(info.pop('latency')) / 1000.0
+			latency = float(info.get('latency')) / 1000.0
 			if latency > 5.0 or latency < -2.0:
 				lat_color = color.yellow
 			else:
 				lat_color = color.green
+			pg_id = int(info.get('pgroup_id', -1))
+			if pg_id != -1:
+				oconf_hash = info.get('oconf_hash', False)
+				if not pg_oconf_hash.get(pg_id, False):
+					pg_oconf_hash[pg_id] = {}
+				pg_oconf_hash[pg_id][info['name']] = oconf_hash
+				confed_masters = info['configured_masters']
+				confed_peers = info['configured_peers']
+				confed_pollers = info['configured_pollers']
+				if not pg_conf.get(pg_id):
+					pg_conf[pg_id] = {}
+				pg_conf[pg_id][info['name']] = {
+					'masters': confed_masters,
+					'peers': confed_peers,
+					'pollers': confed_pollers,
+				}
 
 		if info['type'] == 'peer':
-			peer_id = int(info.pop('peer_id', 0))
+			peer_id = int(info.get('peer_id', 0))
 		else:
-			peer_id = int(info.pop('self_assigned_peer_id', 0))
+			peer_id = int(info.get('self_assigned_peer_id', 0))
 		name = "#%02d %d/%d:%d %s %s" % (
 			iid, peer_id,
-			int(info.pop('active_peers', -1)), int(info.pop('configured_peers', -1)),
+			int(info.get('active_peers', -1)), int(info.get('configured_peers', -1)),
 			info['type'], info['name']
 		)
 
 		if is_running:
-			name += " (%sACTIVE%s - %s%.3fs%s latency)" % (color.green, color.reset, lat_color, latency, color.reset)
+			name += ": %sACTIVE%s - %s%.3fs%s latency" % (color.green, color.reset, lat_color, latency, color.reset)
 			name_len = len(name) - (len(color.green) + len(lat_color) + (len(color.reset) * 2))
 		else:
 			name += " (%sINACTIVE%s)" % (color.red, color.reset)
 			name_len = len(name) - (len(color.red) + len(color.reset))
 
-		print("%s\n%s" % (name, '-' * name_len))
+		print("%s" % name)
 
-		sa_peer_id = int(info.pop('self_assigned_peer_id', 0))
-		conn_time = int(info.pop('connect_time', 0))
+		sa_peer_id = int(info.get('self_assigned_peer_id', 0))
+		conn_time = int(info.get('connect_time', 0))
 		if is_running and info['type'] == 'peer' and sa_peer_id != peer_id:
 			if conn_time + 30 > int(time.time()):
 				print("%sPeer id negotiation in progress%s" % (color.green, color.reset))
@@ -127,7 +146,17 @@ def cmd_status(args):
 			print("%sThis node is currently not in the configuration file%s" %
 				(color.yellow, color.reset))
 
-		last_alive = int(info.pop('last_action'))
+		proc_start = float(info.get('start', False))
+		if proc_start:
+			uptime = time_delta(proc_start)
+		else:
+			uptime = 'unknown'
+		last_alive = int(info.get('last_action'))
+		conn_time = int(info.get('connect_time', False))
+		if conn_time:
+			conn_delta = time_delta(conn_time)
+		else:
+			conn_delta = 'an indeterminate time'
 		if not last_alive:
 			print("%sUnable to determine when this node was last alive%s" %
 				(color.red, color.reset))
@@ -139,17 +168,13 @@ def cmd_status(args):
 
 			delta = time_delta(last_alive)
 			dtime = time.strftime("%F %H:%M:%S", time.localtime(last_alive))
-			print("Last alive: %s (%d) (%s%s ago%s)" %
-				(dtime,	last_alive, la_color, delta, color.reset))
+			print("Uptime: %s. Connected: %s. Last alive: %s%s ago%s" %
+				(uptime, conn_delta, la_color, delta, color.reset))
 
-		proc_start = float(info.pop('start'))
-		if proc_start:
-			print time.strftime("Process start: %F %H:%M:%S", time.localtime(proc_start)) + ' (%s)' % int(proc_start)
-
-		hchecks = int(info.pop('host_checks_executed'))
-		schecks = int(info.pop('service_checks_executed'))
-		assigned_hchecks = int(info.pop('assigned_hosts'))
-		assigned_schecks = int(info.pop('assigned_services'))
+		hchecks = int(info.get('host_checks_executed'))
+		schecks = int(info.get('service_checks_executed'))
+		assigned_hchecks = int(info.get('assigned_hosts'))
+		assigned_schecks = int(info.get('assigned_services'))
 
 		hc_color = ''
 		sc_color = ''
@@ -170,6 +195,57 @@ def cmd_status(args):
 			(hc_color, hchecks, color.reset, sc_color, schecks, color.reset,
 			hc_color, hpercent, color.reset,
 			sc_color, spercent, color.reset))
+
+	oconf_bad = {}
+	for pg_id, d in pg_oconf_hash.items():
+		last = None
+		if len(d) == 1:
+			continue
+		for name, hash in d.items():
+			if last != None and last != hash:
+				oconf_bad[pg_id] = d
+				break
+
+	if len(oconf_bad):
+		print("\n%s%sObject config sync problem detected in the following groups%s" %
+			(color.red, color.bright, color.reset))
+		for pg_id, bad_nodes in oconf_bad.items():
+			bad = bad_nodes.keys()
+			bad.sort()
+			print("  peer-group %d: %s" % (pg_id, ', '.join(bad)))
+		print("%sPlease ensure that configuration synchronization works properly%s" %
+			(color.yellow, color.reset))
+
+	# now check merlin configuration
+	pconf_bad = {}
+	for pg_id, d in pg_conf.items():
+		have_first = False
+		if len(d) == 1:
+			continue
+		for name, d2 in d.items():
+			cur_masters = d2.get('masters', -1)
+			cur_peers = d2.get('peers', -1)
+			cur_pollers = d2.get('pollers', -1)
+			if have_first:
+				if last_masters != cur_masters or last_peers != cur_peers or last_pollers != cur_pollers:
+					pconf_bad[pg_id] = d
+
+			last_masters = d2.get('masters', -1)
+			last_peers = d2.get('peers', -1)
+			last_pollers = d2.get('pollers', -1)
+			have_first = True
+
+
+	if len(pconf_bad):
+		print("\n%s%sMerlin config error detected in the following groups%s" %
+			(color.red, color.bright, color.reset))
+		for pg_id, bad_nodes in pconf_bad.items():
+			bad = bad_nodes.keys()
+			bad.sort()
+			print("  peer-group %d: %s" % (pg_id, ', '.join(bad)))
+		print("%sPlease ensure that all peered nodes share neighbours%s" %
+			(color.yellow, color.reset))
+
 
 ## node commands ##
 # list configured nodes, capable of filtering by type

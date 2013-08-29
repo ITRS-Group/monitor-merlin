@@ -6,9 +6,16 @@ errors=0
 verbose=0 # verbose >= 2 means echoing all commands passed to "ok" ("info" commands are always verbose)
 # verbose = 0 still shows errors, should really use "exit 1" but the "mon"-wrapper doesn't let us
 
-# @todo support more dists than centos with simple syntax, like
-# $centos && $version -eq 5 && ok "my command here"
-# for now, you can fallback to use the "info" command (it won't fail)
+# Default services/commands/alias to use
+http_service="httpd"
+mysql_service="mysqld"
+
+# Stupid check if we are on a sles server, use sles versions of those commands instead.
+# XXX: todo: enchance this check.
+if [ -e /etc/zypp ]; then
+	http_service="apache2"
+	mysql_service="mysql"
+fi
 
 function usage {
 	cat <<CHECK
@@ -116,7 +123,7 @@ category "USERS"
 ok "cat /etc/passwd | grep monitor" "monitor user should exist"
 
 category "FILES, FOLDERS & RIGHTS"
-ok "cat /etc/op5-release"
+ok "cat /etc/op5-monitor-release"
 ok "ls -la /etc/op5" "Files should belong to monitor:apache"
 info "ls -laR /opt/monitor/etc" "Files should belong to monitor:apache"
 info "ls -la /opt/monitor/core*"
@@ -124,7 +131,8 @@ info "ls -la /opt/monitor/core*"
 category "PROCESSES"
 ok "service monitor status" "Try mon start"
 ok "service rrdcached status"
-ok "service httpd status"
+ok "service $http_service status"
+ok "service $mysql_service status"
 ok "ps -ef | grep synergy"
 ok "pidof merlind"
 ok "mon node status"

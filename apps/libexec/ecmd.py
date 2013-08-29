@@ -52,8 +52,7 @@ def cmd_submit(args):
 	"""
 
 	cname = False
-	nconf = parse_nagios_cfg(nagios_cfg)
-	pipe_path = nconf.command_file
+	pipe_path = False
 	i = 0
 	params = []
 	cmd = False
@@ -75,6 +74,15 @@ def cmd_submit(args):
 	if not cmd or not cmd.info:
 		prettyprint_docstring('submit', cmd_submit.__doc__, 'Not enough arguments')
 		sys.exit(1)
+
+	if not pipe_path:
+		if os.access(nagios_cfg, os.R_OK):
+			nconf = parse_nagios_cfg(nagios_cfg)
+			pipe_path = nconf.command_file
+		else:
+			prettyprint_docstring('submit', cmd_submit.__doc__,
+				"No --pipe-path set and unable to parse %s" % nagios_cfg)
+			sys.exit(1)
 
 	cmd.set_pipe_path(pipe_path)
 	if len(params) and len(params[0].split('=')) != 1:
