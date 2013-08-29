@@ -221,7 +221,7 @@ def mod_fail_print(text, mod):
 		(text, color.red, color.yellow, color.bright, mod, color.reset,
 		color.red, color.bright, msg, color.reset))
 
-def show_usage():
+def show_usage(ret):
 	load_commands()
 	print('''usage: mon [category] <command> [options]
 
@@ -242,7 +242,7 @@ Where category is sometimes optional.\n''')
 
 	for mod in command_mod_load_fail.keys():
 		mod_fail_print("(nonfatal)", mod)
-	sys.exit(1)
+	sys.exit(ret)
 
 args = []
 i = 0
@@ -258,8 +258,10 @@ for arg in sys.argv[1:]:
 		args.append(arg)
 		continue
 
-if len(args) < 1 or args[0] == '--help' or args[0] == 'help':
-	show_usage()
+if len(args) < 1:
+	show_usage(1)
+if args[0] == '-h' or args[0] == '--help' or args[0] == 'help':
+	show_usage(0)
 
 if args[0] == '--libexecdir':
 	print("libexecdir=%s" % libexec_dir)
