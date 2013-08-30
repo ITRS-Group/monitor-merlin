@@ -186,7 +186,7 @@ static int handle_checkresult(struct check_result *cr, monitored_object_state *s
 	cr->reschedule_check = 1;
 	cr->exited_ok = 1;
 	cr->latency = st->latency;
-	cr->start_time.tv_sec = 0;
+	cr->start_time.tv_sec = st->last_check;
 	cr->start_time.tv_usec = 0;
 	cr->finish_time.tv_sec = (time_t)st->execution_time;
 	cr->finish_time.tv_usec = 1000000 * ((time_t)st->execution_time) - (cr->finish_time.tv_sec);
@@ -232,7 +232,6 @@ static int handle_host_status(merlin_node *node, merlin_header *hdr, void *buf)
 		set_host_check_node(node, obj);
 
 		init_check_result(&cr);
-		cr.start_time.tv_sec = obj->last_check;
 		cr.object_check_type = HOST_CHECK;
 		cr.check_type = CHECK_TYPE_ACTIVE;
 		cr.host_name = st_obj->name;
@@ -284,7 +283,6 @@ static int handle_service_status(merlin_node *node, merlin_header *hdr, void *bu
 		set_service_check_node(node, obj);
 
 		init_check_result(&cr);
-		cr.start_time.tv_sec = obj->last_check;
 		cr.object_check_type = SERVICE_CHECK;
 		cr.check_type = CHECK_TYPE_ACTIVE;
 		cr.host_name = obj->host_name;
