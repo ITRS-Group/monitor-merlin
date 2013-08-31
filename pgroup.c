@@ -1,6 +1,10 @@
 #include "module.h"
 #include "node.h"
 
+/* Tables to locate the correct peer-group by object id */
+static merlin_peer_group **host_id2pg;
+static merlin_peer_group **service_id2pg;
+
 static merlin_peer_group **peer_group;
 static unsigned int num_peer_groups;
 bitmap *poller_handled_hosts = NULL;
@@ -116,7 +120,7 @@ void pgroup_assign_peer_ids(merlin_peer_group *pg)
 	 * the ones with a start-time higher than ours it's not really
 	 * worth the complexity
 	 */
-	ldebug("Assining peer ids. Order:");
+	ldebug("pg: Assining peer ids. Order:");
 	for (i = 0; i < pg->total_nodes; i++) {
 		merlin_node *node = pg->nodes[i];
 
@@ -126,11 +130,12 @@ void pgroup_assign_peer_ids(merlin_peer_group *pg)
 		 * end up with all peers having the same id.
 		 */
 		node->peer_id = i;
-		ldebug("   %.1d: %s", node->peer_id, node->name);
-		if (node == &ipc || (node->state == STATE_CONNECTED && node->info.start.tv_sec)) {
+		ldebug("pg:   %.1d: %s (%s)", node->peer_id, node->name, node_state_name(node->state));
+		if (node == &ipc || (node->state == STATE_CONNECTED)) {
 			pg->active_nodes++;
 		}
 	}
+	ldebug("pg:   Active nodes: %u", pg->active_nodes);
 
 	ldebug("Reassigning checks");
 	pgroup_reassign_checks(pg);
@@ -203,6 +208,8 @@ static void pgroup_destroy(merlin_peer_group *pg)
 	for (i = 0; i < max(pg->total_nodes, num_peers); i++) {
 		free(pg->assign[i]);
 	}
+	free(pg->host_id_table);
+	free(pg->service_id_table);
 	free(pg->hostgroups);
 }
 
@@ -215,6 +222,41 @@ static int pgroup_add_node(merlin_peer_group *pg, merlin_node *node)
 	pg->nodes = ary;
 	pg->nodes[pg->total_nodes++] = node;
 	node->pgroup = pg;
+
+	return 0;
+}
+
+/*
+ * This really can't be done better, since we don't iterate over all
+ * hosts and services in sorted order anywhere else
+ */
+static int pg_create_id_convtables(merlin_peer_group *pg)
+{
+	unsigned int i, x = 0;
+	const size_t entry_size = sizeof(pg->host_id_table[0]);
+
+	pg->host_id_table = malloc(entry_size * num_objects.hosts);
+	pg->service_id_table = malloc(entry_size * num_objects.services);
+	if (!pg->host_id_table || !pg->service_id_table) {
+		lerr("Failed to allocate host and/or service id conversion tables. Expecting segfault later.");
+		/* what the hell do we do here? */
+		return -1;
+	}
+	memset(pg->host_id_table, 0xff, entry_size * num_objects.hosts);
+	memset(pg->service_id_table, 0xff, entry_size * num_objects.services);
+
+	for (i = 0; i < num_objects.hosts; i++) {
+		if (bitmap_isset(pg->host_map, i)) {
+			pg->host_id_table[i] = x++;
+			host_id2pg[i] = pg;
+		}
+	}
+	for (x = 0, i = 0; i < num_objects.services; i++) {
+		if (bitmap_isset(pg->service_map, i)) {
+			pg->service_id_table[i] = x++;
+			service_id2pg[i] = pg;
+		}
+	}
 
 	return 0;
 }
@@ -372,6 +414,9 @@ static int pgroup_map_objects(void)
 					   pg->assign[x][y].services);
 			}
 		}
+		if (!pg_create_id_convtables(pg)) {
+			linfo("  Object ID conversion tables successfully created");
+		}
 	}
 
 	return 0;
@@ -443,6 +488,63 @@ static char *get_sorted_csstr(const char *orig_str)
 	return ret;
 }
 
+merlin_peer_group *pgroup_by_host_id(unsigned int id)
+{
+	if (!num_pollers)
+		return ipc.pgroup;
+	return host_id2pg[id];
+}
+
+merlin_peer_group *pgroup_by_service_id(unsigned int id)
+{
+	if (!num_pollers)
+		return ipc.pgroup;
+	return service_id2pg[id];
+}
+
+merlin_node *pgroup_host_node(unsigned int id)
+{
+	merlin_peer_group *pg = ipc.pgroup;
+	unsigned int real_id = id;
+
+	if (num_pollers && host_id2pg[id]) {
+		pg = host_id2pg[id];
+		ldebug("pg: Selected peer-group %d for host check id %u", pg->id, id);
+		if (!pg->active_nodes) {
+			ldebug("pg:   no active nodes. Falling back to ipc");
+			/* what about "takeover = no" ? */
+			pg = ipc.pgroup;
+		} else {
+			real_id = pg->host_id_table[id];
+			ldebug("pg:   real_id=%u", real_id);
+		}
+	}
+
+	return pg->nodes[assigned_peer(real_id, pg->active_nodes)];
+}
+
+merlin_node *pgroup_service_node(unsigned int id)
+{
+	merlin_peer_group *pg = ipc.pgroup;
+	unsigned int real_id = id;
+
+	if (num_pollers && service_id2pg[id]) {
+		pg = service_id2pg[id];
+		ldebug("pg: Selected peer-group %d for service check id %u", pg->id, id);
+		if (!pg->active_nodes) {
+			ldebug("pg:   no active nodes. Falling back to ipc");
+			/* what about "takeover = no" ? */
+			pg = ipc.pgroup;
+		} else {
+			real_id = pg->service_id_table[id];
+			ldebug("pg:   real_id=%u", real_id);
+		}
+	}
+
+	ldebug("pg: pg=%d; id=%u; real_id=%u", pg->id, id, real_id);
+	return pg->nodes[assigned_peer(real_id, pg->active_nodes)];
+}
+
 int pgroup_init(void)
 {
 	unsigned int i;
@@ -452,6 +554,14 @@ int pgroup_init(void)
 		poller_handled_hosts = bitmap_create(num_objects.hosts);
 		poller_handled_services = bitmap_create(num_objects.services);
 	}
+
+	if (num_pollers) {
+		host_id2pg = calloc(sizeof(host_id2pg[0]), num_objects.hosts);
+		service_id2pg = calloc(sizeof(service_id2pg[0]), num_objects.services);
+		if (!host_id2pg || !service_id2pg)
+			lerr("  Failed to allocate object id2pgroup tables: %m. Expecting segfault");
+	}
+
 	ipc.pgroup = pgroup_create(NULL);
 	pgroup_add_node(ipc.pgroup, &ipc);
 	for (i = 0; i < num_nodes; i++) {
@@ -485,4 +595,6 @@ void pgroup_deinit(void)
 	peer_group = NULL;
 	bitmap_destroy(poller_handled_hosts);
 	bitmap_destroy(poller_handled_services);
+	free(host_id2pg);
+	free(service_id2pg);
 }

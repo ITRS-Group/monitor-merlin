@@ -203,6 +203,8 @@ struct merlin_peer_group {
 	char **hostgroup_array;
 	bitmap *host_map;
 	bitmap *service_map;
+	uint32_t *host_id_table;
+	uint32_t *service_id_table;
 };
 typedef struct merlin_peer_group merlin_peer_group;
 
