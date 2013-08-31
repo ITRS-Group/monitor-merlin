@@ -446,7 +446,6 @@ static char *get_sorted_csstr(const char *orig_str)
 int pgroup_init(void)
 {
 	unsigned int i;
-	merlin_peer_group *pg;
 
 	linfo("Initializing peer-groups");
 	if (num_pollers) {
@@ -465,6 +464,7 @@ int pgroup_init(void)
 		ipc.pgroup->assigned.services = num_objects.services;
 	} else for (i = 0; i < num_pollers; i++) {
 		merlin_node *node = poller_table[i];
+		merlin_peer_group *pg;
 		char *hgs;
 
 		hgs = get_sorted_csstr(node->hostgroups);
