@@ -229,7 +229,6 @@ static int handle_host_status(merlin_node *node, merlin_header *hdr, void *buf)
 
 		linfo("migrate: Inbound host check of '%s' from %s %s. state=%s",
 		      obj->name, node_type(node), node->name, host_state_name(st_obj->state.current_state));
-		set_host_check_node(node, obj);
 
 		init_check_result(&cr);
 		cr.object_check_type = HOST_CHECK;
@@ -280,7 +279,6 @@ static int handle_service_status(merlin_node *node, merlin_header *hdr, void *bu
 
 		linfo("migrate: Active service check of '%s;%s' from %s %s",
 			  obj->host_name, obj->description, node_type(node), node->name);
-		set_service_check_node(node, obj);
 
 		init_check_result(&cr);
 		cr.object_check_type = SERVICE_CHECK;

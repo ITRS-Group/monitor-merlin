@@ -356,10 +356,6 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		return 0;
 
 	case NEBTYPE_SERVICECHECK_PROCESSED:
-		/* any check via check result transfer */
-		if (merlin_recv_service == s)
-			return 0;
-
 		if (merlin_sender) {
 			/* network-received events mustn't bounce back */
 			pkt->hdr.code = MAGIC_NONET;
@@ -367,6 +363,10 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		} else {
 			set_service_check_node(&ipc, s);
 		}
+
+		/* any check via check result transfer */
+		if (merlin_recv_service == s)
+			return 0;
 
 		if (ds->check_type == CHECK_TYPE_PASSIVE) {
 			/* never transfer passive checks to other nodes */
@@ -427,10 +427,6 @@ static int hook_host_result(merlin_event *pkt, void *data)
 
 	/* only send processed host checks */
 	case NEBTYPE_HOSTCHECK_PROCESSED:
-		/* any check via check result transfer */
-		if (merlin_recv_host == h)
-			return 0;
-
 		if (merlin_sender) {
 			/* network-received events mustn't bounce back */
 			pkt->hdr.code = MAGIC_NONET;
@@ -438,6 +434,10 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		} else {
 			set_host_check_node(&ipc, h);
 		}
+
+		/* any check via check result transfer */
+		if (merlin_recv_host == h)
+			return 0;
 
 		if (ds->check_type == CHECK_TYPE_PASSIVE) {
 			/* never transfer passive checks to other nodes */
