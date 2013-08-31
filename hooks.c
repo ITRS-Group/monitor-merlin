@@ -234,9 +234,7 @@ static int send_host_status(merlin_event *pkt, host *obj)
 
 	st_obj.name = obj->name;
 	MOD2NET_STATE_VARS(st_obj.state, obj);
-	if (merlin_sender && merlin_recv_host == obj)
-		pkt->hdr.code = MAGIC_NONET;
-	else
+	if (!pkt->hdr.code)
 		pkt->hdr.selection = get_selection(obj->name);
 
 	return send_generic(pkt, &st_obj);
@@ -262,9 +260,7 @@ static int send_service_status(merlin_event *pkt, service *obj)
 	st_obj.host_name = obj->host_name;
 	st_obj.service_description = obj->description;
 	MOD2NET_STATE_VARS(st_obj.state, obj);
-	if (obj->check_type == CHECK_TYPE_PASSIVE && merlin_sender)
-		pkt->hdr.code = MAGIC_NONET;
-	else
+	if (!pkt->hdr.code)
 		pkt->hdr.selection = get_selection(obj->host_name);
 
 	return send_generic(pkt, &st_obj);
@@ -365,6 +361,8 @@ static int hook_service_result(merlin_event *pkt, void *data)
 			return 0;
 
 		if (merlin_sender) {
+			/* network-received events mustn't bounce back */
+			pkt->hdr.code = MAGIC_NONET;
 			set_service_check_node(merlin_sender, s);
 		} else {
 			set_service_check_node(&ipc, s);
@@ -432,7 +430,10 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		/* any check via check result transfer */
 		if (merlin_recv_host == h)
 			return 0;
+
 		if (merlin_sender) {
+			/* network-received events mustn't bounce back */
+			pkt->hdr.code = MAGIC_NONET;
 			set_host_check_node(merlin_sender, h);
 		} else {
 			set_host_check_node(&ipc, h);
