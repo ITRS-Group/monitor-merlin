@@ -74,8 +74,8 @@ extern int is_stalling(void);
 extern void ctrl_stall_start(void);
 extern void ctrl_stall_stop(void);
 
-extern int register_merlin_hooks(uint32_t mask);
-extern int deregister_merlin_hooks(void);
+extern int merlin_hooks_init(uint32_t mask);
+extern int merlin_hooks_deinit(void);
 extern int merlin_mod_hook(int cb, void *data);
 extern void merlin_set_block_comment(nebstruct_comment_data *cmnt);
 

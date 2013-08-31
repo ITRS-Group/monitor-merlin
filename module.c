@@ -1042,7 +1042,7 @@ static int post_config_init(int cb, void *ds)
 	 * at us when it's reading its status back in from the
 	 * status.sav file (assuming state retention is enabled)
 	 */
-	register_merlin_hooks(event_mask);
+	merlin_hooks_init(event_mask);
 
 	send_paths();
 
@@ -1242,7 +1242,7 @@ int nebmodule_deinit(int flags, int reason)
 	/* flush junk to disk */
 	sync();
 
-	deregister_merlin_hooks();
+	merlin_hooks_deinit();
 
 	/*
 	 * free some readily available memory. Note that

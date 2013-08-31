@@ -1165,7 +1165,7 @@ static struct callback_struct {
 };
 
 extern void *neb_handle;
-int register_merlin_hooks(uint32_t mask)
+int merlin_hooks_init(uint32_t mask)
 {
 	uint i;
 	event_mask = mask;
@@ -1197,7 +1197,7 @@ int register_merlin_hooks(uint32_t mask)
  * We ignore any event masks here. Nagios should handle a module
  * unloading a function it hasn't registered gracefully anyways.
  */
-int deregister_merlin_hooks(void)
+int merlin_hooks_deinit(void)
 {
 	uint i;
 
