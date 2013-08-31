@@ -79,8 +79,8 @@ extern int merlin_hooks_deinit(void);
 extern int merlin_mod_hook(int cb, void *data);
 extern void merlin_set_block_comment(nebstruct_comment_data *cmnt);
 
-extern void set_host_check_node(merlin_node *node, host *h);
-extern void set_service_check_node(merlin_node *node, service *s);
+extern void set_host_check_node(merlin_node *node, host *h, int flags);
+extern void set_service_check_node(merlin_node *node, service *s, int flags);
 
 /**
  * host and service status structures share a *lot* of data,

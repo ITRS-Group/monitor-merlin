@@ -13,10 +13,10 @@ struct host *merlin_recv_host = NULL;
 struct service *merlin_recv_service = NULL;
 void *neb_handle = NULL;
 
-void set_host_check_node(merlin_node *node, host *h) {}
+void set_host_check_node(merlin_node *node, host *h, int flags) {}
 node_selection *node_selection_by_name(const char *name){ return NULL; }
 node_selection *node_selection_by_hostname(const char *name){ return NULL; }
-void set_service_check_node(merlin_node *node, service *s) {}
+void set_service_check_node(merlin_node *node, service *s, int flags) {}
 const char *node_type(merlin_node *node) { return "local"; }
 
 

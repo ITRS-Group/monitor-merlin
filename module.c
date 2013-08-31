@@ -58,9 +58,9 @@ struct merlin_notify_stats merlin_notify_stats[9][2][2];
  */
 static uint32_t event_mask;
 
-void set_host_check_node(merlin_node *node, host *h)
+void set_host_check_node(merlin_node *node, host *h, int flags)
 {
-	merlin_node *old;
+	merlin_node *old, *responsible;
 
 	old = host_check_node[h->id];
 	if(old == node)
@@ -70,20 +70,24 @@ void set_host_check_node(merlin_node *node, host *h)
 		old = &untracked_checks_node;
 	}
 
-	ldebug("Migrating hostcheck '%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u; sa-p-id=%u)",
+	if (!flags && node != (responsible = pgroup_host_node(h->id))) {
+		lerr("Error: Migrating hostcheck '%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u; sa-p-id=%u). Responsible node is %s %s (p-id=%u; sa-p-id=%u)",
 		   h->name, h->id,
 		   node_type(old), old->name, old->peer_id,
 		   node_type(node), node->name, node->peer_id,
-		   node->info.peer_id);
+		   node->info.peer_id,
+		   node_type(responsible), responsible->name, responsible->peer_id,
+		   responsible->info.peer_id);
+	}
 
 	old->host_checks--;
 	node->host_checks++;
 	host_check_node[h->id] = node;
 }
 
-void set_service_check_node(merlin_node *node, service *s)
+void set_service_check_node(merlin_node *node, service *s, int flags)
 {
-	merlin_node *old;
+	merlin_node *old, *responsible;
 
 	old = service_check_node[s->id];
 	if(old == node)
@@ -93,10 +97,20 @@ void set_service_check_node(merlin_node *node, service *s)
 		old = &untracked_checks_node;
 	}
 
-	ldebug("Migrating servicecheck '%s;%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s (p-id=%u)",
-		   s->host_name, s->description, s->id,
-		   node_type(old), old->name, old->peer_id,
-		   node_type(node), node->name, node->peer_id);
+	responsible = pgroup_service_node(s->id);
+
+	/*
+	 * we only warn about active checks, since we can't control where
+	 * passive checks come in
+	 */
+	if (!flags && node != (responsible = pgroup_service_node(s->id))) {
+		lerr("Error: Migrating servicecheck '%s;%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u). Should go to %s %s (p-id=%u) (pg->active_nodes=%u)",
+		     s->host_name, s->description, s->id,
+		     node_type(old), old->name, old->peer_id,
+		     node_type(node), node->name, node->peer_id,
+		     node_type(responsible), responsible->name, responsible->peer_id,
+		     responsible->pgroup->active_nodes);
+	}
 
 	old->service_checks--;
 	node->service_checks++;

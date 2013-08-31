@@ -359,9 +359,9 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		if (merlin_sender) {
 			/* network-received events mustn't bounce back */
 			pkt->hdr.code = MAGIC_NONET;
-			set_service_check_node(merlin_sender, s);
+			set_service_check_node(merlin_sender, s, s->check_type == CHECK_TYPE_PASSIVE);
 		} else {
-			set_service_check_node(&ipc, s);
+			set_service_check_node(&ipc, s, ds->check_type == CHECK_TYPE_PASSIVE);
 		}
 
 		/* any check via check result transfer */
@@ -430,9 +430,9 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		if (merlin_sender) {
 			/* network-received events mustn't bounce back */
 			pkt->hdr.code = MAGIC_NONET;
-			set_host_check_node(merlin_sender, h);
+			set_host_check_node(merlin_sender, h, h->check_type == CHECK_TYPE_PASSIVE);
 		} else {
-			set_host_check_node(&ipc, h);
+			set_host_check_node(&ipc, h, ds->check_type == CHECK_TYPE_PASSIVE);
 		}
 
 		/* any check via check result transfer */
