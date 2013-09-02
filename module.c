@@ -209,17 +209,7 @@ static int handle_checkresult(struct check_result *cr, monitored_object_state *s
 	return ret;
 }
 
-/*
- * handle_{host,service}_result() is basically identical to
- * handle_{host,service}_status(), with the added exception
- * that the check result events also cause performance data
- * to be handled by Nagios, so they're handled by the same
- * routines.
- *
- * In essence, it would probably be enough to just send the
- * check result events and ignore the rest
- */
-static int handle_host_status(merlin_node *node, merlin_header *hdr, void *buf)
+static int handle_host_result(merlin_node *node, merlin_header *hdr, void *buf)
 {
 	host *obj;
 	merlin_host_status *st_obj = (merlin_host_status *)buf;
@@ -233,8 +223,11 @@ static int handle_host_status(merlin_node *node, merlin_header *hdr, void *buf)
 	}
 
 	/* discard check results that are older than our latest */
-	if(obj->last_check > st_obj->state.last_check)
+	if(obj->last_check > st_obj->state.last_check) {
+		ldebug("migrate: Discarding too old result/status for host '%s' from %s %s (%lu > %lu)",
+		       obj->name, node_type(node), node->name, obj->last_check, st_obj->state.last_check);
 		return 0;
+	}
 
 	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
 	if (hdr->type == NEBCALLBACK_HOST_CHECK_DATA) {
@@ -268,7 +261,7 @@ static int handle_host_status(merlin_node *node, merlin_header *hdr, void *buf)
 	return 0;
 }
 
-static int handle_service_status(merlin_node *node, merlin_header *hdr, void *buf)
+static int handle_service_result(merlin_node *node, merlin_header *hdr, void *buf)
 {
 	service *obj;
 	merlin_service_status *st_obj = (merlin_service_status *)buf;
@@ -284,8 +277,12 @@ static int handle_service_status(merlin_node *node, merlin_header *hdr, void *bu
 	}
 
 	/* discard check results that are older than our latest */
-	if(obj->last_check > st_obj->state.last_check)
+	if(obj->last_check > st_obj->state.last_check) {
+		ldebug("migrate: Discarding too old result/status for '%s;%s' from %s %s (%lu > %lu)",
+		       obj->host_name, obj->description, node_type(node), node->name,
+		       obj->last_check, st_obj->state.last_check);
 		return 0;
+	}
 
 	if (hdr->type == NEBCALLBACK_SERVICE_CHECK_DATA) {
 		struct check_result cr;
@@ -549,11 +546,11 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	switch (pkt->hdr.type) {
 	case NEBCALLBACK_HOST_CHECK_DATA:
 	case NEBCALLBACK_HOST_STATUS_DATA:
-		ret = handle_host_status(node, &pkt->hdr, pkt->body);
+		ret = handle_host_result(node, &pkt->hdr, pkt->body);
 		break;
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
-		ret = handle_service_status(node, &pkt->hdr, pkt->body);
+		ret = handle_service_result(node, &pkt->hdr, pkt->body);
 		break;
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
 		ret = handle_external_command(node, pkt->body);
