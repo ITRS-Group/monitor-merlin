@@ -274,8 +274,6 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 		host *h = hm->host_ptr;
 		unsigned int x, peer_id;
 
-		ldebug("  Looking at host %d: '%s'", h->id, h->name);
-
 		/*
 		 * if the host is already in this selection, such as
 		 * from overlapping hostgroups assigned to a poller group,
@@ -283,9 +281,10 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 		 * services).
 		 */
 		if (bitmap_isset(pg->host_map, h->id)) {
-			ldebug("       already in this group");
+			ldebug("  Host %d (%s) is already in this group", h->id, h->name);
 			continue;
 		}
+		bitmap_set(pg->host_map, h->id);
 
 		/*
 		 * if it's not ours but another poller handles it, we
@@ -308,7 +307,6 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 		}
 		pg->assigned.hosts++;
 
-		bitmap_set(pg->host_map, h->id);
 		for (sm = h->services; sm; sm = sm->next) {
 			service *s = sm->service_ptr;
 
