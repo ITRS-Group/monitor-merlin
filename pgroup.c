@@ -365,13 +365,11 @@ static int pgroup_map_objects(void)
 		if (bitmap_isset(poller_handled_hosts, i))
 			continue;
 
-		if (i < num_objects.hosts && !bitmap_isset(poller_handled_hosts, i)) {
-			for (x = 0; x < num_peers + 1; x++) {
-				int peer_id = i % (x + 1);
-				ipc.pgroup->assign[x][peer_id].hosts++;
-			}
-			ipc.pgroup->assigned.hosts++;
+		for (x = 0; x < num_peers + 1; x++) {
+			int peer_id = i % (x + 1);
+			ipc.pgroup->assign[x][peer_id].hosts++;
 		}
+		ipc.pgroup->assigned.hosts++;
 		for (sm = host_ary[i]->services; sm; sm = sm->next) {
 			for (x = 0; x < num_peers + 1; x++) {
 				int peer_id = sm->service_ptr->id % (x + 1);
