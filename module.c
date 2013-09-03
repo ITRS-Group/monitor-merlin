@@ -203,7 +203,7 @@ static int handle_checkresult(struct check_result *cr, monitored_object_state *s
 	cr->start_time.tv_sec = st->last_check;
 	cr->start_time.tv_usec = 0;
 	cr->finish_time.tv_sec = cr->start_time.tv_sec + (time_t)st->execution_time;
-	cr->finish_time.tv_usec = st->execution_time - (time_t)st->execution_time;
+	cr->finish_time.tv_usec = 1000000 * (st->execution_time - (time_t)st->execution_time);
 	ret = process_check_result(cr);
 	free(cr->output);
 	return ret;
