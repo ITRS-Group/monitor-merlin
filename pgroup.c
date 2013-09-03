@@ -102,10 +102,12 @@ static int cmp_peer(const void *a_, const void *b_)
 
 void pgroup_assign_peer_ids(merlin_peer_group *pg)
 {
-	uint i;
+	uint i, old_active;
 
 	if (!pg)
 		return;
+
+	old_active = pg->active_nodes;
 
 	/* sort peerid_table with earliest started first */
 	ldebug("Sorting peer id table for peer-group %d with %d nodes",
@@ -139,6 +141,17 @@ void pgroup_assign_peer_ids(merlin_peer_group *pg)
 
 	ldebug("Reassigning checks");
 	pgroup_reassign_checks(pg);
+	/*
+	 * if a poller-group went online or offline, we must adjust our
+	 * assigned checks accordingly (what about "takeover = no"?)
+	 */
+	if (pg != ipc.pgroup && !old_active && pg->active_nodes) {
+		ipc.pgroup->assigned.hosts -= pg->assigned.hosts;
+		ipc.pgroup->assigned.services -= pg->assigned.services;
+	} else if (pg != ipc.pgroup && old_active && !pg->active_nodes) {
+		ipc.pgroup->assigned.hosts += pg->assigned.hosts;
+		ipc.pgroup->assigned.services += pg->assigned.services;
+	}
 
 	if (pg == ipc.pgroup) {
 		ipc.info.peer_id = ipc.peer_id;
