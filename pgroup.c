@@ -33,16 +33,16 @@ static void pgroup_reassign_checks(merlin_peer_group *pgrp)
 			   pg->id, active);
 
 		if (!active) {
-			ldebug("ipc.pgroup->active_nodes = %d", ipc.pgroup->active_nodes);
+			ldebug("ipc.pgroup->active_nodes = %u", ipc.pgroup->active_nodes);
 			for (x = 0; x < ipc.pgroup->active_nodes; x++) {
 				merlin_node *node = ipc.pgroup->nodes[x];
 				ldebug("Dealing with node %s", node->name);
 				if (node->state != STATE_CONNECTED)
 					continue;
 				node->assigned.extra.hosts +=
-					pg->assign[ipc.pgroup->active_nodes - 1][node->peer_id].hosts;
+					pg->inherit[ipc.pgroup->active_nodes - 1][node->peer_id].hosts;
 				node->assigned.extra.services +=
-					pg->assign[ipc.pgroup->active_nodes - 1][node->peer_id].services;
+					pg->inherit[ipc.pgroup->active_nodes - 1][node->peer_id].services;
 				ldebug("  done. Moving on to next node");
 			}
 			continue;
@@ -194,8 +194,10 @@ static void pgroup_alloc_counters(merlin_peer_group *pg)
 	pg->service_map = bitmap_create(num_objects.services);
 	pg->alloc = max(num_peers + 1, pg->total_nodes);
 	pg->assign = calloc(pg->alloc, sizeof(void *));
+	pg->inherit = calloc(pg->alloc, sizeof(void *));
 	for (i = 0; i < pg->alloc; i++) {
 		pg->assign[i] = calloc(i + 1, sizeof(**pg->assign));
+		pg->inherit[i] = calloc(i + 1, sizeof(**pg->inherit));
 	}
 }
 
@@ -207,8 +209,10 @@ static void pgroup_destroy(merlin_peer_group *pg)
 	bitmap_destroy(pg->service_map);
 	for (i = 0; i < max(pg->total_nodes, num_peers); i++) {
 		free(pg->assign[i]);
+		free(pg->inherit[i]);
 	}
 	free(pg->assign);
+	free(pg->inherit);
 	free(pg->host_id_table);
 	free(pg->service_id_table);
 	free(pg->hostgroups);
@@ -247,16 +251,41 @@ static int pg_create_id_convtables(merlin_peer_group *pg)
 	memset(pg->service_id_table, 0xff, entry_size * num_objects.services);
 
 	for (i = 0; i < num_objects.hosts; i++) {
-		if (bitmap_isset(pg->host_map, i)) {
-			pg->host_id_table[i] = x++;
-			host_id2pg[i] = pg;
+		unsigned int n, peer_id;
+
+		if (!bitmap_isset(pg->host_map, i)) {
+			continue;
 		}
+
+		pg->host_id_table[i] = x;
+		host_id2pg[i] = pg;
+
+		for (n = 0; n < pg->alloc; n++) {
+			/*
+			 * the poller won't have the same id's as we do,
+			 * so we use the counter to get object id
+			 */
+			peer_id = x % (n + 1);
+			pg->assign[n][peer_id].hosts++;
+			pg->inherit[n][i % (n + 1)].hosts++;
+		}
+		x++;
 	}
 	for (x = 0, i = 0; i < num_objects.services; i++) {
-		if (bitmap_isset(pg->service_map, i)) {
-			pg->service_id_table[i] = x++;
-			service_id2pg[i] = pg;
+		unsigned int n, peer_id;
+
+		if (!bitmap_isset(pg->service_map, i))
+			continue;
+
+		pg->service_id_table[i] = x;
+		service_id2pg[i] = pg;
+
+		for (n = 0; n < pg->alloc; n++) {
+			peer_id = x % (n + 1);
+			pg->assign[n][peer_id].services++;
+			pg->inherit[n][i % (n + 1)].services++;
 		}
+		x++;
 	}
 
 	return 0;
@@ -272,7 +301,6 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 	for (hm = hg->members; hm; hm = hm->next) {
 		servicesmember *sm;
 		host *h = hm->host_ptr;
-		unsigned int x, peer_id;
 
 		/*
 		 * if the host is already in this selection, such as
@@ -297,14 +325,6 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 		}
 		bitmap_set(poller_handled_hosts, h->id);
 
-		for (x = 0; x < pg->alloc; x++) {
-			/*
-			 * the poller won't have the same id's as we do,
-			 * so we use the counter to get object id
-			 */
-			peer_id = pg->assigned.hosts % (x + 1);
-			pg->assign[x][peer_id].hosts++;
-		}
 		pg->assigned.hosts++;
 
 		for (sm = h->services; sm; sm = sm->next) {
@@ -312,10 +332,6 @@ static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 
 			bitmap_set(pg->service_map, s->id);
 			bitmap_set(poller_handled_services, s->id);
-			for (x = 0; x < pg->alloc; x++) {
-				peer_id = pg->assigned.services % (x + 1);
-				pg->assign[x][peer_id].services++;
-			}
 			pg->assigned.services++;
 		}
 	}
@@ -353,6 +369,9 @@ static int pgroup_map_objects(void)
 					hg->group_name, dupes);
 			}
 			pg->overlapping += dupes;
+			if (pg_create_id_convtables(pg)) {
+				lerr("  Failed to create object id conversion tables for pg %d", pg->id);
+			}
 			if (comma)
 				*(comma++) = ',';
 			else
@@ -406,13 +425,19 @@ static int pgroup_map_objects(void)
 			unsigned int y;
 			linfo("    %d node%s online:", x + 1, x ? "s" : "");
 			for (y = 0; y < x + 1; y++) {
-				linfo("      peer %d takes %d hosts, %d services", y,
-					   pg->assign[x][y].hosts,
-					   pg->assign[x][y].services);
+				if (x < pg->total_nodes) {
+					linfo("      peer %d takes %u hosts, %u services", y,
+					      pg->assign[x][y].hosts,
+					      pg->assign[x][y].services);
+				}
+				if (!pg->id)
+					continue;
+				if (x < ipc.pgroup->total_nodes) {
+					linfo("      master peer %d inherits %u hosts, %u services",
+					      y, pg->inherit[x][y].hosts,
+					      pg->inherit[x][y].services);
+				}
 			}
-		}
-		if (!pg_create_id_convtables(pg)) {
-			linfo("  Object ID conversion tables successfully created");
 		}
 	}
 
@@ -566,10 +591,7 @@ int pgroup_init(void)
 		if (node->type == MODE_PEER)
 			pgroup_add_node(ipc.pgroup, node);
 	}
-	if (!num_pollers || !hostgroup_list) {
-		ipc.pgroup->assigned.hosts = num_objects.hosts;
-		ipc.pgroup->assigned.services = num_objects.services;
-	} else for (i = 0; i < num_pollers; i++) {
+	for (i = 0; i < num_pollers; i++) {
 		merlin_node *node = poller_table[i];
 		merlin_peer_group *pg;
 		char *hgs;

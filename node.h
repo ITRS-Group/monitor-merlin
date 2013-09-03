@@ -198,6 +198,7 @@ struct merlin_peer_group {
 	 */
 	unsigned int alloc;
 	struct merlin_assigned_objects **assign;
+	struct merlin_assigned_objects **inherit;
 	struct merlin_assigned_objects assigned;
 	char *hostgroups;
 	char **hostgroup_array;
