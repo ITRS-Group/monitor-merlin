@@ -229,7 +229,6 @@ static int handle_host_result(merlin_node *node, merlin_header *hdr, void *buf)
 		return 0;
 	}
 
-	NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
 	if (hdr->type == NEBCALLBACK_HOST_CHECK_DATA) {
 		struct check_result cr;
 		int ret;
