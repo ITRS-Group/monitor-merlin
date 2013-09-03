@@ -249,7 +249,6 @@ static int handle_host_result(merlin_node *node, merlin_header *hdr, void *buf)
 		 */
 		cr.return_code = st_obj->state.current_state == 0 ? 0 : 2;
 		merlin_recv_host = obj;
-		remove_event(nagios_squeue, obj->next_check_event);
 		ret = handle_checkresult(&cr, &st_obj->state);
 		merlin_recv_host = NULL;
 		return ret;
@@ -299,7 +298,6 @@ static int handle_service_result(merlin_node *node, merlin_header *hdr, void *bu
 		cr.engine = NULL;
 		cr.source = node->source_name;
 		merlin_recv_service = obj;
-		remove_event(nagios_squeue, obj->next_check_event);
 		ret = handle_checkresult(&cr, &st_obj->state);
 		merlin_recv_service = NULL;
 		return ret;
