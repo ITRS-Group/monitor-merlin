@@ -208,6 +208,7 @@ static void pgroup_destroy(merlin_peer_group *pg)
 	for (i = 0; i < max(pg->total_nodes, num_peers); i++) {
 		free(pg->assign[i]);
 	}
+	free(pg->assign);
 	free(pg->host_id_table);
 	free(pg->service_id_table);
 	free(pg->hostgroups);
