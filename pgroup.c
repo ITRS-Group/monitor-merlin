@@ -14,6 +14,10 @@ static void pgroup_reassign_checks(merlin_peer_group *pgrp)
 {
 	unsigned int i, x;
 
+	/* "our" pgroup handles all checks by default */
+	ipc.pgroup->assigned.hosts = num_objects.hosts;
+	ipc.pgroup->assigned.services = num_objects.services;
+
 	/* first reset top-level hosts */
 	ldebug("Reassigning checks for group ipc");
 	for (i = 0; i < ipc.pgroup->active_nodes; i++) {
@@ -33,7 +37,6 @@ static void pgroup_reassign_checks(merlin_peer_group *pgrp)
 			   pg->id, active);
 
 		if (!active) {
-			ldebug("ipc.pgroup->active_nodes = %u", ipc.pgroup->active_nodes);
 			for (x = 0; x < ipc.pgroup->active_nodes; x++) {
 				merlin_node *node = ipc.pgroup->nodes[x];
 				ldebug("Dealing with node %s", node->name);
@@ -49,6 +52,9 @@ static void pgroup_reassign_checks(merlin_peer_group *pgrp)
 		}
 
 		ldebug("Peer group is active. Neato");
+		/* now deduct the objects from the top-level pgroup */
+		ipc.pgroup->assigned.hosts -= pg->assigned.hosts;
+		ipc.pgroup->assigned.services -= pg->assigned.services;
 		for (x = 0; x < pg->total_nodes; x++) {
 			merlin_node *node = pg->nodes[x];
 
@@ -141,18 +147,6 @@ void pgroup_assign_peer_ids(merlin_peer_group *pg)
 
 	ldebug("Reassigning checks");
 	pgroup_reassign_checks(pg);
-	/*
-	 * if a poller-group went online or offline, we must adjust our
-	 * assigned checks accordingly (what about "takeover = no"?)
-	 */
-	if (pg != ipc.pgroup && !old_active && pg->active_nodes) {
-		ipc.pgroup->assigned.hosts -= pg->assigned.hosts;
-		ipc.pgroup->assigned.services -= pg->assigned.services;
-	} else if (pg != ipc.pgroup && old_active && !pg->active_nodes) {
-		ipc.pgroup->assigned.hosts += pg->assigned.hosts;
-		ipc.pgroup->assigned.services += pg->assigned.services;
-	}
-
 	if (pg == ipc.pgroup) {
 		ipc.info.peer_id = ipc.peer_id;
 		linfo("We're now peer #%d out of %d active ones",
@@ -401,13 +395,11 @@ static int pgroup_map_objects(void)
 			int peer_id = i % (x + 1);
 			ipc.pgroup->assign[x][peer_id].hosts++;
 		}
-		ipc.pgroup->assigned.hosts++;
 		for (sm = host_ary[i]->services; sm; sm = sm->next) {
 			for (x = 0; x < num_peers + 1; x++) {
 				int peer_id = sm->service_ptr->id % (x + 1);
 				ipc.pgroup->assign[x][peer_id].services++;
 			}
-			ipc.pgroup->assigned.services++;
 		}
 	}
 
