@@ -186,12 +186,12 @@ static int handle_checkresult(struct check_result *cr, monitored_object_state *s
 {
 	int ret;
 
-	if (st->perf_data && st->long_plugin_output) {
-		asprintf(&cr->output, "%s\n%s|%s", st->plugin_output, st->long_plugin_output, st->perf_data);
-	} else if (st->perf_data) {
+	/*
+	 * long_plugin_output is handled separately, since Nagios
+	 * is insane and escapes it directly when it parses it.
+	 */
+	if (st->perf_data) {
 		asprintf(&cr->output, "%s|%s", st->plugin_output, st->perf_data);
-	} else if (st->long_plugin_output) {
-		asprintf(&cr->output, "%s\n%s", st->plugin_output, st->long_plugin_output);
 	} else {
 		cr->output = strdup(st->plugin_output);
 	}
@@ -250,6 +250,8 @@ static int handle_host_result(merlin_node *node, merlin_header *hdr, void *buf)
 		cr.return_code = st_obj->state.current_state == 0 ? 0 : 2;
 		merlin_recv_host = obj;
 		ret = handle_checkresult(&cr, &st_obj->state);
+		free(obj->long_plugin_output);
+		obj->long_plugin_output = strdup(st_obj->state.long_plugin_output);
 		merlin_recv_host = NULL;
 		return ret;
 	} else {
@@ -299,6 +301,10 @@ static int handle_service_result(merlin_node *node, merlin_header *hdr, void *bu
 		cr.source = node->source_name;
 		merlin_recv_service = obj;
 		ret = handle_checkresult(&cr, &st_obj->state);
+		if (obj->long_plugin_output) {
+			free(obj->long_plugin_output);
+			obj->long_plugin_output = strdup(st_obj->state.long_plugin_output);
+		}
 		merlin_recv_service = NULL;
 		return ret;
 	} else {
