@@ -585,11 +585,18 @@ int pgroup_init(void)
 	if (num_pollers) {
 		host_id2pg = calloc(sizeof(host_id2pg[0]), num_objects.hosts);
 		service_id2pg = calloc(sizeof(service_id2pg[0]), num_objects.services);
-		if (!host_id2pg || !service_id2pg)
-			lerr("  Failed to allocate object id2pgroup tables: %m. Expecting segfault");
+		if (!host_id2pg || !service_id2pg) {
+			lerr("  Failed to allocate object id2pgroup tables: %m");
+			return -1;
+		}
 	}
 
 	ipc.pgroup = pgroup_create(NULL);
+	if (!ipc.pgroup) {
+		lerr("  Failed to allocate ipc.pgroup: %m");
+		return -1;
+	}
+
 	pgroup_add_node(ipc.pgroup, &ipc);
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
