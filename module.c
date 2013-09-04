@@ -251,7 +251,11 @@ static int handle_host_result(merlin_node *node, merlin_header *hdr, void *buf)
 		merlin_recv_host = obj;
 		ret = handle_checkresult(&cr, &st_obj->state);
 		free(obj->long_plugin_output);
-		obj->long_plugin_output = strdup(st_obj->state.long_plugin_output);
+		if (st_obj->state.long_plugin_output) {
+			obj->long_plugin_output = strdup(st_obj->state.long_plugin_output);
+		} else {
+			obj->long_plugin_output = NULL;
+		}
 		merlin_recv_host = NULL;
 		return ret;
 	} else {
@@ -301,9 +305,11 @@ static int handle_service_result(merlin_node *node, merlin_header *hdr, void *bu
 		cr.source = node->source_name;
 		merlin_recv_service = obj;
 		ret = handle_checkresult(&cr, &st_obj->state);
-		if (obj->long_plugin_output) {
-			free(obj->long_plugin_output);
+		free(obj->long_plugin_output);
+		if (st_obj->state.long_plugin_output) {
 			obj->long_plugin_output = strdup(st_obj->state.long_plugin_output);
+		} else {
+			obj->long_plugin_output = NULL;
 		}
 		merlin_recv_service = NULL;
 		return ret;
