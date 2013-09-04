@@ -838,7 +838,7 @@ def cmd_split(args):
 cache_dir = '/var/cache/merlin'
 config_dir = cache_dir + '/config'
 def cmd_nodesplit(args):
-	"""
+	"""--use-helper --cache-dir --force [node1] [node2] [nodeN...]
 	Same as 'split', but use merlin's config to split config into
 	configuration files suitable for poller consumption.
 	"""
@@ -986,10 +986,12 @@ def get_ssh_key(node):
 
 
 def cmd_push(args):
-	"""
+	"""--no-restart
 	Splits configuration based on merlin's peer and poller configuration
 	and sends object configuration to all peers and pollers, restarting
 	those that receive a configuration update.
+	'mon oconf push' also supports all arguments that 'mon oconf nodesplit'
+	handles, since any argument we don't understand get passed there.
 
 	SSH keys needs to be set up for this to be usable without admin supervision.
 	This command uses 'nodesplit' as its backend.
