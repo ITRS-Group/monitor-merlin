@@ -108,12 +108,10 @@ static int cmp_peer(const void *a_, const void *b_)
 
 void pgroup_assign_peer_ids(merlin_peer_group *pg)
 {
-	uint i, old_active;
+	uint i;
 
 	if (!pg)
 		return;
-
-	old_active = pg->active_nodes;
 
 	/* sort peerid_table with earliest started first */
 	ldebug("Sorting peer id table for peer-group %d with %d nodes",
