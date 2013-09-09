@@ -1258,7 +1258,15 @@ class fake_mesh:
 		while True:
 			last = start + max_time < time.time()
 			sub.verbose = last
-			ret = func(sub, **kwargs)
+			# catch exceptions until we run out of time
+			try:
+				ret = func(sub, **kwargs)
+			except Exception, e:
+				if last:
+					raise e
+				time.sleep(interval)
+				continue
+
 			self.write_progress(sub, start)
 			if sub.get_status() == 0 or last:
 				break
