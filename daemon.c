@@ -937,7 +937,7 @@ static void sigusr_handler(int sig)
 
 int main(int argc, char **argv)
 {
-	int i, result;
+	int i, result, status = 0;
 
 	progname = strrchr(argv[0], '/');
 	progname = progname ? progname + 1 : argv[0];
@@ -975,6 +975,10 @@ int main(int argc, char **argv)
 			debug++;
 			continue;
 		}
+		if (!strcmp(arg, "-s")) {
+			status = 1;
+			continue;
+		}
 
 		if ((opt = strchr(arg, '=')))
 			opt++;
@@ -1006,6 +1010,9 @@ int main(int argc, char **argv)
 
 	if (killing)
 		return kill_daemon(pidfile);
+
+	if (status)
+		return daemon_status(pidfile);
 
 	if (use_database && !import_program) {
 		lwarn("Using database, but no import program configured. Are you sure about this?");

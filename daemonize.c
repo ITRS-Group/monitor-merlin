@@ -156,6 +156,18 @@ int kill_daemon(const char *pidfile)
 	return 0;
 }
 
+int daemon_status(const char *pidfile)
+{
+	int pid = already_running(pidfile);
+	if (pid) {
+		printf("Merlin is running\n");
+		return 0;
+	} else {
+		printf("Merlin is not running\n");
+		return 3;
+	}
+}
+
 /*
  * runas is the pseudo-user identity we assume
  * jail is the directory we chdir() to before doing chroot(".")

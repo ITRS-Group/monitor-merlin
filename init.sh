@@ -30,12 +30,20 @@ stop ()
 	"$BINDIR/$prog" -c "$CONFIG_FILE" -k
 }
 
+status ()
+{
+	"$BINDIR/$prog" -c "$CONFIG_FILE" -s
+}
+
 case "$1" in
 	start)
 		start
 		;;
 	stop)
 		stop
+		;;
+	status)
+		status
 		;;
 	reload|restart)
 		stop

@@ -6,6 +6,7 @@
 #define DMNZ_SIGS   (1 << 2)
 
 extern int kill_daemon(const char *pidfile);
+extern int daemon_status(const char *pidfile);
 extern int daemonize(const char *runas, const char *jail,
                      const char *pidfile, int flags);
 extern void daemon_shutdown(void);
