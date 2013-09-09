@@ -50,7 +50,8 @@ int log_grok_var(char *var, char *val)
 
 	if (!strcmp(var, "log_file")) {
 		merlin_log_file = strdup(val);
-		fprintf(stderr, "Logging to '%s'\n", merlin_log_file);
+		if (debug)
+			fprintf(stderr, "Logging to '%s'\n", merlin_log_file);
 		return 1;
 	}
 
