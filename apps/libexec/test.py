@@ -1366,6 +1366,8 @@ class fake_mesh:
 		i = 0
 		self.pgroups = []
 		for p in self.opt_pgroups:
+			if not p:
+				continue
 			i += 1
 			group_name = "pg%d" % i
 			self.pgroups.append(fake_peer_group(self.basepath, group_name, p, port, valgrind=self.valgrind))
