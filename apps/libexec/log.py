@@ -28,16 +28,19 @@ def cmd_fetch(args):
 			print("Failed to force %s to push its logs. Exiting" % node.name)
 			sys.exit(1)
 
-def cmd_sortmerge(args):
+def cmd_sortmerge(orig_args):
 	"""[--since=<timestamp>]
 	Runs a mergesort algorithm on logfiles from multiple systems to
 	create a single unified logfile suitable for importing into the
 	reports database.
 	"""
 	since = False
-	for arg in args:
+	args = []
+	for arg in orig_args:
 		if (arg.startswith('--since=')):
 			since = arg.split('=', 1)[1]
+			continue
+		args.append(arg)
 
 	if since:
 		since = '--incremental=' + since
@@ -71,7 +74,7 @@ def cmd_sortmerge(args):
 		last_files = files
 
 	app = merlin_dir + "/import"
-	cmd_args = [app, '--list-files', args, archive_dir]
+	cmd_args = [app, '--list-files'] + args + [archive_dir]
 	stuff = subprocess.Popen(cmd_args, stdout=subprocess.PIPE)
 	output = stuff.communicate()[0]
 	sort_args = ['sort']
