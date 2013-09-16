@@ -233,9 +233,6 @@ static int handle_host_result(merlin_node *node, merlin_header *hdr, void *buf)
 		struct check_result cr;
 		int ret;
 
-		linfo("migrate: Inbound host check of '%s' from %s %s. state=%s",
-		      obj->name, node_type(node), node->name, host_state_name(st_obj->state.current_state));
-
 		init_check_result(&cr);
 		cr.object_check_type = HOST_CHECK;
 		cr.check_type = CHECK_TYPE_ACTIVE;
@@ -291,9 +288,6 @@ static int handle_service_result(merlin_node *node, merlin_header *hdr, void *bu
 	if (hdr->type == NEBCALLBACK_SERVICE_CHECK_DATA) {
 		struct check_result cr;
 		int ret;
-
-		linfo("migrate: Active service check of '%s;%s' from %s %s",
-			  obj->host_name, obj->description, node_type(node), node->name);
 
 		init_check_result(&cr);
 		cr.object_check_type = SERVICE_CHECK;
@@ -611,8 +605,6 @@ static int ipc_reaper(int sd, int events, void *arg)
 			}
 			node->last_action = node->last_recv = tv.tv_sec;
 			node->stats.cb_count[type].in++;
-			ldebug("Received type %s event from %s node %s",
-				   callback_name(pkt->hdr.type), node_type(node), node->name);
 		}
 
 		/* control packets are handled separately */
