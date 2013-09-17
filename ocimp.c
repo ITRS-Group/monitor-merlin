@@ -417,7 +417,7 @@ static int parse_downtime(struct cfg_comp *comp)
 		sql_quote(comp->vlist[i++]->value, &service_description);
 	}
 	downtime_id = comp->vlist[i++]->value;
-	for (; i < (int)comp->vlist_len; i++) {
+	for (; i < (int)comp->vars; i++) {
 		struct cfg_var *kv = comp->vlist[i];
 		if (!strcmp(kv->key, "entry_time"))
 			entry_time = kv->value;
