@@ -97,37 +97,39 @@ def load_command_module(path):
 
 	return ret
 
-def get_executable_syntax(bin_path):
+def get_help_text(help_text_dir, bin_filename):
 	global docstrings
 
-	basename_parts = os.path.basename(bin_path).split('.')
+	parts = bin_filename.split('.')
 
 	try:
-		basename_parts[2]
+		parts[2]
 	except IndexError:
 		return False
 
-	modname = basename_parts[0]
-	funcname = '.'.join(basename_parts[1:][:-1])
+	category = parts[0]
+	command = '.'.join(parts[1:][:-1])
 
-	proc = Popen([bin_path, '--help'], stdout=PIPE, stderr=PIPE)
-	proc_streams = proc.communicate()
+	help_text_file = help_text_dir + '/' + category + '.' + command + '.txt'
 
-	if proc.returncode != 0:
-		return False # --help arg exited with non-zero return code - skip it
+	if not os.path.isfile(help_text_file):
+		return False # no help text file for this non-python command = skip it
+	if not os.access(help_text_file, os.R_OK):
+		return False # can't read help help text file = skip command
+	if os.access(help_text_file, os.X_OK):
+		return False # executable text file = skip command
 
-	if proc_streams[1]:
-		return False # --help showed something on stderr - skip command
+	help_text = open(help_text_file).read()
 
-	if not proc_streams[0].strip():
-		return True # no useful stdout for --help - show command as undocumented
+	if not help_text.strip:
+		return False # empty help text file (or just whitespace) = skip command
 
 	try:
-		docstrings[modname]
+		docstrings[category]
 	except KeyError:
-		docstrings[modname] = {}
+		docstrings[category] = {}
 
-	docstrings[modname][funcname] = proc_streams[0]
+	docstrings[category][command] = help_text
 
 	return True
 
@@ -168,7 +170,7 @@ def load_commands(name=False):
 						continue
 				elif len(args) < 2: # gather syntax texts only when showing help
 					if len(ary) >= 3 and ary[-1] != 'py': # non-python commands
-						if not get_executable_syntax(libexec_dir + '/' + rh):
+						if not get_help_text(libexec_dir + '/helpfiles/', rh):
 							continue
 
 				helper = '.'.join(ary[:-1])
