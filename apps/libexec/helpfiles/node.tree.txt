@@ -1,0 +1,2 @@
+
+Prints an ascii map of the node network.

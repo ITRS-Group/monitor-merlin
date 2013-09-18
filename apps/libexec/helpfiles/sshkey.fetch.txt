@@ -1,0 +1,11 @@
+[--outfile=<outfile>] [--all|--type=<peer|poller|master>] [source]..
+Fetch public ssh keys from specified remote node(s) (sources).
+
+The keys will be written to the specified outfile, or if not
+specified, default to: ~/.ssh/authorized_keys
+
+If no key exists on any of the specified remote nodes, a new key
+will be generated automatically.
+
+A combination of different node types as well as specific nodes
+can be specified at the same time.

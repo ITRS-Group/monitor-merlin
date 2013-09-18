@@ -1,0 +1,10 @@
+[--key=<keyfile>] [--all|--type=<peer|poller|master>] [destination]..
+Push public ssh key to specified remote node(s) (destinations).
+
+The key will be read from specified keyfile, or if not
+specified, default to: ~/.ssh/id_rsa.pub
+
+If no key exists, a new key will be generated automatically.
+
+A combination of different node types as well as specific nodes
+can be specified at the same time.

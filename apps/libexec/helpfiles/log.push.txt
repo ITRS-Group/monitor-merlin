@@ -1,0 +1,2 @@
+[--push-all|--since <time>]
+Pushes logs to other nodes. Used by log fetch.
