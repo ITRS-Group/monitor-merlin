@@ -230,8 +230,12 @@ Where category is sometimes optional.\n''')
 	print("%s\n%s" % (topic, '-' * len(topic)))
 	cat_keys = categories.keys()
 	cat_keys.sort()
+	cat_max_len = 0
 	for cat in cat_keys:
-		print("  %-7s: %s" % (cat, ', '.join(categories[cat])))
+		if len(cat) > cat_max_len:
+			cat_max_len = len(cat)
+	for cat in cat_keys:
+		print '  ' + cat.ljust(cat_max_len, ' ') + ' : ' + ', '.join(sorted(categories[cat]))
 	if len(help_helpers):
 		help_helpers.sort()
 		topic = "Commands without category:"
