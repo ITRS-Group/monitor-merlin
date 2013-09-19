@@ -1,0 +1,2 @@
+
+Detects errors in the merlin and nacoma database using mysqlcheck.
