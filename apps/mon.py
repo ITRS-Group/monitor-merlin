@@ -244,7 +244,7 @@ Where category is sometimes optional.\n''')
 		print("\n%s\n%s\n   %s" % (topic, '-' * len(topic), ', '.join(help_helpers)))
 
 	print('''\nCategorized commands are described by running: mon <category>
-''')
+Uncategorized commands are run by: mon <command>\n''')
 
 	for mod in command_mod_load_fail.keys():
 		mod_fail_print("(nonfatal)", mod)
