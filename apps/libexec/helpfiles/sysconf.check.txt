@@ -1,0 +1,3 @@
+[-c|--complete]
+Summarizes the results of all "mon syscheck" handlers.
+The -c switch will output all check results, regardless of state.
