@@ -461,8 +461,8 @@ class nagios_command:
 		},
 		'SCHEDULE_HOST_SVC_DOWNTIME': {
 			'nagios_id': 86,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Schedules downtime for all services associated with a particular host. If the "fixed" argument is set to one (1), downtime will start and end at the times specified by the "start" and "end" arguments. Otherwise, downtime will begin between the "start" and "end" times and last for "duration" seconds. The "start" and "end" arguments are specified in time_t format (seconds since the UNIX epoch). The service downtime entries can be triggered by another downtime entry if the "trigger_id" is set to the ID of another scheduled downtime entry. Set the "trigger_id" argument to zero (0) if the downtime for the services should not be triggered by another downtime entry.',
+			'brief': 'You are trying to schedule downtime for all services associated with a particular host.',
 			'template': 'SCHEDULE_HOST_SVC_DOWNTIME;host_name;start_time;end_time;fixed;trigger_id;duration;author;comment',
 		},
 		'PROCESS_HOST_CHECK_RESULT': {
@@ -743,8 +743,8 @@ class nagios_command:
 		},
 		'SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME': {
 			'nagios_id': 134,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Schedules downtime for a specified host and all of its children (hosts). If the "fixed" argument is set to one (1), downtime will start and end at the times specified by the "start" and "end" arguments. Otherwise, downtime will begin between the "start" and "end" times and last for "duration" seconds. The "start" and "end" arguments are specified in time_t format (seconds since the UNIX epoch). Downtime for child hosts are all set to be triggered by the downtime for the specified (parent) host. The specified (parent) host downtime can be triggered by another downtime entry if the "trigger_id" is set to the ID of another scheduled downtime entry. Set the "trigger_id" argument to zero (0) if the downtime for the specified (parent) host should not be triggered by another downtime entry.',
+			'brief': 'You are trying to schedule downtime for a host and all of its children (hosts).',
 			'template': 'SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME;host_name;start_time;end_time;fixed;trigger_id;duration;author;comment',
 		},
 		'ENABLE_HOST_AND_CHILD_NOTIFICATIONS': {
@@ -761,8 +761,8 @@ class nagios_command:
 		},
 		'SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME': {
 			'nagios_id': 137,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Schedules downtime for a specified host and all of its children (hosts). If the "fixed" argument is set to one (1), downtime will start and end at the times specified by the "start" and "end" arguments. Otherwise, downtime will begin between the "start" and "end" times and last for "duration" seconds. The "start" and "end" arguments are specified in time_t format (seconds since the UNIX epoch). The specified (parent) host downtime can be triggered by another downtime entry if the "trigger_id" is set to the ID of another scheduled downtime entry. Set the "trigger_id" argument to zero (0) if the downtime for the specified (parent) host should not be triggered by another downtime entry.',
+			'brief': 'You are trying to schedule downtime for a host and all of its children (hosts).',
 			'template': 'SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME;host_name;start_time;end_time;fixed;trigger_id;duration;author;comment',
 		},
 		'ENABLE_SERVICE_FRESHNESS_CHECKS': {
