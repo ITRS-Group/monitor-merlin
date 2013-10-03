@@ -67,8 +67,10 @@ done
 
 # print final exit status msg and exit...
 
+[ -n "$main_out" ] && main_out=$'\n'"$main_out"
+
 if [ "$main_ret" == '0' ]; then
-  printf 'OK: No system problems detected.\n' "$"
+  printf 'OK: No system problems detected.\n%s' "$main_out"
 else
   case "$main_ret" in
     1) prefix='WARNING' ;;
@@ -77,7 +79,7 @@ else
     *) prefix="UNKNOWN ($main_ret)" main_ret='3' ;;
   esac
 
-  printf '%s: System problems detected.\n\n%s' "$prefix" "$main_out"
+  printf '%s: System problems detected.\n%s' "$prefix" "$main_out"
 fi
 
 exit "$main_ret"
