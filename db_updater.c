@@ -93,13 +93,14 @@ static int handle_host_status(merlin_node *node, int cb, const merlin_host_statu
 	if (rpt_log) {
 		result = sql_query
 			("INSERT INTO %s(timestamp, event_type, host_name, state, "
-				"hard, retry, output) "
-				"VALUES(%lu, %d, %s, %d, %d, %d, %s)",
+				"hard, retry, output, downtime_depth) "
+				"VALUES(%lu, %d, %s, %d, %d, %d, %s, %d)",
 				sql_table_name(), p->state.last_check,
 				NEBTYPE_HOSTCHECK_PROCESSED, host_name,
 				p->state.current_state,
 				p->state.state_type == HARD_STATE,
-				p->state.current_attempt, output);
+				p->state.current_attempt, output,
+				p->state.scheduled_downtime_depth);
 	}
 
 	/*
@@ -158,13 +159,14 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 	if (rpt_log) {
 		result = sql_query
 			("INSERT INTO %s(timestamp, event_type, host_name, "
-				"service_description, state, hard, retry, output) "
-				"VALUES(%lu, %d, %s, %s, %d, '%d', '%d', %s)",
+				"service_description, state, hard, retry, output, downtime_depth) "
+				"VALUES(%lu, %d, %s, %s, %d, '%d', '%d', %s, %d)",
 				sql_table_name(), p->state.last_check,
 				NEBTYPE_SERVICECHECK_PROCESSED, host_name,
 				service_description, p->state.current_state,
 				p->state.state_type == HARD_STATE,
-				p->state.current_attempt, output);
+				p->state.current_attempt, output,
+				p->state.scheduled_downtime_depth);
 	}
 
 	/*
