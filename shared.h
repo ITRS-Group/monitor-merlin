@@ -169,12 +169,14 @@ struct monitored_object_state {
 typedef struct monitored_object_state monitored_object_state;
 
 struct merlin_host_status {
+	int nebattr;
 	monitored_object_state state;
 	char *name;
 };
 typedef struct merlin_host_status merlin_host_status;
 
 struct merlin_service_status {
+	int nebattr;
 	monitored_object_state state;
 	char *host_name;
 	char *service_description;

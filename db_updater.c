@@ -64,7 +64,7 @@ static int handle_host_status(merlin_node *node, int cb, const merlin_host_statu
 	int result = 0, node_id, rpt_log = 0, perf_log = 0;
 
 	if (cb == NEBCALLBACK_HOST_CHECK_DATA) {
-		if (db_log_reports && host_has_new_state(p->name, p->state.current_state, p->state.state_type))
+		if (db_log_reports && (p->nebattr & NEBATTR_CHECK_ALERT))
 			rpt_log = 1;
 		if (host_perf_table && p->state.perf_data && *p->state.perf_data) {
 			perf_log = 1;
@@ -129,8 +129,9 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 	int result = 0, node_id, rpt_log = 0, perf_log = 0;
 
 	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA) {
-		if (db_log_reports && service_has_new_state(p->host_name, p->service_description, p->state.current_state, p->state.state_type))
+		if (db_log_reports && (p->nebattr & NEBATTR_CHECK_ALERT))
 			rpt_log = 1;
+
 		if (service_perf_table && p->state.perf_data && *p->state.perf_data)
 			perf_log = 1;
 	}

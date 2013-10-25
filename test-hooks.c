@@ -80,13 +80,14 @@ void test_callback_host_check() {
 	gettimeofday(&tv, NULL);
 	ev_data.type = NEBTYPE_HOSTCHECK_PROCESSED;
 	ev_data.flags = 0;
-	ev_data.attr = 0;
+	ev_data.attr = NEBATTR_CHECK_ALERT;
 	ev_data.timestamp = tv;
 	ev_data.object_ptr = &hst;
 	ev_data.end_time.tv_sec =  expected_last_check;
 	merlin_mod_hook(NEBCALLBACK_HOST_CHECK_DATA, &ev_data);
 	T_ASSERT(last_decoded_event->hdr.type == NEBCALLBACK_HOST_CHECK_DATA, "event type is left untouched");
 	event_body = (merlin_host_status *)last_decoded_event->body;
+	T_ASSERT(event_body->nebattr == NEBATTR_CHECK_ALERT, "NEBATTR is left untouched");
 	T_ASSERT(0 == strcmp(event_body->name, hst.name), "name is left untouched");
 	T_ASSERT(expected_last_check == event_body->state.last_check, "last_check field is updated to reflect nagios.log entry");
 }
@@ -129,13 +130,14 @@ void test_callback_service_check() {
 	gettimeofday(&tv, NULL);
 	ev_data.type = NEBTYPE_SERVICECHECK_PROCESSED;
 	ev_data.flags = 0;
-	ev_data.attr = 0;
+	ev_data.attr = NEBATTR_CHECK_ALERT;
 	ev_data.timestamp = tv;
 	ev_data.object_ptr = &svc;
 	ev_data.end_time.tv_sec =  expected_last_check;
 	merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, &ev_data);
 	T_ASSERT(last_decoded_event->hdr.type == NEBCALLBACK_SERVICE_CHECK_DATA, "event type is left untouched");
 	event_body = (merlin_service_status *)last_decoded_event->body;
+	T_ASSERT(event_body->nebattr == NEBATTR_CHECK_ALERT, "NEBATTR is left untouched");
 	T_ASSERT(0 == strcmp(event_body->host_name, svc.host_name), "host name is left untouched");
 	T_ASSERT(expected_last_check == event_body->state.last_check, "last_check field is updated to reflect nagios.log entry");
 }
