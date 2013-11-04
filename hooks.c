@@ -212,7 +212,7 @@ static int get_hostgroup_selection(const char *key)
 	return sel ? sel->id & 0xffff : DEST_PEERS_POLLERS;
 }
 
-static int send_host_status(merlin_event *pkt, host *obj)
+static int send_host_status(merlin_event *pkt, int nebattr, host *obj)
 {
 	merlin_host_status st_obj;
 	static host *last_obj = NULL;
@@ -232,6 +232,7 @@ static int send_host_status(merlin_event *pkt, host *obj)
 		last_obj = obj;
 	}
 
+	st_obj.nebattr = nebattr;
 	st_obj.name = obj->name;
 	MOD2NET_STATE_VARS(st_obj.state, obj);
 	if (!pkt->hdr.code)
@@ -240,7 +241,7 @@ static int send_host_status(merlin_event *pkt, host *obj)
 	return send_generic(pkt, &st_obj);
 }
 
-static int send_service_status(merlin_event *pkt, service *obj)
+static int send_service_status(merlin_event *pkt, int nebattr, service *obj)
 {
 	merlin_service_status st_obj;
 	static service *last_obj = NULL;
@@ -256,7 +257,7 @@ static int send_service_status(merlin_event *pkt, service *obj)
 		check_dupes = 0;
 		last_obj = obj;
 	}
-
+	st_obj.nebattr = nebattr;
 	st_obj.host_name = obj->host_name;
 	st_obj.service_description = obj->description;
 	MOD2NET_STATE_VARS(st_obj.state, obj);
@@ -379,7 +380,7 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		 * as that in the report_data to avoid (user) confusion
 		 */
 		s->last_check = (time_t) ds->end_time.tv_sec;
-		return send_service_status(pkt, ds->object_ptr);
+		return send_service_status(pkt, ds->attr, ds->object_ptr);
 	}
 
 	return 0;
@@ -450,7 +451,7 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		 * as that in the report_data to avoid (user) confusion
 		 */
 		h->last_check = (time_t) ds->end_time.tv_sec;
-		return send_host_status(pkt, ds->object_ptr);
+		return send_host_status(pkt, ds->attr, ds->object_ptr);
 	}
 
 	return 0;
@@ -866,7 +867,7 @@ static int hook_host_status(merlin_event *pkt, void *data)
 
 	h_block.sent++;
 
-	return send_host_status(pkt, ds->object_ptr);
+	return send_host_status(pkt, ds->attr, ds->object_ptr);
 }
 
 static int hook_service_status(merlin_event *pkt, void *data)
@@ -891,7 +892,7 @@ static int hook_service_status(merlin_event *pkt, void *data)
 
 	s_block.sent++;
 
-	return send_service_status(pkt, ds->object_ptr);
+	return send_service_status(pkt, ds->attr, ds->object_ptr);
 }
 
 static int hook_contact_notification(merlin_event *pkt, void *data)
