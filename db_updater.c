@@ -1,6 +1,7 @@
 #include <nagios/broker.h>
 #include <nagios/comments.h>
 #include "daemon.h"
+#include "string_utils.h"
 
 #define STATUS_QUERY(type) \
 	"UPDATE " type " SET " \
@@ -60,7 +61,7 @@
 static int handle_host_status(merlin_node *node, int cb, const merlin_host_status *p)
 {
 	char *host_name;
-	char *output = NULL, *long_output = NULL, *perf_data = NULL;
+	char *output = NULL, *long_output = NULL, *unescaped_long_output = NULL, *perf_data = NULL;
 	int result = 0, node_id, rpt_log = 0, perf_log = 0;
 
 	if (cb == NEBCALLBACK_HOST_CHECK_DATA) {
@@ -77,30 +78,41 @@ static int handle_host_status(merlin_node *node, int cb, const merlin_host_statu
 	node_id = node == &ipc ? 0 : node->id + 1;
 
 	sql_quote(p->name, &host_name);
-	if (db_track_current || rpt_log)
+	if (db_track_current || rpt_log) {
 		sql_quote(p->state.plugin_output, &output);
+		sql_quote(p->state.long_plugin_output, &long_output);
+	}
 	if (db_track_current || perf_log)
 		sql_quote(p->state.perf_data, &perf_data);
 
 	if (db_track_current) {
-		sql_quote(p->state.long_plugin_output, &long_output);
 		result = sql_query(STATUS_QUERY("host") " WHERE host_name = %s",
-						   node_id,
-						   STATUS_ARGS(output, long_output, perf_data),
-						   host_name);
+				node_id,
+				STATUS_ARGS(output, long_output, perf_data),
+				host_name);
 	}
 
 	if (rpt_log) {
+		if (long_output) {
+			if((unescaped_long_output = malloc(strlen(long_output))) == NULL) {
+				lerr("failed to allocate memory for unescaped long output");
+				return 1;
+			}
+			unescaped_long_output = unescape_newlines(unescaped_long_output, long_output, strlen(long_output));
+		}
 		result = sql_query
 			("INSERT INTO %s(timestamp, event_type, host_name, state, "
-				"hard, retry, output, downtime_depth) "
-				"VALUES(%lu, %d, %s, %d, %d, %d, %s, %d)",
+				"hard, retry, output, long_output, downtime_depth) "
+				"VALUES(%lu, %d, %s, %d, %d, %d, %s, %s, %d)",
 				sql_table_name(), p->state.last_check,
 				NEBTYPE_HOSTCHECK_PROCESSED, host_name,
 				p->state.current_state,
 				p->state.state_type == HARD_STATE,
 				p->state.current_attempt, output,
+				unescaped_long_output,
 				p->state.scheduled_downtime_depth);
+		free(unescaped_long_output);
+		unescaped_long_output = NULL;
 	}
 
 	/*
@@ -126,6 +138,7 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 {
 	char *host_name, *service_description;
 	char *output = NULL, *long_output = NULL, *perf_data = NULL;
+	char *unescaped_long_output = NULL;
 	int result = 0, node_id, rpt_log = 0, perf_log = 0;
 
 	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA) {
@@ -143,31 +156,43 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->service_description, &service_description);
-	if (db_track_current || rpt_log)
+	if (db_track_current || rpt_log) {
 		sql_quote(p->state.plugin_output, &output);
+		sql_quote(p->state.long_plugin_output, &long_output);
+	}
 
 	if (db_track_current || perf_log)
 		sql_quote(p->state.perf_data, &perf_data);
+
 	if (db_track_current) {
-		sql_quote(p->state.long_plugin_output, &long_output);
 		result = sql_query
 			(STATUS_QUERY("service")
-				" WHERE host_name = %s AND service_description = %s",
-				node_id, STATUS_ARGS(output, long_output, perf_data),
-				host_name, service_description);
+			 " WHERE host_name = %s AND service_description = %s",
+			 node_id, STATUS_ARGS(output, long_output, perf_data),
+			 host_name, service_description);
 	}
 
 	if (rpt_log) {
+		if (long_output) {
+			if((unescaped_long_output = malloc(strlen(long_output))) == NULL) {
+				lerr("failed to allocate memory for unescaped long output");
+				return 1;
+			}
+			unescaped_long_output = unescape_newlines(unescaped_long_output, long_output, strlen(long_output));
+		}
 		result = sql_query
 			("INSERT INTO %s(timestamp, event_type, host_name, "
-				"service_description, state, hard, retry, output, downtime_depth) "
-				"VALUES(%lu, %d, %s, %s, %d, '%d', '%d', %s, %d)",
+				"service_description, state, hard, retry, output, long_output, downtime_depth) "
+				"VALUES(%lu, %d, %s, %s, %d, '%d', '%d', %s, %s, %d)",
 				sql_table_name(), p->state.last_check,
 				NEBTYPE_SERVICECHECK_PROCESSED, host_name,
 				service_description, p->state.current_state,
 				p->state.state_type == HARD_STATE,
 				p->state.current_attempt, output,
+				unescaped_long_output,
 				p->state.scheduled_downtime_depth);
+		free(unescaped_long_output);
+		unescaped_long_output = NULL;
 	}
 
 	/*

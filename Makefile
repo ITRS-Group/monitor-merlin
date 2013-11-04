@@ -79,7 +79,7 @@ sql.o test-dbwrap.o db_wrap.o: CFLAGS+=$(DB_CFLAGS)
 COMMON_OBJS = cfgfile.o shared.o version.o logging.o
 SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
-DAEMON_OBJS = status.o daemonize.o daemon.o net.o $(DBWRAP_OBJS) db_updater.o state.o
+DAEMON_OBJS = status.o daemonize.o daemon.o net.o $(DBWRAP_OBJS) db_updater.o state.o string_utils.o
 DAEMON_OBJS += $(SHARED_OBJS)
 MODULE_OBJS = $(SHARED_OBJS) module.o hooks.o misc.o sha1.o
 MODULE_OBJS += queries.o pgroup.o
@@ -96,6 +96,7 @@ DAEMON_LIBS = $(LIB_NET)
 DAEMON_LDFLAGS = $(DAEMON_LIBS) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) -ggdb3
 DBTEST_LDFLAGS = $(LIB_NET) $(LIBNAGIOS_LDFLAGS) $(DB_LDFLAGS) -ggdb3
 HOOKTEST_LDFLAGS = $(LIBNAGIOS_LDFLAGS) -ggdb3
+STRINGUTILSTEST_LDFLAGS = -ggdb3
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
 
@@ -165,7 +166,7 @@ rename: $(RENAME_OBJS)
 	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@
 
 #test: test-binlog test-slist test__lparse
-test: test-slist test__lparse test-hooks
+test: test-slist test__lparse test-hooks test-stringutils
 
 test-slist: sltest
 	@./sltest
@@ -179,6 +180,9 @@ test__lparse: test-lparse
 test-hooks:	hooktest
 	@./hooktest
 
+test-stringutils: stringutilstest
+	@./stringutilstest
+
 sltest: sltest.o test_utils.o slist.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
@@ -188,6 +192,8 @@ bltest: binlog.o bltest.o test_utils.o
 hooktest: test-hooks.o test_utils.o hooks.o $(COMMON_OBJS) codec.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $^ -o $@ $(HOOKTEST_LDFLAGS)
 
+stringutilstest: test-stringutils.o test_utils.o string_utils.o
+	$(QUIET_LINK)$(CC) $(CFLAGS) $^ -o $@ $(STRINGUTILSTEST_LDFLAGS)
 bltest.o: bltest.c binlog.h
 
 blread: blread.o codec.o $(COMMON_OBJS)
