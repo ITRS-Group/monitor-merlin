@@ -3,6 +3,19 @@
 -- Database design for the merlin database
 --
 
+DELIMITER $$
+DROP PROCEDURE IF EXISTS 'set_initial_db_version' $$
+CREATE PROCEDURE set_initial_db_version ()
+BEGIN
+	DECLARE VersionExists INT;
+	SET VersionExists=0 ;
+
+	SELECT count(*) INTO VersionExists from db_version;
+	IF NOT (VersionExists > 0) THEN INSERT INTO db_version (version) VALUES (2);
+	END IF;
+END $$
+DELIMITER ;
+
 DROP TABLE IF EXISTS contact_access;
 CREATE TABLE contact_access(
 	contact			int NOT NULL,
@@ -588,14 +601,11 @@ CREATE UNIQUE INDEX cv_objvar ON custom_vars(obj_type, obj_id, variable);
 
 -- gui <=> webconfig db scheme cross-pollination ends here
 
-DROP TABLE IF EXISTS db_version;
-CREATE TABLE db_version (
+CREATE TABLE IF NOT EXISTS db_version (
   version int(11)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
---
--- ### IMPORTANT :: ONLY BUMP VERSION IF PERSISTENT TABLES CHANGE
---
-INSERT INTO db_version(version) VALUES(2);
+
+call set_initial_db_version();
 
 -- Obsoleted tables
 DROP TABLE IF EXISTS hostextinfo;

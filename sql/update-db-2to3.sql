@@ -1,5 +1,5 @@
 CREATE TABLE report_data_tmp (
-	`id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	`id` bigint NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	`timestamp` int(11) NOT NULL DEFAULT '0',
 	`event_type` int(11) NOT NULL DEFAULT '0',
 	`flags` int(11) DEFAULT NULL,
@@ -25,4 +25,3 @@ FROM report_data;
 ALTER TABLE report_data RENAME report_data_old;
 ALTER TABLE report_data_tmp RENAME report_data;
 DROP TABLE report_data_old;
-UPDATE db_version SET version = 3;

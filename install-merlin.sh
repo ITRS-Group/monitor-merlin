@@ -89,14 +89,11 @@ db_setup ()
 			  \"GRANT ALL ON $db_name.* TO $db_user@localhost IDENTIFIED BY '$db_pass'\""
 			eval "$mysql -e 'FLUSH PRIVILEGES'"
 
+			eval "$mysql -f $db_name" < $src_dir/sql/mysql/merlin.sql > /tmp/merlin-sql-upgrade.log 2>&1
+
 			# Fetch db_version and do upgrade stuff if/when needed
 			query="SELECT version FROM db_version"
 			db_version=$(eval "$mysql $db_name -BNe \"$query\"" 2>/dev/null)
-
-			# we always run the default schema, since it drops all
-			# non-persistent tables. This must come AFTER we fetch
-			# $db_version
-			eval "$mysql -f $db_name" < $src_dir/sql/mysql/merlin.sql > /tmp/merlin-sql-upgrade.log 2>&1
 
 			# Check for upgrade scripts
 			ver=$db_version
@@ -106,6 +103,7 @@ db_setup ()
 					f="$src_dir/sql/update-db-${ver}to${nextver}.sql"
 					test -f "$f" || break
 					eval "$mysql -f $db_name" < $f 2>&1 >>/tmp/merlin-sql-upgrade.log
+					eval "$mysql UPDATE db_version SET version VALUES($nextver)" 2>&1 >> /tmp/merlin-sql-upgrade.log
 					ver=$nextver
 				done
 			fi
@@ -133,14 +131,6 @@ To install them manually, run:
 EOF
 				fi
 			fi
-			# now we drop the 'id' field from report_data unconditionally
-			# It hasn't been used in a long time and causes trouble on
-			# very large systems where the 32-bit counter may wrap, causing
-			# new entries to the table to be dropped.
-			echo "Dropping 'id' column from report_data. This may take a while"
-			for table in report_data report_data_extras; do
-				eval "$mysql $db_name -e \"ALTER TABLE $table DROP COLUMN id\"" &> /dev/null || :
-			done
 			;;
 		*)
 			echo "Unknown database type '$db_type'"
