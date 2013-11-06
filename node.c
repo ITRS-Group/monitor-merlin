@@ -718,7 +718,7 @@ int node_recv(merlin_node *node)
 	/* zero-read. We've been disconnected for some reason */
 	ldebug("bytes_read: %d; errno: %d; strerror(%d): %s",
 		   bytes_read, errno, errno, strerror(errno));
-	node_disconnect(node, "recv() failed");
+	node_disconnect(node, "recv() returned zero");
 	return -1;
 }
 
