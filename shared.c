@@ -3,7 +3,7 @@
 /** global variables present in both daemon and module **/
 int debug = 0;  /* doesn't actually do anything right now */
 int is_module = 1; /* the daemon sets this to 0 immediately */
-int pulse_interval = 15;
+int pulse_interval = 10;
 int use_database = 0;
 char *merlin_config_file = NULL;
 merlin_nodeinfo *self = NULL;
@@ -530,7 +530,7 @@ int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 		pulse_interval = (unsigned)strtoul(v->value, NULL, 10);
 		if (!pulse_interval) {
 			cfg_warn(config, v, "Illegal pulse_interval. Using default.");
-			pulse_interval = 15;
+			pulse_interval = 10;
 		}
 		return 1;
 	}
