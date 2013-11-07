@@ -64,8 +64,8 @@ int net_is_connected(merlin_node *node)
 	if (!node || node->sock < 0)
 		return 0;
 
-	if (node->state == STATE_CONNECTED)
-		return 1;
+	if (node->state == STATE_CONNECTED || node->state == STATE_NEGOTIATING)
+		return node->state;
 
 	if (node->state != STATE_PENDING)
 		return 0;
@@ -86,8 +86,8 @@ int net_is_connected(merlin_node *node)
 	gsores = getsockopt(node->sock, SOL_SOCKET, SO_ERROR, &optval, &slen);
 	gsoerr = errno;
 	if (!gpnres && !gsores && !optval && !gpnerr && !gsoerr) {
-		node_set_state(node, STATE_CONNECTED, "connect() attempt completed successfully");
-		return 1;
+		node_set_state(node, STATE_NEGOTIATING, "connect() attempt completed successfully. Negotiating...");
+		return node->state;
 	}
 
 	/* diagnostics first */
@@ -134,7 +134,7 @@ int net_try_connect(merlin_node *node)
 {
 	int sockopt = 1;
 	struct sockaddr *sa = (struct sockaddr *)&node->sain;
-	int connected = 0, should_log = 0;
+	int should_log = 0;
 	struct timeval connect_timeout = { MERLIN_CONNECT_TIMEOUT, 0 };
 	struct sockaddr_in sain;
 	time_t interval = MERLIN_CONNECT_INTERVAL;
@@ -174,15 +174,9 @@ int net_try_connect(merlin_node *node)
 		}
 	}
 
-	/*
-	 * don't try to connect to a node if an attempt is already pending,
-	 * but do check if the connection has completed successfully
-	 */
-	if (node->state == STATE_PENDING || node->state == STATE_CONNECTED) {
-		if (net_is_connected(node))
-			node_set_state(node, STATE_CONNECTED, "Attempted connect completed");
+	/* Check if a pending attempt was successfully completed */
+	if (net_is_connected(node))
 		return 0;
-	}
 
 	sa->sa_family = AF_INET;
 	if (should_log) {
@@ -225,11 +219,12 @@ int net_try_connect(merlin_node *node)
 	}
 
 	if (connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
+		if (errno == EISCONN && net_is_connected(node))
+			return 0;
 		if (errno == EINPROGRESS || errno == EALREADY) {
 			node_set_state(node, STATE_PENDING, "connect() already in progress");
-		} else if (errno == EISCONN) {
-			connected = 1;
 		} else {
+			/* connection error */
 			if (should_log) {
 				node_disconnect(node, "connect() failed to %s node '%s' (%s:%d): %s",
 								node_type(node), node->name,
@@ -241,21 +236,6 @@ int net_try_connect(merlin_node *node)
 			}
 			return -1;
 		}
-	}
-
-	if (connected || net_is_connected(node)) {
-		linfo("Successfully connected to %s %s@%s:%d",
-			  node_type(node), node->name, inet_ntoa(node->sain.sin_addr),
-			  ntohs(node->sain.sin_port));
-		node_set_state(node, STATE_CONNECTED, "connect() successful");
-	} else {
-		if (should_log) {
-			linfo("Connection pending to %s %s@%s:%d",
-			      node_type(node), node->name,
-			      inet_ntoa(node->sain.sin_addr),
-			      ntohs(node->sain.sin_port));
-		}
-		node_set_state(node, STATE_PENDING, "connect() in progress");
 	}
 
 	return 0;
@@ -371,9 +351,7 @@ int net_accept_one(void)
 	}
 
 	switch (node->state) {
-	case STATE_NEGOTIATING: /* this should *NEVER EVER* happen */
-		lerr("Aieee! Negotiating connection with one attempting inbound. Bad Thing(tm)");
-
+	case STATE_NEGOTIATING: /* ending up here is probably a bug */
 		/* fallthrough */
 	case STATE_CONNECTED: case STATE_PENDING:
 		/* if node->sock >= 0, we must negotiate which one to use */
@@ -394,7 +372,7 @@ int net_accept_one(void)
 		break;
 	}
 
-	node_set_state(node, STATE_CONNECTED, "Inbound connection accepted or negotiated");
+	node_set_state(node, STATE_NEGOTIATING, "Inbound connection accepted. Negotiating protocol version");
 
 	return sock;
 }
@@ -530,6 +508,8 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 			if (result < 0) {
 				return 0;
 			}
+
+			node_set_state(node, STATE_CONNECTED, "Version and protocol successfully negotiated");
 
 			/*
 			 * If the info is new, we run the confsync check

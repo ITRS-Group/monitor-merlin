@@ -561,7 +561,7 @@ const char *node_state(merlin_node *node)
 	case STATE_PENDING:
 		return "awaiting response";
 	case STATE_NEGOTIATING:
-		return "negotiating precedence";
+		return "negotiating version and capabilities";
 	case STATE_CONNECTED:
 		return "connected";
 	}
