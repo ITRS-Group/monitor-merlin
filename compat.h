@@ -46,4 +46,8 @@ extern int asprintf(char **strp, const char *fmt, ...);
 extern int vasprintf(char **strp, const char *fmt, va_list ap);
 #endif
 
+#ifndef NEBATTR_CHECK_ALERT
+# define NEBATTR_CHECK_ALERT 1
+#endif
+
 #endif /* INCLUDE_compat_h__ */
