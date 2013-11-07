@@ -876,7 +876,7 @@ static int send_pulse(void *discard)
 {
 	node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info, 100);
 	schedule_new_event(EVENT_USER_FUNCTION, TRUE,
-	                   time(NULL) + MERLIN_PULSE_INTERVAL, FALSE,
+	                   time(NULL) + pulse_interval, FALSE,
 	                   0, NULL, FALSE, send_pulse, NULL, 0);
 	return 0;
 }
