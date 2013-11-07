@@ -837,7 +837,7 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 
 	node_log_event_count(node, 0);
 
-	if (packet_size(pkt) > TOTAL_PKT_SIZE) {
+	if (packet_size(pkt) > MAX_PKT_SIZE) {
 		lerr("header is invalid, or packet is too large. aborting");
 		return -1;
 	}
