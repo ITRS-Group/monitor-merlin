@@ -70,10 +70,7 @@
 
 #define HDR_SIZE (sizeof(merlin_header))
 #define PKT_SIZE (sizeof(merlin_event))
-#define BODY_SIZE (TOTAL_PKT_SIZE - sizeof(merlin_header))
-#define TOTAL_PKT_SIZE (128 * 1024)
-#define MAX_PKT_SIZE TOTAL_PKT_SIZE /* for now. remove this macro later */
-
+#define MAX_PKT_SIZE (PKT_SIZE)
 #define packet_size(pkt) ((int)((pkt)->hdr.len + HDR_SIZE))
 
 struct merlin_header {
@@ -95,7 +92,7 @@ typedef struct merlin_header merlin_header;
 
 struct merlin_event {
 	merlin_header hdr;
-	char body[BODY_SIZE];
+	char body[128 << 10];
 } __attribute__((packed));
 typedef struct merlin_event merlin_event;
 
