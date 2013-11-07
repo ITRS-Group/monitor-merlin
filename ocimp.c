@@ -2200,7 +2200,7 @@ static void usage(const char *fmt, ...)
 #ifndef PATH_MAX
 # define PATH_MAX 4096
 #endif
-static void load_ocache_hash(const char *ocache_path)
+static int load_ocache_hash(const char *ocache_path)
 {
 	blk_SHA_CTX ctx;
 	char path[PATH_MAX];
@@ -2208,7 +2208,9 @@ static void load_ocache_hash(const char *ocache_path)
 	int ret, fd, errors = 0;
 
 	blk_SHA1_Init(&ctx);
-	get_file_hash(&ctx, ocache_path);
+	/* the only critical error */
+	if (get_file_hash(&ctx, ocache_path) < 0)
+		return -1;
 	blk_SHA1_Final(ocache_hash, &ctx);
 
 	sprintf(path, "%s.lastimport", ocache_path);
@@ -2235,12 +2237,14 @@ static void load_ocache_hash(const char *ocache_path)
 		fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0660);
 		if (fd < 0) {
 			lerr("Failed to open %s for writing ocache hash: %s", path, strerror(errno));
-			return;
+		} else {
+			write(fd, tohex(ocache_hash, 20), 40);
+			write(fd, "\n", 1);
+			close(fd);
 		}
-		write(fd, tohex(ocache_hash, 20), 40);
-		write(fd, "\n", 1);
-		close(fd);
 	}
+
+	return 0;
 }
 
 /**
@@ -2413,6 +2417,11 @@ int main(int argc, char **argv)
 	log_grok_var("log_file", "stdout");
 	log_init();
 
+	if (load_ocache_hash(cache_path) < 0) {
+		lerr("Failed to load hash from object cache file %s: %m", cache_path);
+		exit(1);
+	}
+
 	use_database = use_sql;
 	if (use_sql) {
 		sql_config("commit_interval", "0");
@@ -2433,7 +2442,6 @@ int main(int argc, char **argv)
 	contact_slist = slist_init(500, alpha_cmp_contact);
 	preload_contact_ids();
 
-	load_ocache_hash(cache_path);
 	if (force) {
 		ocache_unchanged = 0;
 	}
