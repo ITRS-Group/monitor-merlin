@@ -61,7 +61,7 @@
 static int handle_host_status(merlin_node *node, int cb, const merlin_host_status *p)
 {
 	char *host_name;
-	char *output = NULL, *long_output = NULL, *unescaped_long_output = NULL, *perf_data = NULL;
+	char *output = NULL, *long_output = NULL, *unescaped_long_output = NULL, *sql_safe_unescaped_long_output = NULL, *perf_data = NULL;
 	int result = 0, node_id, rpt_log = 0, perf_log = 0;
 
 	if (cb == NEBCALLBACK_HOST_CHECK_DATA) {
@@ -80,6 +80,16 @@ static int handle_host_status(merlin_node *node, int cb, const merlin_host_statu
 	sql_quote(p->name, &host_name);
 	if (db_track_current || rpt_log) {
 		sql_quote(p->state.plugin_output, &output);
+		if (rpt_log && p->state.long_plugin_output) {
+			if((unescaped_long_output = malloc(strlen(p->state.long_plugin_output))) == NULL) {
+				lerr("failed to allocate memory for unescaped long output");
+				return 1;
+			}
+			unescape_newlines(unescaped_long_output, p->state.long_plugin_output, strlen(p->state.long_plugin_output));
+			sql_quote(unescaped_long_output, &sql_safe_unescaped_long_output);
+			free(unescaped_long_output);
+			unescaped_long_output = NULL;
+		}
 		sql_quote(p->state.long_plugin_output, &long_output);
 	}
 	if (db_track_current || perf_log)
@@ -93,13 +103,6 @@ static int handle_host_status(merlin_node *node, int cb, const merlin_host_statu
 	}
 
 	if (rpt_log) {
-		if (long_output) {
-			if((unescaped_long_output = malloc(strlen(long_output))) == NULL) {
-				lerr("failed to allocate memory for unescaped long output");
-				return 1;
-			}
-			unescaped_long_output = unescape_newlines(unescaped_long_output, long_output, strlen(long_output));
-		}
 		result = sql_query
 			("INSERT INTO %s(timestamp, event_type, host_name, state, "
 				"hard, retry, output, long_output, downtime_depth) "
@@ -109,10 +112,8 @@ static int handle_host_status(merlin_node *node, int cb, const merlin_host_statu
 				p->state.current_state,
 				p->state.state_type == HARD_STATE,
 				p->state.current_attempt, output,
-				unescaped_long_output,
+				sql_safe_unescaped_long_output,
 				p->state.scheduled_downtime_depth);
-		free(unescaped_long_output);
-		unescaped_long_output = NULL;
 	}
 
 	/*
@@ -130,6 +131,7 @@ static int handle_host_status(merlin_node *node, int cb, const merlin_host_statu
 	free(host_name);
 	safe_free(output);
 	safe_free(long_output);
+	safe_free(sql_safe_unescaped_long_output);
 	safe_free(perf_data);
 	return result;
 }
@@ -138,7 +140,7 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 {
 	char *host_name, *service_description;
 	char *output = NULL, *long_output = NULL, *perf_data = NULL;
-	char *unescaped_long_output = NULL;
+	char *unescaped_long_output = NULL, *sql_safe_unescaped_long_output = NULL;
 	int result = 0, node_id, rpt_log = 0, perf_log = 0;
 
 	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA) {
@@ -158,6 +160,17 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 	sql_quote(p->service_description, &service_description);
 	if (db_track_current || rpt_log) {
 		sql_quote(p->state.plugin_output, &output);
+		if(rpt_log && p->state.long_plugin_output) {
+			if((unescaped_long_output = malloc(strlen(p->state.long_plugin_output))) == NULL) {
+				lerr("failed to allocate memory for unescaped long output");
+				return 1;
+			}
+			unescape_newlines(unescaped_long_output, p->state.long_plugin_output, strlen(p->state.long_plugin_output));
+			sql_quote(unescaped_long_output, &sql_safe_unescaped_long_output);
+			free(unescaped_long_output);
+			unescaped_long_output = NULL;
+		}
+
 		sql_quote(p->state.long_plugin_output, &long_output);
 	}
 
@@ -173,13 +186,6 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 	}
 
 	if (rpt_log) {
-		if (long_output) {
-			if((unescaped_long_output = malloc(strlen(long_output))) == NULL) {
-				lerr("failed to allocate memory for unescaped long output");
-				return 1;
-			}
-			unescaped_long_output = unescape_newlines(unescaped_long_output, long_output, strlen(long_output));
-		}
 		result = sql_query
 			("INSERT INTO %s(timestamp, event_type, host_name, "
 				"service_description, state, hard, retry, output, long_output, downtime_depth) "
@@ -189,10 +195,8 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 				service_description, p->state.current_state,
 				p->state.state_type == HARD_STATE,
 				p->state.current_attempt, output,
-				unescaped_long_output,
+				sql_safe_unescaped_long_output,
 				p->state.scheduled_downtime_depth);
-		free(unescaped_long_output);
-		unescaped_long_output = NULL;
 	}
 
 	/*
@@ -213,6 +217,7 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 	free(service_description);
 	safe_free(output);
 	safe_free(long_output);
+	safe_free(sql_safe_unescaped_long_output);
 	safe_free(perf_data);
 	return result;
 }
