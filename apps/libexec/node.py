@@ -479,7 +479,7 @@ def cmd_info(args):
 	"""
 	Prints verbose information about all merlin nodes.
 	"""
-	nodes = get_merlin_nodeinfo(qh)
+	nodes = get_merlin_nodeinfo(query_socket)
 	for node in nodes:
 		print node['name']
 		items = node.items()
