@@ -567,6 +567,8 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	case NEBCALLBACK_FLAPPING_DATA:
 		ret = handle_flapping_data(node, pkt->body);
 		break;
+	case NEBCALLBACK_PROCESS_DATA:
+		break; /* we knowingly ignore this so just shut up about it */
 	default:
 		lwarn("Ignoring unrecognized/unhandled callback type: %d (%s)",
 		      pkt->hdr.type, callback_name(pkt->hdr.type));
