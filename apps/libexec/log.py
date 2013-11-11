@@ -29,16 +29,24 @@ def cmd_fetch(args):
 			sys.exit(1)
 
 def cmd_sortmerge(orig_args):
-	"""[--since=<timestamp>]
+	"""[--since=<timestamp>] [--tempdir=path]
 	Runs a mergesort algorithm on logfiles from multiple systems to
 	create a single unified logfile suitable for importing into the
 	reports database.
+	--tempdir lets you specify an alternate temporary directory to
+	use when sorting files, to prevent a small /tmp dir from completing
+	the sort due to lack of diskspace
 	"""
 	since = False
 	args = []
+	sort_args = ['sort']
 	for arg in orig_args:
 		if (arg.startswith('--since=')):
 			since = arg.split('=', 1)[1]
+			continue
+		if arg.startswith('--tempdir='):
+			sort_args.append('--temporary-directory')
+			sort_args.append(arg.split('=', 1)[1])
 			continue
 		args.append(arg)
 
@@ -73,11 +81,10 @@ def cmd_sortmerge(orig_args):
 			return False
 		last_files = files
 
-	app = merlin_dir + "/import"
+	app = helper_dir + "/import"
 	cmd_args = [app, '--list-files'] + args + [archive_dir]
 	stuff = subprocess.Popen(cmd_args, stdout=subprocess.PIPE)
 	output = stuff.communicate()[0]
-	sort_args = ['sort']
 	sort_args += output.strip().split('\n')
 	for (name, more_files) in pushed.items():
 		for fname in more_files:
@@ -94,16 +101,19 @@ def cmd_sortmerge(orig_args):
 
 # run the import program
 def cmd_import(args):
-	"""[--fetch|--help]
+	"""[--fetch] [--help]
 	Runs the external log import helper.
 	If --fetch is specified, logs are first fetched from remote systems
 	and sorted using the merge sort algorithm provided by the sortmerge
 	command.
+	Using --fetch will also enable options from the 'mon log sortmerge'
+	command. See 'mon log sortmerge --help' for details.
 	--help will list a more extensive list of options
 	"""
 	since = ''
 	fetch = False
 	i = 0
+	sort_args = []
 	for arg in args:
 		if arg.startswith('--incremental='):
 			since = arg[14:]
@@ -112,6 +122,9 @@ def cmd_import(args):
 		elif arg == '--fetch':
 			fetch = True
 			args.pop(i)
+		elif arg == '--tempdir=':
+			sort_args.append(arg)
+
 		i += 1
 
 	args.insert(0, '--nagios-cfg=' + nagios_cfg)
