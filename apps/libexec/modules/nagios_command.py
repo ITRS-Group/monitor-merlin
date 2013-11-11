@@ -185,8 +185,8 @@ class nagios_command:
 		},
 		'SAVE_STATE_INFORMATION': {
 			'nagios_id': 31,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Force immediate writing of the status_data_file',
+			'brief': 'You are trying to force an immediate write of the status_data_file.',
 			'template': 'SAVE_STATE_INFORMATION',
 		},
 		'READ_STATE_INFORMATION': {
@@ -317,14 +317,14 @@ class nagios_command:
 		},
 		'SCHEDULE_FORCED_HOST_SVC_CHECKS': {
 			'nagios_id': 53,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Schedule a forced check of all service on a particular host',
+			'brief': 'You are trying to schedule a forced check of all services on a host.',
 			'template': 'SCHEDULE_FORCED_HOST_SVC_CHECKS;host_name;check_time',
 		},
 		'SCHEDULE_FORCED_SVC_CHECK': {
 			'nagios_id': 54,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Schedule a forced check of a particular service',
+			'brief': 'You are trying to schedule a forced check of a service.',
 			'template': 'SCHEDULE_FORCED_SVC_CHECK;service;check_time',
 		},
 		'SCHEDULE_HOST_DOWNTIME': {
@@ -527,8 +527,8 @@ class nagios_command:
 		},
 		'SCHEDULE_FORCED_HOST_CHECK': {
 			'nagios_id': 98,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Schedule a forced host check',
+			'brief': 'You are trying to schedule a forced host check.',
 			'template': 'SCHEDULE_FORCED_HOST_CHECK;host_name;check_time',
 		},
 		'START_OBSESSING_OVER_SVC': {
@@ -767,26 +767,26 @@ class nagios_command:
 		},
 		'ENABLE_SERVICE_FRESHNESS_CHECKS': {
 			'nagios_id': 138,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Enable freshness checks for a service',
+			'brief': 'You are trying to enable freshness checks for a service.',
 			'template': 'ENABLE_SERVICE_FRESHNESS_CHECKS',
 		},
 		'DISABLE_SERVICE_FRESHNESS_CHECKS': {
 			'nagios_id': 139,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Disable freshness checks for a service',
+			'brief': 'You are trying to disable freshness checks for a service.',
 			'template': 'DISABLE_SERVICE_FRESHNESS_CHECKS',
 		},
 		'ENABLE_HOST_FRESHNESS_CHECKS': {
 			'nagios_id': 140,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Enable freshness checks for a host',
+			'brief': 'You are trying to enable freshness checks for a host.',
 			'template': 'ENABLE_HOST_FRESHNESS_CHECKS',
 		},
 		'DISABLE_HOST_FRESHNESS_CHECKS': {
 			'nagios_id': 141,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Disable freshness checks for a host',
+			'brief': 'You are trying to disable freshness checks for a host.',
 			'template': 'DISABLE_HOST_FRESHNESS_CHECKS',
 		},
 		'SET_HOST_NOTIFICATION_NUMBER': {
@@ -839,26 +839,26 @@ class nagios_command:
 		},
 		'ENABLE_CONTACT_HOST_NOTIFICATIONS': {
 			'nagios_id': 150,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Enable host notifications for a contact',
+			'brief': 'You are trying to enable host notifications for a contact.',
 			'template': 'ENABLE_CONTACT_HOST_NOTIFICATIONS;contact_name',
 		},
 		'DISABLE_CONTACT_HOST_NOTIFICATIONS': {
 			'nagios_id': 151,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Disable host notifications for a contact',
+			'brief': 'You are trying to disable host notifications for a contact.',
 			'template': 'DISABLE_CONTACT_HOST_NOTIFICATIONS;contact_name',
 		},
 		'ENABLE_CONTACT_SVC_NOTIFICATIONS': {
 			'nagios_id': 152,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Enable service notifications for a contact',
+			'brief': 'You are trying to enable service notifications for a contact.',
 			'template': 'ENABLE_CONTACT_SVC_NOTIFICATIONS;contact_name',
 		},
 		'DISABLE_CONTACT_SVC_NOTIFICATIONS': {
 			'nagios_id': 153,
-			'description': 'This command is not implemented',
-			'brief': 'You are trying to execute an unsupported command.',
+			'description': 'Disable service notifications for a contact',
+			'brief': 'You are trying to disable service notifications for a contact.',
 			'template': 'DISABLE_CONTACT_SVC_NOTIFICATIONS;contact_name',
 		},
 		'ENABLE_CONTACTGROUP_HOST_NOTIFICATIONS': {
