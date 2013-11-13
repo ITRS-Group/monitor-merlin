@@ -26,7 +26,8 @@ ALTER TABLE report_data RENAME report_data_old;
 ALTER TABLE report_data_tmp RENAME report_data;
 DROP TABLE report_data_old;
 
---- No id added for report_data_extras, only long_output
+-- No id added for report_data_extras, only long_output
+
 CREATE TABLE report_data_extras_tmp (
 	`timestamp` int(11) NOT NULL DEFAULT '0',
 	`event_type` int(11) NOT NULL DEFAULT '0',
