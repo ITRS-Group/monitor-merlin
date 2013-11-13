@@ -103,7 +103,7 @@ db_setup ()
 					f="$src_dir/sql/update-db-${ver}to${nextver}.sql"
 					test -f "$f" || break
 					eval "$mysql -f $db_name" < $f 2>&1 >>/tmp/merlin-sql-upgrade.log
-					eval "$mysql UPDATE db_version SET version VALUES($nextver)" 2>&1 >> /tmp/merlin-sql-upgrade.log
+					eval "$mysql $db_name UPDATE db_version SET version=$nextver" 2>&1 >> /tmp/merlin-sql-upgrade.log
 					ver=$nextver
 				done
 			fi
