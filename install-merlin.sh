@@ -392,9 +392,6 @@ cat << EOF
   Database settings:
     Type     (--db-type): $db_type
     Name     (--db-name): $db_name
-    Username (--db-user): $db_user
-    Password (--db-pass): $db_pass
-    Root Password (--db-root-pass): $db_root_pass
 
   Path settings:
     Nagios config file  (--nagios-cfg): $nagios_cfg
