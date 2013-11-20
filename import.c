@@ -372,7 +372,7 @@ static void disable_indexes(void)
 
 static void insert_extras(void)
 {
-	sql_query("INSERT INTO %s (`timestamp`, `event_type`, `flags`, `attrib`, `host_name`, `service_description`, `state`, `hard`, `retry`, `downtime_depth`, `output`) SELECT `timestamp`, `event_type`, `flags`, `attrib`, `host_name`, `service_description`, `state`, `hard`, `retry`, `downtime_depth`, `output` FROM report_data_extras;", db_table);
+	sql_query("INSERT INTO %s ('timestamp', 'event_type', 'flags', 'attrib', 'host_name', 'service_description', 'state', 'hard', 'retry', 'downtime_depth', 'output') SELECT 'timestamp', 'event_type', 'flags', 'attrib', 'host_name', 'service_description', 'state', 'hard', 'retry', 'downtime_depth', 'output' FROM report_data_extras", db_table);
 }
 
 static void enable_indexes(void)
