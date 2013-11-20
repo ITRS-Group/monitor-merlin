@@ -4,7 +4,7 @@
 --
 
 DELIMITER $$
-DROP PROCEDURE IF EXISTS 'set_initial_db_version' $$
+DROP PROCEDURE IF EXISTS set_initial_db_version $$
 CREATE PROCEDURE set_initial_db_version ()
 BEGIN
 	DECLARE VersionExists INT;
