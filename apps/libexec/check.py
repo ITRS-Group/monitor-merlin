@@ -232,7 +232,6 @@ def check_min_avg_max(args, col, defaults=False, filter=False):
 	except livestatus.livestatus.MKLivestatusSocketError:
 		print "UNKNOWN: Error asking livestatus for info, bailing out"
 		sys.exit(nplug.STATE_UNKNOWN)
-	output = []
 	for thresh_type in ['critical', 'warning']:
 		if state != nplug.STATE_OK:
 			break
@@ -245,7 +244,6 @@ def check_min_avg_max(args, col, defaults=False, filter=False):
 				# just overwrite it here as we'll never get here for
 				# warnings if we already have a critical issue
 				state = nplug.state_code(thresh_type)
-				output.append()
 
 	i = 0
 	state = nplug.STATE_OK
