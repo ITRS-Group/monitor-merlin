@@ -12,7 +12,7 @@
 		/etc/init.d/monitor stop
 		/etc/init.d/merlind stop
 		sleep 1
-		test $merlin_running -eq 1 && nice 0 /etc/init.d/merlind start || :
-		test $mon_running -eq 1 && nice 0 /etc/init.d/monitor start || :
+		test $merlin_running -eq 1 && nice -n 0 /etc/init.d/merlind start || :
+		test $mon_running -eq 1 && nice -n 0 /etc/init.d/monitor start || :
 	endscript
 }
