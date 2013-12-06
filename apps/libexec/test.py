@@ -2318,3 +2318,18 @@ def cmd_check(args):
 		mark(mark_file, mark_name, params, oneline)
 
 	sys.exit(nplug.state_code(stext))
+
+
+def cmd_check_flap(args):
+	"""state=<int>"""
+	state = 0
+	for arg in args:
+		if arg.startswith('state='):
+			state = int(arg.split('=', 1)[1])
+	if not state:
+		estate = 2
+	else:
+		estate = 0
+
+	print("Got state=%d, so exiting with %d" % (state, estate))
+	sys.exit(0)
