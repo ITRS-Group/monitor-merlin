@@ -5,7 +5,7 @@
 	sharedscripts
 	missingok
 	postrotate
-		test -f /opt/monitor/var/run/nagios.lock
+		test -f /opt/monitor/var/nagios.lock
 		mon_running=$?
 		test -f /var/run/merlin.pid
 		merlin_running=$?
