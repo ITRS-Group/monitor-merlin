@@ -33,6 +33,9 @@ static int list_has_entry(const char *list, const char *ent)
 	unsigned int len;
 	const char *p;
 
+	if (!list || !ent)
+		return 0;
+
 	len = strlen(ent);
 
 	for (p = list - 1; p; p = strchr(++p, ',')) {
