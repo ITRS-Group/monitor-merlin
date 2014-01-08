@@ -25,6 +25,8 @@ BuildRequires: mysql-devel
 BuildRequires: ocilib-devel
 BuildRequires: op5-nagios-devel >= 3.99.99.7
 Obsoletes: monitor-reports-module
+BuildRequires: pkg-config
+BuildRequires: check-devel
 
 %if 0%{?suse_version}
 BuildRequires: libdbi-devel

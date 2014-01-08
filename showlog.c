@@ -23,6 +23,7 @@ static unsigned long long ltime_skews, skip, limit;
 static int hide_state_dupes; /* if set, we hide duplicate state messages */
 static int count;
 static unsigned long printed_lines;
+static int restrict_objects = 0;
 
 #define EVT_PROCESS  (1 << 0)
 #define EVT_NOTIFY   (1 << 1)
@@ -504,9 +505,11 @@ static int parse_line(char *orig_line, uint len)
 
 		if (is_start_event(ptr)) {
 			last_start_time = ltime;
-			print_line(EVT_START, line, len);
+			if (!restrict_objects)
+				print_line(EVT_START, line, len);
 		} else if (is_stop_event(ptr)) {
-			print_line(EVT_STOP, line, len);
+			if (!restrict_objects)
+				print_line(EVT_STOP, line, len);
 			last_start_time = 0;
 		}
 
@@ -562,7 +565,7 @@ static int parse_line(char *orig_line, uint len)
 		severity = parse_host_state(strv[1]);
 		if (!(host_state_filter & (1 << severity)))
 			return 0;
-		if (!auth_host_ok(strv[0]))
+		if (restrict_objects && !auth_host_ok(strv[0]))
 			return 0;
 		if (!is_interesting_host(strv[0]))
 			return 0;
@@ -579,7 +582,7 @@ static int parse_line(char *orig_line, uint len)
 		severity = parse_service_state(strv[2]);
 		if (!(service_state_filter & (1 << severity)))
 			return 0;
-		if (!auth_service_ok(strv[0], strv[1]))
+		if (restrict_objects && !auth_service_ok(strv[0], strv[1]))
 			return 0;
 		if (!is_interesting_service(strv[0], strv[1]))
 			return 0;
@@ -591,7 +594,7 @@ static int parse_line(char *orig_line, uint len)
 	case EVT_FLAPPING | EVT_HOST:
 	case EVT_DOWNTIME | EVT_HOST:
 	case EVT_EHANDLER | EVT_HOST:
-		if (!auth_host_ok(strv[0]))
+		if (restrict_objects && !auth_host_ok(strv[0]))
 			return 0;
 		if (!is_interesting_host(strv[0]))
 			return 0;
@@ -600,23 +603,26 @@ static int parse_line(char *orig_line, uint len)
 	case EVT_FLAPPING | EVT_SERVICE:
 	case EVT_DOWNTIME | EVT_SERVICE:
 	case EVT_EHANDLER | EVT_SERVICE:
-		if (!auth_service_ok(strv[0], strv[1]))
+		if (restrict_objects && !auth_service_ok(strv[0], strv[1]))
 			return 0;
 		if (!is_interesting_service(strv[0], strv[1]))
 			return 0;
 		break;
 
 	case EVT_NOTIFY | EVT_HOST:
-		if (!auth_host_ok(strv[1]))
+		if (restrict_objects && !auth_host_ok(strv[1]))
 			return 0;
 		if (!is_interesting_host(strv[1]))
 			return 0;
+		break;
 
 	case EVT_NOTIFY | EVT_SERVICE:
-		if (!auth_service_ok(strv[1], strv[2]))
+		if (restrict_objects && !auth_service_ok(strv[1], strv[2]))
 			return 0;
 		if (!is_interesting_service(strv[1], strv[2]))
 			return 0;
+		break;
+
 	}
 
 	print_line(sc->code, line, len);
@@ -715,10 +721,8 @@ static void usage(const char *fmt, ...)
 	printf("  --html                                  print html output\n");
 	printf("  --ansi                                  force-colorize the output\n");
 	printf("  --ascii                                 don't colorize the output\n"),
-	printf("  --user=<username>                       show only logs this user can see\n");
 	printf("  --cgi-cfg=</path/to/cgi.cfg>            path to cgi.cfg\n");
 	printf("  --nagios-cfg=</path/to/nagios.cfg>      path to nagios.cfg\n");
-	printf("  --object-cache=</path/to/objects.cache> path to objects.cache\n");
 	printf("  --image-url=<image url>                 url to images. Implies --html\n");
 	printf("  --hide-state-dupes                      hide duplicate status messages\n");
 	printf("  --hide-flapping                         hide flapping messages\n");
@@ -729,6 +733,7 @@ static void usage(const char *fmt, ...)
 	printf("  --hide-logrotation                      hide log rotation messages\n");
 	printf("  --hide-initial                          hide INITIAL and CURRENT states\n");
 	printf("  --hide-all                              hide all events\n");
+	printf("  --restrict-objects                      read a list from stdin of objects to limit visibility to\n");
 	printf("  --show-ltime-skews                      print logtime clock skews\n");
 	printf("  --skip=<integer>                        number of filtered in messages to skip\n");
 	printf("  --limit=<integer>                       max number of messages to print\n");
@@ -840,7 +845,7 @@ int main(int argc, char **argv)
 {
 	int i, show_ltime_skews = 0, list_files = 0;
 	unsigned long long tot_lines = 0;
-	const char *nagios_cfg = NULL, *cgi_cfg = NULL, *object_cache = NULL;
+	const char *nagios_cfg = NULL, *cgi_cfg = NULL;
 	int hosts_are_interesting = 0;
 
 	progname = strrchr(argv[0], '/');
@@ -856,8 +861,9 @@ int main(int argc, char **argv)
 	}
 
 	for (i = 1; i < argc; i++) {
-		char *opt, *arg = argv[i];
+		char *opt = NULL, *arg = argv[i];
 		int arg_len, eq_opt = 0;
+		int missing_opt = 0;
 
 		if ((opt = strchr(arg, '='))) {
 			*opt++ = '\0';
@@ -916,98 +922,143 @@ int main(int argc, char **argv)
 			continue;
 		}
 
-
-		if (!prefixcmp(arg, "--")) {
-			if (!opt)
-				usage("Option '%s' requires an argument\n", arg);
-			if (!eq_opt)
-				i++;
+		if (!strcmp(arg, "--restrict-objects")) {
+			restrict_objects = 1;
+			auth_read_input(stdin);
+			continue;
 		}
+
+		if (!eq_opt)
+			i++;
 
 		/* options parsed below require arguments */
 		if (!strcmp(arg, "--user")) {
-			auth_set_user(opt);
+			auth_read_input(NULL);
 			continue;
 		}
 		if (!prefixcmp(arg, "--object-cache")) {
-			object_cache = opt;
+			auth_read_input(NULL);
 			continue;
 		}
 		if (!strcmp(arg, "--nagios-cfg")) {
+			if (!opt)
+				missing_opt = 1;
 			nagios_cfg = opt;
 			continue;
 		}
 		if (!strcmp(arg, "--cgi-cfg")) {
+			if (!opt)
+				missing_opt = 1;
 			cgi_cfg = opt;
 			continue;
 		}
 		if (!strcmp(arg, "--skip")) {
-			skip = strtoull(opt, NULL, 0);
+			if (!opt)
+				missing_opt = 1;
+			else
+				skip = strtoull(opt, NULL, 0);
 			continue;
 		}
 		if (!strcmp(arg, "--limit")) {
-			limit = strtoull(opt, NULL, 0);
+			if (!opt)
+				missing_opt = 1;
+			else
+				limit = strtoull(opt, NULL, 0);
 			continue;
 		}
 		if (!strcmp(arg, "--host")) {
 			event_filter |= EVT_HOST;
 			hosts_are_interesting = 1;
-			add_interesting_object(opt);
+			if (!opt)
+				missing_opt = 1;
+			else
+				add_interesting_object(opt);
 			continue;
 		}
 		if (!strcmp(arg, "--service")) {
 			event_filter |= EVT_SERVICE;
 			if (!hosts_are_interesting)
 				event_filter &= ~(EVT_HOST);
-			add_interesting_object(opt);
+			if (!opt)
+				missing_opt = 1;
+			else
+				add_interesting_object(opt);
 			continue;
 		}
 		if (!strcmp(arg, "--image-url")) {
+			if (!opt)
+				missing_opt = 1;
 			real_print_line = print_line_html;
 			image_url = opt;
 			continue;
 		}
 		if (!strcmp(arg, "--interesting") || !strcmp(arg, "-i")) {
-			if (!opt || !*opt)
-				usage("%s requires a filename as argument", arg);
-			hash_interesting(opt);
+			if (!opt)
+				missing_opt = 1;
+			else
+				hash_interesting(opt);
 			continue;
 		}
 		if (!strcmp(arg, "--first") || !strcmp(arg, "--last")) {
-			time_t when;
+			if (!opt) {
+				missing_opt = 1;
+			}
+			else {
+				time_t when;
 
-			if (!opt || !*opt)
-				crash("%s requires a timestamp as argument", arg);
-			when = strtoul(opt, NULL, 0);
-			if (opt && !eq_opt)
-				i++;
-			if (!strcmp(arg, "--first"))
-				first_time = when;
-			else
-				last_time = when;
+				if (!opt || !*opt)
+					crash("%s requires a timestamp as argument", arg);
+				when = strtoul(opt, NULL, 0);
+				if (opt && !eq_opt)
+					i++;
+				if (!strcmp(arg, "--first"))
+					first_time = when;
+				else
+					last_time = when;
+			}
 			continue;
 		}
 		if (!strcmp(arg, "--state-type")) {
-			if (!strcasecmp(opt, "hard"))
-				statetype_filter = (1 << HARD_STATE);
-			if (!strcasecmp(opt, "soft"))
-				statetype_filter = (1 << SOFT_STATE);
+			if (!opt) {
+				missing_opt = 1;
+			}
+			else {
+				if (!strcasecmp(opt, "hard"))
+					statetype_filter = (1 << HARD_STATE);
+				if (!strcasecmp(opt, "soft"))
+					statetype_filter = (1 << SOFT_STATE);
+			}
 			continue;
 		}
 		if (!strcmp(arg, "--host-states")) {
 			event_filter |= EVT_HOST;
 			hosts_are_interesting = 1;
-			parse_host_state_filter(opt);
+			if (!opt)
+				missing_opt = 1;
+			else
+				parse_host_state_filter(opt);
 			continue;
 		}
 		if (!strcmp(arg, "--service-states")) {
 			event_filter |= EVT_SERVICE;
-			parse_service_state_filter(opt);
+			if (!opt)
+				missing_opt = 1;
+			else
+				parse_service_state_filter(opt);
 			continue;
 		}
 		if (!strcmp(arg, "--time-format")) {
-			parse_time_format(opt);
+			if (!opt)
+				missing_opt = 1;
+			else
+				parse_time_format(opt);
 			continue;
+		}
+
+		if (!prefixcmp(arg, "--")) {
+			if (missing_opt)
+				usage("Option '%s' requires an argument\n", arg);
+			usage("Unknown option '%s'\n", arg);
 		}
 
 		/* non-argument, so treat as config- or log-file */
@@ -1029,7 +1080,7 @@ int main(int argc, char **argv)
 		print_interesting_objects();
 
 	/* fallback for op5 systems */
-	if (auth_get_user() || (!nagios_cfg && !num_nfile)) {
+	if (!nagios_cfg && !num_nfile) {
 		struct cfg_comp *conf;
 
 		conf = cfg_parse_file(cgi_cfg ? cgi_cfg : "/opt/monitor/etc/cgi.cfg");
@@ -1040,22 +1091,14 @@ int main(int argc, char **argv)
 				if (!nagios_cfg && !strcmp(v->key, "main_config_file")) {
 					nagios_cfg = strdup(v->value);
 				}
-				if (!prefixcmp(v->key, "authorized_for_")) {
-					auth_parse_permission(v->key, v->value);
-				}
 			}
 			cfg_destroy_compound(conf);
 		} else {
 			if (cgi_cfg) {
 				crash("Failed to parse cgi.cfg file '%s'\n", cgi_cfg);
 			}
-			if (auth_get_user()) {
-				crash("--user given, but no suitable cgi.cfg file found\n");
-			}
 		}
-	}
 
-	if (!nagios_cfg && !num_nfile) {
 		nagios_cfg = "/opt/monitor/etc/nagios.cfg";
 	}
 	if (nagios_cfg) {
@@ -1073,18 +1116,11 @@ int main(int argc, char **argv)
 			if (!strcmp(v->key, "log_archive_path")) {
 				add_naglog_path(v->value);
 			}
-			if (!object_cache && !strcmp(v->key, "object_cache_file")) {
-				object_cache = v->value;
-			}
 		}
 	}
 
 	if (!num_nfile)
 		usage(NULL);
-
-	if (auth_get_user() && object_cache) {
-		auth_init(object_cache);
-	}
 
 	if (hide_state_dupes)
 		state_init();

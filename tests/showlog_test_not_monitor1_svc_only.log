@@ -1,0 +1,6 @@
+[1386686225] INITIAL SERVICE STATE: not-monitor1;Cron process;OK;HARD;1;(null)
+[1387441769] SERVICE FLAPPING ALERT: not-monitor1;Cron process;STARTED; Service appears to have started flapping (22.6% change >= 20.0% threshold)
+[1389179712] SERVICE ALERT: not-monitor1;Cron process;CRITICAL;HARD;3;(Service check timed out after 60.01 seconds)
+[1412769600] CURRENT SERVICE STATE: not-monitor1;Cron process;CRITICAL;HARD;3;CHECK_NRPE: Error - Could not complete SSL handshake.
+[1412770298] SERVICE DOWNTIME ALERT: not-monitor1;Cron process;STARTED; Service has entered a period of scheduled downtime
+[1412770708] SERVICE NOTIFICATION: monitor;not-monitor1;Cron process;CRITICAL;service-notify;CHECK_NRPE: Error - Could not complete SSL handshake.

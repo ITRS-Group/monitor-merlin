@@ -1,0 +1,51 @@
+[1386686225] Nagios 4.0.2 starting... (PID=2086)
+[1386686225] LOG VERSION: 2.0
+[1386686225] qh: Socket '/opt/monitor/var/rw/nagios.qh' successfully initialized
+[1386686225] qh: core query handler registered
+[1386686225] nerd: Channel hostchecks registered successfully
+[1386686225] nerd: Channel servicechecks registered successfully
+[1386686225] nerd: Channel opathchecks registered successfully
+[1386686225] nerd: Fully initialized and ready to rock!
+[1386686225] wproc: Successfully registered manager as @wproc with query handler
+[1386686225] wproc: Registry request: name=Core Worker 2091;pid=2091
+[1386686225] wproc: Registry request: name=Core Worker 2090;pid=2090
+[1386686225] wproc: Registry request: name=Core Worker 2089;pid=2089
+[1386686225] wproc: Registry request: name=Core Worker 2088;pid=2088
+[1386686225] INITIAL HOST STATE: monitor;UP;HARD;1;
+[1386686225] INITIAL HOST STATE: monitor2;UP;HARD;1;
+[1386686225] INITIAL SERVICE STATE: monitor;Cron process;OK;HARD;1;(null)
+[1386686225] INITIAL SERVICE STATE: not-monitor1;Cron process;OK;HARD;1;(null)
+[1386686225] INITIAL SERVICE STATE: not-monitor2;Cron process;OK;HARD;1;(null)
+[1386760150] HOST FLAPPING ALERT: monitor;STARTED; Host appears to have started flapping (21.1% change > 20.0% threshold)
+[1386760150] HOST FLAPPING ALERT: monitor2;STARTED; Host appears to have started flapping (21.1% change > 20.0% threshold)
+[1387441769] SERVICE FLAPPING ALERT: monitor;Cron process;STARTED; Service appears to have started flapping (22.6% change >= 20.0% threshold)
+[1387441769] SERVICE FLAPPING ALERT: not-monitor1;Cron process;STARTED; Service appears to have started flapping (22.6% change >= 20.0% threshold)
+[1387441769] SERVICE FLAPPING ALERT: not-monitor2;Cron process;STARTED; Service appears to have started flapping (22.6% change >= 20.0% threshold)
+[1389179645] Warning: Check of host 'monitor' timed out after 60.01 seconds
+[1389179712] SERVICE ALERT: monitor;Cron process;CRITICAL;HARD;3;(Service check timed out after 60.01 seconds)
+[1389179712] SERVICE ALERT: not-monitor1;Cron process;CRITICAL;HARD;3;(Service check timed out after 60.01 seconds)
+[1389179712] SERVICE ALERT: not-monitor2;Cron process;CRITICAL;HARD;3;(Service check timed out after 60.01 seconds)
+[1389182045] HOST ALERT: monitor;DOWN;HARD;3;(Host check timed out after 60.01 seconds)
+[1389182045] HOST ALERT: monitor2;DOWN;HARD;3;(Host check timed out after 60.01 seconds)
+[1412769541] Warning: A system time change of 23586980 seconds (272d 23h 56m 20s forwards in time) has been detected.  Compensating...
+[1412769663] Caught SIGTERM, shutting down..
+[1412769600] CURRENT HOST STATE: monitor;UP;HARD;1;(No output on stdout) stderr: /opt/plugins/check_spam.sh: line 3: [: -lt: unary operator expected
+[1412769600] CURRENT HOST STATE: monitor2;UP;HARD;1;(No output on stdout) stderr: /opt/plugins/check_spam.sh: line 3: [: -lt: unary operator expected
+[1412769600] CURRENT SERVICE STATE: monitor;Cron process;CRITICAL;HARD;3;CHECK_NRPE: Error - Could not complete SSL handshake.
+[1412769600] CURRENT SERVICE STATE: not-monitor1;Cron process;CRITICAL;HARD;3;CHECK_NRPE: Error - Could not complete SSL handshake.
+[1412769600] CURRENT SERVICE STATE: not-monitor2;Cron process;CRITICAL;HARD;3;CHECK_NRPE: Error - Could not complete SSL handshake.
+[1412770293] EXTERNAL COMMAND: SCHEDULE_SVC_DOWNTIME;monitor;Cron process;1412770298;1412777498;1;0;7200;monitor;fooo
+[1412770293] EXTERNAL COMMAND: SCHEDULE_SVC_DOWNTIME;not-monitor1;Cron process;1412770298;1412777498;1;0;7200;monitor;fooo
+[1412770293] EXTERNAL COMMAND: SCHEDULE_SVC_DOWNTIME;not-monitor2;Cron process;1412770298;1412777498;1;0;7200;monitor;fooo
+[1412770298] SERVICE DOWNTIME ALERT: monitor;Cron process;STARTED; Service has entered a period of scheduled downtime
+[1412770298] SERVICE DOWNTIME ALERT: not-monitor1;Cron process;STARTED; Service has entered a period of scheduled downtime
+[1412770298] SERVICE DOWNTIME ALERT: not-monitor2;Cron process;STARTED; Service has entered a period of scheduled downtime
+[1412770325] EXTERNAL COMMAND: SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME;monitor;1412770330;1412777530;1;0;7200;monitor;a
+[1412770325] EXTERNAL COMMAND: SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME;monitor2;1412770330;1412777530;1;0;7200;monitor;a
+[1412770330] HOST DOWNTIME ALERT: monitor;STARTED; Host has entered a period of scheduled downtime
+[1412770330] HOST DOWNTIME ALERT: monitor2;STARTED; Host has entered a period of scheduled downtime
+[1412770708] SERVICE NOTIFICATION: monitor;monitor;Cron process;CRITICAL;service-notify;CHECK_NRPE: Error - Could not complete SSL handshake.
+[1412770708] SERVICE NOTIFICATION: monitor;not-monitor1;Cron process;CRITICAL;service-notify;CHECK_NRPE: Error - Could not complete SSL handshake.
+[1412770708] SERVICE NOTIFICATION: monitor;not-monitor2;Cron process;CRITICAL;service-notify;CHECK_NRPE: Error - Could not complete SSL handshake.
+[1412770875] HOST NOTIFICATION: monitor;monitor;DOWN;host-notify;alert dammit
+[1412770875] HOST NOTIFICATION: monitor;monitor2;DOWN;host-notify;alert dammit

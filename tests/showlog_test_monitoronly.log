@@ -1,0 +1,12 @@
+[1386686225] INITIAL HOST STATE: monitor;UP;HARD;1;
+[1386686225] INITIAL SERVICE STATE: monitor;Cron process;OK;HARD;1;(null)
+[1386760150] HOST FLAPPING ALERT: monitor;STARTED; Host appears to have started flapping (21.1% change > 20.0% threshold)
+[1387441769] SERVICE FLAPPING ALERT: monitor;Cron process;STARTED; Service appears to have started flapping (22.6% change >= 20.0% threshold)
+[1389179712] SERVICE ALERT: monitor;Cron process;CRITICAL;HARD;3;(Service check timed out after 60.01 seconds)
+[1389182045] HOST ALERT: monitor;DOWN;HARD;3;(Host check timed out after 60.01 seconds)
+[1412769600] CURRENT HOST STATE: monitor;UP;HARD;1;(No output on stdout) stderr: /opt/plugins/check_spam.sh: line 3: [: -lt: unary operator expected
+[1412769600] CURRENT SERVICE STATE: monitor;Cron process;CRITICAL;HARD;3;CHECK_NRPE: Error - Could not complete SSL handshake.
+[1412770298] SERVICE DOWNTIME ALERT: monitor;Cron process;STARTED; Service has entered a period of scheduled downtime
+[1412770330] HOST DOWNTIME ALERT: monitor;STARTED; Host has entered a period of scheduled downtime
+[1412770708] SERVICE NOTIFICATION: monitor;monitor;Cron process;CRITICAL;service-notify;CHECK_NRPE: Error - Could not complete SSL handshake.
+[1412770875] HOST NOTIFICATION: monitor;monitor;DOWN;host-notify;alert dammit
