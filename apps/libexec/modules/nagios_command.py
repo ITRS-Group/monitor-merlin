@@ -53,7 +53,7 @@ class nagios_command:
 		},
 		'SCHEDULE_SVC_CHECK': {
 			'nagios_id': 7,
-			'description': 'This command is used to schedule the next check of a service.  The check will be re-queued to be run at the time you specify. If you select the <i>force check</i> option, a service check will be forced regardless of both what time the scheduled check occurs and whether or not checks are enabled.',
+			'description': 'This command is used to schedule the next check of a service.  The check will be re-queued to be run at the time you specify.',
 			'brief': 'You are trying to schedule a service check',
 			'template': 'SCHEDULE_SVC_CHECK;service;check_time',
 		},
@@ -521,7 +521,7 @@ class nagios_command:
 		},
 		'SCHEDULE_HOST_CHECK': {
 			'nagios_id': 96,
-			'description': 'This command is used to schedule the next check of a host. the monitoring process will re-queue the host to be checked at the time you specify. If you select the <i>force check</i> option, the monitoring process will force a check of the host regardless of both what time the scheduled check occurs and whether or not checks are enabled for the host.',
+			'description': 'This command is used to schedule the next check of a host. The monitoring process will re-queue the host to be checked at the time you specify.',
 			'brief': 'You are trying to schedule a host check',
 			'template': 'SCHEDULE_HOST_CHECK;host_name;check_time',
 		},
