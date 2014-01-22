@@ -39,8 +39,6 @@ def options(opt):
 	# Features
 	opt.add_option('--libdbi', action='store', default='dflt',
 		help='controller for libdbi support [default: No]', dest='libdbi')
-	opt.add_option('--ocilib', action='store', default='dflt',
-		help='control ocilib support [default: enabled]', dest='ocilib')
 
 	# Paths
 	opt.add_option('--mandir', type='string', default='',
@@ -85,16 +83,6 @@ def configure(conf):
 			mandatory=conf.options.libdbi.startswith('enable'),
 		)
 
-	if conf.options.ocilib.startswith('dis'):
-		have_ocilib = False
-	else:
-		have_ocilib = conf.check_cc(
-			function_name='OCI_ConnectionCreate',
-			lib='ocilib',
-			header_name='ocilib.h',
-			mandatory=conf.options.ocilib.startswith('enable'),
-		)
-
 	# check sunOS socket support
 	if Options.platform == 'sunos':
 		conf.check_cc(
@@ -131,10 +119,7 @@ def configure(conf):
 	if have_libdbi:
 		conf.define('DB_WRAP_CONFIG_ENABLE_LIBDBI', 1)
 		conf.env.append_value('dblibs', 'dbi')
-	if have_ocilib:
-		conf.define('DB_WRAP_CONFIG_ENABLE_OCILIB', 1)
-		conf.env.append_value('dblibs', 'oci')
-	if not have_libdbi and not have_ocilib:
+	if not have_libdbi:
 		conf.define('HAVE_DB', 0)
 	else:
 		conf.define('HAVE_DB', 1)

@@ -9,9 +9,6 @@
 #if ! defined(DB_WRAP_CONFIG_ENABLE_LIBDBI)
 #  define DB_WRAP_CONFIG_ENABLE_LIBDBI 0
 #endif
-#if ! defined(DB_WRAP_CONFIG_ENABLE_OCILIB)
-#  define DB_WRAP_CONFIG_ENABLE_OCILIB 0
-#endif
 
 enum db_wrap_constants {
 	/**
@@ -163,9 +160,6 @@ struct db_wrap_api {
 	   it if needed.
 
 	   Portability notes:
-
-	   - Some drivers (e.g. ocilib) automatically add a newline to the
-	   end of the error message (which is somewhat tasteles, IMO).
 
 	   - sqlite3 infamously uses the error string "not an error" when
 	   there is no error, instead of using a NULL/empty string. When sqlite3
@@ -342,10 +336,6 @@ struct db_wrap_result_api {
 	   by assinging that value to *num and returning 0.  If it cannot
 	   determine this then *num must not be modified and non-0 must be
 	   returned.
-
-	   ACHTUNG: the ocilib implementation can only return the number of
-	   rows TRAVERSED SO FAR (which is kinda dumb, since we already know
-	   that number). Calling this directly after a SELECT will return 0.
 	*/
 	int (*num_rows)(db_wrap_result *self, size_t *num);
 
@@ -471,7 +461,7 @@ int db_wrap_result_string_copy_ndx(db_wrap_result *res, unsigned int ndx, char *
    is, we have code for them. Whether or not they work on your box is
    another question entirely)...
 
-   "dbi:mysql", "dbi:sqlite3", "ocilib"
+   "dbi:mysql", "dbi:sqlite3"
 
 
    The param object contains basic connection parameters for the db

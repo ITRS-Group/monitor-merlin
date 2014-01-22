@@ -14,11 +14,9 @@
 static struct {
 	db_wrap_conn_params mysql;
 	db_wrap_conn_params sqlite3;
-	db_wrap_conn_params oracle;
 } ConnParams = {
 	db_wrap_conn_params_empty_m,
 	db_wrap_conn_params_empty_m,
-	db_wrap_conn_params_empty_m
 };
 
 
@@ -26,12 +24,10 @@ static struct {
 	bool useTempTables;
 	bool testMySQL;
 	bool testSQLite3;
-	bool testOracle;
 } ThisApp = {
 	true/*useTempTables*/,
 	false/*testMySQL*/,
 	false/*testSQLite3*/,
-	false/*testOracle*/
 };
 
 static void show_errinfo_impl(db_wrap *wr, int rc, unsigned int line)
@@ -50,11 +46,10 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 {
 	MARKER("Running generic tests: [%s]\n", driver);
 
-	const bool isOracle = (NULL != strstr(driver, "oci"));
 	const bool isMysql = (NULL != strstr(driver, "mysql"));
 	const bool isSqlite = (NULL != strstr(driver, "sqlite"));
 
-	if (isOracle == isMysql || isSqlite == isOracle) {
+	if (isSqlite == isMysql) {
 		// THIS IS ONLY HERE TO AVOID 'UNUSED VARIABLE' WARNINGS!
 	}
 
@@ -62,10 +57,7 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 	"table t(vint integer, vdbl float(12), vstr varchar(32))"
 	char const *sql = NULL;
 	if (ThisApp.useTempTables) {
-		sql = isOracle /* and the incompatibilities are already showing up! */
-		      ? ("create global temporary " TABLE_DEF)
-		      : ("create temporary " TABLE_DEF)
-		      ;
+		sql = ("create temporary " TABLE_DEF);
 	} else {
 		sql = "create " TABLE_DEF;
 		;
@@ -206,19 +198,12 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 	}
 
 
-	if (!isOracle && !isSqlite) {
+	if (!isSqlite) {
 		/*
-		  FIXME: get-double is not working reliably for OCI and
-		  appears to be broken at the libdbi level for sqlite.
-
-		  On my first Oracle machine this test worked fine, but that machine
-		  died and when we moved to another machine, the double test
-		  suddenly fails. DAMN...
+		  FIXME: get-double appears to be broken at the libdbi level for sqlite.
 		 */
-		char const *dblSql = (isOracle)
-		                     ? "select vdbl from t where rownum<=1 order by vint desc"
-		                     : "select vdbl from t order by vint desc limit 1"
-		                     ;
+		char const *dblSql = "select vdbl from t order by vint desc limit 1";
+
 		// not yet working. don't yet know why
 		double doubleGet = -1.0;
 		rc = db_wrap_query_double(wr, dblSql, strlen(dblSql), &doubleGet);
@@ -353,44 +338,13 @@ static void test_sqlite_1(void)
 #endif
 }
 
-static void test_oracle_1(void)
-{
-#if ! DB_WRAP_CONFIG_ENABLE_OCILIB
-	assert(0 && "ERROR: oracle support not compiled in!");
-#else
-	char const *driver = "ocilib";
-	db_wrap *wr = NULL;
-	int rc = db_wrap_driver_init(driver, &ConnParams.oracle, &wr);
-	assert(0 == rc);
-	assert(wr);
-	rc = wr->api->connect(wr);
-	char const *errmsg = NULL;
-	int dbErrCode = 0;
-	wr->api->error_info(wr, &errmsg, NULL, &dbErrCode);
-	MARKER("connect rc=%d. Error code [%d], error string=[%s]\n", rc, dbErrCode, errmsg);
-	assert(0 == rc);
-	MARKER("Connected to Oracle! Erfolg! Success! Booya!\n");
-
-	bool oldTempVal = ThisApp.useTempTables;
-	if (oldTempVal) {
-		MARKER("WARNING: the oci driver isn't working with TEMP tables (not sure why). "
-		       "Disabling them. Make sure the db state is clean before running the tests!\n");
-		ThisApp.useTempTables = false;
-	}
-	test_dbwrap_generic(driver, wr);
-	ThisApp.useTempTables = oldTempVal;
-	wr->api->finalize(wr);
-#endif
-}
-
 static void show_help(char const *appname)
 {
-	printf("Usage:\n\t%s [-s] [-m] [-o] [-t]\n", appname);
+	printf("Usage:\n\t%s [-s] [-m] [-t]\n", appname);
 	puts("Options:");
 	puts("\t-t = use non-temporary tables for tests. Will fail if the tables already exist.");
 	puts("\t-m = enables mysql test.");
 	puts("\t-s = enables sqlite3 test.");
-	puts("\t-o = enables oracle test.");
 	puts("\t-h HOSTNAME = sets remote host name for some tests.");
 	putchar('\n');
 }
@@ -411,10 +365,6 @@ int main(int argc, char const **argv)
 			continue;
 		} else if (0 == strcmp("-m", arg)) {
 			ThisApp.testMySQL = true;
-			++testCount;
-			continue;
-		} else if (0 == strcmp("-o", arg)) {
-			ThisApp.testOracle = true;
 			++testCount;
 			continue;
 		} else if (0 == strcmp("-h", arg)) {
@@ -442,16 +392,8 @@ int main(int argc, char const **argv)
 	{
 		ConnParams.sqlite3.dbname = "merlin.sqlite";
 	}
-	{
-		//FIXME("non-default oracle port not yet supported in my oci bits.\n");
-		ConnParams.oracle = ConnParams.mysql;
-		ConnParams.oracle.host = dbhost; // "ora9.int.consol.de";
-		ConnParams.oracle.dbname = "merlin";
-		ConnParams.oracle.port = 0;
-	}
 	if (ThisApp.testMySQL) { test_mysql_1(); }
 	if (ThisApp.testSQLite3) { test_sqlite_1(); }
-	if (ThisApp.testOracle) { test_oracle_1(); }
 	MARKER("If you got this far, it worked.\n");
 	return 0;
 }

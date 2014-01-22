@@ -44,26 +44,6 @@ def connect(mconf, reuse_conn=True):
 			print("Install postgresql-python to make this command work")
 			sys.exit(1)
 		conn = db.connect(user=db_user, password=db_pass, host=db_host, database=db_name)
-	elif db_type in ['oci', 'oracle', 'ocilib']:
-		try:
-			import cx_Oracle as db
-		except:
-			print("Failed to import cx_Oracle")
-			print("Install oracle-python to make this command work")
-			sys.exit(1)
-		if db_conn_str:
-			dsn = db_conn_str
-		else:
-			if db_port:
-				dsn = "//%s:%s" % (db_host, db_port)
-			else:
-				dsn = "//%s" % (db_host)
-			dsn += "/" + db_name
-		db_user = db_user.encode('latin1')
-		db_pass = db_pass.encode('latin1')
-		dsn = dsn.encode('latin1')
-		conn = db.connect(db_user, db_pass, dsn)
-
 	else:
 		print("Invalid database type selected: %s" % db_type)
 		print("Cannot continue")

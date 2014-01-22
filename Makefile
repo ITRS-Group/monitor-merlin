@@ -47,23 +47,9 @@ WARN_FLAGS = -Wall -Wno-unused-parameter
 DBWRAP_OBJS := sql.o db_wrap.o
 DB_LDFLAGS :=
 DBWRAP_CFLAGS :=
-# FIXME: try to find libdbi/ocilib dynamically. Until then, the client
-# can pass ENABLE_LIBDBI=1/0 or ENABLE_OCILIB=1/0 to enable/disable them.
-ENABLE_OCILIB ?= 0
+# FIXME: try to find libdbi dynamically. Until then, the client
+# can pass ENABLE_LIBDBI=1/0  to enable/disable them.
 ENABLE_LIBDBI ?= 1
-
-ifeq ($(ENABLE_OCILIB),1)
-# Use ocilib...
-#ORACLE_PREFIX ?= /usr/lib/oracle/11.2/client64
-# /home/ora10/OraHome1
-#ORACLE_LDFLAGS = -L$(ORACLE_PREFIX)/lib -lclntsh
-OCILIB_PREFIX ?= /usr/local
-OCILIB_CFLAGS := -I$(OCILIB_PREFIX)/include -DDB_WRAP_CONFIG_ENABLE_OCILIB=1
-OCILIB_LDFLAGS = -L$(OCILIB_PREFIX)/lib -locilib $(ORACLE_LDFLAGS)
-DB_CFLAGS += $(OCILIB_CFLAGS) -DENABLE_OCILIB=1
-DB_LDFLAGS += $(OCILIB_LDFLAGS)
-db_wrap.o: db_wrap_ocilib.c
-endif
 
 ifeq ($(ENABLE_LIBDBI),1)
 # Use libdbi...

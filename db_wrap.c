@@ -15,9 +15,6 @@ const db_wrap_conn_params db_wrap_conn_params_empty = db_wrap_conn_params_empty_
 #if DB_WRAP_CONFIG_ENABLE_LIBDBI
 #  include "db_wrap_dbi.c"
 #endif
-#if DB_WRAP_CONFIG_ENABLE_OCILIB
-#  include "db_wrap_ocilib.c"
-#endif
 
 
 /**
@@ -156,17 +153,6 @@ int db_wrap_driver_init(char const *driver, db_wrap_conn_params const *param, db
 	} else if (0 == strcmp("mysql", driver)) {
 		/* backwards-compatibility hack. */
 		return db_wrap_dbi_init2(driver, param, tgt);
-	}
-#endif
-#if DB_WRAP_CONFIG_ENABLE_OCILIB
-	if (!strcmp("ocilib", driver) || !strcmp("oracle", driver) || !strcmp("oci", driver)) {
-		/* TODO: ocilib. The main problem here is that i have two dev
-		   boxes: one of them has only dbi and one has only ocilib,
-		   and i can't get both installed on either machine, primarily
-		   because the ocilib-using machine is ancient and has no network
-		   access for package updates.
-		*/
-		return db_wrap_oci_init(param, tgt);
 	}
 #endif
 	return DB_WRAP_E_UNSUPPORTED;

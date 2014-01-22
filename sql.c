@@ -13,7 +13,6 @@ unsigned long total_queries = 0;
 static int db_type;
 
 #define MERLIN_DBT_MYSQL 0
-#define MERLIN_DBT_ORACLE 1
 #define MERLIN_DBT_PGSQL 2
 #define MERLIN_DBT_SQLITE 3
 
@@ -171,10 +170,6 @@ static int run_query(char *query, size_t len, int rerunIGNORED)
 		ldebug("MERLIN SQL: [%s]\n\tResult code: %d, result object @%p\n", query, rc, res);
 		if (rc) {
 			ldebug("Error code: %d\n", rc);
-			/*
-			 * Reminder: the OCI driver adds a newline of its own to
-			 * error text.
-			*/
 		}
 	}
 
@@ -283,19 +278,6 @@ int sql_vquery(const char *fmt, va_list ap)
 			}
 		}
 #endif
-#ifdef ENABLE_OCILIB
-		if (db_type == MERLIN_DBT_ORACLE) {
-			switch (db_error) {
-			// connection gone - needed for failover
-			case 3135: // connection lost contact
-				reconnect = 1;
-				break;
-			default:
-				reconnect = 0;
-				break;
-			}
-		}
-#endif
 		if (reconnect) {
 			lwarn("Attempting to reconnect to database and re-run the query");
 			if (!sql_reinit()) {
@@ -399,8 +381,6 @@ int sql_init(void)
 
 	if (!strcmp(db.type, "mysql") || !strcmp(db.type, "dbi:mysql")) {
 		db_type = MERLIN_DBT_MYSQL;
-	} else if (!strcmp(db.type, "oci") || !strcmp(db.type, "oracle") || !strcmp(db.type, "ocilib")) {
-		db_type = MERLIN_DBT_ORACLE;
 	} else if (!strcmp(db.type, "psql") || !strcmp(db.type, "postgresql") || !strcmp(db.type, "pgsql")) {
 		db_type = MERLIN_DBT_PGSQL;
 	} else if (!strcmp(db.type, "sqlite")) {

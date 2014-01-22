@@ -221,10 +221,6 @@ install_files ()
 	test -f "$root_path/$dest_dir/merlin.conf" || \
 		cp "$root_path/$dest_dir/sample.merlin.conf" \
 			"$root_path/$dest_dir/merlin.conf"
-	macro_subst "$src_dir/import.php" > "$root_path/$dest_dir/import.php"
-	macro_subst "$src_dir/object_importer.inc.php" > "$root_path/$dest_dir/object_importer.inc.php"
-	macro_subst "$src_dir/MerlinPDO.inc.php" > "$root_path/$dest_dir/MerlinPDO.inc.php"
-	macro_subst "$src_dir/oci8topdo.php" > "$root_path/$dest_dir/oci8topdo.php"
 	mkdir -p $root_path/$bindir
 	for f in $bins; do
 		cp "$src_dir/$f" "$root_path/$bindir"

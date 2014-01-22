@@ -17,12 +17,10 @@ Source0: %name-%version.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}
 Prefix: /opt/monitor
 Requires: libaio
-Requires: ocilib >= 3.8
 Requires: merlin-apps >= %version
 Requires: monitor-config
 Requires: op5-monitor-supported-database
 BuildRequires: mysql-devel
-BuildRequires: ocilib-devel
 BuildRequires: op5-nagios-devel >= 3.99.99.7
 Obsoletes: monitor-reports-module
 BuildRequires: check-devel
@@ -114,8 +112,8 @@ sed -i '1s#/bin/python.*#/bin/python26#' apps/mon.py
 %endif
 
 
-make ENABLE_OCILIB=1 ENABLE_LIBDBI=1 NAGIOS_PREFIX=/opt/monitor
-make ENABLE_OCILIB=1 ENABLE_LIBDBI=1 NAGIOS_PREFIX=/opt/monitor test
+make ENABLE_LIBDBI=1 NAGIOS_PREFIX=/opt/monitor
+make ENABLE_LIBDBI=1 NAGIOS_PREFIX=/opt/monitor test
 
 
 %install
@@ -168,7 +166,6 @@ if [ -n "$MYSQL_AVAILABLE" ]; then
   %mod_path/install-merlin.sh %install_args --batch --install=db
 else
   echo "WARNING: mysql-server is not installed or not running."
-  echo "If Oracle database is to be used this is ok."
   echo "If MySQL database is to be used you need to maually run:"
   echo "  %mod_path/install-merlin.sh --batch --install=db --nagios-cfg=%prefix/etc/nagios.cfg --dest-dir=%prefix/op5/merlin"
   echo "to complete the setup of %name"
@@ -223,10 +220,6 @@ sh /etc/init.d/monitor start || :
 %mod_path/sql
 %mod_path/merlind
 %mod_path/install-merlin.sh
-%mod_path/import.php
-%mod_path/object_importer.inc.php
-%mod_path/MerlinPDO.inc.php
-%mod_path/oci8topdo.php
 %_sysconfdir/logrotate.d/merlin
 %_sysconfdir/op5kad/conf.d/merlin.kad
 %_sysconfdir/nrpe.d/nrpe-merlin.cfg
