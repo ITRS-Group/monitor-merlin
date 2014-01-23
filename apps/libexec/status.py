@@ -1,0 +1,28 @@
+import os, sys
+import time
+
+modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
+if not modpath in sys.path:
+	sys.path.append(modpath)
+
+import merlin_db
+
+def cmd_install_time(args):
+	"""
+	Print the time the system first recorded an event, as a unix timestamp.
+
+	If no event is recoreded, assume an event will happen quite soon, so print
+	the current tiemstamp instead
+	"""
+	starttime = int(time.time())
+
+	dbc = merlin_db.connect(mconf).cursor()
+
+	dbc.execute('SELECT MIN(timestamp) FROM report_data')
+	for (tstamp,) in dbc:
+		if tstamp:
+			starttime = tstamp
+
+	merlin_db.disconnect()
+
+	print starttime
