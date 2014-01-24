@@ -319,6 +319,64 @@ START_TEST (none)
 }
 END_TEST
 
+START_TEST (select_single_host)
+{
+	int fd = open("tests/showlog_test_monitoronly.log", O_RDONLY);
+	char expected[6000];
+	ssize_t len = read(fd, expected, 6000);
+	expected[len] = 0;
+	close(fd);
+	char *args[] = {
+		NULL,
+		"tests/showlog_test.log",
+		"--show-all",
+		"--first=1386686225",
+		"--last=1412770875",
+		"--ascii",
+		"--time-format=raw",
+		"--host=monitor",
+		"--hide-process",
+		"--hide-command",
+		NULL
+	};
+	char *actual = run_with(args, NULL);
+	int diff;
+	if ((diff = strcmp(expected, actual))) {
+		ck_abort_msg("showlog didn't return the input. It looked like %s", actual);
+	}
+	free(actual);
+}
+END_TEST
+
+START_TEST (select_single_service)
+{
+	int fd = open("tests/showlog_test_not_monitor1_svc_only.log", O_RDONLY);
+	char expected[6000];
+	ssize_t len = read(fd, expected, 6000);
+	expected[len] = 0;
+	close(fd);
+	char *args[] = {
+		NULL,
+		"tests/showlog_test.log",
+		"--show-all",
+		"--first=1386686225",
+		"--last=1412770875",
+		"--ascii",
+		"--time-format=raw",
+		"--service=not-monitor1;Cron process",
+		"--hide-process",
+		"--hide-command",
+		NULL
+	};
+	char *actual = run_with(args, NULL);
+	int diff;
+	if ((diff = strcmp(expected, actual))) {
+		ck_abort_msg("showlog didn't return the input. It looked like %s", actual);
+	}
+	free(actual);
+}
+END_TEST
+
 Suite *
 showlog_suite(void)
 {
@@ -340,6 +398,8 @@ showlog_suite(void)
   tcase_add_test(log, monitor_and_not_monitor1_svc);
   tcase_add_test(log, not_monitor1_svc_only);
   tcase_add_test(log, none);
+  tcase_add_test(log, select_single_host);
+  tcase_add_test(log, select_single_service);
   suite_add_tcase(s, log);
 
   return s;

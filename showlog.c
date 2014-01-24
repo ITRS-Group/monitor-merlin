@@ -846,7 +846,7 @@ int main(int argc, char **argv)
 	int i, show_ltime_skews = 0, list_files = 0;
 	unsigned long long tot_lines = 0;
 	const char *nagios_cfg = NULL, *cgi_cfg = NULL;
-	int hosts_are_interesting = 0;
+	int hosts_are_interesting = 0, services_are_interesting = 0;
 
 	progname = strrchr(argv[0], '/');
 	progname = progname ? progname + 1 : argv[0];
@@ -976,9 +976,8 @@ int main(int argc, char **argv)
 			continue;
 		}
 		if (!strcmp(arg, "--service")) {
+			services_are_interesting = 1;
 			event_filter |= EVT_SERVICE;
-			if (!hosts_are_interesting)
-				event_filter &= ~(EVT_HOST);
 			if (!opt)
 				missing_opt = 1;
 			else
@@ -1075,6 +1074,9 @@ int main(int argc, char **argv)
 	if (limit && print_time == print_time_duration) {
 		limit++;
 	}
+
+	if (!hosts_are_interesting && services_are_interesting)
+		event_filter &= ~(EVT_HOST);
 
 	if (debug_level)
 		print_interesting_objects();
