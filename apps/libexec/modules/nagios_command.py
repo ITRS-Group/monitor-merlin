@@ -8,8 +8,8 @@ def _cmd_pipe_sighandler(one, two):
 	nagios_command_pipe_open_failed = True
 	return False
 
-
 class nagios_command:
+	
 	# @TODO: change 'ADD_HOST_COMMENT;host_name;persistent;author;comment'
 	# to
 	# 'ADD_HOST_COMMENT;host=host_name;boolean=persistent;integer=author;string=comment'
@@ -17,7 +17,7 @@ class nagios_command:
 	command_info = {
 		'ADD_HOST_COMMENT': {
 			'nagios_id': 1,
-			'description': 'This command is used to add a comment for the specified host.  If you work with other administrators, you may find it useful to share information about a host that is having problems if more than one of you may be working on it.  If you do not check the \'persistent\' option, the comment will be automatically be deleted at the the next program restarted.',
+			'description': 'This command is used to add a comment for the specified host.  If you work with other administrators, you may find it useful to share information about a host that is having problems if more than one of you may be working on it.  If you do not check the \'persistent\' option, the comment will be automatically deleted at the the next program restarted.',
 			'brief': 'You are trying to add a host comment',
 			'template': 'ADD_HOST_COMMENT;host_name;persistent;author;comment',
 		},
@@ -29,7 +29,7 @@ class nagios_command:
 		},
 		'ADD_SVC_COMMENT': {
 			'nagios_id': 3,
-			'description': 'This command is used to add a comment for the specified service.  If you work with other administrators, you may find it useful to share information about a host or service that is having problems if more than one of you may be working on it.  If you do not check the \'persistent\' option, the comment will automatically be deleted at the next program restart.',
+			'description': 'This command is used to add a comment for the specified service.  If you work with other administrators, you may find it useful to share information about a host or service that is having problems if more than one of you may be working on it.  If you do not specify the \'persistent\' option, the comment will automatically be deleted at the next program restart.',
 			'brief': 'You are trying to add a service comment',
 			'template': 'ADD_SVC_COMMENT;service;persistent;author;comment',
 		},
@@ -95,19 +95,19 @@ class nagios_command:
 		},
 		'ENABLE_HOST_SVC_CHECKS': {
 			'nagios_id': 15,
-			'description': 'This command is used to enable active checks of all services associated with the specified host.  This <i>does not</i> enable checks of the host unless you check the \'Enable for host too\' option.',
+			'description': 'This command is used to enable active checks of all services associated with the specified host.  This command does not enable checks of the host itself.',
 			'brief': 'You are trying to enable active checks of all services on a host',
 			'template': 'ENABLE_HOST_SVC_CHECKS;host_name',
 		},
 		'DISABLE_HOST_SVC_CHECKS': {
 			'nagios_id': 16,
-			'description': 'This command is used to disable active checks of all services associated with the specified host.  When a service is disabled it will not be monitored.  Doing this will prevent any notifications being sent out for the specified service while it is disabled.  In order to have the service check scheduled again you will have to re-enable the service. Note that disabling service checks may not necessarily prevent notifications from being sent out about the host which those services are associated with.  This <i>does not</i> disable checks of the host unless you check the \'Disable for host too\' option.',
+			'description': 'This command is used to disable active checks of all services associated with the specified host.  When a service is disabled it will not be monitored.  Doing this will prevent any notifications being sent out for the specified service while it is disabled.  In order to have the service check scheduled again you will have to re-enable the service. Note that disabling service checks may not necessarily prevent notifications from being sent out about the host which those services are associated with.  This command does not disable checks of the host itself.',
 			'brief': 'You are trying to disable active checks of all services on a host',
 			'template': 'DISABLE_HOST_SVC_CHECKS;host_name',
 		},
 		'SCHEDULE_HOST_SVC_CHECKS': {
 			'nagios_id': 17,
-			'description': 'This command is used to scheduled the next check of all services on the specified host.  If you select the <i>force check</i> option, a check of all services on the host will be performed regardless of both what time the scheduled checks occur and whether or not checks are enabled for those services.',
+			'description': 'This command is used to scheduled the next check of all services on the specified host.',
 			'brief': 'You are trying to schedule a check of all services for a host',
 			'template': 'SCHEDULE_HOST_SVC_CHECKS;host_name;check_time',
 		},
@@ -131,7 +131,7 @@ class nagios_command:
 		},
 		'ENABLE_SVC_NOTIFICATIONS': {
 			'nagios_id': 22,
-			'description': 'This command is used to enable notifications for the specified service.  Notifications will only be sent out for the service state types you defined in your service definition.',
+			'description': 'This command is used to enable notifications for the specified service.  Notifications will only be sent out for the service state types specified in the service definition.',
 			'brief': 'You are trying to enable notifications for a service',
 			'template': 'ENABLE_SVC_NOTIFICATIONS;service',
 		},
@@ -143,13 +143,13 @@ class nagios_command:
 		},
 		'ENABLE_HOST_NOTIFICATIONS': {
 			'nagios_id': 24,
-			'description': 'This command is used to enable notifications for the specified host.  Notifications will only be sent out for the host state types you defined in your host definition.  Note that this command <i>does not</i> enable notifications for services associated with this host.',
+			'description': 'This command is used to enable notifications for the specified host.  Notifications will only be sent out for the host state types you defined in your host definition.  Note that this command does not enable notifications for services associated with this host.',
 			'brief': 'You are trying to enable notifications for a host',
 			'template': 'ENABLE_HOST_NOTIFICATIONS;host_name',
 		},
 		'DISABLE_HOST_NOTIFICATIONS': {
 			'nagios_id': 25,
-			'description': 'This command is used to prevent notifications from being sent out for the specified host.  You will have to re-enable notifications for this host before any alerts can be sent out in the future.  Note that this command <i>does not</i> disable notifications for services associated with this host.',
+			'description': 'This command is used to prevent notifications from being sent out for the specified host.  You will have to re-enable notifications for this host before any alerts can be sent out in the future.  Note that this command does not disable notifications for services associated with this host.',
 			'brief': 'You are trying to disable notifications for a host',
 			'template': 'DISABLE_HOST_NOTIFICATIONS;host_name',
 		},
@@ -161,19 +161,19 @@ class nagios_command:
 		},
 		'DISABLE_ALL_NOTIFICATIONS_BEYOND_HOST': {
 			'nagios_id': 27,
-			'description': 'This command is used to temporarily prevent notifications from being sent out for all hosts and services that lie "beyone" the specified host (from the view of the monitoring process).',
+			'description': 'This command is used to temporarily prevent notifications from being sent out for all hosts and services that lie "beyond" the specified host (from the view of the monitoring process).',
 			'brief': 'You are trying to disable notifications for all hosts and services beyond a host',
 			'template': 'DISABLE_ALL_NOTIFICATIONS_BEYOND_HOST;host_name',
 		},
 		'ENABLE_HOST_SVC_NOTIFICATIONS': {
 			'nagios_id': 28,
-			'description': 'This command is used to enable notifications for all services on the specified host.  Notifications will only be sent out for the service state types you defined in your service definition.  This <i>does not</i> enable notifications for the host unless you check the \'Enable for host too\' option.',
+			'description': 'This command is used to enable notifications for all services on the specified host.  Notifications will only be sent out for the service state types specified in the service definition.  This does not enable notifications for the host.',
 			'brief': 'You are trying to enable notifications for all services on a host',
 			'template': 'ENABLE_HOST_SVC_NOTIFICATIONS;host_name',
 		},
 		'DISABLE_HOST_SVC_NOTIFICATIONS': {
 			'nagios_id': 29,
-			'description': 'This command is used to prevent notifications from being sent out for all services on the specified host.  You will have to re-enable notifications for all services associated with this host before any alerts can be sent out in the future.  This <i>does not</i> prevent notifications from being sent out about the host unless you check the \'Disable for host too\' option.',
+			'description': 'This command is used to prevent notifications from being sent out for all services on the specified host.  You will have to re-enable notifications for all services associated with this host before any alerts can be sent out in the future.  This does not prevent notifications from being sent out about the host.',
 			'brief': 'You are trying to disable notifications for all services on a host',
 			'template': 'DISABLE_HOST_SVC_NOTIFICATIONS;host_name',
 		},
@@ -197,13 +197,13 @@ class nagios_command:
 		},
 		'ACKNOWLEDGE_HOST_PROBLEM': {
 			'nagios_id': 33,
-			'description': 'This command is used to acknowledge a host problem.  When a host problem is acknowledged, future notifications about problems are temporarily disabled until the host changes from its current state. If you want acknowledgement to disable notifications until the host recovers, check the \'Sticky Acknowledgement\' checkbox. Contacts for this host will receive a notification about the acknowledgement, so they are aware that someone is working on the problem.  Additionally, a comment will also be added to the host. Make sure to enter your name and fill in a brief description of what you are doing in the comment field.  If you would like the host comment to remain once the acknowledgement is removed, check the \'Persistent Comment\' checkbox.  If you do not want an acknowledgement notification sent out to the appropriate contacts, uncheck the \'Send Notification\' checkbox.',
+			'description': 'This command is used to acknowledge a host problem.  When a host problem is acknowledged, future notifications about problems are temporarily disabled until the host changes from its current state. If you want acknowledgement to disable notifications until the host recovers, specify the \'sticky\' option. Contacts for this host will receive a notification about the acknowledgement, so they are aware that someone is working on the problem.  Additionally, a comment will also be added to the host. Make sure to enter your name in the \'author\' parameter and fill in a brief description of what you are doing in the \'comment\' paramter.  If you would like the host comment to remain once the acknowledgement is removed, specify the \'persistent\' option.  If you do not want an acknowledgement notification sent out to the appropriate contacts, do not specify the \'notify\' option.',
 			'brief': 'You are trying to acknowledge a host problem',
 			'template': 'ACKNOWLEDGE_HOST_PROBLEM;host_name;sticky;notify;persistent;author;comment',
 		},
 		'ACKNOWLEDGE_SVC_PROBLEM': {
 			'nagios_id': 34,
-			'description': 'This command is used to acknowledge a service problem.  When a service problem is acknowledged, future notifications about problems are temporarily disabled until the service changes from its current state. If you want acknowledgement to disable notifications until the service recovers, check the \'Sticky Acknowledgement\' checkbox. Contacts for this service will receive a notification about the acknowledgement, so they are aware that someone is working on the problem.  Additionally, a comment will also be added to the service. Make sure to enter your name and fill in a brief description of what you are doing in the comment field.  If you would like the service comment to remain once the acknowledgement is removed, check the \'Persistent Comment\' checkbox.  If you do not want an acknowledgement notification sent out to the appropriate contacts, uncheck the \'Send Notification\' checkbox.',
+			'description': 'This command is used to acknowledge a service problem.  When a service problem is acknowledged, future notifications about problems are temporarily disabled until the service changes from its current state. If you want acknowledgement to disable notifications until the service recovers, specify the \'sticky\' option. Contacts for this service will receive a notification about the acknowledgement, so they are aware that someone is working on the problem.  Additionally, a comment will also be added to the service. Make sure to enter your name in the \'author\' parameter and fill in a brief description of what you are doing in the \'comment\' parameter.  If you would like the service comment to remain once the acknowledgement is removed, specify the \'persistent\' option.  If you do not want an acknowledgement notification sent out to the appropriate contacts, do not specify the \'notify\' option.',
 			'brief': 'You are trying to acknowledge a service problem',
 			'template': 'ACKNOWLEDGE_SVC_PROBLEM;service;sticky;notify;persistent;author;comment',
 		},
@@ -221,25 +221,25 @@ class nagios_command:
 		},
 		'START_ACCEPTING_PASSIVE_SVC_CHECKS': {
 			'nagios_id': 37,
-			'description': 'This command is used to make the monitoring process start accepting passive service check results that it finds in the external command file.',
+			'description': 'This command is used to make the monitoring process start accepting passive service check results.',
 			'brief': 'You are trying to start accepting passive service checks',
 			'template': 'START_ACCEPTING_PASSIVE_SVC_CHECKS',
 		},
 		'STOP_ACCEPTING_PASSIVE_SVC_CHECKS': {
 			'nagios_id': 38,
-			'description': 'This command is use to make the monitoring process stop accepting passive service check results that it finds in the external command file.  All passive check results that are found will be ignored.',
+			'description': 'This command is use to make the monitoring process stop accepting passive service check results.  All passive check results that are submitted will be ignored.',
 			'brief': 'You are trying to stop accepting passive service checks',
 			'template': 'STOP_ACCEPTING_PASSIVE_SVC_CHECKS',
 		},
 		'ENABLE_PASSIVE_SVC_CHECKS': {
 			'nagios_id': 39,
-			'description': 'This command is used to allow the monitoring process to accept passive service check results that it finds in the external command file for this particular service.',
+			'description': 'This command is used to allow the monitoring process to accept passive service check results for this particular service.',
 			'brief': 'You are trying to start accepting passive service checks for a service',
 			'template': 'ENABLE_PASSIVE_SVC_CHECKS;service',
 		},
 		'DISABLE_PASSIVE_SVC_CHECKS': {
 			'nagios_id': 40,
-			'description': 'This command is used to stop the monitoring process accepting passive service check results that it finds in the external command file for this particular service.  All passive check results that are found for this service will be ignored.',
+			'description': 'This command is used to stop the monitoring process accepting passive service check results for this particular service.  All passive check results that are submitted for this service will be ignored.',
 			'brief': 'You are trying to stop accepting passive service checks for a service',
 			'template': 'DISABLE_PASSIVE_SVC_CHECKS;service',
 		},
@@ -329,13 +329,13 @@ class nagios_command:
 		},
 		'SCHEDULE_HOST_DOWNTIME': {
 			'nagios_id': 55,
-			'description': 'This command is used to schedule downtime for a host. During the specified downtime, the monitoring process will not send notifications out about the host. When the scheduled downtime expires, the monitoring process will send out notifications for this host as it normally would.  Scheduled downtimes are preserved across program shutdowns and restarts.  Both the start and end times should be specified in the following format:  <b>mm/dd/yyyy hh:mm:ss</b>. If you select the <i>fixed</i> option, the downtime will be in effect between the start and end times you specify.  If you do not select the <i>fixed</i> option, the monitoring process will treat this as "flexible" downtime.  Flexible downtime starts when the host goes down or becomes unreachable (sometime between the start and end times you specified) and lasts as long as the duration of time you enter.  The duration fields do not apply for fixed downtime.',
+			'description': 'This command is used to schedule downtime for a host. During the specified downtime, the monitoring process will not send notifications out about the host. When the scheduled downtime expires, the monitoring process will send out notifications for this host as it normally would.  Scheduled downtimes are preserved across program shutdowns and restarts. If you specify the \'fixed\' option, the downtime will be in effect between the start and end times you specify.  If you do not specify the \'fixed\' option, the monitoring process will treat this as "flexible" downtime.  Flexible downtime starts when the host goes down or becomes unreachable (sometime between the start and end times you specified) and lasts as long as the duration of time you specify.  The \'duration\' parameter does not apply for fixed downtime.',
 			'brief': 'You are trying to schedule downtime for a host',
 			'template': 'SCHEDULE_HOST_DOWNTIME;host_name;start_time;end_time;fixed;trigger_id;duration;author;comment',
 		},
 		'SCHEDULE_SVC_DOWNTIME': {
 			'nagios_id': 56,
-			'description': 'This command is used to schedule downtime for a service.  During the specified downtime, the monitoring process will not send notifications out about the service. When the scheduled downtime expires, the monitoring process will send out notifications for this service as it normally would.  Scheduled downtimes are preserved across program shutdowns and restarts.  Both the start and end times should be specified in the following format:  <b>mm/dd/yyyy hh:mm:ss</b>. option, the monitoring process will treat this as "flexible" downtime.  Flexible downtime starts when the service enters a non-OK state (sometime between the start and end times you specified) and lasts as long as the duration of time you enter.  The duration fields do not apply for fixed downtime.',
+			'description': 'This command is used to schedule downtime for a service.  During the specified downtime, the monitoring process will not send notifications out about the service. When the scheduled downtime expires, the monitoring process will send out notifications for this service as it normally would.  Scheduled downtimes are preserved across program shutdowns and restarts. If you specify \'fixed\' option, the downtime will be in effect between the start and end times you specify. If you do not specify the \'fixed\' option, the monitoring process will treat this as "flexible" downtime.  Flexible downtime starts when the service enters a non-OK state (sometime between the start and end times you specified) and lasts as long as the duration of time you specify.  The \'duration\' parameter does not apply for fixed downtime.',
 			'brief': 'You are trying to schedule downtime for a service',
 			'template': 'SCHEDULE_SVC_DOWNTIME;service;start_time;end_time;fixed;trigger_id;duration;author;comment',
 		},
@@ -377,19 +377,19 @@ class nagios_command:
 		},
 		'ENABLE_HOSTGROUP_SVC_NOTIFICATIONS': {
 			'nagios_id': 63,
-			'description': 'This command is used to enable notifications for all services in the specified hostgroup.  Notifications will only be sent out for the service state types you defined in your service definitions.  This <i>does not</i> enable notifications for the hosts in this hostgroup unless you check the \'Enable for hosts too\' option.',
+			'description': 'This command is used to enable notifications for all services in the specified hostgroup.  Notifications will only be sent out for the service state types specified in the service definitions.  This command does not enable notifications for the hosts in this hostgroup.',
 			'brief': 'You are trying to enable notifications for all services in a hostgroup',
 			'template': 'ENABLE_HOSTGROUP_SVC_NOTIFICATIONS;hostgroup_name',
 		},
 		'DISABLE_HOSTGROUP_SVC_NOTIFICATIONS': {
 			'nagios_id': 64,
-			'description': 'This command is used to prevent notifications from being sent out for all services in the specified hostgroup.  You will have to re-enable notifications for all services in this hostgroup before any alerts can be sent out in the future.  This <i>does not</i> prevent notifications from being sent out about the hosts in this hostgroup unless you check the \'Disable for hosts too\' option.',
+			'description': 'This command is used to prevent notifications from being sent out for all services in the specified hostgroup.  You will have to re-enable notifications for all services in this hostgroup before any alerts can be sent out in the future.  This command does not prevent notifications from being sent out about the hosts in this hostgroup.',
 			'brief': 'You are trying to disable notifications for all services in a hostgroup',
 			'template': 'DISABLE_HOSTGROUP_SVC_NOTIFICATIONS;hostgroup_name',
 		},
 		'ENABLE_HOSTGROUP_HOST_NOTIFICATIONS': {
 			'nagios_id': 65,
-			'description': 'This command is used to enable notifications for all hosts in the specified hostgroup.  Notifications will only be sent out for the host state types you defined in your host definitions.',
+			'description': 'This command is used to enable notifications for all hosts in the specified hostgroup.  Notifications will only be sent out for the host state types specified in the host definitions.',
 			'brief': 'You are trying to enable notifications for all hosts in a hostgroup',
 			'template': 'ENABLE_HOSTGROUP_HOST_NOTIFICATIONS;hostgroup_name',
 		},
@@ -401,13 +401,13 @@ class nagios_command:
 		},
 		'ENABLE_HOSTGROUP_SVC_CHECKS': {
 			'nagios_id': 67,
-			'description': 'This command is used to enable active checks of all services in the specified hostgroup.  This <i>does not</i> enable active checks of the hosts in the hostgroup unless you check the \'Enable for hosts too\' option.',
+			'description': 'This command is used to enable active checks of all services in the specified hostgroup.  This command does not enable active checks of the hosts in the hostgroup.',
 			'brief': 'You are trying to enable active checks of all services in a hostgroup',
 			'template': 'ENABLE_HOSTGROUP_SVC_CHECKS;hostgroup_name',
 		},
 		'DISABLE_HOSTGROUP_SVC_CHECKS': {
 			'nagios_id': 68,
-			'description': 'This command is used to disable active checks of all services in the specified hostgroup.  This <i>does not</i> disable checks of the hosts in the hostgroup unless you check the \'Disable for hosts too\' option.',
+			'description': 'This command is used to disable active checks of all services in the specified hostgroup.  This command does not disable checks of the hosts in the hostgroup.',
 			'brief': 'You are trying to disable active checks of all services in a hostgroup',
 			'template': 'DISABLE_HOSTGROUP_SVC_CHECKS;hostgroup_name',
 		},
@@ -449,13 +449,13 @@ class nagios_command:
 		},
 		'SCHEDULE_HOSTGROUP_HOST_DOWNTIME': {
 			'nagios_id': 84,
-			'description': 'This command is used to schedule downtime for all hosts in a hostgroup.  During the specified downtime, the monitoring process will not send notifications out about the hosts. When the scheduled downtime expires, the monitoring process will send out notifications for the hosts as it normally would.  Scheduled downtimes are preserved across program shutdowns and restarts.  Both the start and end times should be specified in the following format:  <b>mm/dd/yyyy hh:mm:ss</b>. If you select the <i>fixed</i> option, the downtime will be in effect between the start and end times you specify.  If you do not select the <i>fixed</i> option, the monitoring process will treat this as "flexible" downtime.  Flexible downtime starts when a host goes down or becomes unreachable (sometime between the start and end times you specified) and lasts as long as the duration of time you enter.  The duration fields do not apply for fixed dowtime.',
+			'description': 'This command is used to schedule downtime for all hosts in a hostgroup.  During the specified downtime, the monitoring process will not send notifications out about the hosts. When the scheduled downtime expires, the monitoring process will send out notifications for the hosts as it normally would.  Scheduled downtimes are preserved across program shutdowns and restarts. If you specify the \'fixed\' option, the downtime will be in effect between the start and end times you specify.  If you do not specify the \'fixed\' option, the monitoring process will treat this as "flexible" downtime.  Flexible downtime starts when a host goes down or becomes unreachable (sometime between the start and end times you specified) and lasts as long as the duration of time you specify.  The \'duration\' parameter does not apply for fixed dowtime.',
 			'brief': 'You are trying to schedule downtime for all hosts in a hostgroup',
 			'template': 'SCHEDULE_HOSTGROUP_HOST_DOWNTIME;hostgroup_name;start_time;end_time;fixed;trigger_id;duration;author;comment',
 		},
 		'SCHEDULE_HOSTGROUP_SVC_DOWNTIME': {
 			'nagios_id': 85,
-			'description': 'This command is used to schedule downtime for all services in a hostgroup.  During the specified downtime, the monitoring process will not send notifications out about the services. When the scheduled downtime expires, the monitoring process will send out notifications for the services as it normally would.  Scheduled downtimes are preserved across program shutdowns and restarts.  Both the start and end times should be specified in the following format:  <b>mm/dd/yyyy hh:mm:ss</b>. If you select the <i>fixed</i> option, the downtime will be in effect between the start and end times you specify.  If you do not select the <i>fixed</i> option, the monitoring process will treat this as "flexible" downtime.  Flexible downtime starts when a service enters a non-OK state (sometime between the start and end times you specified) and lasts as long as the duration of time you enter.  The duration fields do not apply for fixed dowtime. Note that scheduling downtime for services does not automatically schedule downtime for the hosts those services are associated with.  If you want to also schedule downtime for all hosts in the hostgroup, check the \'Schedule downtime for hosts too\' option.',
+			'description': 'This command is used to schedule downtime for all services in a hostgroup.  During the specified downtime, the monitoring process will not send notifications out about the services. When the scheduled downtime expires, the monitoring process will send out notifications for the services as it normally would.  Scheduled downtimes are preserved across program shutdowns and restarts. If you select the \'fixed\' option, the downtime will be in effect between the start and end times you specify.  If you do not select the \'fixed\' option, the monitoring process will treat this as "flexible" downtime.  Flexible downtime starts when a service enters a non-OK state (sometime between the start and end times you specified) and lasts as long as the duration of time you enter.  The duration fields do not apply for fixed dowtime. Note that scheduling downtime for services does not automatically schedule downtime for the hosts those services are associated with.',
 			'brief': 'You are trying to schedule downtime for all services in a hostgroup',
 			'template': 'SCHEDULE_HOSTGROUP_SVC_DOWNTIME;hostgroup_name;start_time;end_time;fixed;trigger_id;duration;author;comment',
 		},
@@ -497,13 +497,13 @@ class nagios_command:
 		},
 		'ENABLE_PASSIVE_HOST_CHECKS': {
 			'nagios_id': 92,
-			'description': 'This command is used to allow the monitoring process to accept passive host check results that it finds in the external command file for a host.',
+			'description': 'This command is used to allow the monitoring process to accept passive host check results for a host.',
 			'brief': 'You are trying to start accepting passive checks for a host',
 			'template': 'ENABLE_PASSIVE_HOST_CHECKS;host_name',
 		},
 		'DISABLE_PASSIVE_HOST_CHECKS': {
 			'nagios_id': 93,
-			'description': 'This command is used to stop the monitoring process from accepting passive host check results that it finds in the external command file for a host.  All passive check results that are found for this host will be ignored.',
+			'description': 'This command is used to stop the monitoring process from accepting passive host check results for a host.  All passive check results that are submitted for this host will be ignored.',
 			'brief': 'You are trying to stop accepting passive checks for a host',
 			'template': 'DISABLE_PASSIVE_HOST_CHECKS;host_name',
 		},
@@ -557,13 +557,13 @@ class nagios_command:
 		},
 		'ENABLE_HOSTGROUP_HOST_CHECKS': {
 			'nagios_id': 103,
-			'description': 'This command is used to enable active checks of all hosts in the specified hostgroup. This <i>does not</i> enable active checks of the services in the hostgroup.',
+			'description': 'This command is used to enable active checks of all hosts in the specified hostgroup. This command does not enable active checks of the services in the hostgroup.',
 			'brief': 'You are trying to enable active checks of all hosts in a hostgroup',
 			'template': 'ENABLE_HOSTGROUP_HOST_CHECKS;hostgroup_name',
 		},
 		'DISABLE_HOSTGROUP_HOST_CHECKS': {
 			'nagios_id': 104,
-			'description': 'This command is used to disable active checks of all hosts in the specified hostgroup. This <i>does not</i> disable  active checks of the services in the hostgroup.',
+			'description': 'This command is used to disable active checks of all hosts in the specified hostgroup. This command does not disable active checks of the services in the hostgroup.',
 			'brief': 'You are trying to  enable active checks of all hosts in a hostgroup',
 			'template': 'DISABLE_HOSTGROUP_HOST_CHECKS;hostgroup_name',
 		},
@@ -593,19 +593,19 @@ class nagios_command:
 		},
 		'ENABLE_SERVICEGROUP_SVC_NOTIFICATIONS': {
 			'nagios_id': 109,
-			'description': 'This command is used to enable notifications for all services in the specified servicegroup.  Notifications will only be sent out for the service state types you defined in your service definitions.  This <i>does not</i> enable notifications for the hosts in this servicegroup unless you check the \'Enable for hosts too\' option.',
+			'description': 'This command is used to enable notifications for all services in the specified servicegroup.  Notifications will only be sent out for the service state types you defined in your service definitions.  This command does not enable notifications for the hosts in this servicegroup.',
 			'brief': 'You are trying to enable notifications for all services in a servicegroup',
 			'template': 'ENABLE_SERVICEGROUP_SVC_NOTIFICATIONS;servicegroup_name',
 		},
 		'DISABLE_SERVICEGROUP_SVC_NOTIFICATIONS': {
 			'nagios_id': 110,
-			'description': 'This command is used to prevent notifications from being sent out for all services in the specified servicegroup.  You will have to re-enable notifications for all services in this servicegroup before any alerts can be sent out in the future.  This <i>does not</i> prevent notifications from being sent out about the hosts in this servicegroup unless you check the \'Disable for hosts too\' option.',
+			'description': 'This command is used to prevent notifications from being sent out for all services in the specified servicegroup.  You will have to re-enable notifications for all services in this servicegroup before any alerts can be sent out in the future.  This command does not prevent notifications from being sent out about the hosts in this servicegroup.',
 			'brief': 'You are trying to disable notifications for all services in a servicegroup',
 			'template': 'DISABLE_SERVICEGROUP_SVC_NOTIFICATIONS;servicegroup_name',
 		},
 		'ENABLE_SERVICEGROUP_HOST_NOTIFICATIONS': {
 			'nagios_id': 111,
-			'description': 'This command is used to enable notifications for all hosts in the specified servicegroup.  Notifications will only be sent out for the host state types you defined in your host definitions.',
+			'description': 'This command is used to enable notifications for all hosts in the specified servicegroup.  Notifications will only be sent out for the host state types specified in the host definitions.',
 			'brief': 'You are trying to enable notifications for all hosts in a servicegroup',
 			'template': 'ENABLE_SERVICEGROUP_HOST_NOTIFICATIONS;servicegroup_name',
 		},
@@ -617,25 +617,25 @@ class nagios_command:
 		},
 		'ENABLE_SERVICEGROUP_SVC_CHECKS': {
 			'nagios_id': 113,
-			'description': 'This command is used to enable active checks of all services in the specified servicegroup.  This <i>does not</i> enable active checks of the hosts in the servicegroup unless you check the \'Enable for hosts too\' option.',
+			'description': 'This command is used to enable active checks of all services in the specified servicegroup.  This command does not enable active checks of the hosts in the servicegroup.',
 			'brief': 'You are trying to enable active checks of all services in a servicegroup',
 			'template': 'ENABLE_SERVICEGROUP_SVC_CHECKS;servicegroup_name',
 		},
 		'DISABLE_SERVICEGROUP_SVC_CHECKS': {
 			'nagios_id': 114,
-			'description': 'This command is used to disable active checks of all services in the specified servicegroup.  This <i>does not</i> disable checks of the hosts in the servicegroup unless you check the \'Disable for hosts too\' option.',
+			'description': 'This command is used to disable active checks of all services in the specified servicegroup.  This command does not disable checks of the hosts in the servicegroup.',
 			'brief': 'You are trying to disable active checks of all services in a servicegroup',
 			'template': 'DISABLE_SERVICEGROUP_SVC_CHECKS;servicegroup_name',
 		},
 		'ENABLE_SERVICEGROUP_HOST_CHECKS': {
 			'nagios_id': 115,
-			'description': 'This command is used to enable active checks of all hosts in the specified servicegroup.  This <i>does not</i> enable active checks of the services in the servicegroup.',
+			'description': 'This command is used to enable active checks of all hosts in the specified servicegroup.  This does not enable active checks of the services in the servicegroup.',
 			'brief': 'You are trying to enable active checks of all services in a servicegroup',
 			'template': 'ENABLE_SERVICEGROUP_HOST_CHECKS;servicegroup_name',
 		},
 		'DISABLE_SERVICEGROUP_HOST_CHECKS': {
 			'nagios_id': 116,
-			'description': 'This command is used to disable active checks of all hosts in the specified servicegroup.  This <i>does not</i> disable checks of the services in the servicegroup.',
+			'description': 'This command is used to disable active checks of all hosts in the specified servicegroup.  This command does not disable checks of the services in the servicegroup.',
 			'brief': 'You are trying to disable active checks of all hosts in a servicegroup',
 			'template': 'DISABLE_SERVICEGROUP_HOST_CHECKS;servicegroup_name',
 		},
@@ -665,13 +665,13 @@ class nagios_command:
 		},
 		'SCHEDULE_SERVICEGROUP_HOST_DOWNTIME': {
 			'nagios_id': 121,
-			'description': 'This command is used to schedule downtime for all hosts in a servicegroup.  During the specified downtime, the monitoring process will not send notifications out about the hosts. When the scheduled downtime expires, the monitoring process will send out notifications for the hosts as it normally would.  Scheduled downtimes are preserved across program shutdowns and restarts.  Both the start and end times should be specified in the following format:  <b>mm/dd/yyyy hh:mm:ss</b>. If you select the <i>fixed</i> option, the downtime will be in effect between the start and end times you specify.  If you do not select the <i>fixed</i> option, the monitoring process will treat this as "flexible" downtime.  Flexible downtime starts when a host goes down or becomes unreachable (sometime between the start and end times you specified) and lasts as long as the duration of time you enter.  The duration fields do not apply for fixed dowtime.',
+			'description': 'This command is used to schedule downtime for all hosts in a servicegroup.  During the specified downtime, the monitoring process will not send notifications out about the hosts. When the scheduled downtime expires, the monitoring process will send out notifications for the hosts as it normally would.  Scheduled downtimes are preserved across program shutdowns and restarts. If you select the \'fixed\' option, the downtime will be in effect between the start and end times you specify.  If you do not select the \'fixed\' option, the monitoring process will treat this as "flexible" downtime.  Flexible downtime starts when a host goes down or becomes unreachable (sometime between the start and end times you specified) and lasts as long as the duration of time you enter.  The \'duration\' parameter does not apply for fixed downtime.',
 			'brief': 'You are trying to schedule downtime for all hosts in a servicegroup',
 			'template': 'SCHEDULE_SERVICEGROUP_HOST_DOWNTIME;servicegroup_name;start_time;end_time;fixed;trigger_id;duration;author;comment',
 		},
 		'SCHEDULE_SERVICEGROUP_SVC_DOWNTIME': {
 			'nagios_id': 122,
-			'description': 'This command is used to schedule downtime for all services in a servicegroup.  During the specified downtime, the monitoring process will not send notifications out about the services. When the scheduled downtime expires, the monitoring process will send out notifications for the services as it normally would.  Scheduled downtimes are preserved across program shutdowns and restarts.  Both the start and end times should be specified in the following format:  <b>mm/dd/yyyy hh:mm:ss</b>. If you select the <i>fixed</i> option, the downtime will be in effect between the start and end times you specify.  If you do not select the <i>fixed</i> option, the monitoring process will treat this as "flexible" downtime.  Flexible downtime starts when a service enters a non-OK state (sometime between the start and end times you specified) and lasts as long as the duration of time you enter.  The duration fields do not apply for fixed dowtime. Note that scheduling downtime for services does not automatically schedule downtime for the hosts those services are associated with.  If you want to also schedule downtime for all hosts in the servicegroup, check the \'Schedule downtime for hosts too\' option.',
+			'description': 'This command is used to schedule downtime for all services in a servicegroup.  During the specified downtime, the monitoring process will not send notifications out about the services. When the scheduled downtime expires, the monitoring process will send out notifications for the services as it normally would.  Scheduled downtimes are preserved across program shutdowns and restarts. If you select the \'fixed\' option, the downtime will be in effect between the start and end times you specify.  If you do not select the \'fixed\' option, the monitoring process will treat this as "flexible" downtime.  Flexible downtime starts when a service enters a non-OK state (sometime between the start and end times you specified) and lasts as long as the duration of time you enter.  The \'duration\' parameter does not apply for fixed dowtime. Note that scheduling downtime for services does not automatically schedule downtime for the hosts those services are associated with.',
 			'brief': 'You are trying to schedule downtime for all services in a servicegroup',
 			'template': 'SCHEDULE_SERVICEGROUP_SVC_DOWNTIME;servicegroup_name;start_time;end_time;fixed;trigger_id;duration;author;comment',
 		},
@@ -893,13 +893,13 @@ class nagios_command:
 		},
 		'SEND_CUSTOM_HOST_NOTIFICATION': {
 			'nagios_id': 159,
-			'description': 'This command is used to send a custom notification about the specified host.  Useful in emergencies when you need to notify admins of an issue regarding a monitored system or service. Custom notifications normally follow the regular notification logic in the monitoring process.  Selecting the <i>Forced</i> option will force the notification to be sent out, regardless of the time restrictions, whether or not notifications are enabled, etc.  Selecting the <i>Broadcast</i> option causes the notification to be sent out to all normal (non-escalated) and escalated contacts.  These options allow you to override the normal notification logic if you need to get an important message out.',
+			'description': 'This command is used to send a custom notification about the specified host.  Useful in emergencies when you need to notify admins of an issue regarding a monitored system or service. Custom notifications normally follow the regular notification logic in the monitoring process. The \'options\' field is a logical OR of the following integer values that affect aspects of the notification that are sent out: 0 = No option (default), 1 = Broadcast (send notification to all normal and all escalated contacts for the host), 2 = Forced (notification is sent out regardless of current time, whether or not notifications are enabled, etc.), 4 = Increment current notification # for the host (this is not done by default for custom notifications). The comment field can be used with the $NOTIFICATIONCOMMENT$ macro in notification commands.',
 			'brief': 'You are trying to send a custom host notification',
 			'template': 'SEND_CUSTOM_HOST_NOTIFICATION;host_name;options;author;comment',
 		},
 		'SEND_CUSTOM_SVC_NOTIFICATION': {
 			'nagios_id': 160,
-			'description': 'This command is used to send a custom notification about the specified service.  Useful in emergencies when you need to notify admins of an issue regarding a monitored system or service. Custom notifications normally follow the regular notification logic in the monitoring process.  Selecting the <i>Forced</i> option will force the notification to be sent out, regardless of the time restrictions, whether or not notifications are enabled, etc.  Selecting the <i>Broadcast</i> option causes the notification to be sent out to all normal (non-escalated) and escalated contacts.  These options allow you to override the normal notification logic if you need to get an important message out.',
+			'description': 'This command is used to send a custom notification about the specified service.  Useful in emergencies when you need to notify admins of an issue regarding a monitored system or service. Custom notifications normally follow the regular notification logic in the monitoring process.  The \'options\' field is a logical OR of the following integer values that affect aspects of the notification that are sent out: 0 = No option (default), 1 = Broadcast (send notification to all normal and all escalated contacts for the service), 2 = Forced (notification is sent out regardless of current time, whether or not notifications are enabled, etc.), 4 = Increment current notification # for the service(this is not done by default for custom notifications). The comment field can be used with the $NOTIFICATIONCOMMENT$ macro in notification commands',
 			'brief': 'You are trying to send a custom service notification',
 			'template': 'SEND_CUSTOM_SVC_NOTIFICATION;service;options;author;comment',
 		},
