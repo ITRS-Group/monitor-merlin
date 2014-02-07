@@ -538,14 +538,14 @@ void node_log_event_count(merlin_node *node, int force)
 	b_out = s->bytes.sent + s->bytes.logged + s->bytes.dropped;
 	e_in = s->events.read;
 	e_out = s->events.sent + s->events.logged + s->events.dropped;
-	linfo("Handled %llu events from/to %s in %s. in: %llu, out: %llu",
+	ldebug("Handled %llu events from/to %s in %s. in: %llu, out: %llu",
 		  e_in + e_out, node->name, dura, e_in, e_out);
-	linfo("Handled %s from/to %s in %s. in: %s, out: %s",
+	ldebug("Handled %s from/to %s in %s. in: %s, out: %s",
 		  human_bytes(b_in + b_out), node->name, dura,
 		  human_bytes(b_in), human_bytes(b_out));
 	if (!e_out)
 		return;
-	linfo("%s events/bytes: read %llu/%s, sent %llu/%s, dropped %llu/%s, logged %llu/%s, logsize %u/%s",
+	ldebug("%s events/bytes: read %llu/%s, sent %llu/%s, dropped %llu/%s, logged %llu/%s, logsize %u/%s",
 	      node->name, e_in, human_bytes(b_in),
 		  s->events.sent, human_bytes(s->bytes.sent),
 		  s->events.dropped, human_bytes(s->bytes.dropped),

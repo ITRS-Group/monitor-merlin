@@ -130,7 +130,7 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 	}
 
 	ctrl = ctrl_name(pkt->hdr.code);
-	linfo("Received control packet code %d (%s) from %s",
+	ldebug("Received control packet code %d (%s) from %s",
 		  pkt->hdr.code, ctrl, node ? node->name : "local Merlin daemon");
 
 	/* protect against bogus headers */
