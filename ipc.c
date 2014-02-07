@@ -17,8 +17,8 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 
 	i = &n->info;
 	pg = n->pgroup;
-	aso.hosts = n->assigned.current.hosts + n->assigned.extra.hosts;
-	aso.services = n->assigned.current.services + n->assigned.extra.services;
+	aso.hosts = n->assigned.current.hosts + n->assigned.extra.hosts + n->assigned.passive.hosts;
+	aso.services = n->assigned.current.services + n->assigned.extra.services + n->assigned.passive.services;
 
 	nsock_printf(sd, "instance_id=%d;name=%s;source_name=%s;socket=%d;type=%s;"
 				 "state=%s;peer_id=%u;flags=%d;"

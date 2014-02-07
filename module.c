@@ -1,4 +1,5 @@
 #include <nagios/lib/iobroker.h>
+#include <nagios/lib/bitmap.h>
 #include "module.h"
 #include <nagios/nagios.h>
 #include <nagios/objects.h>
@@ -11,6 +12,8 @@
 
 merlin_node **host_check_node = NULL;
 merlin_node **service_check_node = NULL;
+static bitmap *passive_host_checks = NULL;
+static bitmap *passive_service_checks = NULL;
 static merlin_node untracked_checks_node = {
 	.name = "untracked checks",
 	.type = MODE_INTERNAL,
@@ -60,38 +63,54 @@ static uint32_t event_mask;
 
 void set_host_check_node(merlin_node *node, host *h, int flags)
 {
-	merlin_node *old, *responsible;
+	merlin_node *old = NULL, *responsible = NULL;
 
 	old = host_check_node[h->id];
-	if(old == node)
-		return;
 
 	if (!old) {
 		old = &untracked_checks_node;
 	}
 
-	if (!flags && node != (responsible = pgroup_host_node(h->id))) {
-		lerr("Error: Migrating hostcheck '%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u; sa-p-id=%u). Responsible node is %s %s (p-id=%u; sa-p-id=%u)",
-		   h->name, h->id,
-		   node_type(old), old->name, old->peer_id,
-		   node_type(node), node->name, node->peer_id,
-		   node->info.peer_id,
-		   node_type(responsible), responsible->name, responsible->peer_id,
-		   responsible->info.peer_id);
-	}
+	responsible = pgroup_host_node(h->id);
 
+	if (!flags) { // means active
+		if (node != responsible) {
+			lerr("Error: Migrating hostcheck '%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u; sa-p-id=%u). Responsible node is %s %s (p-id=%u; sa-p-id=%u)",
+			   h->name, h->id,
+			   node_type(old), old->name, old->peer_id,
+			   node_type(node), node->name, node->peer_id,
+			   node->info.peer_id,
+			   node_type(responsible), responsible->name, responsible->peer_id,
+			   responsible->info.peer_id);
+		}
+		// when this was passive, we borrowed an assignment from the responsible
+		// to the receiver. give it back.
+		if (bitmap_isset(passive_host_checks, h->id)) {
+			old->assigned.passive.hosts--;
+			responsible->assigned.passive.hosts++;
+		}
+		bitmap_unset(passive_host_checks, h->id);
+	} else {
+		// on first passive, assign one passive from responsible to active
+		// after that, move the assigned passive from last active to this active
+		if (!bitmap_isset(passive_host_checks, h->id))
+			responsible->assigned.passive.hosts--;
+		else
+			old->assigned.passive.hosts--;
+		node->assigned.passive.hosts++;
+		bitmap_set(passive_host_checks, h->id);
+	}
 	old->host_checks--;
 	node->host_checks++;
+
 	host_check_node[h->id] = node;
 }
 
 void set_service_check_node(merlin_node *node, service *s, int flags)
 {
-	merlin_node *old, *responsible;
+	merlin_node *old = NULL, *responsible = NULL;
 
 	old = service_check_node[s->id];
-	if(old == node)
-		return;
 
 	if (!old) {
 		old = &untracked_checks_node;
@@ -99,17 +118,27 @@ void set_service_check_node(merlin_node *node, service *s, int flags)
 
 	responsible = pgroup_service_node(s->id);
 
-	/*
-	 * we only warn about active checks, since we can't control where
-	 * passive checks come in
-	 */
-	if (!flags && node != (responsible = pgroup_service_node(s->id))) {
-		lerr("Error: Migrating servicecheck '%s;%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u). Should go to %s %s (p-id=%u) (pg->active_nodes=%u)",
-		     s->host_name, s->description, s->id,
-		     node_type(old), old->name, old->peer_id,
-		     node_type(node), node->name, node->peer_id,
-		     node_type(responsible), responsible->name, responsible->peer_id,
-		     responsible->pgroup->active_nodes);
+	if (!flags) {
+		if (node != responsible) {
+			lerr("Error: Migrating servicecheck '%s;%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u). Should go to %s %s (p-id=%u) (pg->active_nodes=%u)",
+				 s->host_name, s->description, s->id,
+				 node_type(old), old->name, old->peer_id,
+				 node_type(node), node->name, node->peer_id,
+				 node_type(responsible), responsible->name, responsible->peer_id,
+				 responsible->pgroup->active_nodes);
+		}
+		if (bitmap_isset(passive_service_checks, s->id)) {
+			old->assigned.passive.services--;
+			responsible->assigned.passive.services++;
+		}
+		bitmap_unset(passive_service_checks, s->id);
+	} else {
+		if (!bitmap_isset(passive_service_checks, s->id))
+			responsible->assigned.passive.services--;
+		else
+			old->assigned.passive.services--;
+		node->assigned.passive.services++;
+		bitmap_set(passive_service_checks, s->id);
 	}
 
 	old->service_checks--;
@@ -999,6 +1028,9 @@ static int post_config_init(int cb, void *ds)
 	/* required for the 'nodeinfo' query through the query handler */
 	host_check_node = calloc(num_objects.hosts, sizeof(merlin_node *));
 	service_check_node = calloc(num_objects.services, sizeof(merlin_node *));
+
+	passive_host_checks = bitmap_create(num_objects.hosts);
+	passive_service_checks = bitmap_create(num_objects.services);
 
 	if (!db_track_current) {
 		char *cache_file = NULL;
