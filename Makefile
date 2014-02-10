@@ -152,7 +152,7 @@ rename: $(RENAME_OBJS)
 	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@
 
 #test: test-binlog test-slist test__lparse
-test: test-slist test__lparse test-hooks test-stringutils test-showlog
+test: test-slist test__lparse test-hooks test-stringutils test-showlog test-dbwrap
 
 test-slist: sltest
 	@./sltest
@@ -216,8 +216,6 @@ test-dbwrap.o: test-dbwrap.c
 test-dbwrap: test-dbwrap.o db_wrap.o $(SHARED_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(DBTEST_LDFLAGS)
 db_wrap.o: db_wrap.h db_wrap.c
-APPS += test-dbwrap
-all: test-dbwrap
 
 version.c: gen-version.sh
 	sh gen-version.sh
