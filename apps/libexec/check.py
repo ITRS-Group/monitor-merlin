@@ -70,25 +70,6 @@ def module_init(args):
 	lsc = livestatus.SingleSiteConnection('unix:' + ls_path)
 	return rem_args
 
-
-# When casting to int *everywhere* gets tedious...
-class _dict2obj:
-	def __init__(self, d):
-		for k, v in d.items():
-			try:
-				i = int(v)
-				setattr(self, k, i)
-			except:
-				try:
-					x = float(v)
-					setattr(self, k, x)
-				except:
-					setattr(self, k, v)
-					pass
-
-	def get(self, what, dflt=None):
-		return getattr(self, what, dflt)
-
 def cmd_distribution(args):
 	"""[--no-perfdata]
 	Checks to make sure work distribution works ok. Note that it is
@@ -108,16 +89,23 @@ def cmd_distribution(args):
 	}
 	hchecks = 0; schecks = 0; hchecks_exec = 0; schecks_exec = 0
 	nodes = []
-	for i in info:
-		n = _dict2obj(i)
+	for n in info:
+		for k, v in n.items():
+			try:
+				n[k] = int(v)
+			except ValueError:
+				try:
+					n[k] = float(v)
+				except ValueError:
+					pass
 		nodes.append(n)
-		hchecks += n.assigned_hosts
-		hchecks_exec += n.host_checks_executed
-		schecks += n.assigned_services
-		schecks_exec += n.service_checks_executed
+		hchecks += n['assigned_hosts']
+		hchecks_exec += n['host_checks_executed']
+		schecks += n['assigned_services']
+		schecks_exec += n['service_checks_executed']
 		for ctype in checktot.keys():
-			checktot[ctype]['assigned'] = getattr(n, 'assigned_%ss' % ctype)
-			checktot[ctype]['executed'] = getattr(n, '%s_checks_executed' % ctype)
+			checktot[ctype]['assigned'] = n.get('assigned_%ss' % ctype)
+			checktot[ctype]['executed'] = n.get('%s_checks_executed' % ctype)
 
 	state_str = ""
 	should = {}
@@ -135,15 +123,15 @@ def cmd_distribution(args):
 
 		def verify_executed_checks(self, info, exp):
 			for ctype, num in exp.items():
-				actual = getattr(n, ctype + '_checks_executed')
+				actual = info.get(ctype + '_checks_executed')
 				ok_str = "%d:%d" % (num[0], num[1])
 				self.pdata += (" '%s_%ss'=%d;%s;%s;0;%d" %
-					(info.name, ctype, actual, ok_str, ok_str, checktot[ctype]['assigned']))
+					(info['name'], ctype, actual, ok_str, ok_str, checktot[ctype]['assigned']))
 				if self.is_bad(actual, num):
 					self.state = nplug.STATE_CRITICAL
-					self.bad[info.name] = {
-						'host': info.host_checks_executed,
-						'service': info.service_checks_executed
+					self.bad[info['name']] = {
+						'host': info['host_checks_executed'],
+						'service': info['service_checks_executed']
 					}
 
 	o = check_objs()
@@ -163,7 +151,7 @@ def cmd_distribution(args):
 		sc_delta = 0
 
 	for n in nodes:
-		should[n.name] = {
+		should[n['name']] = {
 			'host': (
 				int(n.get('assigned_hosts')) - hc_delta,
 				int(n.get('assigned_hosts')) + hc_delta
@@ -173,7 +161,7 @@ def cmd_distribution(args):
 				int(n.get('assigned_services')) + sc_delta
 			)
 		}
-		o.verify_executed_checks(n, should[n.name])
+		o.verify_executed_checks(n, should[n['name']])
 
 	for name, b in o.bad.items():
 		if not len(b):
