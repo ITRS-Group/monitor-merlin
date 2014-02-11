@@ -135,20 +135,8 @@ def cmd_distribution(args):
 					}
 
 	o = check_objs()
-	hc_delta = hchecks - hchecks_exec
-	sc_delta = schecks - schecks_exec
-
-	# if either delta is wrong, we just set it to 0.
-	# That will cause the check to go CRITICAL, which
-	# is just fine.
-	if hc_delta < 0:
-		print("hchecks=%d; hchecks_exec=%d; delta=%d" %
-			(hchecks, hchecks_exec, hcheck_delta))
-		hc_delta = 0
-	if sc_delta < 0:
-		print("schecks=%d; schecks_exec=%d; delta=%d" %
-			(schecks, schecks_exec, scheck_delta))
-		sc_delta = 0
+	hc_delta = max(0, hchecks - hchecks_exec)
+	sc_delta = max(0, schecks - schecks_exec)
 
 	for n in nodes:
 		should[n['name']] = {
