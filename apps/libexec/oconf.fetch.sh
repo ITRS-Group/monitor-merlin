@@ -6,11 +6,14 @@ usage()
 <master node>
 Fetch split configuration from a master node.
 
-NOTE: A configuration variable called "oconf_fetch_name" is
-required in the poller's merlin.cfg for the specified master
-node. The variable should be set to the name of this node,
+NOTE: A configuration variable called "fetch_name" is
+required in the object_config section of merlin.cfg on the
+poller. The variable should be set to the name of the poller,
 as seen by the master.
 
+The variable can also be called "oconf_fetch_name" and must
+then reside inside the "daemon" section of merlin.cfg on the
+poller.
 END_OF_HELP
 exit
 }
