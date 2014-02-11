@@ -1,0 +1,8 @@
+<enable>
+Configure the Monitor system to use ramdisk (tmpfs) for temporary
+performance data files.
+
+NOTE: This operation is potentially dangerous in case the system
+has a limited amount of RAM. Due to this the changes will not take
+effect until the command is run with the "enable" argument.
+
