@@ -120,13 +120,8 @@ void log_msg(int severity, const char *fmt, ...)
 	if (msg[len] == '\n')
 		msg[len] = 0;
 
-	/* always print log messages to stdout when we're debugging */
-	if (isatty(fileno(stdout))) {
-		printf("[%lu] %d: %s\n", time(NULL), severity, msg);
-	}
-
 	/* only print to log if it's something else than 'stdout' */
-	if (merlin_log_fp && merlin_log_fp != stdout) {
+	if (merlin_log_fp) {
 		fprintf(merlin_log_fp, "[%lu] %d: %s\n", time(NULL), severity, msg);
 		/*
 		 * systems where logging matters (a lot) can specify
