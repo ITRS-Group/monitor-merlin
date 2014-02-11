@@ -374,7 +374,7 @@ def cmd_status(args=False):
 			if info.get('host_checks_executed', 0) == host_checks:
 				print "Error: There are other nodes, but this node runs all host checks."
 				state = nplug.worst_state(state, nplug.CRITICAL)
-			if info.get('service_checks_executed', 0) == host_checks:
+			if info.get('service_checks_executed', 0) == service_checks:
 				print "Error: There are other nodes, but this node runs all service checks."
 				state = nplug.worst_state(state, nplug.CRITICAL)
 	if state == nplug.OK:
