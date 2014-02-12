@@ -776,7 +776,7 @@ static inline void set_next_dt_purge(time_t base, time_t add)
 		next_dt_purge = ltime + 1;
 }
 
-static inline void add_downtime(char *host, char *service, int id)
+static inline void mrln_add_downtime(char *host, char *service, int id)
 {
 	struct downtime_entry *dt, *cmd, *old;
 	dkhash_table *the_table;
@@ -1035,7 +1035,7 @@ static int insert_downtime(struct string_code *sc)
 			downtime_id++;
 
 		id = downtime_id;
-		add_downtime(host, service, id);
+		mrln_add_downtime(host, service, id);
 		last_downtime_start = ltime;
 		break;
 
