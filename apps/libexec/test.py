@@ -739,11 +739,11 @@ class fake_mesh:
 
 		return ret
 
-	def _test_parents(self, sub):
+	def _test_parents(self, sub, predicate):
 		"""test that parent notifications work as intended"""
 		for inst in self.instances:
-			baseline = not inst.name.startswith('pg1')
-			sub.test(baseline, os.path.exists(inst.fpath('hnotify.log')), "%s should send a host notification" % (inst.name))
+			baseline = predicate(inst)
+			sub.test(baseline, os.path.exists(inst.fpath('hnotify.log')), "%s should %ssend a host notification" % (inst.name, baseline == False and "not " or ""))
 		return sub.get_status() == 0
 
 	def test_parents(self):
@@ -758,6 +758,7 @@ class fake_mesh:
 		master = self.masters.nodes[0]
 		vlist = {'state': 'CRITICAL', 'output': 'Down for parent tests'}
 		now = time.time()
+		self._test_parents(self.tap.sub_init('prep parents'), lambda x: x.name == 'master-01') # So, apparently, master-01 has already notified? Why?
 		for i in xrange(1, 4):
 			fname = "%s/tier%d-host-ok" % (self.basepath, i)
 			fd = os.open(fname, os.O_WRONLY | os.O_TRUNC | os.O_CREAT, 0644)
@@ -769,7 +770,7 @@ class fake_mesh:
 
 		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('START_EXECUTING_SVC_CHECKS')
-		status = self.ptest('parents', self._test_parents, 90)
+		status = self.ptest('parents', self._test_parents, 90, predicate = lambda x: not x.name.startswith('pg1'))
 		master.submit_raw_command('STOP_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('STOP_EXECUTING_SVC_CHECKS')
 		self.intermission('Letting active check disabling spread', 10)
