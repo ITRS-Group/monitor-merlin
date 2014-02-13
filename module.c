@@ -74,7 +74,7 @@ void set_host_check_node(merlin_node *node, host *h, int flags)
 	responsible = pgroup_host_node(h->id);
 
 	if (!flags) { // means active
-		if (node != responsible) {
+		if (node != responsible && node != old) {
 			lerr("Error: Migrating hostcheck '%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u; sa-p-id=%u). Responsible node is %s %s (p-id=%u; sa-p-id=%u)",
 			   h->name, h->id,
 			   node_type(old), old->name, old->peer_id,
@@ -119,7 +119,7 @@ void set_service_check_node(merlin_node *node, service *s, int flags)
 	responsible = pgroup_service_node(s->id);
 
 	if (!flags) {
-		if (node != responsible) {
+		if (node != responsible && node != old) {
 			lerr("Error: Migrating servicecheck '%s;%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u). Should go to %s %s (p-id=%u) (pg->active_nodes=%u)",
 				 s->host_name, s->description, s->id,
 				 node_type(old), old->name, old->peer_id,
