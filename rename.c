@@ -1,3 +1,6 @@
+#ifndef LOGDIR
+# define LOGDIR "/var/log/naemon"
+#endif
 #include "sql.h"
 #include "logutils.h"
 #include "lparse.h"
