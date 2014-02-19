@@ -44,7 +44,6 @@ extern bitmap *poller_handled_services;
 /* junk to keep track of which node last executed which check */
 extern merlin_node **host_check_node;
 extern merlin_node **service_check_node;
-extern merlin_node untracked_check_node;
 extern merlin_node *merlin_sender;
 
 extern dkhash_table *host_hash_table;
