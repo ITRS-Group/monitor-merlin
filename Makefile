@@ -152,7 +152,7 @@ rename: $(RENAME_OBJS)
 	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@
 
 #test: test-binlog test-slist test__lparse
-test: test-slist test__lparse test-hooks test-stringutils test-showlog test-dbwrap test-module
+test: test-slist test__lparse test-hooks test-stringutils test-showlog test-dbwrap
 
 test-slist: sltest
 	@./sltest
@@ -172,9 +172,6 @@ test-stringutils: stringutilstest
 test-showlog: showlogtest
 	@./showlogtest
 
-test-module: moduletest
-	@./moduletest
-
 sltest: sltest.o test_utils.o slist.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
@@ -192,12 +189,6 @@ showlogtest: tests/test-showlog.o
 
 tests/test-showlog.o: tests/test-showlog.c showlog
 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@ -I$(NAGIOS_INCDIR) `pkg-config --cflags check`
-
-moduletest: tests/test-module.o $(filter-out module.o,$(MODULE_OBJS))
-	$(QUIET_LINK)$(CC) $(ALL_CFLAGS) $^ -o $@ $(LIBNAGIOS_LDFLAGS) `pkg-config --libs check`
-
-tests/test-module.o: tests/test-module.c
-	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@ -I$(NAGIOS_INCDIR) `pkg-config --cflags check`
 
 bltest.o: bltest.c binlog.h
 
