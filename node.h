@@ -8,6 +8,7 @@
 #include <nagios/nebcallbacks.h>
 #include "cfgfile.h"
 #include "binlog.h"
+#include "pgroup.h"
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 # define MERLIN_SIGNATURE (uint64_t)0x4d524c4e45565400LL /* "MRLNEVT\0" */
@@ -96,11 +97,6 @@ struct merlin_event {
 } __attribute__((packed));
 typedef struct merlin_event merlin_event;
 
-/* track assigned objects */
-struct merlin_assigned_objects {
-	int32_t hosts, services;
-};
-
 /*
  * New entries in this struct *must* be appended LAST for the change
  * to not break backwards compatibility. When the receiving code
@@ -175,36 +171,6 @@ typedef struct linked_item {
 	void *item;
 	struct linked_item *next_item;
 } linked_item;
-
-struct merlin_node;
-
-struct merlin_peer_group {
-	int id;
-	struct merlin_node **nodes;
-	unsigned int active_nodes;
-	unsigned int total_nodes;
-	unsigned int num_hostgroups;
-	int overlapping;
-	/*
-	 * counts for how hosts and services should be distributed
-	 * Access as assign[node->pg->active_nodes][node->peer_id]
-	 * to find out how many checks a node should run.
-	 * When all pollers in this peer-group are offline, the
-	 * checks will be distributed to the master nodes according
-	 * to the same mapping.
-	 */
-	unsigned int alloc;
-	struct merlin_assigned_objects **assign;
-	struct merlin_assigned_objects **inherit;
-	struct merlin_assigned_objects assigned;
-	char *hostgroups;
-	char **hostgroup_array;
-	bitmap *host_map;
-	bitmap *service_map;
-	uint32_t *host_id_table;
-	uint32_t *service_id_table;
-};
-typedef struct merlin_peer_group merlin_peer_group;
 
 struct node_selection {
 	int id;

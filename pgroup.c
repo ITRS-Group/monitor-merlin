@@ -1,4 +1,5 @@
 #include "module.h"
+#include "pgroup.h"
 #include "node.h"
 
 /* Tables to locate the correct peer-group by object id */
