@@ -229,10 +229,30 @@ static int pgroup_add_node(merlin_peer_group *pg, merlin_node *node)
 	merlin_node **ary;
 
 	ldebug("Adding node '%s' to peer group %d", node->name, pg->id);
+	pg->flags |= (node->flags & PGROUP_NODE_FLAGS);
 	ary = realloc(pg->nodes, (pg->total_nodes + 1) * sizeof(merlin_node *));
 	pg->nodes = ary;
 	pg->nodes[pg->total_nodes++] = node;
 	node->pgroup = pg;
+
+	return 0;
+}
+
+/*
+ * returns 0 on OK, > 0 on warnings and < 0 on errors
+ */
+static int pgroup_validate(merlin_peer_group *pg)
+{
+	unsigned int i;
+
+	for (i = 0; i < pg->total_nodes; i++) {
+		merlin_node *node = pg->nodes[i];
+		if ((node->flags & PGROUP_NODE_FLAGS) != pg->flags) {
+			lwarn("Warning: %s node %s doesn't share group flags with the rest of the nodes in its group",
+			      node_type(node), node->name);
+			return 1;
+		}
+	}
 
 	return 0;
 }
@@ -612,6 +632,11 @@ int pgroup_init(void)
 		pgroup_add_node(pg, node);
 	}
 
+	for (i = 0; i < num_peer_groups; i++) {
+		if (pgroup_validate(peer_group[i]) < 0) {
+			return -1;
+		}
+	}
 	return pgroup_map_objects();
 }
 

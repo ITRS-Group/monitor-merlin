@@ -3,6 +3,9 @@
 
 struct merlin_node;
 
+/* nodeflags that must be shared between all nodes in a peer group */
+#define PGROUP_NODE_FLAGS (MERLIN_NODE_TAKEOVER)
+
 /* track assigned objects */
 struct merlin_assigned_objects {
 	int32_t hosts, services;
@@ -15,6 +18,7 @@ struct merlin_peer_group {
 	unsigned int total_nodes;
 	unsigned int num_hostgroups;
 	int overlapping;
+	int flags; /* flags shared between nodes */
 	/*
 	 * counts for how hosts and services should be distributed
 	 * Access as assign[node->pg->active_nodes][node->peer_id]
