@@ -809,14 +809,6 @@ class fake_mesh:
 		master = self.masters.nodes[0]
 		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('START_EXECUTING_SVC_CHECKS')
-		# If you remove this, the parenting tests below (or above, depending on
-		# if you're reading in code order or test order) will fail to notify,
-		# because not all active checks will have been run after the passive
-		# checks, because we actually keep track of the passive checks so the
-		# math adds up sooner than the author of this test thought.
-		# If you're playing "test suite antipattern bingo", stand up and shout
-		# "bingo", because you just got to check *all* the boxes.
-		self.intermission('"..but fuck me, right?" sleep', 30)
 		status = self.ptest('active checks', self._test_active_checks, 60)
 		master.submit_raw_command('STOP_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('STOP_EXECUTING_SVC_CHECKS')
