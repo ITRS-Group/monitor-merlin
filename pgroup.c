@@ -548,47 +548,46 @@ merlin_peer_group *pgroup_by_service_id(unsigned int id)
 	return service_id2pg[id];
 }
 
-merlin_node *pgroup_host_node(unsigned int id)
+static merlin_node *pgroup_node(int type, unsigned int id)
 {
 	merlin_peer_group *pg = ipc.pgroup;
 	unsigned int real_id = id;
+	uint32_t *id_table = NULL;
 
-	if (num_pollers && host_id2pg[id]) {
+	if (type == HOST_CHECK && host_id2pg && host_id2pg[id]) {
 		pg = host_id2pg[id];
-		ldebug("pg: Selected peer-group %d for host check id %u", pg->id, id);
-		if (!pg->active_nodes) {
-			ldebug("pg:   no active nodes. Falling back to ipc");
-			/* what about "takeover = no" ? */
-			pg = ipc.pgroup;
-		} else {
-			real_id = pg->host_id_table[id];
+		id_table = pg ? pg->host_id_table : NULL;
+	} else if (type == SERVICE_CHECK && service_id2pg && service_id2pg[id]) {
+		pg = service_id2pg[id];
+		id_table = pg ? pg->service_id_table : NULL;
+	}
+
+	if (num_pollers && id_table) {
+		ldebug("pg: Selected peer-group %d for check id %u", pg->id, id);
+		if (pg->active_nodes) {
+			real_id = id_table[id];
 			ldebug("pg:   real_id=%u", real_id);
+		} else {
+			if (!(pg->flags & MERLIN_NODE_TAKEOVER)) {
+				ldebug("pg:   no active nodes, and takeover is forbidden. Huh!");
+				return NULL;
+			}
+			ldebug("pg:   no active nodes. Falling back to ipc");
+			pg = ipc.pgroup;
 		}
 	}
 
 	return pg->nodes[assigned_peer(real_id, pg->active_nodes)];
 }
 
+merlin_node *pgroup_host_node(unsigned int id)
+{
+	return pgroup_node(HOST_CHECK, id);
+}
+
 merlin_node *pgroup_service_node(unsigned int id)
 {
-	merlin_peer_group *pg = ipc.pgroup;
-	unsigned int real_id = id;
-
-	if (num_pollers && service_id2pg[id]) {
-		pg = service_id2pg[id];
-		ldebug("pg: Selected peer-group %d for service check id %u", pg->id, id);
-		if (!pg->active_nodes) {
-			ldebug("pg:   no active nodes. Falling back to ipc");
-			/* what about "takeover = no" ? */
-			pg = ipc.pgroup;
-		} else {
-			real_id = pg->service_id_table[id];
-			ldebug("pg:   real_id=%u", real_id);
-		}
-	}
-
-	ldebug("pg: pg=%d; id=%u; real_id=%u", pg->id, id, real_id);
-	return pg->nodes[assigned_peer(real_id, pg->active_nodes)];
+	return pgroup_node(SERVICE_CHECK, id);
 }
 
 int pgroup_init(void)

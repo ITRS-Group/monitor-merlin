@@ -72,6 +72,14 @@ void set_host_check_node(merlin_node *node, host *h, int flags)
 	}
 
 	responsible = pgroup_host_node(h->id);
+	if (!responsible) {
+		/*
+		 * This can only happen when we receive a passive checkresult
+		 * that should've been handled actively by a poller that's
+		 * currently offline and configured with "takeover = no".
+		 */
+		responsible = &untracked_checks_node;
+	}
 
 	if (!flags) { // means active
 		if (node != responsible && node != old) {
@@ -117,6 +125,14 @@ void set_service_check_node(merlin_node *node, service *s, int flags)
 	}
 
 	responsible = pgroup_service_node(s->id);
+	if (!responsible) {
+		/*
+		 * This can only happen when we receive a passive checkresult
+		 * that should've been handled actively by a poller that's
+		 * currently offline and configured with "takeover = no".
+		 */
+		responsible = &untracked_checks_node;
+	}
 
 	if (!flags) {
 		if (node != responsible && node != old) {
