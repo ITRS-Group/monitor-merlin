@@ -38,6 +38,10 @@ static void pgroup_reassign_checks(merlin_peer_group *pgrp)
 			   pg->id, active);
 
 		if (!active) {
+			if (!(pg->flags & MERLIN_NODE_TAKEOVER)) {
+				/* not supposed to reassign checks to "ipc" here */
+				continue;
+			}
 			for (x = 0; x < ipc.pgroup->active_nodes; x++) {
 				merlin_node *node = ipc.pgroup->nodes[x];
 				ldebug("Dealing with node %s", node->name);
@@ -177,6 +181,10 @@ static merlin_peer_group *pgroup_create(char *hostgroups)
 	return pg;
 }
 
+/*
+ * cshgs = comma-separated hostgroup string
+ * mnemonic names can go fuck themselves
+ */
 static merlin_peer_group *pgroup_get_by_cshgs(char *hgs)
 {
 	unsigned int i;
