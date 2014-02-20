@@ -222,6 +222,7 @@ struct merlin_node {
 		struct merlin_assigned_objects passive; /* passive check modifiers */
 		struct merlin_assigned_objects extra; /* taken over from a poller */
 		struct merlin_assigned_objects current; /* base assigned right now */
+		struct merlin_assigned_objects expired; /* expired checks */
 	} assigned;
 	merlin_nodeinfo info;   /* node info */
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */

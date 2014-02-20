@@ -1,4 +1,5 @@
 #include "module.h"
+#include "dlist.h"
 #include <nagios/nagios.h>
 
 static int dump_cbstats(merlin_node *n, int sd)
@@ -51,6 +52,25 @@ static int help(int sd, char *buf, unsigned int len)
 	return 0;
 }
 
+static int dump_expired(int sd)
+{
+	struct dlist_entry *it;
+
+	dlist_foreach(expired_events, it) {
+		struct merlin_expired_check *mec = it->data;
+		if (mec->type == SERVICE_CHECK) {
+			struct service *s = mec->object;
+			nsock_printf(sd, "host_name=%s;service_description=%s;",
+				s->host_name, s->description);
+		} else {
+			struct host *h = mec->object;
+			nsock_printf(sd, "host_name=%s;", h->name);
+		}
+		nsock_printf(sd, "added=%lu;responsible=%s\n", mec->added, mec->node->name);
+	}
+	return 0;
+}
+
 /* Our primary query handler */
 int merlin_qh(int sd, char *buf, unsigned int len)
 {
@@ -80,6 +100,10 @@ int merlin_qh(int sd, char *buf, unsigned int len)
 		for(i = 0; i < num_nodes; i++) {
 			dump_cbstats(node_table[i], sd);
 		}
+		return 0;
+	}
+	if (len == strlen("expired") && !memcmp(buf, "expired", len)) {
+		dump_expired(sd);
 		return 0;
 	}
 	if (!strcmp(buf, "notify-stats")) {

@@ -271,6 +271,7 @@ static int hook_service_result(merlin_event *pkt, void *data)
 	switch (ds->type) {
 	case NEBTYPE_SERVICECHECK_ASYNC_PRECHECK:
 		node = pgroup_service_node(s->id);
+		schedule_expiration_event(SERVICE_CHECK, node, s);
 		if (node != &ipc) {
 			/* We're not responsible, so block this check here */
 			return NEBERROR_CALLBACKCANCEL;
@@ -318,6 +319,7 @@ static int hook_host_result(merlin_event *pkt, void *data)
 	case NEBTYPE_HOSTCHECK_ASYNC_PRECHECK:
 	case NEBTYPE_HOSTCHECK_SYNC_PRECHECK:
 		node = pgroup_host_node(h->id);
+		schedule_expiration_event(HOST_CHECK, node, h);
 		if (node != &ipc) {
 			/* We're not responsible, so block this check here */
 			return NEBERROR_CALLBACKCANCEL;

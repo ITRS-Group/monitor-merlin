@@ -32,8 +32,17 @@ struct merlin_notify_stats {
 	unsigned long sent;   /* allowed through */
 };
 
+struct merlin_expired_check {
+	struct merlin_node *node;
+	void *object;
+	time_t added;
+	int type;
+};
+
 /* 9 = "reason_type", 2 = host/service, 2 = last check active/passive */
 extern struct merlin_notify_stats merlin_notify_stats[9][2][2];
+
+extern struct dlist_entry *expired_events;
 
 extern struct host *merlin_recv_host;
 extern struct service *merlin_recv_service;
@@ -59,6 +68,7 @@ extern int __nagios_object_structure_version;
 /** prototypes **/
 #define assigned_peer(id, active_peers) ((id) % (active_peers))
 #define id2peer(id) ((id) % ipc.pgroup->active_nodes)
+extern void schedule_expiration_event(int type, merlin_node *node, void *obj);
 extern int send_paths(void);
 extern int handle_ipc_event(merlin_node *node, merlin_event *pkt);
 extern void file_list_free(struct file_list *list);

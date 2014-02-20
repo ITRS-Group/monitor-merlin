@@ -1,5 +1,8 @@
+#define _GNU_SOURCE 1
+#include <stdarg.h>
 #include <nagios/lib/iobroker.h>
 #include "module.h"
+#include "dlist.h"
 #include <nagios/nagios.h>
 #include <nagios/objects.h>
 #include <nagios/statusdata.h>
@@ -18,6 +21,11 @@ static merlin_node untracked_checks_node = {
 	.service_checks = 0,
 };
 
+static bitmap *host_expiry_map, *service_expiry_map;
+struct dlist_entry *queued_expire_events;
+struct dlist_entry *expired_events;
+static struct dlist_entry **expired_hosts;
+static struct dlist_entry **expired_services;
 extern iobroker_set *nagios_iobs;
 
 struct host *merlin_recv_host;
@@ -133,6 +141,153 @@ void set_service_check_node(merlin_node *node, service *s, int flags)
 	old->service_checks--;
 	node->service_checks++;
 	service_check_node[s->id] = node;
+}
+
+static int expire_event(struct merlin_expired_check *evt)
+{
+	time_t last_check = 0;
+	service *s;
+	host *h = NULL;
+	struct merlin_expired_check *last;
+	int32_t *last_counter, *this_counter;
+	struct dlist_entry *le;
+
+	if (evt->type == HOST_CHECK) {
+		h = evt->object;
+		ldebug("EXPIR: Checking event expiry for host '%s'", h->name);
+		bitmap_unset(host_expiry_map, h->id);
+		last_check = h->last_check;
+		le = expired_hosts[h->id];
+		last = le ? le->data : NULL;
+		last_counter = last ? &last->node->assigned.expired.hosts : NULL;
+		this_counter = &evt->node->assigned.expired.hosts;
+	} else {
+		s = evt->object;
+		h = s->host_ptr;
+		ldebug("EXPIR: Checking event expiry for service '%s;%s'",
+		       s->host_name, s->description);
+		bitmap_unset(service_expiry_map, s->id);
+		last_check = s->last_check;
+		le = expired_services[s->id];
+		last = le ? le->data : NULL;
+		last_counter = last ? &last->node->assigned.expired.services : NULL;
+		this_counter = &evt->node->assigned.expired.services;
+	}
+
+	ldebug("EXPIR:  last_check=%lu; last=%p; evt->added=%lu",
+	       last_check, last, evt->added);
+
+	/*
+	 * we received a result from somewhere before we got to this
+	 * event. If it was counted as expired, take some sort of action.
+	 */
+	if (last_check >= evt->added) {
+		ldebug("EXPIR:  Not expired. Recovery?");
+		if (last)
+			(*last_counter)--;
+		if (evt->type == SERVICE_CHECK) {
+			if (last && !expired_services[s->id]) {
+				ldebug("expired_services[%u] not set. voodoo!", s->id);
+			}
+			dlist_destroy_entry(&expired_events, expired_services[s->id], free);
+			expired_services[s->id] = NULL;
+		} else {
+			if (last && !expired_hosts[h->id]) {
+				ldebug("EXPIR: expired_hosts[%u] not set. VoodoO!", h->id);
+			}
+			dlist_destroy_entry(&expired_events, expired_hosts[h->id], free);
+			expired_hosts[h->id] = NULL;
+		}
+		return 0;
+	}
+
+	ldebug("EXPIR:   Event expired. We have an orphan check :'(");
+
+	/* expired again on same node. Don't count twice, so just ignore */
+	if (last && last->node == evt->node) {
+		ldebug("EXPIR:  expired again on same node");
+		free(evt);
+		return 0;
+	}
+
+	/* if we have an old event, keep using that list entry */
+	if (last) {
+		ldebug("EXPIR:  I has an last");
+		(*last_counter)--;
+		(*this_counter)++;
+		le->data = evt;
+		free(last);
+		return 0;
+	}
+
+	/*
+	 * A check has expired. Ouchie. Track it and count it.
+	 */
+	le = dlist_insert(expired_events, evt);
+	if (!le) {
+		lerr("Failed to allocate memory for event expiration.\n");
+		free(evt);
+		return -1;
+	}
+
+	expired_events = le;
+	(*this_counter)++;
+	if (evt->type == SERVICE_CHECK) {
+		expired_services[s->id] = le;
+	} else {
+		expired_hosts[h->id] = le;
+	}
+
+	return 0;
+}
+
+void schedule_expiration_event(int type, merlin_node *node, void *obj)
+{
+	struct merlin_expired_check *evt;
+	time_t when, now;
+	struct host *h;
+	struct service *s;
+
+	if (type == SERVICE_CHECK) {
+		s = (struct service *)obj;
+		when = service_check_timeout;
+		ldebug("EXPIR: Scheduling check expiration event for service '%s;%s'",
+		       s->host_name, s->description);
+		if (bitmap_isset(service_expiry_map, ((struct service *)obj)->id)) {
+			ldebug("EXPIR: Already scheduled for expiry");
+			return;
+		}
+		bitmap_set(service_expiry_map, ((struct service *)obj)->id);
+	} else {
+		h = (struct host *)obj;
+		when = host_check_timeout;
+		ldebug("EXPIR: Scheduling check expiration event for host '%s'", h->name);
+		if (bitmap_isset(host_expiry_map, ((struct host *)obj)->id)) {
+			ldebug("A host scheduled for expiry was about to be scheduled again");
+			return;
+		}
+		bitmap_set(host_expiry_map, ((struct host *)obj)->id);
+	}
+
+	evt = malloc(sizeof(*evt));
+	if (!evt) {
+		lerr("Failed to create expiration event");
+		return;
+	}
+
+	node = node ? node : &untracked_checks_node;
+
+	now = time(NULL);
+	if (type == HOST_CHECK) {
+		evt->added = now - check_window(h);
+	} else {
+		evt->added = now - check_window(s);
+	}
+	evt->object = obj;
+	evt->node = node;
+	evt->type = type;
+	when += now + 60 + (node->data_timeout * 3);
+	schedule_new_event(EVENT_USER_FUNCTION, FALSE, when, FALSE, 0, NULL, FALSE, expire_event, evt, 0);
 }
 
 /*
@@ -875,6 +1030,8 @@ static int read_config(char *cfg_file)
 	 */
 	node_grok_config(config);
 	cfg_destroy_compound(config);
+	/* silly fallback since we need it for expiring events */
+	untracked_checks_node.data_timeout = pulse_interval * 2;
 	return 0;
 }
 
@@ -1019,6 +1176,8 @@ static int post_config_init(int cb, void *ds)
 	/* required for the 'nodeinfo' query through the query handler */
 	host_check_node = calloc(num_objects.hosts, sizeof(merlin_node *));
 	service_check_node = calloc(num_objects.services, sizeof(merlin_node *));
+	host_expiry_map = bitmap_create(num_objects.hosts);
+	service_expiry_map = bitmap_create(num_objects.services);
 
 	if (!db_track_current) {
 		char *cache_file = NULL;
@@ -1055,6 +1214,9 @@ static int post_config_init(int cb, void *ds)
 		return -1;
 	setup_host_hash_tables();
 	pgroup_assign_peer_ids(ipc.pgroup);
+
+	expired_hosts = calloc(num_objects.hosts, sizeof(void *));
+	expired_services = calloc(num_objects.services, sizeof(void *));
 
 	if((result = qh_register_handler("merlin", "Merlin information", 0, merlin_qh)) < 0)
 		lerr("Failed to register query handler: %s", strerror(-result));

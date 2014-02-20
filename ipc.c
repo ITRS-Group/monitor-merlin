@@ -41,6 +41,7 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 "host_checks_executed=%u;service_checks_executed=%u;"
 				 "monitored_object_state_size=%u;connect_time=%lu;"
 				 "assigned_hosts=%u;assigned_services=%u;"
+				 "expired_hosts=%u;expired_services=%u;"
 				 "pgroup_active_nodes=%u;pgroup_total_nodes=%u;"
 				 "pgroup_hosts=%u;pgroup_services=%u;"
 				 "pgroup_id=%d;pgroup_hostgroups=%s"
@@ -67,6 +68,7 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 n->host_checks, n->service_checks,
 				 i->monitored_object_state_size, n->connect_time,
 				 aso.hosts, aso.services,
+				 n->assigned.expired.hosts, n->assigned.expired.services,
 				 n->pgroup ? n->pgroup->active_nodes : 0,
 				 n->pgroup ? n->pgroup->total_nodes : 0,
 				 pg ? pg->assigned.hosts : 0, pg ? pg->assigned.services : 0,
