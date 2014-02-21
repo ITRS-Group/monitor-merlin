@@ -79,14 +79,6 @@ void set_host_check_node(merlin_node *node, host *h, int flags)
 	}
 
 	responsible = pgroup_host_node(h->id);
-	if (!responsible) {
-		/*
-		 * This can only happen when we receive a passive checkresult
-		 * that should've been handled actively by a poller that's
-		 * currently offline and configured with "takeover = no".
-		 */
-		responsible = &untracked_checks_node;
-	}
 
 	if (!flags && node != responsible && node != old) {
 		lerr("Error: Migrating hostcheck '%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u; sa-p-id=%u). Responsible node is %s %s (p-id=%u; sa-p-id=%u)",
@@ -116,14 +108,6 @@ void set_service_check_node(merlin_node *node, service *s, int flags)
 	}
 
 	responsible = pgroup_service_node(s->id);
-	if (!responsible) {
-		/*
-		 * This can only happen when we receive a passive checkresult
-		 * that should've been handled actively by a poller that's
-		 * currently offline and configured with "takeover = no".
-		 */
-		responsible = &untracked_checks_node;
-	}
 
 	/*
 	 * we only warn about active checks, since we can't control where
@@ -313,8 +297,6 @@ void schedule_expiration_event(int type, merlin_node *node, void *obj)
 		lerr("Failed to create expiration event");
 		return;
 	}
-
-	node = node ? node : &untracked_checks_node;
 
 	now = time(NULL);
 	evt->added = now;

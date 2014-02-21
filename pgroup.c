@@ -572,14 +572,10 @@ static merlin_node *pgroup_node(int type, unsigned int id)
 
 	if (num_pollers && id_table) {
 		ldebug("pg: Selected peer-group %d for check id %u", pg->id, id);
-		if (pg->active_nodes) {
+		if (pg->active_nodes || !(pg->flags & MERLIN_NODE_TAKEOVER)) {
 			real_id = id_table[id];
 			ldebug("pg:   real_id=%u", real_id);
 		} else {
-			if (!(pg->flags & MERLIN_NODE_TAKEOVER)) {
-				ldebug("pg:   no active nodes, and takeover is forbidden. Huh!");
-				return NULL;
-			}
 			ldebug("pg:   no active nodes. Falling back to ipc");
 			pg = ipc.pgroup;
 		}
