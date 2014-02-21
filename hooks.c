@@ -280,6 +280,7 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		return 0;
 
 	case NEBTYPE_SERVICECHECK_PROCESSED:
+		unexpire_service(s);
 		if (merlin_sender) {
 			/* network-received events mustn't bounce back */
 			pkt->hdr.code = MAGIC_NONET;
@@ -329,6 +330,7 @@ static int hook_host_result(merlin_event *pkt, void *data)
 
 	/* only send processed host checks */
 	case NEBTYPE_HOSTCHECK_PROCESSED:
+		unexpire_host(h);
 		if (merlin_sender) {
 			/* network-received events mustn't bounce back */
 			pkt->hdr.code = MAGIC_NONET;

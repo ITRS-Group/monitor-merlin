@@ -87,6 +87,9 @@ extern int merlin_hooks_deinit(void);
 extern int merlin_mod_hook(int cb, void *data);
 extern void merlin_set_block_comment(nebstruct_comment_data *cmnt);
 
+int unexpire_service(struct service *s);
+int unexpire_host(struct host *h);
+
 extern void set_host_check_node(merlin_node *node, host *h, int flags);
 extern void set_service_check_node(merlin_node *node, service *s, int flags);
 

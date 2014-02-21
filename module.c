@@ -21,7 +21,7 @@ static merlin_node untracked_checks_node = {
 	.service_checks = 0,
 };
 
-static bitmap *host_expiry_map, *service_expiry_map;
+static timed_event **host_expiry_map, **service_expiry_map;
 struct dlist_entry *queued_expire_events;
 struct dlist_entry *expired_events;
 static struct dlist_entry **expired_hosts;
@@ -143,6 +143,52 @@ void set_service_check_node(merlin_node *node, service *s, int flags)
 	service_check_node[s->id] = node;
 }
 
+int unexpire_host(struct host *h)
+{
+	/* actually unexpire, if needed */
+	if (expired_hosts[h->id]) {
+		struct merlin_expired_check *last;
+		struct dlist_entry *le;
+		le = expired_hosts[h->id];
+		last = le->data;
+		last->node->assigned.expired.hosts--;
+		dlist_destroy_entry(&expired_events, le, free);
+		expired_hosts[h->id] = NULL;
+	}
+
+	/* next expiration event is unneeded, remove it */
+	if (host_expiry_map[h->id]) {
+		remove_event(nagios_squeue, host_expiry_map[h->id]);
+		free(host_expiry_map[h->id]);
+		host_expiry_map[h->id] = NULL;
+	}
+
+	return 0;
+}
+
+int unexpire_service(struct service *s)
+{
+	/* actually unexpire, if needed */
+	if (expired_services[s->id]) {
+		struct merlin_expired_check *last;
+		struct dlist_entry *le;
+		le = expired_services[s->id];
+		last = le->data;
+		last->node->assigned.expired.services--;
+		dlist_destroy_entry(&expired_events, le, free);
+		expired_services[s->id] = NULL;
+	}
+
+	/* next expiration event is unneeded, remove it */
+	if (service_expiry_map[s->id]) {
+		remove_event(nagios_squeue, service_expiry_map[s->id]);
+		free(service_expiry_map[s->id]);
+		service_expiry_map[s->id] = NULL;
+	}
+
+	return 0;
+}
+
 static int expire_event(struct merlin_expired_check *evt)
 {
 	time_t last_check = 0, previous_check_time = 0;
@@ -155,23 +201,25 @@ static int expire_event(struct merlin_expired_check *evt)
 	if (evt->type == HOST_CHECK) {
 		h = evt->object;
 		ldebug("EXPIR: Checking event expiry for host '%s'", h->name);
-		bitmap_unset(host_expiry_map, h->id);
+		host_expiry_map[h->id] = NULL;
 		last_check = h->last_check;
 		le = expired_hosts[h->id];
 		last = le ? le->data : NULL;
 		last_counter = last ? &last->node->assigned.expired.hosts : NULL;
 		this_counter = &evt->node->assigned.expired.hosts;
+		previous_check_time = evt->added - check_window(h);
 	} else {
 		s = evt->object;
 		h = s->host_ptr;
 		ldebug("EXPIR: Checking event expiry for service '%s;%s'",
 		       s->host_name, s->description);
-		bitmap_unset(service_expiry_map, s->id);
+		service_expiry_map[s->id] = NULL;
 		last_check = s->last_check;
 		le = expired_services[s->id];
 		last = le ? le->data : NULL;
 		last_counter = last ? &last->node->assigned.expired.services : NULL;
 		this_counter = &evt->node->assigned.expired.services;
+		previous_check_time = evt->added - check_window(s);
 	}
 
 	ldebug("EXPIR:  last_check=%lu; last=%p; evt->added=%lu",
@@ -185,27 +233,14 @@ static int expire_event(struct merlin_expired_check *evt)
 	 * handle_async_{host,service}_check_result that prevents us from finding
 	 * out that naemon decided to throw the result away without telling us.
 	 */
-	if (evt->type == HOST_CHECK) {
-		previous_check_time = evt->added - check_window(h);
-	} else {
-		previous_check_time = evt->added - check_window(s);
-	}
 	if (previous_check_time < event_start || last_check >= previous_check_time) {
 		ldebug("EXPIR:  Not expired. Recovery?");
 		if (last)
 			(*last_counter)--;
 		if (evt->type == SERVICE_CHECK) {
-			if (last && !expired_services[s->id]) {
-				ldebug("expired_services[%u] not set. voodoo!", s->id);
-			}
-			dlist_destroy_entry(&expired_events, expired_services[s->id], free);
-			expired_services[s->id] = NULL;
+			unexpire_service(s);
 		} else {
-			if (last && !expired_hosts[h->id]) {
-				ldebug("EXPIR: expired_hosts[%u] not set. VoodoO!", h->id);
-			}
-			dlist_destroy_entry(&expired_events, expired_hosts[h->id], free);
-			expired_hosts[h->id] = NULL;
+			unexpire_host(h);
 		}
 		return 0;
 	}
@@ -256,26 +291,21 @@ void schedule_expiration_event(int type, merlin_node *node, void *obj)
 	time_t when, now;
 	struct host *h;
 	struct service *s;
+	struct timed_event *expiry_evt;
 
 	if (type == SERVICE_CHECK) {
 		s = (struct service *)obj;
 		when = service_check_timeout;
 		ldebug("EXPIR: Scheduling check expiration event for service '%s;%s'",
 		       s->host_name, s->description);
-		if (bitmap_isset(service_expiry_map, ((struct service *)obj)->id)) {
-			ldebug("EXPIR: Already scheduled for expiry");
+		if (service_expiry_map[s->id] != NULL)
 			return;
-		}
-		bitmap_set(service_expiry_map, ((struct service *)obj)->id);
 	} else {
 		h = (struct host *)obj;
 		when = host_check_timeout;
 		ldebug("EXPIR: Scheduling check expiration event for host '%s'", h->name);
-		if (bitmap_isset(host_expiry_map, ((struct host *)obj)->id)) {
-			ldebug("A host scheduled for expiry was about to be scheduled again");
+		if (host_expiry_map[h->id] != NULL)
 			return;
-		}
-		bitmap_set(host_expiry_map, ((struct host *)obj)->id);
 	}
 
 	evt = malloc(sizeof(*evt));
@@ -292,7 +322,12 @@ void schedule_expiration_event(int type, merlin_node *node, void *obj)
 	evt->node = node;
 	evt->type = type;
 	when += now + (type == HOST_CHECK ? host_check_timeout : service_check_timeout) + node->data_timeout;
-	schedule_new_event(EVENT_USER_FUNCTION, FALSE, when, FALSE, 0, NULL, FALSE, expire_event, evt, 0);
+	expiry_evt = schedule_new_event(EVENT_USER_FUNCTION, FALSE, when, FALSE, 0, NULL, FALSE, expire_event, evt, 0);
+	if (type == SERVICE_CHECK) {
+		service_expiry_map[s->id] = expiry_evt;
+	} else {
+		host_expiry_map[h->id] = expiry_evt;
+	}
 }
 
 /*
@@ -1181,8 +1216,8 @@ static int post_config_init(int cb, void *ds)
 	/* required for the 'nodeinfo' query through the query handler */
 	host_check_node = calloc(num_objects.hosts, sizeof(merlin_node *));
 	service_check_node = calloc(num_objects.services, sizeof(merlin_node *));
-	host_expiry_map = bitmap_create(num_objects.hosts);
-	service_expiry_map = bitmap_create(num_objects.services);
+	host_expiry_map = calloc(num_objects.hosts, sizeof(timed_event *));
+	service_expiry_map = calloc(num_objects.services, sizeof(timed_event *));
 
 	if (!db_track_current) {
 		char *cache_file = NULL;
