@@ -145,7 +145,7 @@ void set_service_check_node(merlin_node *node, service *s, int flags)
 
 static int expire_event(struct merlin_expired_check *evt)
 {
-	time_t last_check = 0;
+	time_t last_check = 0, previous_check_time = 0;
 	service *s;
 	host *h = NULL;
 	struct merlin_expired_check *last;
@@ -178,10 +178,19 @@ static int expire_event(struct merlin_expired_check *evt)
 	       last_check, last, evt->added);
 
 	/*
-	 * we received a result from somewhere before we got to this
-	 * event. If it was counted as expired, take some sort of action.
+	 * Verify that either this check, or the last one, came in.
+	 * Mega-fuzzy, but if daemons or timeperiods end or start or stuff just
+	 * plain happens, we'll need to be a bit lenient. If you want to stricten
+	 * this up, you need to find a way around all the early returns in
+	 * handle_async_{host,service}_check_result that prevents us from finding
+	 * out that naemon decided to throw the result away without telling us.
 	 */
-	if (last_check >= evt->added) {
+	if (evt->type == HOST_CHECK) {
+		previous_check_time = evt->added - check_window(h);
+	} else {
+		previous_check_time = evt->added - check_window(s);
+	}
+	if (previous_check_time < event_start || last_check >= previous_check_time) {
 		ldebug("EXPIR:  Not expired. Recovery?");
 		if (last)
 			(*last_counter)--;
@@ -278,15 +287,11 @@ void schedule_expiration_event(int type, merlin_node *node, void *obj)
 	node = node ? node : &untracked_checks_node;
 
 	now = time(NULL);
-	if (type == HOST_CHECK) {
-		evt->added = now - check_window(h);
-	} else {
-		evt->added = now - check_window(s);
-	}
+	evt->added = now;
 	evt->object = obj;
 	evt->node = node;
 	evt->type = type;
-	when += now + 60 + (node->data_timeout * 3);
+	when += now + (type == HOST_CHECK ? host_check_timeout : service_check_timeout) + node->data_timeout;
 	schedule_new_event(EVENT_USER_FUNCTION, FALSE, when, FALSE, 0, NULL, FALSE, expire_event, evt, 0);
 }
 
