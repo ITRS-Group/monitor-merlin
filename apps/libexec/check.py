@@ -10,6 +10,7 @@ from merlin_status import *
 import nagios_plugin as nplug
 import merlin_conf as mconf
 import merlin_db
+from merlin_qh import *
 from coredump import *
 import compound_config as cconf
 
@@ -72,9 +73,8 @@ def module_init(args):
 
 def cmd_distribution(args):
 	"""[--no-perfdata]
-	Checks to make sure work distribution works ok. Note that it is
-	not expected to work properly the first couple of minutes after
-	a new machine has been brought online or taken offline.
+	Checks to make sure all checks we know about are being executed
+	by someone within the timeframe we expect.
 	"""
 
 	print_perfdata = True
@@ -82,92 +82,28 @@ def cmd_distribution(args):
 		if arg == '--no-perfdata':
 			print_perfdata = False
 
+	expired = get_expired(qh)
 	info = get_merlin_nodeinfo(qh)
-	checktot = {
-		'host': { 'assigned': 0, 'executed': 0 },
-		'service': { 'assigned': 0, 'executed': 0 },
-	}
-	hchecks = 0; schecks = 0; hchecks_exec = 0; schecks_exec = 0
-	nodes = []
-	for n in info:
-		for k, v in n.items():
-			try:
-				n[k] = int(v)
-			except ValueError:
-				try:
-					n[k] = float(v)
-				except ValueError:
-					pass
-		nodes.append(n)
-		hchecks += n['assigned_hosts']
-		hchecks_exec += n['host_checks_executed']
-		schecks += n['assigned_services']
-		schecks_exec += n['service_checks_executed']
-		for ctype in checktot.keys():
-			checktot[ctype]['assigned'] = n.get('assigned_%ss' % ctype)
-			checktot[ctype]['executed'] = n.get('%s_checks_executed' % ctype)
-
-	state_str = ""
-	should = {}
-	if not nodes:
-		print "UNKNOWN: No hosts found at all"
-		sys.exit(nplug.UNKNOWN)
-
-	class check_objs(object):
-		pdata = ''
-		bad = {}
-		state = nplug.OK
-
-		def is_bad(self, actual, exp):
-			return actual < exp[0] or actual > exp[1]
-
-		def verify_executed_checks(self, info, exp):
-			for ctype, num in exp.items():
-				actual = info.get(ctype + '_checks_executed')
-				ok_str = "%d:%d" % (num[0], num[1])
-				self.pdata += (" '%s_%ss'=%d;%s;%s;0;%d" %
-					(info['name'], ctype, actual, ok_str, ok_str, checktot[ctype]['assigned']))
-				if self.is_bad(actual, num):
-					self.state = nplug.STATE_CRITICAL
-					self.bad[info['name']] = {
-						'host': info['host_checks_executed'],
-						'service': info['service_checks_executed']
-					}
-
-	o = check_objs()
-	hc_delta = max(0, hchecks - hchecks_exec)
-	sc_delta = max(0, schecks - schecks_exec)
-
-	for n in nodes:
-		should[n['name']] = {
-			'host': (
-				int(n.get('assigned_hosts')) - hc_delta,
-				int(n.get('assigned_hosts')) + hc_delta
-			),
-			'service': (
-				int(n.get('assigned_services')) - sc_delta,
-				int(n.get('assigned_services')) + sc_delta
-			)
-		}
-		o.verify_executed_checks(n, should[n['name']])
-
-	for name, b in o.bad.items():
-		if not len(b):
-			continue
-		state_str += ("%s runs %d / %d checks (should be %s / %s). " %
-			(name, int(b['host']), int(b['service']),
-			(should[name]['host'][0] == should[name]['host'][1] and should[name]['host'][0]) or ("%s-%s" % (should[name]['host'][0], should[name]['host'][1])),
-			 (should[name]['service'][0] == should[name]['service'][1] and should[name]['service'][0]) or ("%s-%s" % (should[name]['service'][0], should[name]['service'][1]))))
-
-	sys.stdout.write("%s: " % nplug.state_name(o.state))
-	if not state_str:
-		state_str = "All %d nodes run their assigned checks." % len(nodes)
-	sys.stdout.write("%s" % state_str.rstrip())
-	if print_perfdata:
-		print("|%s" % o.pdata.lstrip())
+	state = 3
+	if not expired:
+		print "OK: All %i nodes run their assigned checks" % (len(info),),
+		state = 0
 	else:
-		sys.stdout.write("\n")
-	sys.exit(o.state)
+		print "ERROR: There are %i expired checks" % (len(expired),),
+		state = 2
+
+	if print_perfdata:
+		print "|",
+		for i in info:
+			print ("'%(name)s_hosts'=%(host_checks_executed)s " \
+				"'%(name)s_services'=%(service_checks_executed)s " \
+				"'%(name)s_expired_hosts'=%(expired_hosts)s " \
+				"'%(name)s_expired_services'=%(expired_services)s") % i,
+	if expired:
+		print "\n"
+		for check in expired:
+			print "%s was supposed to be executed by %s at %s" % (check.has_key('service_description') and check['host_name'] + ';' + check['service_description'] or check['host_name'], check['responsible'], time.ctime(int(check['added'])))
+	sys.exit(state)
 
 
 def check_min_avg_max(args, col, defaults=False, filter=False):
@@ -262,55 +198,8 @@ def cmd_latency(args=False):
 	check_min_avg_max(args, 'latency', thresh)
 
 def cmd_orphans(args=False):
-	"""
-	Checks for checks that have not been run in too long a time.
-	"""
-	state = nplug.OK
-	otype = 'service'
-	unit = ''
-	warning = critical = 0
-	max_age = 1800
-	for arg in args:
-		if arg.startswith('--warning='):
-			val = arg.split('=', 1)[1]
-			if '%' in val:
-				unit = '%'
-				val = val.replace('%', '')
-			warning = float(val)
-		elif arg.startswith('--critical='):
-			val = arg.split('=', 1)[1]
-			if '%' in val:
-				unit = '%'
-				val = val.replace('%', '')
-			critical = float(val)
-		elif arg.startswith('--maxage=') or arg.startswith('--max-age='):
-			max_age = arg.split('=', 1)[1]
-			max_age = int(max_age)
-		elif arg == 'host' or arg == 'service':
-			otype = arg
-
-	now = time.time()
-	query = 'GET %ss\nFilter: should_be_scheduled = 1\nFilter: in_check_period = 1\nFilter: next_check < %s\nStats: state != 999'
-	try:
-		orphans = int(lsc.query_value(query % (otype, now - max_age)))
-		if not warning and not critical:
-			total = int(lsc.query_value('GET %ss\nFilter: should_be_scheduled = 1\nFilter: in_check_period = 1\nStats: state != 999' % (otype,)))
-			critical = total * 0.01
-			warning = total * 0.005
-	except livestatus.livestatus.MKLivestatusSocketError:
-		print "UNKNOWN: Error asking livestatus for info, bailing out"
-		sys.exit(nplug.UNKNOWN)
-	if not warning and not critical:
-		warning = critical = 1
-
-	if orphans > critical:
-		state = nplug.CRITICAL
-	elif orphans > warning:
-		state = nplug.WARNING
-
-	sys.stdout.write("%s: Orphaned %s checks: %d / %d" % (nplug.state_name(state), otype, orphans, total))
-	print("|'orphans'=%d;%d;%d;0;%d" % (orphans, warning, critical, total))
-	sys.exit(state)
+	'''This is an old name for check distribution'''
+	cmd_distribution(args)
 
 def cmd_status(args=False):
 	"""
