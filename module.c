@@ -280,14 +280,11 @@ void schedule_expiration_event(int type, merlin_node *node, void *obj)
 	if (type == SERVICE_CHECK) {
 		s = (struct service *)obj;
 		when = service_check_timeout;
-		ldebug("EXPIR: Scheduling check expiration event for service '%s;%s'",
-		       s->host_name, s->description);
 		if (service_expiry_map[s->id] != NULL)
 			return;
 	} else {
 		h = (struct host *)obj;
 		when = host_check_timeout;
-		ldebug("EXPIR: Scheduling check expiration event for host '%s'", h->name);
 		if (host_expiry_map[h->id] != NULL)
 			return;
 	}
