@@ -146,7 +146,6 @@ typedef struct merlin_child merlin_child;
 struct merlin_confsync {
 	merlin_child push;
 	merlin_child fetch;
-	int pid;
 };
 typedef struct merlin_confsync merlin_confsync;
 
