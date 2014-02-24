@@ -170,18 +170,17 @@ def cmd_status(args):
 
 		hchecks = int(info.get('host_checks_executed'))
 		schecks = int(info.get('service_checks_executed'))
-		assigned_hchecks = int(info.get('assigned_hosts'))
-		assigned_schecks = int(info.get('assigned_services'))
+		expired_hchecks = int(info.get('expired_hosts'))
+		expired_schecks = int(info.get('expired_services'))
 		pg_hosts = int(info.get('pgroup_hosts'))
 		pg_services = int(info.get('pgroup_services'))
 
 		hc_color = ''
 		sc_color = ''
-		if node:
-			if hchecks != assigned_hchecks:
-				hc_color = color.red
-			if schecks != assigned_schecks:
-				sc_color = color.red
+		if expired_hchecks:
+			hc_color = color.red
+		if expired_schecks:
+			sc_color = color.red
 
 		hpercent = 0
 		if host_checks != 0:
@@ -196,12 +195,12 @@ def cmd_status(args):
 		if pg_services:
 			pg_spercent = float(schecks) / float(pg_services) * 100
 
-		print("Host checks (handled/assigned/total)   : %s%d%s/%d (%d) (%s%.2f%%%s : %.2f%%)" %
-			(hc_color, hchecks, color.reset, assigned_hchecks, pg_hosts,
-			hc_color, pg_hpercent, color.reset, hpercent))
-		print("Service checks (handled/assigned/total): %s%d%s/%d (%d) (%s%.2f%%%s - %.2f%%)" %
-			(sc_color, schecks, color.reset, assigned_schecks, pg_services,
-			sc_color, pg_spercent, color.reset, spercent))
+		print("Host checks (handled, expired, total)   : %d, %s%d%s, %d (%.2f%% : %.2f%%)" %
+			(hchecks, hc_color, expired_hchecks, color.reset, pg_hosts,
+			pg_hpercent, hpercent))
+		print("Service checks (handled, expired, total): %d, %s%d%s, %d (%.2f%% : %.2f%%)" %
+			(schecks, sc_color, expired_schecks, color.reset, pg_services,
+			pg_spercent, spercent))
 
 	oconf_bad = {}
 	for pg_id, d in pg_oconf_hash.items():
