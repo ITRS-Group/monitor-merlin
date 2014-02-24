@@ -83,7 +83,7 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 		node->action(node, prev_state);
 
 	if (node->state == STATE_CONNECTED && node->sock >= 0) {
-		int snd, rcv;
+		int snd = 0, rcv = 0;
 		socklen_t size = sizeof(int);
 
 		/* mark this so we can disconnect nodes that never send data */
