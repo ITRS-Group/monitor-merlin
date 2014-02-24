@@ -82,6 +82,52 @@ void general_teardown()
 	nebmodule_deinit(0, 0);
 }
 
+void expiration_setup()
+{
+	num_peer_groups = 0;
+	peer_group = NULL;
+	nebmodule_init(0, "tests/twopeers.conf", NULL);
+	num_objects.hosts = 3;
+	num_objects.services = 3;
+	host_ary = calloc(3, sizeof(host*));
+	host_ary[0] = calloc(1, sizeof(host));
+	host_ary[0]->id = 0;
+	host_ary[0]->services = calloc(1, sizeof(servicesmember));
+	host_ary[0]->services->service_ptr = calloc(1, sizeof(service));
+	host_ary[0]->services->service_ptr->id = 0;
+	host_ary[1] = calloc(1, sizeof(host));
+	host_ary[1]->id = 1;
+	host_ary[1]->services = calloc(1, sizeof(servicesmember));
+	host_ary[1]->services->service_ptr = calloc(1, sizeof(service));
+	host_ary[1]->services->service_ptr->id = 1;
+	host_ary[2] = calloc(1, sizeof(host));
+	host_ary[2]->id = 2;
+	host_ary[2]->services = calloc(1, sizeof(servicesmember));
+	host_ary[2]->services->service_ptr = calloc(1, sizeof(service));
+	host_ary[2]->services->service_ptr->id = 2;
+
+	int event_type = NEBTYPE_PROCESS_EVENTLOOPSTART;
+	post_config_init(0, &event_type);
+
+	ipc.action = NULL;
+	ipc.name = "Local";
+	node_set_state(node_table[0], STATE_CONNECTED, "Fake connected");
+	node_set_state(node_table[1], STATE_CONNECTED, "Fake connected");
+	pgroup_assign_peer_ids(node_table[0]->pgroup);
+}
+
+void expiration_teardown()
+{
+	int i;
+	for (i = 0; i < 3; i++) {
+		free(host_ary[i]->services->service_ptr);
+		free(host_ary[i]->services);
+		free(host_ary[i]);
+	}
+	free(host_ary);
+	nebmodule_deinit(0, 0);
+}
+
 START_TEST(test_callback_host_check)
 {
 	time_t expected_last_check = time(NULL);
@@ -153,6 +199,152 @@ START_TEST(test_callback_service_check)
 }
 END_TEST
 
+START_TEST(set_clear_svc_expire)
+{
+	int res;
+	merlin_event pkt = {0,};
+	nebstruct_service_check_data ds = {0,};
+	ds.type = NEBTYPE_SERVICECHECK_ASYNC_PRECHECK;
+	ds.object_ptr = host_ary[0]->services->service_ptr;
+	hook_service_result(&pkt, &ds);
+	ck_assert_msg(service_expiry_map[0] != NULL, "Service sending a precheck should trigger expiration check");
+	ck_assert_msg(expired_services[0] == NULL, "Service precheck should not expire service");
+	res = expire_event(service_expiry_map[0]->event_args);
+	ck_assert_int_eq(0, res);
+	ck_assert_msg(expired_services[0] != NULL, "Service should become expired after expire_event runs");
+	ck_assert_msg(service_expiry_map[0] == NULL, "Expiring a check should clear expiration check");
+	ds.type = NEBTYPE_SERVICECHECK_PROCESSED;
+	hook_service_result(&pkt, &ds);
+	ck_assert_msg(service_expiry_map[0] == NULL, "Service sending a check result should clear expiration check");
+	ck_assert_msg(expired_services[0] == NULL, "Service should not be expired after check result comes in");
+	ds.type = NEBTYPE_SERVICECHECK_ASYNC_PRECHECK;
+	hook_service_result(&pkt, &ds);
+	ck_assert_msg(service_expiry_map[0] != NULL, "Service sending a precheck should trigger expiration check");
+	ds.type = NEBTYPE_SERVICECHECK_PROCESSED;
+	hook_service_result(&pkt, &ds);
+	ck_assert_msg(service_expiry_map[0] == NULL, "Service sending a check result should clear expiration check");
+	ck_assert_msg(expired_services[0] == NULL, "Service should not be expired after check result comes in");
+	ds.type = NEBTYPE_SERVICECHECK_PROCESSED;
+	hook_service_result(&pkt, &ds);
+	ck_assert_msg(service_expiry_map[0] == NULL, "Resending a check result should keep expiration map cleared");
+	ck_assert_msg(expired_services[0] == NULL, "Resending a check result should keep expired list cleared");
+}
+END_TEST
+
+START_TEST(set_clear_host_expire)
+{
+	int res;
+	merlin_event pkt = {0,};
+	nebstruct_host_check_data ds = {0,};
+	ds.type = NEBTYPE_HOSTCHECK_ASYNC_PRECHECK;
+	ds.object_ptr = host_ary[0];
+	hook_host_result(&pkt, &ds);
+	ck_assert_msg(host_expiry_map[0] != NULL, "Host sending a precheck should trigger expiration check");
+	ck_assert_msg(expired_hosts[0] == NULL, "Host precheck should not expire host");
+	res = expire_event(host_expiry_map[0]->event_args);
+	ck_assert_int_eq(0, res);
+	ck_assert_msg(expired_hosts[0] != NULL, "Host should become expired after expire_event runs");
+	ck_assert_msg(host_expiry_map[0] == NULL, "Expiring a check should clear expiration check");
+	ds.type = NEBTYPE_HOSTCHECK_PROCESSED;
+	hook_host_result(&pkt, &ds);
+	ck_assert_msg(host_expiry_map[0] == NULL, "Host sending a check result should clear expiration check");
+	ck_assert_msg(expired_hosts[0] == NULL, "Host should not be expired after check result comes in");
+	ds.type = NEBTYPE_HOSTCHECK_ASYNC_PRECHECK;
+	hook_host_result(&pkt, &ds);
+	ck_assert_msg(host_expiry_map[0] != NULL, "Host sending a precheck should trigger expiration check");
+	ds.type = NEBTYPE_HOSTCHECK_PROCESSED;
+	hook_host_result(&pkt, &ds);
+	ck_assert_msg(host_expiry_map[0] == NULL, "Host sending a check result should clear expiration check");
+	ck_assert_msg(expired_hosts[0] == NULL, "Host should not be expired after check result comes in");
+	ds.type = NEBTYPE_HOSTCHECK_PROCESSED;
+	hook_service_result(&pkt, &ds);
+	ck_assert_msg(service_expiry_map[0] == NULL, "Resending a check result should keep expiration map cleared");
+	ck_assert_msg(expired_services[0] == NULL, "Resending a check result should keep expired list cleared");
+}
+END_TEST
+
+START_TEST(multiple_svc_expire)
+{
+	int res;
+	merlin_event pkt = {0,};
+	nebstruct_service_check_data ds0 = {0,}, ds1 = {0,};
+	ds0.type = NEBTYPE_SERVICECHECK_ASYNC_PRECHECK;
+	ds0.object_ptr = host_ary[0]->services->service_ptr;
+	ds1.type = NEBTYPE_SERVICECHECK_ASYNC_PRECHECK;
+	ds1.object_ptr = host_ary[1]->services->service_ptr;
+	hook_service_result(&pkt, &ds0);
+	ck_assert_msg(service_expiry_map[0] != NULL, "Service sending a precheck should trigger expiration check");
+	ck_assert_msg(service_expiry_map[1] == NULL, "Service sending a precheck should not trigger other expiration checks");
+	ck_assert_msg(expired_services[0] == NULL, "Service precheck should not expire service");
+	hook_service_result(&pkt, &ds1);
+	ck_assert_msg(service_expiry_map[0] != NULL, "Old expiration check should still be around");
+	ck_assert_msg(service_expiry_map[1] != NULL, "New service sending a precheck should trigger expiration check, too");
+	res = expire_event(service_expiry_map[0]->event_args);
+	ck_assert_int_eq(0, res);
+	ck_assert_msg(expired_services[0] != NULL, "Service should become expired after expire_event runs");
+	ck_assert_msg(service_expiry_map[0] == NULL, "Expiring a check should clear expiration check");
+	ck_assert_msg(service_expiry_map[1] != NULL, "Other services in expiration precheck should not be affected by an expiration");
+	ck_assert_msg(expired_services[1] == NULL, "Other services in expiration precheck should not be affected by an expiration");
+	ds0.type = NEBTYPE_SERVICECHECK_PROCESSED;
+	hook_service_result(&pkt, &ds0);
+	ck_assert_msg(service_expiry_map[0] == NULL, "Service sending a check result should clear expiration check");
+	ck_assert_msg(expired_services[0] == NULL, "Service should not be expired after check result comes in");
+	ck_assert_msg(service_expiry_map[1] != NULL, "Other services in expiration precheck should not be affected by an expiration");
+	ck_assert_msg(expired_services[1] == NULL, "Other services in expiration precheck should not be affected by an expiration");
+	ds0.type = NEBTYPE_SERVICECHECK_ASYNC_PRECHECK;
+	hook_service_result(&pkt, &ds0);
+	res = expire_event(service_expiry_map[0]->event_args);
+	res = expire_event(service_expiry_map[1]->event_args);
+	ck_assert_msg(expired_services[0] != NULL, "Service should become expired after expire_event runs");
+	ck_assert_msg(expired_services[1] != NULL, "Service should become expired after expire_event runs");
+	ds0.type = NEBTYPE_SERVICECHECK_PROCESSED;
+	hook_service_result(&pkt, &ds0);
+	ck_assert_msg(service_expiry_map[0] == NULL, "Service sending a check result should clear expiration check");
+	ck_assert_msg(expired_services[1] != NULL, "One service sending a check result should not clear others' expired status");
+}
+END_TEST
+
+START_TEST(multiple_host_expire)
+{
+	int res;
+	merlin_event pkt = {0,};
+	nebstruct_host_check_data ds0 = {0,}, ds1 = {0,};
+	ds0.type = NEBTYPE_HOSTCHECK_ASYNC_PRECHECK;
+	ds0.object_ptr = host_ary[0];
+	ds1.type = NEBTYPE_HOSTCHECK_ASYNC_PRECHECK;
+	ds1.object_ptr = host_ary[1];
+	hook_host_result(&pkt, &ds0);
+	ck_assert_msg(host_expiry_map[0] != NULL, "Host sending a precheck should trigger expiration check");
+	ck_assert_msg(host_expiry_map[1] == NULL, "Host sending a precheck should not trigger other expiration checks");
+	ck_assert_msg(expired_hosts[0] == NULL, "Host precheck should not expire host");
+	hook_host_result(&pkt, &ds1);
+	ck_assert_msg(host_expiry_map[0] != NULL, "Old expiration check should still be around");
+	ck_assert_msg(host_expiry_map[1] != NULL, "New host sending a precheck should trigger expiration check, too");
+	res = expire_event(host_expiry_map[0]->event_args);
+	ck_assert_int_eq(0, res);
+	ck_assert_msg(expired_hosts[0] != NULL, "Host should become expired after expire_event runs");
+	ck_assert_msg(host_expiry_map[0] == NULL, "Expiring a check should clear expiration check");
+	ck_assert_msg(host_expiry_map[1] != NULL, "Other hosts in expiration precheck should not be affected by an expiration");
+	ck_assert_msg(expired_hosts[1] == NULL, "Other hosts in expiration precheck should not be affected by an expiration");
+	ds0.type = NEBTYPE_HOSTCHECK_PROCESSED;
+	hook_host_result(&pkt, &ds0);
+	ck_assert_msg(host_expiry_map[0] == NULL, "Host sending a check result should clear expiration check");
+	ck_assert_msg(expired_hosts[0] == NULL, "Host should not be expired after check result comes in");
+	ck_assert_msg(host_expiry_map[1] != NULL, "Other hosts in expiration precheck should not be affected by an expiration");
+	ck_assert_msg(expired_hosts[1] == NULL, "Other hosts in expiration precheck should not be affected by an expiration");
+	ds0.type = NEBTYPE_HOSTCHECK_ASYNC_PRECHECK;
+	hook_host_result(&pkt, &ds0);
+	res = expire_event(host_expiry_map[0]->event_args);
+	res = expire_event(host_expiry_map[1]->event_args);
+	ck_assert_msg(expired_hosts[0] != NULL, "Host should become expired after expire_event runs");
+	ck_assert_msg(expired_hosts[1] != NULL, "Host should become expired after expire_event runs");
+	ds0.type = NEBTYPE_HOSTCHECK_PROCESSED;
+	hook_host_result(&pkt, &ds0);
+	ck_assert_msg(host_expiry_map[0] == NULL, "Host sending a check result should clear expiration check");
+	ck_assert_msg(expired_hosts[1] != NULL, "One host sending a check result should not clear others' expired status");
+}
+END_TEST
+
 Suite *
 check_hooks_suite(void)
 {
@@ -162,6 +354,14 @@ check_hooks_suite(void)
 	tcase_add_checked_fixture (tc, general_setup, general_teardown);
 	tcase_add_test(tc, test_callback_host_check);
 	tcase_add_test(tc, test_callback_service_check);
+	suite_add_tcase(s, tc);
+
+	tc = tcase_create("expiration");
+	tcase_add_checked_fixture (tc, expiration_setup, expiration_teardown);
+	tcase_add_test(tc, set_clear_host_expire);
+	tcase_add_test(tc, set_clear_svc_expire);
+	tcase_add_test(tc, multiple_host_expire);
+	tcase_add_test(tc, multiple_svc_expire);
 	suite_add_tcase(s, tc);
 
 	return s;
