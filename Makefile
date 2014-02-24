@@ -178,8 +178,8 @@ sltest: sltest.o test_utils.o slist.o
 bltest: binlog.o bltest.o test_utils.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $(DAEMON_LDFLAGS) $^ -o $@
 
-hooktest: test-hooks.o test_utils.o hooks.o $(COMMON_OBJS) codec.o
-	$(QUIET_LINK)$(CC) $(CFLAGS) $^ -o $@ $(HOOKTEST_LDFLAGS)
+hooktest: tests/test-hooks.o $(filter-out pgroup.o, $(filter-out ipc.o,$(filter-out hooks.o,$(filter-out module.o,$(MODULE_OBJS)))))
+	$(QUIET_LINK)$(CC) $(CFLAGS) $^ -o $@ $(HOOKTEST_LDFLAGS) `pkg-config --libs check`
 
 stringutilstest: test-stringutils.o test_utils.o string_utils.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $^ -o $@ $(STRINGUTILSTEST_LDFLAGS)
@@ -188,6 +188,9 @@ showlogtest: tests/test-showlog.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $^ -o $@ $(LIBNAGIOS_LDFLAGS) `pkg-config --libs check`
 
 tests/test-showlog.o: tests/test-showlog.c showlog
+	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@ -I$(NAGIOS_INCDIR) `pkg-config --cflags check`
+
+tests/test-hook.o: tests/test-hook.c
 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@ -I$(NAGIOS_INCDIR) `pkg-config --cflags check`
 
 bltest.o: bltest.c binlog.h
