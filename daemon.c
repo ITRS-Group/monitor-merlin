@@ -639,6 +639,10 @@ void csync_node_active(merlin_node *node)
 		} else {
 			ldebug("CSYNC: Should have pushed, but push not configured for %s", node->name);
 		}
+		if (cs == &csync && !(node->flags & MERLIN_NODE_CONNECT)) {
+			ldebug("CSYNC: %s node %s configured with 'connect = no'. Avoiding global push",
+			       node_type(node), node->name);
+		}
 	} else if (val > 0) {
 		if (cs->fetch.cmd) {
 			child = &cs->fetch;
