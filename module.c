@@ -97,7 +97,7 @@ void set_host_check_node(merlin_node *node, host *h, int flags)
 
 void set_service_check_node(merlin_node *node, service *s, int flags)
 {
-	merlin_node *old, *responsible;
+	merlin_node *old = NULL, *responsible = NULL;
 
 	old = service_check_node[s->id];
 	if(old == node)
