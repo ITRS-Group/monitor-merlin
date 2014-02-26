@@ -29,7 +29,10 @@ static char *read_strip_split(char *fname, int *size)
 	char *buf, *p;
 	int fd, foo;
 	int i;
-	struct stat st;
+	struct stat st = {0,};
+
+	if (!fname)
+		return NULL;
 
 	if (stat(fname, &st) < 0)
 		return NULL;
