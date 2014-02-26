@@ -61,6 +61,7 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 	if (state == STATE_CONNECTED) {
 		add = 1;
 		node->connect_time = time(NULL);
+		node->csync_num_attempts = 0;
 	} else if (node->state == STATE_CONNECTED) {
 		add = -1;
 	} else {
@@ -395,7 +396,9 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 		break;
 	}
 
-	node->data_timeout = pulse_interval * 2; /* a sane default */
+	/* some sane defaults */
+	node->data_timeout = pulse_interval * 2;
+	node->csync_max_attempts = 3;
 
 	for (i = 0; i < c->vars; i++) {
 		struct cfg_var *v = c->vlist[i];
@@ -421,6 +424,12 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			node->data_timeout = (unsigned int)strtol(v->value, &endptr, 10);
 			if (*endptr != 0)
 				cfg_error(c, v, "Illegal value for data_timeout: %s\n", v->value);
+		}
+		else if (!strcmp(v->key, "max_sync_attempts")) {
+			char *endptr;
+			node->csync_max_attempts = (unsigned int)strtoul(v->value, &endptr, 10);
+			if (*endptr != 0)
+				cfg_error(c, v, "Illegal value for max_sync_attempts: %s", v->value);
 		}
 		else if (grok_node_flag(&node->flags, v->key, v->value) < 0) {
 			cfg_error(c, v, "Unknown variable\n");
