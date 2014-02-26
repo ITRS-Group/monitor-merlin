@@ -171,17 +171,27 @@ START_TEST(test_callback_service_check)
 	time_t expected_last_check = time(NULL);
 	time_t not_expected_last_check = 2147123099;
 
-	num_objects.services = 1;
-	int event_type = NEBTYPE_PROCESS_EVENTLOOPSTART;
-	post_config_init(0, &event_type);
-
+	host_ary = calloc(1, sizeof(host*));
+	host hst;
+	hst.id = 0;
+	hst.name = "test-host";
 	service svc;
+	memset(&hst, 0, sizeof(host));
+	host_ary[0] = &hst;
+	hst.services = calloc(1, sizeof(servicesmember));
+	hst.services->service_ptr = &svc;
 	memset(&svc, 0, sizeof(service));
-	svc.id = 1;
+	svc.id = 0;
 	svc.host_name = "test-host";
 	svc.description = "test-service";
 	svc.last_check = not_expected_last_check;
-	nebstruct_service_check_data ev_data;
+	num_objects.hosts = 1;
+	num_objects.services = 1;
+
+	int event_type = NEBTYPE_PROCESS_EVENTLOOPSTART;
+	post_config_init(0, &event_type);
+
+	nebstruct_service_check_data ev_data = {0,};
 	merlin_service_status *event_body;
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
