@@ -57,10 +57,10 @@ void ipc_init_struct(void) {}
 void ipc_deinit(void) {}
 int dump_nodeinfo(merlin_node *n, int sd, int instance_id) {return 0;}
 
-static merlin_event *last_decoded_event;
+static merlin_event last_decoded_event;
 int ipc_send_event(merlin_event *pkt) {
 	merlin_decode_event(merlin_sender, pkt);
-	last_decoded_event = pkt;
+	memcpy(&last_decoded_event, pkt, sizeof(merlin_event));
 	return 0;
 }
 int ipc_grok_var(char *var, char *val) {return 1;}
@@ -75,6 +75,7 @@ void general_setup()
 	nebmodule_init(0, "tests/singlenode.conf", NULL);
 	merlin_should_send_paths = 0;
 	ipc.name = "Local";
+	memset(&last_decoded_event, 0, sizeof(merlin_event));
 }
 
 void general_teardown()
@@ -157,8 +158,8 @@ START_TEST(test_callback_host_check)
 	ev_data.object_ptr = &hst;
 	ev_data.end_time.tv_sec =  expected_last_check;
 	merlin_mod_hook(NEBCALLBACK_HOST_CHECK_DATA, &ev_data);
-	ck_assert_int_eq(last_decoded_event->hdr.type, NEBCALLBACK_HOST_CHECK_DATA);
-	event_body = (merlin_host_status *)last_decoded_event->body;
+	ck_assert_int_eq(last_decoded_event.hdr.type, NEBCALLBACK_HOST_CHECK_DATA);
+	event_body = (merlin_host_status *)last_decoded_event.body;
 	ck_assert_int_eq(event_body->nebattr, NEBATTR_CHECK_ALERT);
 	ck_assert_str_eq(event_body->name, hst.name);
 	ck_assert_int_eq(expected_last_check, event_body->state.last_check);
@@ -191,8 +192,8 @@ START_TEST(test_callback_service_check)
 	ev_data.object_ptr = &svc;
 	ev_data.end_time.tv_sec =  expected_last_check;
 	merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, &ev_data);
-	ck_assert_int_eq(last_decoded_event->hdr.type, NEBCALLBACK_SERVICE_CHECK_DATA);
-	event_body = (merlin_service_status *)last_decoded_event->body;
+	ck_assert_int_eq(last_decoded_event.hdr.type, NEBCALLBACK_SERVICE_CHECK_DATA);
+	event_body = (merlin_service_status *)last_decoded_event.body;
 	ck_assert_int_eq(event_body->nebattr, NEBATTR_CHECK_ALERT);
 	ck_assert_str_eq(event_body->host_name, svc.host_name);
 	ck_assert_int_eq(expected_last_check, event_body->state.last_check);
