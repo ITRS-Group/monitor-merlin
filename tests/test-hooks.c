@@ -75,6 +75,7 @@ void general_setup()
 	nebmodule_init(0, "tests/singlenode.conf", NULL);
 	merlin_should_send_paths = 0;
 	ipc.name = "Local";
+	ipc.sock = -1;
 	memset(&last_decoded_event, 0, sizeof(merlin_event));
 }
 
