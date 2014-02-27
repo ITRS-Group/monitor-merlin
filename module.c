@@ -1452,9 +1452,6 @@ int nebmodule_deinit(int flags, int reason)
 
 	ipc_deinit();
 
-	/* flush junk to disk */
-	sync();
-
 	merlin_hooks_deinit();
 
 	/*
