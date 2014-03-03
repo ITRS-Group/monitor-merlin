@@ -65,7 +65,7 @@ sql.o test-dbwrap.o db_wrap.o: CFLAGS+=$(DB_CFLAGS)
 COMMON_OBJS = cfgfile.o shared.o version.o logging.o dlist.o
 SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
-DAEMON_OBJS = status.o daemonize.o daemon.o net.o $(DBWRAP_OBJS) db_updater.o state.o string_utils.o
+DAEMON_OBJS = status.o daemonize.o net.o $(DBWRAP_OBJS) db_updater.o state.o string_utils.o
 DAEMON_OBJS += $(SHARED_OBJS)
 MODULE_OBJS = $(SHARED_OBJS) module.o hooks.o misc.o sha1.o
 MODULE_OBJS += queries.o pgroup.o
@@ -122,6 +122,9 @@ check:
 check_latency: check_latency.o cfgfile.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(ALL_LDFLAGS)
 
+test-csync: test-csync.o test_utils.o $(DAEMON_OBJS)
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(DAEMON_LDFLAGS)
+
 test-lparse: test-lparse.o lparse.o logutils.o test_utils.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LIBNAGIOS_LDFLAGS)
 
@@ -134,7 +137,7 @@ import: $(IMPORT_OBJS)
 showlog: $(SHOWLOG_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LIB_NET) $(LIBNAGIOS_LDFLAGS)
 
-merlind: merlind.o $(DAEMON_OBJS)
+merlind: daemon.o merlind.o $(DAEMON_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(DAEMON_LDFLAGS)
 
 merlin.so: $(MODULE_OBJS)
@@ -152,13 +155,16 @@ rename: $(RENAME_OBJS)
 	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@
 
 #test: test-binlog test-slist test__lparse
-test: test-slist test__lparse test-hooks test-stringutils test-showlog test-dbwrap
+test: test-slist test__csync test__lparse test-hooks test-stringutils test-showlog test-dbwrap
 
 test-slist: sltest
 	@./sltest
 
 test-binlog: bltest
 	@./bltest
+
+test__csync: test-csync
+	@./test-csync
 
 test__lparse: test-lparse
 	@./test-lparse
