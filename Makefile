@@ -134,7 +134,7 @@ import: $(IMPORT_OBJS)
 showlog: $(SHOWLOG_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LIB_NET) $(LIBNAGIOS_LDFLAGS)
 
-merlind: $(DAEMON_OBJS)
+merlind: merlind.o $(DAEMON_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(DAEMON_LDFLAGS)
 
 merlin.so: $(MODULE_OBJS)

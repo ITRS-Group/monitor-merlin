@@ -958,7 +958,7 @@ static void sigusr_handler(int sig)
 	user_sig |= 1 << sig;
 }
 
-int main(int argc, char **argv)
+int merlind_main(int argc, char **argv)
 {
 	int i, result, status = 0;
 
