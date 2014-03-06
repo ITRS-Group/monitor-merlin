@@ -345,6 +345,7 @@ static struct {
 	MRLN_ADD_NODE_FLAG(TAKEOVER),
 	MRLN_ADD_NODE_FLAG(CONNECT),
 	MRLN_ADD_NODE_FLAG(NOTIFIES),
+	MRLN_ADD_NODE_FLAG(FIXED_SRCPORT),
 };
 
 static int grok_node_flag(int *flags, const char *key, const char *value)

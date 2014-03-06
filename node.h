@@ -28,7 +28,7 @@
  */
 #define MERLIN_NODE_TAKEOVER (1 << 0)
 #define MERLIN_NODE_CONNECT  (1 << 1)
-#define MERLIN_NODE_FIXED_SRCPORT (1 << 2) /* internal only */
+#define MERLIN_NODE_FIXED_SRCPORT (1 << 2)
 #define MERLIN_NODE_NOTIFIES (1 << 3)
 
 #define MERLIN_NODE_DEFAULT_POLLER_FLAGS \
