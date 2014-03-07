@@ -6,8 +6,9 @@ msgdie()
   exit $1
 }
 
-# syntax: diecho <exit code> <exit text without exit state prefix>
-# desc: Prints the final status text and prepends the exit state prefix
+# SNTX: dieplug <exit code> <exit text without exit state prefix>
+# DESC: Prints the final status text and prepends the exit state prefix
+#       depending on which exit code it was called with.
 dieplug()
 {
   local code text prefix
@@ -39,23 +40,18 @@ dieplug()
   msgdie "$code" "$text"
 }
 
-# syntax: depchk <dep1> [depN]..
-# desc: Checks if all specified executables are available via $PATH
-#       - exits if not.
+# SNTX: depchk <dep1> [depN]..
+# DESC: Exits in case any given dependencies are missing.
 depchk()
 {
-  local arg dep deps i
+  local arg miss
 
-  dep=()
+  miss=''
   for arg; do
-    hash "$arg" || dep+=("$arg")
-  done &> /dev/null
-
-  [ "${#dep[@]}" == '0' ] && return 0
-
-  for i in "${!dep[@]}"; do
-    deps+=$'\n'"dep: ${dep[$i]}"
+    hash -- "$arg" &> /dev/null || miss+=" $arg"
   done
 
-  msgdie '3' "Missing dependencies.$deps"
+  [ -n "$miss" ] || return 0
+
+  msgdie '3' "Missing dependencies:$miss"
 }
