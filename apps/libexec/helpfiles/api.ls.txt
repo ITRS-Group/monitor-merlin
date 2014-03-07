@@ -1,0 +1,8 @@
+[--help|[<table> [OPTION|FILTER]..]
+
+All available tables will be listed if no arguments are seen.
+
+The first argument is always the table name. The table is
+described if this is the one and only argument given.
+
+See --help for more information.

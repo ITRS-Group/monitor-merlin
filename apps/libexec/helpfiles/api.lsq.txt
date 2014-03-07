@@ -1,0 +1,5 @@
+[query]
+
+A raw livestatus query is expected at stdin or as the first argument.
+
+The query needs not a trailing newline, but either way works.
