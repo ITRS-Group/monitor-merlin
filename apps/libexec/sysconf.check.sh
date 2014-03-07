@@ -7,18 +7,27 @@ LANG='C'
 
 # show help text, especially for mon command
 if [ "$1" == '--help' -o "$1" == '-h' ]; then
-  printf '[-c|--complete]\n'
+  printf '[-c|--complete] [-v|--verbose]\n'
   printf 'Summarizes the results of all "mon syscheck" handlers.\n'
   printf 'The -c switch will output all check results, regardless of state.\n'
+  printf 'The -v switch will output full multi line check results.\n'
 
   exit 0
 fi
 
-# did the user ask to see all check results?
+# set sane defaults
 complete='no'
-if [ "$1" == '--complete' -o "$1" == '-c' ]; then
-  complete='yes'
-fi
+verbose='no'
+
+# parse command line arguments
+for arg; do
+  case "$1" in
+    '-c'|'--complete') complete=yes ;;
+    '-v'|'--verbose') verbose=yes ;;
+  esac
+  shift
+done
+
 
 # fetch output of mon
 if ! handlers="$(mon --help 2>&1)"; then
@@ -57,11 +66,19 @@ for handler in $handlers; do
   # increase main exit code if handler's code was more severe
   [ "$handler_ret" -gt "$main_ret" ] && main_ret="$handler_ret"
 
-  # get first line of handler output
-  read -r line <<< "$handler_out"
+  if [ "$verbose" == 'yes' ]; then
+    # append to output: handler name + handler output + newline
+    main_out+="($handler)"$'\n'"$handler_out"$'\n\n'
+  else
+    # get first line of handler output
+    read -r line <<< "$handler_out"
 
-  # append to output: handler name + first line of handler output + newline
-  main_out+="($handler) $line"$'\n'
+    # strip perfdata from line (remove shortest suffixing match of |*)
+    line="${line%|*}"
+
+    # append to output: handler name + first line of handler output + newline
+    main_out+="($handler) $line"$'\n'
+  fi
 done
 
 
