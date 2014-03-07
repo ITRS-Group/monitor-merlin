@@ -1,42 +1,48 @@
 #!/bin/bash
 
-# 1. Fetch PID from $lockfile file.
-# 2. Is there a process running with this PID?
-# 3. Does the command line of this process match the expected cmdline?
+# SNTX: <cmdline=line> <lockfile=file> chk_lockfile
+# DESC: Thoroughly verifies a lockfile/pidfile. See comments below.
 chk_lockfile()
 {
   local cmd cmdfile pid
 
-  # keep original stderr redirection in fd3 and disable stderr
-  exec 3>&2 2>&-
-
+  # Is the lockfile a file?
   [ -f "$lockfile" ] || \
     dieplug '2' "Process not running? Lock file not found ($lockfile)."
+  # Is the lockfile readable?
   [ -r "$lockfile" ] || \
     dieplug '3' "Lock file ($lockfile) is not readable."
+
+  # Read the first line of the lockfile into $pid.
   read -r pid < "$lockfile"
+  # Is $pid empty?
   [ -n "$pid" ] || \
-    dieplug '3' "Failed reading lock file ($lockfile)."
+    dieplug '3' "Lock file ($lockfile) empty?"
+  # Does $pid look like a PID?
   [[ $pid =~ ^[0-9]+$ ]] || \
     dieplug '3' "Invalid content in lock file ($lockfile)."
 
   cmdfile="/proc/$pid/cmdline"
+  # Is the cmdline a file? (Directory is probably missing if not => No process.)
   [ -f "$cmdfile" ] || \
-    dieplug '2' "PID ($pid) read from lock file does not exist."
+    dieplug '2' "PID ($pid) from lock file ($lockfile) not found."
+  # Is the cmdline file readable?
   [ -r "$cmdfile" ] || \
     dieplug '3' "cmdline file ($cmdfile) is not readable."
-  IFS='' read -d'' -r cmd < "$cmdfile"
+
+  # Read all data until the first null byte (the cmd name/argv[0]) into $cmd.
+  read -d '' -r cmd < "$cmdfile"
+  # Is $cmd empty?
   [ -n "$cmd" ] || \
     dieplug '3' "Failed reading cmdline file ($cmdfile)."
-  [ "${cmdline%% *}" == "$cmd" ] || \
-    dieplug '2' "PID ($pid) read from lock file does not belong to process."
 
-  # re-enable stderr and close fd3
-  exec 2>&3 3>&-
+  # Is the cmd name of this process the same as in the given cmdline
+  [ "${cmdline%% *}" == "$cmd" ] || \
+    dieplug '2' "PID ($pid) from lock file ($lockfile) not belonging to expected process."
 }
 
-# Finds the number of processes that are matching the specified cmdline
-# using pgrep.
+# SNTX: <cmdline=line> chk_numprocs
+# DESC: Finds the number of processes that are matching the specified cmdline.
 chk_numprocs()
 {
   local msg num output pids
@@ -45,30 +51,18 @@ chk_numprocs()
 
   num="$(pgrep -fx "$cmdline" 2>/dev/null | wc -l)"
   if ! [ "$num" -ge '0' ] &> /dev/null; then
-    msg='pgrep returned unexpected output'
-    res='3'
+    dieplug '3' 'pgrep returned unexpected output'
   elif [ "$num" == '0' ]; then
-    msg="0 processes found.|procs=0"
-    res='2'
+    dieplug '2' "0 processes found.|procs=0"
   elif [ "$num" -gt "$max" ]; then
-    msg="$num process(es) found (expected max $max).|procs=$num"
-    res='1'
+    dieplug '1' "$num process(es) found (expected max $max).|procs=$num"
   else
-    msg="$num process(es) found.|procs=$num"
-    res='0'
+    dieplug '0' "$num process(es) found.|procs=$num"
   fi
-
-  dieplug "$res" "$msg"
 }
 
-# Main function.
-chkproc()
-{
-  [ -n "$lockfile" ] && chk_lockfile
-  chk_numprocs
-}
-
-# Syntax helper function.
+# SNTX: <procname=name> syntax_proc
+# DESC: Prints help text and exits.
 syntax_proc()
 {
   msgdie '0' "[--info]
@@ -76,22 +70,24 @@ Verifies process *${procname//_/ }*
 "
 }
 
-# Function handling the --info argument.
-info_chkproc()
+# SNTX: <cmdline=line> [lockfile=file] <procname=name> <max=num> info_proc
+# DESC: Prints verbose information about the current process check and exits.
+info_proc()
 {
   local info info_lock info_max
 
-  [ -n "$lockfile" ] && \
+  if [ -n "$lockfile" ]; then
     info_lock="
 Process lock file:
   $lockfile
 "
+  fi
 
-  [ "$max" == '1' ] && {
+  if [ "$max" == '1' ]; then
     info_max='Expecting to find a single process running with this command line.'
-  } || {
+  else
     info_max="Expecting to find up to $max processes running with this command line."
-  }
+  fi
 
 
   info="- *$procname* process check -
@@ -108,28 +104,34 @@ $info_max
 }
 
 
-# source the ordinary generic functions
+# Source the ordinary generic functions.
 . "$d/bash/inc.sh"
 
-# set up $procname for syntax_proc() and info_chkproc(),
-# based on the $0 argument
+# Set up $procname for info_proc(), based on the $0 argument:
+# * Strip the longest prefixing match of *syscheck.proc_
 procname="${0##*syscheck.proc_}"
+# * Strip the shortest suffixing match of %.sh
 procname="${procname%.sh}"
 
-# we gotta know what sort of command line to look for
+# A process command line must be specified.
 [ -n "$cmdline" ] || \
   dieplug '3' "Missing cmdline."
 
-# max number of processes accepted until returning a WARNING state;
-# default to no more than 1.
+# The WARNING threshold of the maximum matching number of processes.
+# Default to no more than 1.
 max="${max:-1}"
 
 
-[ "$1" == '--help' ] && syntax_proc
-[ "$1" == '--info' ] && info_chkproc
+# Display helptext/info of this check?
+[ "$1" == '--help' -o "$1" == '-h' ] && syntax_proc
+[ "$1" == '--info' ] && info_proc
 
-# can't run chk_numprocs() without these executables
+# chk_numprocs() requires these executables to function.
 depchk 'pgrep' 'wc'
 
-# gogogo
-chkproc
+
+# Verify the lockfile if any.
+[ -n "$lockfile" ] && chk_lockfile
+
+# Verify the number of matching processes.
+chk_numprocs
