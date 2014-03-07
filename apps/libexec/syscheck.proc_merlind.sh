@@ -1,8 +1,10 @@
 #!/bin/bash
 
-cmdline='/usr/bin/merlind -c /opt/monitor/op5/merlin/merlin.conf'
-lockfile='/var/run/merlin.pid'
-
+cmdline_rhel='/usr/bin/merlind -c /opt/monitor/op5/merlin/merlin.conf'
+cmdline_sles="$cmdline_rhel"
+lockfile_rhel='/var/run/merlin.pid'
+lockfile_sles="$lockfile_rhel"
+max='1'
 
 # make sure $d is a valid path
 [ "$0" == "${0//\//}" ] && d='.' || d="${0%/*}"

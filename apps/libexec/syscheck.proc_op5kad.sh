@@ -1,8 +1,10 @@
 #!/bin/bash
 
-cmdline='/usr/bin/python /usr/bin/op5kad -c /etc/op5kad/kad.conf'
-lockfile='/var/run/op5kad.pid'
-
+cmdline_rhel='/usr/bin/python /usr/bin/op5kad -c /etc/op5kad/kad.conf'
+cmdline_sles="$cmdline_rhel"
+lockfile_rhel='/var/run/op5kad.pid'
+lockfile_sles="$lockfile_rhel"
+max='1'
 
 # make sure $d is a valid path
 [ "$0" == "${0//\//}" ] && d='.' || d="${0%/*}"

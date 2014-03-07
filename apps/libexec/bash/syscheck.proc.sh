@@ -114,8 +114,21 @@ procname="${0##*syscheck.proc_}"
 procname="${procname%.sh}"
 
 # A process command line must be specified.
-[ -n "$cmdline" ] || \
-  dieplug '3' "Missing cmdline."
+[ -n "$cmdline_rhel" ] || \
+  dieplug '3' "Missing RHEL command line."
+[ -n "$cmdline_sles" ] || \
+  dieplug '3' "Missing SLES command line."
+
+# Translate OS suffixed variables into non-suffixed ones, depending on OS.
+if is_rhel; then
+  cmdline="$cmdline_rhel"
+  [ -n "$lockfile_rhel" ] && lockfile="$lockfile_rhel"
+elif is_sles; then
+  cmdline="$cmdline_sles"
+  [ -n "$lockfile_sles" ] && lockfile="$lockfile_sles"
+else
+  dieplug '3' 'Unable to determine the current operating system.'
+fi
 
 # The WARNING threshold of the maximum matching number of processes.
 # Default to no more than 1.

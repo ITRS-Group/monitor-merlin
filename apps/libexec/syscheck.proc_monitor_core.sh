@@ -1,7 +1,9 @@
 #!/bin/bash
 
-cmdline='/opt/monitor/bin/monitor -d /opt/monitor/etc/nagios.cfg'
-lockfile='/opt/monitor/var/nagios.lock'
+cmdline_rhel='/opt/monitor/bin/monitor -d /opt/monitor/etc/nagios.cfg'
+cmdline_sles="$cmdline_rhel"
+lockfile_rhel='/opt/monitor/var/nagios.lock'
+lockfile_sles="$lockfile_rhel"
 max='2'
 
 # make sure $d is a valid path

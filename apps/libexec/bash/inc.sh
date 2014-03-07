@@ -93,3 +93,20 @@ cmd_debug_section()
   printf '%s\n' "$2"
   printf '==%s:END==\n' "$1"
 }
+
+
+# SNTX: is_rhel
+# DESC: Basic check if this is a RHEL system.
+is_rhel()
+{
+  test -f /etc/rc.d/init.d/functions
+  return $?
+}
+
+# SNTX: is_sles
+# DESC: Basic check if this is a SLES system.
+is_sles()
+{
+  test -f /etc/rc.status
+  return $?
+}

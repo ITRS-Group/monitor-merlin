@@ -1,8 +1,10 @@
 #!/bin/bash
 
-cmdline='/opt/monitor/bin/monitor --worker /opt/monitor/var/rw/nagios.qh'
-
-max='100000'
+cmdline_rhel='/opt/monitor/bin/monitor --worker /opt/monitor/var/rw/nagios.qh'
+cmdline_sles="$cmdline_rhel"
+lockfile_rhel=''
+lockfile_sles=''
+max='100'
 
 # make sure $d is a valid path
 [ "$0" == "${0//\//}" ] && d='.' || d="${0%/*}"
