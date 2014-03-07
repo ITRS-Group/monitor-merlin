@@ -55,3 +55,41 @@ depchk()
 
   msgdie '3' "Missing dependencies:$miss"
 }
+
+
+# SNTX: cmd_exec <command> [arg1] [argN]..
+# DESC: Executes given command line, which if it fails, exits with debug output.
+cmd_exec()
+{
+  OUT="$("$@" 2>&1)"
+  RET="$?"
+
+  [ "$RET" == '0' ] || \
+    msgdie '3' "$(cmd_debug_output "$@")"
+
+  return 0
+}
+
+# SNTX: [OUT=<text>] [RET=<$?>] cmd_debug_output <command> [arg1] [argN]..
+# DESC: Verbosely describes the given command line and possible results.
+cmd_debug_output()
+{
+  local args
+  args="$(for arg; do printf '(%s)\n' "$arg"; done)"
+
+  printf 'Executed command failed unexpectedly.\n'
+  cmd_debug_section 'CMD LINE' "$*"
+  cmd_debug_section 'ARGUMENTS' "$args"
+  [ -n "$RET" ] && cmd_debug_section 'RETURN CODE' "$RET"
+  [ -n "$OUT" ] && cmd_debug_section 'OUTPUT' "$OUT"
+}
+
+# SNTX: cmd_debug_section <tag> <text>
+# DESC: Encapsulates given text with tagged header and footer.
+cmd_debug_section()
+{
+  printf '\n'
+  printf '==%s:START==\n' "$1"
+  printf '%s\n' "$2"
+  printf '==%s:END==\n' "$1"
+}
