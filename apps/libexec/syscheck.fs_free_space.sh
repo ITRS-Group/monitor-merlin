@@ -4,8 +4,8 @@
 [ "$0" == "${0//\//}" ] && d='.' || d="${0%/*}"
 . "$d/bash/inc.sh"
 
-[ "$1" == '--help' ] && syntax '
-Checks all locally mounted filesystems for low amounts of free space.'
+[ "$1" == '--help' ] && msgdie '0' \
+  'Checks all locally mounted filesystems for low amounts of free space.'
 
 PATH="/opt/plugins:$PATH"
 depchk check_disk

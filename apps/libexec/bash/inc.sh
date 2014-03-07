@@ -1,7 +1,14 @@
+# SNTX: msgdie <exit code> <text>
+# DESC: Prints specified text and exits with given exit code.
+msgdie()
+{
+  printf '%s\n' "$2"
+  exit $1
+}
+
 # syntax: diecho <exit code> <exit text without exit state prefix>
 # desc: Prints the final status text and prepends the exit state prefix
-#       depending on which exit code it was called with.
-diecho()
+dieplug()
 {
   local code text prefix
   code="$1"
@@ -29,17 +36,7 @@ diecho()
   [ -n "$2" ] && text+=": $2"
 
   # print text to stdout
-  printf '%s\n' "$text"
-
-  exit "$code"
-}
-
-# syntax: syntax <text>
-# desc: Prints text and exits. Fancy stuff.
-syntax()
-{
-  printf '%s\n' "$1"
-  exit 0
+  msgdie "$code" "$text"
 }
 
 # syntax: depchk <dep1> [depN]..
@@ -60,5 +57,5 @@ depchk()
     deps+=$'\n'"dep: ${dep[$i]}"
   done
 
-  diecho '3' "Missing dependencies.$deps"
+  msgdie '3' "Missing dependencies.$deps"
 }

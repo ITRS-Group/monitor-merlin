@@ -4,8 +4,8 @@
 [ "$0" == "${0//\//}" ] && d='.' || d="${0%/*}"
 . "$d/bash/inc.sh"
 
-[ "$1" == '--help' ] && syntax '
-Checks for badly mounted filesystems and non-clean ext filesystems.'
+[ "$1" == '--help' ] && msgdie '0' \
+  'Checks for badly mounted filesystems and non-clean ext filesystems.'
 
 depchk cut grep tune2fs
 
@@ -34,7 +34,7 @@ while read -r dev mnt fs opts _; do
 done < /proc/mounts
 
 [ -n "$msg" ] && {
-  diecho '2' "$msg"
+  dieplug '2' "$msg"
 } || {
-  diecho '0' "No problems detected."
+  dieplug '0' "No problems detected."
 }

@@ -4,8 +4,8 @@
 [ "$0" == "${0//\//}" ] && d='.' || d="${0%/*}"
 . "$d/bash/inc.sh"
 
-[ "$1" == '--help' ] && syntax '
-Detects errors in the merlin and nacoma database using mysqlcheck.'
+[ "$1" == '--help' ] && msgdie '0' \
+  'Detects errors in the merlin and nacoma database using mysqlcheck.'
 
 depchk grep mysqlcheck
 
@@ -29,4 +29,4 @@ else
   res='3'
 fi
 
-diecho "$res" "$msg"
+dieplug "$res" "$msg"

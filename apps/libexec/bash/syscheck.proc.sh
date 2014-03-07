@@ -11,25 +11,25 @@ chk_lockfile()
   exec 3>&2 2>&-
 
   [ -f "$lockfile" ] || \
-    diecho '2' "Process not running? Lock file not found ($lockfile)."
+    dieplug '2' "Process not running? Lock file not found ($lockfile)."
   [ -r "$lockfile" ] || \
-    diecho '3' "Lock file ($lockfile) is not readable."
+    dieplug '3' "Lock file ($lockfile) is not readable."
   read -r pid < "$lockfile"
   [ -n "$pid" ] || \
-    diecho '3' "Failed reading lock file ($lockfile)."
+    dieplug '3' "Failed reading lock file ($lockfile)."
   [[ $pid =~ ^[0-9]+$ ]] || \
-    diecho '3' "Invalid content in lock file ($lockfile)."
+    dieplug '3' "Invalid content in lock file ($lockfile)."
 
   cmdfile="/proc/$pid/cmdline"
   [ -f "$cmdfile" ] || \
-    diecho '2' "PID ($pid) read from lock file does not exist."
+    dieplug '2' "PID ($pid) read from lock file does not exist."
   [ -r "$cmdfile" ] || \
-    diecho '3' "cmdline file ($cmdfile) is not readable."
+    dieplug '3' "cmdline file ($cmdfile) is not readable."
   IFS='' read -d'' -r cmd < "$cmdfile"
   [ -n "$cmd" ] || \
-    diecho '3' "Failed reading cmdline file ($cmdfile)."
+    dieplug '3' "Failed reading cmdline file ($cmdfile)."
   [ "${cmdline%% *}" == "$cmd" ] || \
-    diecho '2' "PID ($pid) read from lock file does not belong to process."
+    dieplug '2' "PID ($pid) read from lock file does not belong to process."
 
   # re-enable stderr and close fd3
   exec 2>&3 3>&-
@@ -58,7 +58,7 @@ chk_numprocs()
     res='0'
   fi
 
-  diecho "$res" "$msg"
+  dieplug "$res" "$msg"
 }
 
 # Main function.
@@ -71,7 +71,7 @@ chkproc()
 # Syntax helper function.
 syntax_proc()
 {
-  syntax "[--info]
+  msgdie '0' "[--info]
 Verifies process *${procname//_/ }*
 "
 }
@@ -118,7 +118,7 @@ procname="${procname%.sh}"
 
 # we gotta know what sort of command line to look for
 [ -n "$cmdline" ] || \
-  diecho '3' "Missing cmdline."
+  dieplug '3' "Missing cmdline."
 
 # max number of processes accepted until returning a WARNING state;
 # default to no more than 1.
