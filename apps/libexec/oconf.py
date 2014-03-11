@@ -986,7 +986,7 @@ def get_ssh_key(node):
 
 
 def cmd_push(args):
-	"""--no-restart
+	"""--no-restart [<node1> <node2> <nodeN>]
 	Splits configuration based on merlin's peer and poller configuration
 	and sends object configuration to all peers and pollers, restarting
 	those that receive a configuration update.
@@ -999,17 +999,29 @@ def cmd_push(args):
 	errors = 0
 	cmd_nodesplit(args)
 	restart_nodes = {}
+	wanted_nodes = []
 	restart = True
 
 	for arg in args:
 		if arg == '--no-restart':
 			restart = False
+			continue
+		node = mconf.configured_nodes.get(arg)
+		if node:
+			wanted_nodes.append((node.name, node))
+			continue
+		prettyprint_docstring('dist', cmd_dist.__doc__,
+			'Unknown argument: %s' % arg)
+		sys.exit(1)
+
+	if not len(wanted_nodes):
+		wanted_nodes = mconf.configured_nodes.items()
 
 	# Copy recursively in 'archive' mode
 	base_rsync_args = ['rsync', '-aotz', '--delete']
 	base_rsync_args += ['-b', '--backup-dir=/var/cache/merlin/backups']
 
-	for name, node in mconf.configured_nodes.items():
+	for name, node in wanted_nodes:
 		# we don't push to master nodes
 		if node.ntype == 'master':
 			continue
