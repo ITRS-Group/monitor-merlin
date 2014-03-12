@@ -632,6 +632,7 @@ class fake_mesh:
 		else:
 			ret = sub.get_status()
 		if ret != 0:
+			self.tap.fail('Daemons are misbehaving. Bad daemons!')
 			self.shutdown('Daemons are misbehaving. Bad daemons!')
 			return False
 		return True
