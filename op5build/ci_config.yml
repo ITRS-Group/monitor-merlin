@@ -1,4 +1,4 @@
 post:
  steps: |
   chmod o+rwx /mnt/logs
-  su - monitor -c "mon test dist --batch --basepath=/mnt/logs"
+  mon run-ci-test
