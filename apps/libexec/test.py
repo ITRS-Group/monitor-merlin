@@ -632,6 +632,7 @@ class fake_mesh:
 		else:
 			ret = sub.get_status()
 		if ret != 0:
+			self.tap.fail('Daemons are misbehaving. Bad daemons!')
 			self.shutdown('Daemons are misbehaving. Bad daemons!')
 			return False
 		return True
@@ -1616,7 +1617,7 @@ def cmd_dist(args):
 	setup = True
 	destroy = True
 	basepath = '/tmp/merlin-dtest'
-	livestatus_o = '/opt/monitor/op5/livestatus/livestatus.o'
+	livestatus_o = '/usr/lib64/naemon-livestatus/livestatus.so'
 	db_admin_user = 'root'
 	db_admin_password = False
 	db_name = 'merlin'
