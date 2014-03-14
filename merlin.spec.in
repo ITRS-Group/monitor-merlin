@@ -249,10 +249,12 @@ sh /etc/init.d/monitor start || :
 /opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
 
 %exclude %_libdir/merlin/mon/test.py*
+%exclude %_libdir/merlin/mon/run-ci-test.sh
 %exclude %_libdir/merlin/merlin.so
 
 %files test
 %_libdir/merlin/mon/test.py*
+%_libdir/merlin/mon/run-ci-test.sh
 
 %clean
 rm -rf %buildroot
