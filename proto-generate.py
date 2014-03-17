@@ -1,5 +1,6 @@
 #!/usr/bin/env python2.7
 import sys
+import re
 type_map = {
         'int': 'int32',
         'struct timeval': 'Timeval',
@@ -43,6 +44,10 @@ def get_structs(filename):
     return structs
 
 
+def snake2camel(str):
+    comps = str.split('_')
+    return ''.join([c.title() for c in comps])
+
 def generate_proto(structdefs):
     print ('import "header.proto";')
     print ('message NebCallbackHeader {')
@@ -53,7 +58,7 @@ def generate_proto(structdefs):
     print ('')
 
     for struct in get_structs(structdefs):
-        print('message %s {' % struct.name)
+        print('message %s {' % snake2camel(struct.name))
         print('\toptional MerlinHeader header = 1;');
         print('\toptional NebCallbackHeader neb_header = 2;');
         i = 3
