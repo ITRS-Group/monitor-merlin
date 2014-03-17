@@ -147,6 +147,9 @@ static struct file_list *get_cfg_files(char *str, struct file_list *list)
 	char *p, *base_path = NULL;
 	int size, i;
 
+	if (!str)
+		return list;
+
 	base_path = dirname(nspath_real(str, NULL));
 
 	p = read_strip_split(str, &size);
