@@ -1,6 +1,8 @@
 #!/usr/bin/env python2.7
 import sys
 import re
+from collections import OrderedDict
+
 type_map = {
         'int': 'int32',
         'struct timeval': 'Timeval',
@@ -11,20 +13,24 @@ type_map = {
         }
 
 class struct(object):
-    def __init__(self, name, fields):
-        self.name = name
-        self.fields = fields
+    def __init__(self):
+        self.name = 'Not found'
+        self.fields = OrderedDict()
+
+    def add_field(self, ident, type):
+        self.fields[ident] = type
 
 def get_structs(filename):
     in_structdef = False
-    fields = {}
     structs = []
+    a_struct = struct()
     with open(filename, 'r') as f:
         for line in f:
             if in_structdef:
                 if line.strip().startswith('}'):
                     name = line.strip().split('}')[1].strip()[len('nebstruct_'):-1]
-                    structs.append(struct(name, fields))
+                    a_struct.name = name
+                    structs.append(a_struct)
                     in_structdef = False
                 elif len(line.strip()) > 0:
                     typestr = line.strip().split()[:-1]
@@ -33,10 +39,10 @@ def get_structs(filename):
                     if ident.startswith('*'):
                         type = type + ' *'
                         ident = ident[1:]
-                    fields[ident] = type
+                    a_struct.add_field(ident, type)
 
             elif line.startswith('typedef struct nebstruct_'):
-                fields = {}
+                a_struct = struct()
                 in_structdef = True
             else:
                 pass
