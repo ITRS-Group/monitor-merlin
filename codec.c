@@ -1,5 +1,6 @@
 #include "shared.h"
 #include "hookinfo.h"
+#include "nebcallback.pb-c.h"
 
 /*
  * Both of these conversions involve a fair deal of Black Magic.
