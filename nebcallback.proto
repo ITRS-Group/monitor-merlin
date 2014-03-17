@@ -1,0 +1,434 @@
+import "header.proto";
+message NebCallbackHeader {
+	optional int32 flags = 1;
+	optional int32 attr = 2;
+	optional Timeval timestamp = 3;
+};
+
+message nebstruct_process_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 flags = 3;
+	optional int32 type = 4;
+	optional int32 attr = 5;
+	optional Timeval timestamp = 6;
+};
+
+message nebstruct_timed_event_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 event_type = 3;
+	optional int32 type = 4;
+	optional int32 flags = 5;
+	optional int64 run_time = 6;
+	optional Timeval timestamp = 7;
+	optional int32 recurring = 9;
+	optional int32 attr = 11;
+};
+
+message nebstruct_log_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int64 entry_time = 3;
+	optional int32 attr = 4;
+	optional int32 data_type = 5;
+	optional Timeval timestamp = 6;
+	optional string data = 7;
+	optional int32 flags = 8;
+	optional int32 type = 9;
+};
+
+message nebstruct_system_command_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 attr = 3;
+	optional double execution_time = 4;
+	optional Timeval timestamp = 5;
+	optional Timeval start_time = 6;
+	optional string command_line = 7;
+	optional int32 return_code = 8;
+	optional int32 early_timeout = 9;
+	optional int32 flags = 10;
+	optional Timeval end_time = 11;
+	optional int32 timeout = 12;
+	optional string output = 13;
+	optional int32 type = 14;
+};
+
+message nebstruct_event_handler_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 eventhandler_type = 4;
+	optional int32 attr = 5;
+	optional double execution_time = 6;
+	optional Timeval timestamp = 7;
+	optional Timeval start_time = 8;
+	optional string command_line = 9;
+	optional string command_args = 10;
+	optional int32 return_code = 11;
+	optional int32 state_type = 12;
+	optional int32 state = 13;
+	optional Timeval end_time = 14;
+	optional int32 flags = 15;
+	optional string host_name = 16;
+	optional int32 timeout = 17;
+	optional string output = 18;
+	optional string service_description = 19;
+	optional int32 type = 20;
+	optional int32 early_timeout = 21;
+	optional string command_name = 22;
+};
+
+message nebstruct_host_check_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 check_type = 3;
+	optional string command_args = 5;
+	optional string command_name = 6;
+	optional double latency = 7;
+	optional int32 current_attempt = 8;
+	optional string command_line = 9;
+	optional int32 state = 10;
+	optional int32 type = 11;
+	optional string host_name = 12;
+	optional double execution_time = 13;
+	optional Timeval timestamp = 14;
+	optional Timeval start_time = 15;
+	optional int32 return_code = 17;
+	optional int32 state_type = 18;
+	optional int32 early_timeout = 19;
+	optional int32 attr = 20;
+	optional string long_output = 21;
+	optional int32 flags = 22;
+	optional Timeval end_time = 23;
+	optional int32 timeout = 24;
+	optional string output = 25;
+	optional int32 max_attempts = 26;
+	optional string perf_data = 27;
+};
+
+message nebstruct_service_check_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 check_type = 3;
+	optional string command_args = 5;
+	optional string command_name = 6;
+	optional double latency = 7;
+	optional int32 current_attempt = 8;
+	optional string command_line = 9;
+	optional int32 state = 10;
+	optional int32 type = 11;
+	optional string host_name = 12;
+	optional double execution_time = 13;
+	optional Timeval timestamp = 14;
+	optional Timeval start_time = 15;
+	optional int32 return_code = 17;
+	optional int32 state_type = 18;
+	optional string service_description = 19;
+	optional int32 early_timeout = 20;
+	optional int32 attr = 21;
+	optional string long_output = 22;
+	optional int32 flags = 23;
+	optional Timeval end_time = 24;
+	optional int32 timeout = 25;
+	optional string output = 26;
+	optional int32 max_attempts = 27;
+	optional string perf_data = 28;
+};
+
+message nebstruct_comment_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int64 entry_time = 4;
+	optional fixed64 comment_id = 5;
+	optional int32 attr = 6;
+	optional int32 comment_type = 7;
+	optional int32 source = 8;
+	optional Timeval timestamp = 9;
+	optional int32 expires = 10;
+	optional int32 persistent = 11;
+	optional string author_name = 12;
+	optional string comment_data = 13;
+	optional int32 flags = 14;
+	optional string host_name = 15;
+	optional int32 entry_type = 16;
+	optional int64 expire_time = 17;
+	optional string service_description = 18;
+	optional int32 type = 19;
+};
+
+message nebstruct_downtime_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int64 entry_time = 4;
+	optional int32 attr = 5;
+	optional string comment_data = 6;
+	optional Timeval timestamp = 7;
+	optional int64 start_time = 8;
+	optional fixed64 downtime_id = 9;
+	optional string author_name = 10;
+	optional int64 end_time = 11;
+	optional int32 flags = 12;
+	optional string host_name = 13;
+	optional fixed64 triggered_by = 14;
+	optional fixed64 duration = 15;
+	optional string service_description = 16;
+	optional int32 fixed = 17;
+	optional int32 type = 18;
+	optional int32 downtime_type = 19;
+};
+
+message nebstruct_flapping_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional fixed64 comment_id = 3;
+	optional double percent_change = 4;
+	optional int32 attr = 5;
+	optional Timeval timestamp = 6;
+	optional double low_threshold = 7;
+	optional int32 flags = 9;
+	optional string host_name = 10;
+	optional string service_description = 11;
+	optional double high_threshold = 12;
+	optional int32 type = 13;
+	optional int32 flapping_type = 14;
+};
+
+message nebstruct_program_status_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int64 program_start = 3;
+	optional int32 process_performance_data = 4;
+	optional int32 pid = 5;
+	optional int32 passive_service_checks_enabled = 6;
+	optional int32 event_handlers_enabled = 7;
+	optional int32 daemon_mode = 8;
+	optional string global_host_event_handler = 9;
+	optional fixed64 modified_host_attributes = 10;
+	optional fixed64 modified_service_attributes = 11;
+	optional int32 type = 12;
+	optional int32 flap_detection_enabled = 13;
+	optional int32 obsess_over_hosts = 14;
+	optional string global_service_event_handler = 15;
+	optional int32 obsess_over_services = 16;
+	optional Timeval timestamp = 17;
+	optional int32 notifications_enabled = 18;
+	optional int64 last_log_rotation = 19;
+	optional int32 attr = 20;
+	optional int32 passive_host_checks_enabled = 21;
+	optional int32 flags = 22;
+	optional int32 active_service_checks_enabled = 23;
+	optional int32 active_host_checks_enabled = 24;
+};
+
+message nebstruct_host_status_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 flags = 4;
+	optional int32 type = 5;
+	optional int32 attr = 6;
+	optional Timeval timestamp = 7;
+};
+
+message nebstruct_service_status_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 flags = 4;
+	optional int32 type = 5;
+	optional int32 attr = 6;
+	optional Timeval timestamp = 7;
+};
+
+message nebstruct_contact_status_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 flags = 4;
+	optional int32 type = 5;
+	optional int32 attr = 6;
+	optional Timeval timestamp = 7;
+};
+
+message nebstruct_notification_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 reason_type = 3;
+	optional int32 attr = 4;
+	optional string ack_data = 5;
+	optional string output = 6;
+	optional string ack_author = 7;
+	optional Timeval timestamp = 8;
+	optional Timeval start_time = 9;
+	optional int32 contacts_notified = 10;
+	optional int32 escalated = 12;
+	optional int32 state = 13;
+	optional int32 flags = 14;
+	optional Timeval end_time = 15;
+	optional string service_description = 16;
+	optional int32 notification_type = 17;
+	optional int32 type = 18;
+	optional string host_name = 19;
+};
+
+message nebstruct_contact_notification_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 reason_type = 3;
+	optional int32 attr = 5;
+	optional string ack_data = 6;
+	optional string output = 7;
+	optional string ack_author = 8;
+	optional Timeval timestamp = 9;
+	optional Timeval start_time = 10;
+	optional int32 escalated = 12;
+	optional int32 state = 13;
+	optional int32 flags = 14;
+	optional Timeval end_time = 15;
+	optional string service_description = 16;
+	optional int32 notification_type = 17;
+	optional string contact_name = 18;
+	optional int32 type = 19;
+	optional string host_name = 20;
+};
+
+message nebstruct_contact_notification_method_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 reason_type = 3;
+	optional int32 attr = 5;
+	optional string ack_data = 6;
+	optional string output = 7;
+	optional string ack_author = 8;
+	optional Timeval timestamp = 9;
+	optional Timeval start_time = 10;
+	optional string command_args = 12;
+	optional int32 escalated = 13;
+	optional int32 state = 14;
+	optional int32 flags = 15;
+	optional Timeval end_time = 16;
+	optional string service_description = 17;
+	optional int32 notification_type = 18;
+	optional string contact_name = 19;
+	optional string command_name = 20;
+	optional int32 type = 21;
+	optional string host_name = 22;
+};
+
+message nebstruct_adaptive_program_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 attr = 3;
+	optional fixed64 modified_host_attributes = 4;
+	optional Timeval timestamp = 5;
+	optional fixed64 modified_service_attributes = 6;
+	optional int32 flags = 7;
+	optional fixed64 modified_service_attribute = 8;
+	optional fixed64 modified_host_attribute = 9;
+	optional int32 command_type = 10;
+	optional int32 type = 11;
+};
+
+message nebstruct_adaptive_host_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional fixed64 modified_attribute = 3;
+	optional int32 attr = 4;
+	optional Timeval timestamp = 5;
+	optional fixed64 modified_attributes = 7;
+	optional int32 flags = 8;
+	optional int32 command_type = 9;
+	optional int32 type = 10;
+};
+
+message nebstruct_adaptive_service_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional fixed64 modified_attribute = 3;
+	optional int32 attr = 4;
+	optional Timeval timestamp = 5;
+	optional fixed64 modified_attributes = 7;
+	optional int32 flags = 8;
+	optional int32 command_type = 9;
+	optional int32 type = 10;
+};
+
+message nebstruct_adaptive_contact_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional fixed64 modified_attribute = 4;
+	optional int32 attr = 5;
+	optional fixed64 modified_host_attributes = 6;
+	optional Timeval timestamp = 7;
+	optional fixed64 modified_service_attributes = 8;
+	optional fixed64 modified_attributes = 9;
+	optional int32 flags = 10;
+	optional fixed64 modified_service_attribute = 11;
+	optional fixed64 modified_host_attribute = 12;
+	optional int32 command_type = 13;
+	optional int32 type = 14;
+};
+
+message nebstruct_external_command_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int64 entry_time = 3;
+	optional int32 attr = 4;
+	optional Timeval timestamp = 5;
+	optional string command_args = 6;
+	optional int32 flags = 7;
+	optional string command_string = 8;
+	optional int32 command_type = 9;
+	optional int32 type = 10;
+};
+
+message nebstruct_aggregated_status_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 flags = 3;
+	optional int32 type = 4;
+	optional int32 attr = 5;
+	optional Timeval timestamp = 6;
+};
+
+message nebstruct_retention_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 flags = 3;
+	optional int32 type = 4;
+	optional int32 attr = 5;
+	optional Timeval timestamp = 6;
+};
+
+message nebstruct_acknowledgement_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 notify_contacts = 3;
+	optional int32 attr = 4;
+	optional string comment_data = 5;
+	optional int32 is_sticky = 6;
+	optional Timeval timestamp = 7;
+	optional int32 acknowledgement_type = 8;
+	optional string author_name = 10;
+	optional int32 state = 11;
+	optional int32 persistent_comment = 12;
+	optional int32 flags = 13;
+	optional string host_name = 14;
+	optional string service_description = 15;
+	optional int32 type = 16;
+};
+
+message nebstruct_statechange_data {
+	optional MerlinHeader header = 1;
+	optional NebCallbackHeader neb_header = 2;
+	optional int32 attr = 3;
+	optional int32 current_attempt = 4;
+	optional Timeval timestamp = 5;
+	optional int32 state = 7;
+	optional int32 state_type = 8;
+	optional int32 statechange_type = 9;
+	optional int32 flags = 10;
+	optional string host_name = 11;
+	optional string output = 12;
+	optional string service_description = 13;
+	optional int32 type = 14;
+	optional int32 max_attempts = 15;
+};
