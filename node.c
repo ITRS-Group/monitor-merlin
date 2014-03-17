@@ -446,10 +446,8 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 	for (i = 0; i < c->nested; i++) {
 		struct cfg_comp *comp = c->nest[i];
 		if (!strcmp(comp->name, "object_config")) {
-			node->csync = calloc(1, sizeof(*node->csync));
-			if (!node->csync)
-				cfg_error(comp, NULL, "Failed to allocate memory for confsync struct");
-			grok_confsync_compound(comp, node->csync);
+			node->csync.configured = 1;
+			grok_confsync_compound(comp, &node->csync);
 			continue;
 		}
 		/* this is for 'mon oconf push' only */

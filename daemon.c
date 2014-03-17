@@ -218,6 +218,13 @@ static void post_process_nodes(void)
 			continue;
 		}
 
+		if (!node->csync.configured && csync.push.cmd) {
+			if (asprintf(&node->csync.push.cmd, "%s %s", csync.push.cmd, node->name) < 0)
+				lerr("CSYNC: Failed to add per-node confsync command for %s", node->name);
+			else
+				ldebug("CSYNC: Adding per-node sync to %s as: %s\n", node->name, node->csync.push.cmd);
+		}
+
 		if (!node->sain.sin_port)
 			node->sain.sin_port = htons(default_port);
 
@@ -371,28 +378,15 @@ static void reap_child_process(void)
 	}
 
 	/* not the importer program, so it must be an oconf push or fetch */
-	if (pid == csync.push.pid) {
-		linfo("CSYNC: global push finished. Resuming");
-		csync.push.pid = 0;
-		return;
-	} else if (pid == csync.fetch.pid) {
-		linfo("CSYNC: global fetch finished. Resuming");
-		csync.fetch.pid = 0;
-		return;
-	}
-
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
-		if (!node->csync)
-			continue;
-
-		if (pid == node->csync->push.pid) {
+		if (pid == node->csync.push.pid) {
 			linfo("CSYNC: push finished for %s", node->name);
-			node->csync->push.pid = 0;
+			node->csync.push.pid = 0;
 			return;
-		} else if (pid == node->csync->fetch.pid) {
+		} else if (pid == node->csync.fetch.pid) {
 			linfo("CSYNC: fetch finished from %s", node->name);
-			node->csync->fetch.pid = 0;
+			node->csync.fetch.pid = 0;
 			return;
 		}
 	}
@@ -610,7 +604,7 @@ void csync_node_active(merlin_node *node)
 
 	ldebug("CSYNC: %s: Checking...", node->name);
 	/* bail early if we have no push/fetch configuration */
-	cs = node->csync ? node->csync : &csync;
+	cs = &node->csync;
 	if (!cs->push.cmd && !cs->fetch.cmd) {
 		ldebug("CSYNC: %s: No config sync configured.", node->name);
 		return;
@@ -634,7 +628,7 @@ void csync_node_active(merlin_node *node)
 	}
 
 	if (val < 0) {
-		if (cs->push.cmd) {
+		if (cs->push.cmd && strcmp(cs->push.cmd, "no")) {
 			child = &cs->push;
 			ldebug("CSYNC: We'll try to push");
 		} else {
@@ -646,7 +640,7 @@ void csync_node_active(merlin_node *node)
 			return;
 		}
 	} else if (val > 0) {
-		if (cs->fetch.cmd) {
+		if (cs->fetch.cmd && strcmp(cs->fetch.cmd, "no")) {
 			child = &cs->fetch;
 			ldebug("CSYNC: We'll try to fetch");
 		} else {

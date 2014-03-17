@@ -16,7 +16,6 @@ int main(int argc, char **argv)
 	node.type = MODE_POLLER;
 	node.name = "testelitest";
 	node.csync_max_attempts = 3;
-	node.csync = NULL;
 
 	log_grok_var("log_level", "debug");
 
@@ -46,11 +45,10 @@ int main(int argc, char **argv)
 	 * explicitly configured for this node
 	 */
 	node.csync_num_attempts = 0;
-	node.csync = calloc(1, sizeof(*node.csync));
-	node.csync->push.cmd = ":";
+	node.csync.push.cmd = ":";
 	csync_node_active(&node);
 	ok_int(node.csync_num_attempts, 1, "Should push config when 'connect = no' and node has local push config");
-	node.csync->push.pid = 0;
+	node.csync.push.pid = 0;
 	csync_node_active(&node);
 	return t_end();
 }

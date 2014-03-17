@@ -144,6 +144,7 @@ struct merlin_child {
 typedef struct merlin_child merlin_child;
 
 struct merlin_confsync {
+	int configured;
 	merlin_child push;
 	merlin_child fetch;
 };
@@ -228,7 +229,7 @@ struct merlin_node {
 	binlog *binlog;         /* binary backlog for this node */
 	merlin_node_stats stats; /* event/data statistics */
 	iocache *ioc;     /* I/O cache for bulk reads */
-	merlin_confsync *csync; /* config synchronization configuration */
+	merlin_confsync csync; /* config synchronization configuration */
 	unsigned int csync_num_attempts;
 	unsigned int csync_max_attempts;
 	time_t csync_last_attempt;

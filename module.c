@@ -1465,7 +1465,6 @@ int nebmodule_deinit(int flags, int reason)
 	for (i = 0; i < num_nodes; i++) {
 		struct merlin_node *node = node_table[i];
 		free(node->name);
-		free(node->csync);
 		free(node->source_name);
 		free(node->hostgroups);
 	}
