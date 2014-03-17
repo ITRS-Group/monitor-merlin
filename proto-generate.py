@@ -23,7 +23,7 @@ def get_structs(filename):
         for line in f:
             if in_structdef:
                 if line.strip().startswith('}'):
-                    name = line.strip().split('}')[1].strip()[:-1]
+                    name = line.strip().split('}')[1].strip()[len('nebstruct_'):-1]
                     structs.append(struct(name, fields))
                     in_structdef = False
                 elif len(line.strip()) > 0:

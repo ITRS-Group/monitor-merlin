@@ -5,7 +5,7 @@ message NebCallbackHeader {
 	optional Timeval timestamp = 3;
 };
 
-message NebstructProcessData {
+message ProcessData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 flags = 3;
@@ -14,7 +14,7 @@ message NebstructProcessData {
 	optional Timeval timestamp = 6;
 };
 
-message NebstructTimedEventData {
+message TimedEventData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 event_type = 3;
@@ -26,7 +26,7 @@ message NebstructTimedEventData {
 	optional int32 attr = 11;
 };
 
-message NebstructLogData {
+message LogData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int64 entry_time = 3;
@@ -38,7 +38,7 @@ message NebstructLogData {
 	optional int32 type = 9;
 };
 
-message NebstructSystemCommandData {
+message SystemCommandData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 attr = 3;
@@ -55,7 +55,7 @@ message NebstructSystemCommandData {
 	optional int32 type = 14;
 };
 
-message NebstructEventHandlerData {
+message EventHandlerData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 eventhandler_type = 4;
@@ -79,7 +79,7 @@ message NebstructEventHandlerData {
 	optional string command_name = 22;
 };
 
-message NebstructHostCheckData {
+message HostCheckData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 check_type = 3;
@@ -107,7 +107,7 @@ message NebstructHostCheckData {
 	optional string perf_data = 27;
 };
 
-message NebstructServiceCheckData {
+message ServiceCheckData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 check_type = 3;
@@ -136,7 +136,7 @@ message NebstructServiceCheckData {
 	optional string perf_data = 28;
 };
 
-message NebstructCommentData {
+message CommentData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int64 entry_time = 4;
@@ -157,7 +157,7 @@ message NebstructCommentData {
 	optional int32 type = 19;
 };
 
-message NebstructDowntimeData {
+message DowntimeData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int64 entry_time = 4;
@@ -178,7 +178,7 @@ message NebstructDowntimeData {
 	optional int32 downtime_type = 19;
 };
 
-message NebstructFlappingData {
+message FlappingData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional fixed64 comment_id = 3;
@@ -194,7 +194,7 @@ message NebstructFlappingData {
 	optional int32 flapping_type = 14;
 };
 
-message NebstructProgramStatusData {
+message ProgramStatusData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int64 program_start = 3;
@@ -221,7 +221,7 @@ message NebstructProgramStatusData {
 	optional int32 active_host_checks_enabled = 24;
 };
 
-message NebstructHostStatusData {
+message HostStatusData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 flags = 4;
@@ -230,7 +230,7 @@ message NebstructHostStatusData {
 	optional Timeval timestamp = 7;
 };
 
-message NebstructServiceStatusData {
+message ServiceStatusData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 flags = 4;
@@ -239,7 +239,7 @@ message NebstructServiceStatusData {
 	optional Timeval timestamp = 7;
 };
 
-message NebstructContactStatusData {
+message ContactStatusData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 flags = 4;
@@ -248,7 +248,7 @@ message NebstructContactStatusData {
 	optional Timeval timestamp = 7;
 };
 
-message NebstructNotificationData {
+message NotificationData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 reason_type = 3;
@@ -269,7 +269,7 @@ message NebstructNotificationData {
 	optional string host_name = 19;
 };
 
-message NebstructContactNotificationData {
+message ContactNotificationData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 reason_type = 3;
@@ -290,7 +290,7 @@ message NebstructContactNotificationData {
 	optional string host_name = 20;
 };
 
-message NebstructContactNotificationMethodData {
+message ContactNotificationMethodData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 reason_type = 3;
@@ -313,7 +313,7 @@ message NebstructContactNotificationMethodData {
 	optional string host_name = 22;
 };
 
-message NebstructAdaptiveProgramData {
+message AdaptiveProgramData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 attr = 3;
@@ -327,7 +327,7 @@ message NebstructAdaptiveProgramData {
 	optional int32 type = 11;
 };
 
-message NebstructAdaptiveHostData {
+message AdaptiveHostData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional fixed64 modified_attribute = 3;
@@ -339,7 +339,7 @@ message NebstructAdaptiveHostData {
 	optional int32 type = 10;
 };
 
-message NebstructAdaptiveServiceData {
+message AdaptiveServiceData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional fixed64 modified_attribute = 3;
@@ -351,7 +351,7 @@ message NebstructAdaptiveServiceData {
 	optional int32 type = 10;
 };
 
-message NebstructAdaptiveContactData {
+message AdaptiveContactData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional fixed64 modified_attribute = 4;
@@ -367,7 +367,7 @@ message NebstructAdaptiveContactData {
 	optional int32 type = 14;
 };
 
-message NebstructExternalCommandData {
+message ExternalCommandData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int64 entry_time = 3;
@@ -380,7 +380,7 @@ message NebstructExternalCommandData {
 	optional int32 type = 10;
 };
 
-message NebstructAggregatedStatusData {
+message AggregatedStatusData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 flags = 3;
@@ -389,7 +389,7 @@ message NebstructAggregatedStatusData {
 	optional Timeval timestamp = 6;
 };
 
-message NebstructRetentionData {
+message RetentionData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 flags = 3;
@@ -398,7 +398,7 @@ message NebstructRetentionData {
 	optional Timeval timestamp = 6;
 };
 
-message NebstructAcknowledgementData {
+message AcknowledgementData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 notify_contacts = 3;
@@ -416,7 +416,7 @@ message NebstructAcknowledgementData {
 	optional int32 type = 16;
 };
 
-message NebstructStatechangeData {
+message StatechangeData {
 	optional MerlinHeader header = 1;
 	optional NebCallbackHeader neb_header = 2;
 	optional int32 attr = 3;
