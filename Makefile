@@ -43,6 +43,7 @@ ALL_LDFLAGS = $(LDFLAGS) $(TWEAK_LDFLAGS)
 LIBNAGIOS_LDFLAGS = -L$(NAGIOS_LIBDIR) -lnagios
 WARN_FLAGS = -Wall -Wno-unused-parameter
 #WARN_FLAGS += -Wextra# is not supported on older gcc versions.
+PROTOBUF_C_LDFLAGS=-lprotobuf-c
 
 DBWRAP_OBJS := sql.o db_wrap.o
 DB_LDFLAGS :=
@@ -77,9 +78,9 @@ SHOWLOG_OBJS = $(APP_OBJS) showlog.o auth.o
 RENAME_OBJS = $(APP_OBJS) rename.o logutils.o lparse.o $(DBWRAP_OBJS)
 DEPS = Makefile cfgfile.h ipc.h mrln_logging.h shared.h
 APPS = showlog import oconf ocimp rename
-MOD_LDFLAGS = -shared -ggdb3 -fPIC
+MOD_LDFLAGS = -shared -ggdb3 -fPIC $(PROTOBUF_C_LDFLAGS)
 DAEMON_LIBS = $(LIB_NET)
-DAEMON_LDFLAGS = $(DAEMON_LIBS) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) -ggdb3
+DAEMON_LDFLAGS = $(DAEMON_LIBS) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) $(PROTOBUF_C_LDFLAGS) -ggdb3
 DBTEST_LDFLAGS = $(LIB_NET) $(LIBNAGIOS_LDFLAGS) $(DB_LDFLAGS) -ggdb3
 HOOKTEST_LDFLAGS = $(LIBNAGIOS_LDFLAGS) -ggdb3
 STRINGUTILSTEST_LDFLAGS = -ggdb3
@@ -203,7 +204,15 @@ bltest.o: bltest.c binlog.h
 
 blread: blread.o codec.o $(COMMON_OBJS)
 
-codec.o: hookinfo.h
+codec.o: nebcallback.pb-c.o hookinfo.h
+
+nebcallback.pb-c.o: header.pb-c.c nebcallback.pb-c.c
+
+header.pb-c.c: header.proto
+	protoc-c --c_out=. $^
+
+nebcallback.pb-c.c: nebcallback.proto
+	protoc-c --c_out=. $^
 
 blread.o: test/blread.c $(DEPS)
 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
