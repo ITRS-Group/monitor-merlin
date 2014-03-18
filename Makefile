@@ -64,7 +64,7 @@ endif
 sql.o test-dbwrap.o db_wrap.o: CFLAGS+=$(DB_CFLAGS)
 
 COMMON_OBJS = cfgfile.o shared.o version.o logging.o dlist.o
-SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o
+SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o nebcallback.pb-c.o header.pb-c.o binlog.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
 DAEMON_OBJS = status.o daemonize.o net.o $(DBWRAP_OBJS) db_updater.o state.o string_utils.o
 DAEMON_OBJS += $(SHARED_OBJS)
@@ -82,7 +82,7 @@ MOD_LDFLAGS = -shared -ggdb3 -fPIC $(PROTOBUF_C_LDFLAGS)
 DAEMON_LIBS = $(LIB_NET)
 DAEMON_LDFLAGS = $(DAEMON_LIBS) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) $(PROTOBUF_C_LDFLAGS) -ggdb3
 DBTEST_LDFLAGS = $(LIB_NET) $(LIBNAGIOS_LDFLAGS) $(DB_LDFLAGS) -ggdb3
-HOOKTEST_LDFLAGS = $(LIBNAGIOS_LDFLAGS) -ggdb3
+HOOKTEST_LDFLAGS = $(LIBNAGIOS_LDFLAGS) -ggdb3 $(PROTOBUF_C_LDFLAGS)
 STRINGUTILSTEST_LDFLAGS = -ggdb3
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
@@ -130,7 +130,7 @@ test-lparse: test-lparse.o lparse.o logutils.o test_utils.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LIBNAGIOS_LDFLAGS)
 
 ocimp: ocimp.o $(DBWRAP_OBJS) $(TEST_OBJS) sha1.o slist.o
-	$(QUIET_LINK)$(CC) $^ -o $@ -ggdb3 $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) $(LDFLAGS)
+	$(QUIET_LINK)$(CC) $^ -o $@ -ggdb3 $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) $(PROTOBUF_C_LDFLAGS) $(LDFLAGS)
 
 import: $(IMPORT_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(LIB_NET) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS)
@@ -204,15 +204,13 @@ bltest.o: bltest.c binlog.h
 
 blread: blread.o codec.o $(COMMON_OBJS)
 
-codec.o: nebcallback.pb-c.o hookinfo.h
-
-nebcallback.pb-c.o: header.pb-c.c nebcallback.pb-c.c
-
 header.pb-c.c: header.proto
 	protoc-c --c_out=. $^
 
 nebcallback.pb-c.c: nebcallback.proto
 	protoc-c --c_out=. $^
+
+codec.o: nebcallback.pb-c.c header.pb-c.c
 
 blread.o: test/blread.c $(DEPS)
 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
@@ -238,7 +236,7 @@ db_wrap.o: db_wrap.h db_wrap.c
 version.c: gen-version.sh
 	sh gen-version.sh
 
-clean: clean-core clean-log clean-test
+clean: clean-core clean-log clean-test clean-pbc
 	rm -f merlin.so merlind $(APPS) *.o blread endpoint nagios.tmp* tests/*.o
 
 clean-test:
@@ -249,6 +247,9 @@ clean-core:
 
 clean-log:
 	rm -f ipc.{read,write}.bin *.log
+
+clean-pbc:
+	rm -f *.pb-c.c *.pb-c.h
 
 ## PHONY targets
 .PHONY: version.c clean clean-core clean-log
