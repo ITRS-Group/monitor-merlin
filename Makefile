@@ -205,9 +205,11 @@ bltest.o: bltest.c binlog.h
 
 blread: blread.o codec.o $(COMMON_OBJS)
 
-%.pb-c.c: %.proto
+
+%.pb-c.c %.pb-c.h: %.proto
 	protoc-c --c_out=. $^
 
+shared.o: header.pb-c.h
 codec.o: nebcallback.pb-c.c header.pb-c.c merlin.pb-c.c
 
 blread.o: test/blread.c $(DEPS)
