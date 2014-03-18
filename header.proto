@@ -6,7 +6,18 @@ message Timeval {
 message MerlinHeader {
 	required uint64 sig = 1 [default = 0x005456454e4c524d]; // "MRLNEVT\0"
 	optional int32 protocol= 2 [default = 2];
-	optional int32 code = 3;
+	enum Code {
+		CTRL_GENERIC = 0;
+		CTRL_PULSE = 1;
+		CTRL_INACTIVE = 2;
+		CTRL_ACTIVE = 3;
+		CTRL_PATHS = 4;
+		CTRL_STALL = 5;
+		CTRL_RESUME = 6;
+		CTRL_STOP = 7;
+		MAGIC_NONET = 0xffff;
+	}
+	optional Code code = 3 [default = CTRL_GENERIC];
 	optional int32 selection = 4;
 	optional Timeval sent = 5;
 };
