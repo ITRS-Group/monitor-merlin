@@ -63,8 +63,9 @@ db_wrap.o: db_wrap_dbi.c
 endif
 sql.o test-dbwrap.o db_wrap.o: CFLAGS+=$(DB_CFLAGS)
 
+PROTOCOL_OBJS = nebcallback.pb-c.o header.pb-c.o merlin.pb-c.o
 COMMON_OBJS = cfgfile.o shared.o version.o logging.o dlist.o
-SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o nebcallback.pb-c.o header.pb-c.o binlog.o
+SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o $(PROTOCOL_OBJS) binlog.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
 DAEMON_OBJS = status.o daemonize.o net.o $(DBWRAP_OBJS) db_updater.o state.o string_utils.o
 DAEMON_OBJS += $(SHARED_OBJS)
@@ -204,13 +205,10 @@ bltest.o: bltest.c binlog.h
 
 blread: blread.o codec.o $(COMMON_OBJS)
 
-header.pb-c.c: header.proto
+%.pb-c.c: %.proto
 	protoc-c --c_out=. $^
 
-nebcallback.pb-c.c: nebcallback.proto
-	protoc-c --c_out=. $^
-
-codec.o: nebcallback.pb-c.c header.pb-c.c
+codec.o: nebcallback.pb-c.c header.pb-c.c merlin.pb-c.c
 
 blread.o: test/blread.c $(DEPS)
 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@

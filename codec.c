@@ -1,6 +1,7 @@
 #include "shared.h"
 #include "hookinfo.h"
 #include "nebcallback.pb-c.h"
+#include "merlin.pb-c.h"
 #include "codec.h"
 /*
  * Both of these conversions involve a fair deal of Black Magic.
@@ -167,6 +168,17 @@ int merlin_decode(void *ds, off_t len, int cb_type)
 	}
 
 	return ret;
+}
+int
+message_is_ctrl_packet(const GenericMessage *msg)
+{
+	return msg->descriptor == &merlin_ctrl_packet__descriptor;
+}
+
+MerlinHeaderCode
+message_get_code(const GenericMessage *msg)
+{
+	return ((MerlinCtrlPacket *)msg)->header->code;
 }
 
 static void
