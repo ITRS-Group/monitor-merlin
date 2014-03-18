@@ -1,7 +1,7 @@
 #include "shared.h"
 #include "hookinfo.h"
 #include "nebcallback.pb-c.h"
-
+#include "codec.h"
 /*
  * Both of these conversions involve a fair deal of Black Magic.
  * If you don't understand what's happening, please don't fiddle.
@@ -167,4 +167,51 @@ int merlin_decode(void *ds, off_t len, int cb_type)
 	}
 
 	return ret;
+}
+
+static void
+Timeval_assign(Timeval *timeval, struct timeval tv)
+{
+	timeval__init(timeval);
+	timeval->sec = tv.tv_sec;
+	timeval->usec = tv.tv_usec;
+}
+
+ContactNotificationDataMessage *
+contact_notification_data_create(nebstruct_contact_notification_data *ds, uint32_t selection) {
+	ContactNotificationData *ev = calloc(1, sizeof(ContactNotificationData));
+	if (!ev) {
+		lerr("Memory allocation error");
+		return NULL;
+	}
+
+	contact_notification_data__init(ev);
+	merlin_header__init(ev->header);
+	ev->header->selection = selection;
+
+	neb_callback_header__init(ev->neb_header);
+	ev->neb_header->type = ds->type;
+	ev->neb_header->flags = ds->flags;
+	ev->neb_header->attr = ds->attr;
+	Timeval_assign(ev->neb_header->timestamp, ds->timestamp);
+
+	ev->notification_type = ds->notification_type;
+	Timeval_assign(ev->start_time, ds->start_time);
+	Timeval_assign(ev->end_time, ds->end_time);
+	ev->host_name = ds->host_name;
+	ev->service_description = ds->service_description;
+	ev->contact_name = ds->contact_name;
+	ev->reason_type = ds->reason_type;
+	ev->state = ds->state;
+	ev->output = ds->output;
+	ev->ack_author = ds->ack_author;
+	ev->ack_data = ds->ack_data;
+	ev->escalated = ds->escalated;
+	return ev;
+}
+
+void
+contact_notification_data_destroy(ContactNotificationDataMessage *ev)
+{
+	free(ev);
 }

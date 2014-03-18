@@ -9,6 +9,7 @@
  * thingie.
  */
 #include "module.h"
+#include "codec.h"
 #include <nagios/objects.h>
 #include <nagios/neberrors.h>
 #include <nagios/common.h>
@@ -150,6 +151,11 @@ static int is_dupe(merlin_event *pkt)
 #endif
 
 	return 0;
+}
+
+static int send_generic_message(const GenericMessage *message)
+{
+	return -1;
 }
 
 static int send_generic(merlin_event *pkt, void *data)
@@ -691,14 +697,22 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
-static int hook_contact_notification(merlin_event *pkt, void *data)
+static int hook_contact_notification(void *data)
 {
+	int ret = 0;
+	ContactNotificationDataMessage *message = NULL;
 	nebstruct_contact_notification_data *ds = (nebstruct_contact_notification_data *)data;
 
 	if (ds->type != NEBTYPE_CONTACTNOTIFICATION_END)
 		return 0;
 
-	return send_generic(pkt, data);
+	if (!(message = contact_notification_data_create(ds, DEST_BROADCAST))) {
+		lerr("Message creation error");
+		return -1;
+	}
+	ret = send_generic_message((const GenericMessage *) message);
+	contact_notification_data_destroy(message);
+	return ret;
 }
 
 static int hook_contact_notification_method(merlin_event *pkt, void *data)
@@ -872,7 +886,7 @@ int merlin_mod_hook(int cb, void *data)
 		break;
 
 	case NEBCALLBACK_CONTACT_NOTIFICATION_DATA:
-		result = hook_contact_notification(&pkt, data);
+		result = hook_contact_notification(data);
 		break;
 
 	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
