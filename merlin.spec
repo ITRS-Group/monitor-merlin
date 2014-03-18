@@ -11,7 +11,6 @@
 %define mysqld mysqld
 %define mysql_rpm mysql-server
 %endif
-
 %{?dgroup:%define daemon_group %{dgroup}}
 
 Summary: The merlin daemon is a multiplexing event-transport program
@@ -28,10 +27,12 @@ Requires: libaio
 Requires: merlin-apps >= %version
 Requires: monitor-config
 Requires: op5-mysql
+Requires protobuf-c
 BuildRequires: mysql-devel
 BuildRequires: op5-nagios-devel >= 3.99.99.7
 Obsoletes: monitor-reports-module
 BuildRequires: check-devel
+BuildRequires: protobuf-c-devel
 
 %if 0%{?suse_version}
 BuildRequires: libdbi-devel
@@ -178,7 +179,6 @@ if [ $? -gt 0 ]; then
     exit 1
   fi
 fi
-
 $(mysql -Be "quit" 2>/dev/null) && MYSQL_AVAILABLE=1
 if [ -n "$MYSQL_AVAILABLE" ]; then
   %mod_path/install-merlin.sh %install_args --batch --install=db
