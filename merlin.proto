@@ -1,0 +1,12 @@
+import "header.proto";
+message MerlinCtrlPacket {
+	optional MerlinHeader header = 1;
+};
+
+message MerlinAckPacket { // Unused
+	optional MerlinHeader header = 1;
+};
+
+message MerlinNakPacket { // Unused
+	optional MerlinHeader header = 1;
+};
