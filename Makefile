@@ -230,7 +230,7 @@ $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
 
 test-dbwrap.o: test-dbwrap.c
 test-dbwrap: test-dbwrap.o db_wrap.o $(SHARED_OBJS)
-	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(DBTEST_LDFLAGS)
+	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(DBTEST_LDFLAGS) $(PROTOBUF_C_LDFLAGS)
 db_wrap.o: db_wrap.h db_wrap.c
 
 version.c: gen-version.sh
