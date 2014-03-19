@@ -175,10 +175,16 @@ message_is_ctrl_packet(const GenericMessage *msg)
 	return msg->descriptor == &merlin_ctrl_packet__descriptor;
 }
 
-MerlinHeaderCode
-message_get_code(const GenericMessage *msg)
+int
+message_is_nonet(const MerlinHeader *header)
 {
-	return ((MerlinCtrlPacket *)msg)->header->code;
+	return header->nonet;
+}
+
+MerlinCtrlPacketCode
+message_get_code(const MerlinCtrlPacket *msg)
+{
+	return msg->code;
 }
 
 static void

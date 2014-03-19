@@ -10,6 +10,7 @@
 #include "binlog.h"
 #include "pgroup.h"
 #include "header.pb-c.h"
+#include "merlin.pb-c.h"
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 # define MERLIN_SIGNATURE (uint64_t)0x4d524c4e45565400LL /* "MRLNEVT\0" */
@@ -44,16 +45,16 @@
 #define NAK_PACKET    0xfffd  /* NAK ("I don't understand") (not used) */
 
 /* If "type" is CTRL_PACKET, then "code" is one of the following */
-#define CTRL_GENERIC  MERLIN_HEADER__CODE__CTRL_GENERIC /* generic control packet */
-#define CTRL_PULSE    MERLIN_HEADER__CODE__CTRL_PULSE /* keep-alive signal */
-#define CTRL_INACTIVE MERLIN_HEADER__CODE__CTRL_INACTIVE/* signals that a slave went offline */
-#define CTRL_ACTIVE   MERLIN_HEADER__CODE__CTRL_ACTIVE   /* signals that a slave went online */
-#define CTRL_PATHS    MERLIN_HEADER__CODE__CTRL_PATHS /* body contains paths to import */
-#define CTRL_STALL    MERLIN_HEADER__CODE__CTRL_STALL /* signal that we can't accept events for a while */
-#define CTRL_RESUME   MERLIN_HEADER__CODE__CTRL_RESUME /* now we can accept events again */
-#define CTRL_STOP     MERLIN_HEADER__CODE__CTRL_STOP  /* exit() immediately (only accepted via ipc) */
+#define CTRL_GENERIC  MERLIN_CTRL_PACKET__CODE__CTRL_GENERIC /* generic control packet */
+#define CTRL_PULSE    MERLIN_CTRL_PACKET__CODE__CTRL_PULSE /* keep-alive signal */
+#define CTRL_INACTIVE MERLIN_CTRL_PACKET__CODE__CTRL_INACTIVE/* signals that a slave went offline */
+#define CTRL_ACTIVE   MERLIN_CTRL_PACKET__CODE__CTRL_ACTIVE   /* signals that a slave went online */
+#define CTRL_PATHS    MERLIN_CTRL_PACKET__CODE__CTRL_PATHS /* body contains paths to import */
+#define CTRL_STALL    MERLIN_CTRL_PACKET__CODE__CTRL_STALL /* signal that we can't accept events for a while */
+#define CTRL_RESUME   MERLIN_CTRL_PACKET__CODE__CTRL_RESUME /* now we can accept events again */
+#define CTRL_STOP     MERLIN_CTRL_PACKET__CODE__CTRL_STOP  /* exit() immediately (only accepted via ipc) */
 /* the following magic entries can be used for the "code" entry */
-#define MAGIC_NONET MERLIN_HEADER__CODE__MAGIC_NONET /* don't forward to the network */
+#define MAGIC_NONET 0xffff /* don't forward to the network */
 
 /*
  * Mark "selection" with this to generate broadcast-ish

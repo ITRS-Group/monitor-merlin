@@ -7,19 +7,22 @@
  */
 typedef ContactNotificationData ContactNotificationDataMessage;
 typedef ProtobufCMessage GenericMessage;
-typedef MerlinHeader__Code MerlinHeaderCode;
+typedef MerlinCtrlPacket__Code MerlinCtrlPacketCode;
 /*
  * Generic declarations
  */
 int
 message_is_ctrl_packet(const GenericMessage *);
 
-MerlinHeaderCode
-message_get_code(const GenericMessage *);
+int
+message_is_nonet(const MerlinHeader *);
 
 /*
  * Message specific declarations
  */
+MerlinCtrlPacketCode
+message_get_ctrl_packet_code(const MerlinCtrlPacket *);
+
 ContactNotificationDataMessage *
 contact_notification_data_create(nebstruct_contact_notification_data *, uint32_t);
 

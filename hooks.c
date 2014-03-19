@@ -155,7 +155,7 @@ static int is_dupe(merlin_event *pkt)
 
 static int send_generic_message(const GenericMessage *message)
 {
-	if (!use_database && message_get_code(message) == MAGIC_NONET && !message_is_ctrl_packet(message)){
+	if (!use_database && (message_is_nonet((MerlinHeader *)message) == MAGIC_NONET) && !message_is_ctrl_packet(message)){
 		return 0;
 	}
 	return -1;
