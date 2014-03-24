@@ -1,51 +1,64 @@
-import "header.proto";
 message NebCallbackHeader {
-	optional int32 type = 1;
-	optional int32 flags = 2;
-	optional int32 attr = 3;
-	optional Timeval timestamp = 4;
+	optional int32 flags = 1;
+	optional int32 attr = 2;
+	optional Timeval timestamp = 3;
 };
 
 message ProcessData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
+	optional NebCallbackHeader neb_header = 1;
 };
 
 message TimedEventData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 event_type = 3;
-	optional int32 recurring = 4;
-	optional int64 run_time = 5;
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 event_type = 2;
+	optional int32 recurring = 3;
+	optional int64 run_time = 4;
 };
 
 message LogData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int64 entry_time = 3;
-	optional int32 data_type = 4;
-	optional string data = 5;
+	optional NebCallbackHeader neb_header = 1;
+	optional int64 entry_time = 2;
+	optional int32 data_type = 3;
+	optional string data = 4;
 };
 
 message SystemCommandData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional Timeval start_time = 3;
-	optional Timeval end_time = 4;
-	optional int32 timeout = 5;
-	optional string command_line = 6;
-	optional int32 early_timeout = 7;
-	optional double execution_time = 8;
-	optional int32 return_code = 9;
-	optional string output = 10;
+	optional NebCallbackHeader neb_header = 1;
+	optional Timeval start_time = 2;
+	optional Timeval end_time = 3;
+	optional int32 timeout = 4;
+	optional string command_line = 5;
+	optional int32 early_timeout = 6;
+	optional double execution_time = 7;
+	optional int32 return_code = 8;
+	optional string output = 9;
 };
 
 message EventHandlerData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 eventhandler_type = 3;
-	optional string host_name = 4;
-	optional string service_description = 5;
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 eventhandler_type = 2;
+	optional string host_name = 3;
+	optional string service_description = 4;
+	optional int32 state_type = 5;
+	optional int32 state = 6;
+	optional int32 timeout = 7;
+	optional string command_name = 8;
+	optional string command_args = 9;
+	optional string command_line = 10;
+	optional Timeval start_time = 11;
+	optional Timeval end_time = 12;
+	optional int32 early_timeout = 13;
+	optional double execution_time = 14;
+	optional int32 return_code = 15;
+	optional string output = 16;
+};
+
+message HostCheckData {
+	optional NebCallbackHeader neb_header = 1;
+	optional string host_name = 2;
+	optional int32 current_attempt = 3;
+	optional int32 check_type = 4;
+	optional int32 max_attempts = 5;
 	optional int32 state_type = 6;
 	optional int32 state = 7;
 	optional int32 timeout = 8;
@@ -56,16 +69,19 @@ message EventHandlerData {
 	optional Timeval end_time = 13;
 	optional int32 early_timeout = 14;
 	optional double execution_time = 15;
-	optional int32 return_code = 16;
-	optional string output = 17;
+	optional double latency = 16;
+	optional int32 return_code = 17;
+	optional string output = 18;
+	optional string long_output = 19;
+	optional string perf_data = 20;
 };
 
-message HostCheckData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional string host_name = 3;
-	optional int32 current_attempt = 4;
-	optional int32 check_type = 5;
+message ServiceCheckData {
+	optional NebCallbackHeader neb_header = 1;
+	optional string host_name = 2;
+	optional string service_description = 3;
+	optional int32 check_type = 4;
+	optional int32 current_attempt = 5;
 	optional int32 max_attempts = 6;
 	optional int32 state_type = 7;
 	optional int32 state = 8;
@@ -84,229 +100,186 @@ message HostCheckData {
 	optional string perf_data = 21;
 };
 
-message ServiceCheckData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
+message CommentData {
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 comment_type = 2;
 	optional string host_name = 3;
 	optional string service_description = 4;
-	optional int32 check_type = 5;
-	optional int32 current_attempt = 6;
-	optional int32 max_attempts = 7;
-	optional int32 state_type = 8;
-	optional int32 state = 9;
-	optional int32 timeout = 10;
-	optional string command_name = 11;
-	optional string command_args = 12;
-	optional string command_line = 13;
-	optional Timeval start_time = 14;
-	optional Timeval end_time = 15;
-	optional int32 early_timeout = 16;
-	optional double execution_time = 17;
-	optional double latency = 18;
-	optional int32 return_code = 19;
-	optional string output = 20;
-	optional string long_output = 21;
-	optional string perf_data = 22;
-};
-
-message CommentData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 comment_type = 3;
-	optional string host_name = 4;
-	optional string service_description = 5;
-	optional int64 entry_time = 6;
-	optional string author_name = 7;
-	optional string comment_data = 8;
-	optional int32 persistent = 9;
-	optional int32 source = 10;
-	optional int32 entry_type = 11;
-	optional int32 expires = 12;
-	optional int64 expire_time = 13;
-	optional fixed64 comment_id = 14;
+	optional int64 entry_time = 5;
+	optional string author_name = 6;
+	optional string comment_data = 7;
+	optional int32 persistent = 8;
+	optional int32 source = 9;
+	optional int32 entry_type = 10;
+	optional int32 expires = 11;
+	optional int64 expire_time = 12;
+	optional fixed64 comment_id = 13;
 };
 
 message DowntimeData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 downtime_type = 3;
-	optional string host_name = 4;
-	optional string service_description = 5;
-	optional int64 entry_time = 6;
-	optional string author_name = 7;
-	optional string comment_data = 8;
-	optional int64 start_time = 9;
-	optional int64 end_time = 10;
-	optional int32 fixed = 11;
-	optional fixed64 duration = 12;
-	optional fixed64 triggered_by = 13;
-	optional fixed64 downtime_id = 14;
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 downtime_type = 2;
+	optional string host_name = 3;
+	optional string service_description = 4;
+	optional int64 entry_time = 5;
+	optional string author_name = 6;
+	optional string comment_data = 7;
+	optional int64 start_time = 8;
+	optional int64 end_time = 9;
+	optional int32 fixed = 10;
+	optional fixed64 duration = 11;
+	optional fixed64 triggered_by = 12;
+	optional fixed64 downtime_id = 13;
 };
 
 message FlappingData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 flapping_type = 3;
-	optional string host_name = 4;
-	optional string service_description = 5;
-	optional double percent_change = 6;
-	optional double high_threshold = 7;
-	optional double low_threshold = 8;
-	optional fixed64 comment_id = 9;
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 flapping_type = 2;
+	optional string host_name = 3;
+	optional string service_description = 4;
+	optional double percent_change = 5;
+	optional double high_threshold = 6;
+	optional double low_threshold = 7;
+	optional fixed64 comment_id = 8;
 };
 
 message ProgramStatusData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int64 program_start = 3;
-	optional int32 pid = 4;
-	optional int32 daemon_mode = 5;
-	optional int64 last_log_rotation = 6;
-	optional int32 notifications_enabled = 7;
-	optional int32 active_service_checks_enabled = 8;
-	optional int32 passive_service_checks_enabled = 9;
-	optional int32 active_host_checks_enabled = 10;
-	optional int32 passive_host_checks_enabled = 11;
-	optional int32 event_handlers_enabled = 12;
-	optional int32 flap_detection_enabled = 13;
-	optional int32 process_performance_data = 14;
-	optional int32 obsess_over_hosts = 15;
-	optional int32 obsess_over_services = 16;
-	optional fixed64 modified_host_attributes = 17;
-	optional fixed64 modified_service_attributes = 18;
-	optional string global_host_event_handler = 19;
-	optional string global_service_event_handler = 20;
+	optional NebCallbackHeader neb_header = 1;
+	optional int64 program_start = 2;
+	optional int32 pid = 3;
+	optional int32 daemon_mode = 4;
+	optional int64 last_log_rotation = 5;
+	optional int32 notifications_enabled = 6;
+	optional int32 active_service_checks_enabled = 7;
+	optional int32 passive_service_checks_enabled = 8;
+	optional int32 active_host_checks_enabled = 9;
+	optional int32 passive_host_checks_enabled = 10;
+	optional int32 event_handlers_enabled = 11;
+	optional int32 flap_detection_enabled = 12;
+	optional int32 process_performance_data = 13;
+	optional int32 obsess_over_hosts = 14;
+	optional int32 obsess_over_services = 15;
+	optional fixed64 modified_host_attributes = 16;
+	optional fixed64 modified_service_attributes = 17;
+	optional string global_host_event_handler = 18;
+	optional string global_service_event_handler = 19;
 };
 
 message HostStatusData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
+	optional NebCallbackHeader neb_header = 1;
 };
 
 message ServiceStatusData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
+	optional NebCallbackHeader neb_header = 1;
 };
 
 message ContactStatusData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
+	optional NebCallbackHeader neb_header = 1;
 };
 
 message NotificationData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 notification_type = 3;
-	optional Timeval start_time = 4;
-	optional Timeval end_time = 5;
-	optional string host_name = 6;
-	optional string service_description = 7;
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 notification_type = 2;
+	optional Timeval start_time = 3;
+	optional Timeval end_time = 4;
+	optional string host_name = 5;
+	optional string service_description = 6;
+	optional int32 reason_type = 7;
+	optional int32 state = 8;
+	optional string output = 9;
+	optional string ack_author = 10;
+	optional string ack_data = 11;
+	optional int32 escalated = 12;
+	optional int32 contacts_notified = 13;
+};
+
+message ContactNotificationData {
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 notification_type = 2;
+	optional Timeval start_time = 3;
+	optional Timeval end_time = 4;
+	optional string host_name = 5;
+	optional string service_description = 6;
+	optional string contact_name = 7;
 	optional int32 reason_type = 8;
 	optional int32 state = 9;
 	optional string output = 10;
 	optional string ack_author = 11;
 	optional string ack_data = 12;
 	optional int32 escalated = 13;
-	optional int32 contacts_notified = 14;
-};
-
-message ContactNotificationData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 notification_type = 3;
-	optional Timeval start_time = 4;
-	optional Timeval end_time = 5;
-	optional string host_name = 6;
-	optional string service_description = 7;
-	optional string contact_name = 8;
-	optional int32 reason_type = 9;
-	optional int32 state = 10;
-	optional string output = 11;
-	optional string ack_author = 12;
-	optional string ack_data = 13;
-	optional int32 escalated = 14;
 };
 
 message ContactNotificationMethodData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 notification_type = 3;
-	optional Timeval start_time = 4;
-	optional Timeval end_time = 5;
-	optional string host_name = 6;
-	optional string service_description = 7;
-	optional string contact_name = 8;
-	optional string command_name = 9;
-	optional string command_args = 10;
-	optional int32 reason_type = 11;
-	optional int32 state = 12;
-	optional string output = 13;
-	optional string ack_author = 14;
-	optional string ack_data = 15;
-	optional int32 escalated = 16;
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 notification_type = 2;
+	optional Timeval start_time = 3;
+	optional Timeval end_time = 4;
+	optional string host_name = 5;
+	optional string service_description = 6;
+	optional string contact_name = 7;
+	optional string command_name = 8;
+	optional string command_args = 9;
+	optional int32 reason_type = 10;
+	optional int32 state = 11;
+	optional string output = 12;
+	optional string ack_author = 13;
+	optional string ack_data = 14;
+	optional int32 escalated = 15;
 };
 
 message AdaptiveProgramData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 command_type = 3;
-	optional fixed64 modified_host_attribute = 4;
-	optional fixed64 modified_host_attributes = 5;
-	optional fixed64 modified_service_attribute = 6;
-	optional fixed64 modified_service_attributes = 7;
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 command_type = 2;
+	optional fixed64 modified_host_attribute = 3;
+	optional fixed64 modified_host_attributes = 4;
+	optional fixed64 modified_service_attribute = 5;
+	optional fixed64 modified_service_attributes = 6;
 };
 
 message AdaptiveHostData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 command_type = 3;
-	optional fixed64 modified_attribute = 4;
-	optional fixed64 modified_attributes = 5;
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 command_type = 2;
+	optional fixed64 modified_attribute = 3;
+	optional fixed64 modified_attributes = 4;
 };
 
 message AdaptiveServiceData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 command_type = 3;
-	optional fixed64 modified_attribute = 4;
-	optional fixed64 modified_attributes = 5;
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 command_type = 2;
+	optional fixed64 modified_attribute = 3;
+	optional fixed64 modified_attributes = 4;
 };
 
 message AdaptiveContactData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 command_type = 3;
-	optional fixed64 modified_attribute = 4;
-	optional fixed64 modified_attributes = 5;
-	optional fixed64 modified_host_attribute = 6;
-	optional fixed64 modified_host_attributes = 7;
-	optional fixed64 modified_service_attribute = 8;
-	optional fixed64 modified_service_attributes = 9;
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 command_type = 2;
+	optional fixed64 modified_attribute = 3;
+	optional fixed64 modified_attributes = 4;
+	optional fixed64 modified_host_attribute = 5;
+	optional fixed64 modified_host_attributes = 6;
+	optional fixed64 modified_service_attribute = 7;
+	optional fixed64 modified_service_attributes = 8;
 };
 
 message ExternalCommandData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 command_type = 3;
-	optional int64 entry_time = 4;
-	optional string command_string = 5;
-	optional string command_args = 6;
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 command_type = 2;
+	optional int64 entry_time = 3;
+	optional string command_string = 4;
+	optional string command_args = 5;
 };
 
 message AggregatedStatusData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
+	optional NebCallbackHeader neb_header = 1;
 };
 
 message RetentionData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
+	optional NebCallbackHeader neb_header = 1;
 };
 
 message AcknowledgementData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 acknowledgement_type = 3;
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 acknowledgement_type = 2;
 	optional string host_name = 4;
 	optional string service_description = 5;
 	optional int32 state = 6;
@@ -318,15 +291,14 @@ message AcknowledgementData {
 };
 
 message StatechangeData {
-	optional MerlinHeader header = 1;
-	optional NebCallbackHeader neb_header = 2;
-	optional int32 statechange_type = 3;
-	optional string host_name = 4;
-	optional string service_description = 5;
-	optional int32 state = 6;
-	optional int32 state_type = 7;
-	optional int32 current_attempt = 8;
-	optional int32 max_attempts = 9;
-	optional string output = 10;
+	optional NebCallbackHeader neb_header = 1;
+	optional int32 statechange_type = 2;
+	optional string host_name = 3;
+	optional string service_description = 4;
+	optional int32 state = 5;
+	optional int32 state_type = 6;
+	optional int32 current_attempt = 7;
+	optional int32 max_attempts = 8;
+	optional string output = 9;
 };
 

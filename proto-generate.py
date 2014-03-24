@@ -56,11 +56,9 @@ def snake2camel(str):
 
 def generate_proto(structdefs):
     neb_header_fields = OrderedDict()
-    neb_header_fields['type'] = 'int32'
     neb_header_fields['flags'] = 'int32'
     neb_header_fields['attr'] = 'int32'
     neb_header_fields['timestamp'] = 'Timeval'
-    print ('import "header.proto";')
     print ('message NebCallbackHeader {')
     i = 1
     for ident, type in neb_header_fields.iteritems():
@@ -71,9 +69,8 @@ def generate_proto(structdefs):
 
     for struct in get_structs(structdefs):
         print('message %s {' % snake2camel(struct.name))
-        print('\toptional MerlinHeader header = 1;');
-        print('\toptional NebCallbackHeader neb_header = 2;');
-        i = 3
+        print('\toptional NebCallbackHeader neb_header = 1;');
+        i = 2
         for ident, type in struct.fields.iteritems():
             if ident in neb_header_fields:
                 continue

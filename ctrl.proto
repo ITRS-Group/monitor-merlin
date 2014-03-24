@@ -1,0 +1,23 @@
+import "header.proto";
+message MerlinCtrlPacket {
+	optional MerlinHeader header = 1;
+	enum Code {
+		CTRL_GENERIC = 0;
+		CTRL_PULSE = 1;
+		CTRL_INACTIVE = 2;
+		CTRL_ACTIVE = 3;
+		CTRL_PATHS = 4;
+		CTRL_STALL = 5;
+		CTRL_RESUME = 6;
+		CTRL_STOP = 7;
+	}
+	optional Code code = 2 [default = CTRL_GENERIC];
+};
+
+message MerlinAckPacket { // Unused
+	optional MerlinHeader header = 1;
+};
+
+message MerlinNakPacket { // Unused
+	optional MerlinHeader header = 1;
+};
