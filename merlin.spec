@@ -8,9 +8,9 @@
 
 Summary: The merlin daemon is a multiplexing event-transport program
 Name: merlin
-Version: @@VERSION@@
-Release: @@RELEASE@@
-License: GPL
+Version: %{op5version}
+Release: %{op5release}%{?dist}
+License: GPLv2
 Group: op5/Monitor
 URL: http://www.op5.se
 Source0: %name-%version.tar.gz
