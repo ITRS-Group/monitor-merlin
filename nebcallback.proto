@@ -1,8 +1,9 @@
 import "timeval.proto";
 message NebCallbackHeader {
-	optional int32 flags = 1;
-	optional int32 attr = 2;
-	optional Timeval timestamp = 3;
+	optional int32 type = 1;
+	optional int32 flags = 2;
+	optional int32 attr = 3;
+	optional Timeval timestamp = 4;
 };
 
 message ProcessData {
