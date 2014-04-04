@@ -161,7 +161,7 @@ static int send_generic_message(const MerlinMessage *message)
 	{
 		return 0;
 	}
-	buf_sz = merlin_encode_message(message, buffer);
+	buf_sz = merlin_encode_message(message, &buffer);
 	if ( buf_sz <= 0 ) {
 		return -1;
 	}
@@ -716,7 +716,7 @@ static int hook_contact_notification(void *data)
 	if (ds->type != NEBTYPE_CONTACTNOTIFICATION_END)
 		return 0;
 
-	if (!(message = merlin_message_create(MM_ContactNotificationData, ds))) {
+	if (!(message = merlin_message_from_nebstruct(MM_ContactNotificationData, ds))) {
 		lerr("Message creation error");
 		return -1;
 	}
