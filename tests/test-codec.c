@@ -40,7 +40,7 @@ START_TEST(test_contact_notification_data)
 	ck_assert(!merlin_message_is_nonet(message));
 	ck_assert_int_eq(DEST_BROADCAST, merlin_message_get_selection(message));
 	bufsz = merlin_encode_message(message, &buf);
-	ck_assert_int_gt(bufsz, 0);
+	ck_assert(bufsz > 0);
 	ck_assert_msg(NULL != buf, "Encoded buffer is unexpectedly NULL");
 	merlin_message_destroy(message);
 	message = NULL;
