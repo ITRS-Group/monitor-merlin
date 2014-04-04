@@ -13,7 +13,7 @@ syntax()
     printf 'ERROR: %s\n\n' "$2"
 
   msgdie "$1" \
-"Usage: mon api ls [--help|[<table> [OPTION|FILTER]..]
+"Usage: mon query ls [--help|[<table> [OPTION|FILTER]..]
 
 All available tables will be listed if no arguments are seen.
 
@@ -66,13 +66,13 @@ Logical operations:
  -n              Negate the last filter.
 
 Examples:
- mon api ls hosts
- mon api ls hosts -c address name=darkstar
- mon api ls hosts -c name name -r ^a name~^b -o 2
- mon api ls hosts -c name state -ne 0 acknowledged -e 1 -a2 state=0 -o2 -l3
- mon api ls hosts -c name parents -e ''
- mon api ls hosts -c name parents\>=monitor
- mon api ls services -c host_name,description,state,plugin_output state -gt 0
+ mon query ls hosts
+ mon query ls hosts -c address name=darkstar
+ mon query ls hosts -c name name -r ^a name~^b -o 2
+ mon query ls hosts -c name state -ne 0 acknowledged -e 1 -a2 state=0 -o2 -l3
+ mon query ls hosts -c name parents -e ''
+ mon query ls hosts -c name parents\>=monitor
+ mon query ls services -c host_name,description,state,plugin_output state -gt 0
 "
 }
 
