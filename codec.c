@@ -171,6 +171,12 @@ int merlin_decode(void *ds, off_t len, int cb_type)
 	return ret;
 }
 
+static nebstruct_contact_notification_data *
+nebstruct_contact_notification_data_from_message(ContactNotificationData *message);
+
+
+#define assert_return(Assert, Return)  do { if (!Assert) return Return;} while (0);
+#define MESSAGE_TYPE(T) MERLIN_MESSAGE__TYPE__ ## T
 static const size_t message_size(const MerlinMessage *message)
 {
 	return merlin_message__get_packed_size(message);
@@ -198,19 +204,19 @@ int merlin_message_is_nonet(const MerlinMessage *message)
 
 int merlin_message_is_ctrl_packet(const MerlinMessage *message)
 {
-	return message->type == MERLIN_MESSAGE__TYPE__MERLIN_CTRL_PACKET;
+	return message->type == MESSAGE_TYPE(MERLIN_CTRL_PACKET);
 }
 
 size_t
-merlin_encode_message(const MerlinMessage *msg, unsigned char *buffer)
+merlin_encode_message(const MerlinMessage *msg, unsigned char **buffer)
 {
 	size_t bufsz = message_size(msg);
-	buffer = malloc(bufsz);
+	*buffer = malloc(bufsz);
 	if (!buffer) {
 		lerr("Memory allocation error");
 		return -1;
 	}
-	merlin_message__pack(msg, buffer);
+	merlin_message__pack(msg, *buffer);
 	return bufsz;
 }
 
@@ -223,7 +229,27 @@ merlin_encoded_message_destroy(unsigned char *message)
 MerlinMessage *
 merlin_decode_message(size_t len, const unsigned char *data)
 {
-	return NULL;
+	MerlinMessage *message = merlin_message__unpack(NULL, len, data);
+	return message;
+}
+
+void *
+merlin_message_to_nebstruct(const MerlinMessage *message)
+{
+	MerlinMessage__Type type;
+	void *nebstruct_data = NULL;
+	assert_return(message, NULL);
+	type = merlin_message_type(message);
+	switch (type) {
+		case MESSAGE_TYPE(CONTACT_NOTIFICATION_DATA):
+			nebstruct_data = nebstruct_contact_notification_data_from_message(message->contact_notification_data);
+			break;
+		default:
+			lwarn("Can not convert unknown/unsupported message type %d to nebstruct", (int) type);
+			break;
+	}
+
+	return nebstruct_data;
 }
 
 static Timeval *
@@ -236,7 +262,9 @@ Timeval_create( struct timeval tv)
 	}
 	timeval__init(timeval);
 	timeval->sec = tv.tv_sec;
+	timeval->has_sec = 1;
 	timeval->usec = tv.tv_usec;
+	timeval->has_usec = 1;
 	return timeval;
 }
 
@@ -264,8 +292,40 @@ neb_callback_header_create(void)
 	return header;
 }
 
+static nebstruct_contact_notification_data *
+nebstruct_contact_notification_data_from_message(ContactNotificationData *message)
+{
+	nebstruct_contact_notification_data *ds = NULL;
+	ds = calloc(1, sizeof(nebstruct_contact_notification_data));
+	if (!ds) {
+		lerr("Memory allocation error");
+		return NULL;
+	}
+	ds->type = message->neb_header->type;
+	ds->flags = message->neb_header->flags;
+	ds->attr = message->neb_header->attr;
+	ds->timestamp.tv_sec = message->neb_header->timestamp->sec;
+	ds->timestamp.tv_usec = message->neb_header->timestamp->usec;
+	ds->notification_type = message->notification_type;
+	ds->start_time.tv_sec = message->start_time->sec;
+	ds->start_time.tv_usec = message->start_time->usec;
+	ds->end_time.tv_sec = message->end_time->sec;
+	ds->end_time.tv_usec = message->end_time->usec;
+	ds->host_name = message->host_name;
+	ds->service_description = message->service_description;
+	ds->contact_name = message->contact_name;
+	ds->reason_type = message->reason_type;
+	ds->state = message->state;
+	ds->output = message->output;
+	ds->ack_author = message->ack_author;
+	ds->ack_data = message->ack_data;
+	ds->escalated = message->escalated;
+	return ds;
+}
+
 static ContactNotificationData *
-contact_notification_data_create(nebstruct_contact_notification_data *ds) {
+contact_notification_data_from_nebstruct(nebstruct_contact_notification_data *ds)
+{
 	ContactNotificationData *message = NULL;
 
 	if (!ds) {
@@ -279,24 +339,46 @@ contact_notification_data_create(nebstruct_contact_notification_data *ds) {
 	}
 
 	contact_notification_data__init(message);
-
 	message->neb_header = neb_callback_header_create();
+	message->neb_header->type = ds->type;
+	message->neb_header->has_type = 1;
+
 	message->neb_header->flags = ds->flags;
+	message->neb_header->has_flags = 1;
+
 	message->neb_header->attr = ds->attr;
+	message->neb_header->has_attr = 1;
+
 	message->neb_header->timestamp = Timeval_create(ds->timestamp);
 
 	message->notification_type = ds->notification_type;
+	message->has_notification_type = 1;
+
 	message->start_time = Timeval_create(ds->start_time);
+
 	message->end_time = Timeval_create(ds->end_time);
+
 	message->host_name = ds->host_name;
+
 	message->service_description = ds->service_description;
+
 	message->contact_name = ds->contact_name;
+
 	message->reason_type = ds->reason_type;
+	message->has_reason_type = 1;
+
 	message->state = ds->state;
+	message->has_state = 1;
+
 	message->output = ds->output;
+
 	message->ack_author = ds->ack_author;
+
 	message->ack_data = ds->ack_data;
+
 	message->escalated = ds->escalated;
+	message->has_escalated = 1;
+
 	return message;
 }
 
@@ -330,7 +412,6 @@ contact_notification_data_destroy(ContactNotificationData *message)
 	free(message);
 }
 
-#define MESSAGE_TYPE(T) MERLIN_MESSAGE__TYPE__ ## T
 #define MERLIN_MESSAGE_DESTROY_DATA(MESSAGE, MTYPE) MTYPE ## _destroy((MESSAGE)->MTYPE);
 void merlin_message_destroy(MerlinMessage *message)
 {
@@ -340,15 +421,15 @@ void merlin_message_destroy(MerlinMessage *message)
 			MERLIN_MESSAGE_DESTROY_DATA(message, contact_notification_data);
 			break;
 		default:
-			lwarn("Can not destroy unknown/unsupported message type %d", (int) message->type);
+			lwarn("Can not destroy unknown/unsupported message type %d", (int) merlin_message_type(message));
 			break;
 	}
 	free(message);
 }
 
-#define MERLIN_MESSAGE_FILL_DATA(MESSAGE, MTYPE, DATA) (MESSAGE)->MTYPE = MTYPE ## _create((nebstruct_ ## MTYPE *) DATA);
+#define MERLIN_MESSAGE_FILL_DATA(MESSAGE, MTYPE, DATA) (MESSAGE)->MTYPE = MTYPE ## _from_nebstruct((nebstruct_ ## MTYPE *) DATA);
 MerlinMessage *
-merlin_message_create(MerlinMessage__Type type, void *data)
+merlin_message_from_nebstruct(MerlinMessage__Type type, void *data)
 {
 	MerlinMessage *message = NULL;
 	if (!data) {
@@ -363,6 +444,7 @@ merlin_message_create(MerlinMessage__Type type, void *data)
 	message->header = merlin_header_create();
 	switch ( type ) {
 		case MESSAGE_TYPE(CONTACT_NOTIFICATION_DATA):
+			message->type = MESSAGE_TYPE(CONTACT_NOTIFICATION_DATA);
 			MERLIN_MESSAGE_FILL_DATA(message, contact_notification_data, data);
 			break;
 		default:

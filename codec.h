@@ -9,19 +9,47 @@
 typedef MerlinCtrlPacket__Code MerlinCtrlPacketCode;
 
 /*
+ * General nebstruct message data flow:
+ *   nebstruct_* ->
+ *   merlin_message_from_nebstruct() -> MerlinMessage *->
+ *   merlin_message_encode() -> buffer ->
+ *   (wire transmission) ->
+ *   buffer -> merlin_message_decode() ->
+ *   MerlinMessage * -> merlin_message_to_nebstruct() ->
+ *   nebstruct_*
+ */
+
+/*
  * Message types
  */
 #define MM_ContactNotificationData MERLIN_MESSAGE__TYPE__CONTACT_NOTIFICATION_DATA
 
 /**
- * Creates a MerlinMessage of the supplied type, using the supplied data
- * as a source.
+ * Converts the supplied data to a MerlinMessage of the supplied type.
+ * The caller is responsible for deallocating the resulting message by
+ * passing it to merlin_message_destroy()
+ * NOTE: Any pointers in the resulting message are simply copied from
+ * the source data (no new memory is allocated), meaning that the source
+ * data must not be deallocated while the message is in use.
  * @param type The type of message to create
- * @param data The source data to use (often a nebstruct_*)
+ * @param data The source data to use (some type of nebstruct_*)
  * @return The message, or NULL on error
  */
 MerlinMessage *
-merlin_message_create(MerlinMessage__Type type, void *data);
+merlin_message_from_nebstruct(MerlinMessage__Type type, void *data);
+
+/**
+ * Converts the supplied MerlinMessage to its nebstruct representation.
+ * The caller is responsible for deallocating the resulting nebstruct
+ * by passing it to free()
+ * NOTE: Any pointers in the resulting nebstruct are simply copied from
+ * the source message (no new memory is allocated), meaning that the message
+ * must not be deallocated while the nebstruct is still in use.
+ * @param message The message
+ * @return The resulting nebstruct, or NULL on error
+ */
+void *
+merlin_message_to_nebstruct(const MerlinMessage *message);
 
 /**
  * Deallocates the supplied message.
@@ -44,7 +72,7 @@ merlin_message_destroy(MerlinMessage *message);
  * @return The size of the allocated buffer
  */
 size_t
-merlin_encode_message(const MerlinMessage *, unsigned char *buffer);
+merlin_encode_message(const MerlinMessage *, unsigned char **buffer);
 
 /**
  * Sets the selection for this message. Selection should be a bitwise OR
