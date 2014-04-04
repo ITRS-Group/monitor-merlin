@@ -177,6 +177,7 @@ nebstruct_contact_notification_data_from_message(ContactNotificationData *messag
 
 #define assert_return(Assert, Return)  do { if (!Assert) return Return;} while (0);
 #define MESSAGE_TYPE(T) MERLIN_MESSAGE__TYPE__ ## T
+#define PB_SET(Target, Source, What) Target->What = Source->What; Target->has_ ## What = 1;
 static const size_t message_size(const MerlinMessage *message)
 {
 	return merlin_message__get_packed_size(message);
@@ -327,11 +328,7 @@ static ContactNotificationData *
 contact_notification_data_from_nebstruct(nebstruct_contact_notification_data *ds)
 {
 	ContactNotificationData *message = NULL;
-
-	if (!ds) {
-		return NULL;
-	}
-
+	assert_return(ds, NULL);
 	message = calloc(1, sizeof(ContactNotificationData));
 	if (!message) {
 		lerr("Memory allocation error");
@@ -340,19 +337,12 @@ contact_notification_data_from_nebstruct(nebstruct_contact_notification_data *ds
 
 	contact_notification_data__init(message);
 	message->neb_header = neb_callback_header_create();
-	message->neb_header->type = ds->type;
-	message->neb_header->has_type = 1;
-
-	message->neb_header->flags = ds->flags;
-	message->neb_header->has_flags = 1;
-
-	message->neb_header->attr = ds->attr;
-	message->neb_header->has_attr = 1;
-
+	PB_SET(message->neb_header, ds, type);
+	PB_SET(message->neb_header, ds, flags);
+	PB_SET(message->neb_header, ds, attr);
 	message->neb_header->timestamp = Timeval_create(ds->timestamp);
 
-	message->notification_type = ds->notification_type;
-	message->has_notification_type = 1;
+	PB_SET(message, ds, notification_type);
 
 	message->start_time = Timeval_create(ds->start_time);
 
@@ -364,20 +354,13 @@ contact_notification_data_from_nebstruct(nebstruct_contact_notification_data *ds
 
 	message->contact_name = ds->contact_name;
 
-	message->reason_type = ds->reason_type;
-	message->has_reason_type = 1;
-
-	message->state = ds->state;
-	message->has_state = 1;
+	PB_SET(message, ds, reason_type);
+	PB_SET(message, ds, state);
 
 	message->output = ds->output;
-
 	message->ack_author = ds->ack_author;
-
 	message->ack_data = ds->ack_data;
-
-	message->escalated = ds->escalated;
-	message->has_escalated = 1;
+	PB_SET(message, ds, escalated);
 
 	return message;
 }
