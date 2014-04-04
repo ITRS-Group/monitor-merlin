@@ -153,10 +153,17 @@ static int is_dupe(merlin_event *pkt)
 	return 0;
 }
 
-static int send_generic_message(const GenericMessage *message)
+static int send_generic_message(const MerlinMessage *message)
 {
-	if (!use_database && (message_is_nonet((MerlinHeader *)message) == MAGIC_NONET) && !message_is_ctrl_packet(message)){
+	unsigned char *buffer = NULL;
+	size_t buf_sz = 0;
+	if (!use_database && merlin_message_is_nonet(message) && !merlin_message_is_ctrl_packet(message) )
+	{
 		return 0;
+	}
+	buf_sz = merlin_encode_message(message, buffer);
+	if ( buf_sz <= 0 ) {
+		return -1;
 	}
 	return -1;
 }
@@ -703,18 +710,19 @@ static int hook_external_command(merlin_event *pkt, void *data)
 static int hook_contact_notification(void *data)
 {
 	int ret = 0;
-	ContactNotificationDataMessage *message = NULL;
+	MerlinMessage *message = NULL;
 	nebstruct_contact_notification_data *ds = (nebstruct_contact_notification_data *)data;
 
 	if (ds->type != NEBTYPE_CONTACTNOTIFICATION_END)
 		return 0;
 
-	if (!(message = contact_notification_data_create(ds, DEST_BROADCAST))) {
+	if (!(message = merlin_message_create(MM_ContactNotificationData, ds))) {
 		lerr("Message creation error");
 		return -1;
 	}
-	ret = send_generic_message((const GenericMessage *) message);
-	contact_notification_data_destroy(message);
+	merlin_message_set_selection(message, DEST_BROADCAST);
+	ret = send_generic_message(message);
+	merlin_message_destroy(message);
 	return ret;
 }
 

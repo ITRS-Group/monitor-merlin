@@ -1,9 +1,6 @@
 import "ctrl.proto";
 import "nebcallback.proto";
-message Timeval {
-	optional int64 sec = 1;
-	optional int64 usec = 2;
-};
+import "timeval.proto";
 
 message MerlinHeader {
 	required uint64 sig = 1 [default = 0x005456454e4c524d]; // "MRLNEVT\0"
@@ -17,34 +14,64 @@ message MerlinHeader {
 message MerlinMessage {
     optional MerlinHeader header = 1;
 
+	enum Type {
+		MERLIN_CTRL_PACKET = 1;
+		PROCESS_DATA = 2;
+		TIMED_EVENT_DATA = 3;
+		LOG_DATA = 4;
+		SYSTEM_COMMAND_DATA = 5;
+		EVENT_HANDLER_DATA = 6;
+		HOST_CHECK_DATA = 7;
+		SERVICE_CHECK_DATA = 8;
+		COMMENT_DATA = 9;
+		DOWNTIME_DATA = 10;
+		FLAPPING_DATA = 11;
+		PROGRAM_STATUS_DATA = 12;
+		HOST_STATUS_DATA = 13;
+		SERVICE_STATUS_DATA = 14;
+		CONTACT_STATUS_DATA = 15;
+		NOTIFICATION_DATA = 16;
+		CONTACT_NOTIFICATION_DATA = 17;
+		CONTACT_NOTIFICATION_METHOD_DATA = 18;
+		ADAPTIVE_PROGRAM_DATA = 19;
+		ADAPTIVE_HOST_DATA = 20;
+		ADAPTIVE_SERVICE_DATA = 21;
+		ADAPTIVE_CONTACT_DATA = 22;
+		EXTERNAL_COMMAND_DATA = 23;
+		AGGREGATED_STATUS_DATA = 24;
+		RETENTION_DATA = 25;
+		ACKNOWLEDGEMENT_DATA = 26;
+		STATECHANGE_DATA = 27;
+	}
+	required Type type = 2;
     // General CTRL packets
-    optional MerlinCtrlPacket merlin_ctrl_packet= 2;
+    optional MerlinCtrlPacket merlin_ctrl_packet= 3;
 
     // NEB-Callback packets
-    optional ProcessData process_data = 3;
-    optional TimedEventData timed_event_data = 4;
-    optional LogData log_data = 5;
-    optional SystemCommandData system_command_data = 6;
-    optional EventHandlerData event_handler_data = 7;
-    optional HostCheckData host_check_data = 8;
-    optional ServiceCheckData service_check_data = 9;
-    optional CommentData comment_data = 10;
-    optional DowntimeData downtime_data = 11;
-    optional FlappingData flapping_data = 12;
-    optional ProgramStatusData program_status_data = 13;
-    optional HostStatusData host_status_data = 14;
-    optional ServiceStatusData service_status_data = 15;
-    optional ContactStatusData contact_status_data = 16;
-    optional NotificationData notification_data = 17;
-    optional ContactNotificationData contact_notification_data = 18;
-    optional ContactNotificationMethodData contact_notification_method_data = 19;
-    optional AdaptiveProgramData adaptive_program_data = 20;
-    optional AdaptiveHostData adaptive_host_data = 21;
-    optional AdaptiveServiceData adaptive_service_data = 22;
-    optional AdaptiveContactData adaptive_contact_data = 23;
-    optional ExternalCommandData external_command_data = 24;
-    optional AggregatedStatusData aggregated_status_data = 25;
-    optional RetentionData retention_data = 26;
-    optional AcknowledgementData acknowledgement_data = 27;
-    optional StatechangeData statechange_data = 28;
+    optional ProcessData process_data = 4;
+    optional TimedEventData timed_event_data = 5;
+    optional LogData log_data = 6;
+    optional SystemCommandData system_command_data = 7;
+    optional EventHandlerData event_handler_data = 8;
+    optional HostCheckData host_check_data = 9;
+    optional ServiceCheckData service_check_data = 10;
+    optional CommentData comment_data = 11;
+    optional DowntimeData downtime_data = 12;
+    optional FlappingData flapping_data = 13;
+    optional ProgramStatusData program_status_data = 14;
+    optional HostStatusData host_status_data = 15;
+    optional ServiceStatusData service_status_data = 16;
+    optional ContactStatusData contact_status_data = 17;
+    optional NotificationData notification_data = 18;
+    optional ContactNotificationData contact_notification_data = 19;
+    optional ContactNotificationMethodData contact_notification_method_data = 20;
+    optional AdaptiveProgramData adaptive_program_data = 21;
+    optional AdaptiveHostData adaptive_host_data = 22;
+    optional AdaptiveServiceData adaptive_service_data = 23;
+    optional AdaptiveContactData adaptive_contact_data = 24;
+    optional ExternalCommandData external_command_data = 25;
+    optional AggregatedStatusData aggregated_status_data = 26;
+    optional RetentionData retention_data = 27;
+    optional AcknowledgementData acknowledgement_data = 28;
+    optional StatechangeData statechange_data = 29;
 };

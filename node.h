@@ -9,7 +9,7 @@
 #include "cfgfile.h"
 #include "binlog.h"
 #include "pgroup.h"
-#include "header.pb-c.h"
+#include "ctrl.pb-c.h"
 #include "merlin.pb-c.h"
 
 #if __BYTE_ORDER == __BIG_ENDIAN

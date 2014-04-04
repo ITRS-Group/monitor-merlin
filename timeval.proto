@@ -1,0 +1,4 @@
+message Timeval {
+	optional int64 sec = 1;
+	optional int64 usec = 2;
+};

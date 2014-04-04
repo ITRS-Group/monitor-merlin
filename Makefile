@@ -63,7 +63,7 @@ db_wrap.o: db_wrap_dbi.c
 endif
 sql.o test-dbwrap.o db_wrap.o: CFLAGS+=$(DB_CFLAGS)
 
-PROTOCOL_OBJS = nebcallback.pb-c.o header.pb-c.o merlin.pb-c.o
+PROTOCOL_OBJS = nebcallback.pb-c.o ctrl.pb-c.o timeval.pb-c.o merlin.pb-c.o
 COMMON_OBJS = cfgfile.o shared.o version.o logging.o dlist.o
 SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o $(PROTOCOL_OBJS) binlog.o
 TEST_OBJS = test_utils.o $(SHARED_OBJS)
@@ -84,6 +84,7 @@ DAEMON_LIBS = $(LIB_NET)
 DAEMON_LDFLAGS = $(DAEMON_LIBS) $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) $(PROTOBUF_C_LDFLAGS) -ggdb3
 DBTEST_LDFLAGS = $(LIB_NET) $(LIBNAGIOS_LDFLAGS) $(DB_LDFLAGS) -ggdb3
 HOOKTEST_LDFLAGS = $(LIBNAGIOS_LDFLAGS) -ggdb3 $(PROTOBUF_C_LDFLAGS)
+CODECTEST_LDFLAGS = $(LIBNAGIOS_LDFLAGS) -ggdb3 $(PROTOBUF_C_LDFLAGS)
 STRINGUTILSTEST_LDFLAGS = -ggdb3
 SPARSE_FLAGS += -I. -Wno-transparent-union -Wnoundef
 DESTDIR = /tmp/merlin
@@ -157,7 +158,7 @@ rename: $(RENAME_OBJS)
 	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@
 
 #test: test-binlog test-slist test__lparse
-test: test-slist test__csync test__lparse test-hooks test-stringutils test-showlog test-dbwrap
+test: test-slist test__csync test__lparse test-hooks test-stringutils test-showlog test-dbwrap test-codec
 
 test-slist: sltest
 	@./sltest
@@ -174,6 +175,9 @@ test__lparse: test-lparse
 test-hooks:	hooktest
 	@./hooktest
 
+test-codec: codectest
+	@./codectest
+
 test-stringutils: stringutilstest
 	@./stringutilstest
 
@@ -188,6 +192,9 @@ bltest: binlog.o bltest.o test_utils.o
 
 hooktest: tests/test-hooks.o $(filter-out pgroup.o, $(filter-out ipc.o,$(filter-out hooks.o,$(filter-out module.o,$(MODULE_OBJS)))))
 	$(QUIET_LINK)$(CC) $(CFLAGS) $^ -o $@ $(HOOKTEST_LDFLAGS) `pkg-config --libs check`
+
+codectest: tests/test-codec.o codec.o $(PROTOCOL_OBJS) $(filter-out pgroup.o ipc.o hooks.o module.o queries.o, $(MODULE_OBJS))
+	$(QUIET_LINK)$(CC) $(CFLAGS) $^ -o $@ $(CODECTEST_LDFLAGS) `pkg-config --libs check`
 
 stringutilstest: test-stringutils.o test_utils.o string_utils.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $^ -o $@ $(STRINGUTILSTEST_LDFLAGS)
@@ -208,9 +215,11 @@ blread: blread.o codec.o $(COMMON_OBJS)
 
 %.pb-c.c %.pb-c.h: %.proto
 	protoc-c --c_out=. $^
+merlin.pb-c.c merlin.pb-c.h: merlin.proto ctrl.pb-c.h nebcallback.pb-c.h timeval.pb-c.h
+	protoc-c --c_out=. $<
 
-shared.o: header.pb-c.h merlin.pb-c.h
-codec.o: nebcallback.pb-c.c header.pb-c.c merlin.pb-c.c
+shared.o: merlin.pb-c.h ctrl.pb-c.h
+codec.o: nebcallback.pb-c.c ctrl.pb-c.c merlin.pb-c.c
 
 blread.o: test/blread.c $(DEPS)
 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@

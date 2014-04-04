@@ -1,3 +1,4 @@
+import "timeval.proto";
 message NebCallbackHeader {
 	optional int32 flags = 1;
 	optional int32 attr = 2;
