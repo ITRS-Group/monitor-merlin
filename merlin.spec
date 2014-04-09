@@ -4,6 +4,14 @@
 %define install_args --batch --dest-dir=%mod_path \\\
 	--bindir=%_bindir --libexecdir=%_libdir/merlin --nagios-cfg=%nagios_cfg
 
+%if 0%{?suse_version}
+%define mysqld mysql
+%define mysql_rpm mysql
+%else
+%define mysqld mysqld
+%define mysql_rpm mysql-server
+%endif
+
 %{?dgroup:%define daemon_group %{dgroup}}
 
 Summary: The merlin daemon is a multiplexing event-transport program
@@ -19,7 +27,7 @@ Prefix: /opt/monitor
 Requires: libaio
 Requires: merlin-apps >= %version
 Requires: monitor-config
-Requires: op5-monitor-supported-database
+Requires: op5-mysql
 BuildRequires: mysql-devel
 BuildRequires: op5-nagios-devel >= 3.99.99.7
 Obsoletes: monitor-reports-module
@@ -161,20 +169,27 @@ cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
 /etc/init.d/merlind stop >/dev/null || :
 
 # Verify that mysql-server is installed and running before executing sql scripts
+service %mysqld status 2&>1 >/dev/null
+if [ $? -gt 0 ]; then
+  echo "Attempting to start %mysqld..."
+  service %mysqld start
+  if [ $? -gt 0 ]; then
+    echo "Abort: Failed to start %mysqld."
+    exit 1
+  fi
+fi
+
 $(mysql -Be "quit" 2>/dev/null) && MYSQL_AVAILABLE=1
 if [ -n "$MYSQL_AVAILABLE" ]; then
   %mod_path/install-merlin.sh %install_args --batch --install=db
 else
-  echo "WARNING: mysql-server is not installed or not running."
-  echo "If MySQL database is to be used you need to maually run:"
-  echo "  %mod_path/install-merlin.sh --batch --install=db --nagios-cfg=%prefix/etc/nagios.cfg --dest-dir=%prefix/op5/merlin"
-  echo "to complete the setup of %name"
+  echo "Can't login to %mysqld, probably because you have a root password set, bailing out..."
+  exit 1
 fi
 
 # If mysql-server is running _or_ this is an upgrade
 # we import logs
-$(mysql -Be "quit" 2>/dev/null)
-if [[ -n "$MYSQL_AVAILABLE" || $1 -eq 2 ]]; then
+if [ $1 -eq 2 ]; then
   /sbin/chkconfig --add merlind || :
   echo "Importing status events from logfiles to database"
   mon log import --incremental || :
