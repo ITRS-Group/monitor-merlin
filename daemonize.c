@@ -147,8 +147,9 @@ int kill_daemon(const char *pidfile)
 	if (pid) {
 		printf("Signalling process with pid %d\n", pid);
 		kill(pid, SIGTERM);
-		sleep(1);
+		sleep(3);
 		kill(pid, SIGKILL);
+		unlink(pidfile);
 	}
 	else
 		puts("No daemon running");
