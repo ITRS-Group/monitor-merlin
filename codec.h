@@ -74,6 +74,8 @@ merlin_message_destroy(MerlinMessage *message);
 size_t
 merlin_encode_message(const MerlinMessage *, unsigned char **buffer);
 
+
+void merlin_message_set_sent(const MerlinMessage *message, struct timeval *when);
 /**
  * Sets the selection for this message. Selection should be a bitwise OR
  * of the DEST_* macros defined in node.h.
@@ -87,15 +89,43 @@ void merlin_message_set_selection(const MerlinMessage *, int32_t selection);
  * @param message The message
  * @return The currently set selection
  */
-int32_t merlin_message_get_selection(const MerlinMessage *);
+int32_t
+merlin_message_get_selection(const MerlinMessage *);
 
+
+/* CtrlPacket functions*/
 /**
  * Returns the non-zero if this message is of the MERLIN_CTRL_PACKET type and
  * zero if it is not.
  * @param message The message
  * @return "bool" indicating whether the message is a MERLIN_CTRL_PACKET
  */
-int merlin_message_is_ctrl_packet(const MerlinMessage *);
+int
+merlin_message_is_ctrl_packet(const MerlinMessage *);
+
+int
+merlin_message_ctrl_packet_code(const MerlinMessage *);
+
+NodeInfo *
+merlin_message_ctrl_packet_nodeinfo(const MerlinMessage *);
+
+/* NodeInfo functions */
+MerlinTimeval *
+merlin_message_nodeinfo_start(const NodeInfo *);
+
+unsigned char *
+merlin_message_nodeinfo_config_hash(const NodeInfo *);
+
+int64_t
+merlin_message_nodeinfo_last_cfg_change(const NodeInfo *);
+
+/* MerlinTimeval functions*/
+int64_t
+merlin_message_timeval_sec(const MerlinTimeval *);
+
+int64_t
+merlin_message_timeval_usec(const MerlinTimeval *);
+
 /**
  * Returns non-zero if the NONET flag is set for this message, and zero
  * if it is not.

@@ -155,17 +155,21 @@ static int is_dupe(merlin_event *pkt)
 
 static int send_generic_message(const MerlinMessage *message)
 {
-	unsigned char *buffer = NULL;
-	size_t buf_sz = 0;
+	int result;
+	struct timeval tv;
 	if (!use_database && merlin_message_is_nonet(message) && !merlin_message_is_ctrl_packet(message) )
 	{
 		return 0;
 	}
-	buf_sz = merlin_encode_message(message, &buffer);
-	if ( buf_sz <= 0 ) {
-		return -1;
+
+	if (is_module) {
+		gettimeofday(&tv, NULL);
+		merlin_message_set_sent(message, &tv);
 	}
-	return -1;
+	/* TODO: is_dupe() */
+	result = ipc_send_message(message);
+
+	return result;
 }
 
 static int send_generic(merlin_event *pkt, void *data)

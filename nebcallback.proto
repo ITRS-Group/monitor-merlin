@@ -3,7 +3,7 @@ message NebCallbackHeader {
 	optional int32 type = 1;
 	optional int32 flags = 2;
 	optional int32 attr = 3;
-	optional Timeval timestamp = 4;
+	optional MerlinTimeval timestamp = 4;
 };
 
 message ProcessData {
@@ -26,8 +26,8 @@ message LogData {
 
 message SystemCommandData {
 	optional NebCallbackHeader neb_header = 1;
-	optional Timeval start_time = 2;
-	optional Timeval end_time = 3;
+	optional MerlinTimeval start_time = 2;
+	optional MerlinTimeval end_time = 3;
 	optional int32 timeout = 4;
 	optional string command_line = 5;
 	optional int32 early_timeout = 6;
@@ -47,8 +47,8 @@ message EventHandlerData {
 	optional string command_name = 8;
 	optional string command_args = 9;
 	optional string command_line = 10;
-	optional Timeval start_time = 11;
-	optional Timeval end_time = 12;
+	optional MerlinTimeval start_time = 11;
+	optional MerlinTimeval end_time = 12;
 	optional int32 early_timeout = 13;
 	optional double execution_time = 14;
 	optional int32 return_code = 15;
@@ -67,8 +67,8 @@ message HostCheckData {
 	optional string command_name = 9;
 	optional string command_args = 10;
 	optional string command_line = 11;
-	optional Timeval start_time = 12;
-	optional Timeval end_time = 13;
+	optional MerlinTimeval start_time = 12;
+	optional MerlinTimeval end_time = 13;
 	optional int32 early_timeout = 14;
 	optional double execution_time = 15;
 	optional double latency = 16;
@@ -91,8 +91,8 @@ message ServiceCheckData {
 	optional string command_name = 10;
 	optional string command_args = 11;
 	optional string command_line = 12;
-	optional Timeval start_time = 13;
-	optional Timeval end_time = 14;
+	optional MerlinTimeval start_time = 13;
+	optional MerlinTimeval end_time = 14;
 	optional int32 early_timeout = 15;
 	optional double execution_time = 16;
 	optional double latency = 17;
@@ -182,8 +182,8 @@ message ContactStatusData {
 message NotificationData {
 	optional NebCallbackHeader neb_header = 1;
 	optional int32 notification_type = 2;
-	optional Timeval start_time = 3;
-	optional Timeval end_time = 4;
+	optional MerlinTimeval start_time = 3;
+	optional MerlinTimeval end_time = 4;
 	optional string host_name = 5;
 	optional string service_description = 6;
 	optional int32 reason_type = 7;
@@ -198,8 +198,8 @@ message NotificationData {
 message ContactNotificationData {
 	optional NebCallbackHeader neb_header = 1;
 	optional int32 notification_type = 2;
-	optional Timeval start_time = 3;
-	optional Timeval end_time = 4;
+	optional MerlinTimeval start_time = 3;
+	optional MerlinTimeval end_time = 4;
 	optional string host_name = 5;
 	optional string service_description = 6;
 	optional string contact_name = 7;
@@ -214,8 +214,8 @@ message ContactNotificationData {
 message ContactNotificationMethodData {
 	optional NebCallbackHeader neb_header = 1;
 	optional int32 notification_type = 2;
-	optional Timeval start_time = 3;
-	optional Timeval end_time = 4;
+	optional MerlinTimeval start_time = 3;
+	optional MerlinTimeval end_time = 4;
 	optional string host_name = 5;
 	optional string service_description = 6;
 	optional string contact_name = 7;

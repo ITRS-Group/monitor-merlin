@@ -253,6 +253,7 @@ extern void node_log_event_count(merlin_node *node, int force);
 extern void node_disconnect(merlin_node *node, const char *fmt, ...);
 extern int node_send(merlin_node *node, void *data, unsigned int len, int flags);
 extern int node_send_event(merlin_node *node, merlin_event *pkt, int msec);
+int node_send_message(merlin_node *node, const MerlinMessage *message, int flags);
 extern int node_recv(merlin_node *node);
 extern merlin_event *node_get_event(merlin_node *node);
 extern int node_send_binlog(merlin_node *node, merlin_event *pkt);

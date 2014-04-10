@@ -174,6 +174,8 @@ int merlin_decode(void *ds, off_t len, int cb_type)
 static nebstruct_contact_notification_data *
 nebstruct_contact_notification_data_from_message(ContactNotificationData *message);
 
+static MerlinTimeval *
+merlin_timeval_create( struct timeval tv);
 
 #define assert_return(Assert, Return)  do { if (!Assert) return Return;} while (0);
 #define MESSAGE_TYPE(T) MERLIN_MESSAGE__TYPE__ ## T
@@ -188,9 +190,15 @@ static MerlinMessage__Type merlin_message_type(const MerlinMessage *message)
 	return message->type;
 }
 
+void merlin_message_set_sent(const MerlinMessage *message, struct timeval *when)
+{
+	message->header->sent = merlin_timeval_create(*when);
+}
+
 void merlin_message_set_selection(const MerlinMessage *message, int32_t selection)
 {
 	message->header->selection = selection;
+	message->header->has_selection = 1;
 }
 
 int32_t merlin_message_get_selection(const MerlinMessage *message)
@@ -205,7 +213,57 @@ int merlin_message_is_nonet(const MerlinMessage *message)
 
 int merlin_message_is_ctrl_packet(const MerlinMessage *message)
 {
-	return message->type == MESSAGE_TYPE(MERLIN_CTRL_PACKET);
+	return merlin_message_type(message) == MESSAGE_TYPE(MERLIN_CTRL_PACKET);
+}
+
+int merlin_message_ctrl_packet_code(const MerlinMessage *message)
+{
+	assert_return(message, -1);
+	assert_return(merlin_message_is_ctrl_packet(message), -1);
+	return message->merlin_ctrl_packet->code;
+}
+
+NodeInfo *
+merlin_message_ctrl_packet_nodeinfo(const MerlinMessage *message)
+{
+	assert_return(message, NULL);
+	assert_return(merlin_message_is_ctrl_packet(message), NULL);
+	return message->merlin_ctrl_packet->nodeinfo;
+}
+
+MerlinTimeval *
+merlin_message_nodeinfo_start(const NodeInfo *nodeinfo)
+{
+	assert_return(nodeinfo, NULL);
+	return nodeinfo->start;
+}
+
+unsigned char *
+merlin_message_nodeinfo_config_hash(const NodeInfo *nodeinfo)
+{
+	assert_return(nodeinfo, NULL);
+	return (unsigned char *) nodeinfo->config_hash;
+}
+
+int64_t
+merlin_message_nodeinfo_last_cfg_change(const NodeInfo *nodeinfo)
+{
+	assert_return(nodeinfo, 0);
+	return nodeinfo->last_cfg_change;
+}
+
+int64_t
+merlin_message_timeval_sec(const MerlinTimeval *timeval)
+{
+	assert_return(timeval, 0);
+	return timeval->sec;
+}
+
+int64_t
+merlin_message_timeval_usec(const MerlinTimeval *timeval)
+{
+	assert_return(timeval, 0);
+	return timeval->usec;
 }
 
 size_t
@@ -253,15 +311,15 @@ merlin_message_to_nebstruct(const MerlinMessage *message)
 	return nebstruct_data;
 }
 
-static Timeval *
-Timeval_create( struct timeval tv)
+static MerlinTimeval *
+merlin_timeval_create( struct timeval tv)
 {
-	Timeval *timeval = calloc(1, sizeof(Timeval));
+	MerlinTimeval *timeval = calloc(1, sizeof(MerlinTimeval));
 	if (!timeval) {
 		lerr("Memory allocation error");
 		return NULL;
 	}
-	timeval__init(timeval);
+	merlin_timeval__init(timeval);
 	timeval->sec = tv.tv_sec;
 	timeval->has_sec = 1;
 	timeval->usec = tv.tv_usec;
@@ -278,6 +336,10 @@ merlin_header_create(void)
 		return NULL;
 	}
 	merlin_header__init(header);
+	header->sig = MERLIN_SIGNATURE;
+	header->protocol = MERLIN_PROTOCOL_VERSION;
+	header->has_protocol = 1;
+
 	return header;
 }
 
@@ -340,13 +402,13 @@ contact_notification_data_from_nebstruct(nebstruct_contact_notification_data *ds
 	PB_SET(message->neb_header, ds, type);
 	PB_SET(message->neb_header, ds, flags);
 	PB_SET(message->neb_header, ds, attr);
-	message->neb_header->timestamp = Timeval_create(ds->timestamp);
+	message->neb_header->timestamp = merlin_timeval_create(ds->timestamp);
 
 	PB_SET(message, ds, notification_type);
 
-	message->start_time = Timeval_create(ds->start_time);
+	message->start_time = merlin_timeval_create(ds->start_time);
 
-	message->end_time = Timeval_create(ds->end_time);
+	message->end_time = merlin_timeval_create(ds->end_time);
 
 	message->host_name = ds->host_name;
 
@@ -367,7 +429,7 @@ contact_notification_data_from_nebstruct(nebstruct_contact_notification_data *ds
 
 
 static void
-Timeval_destroy(Timeval *tv)
+merlin_timeval_destroy(MerlinTimeval *tv)
 {
 	free(tv);
 }
@@ -375,14 +437,14 @@ Timeval_destroy(Timeval *tv)
 static void
 merlin_header_destroy(MerlinHeader *header)
 {
-	Timeval_destroy(header->sent);
+	merlin_timeval_destroy(header->sent);
 	free(header);
 }
 
 static void
 neb_callback_header_destroy(NebCallbackHeader *header)
 {
-	Timeval_destroy(header->timestamp);
+	merlin_timeval_destroy(header->timestamp);
 	free(header);
 }
 
@@ -390,8 +452,8 @@ static void
 contact_notification_data_destroy(ContactNotificationData *message)
 {
 	neb_callback_header_destroy(message->neb_header);
-	Timeval_destroy(message->start_time);
-	Timeval_destroy(message->end_time);
+	merlin_timeval_destroy(message->start_time);
+	merlin_timeval_destroy(message->end_time);
 	free(message);
 }
 

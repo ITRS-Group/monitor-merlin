@@ -1,4 +1,5 @@
 #include "shared.h"
+#include "codec.h"
 #include <netdb.h>
 
 static time_t stall_start;
@@ -834,6 +835,67 @@ merlin_event *node_get_event(merlin_node *node)
 	return pkt;
 }
 
+
+int node_send_message(merlin_node *node, const MerlinMessage *message, int flags)
+{
+	int sent, sd;
+	NodeInfo *nodeinfo = NULL;
+	unsigned char *data = NULL;
+	size_t len = 0;
+
+
+	node_log_event_count(node, 0);
+	/*FIXME: add binlog handling*/
+	if (!node || node->sock < 0)
+		return 0;
+
+	if (merlin_message_is_ctrl_packet(message)) {
+		ldebug("Sending %s to %s", ctrl_name(merlin_message_ctrl_packet_code(message)), node->name);
+		if (merlin_message_ctrl_packet_code(message) == CTRL_ACTIVE) {
+			nodeinfo = merlin_message_ctrl_packet_nodeinfo(message);
+			ldebug("   start time: %lu.%lu",
+					merlin_message_timeval_sec(merlin_message_nodeinfo_start(nodeinfo)),
+					merlin_message_timeval_usec(merlin_message_nodeinfo_start(nodeinfo))
+				  );
+			ldebug("  config hash: %s", tohex(merlin_message_nodeinfo_config_hash(nodeinfo), 20));
+			ldebug(" config mtime: %lu", merlin_message_nodeinfo_last_cfg_change(nodeinfo));
+		}
+	}
+	len = merlin_encode_message(message, &data);
+	sent = io_send_all(node->sock, data, len);
+	/* success. Should be the normal case */
+	if (sent == (int)len) {
+		node->stats.bytes.sent += sent;
+		node->last_action = node->last_sent = time(NULL);
+
+		node->stats.events.sent++;
+		return sent;
+	}
+
+	/*
+	 * partial writes and complete failures can only be handled
+	 * by disconnecting and re-syncing the stream
+	 */
+	sd = node->sock;
+	node_disconnect(node, "Partial or failed write() (sent=%d; len=%zd): %s",
+				   sent, len, strerror(errno));
+
+	if (sent < 0) {
+		/* if we would have blocked, we simply return 0 */
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return 0;
+
+		/* otherwise we log the error and disconnect the node */
+		lerr("Failed to send(%d, %p, %zd, %d) to %s: %s",
+			 sd, data, len, flags, node->name, strerror(errno));
+		return sent;
+	}
+
+	/* partial write. ugh... */
+	lerr("Partial send() to %s. %d of %zd bytes sent",
+		 node->name, sent, len);
+	return -1;
+}
 /*
  * Send the given event "pkt" to the node "node", or take appropriate
  * actions on the node itself in case sending fails.

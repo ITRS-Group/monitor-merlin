@@ -347,3 +347,14 @@ int ipc_send_event(merlin_event *pkt)
 
 	return 0;
 }
+
+int ipc_send_message(const MerlinMessage *message)
+{
+	ipc_is_connected(0);
+	if (node_send_message(&ipc, message, 0) < 0) {
+		ipc_reinit();
+		return -1;
+	}
+
+	return 0;
+}

@@ -7,7 +7,7 @@ message MerlinHeader {
 	optional int32 protocol= 2 [default = 2];
 	optional bool nonet = 3 [default = false]; //XXX: Perhaps make this a bitmask, called flags?
 	optional int32 selection = 4;
-	optional Timeval sent = 5;
+	optional MerlinTimeval sent = 5;
 
 };
 

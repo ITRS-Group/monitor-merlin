@@ -16,6 +16,7 @@ extern void ipc_deinit(void);
 extern int ipc_grok_var(char *var, char *val);
 extern int ipc_ctrl(int code, uint sel, void *data, uint32_t len);
 extern int ipc_send_event(merlin_event *pkt);
+int ipc_send_message(const MerlinMessage *message);
 extern int ipc_listen_sock_desc(void);
 extern int ipc_is_connected(int msec);
 extern int ipc_reinit(void);
