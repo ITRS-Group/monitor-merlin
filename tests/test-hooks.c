@@ -58,6 +58,11 @@ void ipc_deinit(void) {}
 int dump_nodeinfo(merlin_node *n, int sd, int instance_id) {return 0;}
 
 static merlin_event last_decoded_event;
+
+int ipc_send_message(const MerlinMessage *message)
+{
+	return 0;
+}
 int ipc_send_event(merlin_event *pkt) {
 	merlin_decode_event(merlin_sender, pkt);
 	memcpy(&last_decoded_event, pkt, sizeof(merlin_event));
