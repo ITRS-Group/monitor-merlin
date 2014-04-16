@@ -27,7 +27,7 @@ Requires: libaio
 Requires: merlin-apps >= %version
 Requires: monitor-config
 Requires: op5-mysql
-Requires protobuf-c
+Requires: protobuf-c
 BuildRequires: mysql-devel
 BuildRequires: op5-nagios-devel >= 3.99.99.7
 Obsoletes: monitor-reports-module
