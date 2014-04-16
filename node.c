@@ -1038,29 +1038,25 @@ int node_send_binlog(merlin_node *node, merlin_event *pkt)
  * to node "node", packing pkt->body with "data" which must be of
  * size "len".
  */
-int node_ctrl(merlin_node *node, int code, uint selection, void *data,
-			  uint32_t len, int msec)
+int node_ctrl(merlin_node *node, int code, uint selection, merlin_nodeinfo *info,
+		int msec)
 {
-	merlin_event pkt;
-
-	if (len > sizeof(pkt.body)) {
-		lerr("Attempted to send %u bytes of data when max is %u",
-			 len, sizeof(pkt.body));
-		bt_scan(NULL, 0);
+	int ret = -1;
+	MerlinMessage *message = merlin_message_from_basedata(MM_MerlinCtrlPacket, info);
+	if (!message) {
+		lerr("Message creation error");
 		return -1;
 	}
 
-	memset(&pkt.hdr, 0, HDR_SIZE);
+	merlin_message_ctrl_packet_set_code(message, code);
+	merlin_message_set_selection(message, selection & 0xffff);
 
-	pkt.hdr.sig.id = MERLIN_SIGNATURE;
-	pkt.hdr.protocol = MERLIN_PROTOCOL_VERSION;
-	gettimeofday(&pkt.hdr.sent, NULL);
-	pkt.hdr.type = CTRL_PACKET;
-	pkt.hdr.len = len;
-	pkt.hdr.code = code;
-	pkt.hdr.selection = selection & 0xffff;
-	if (data)
-		memcpy(&pkt.body, data, len);
+	/**
+	 * pkt.hdr.sig.id = MERLIN_SIGNATURE;
+	 *pkt.hdr.protocol = MERLIN_PROTOCOL_VERSION;
+	 */
 
-	return node_send_event(node, &pkt, msec);
+	ret = node_send_message(node, message, msec);
+	merlin_message_destroy(message);
+	return ret;
 }

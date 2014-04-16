@@ -11,7 +11,7 @@ typedef MerlinCtrlPacket__Code MerlinCtrlPacketCode;
 /*
  * General nebstruct message data flow:
  *   nebstruct_* ->
- *   merlin_message_from_nebstruct() -> MerlinMessage *->
+ *   merlin_message_from_basedata() -> MerlinMessage *->
  *   merlin_message_encode() -> buffer ->
  *   (wire transmission) ->
  *   buffer -> merlin_message_decode() ->
@@ -23,6 +23,7 @@ typedef MerlinCtrlPacket__Code MerlinCtrlPacketCode;
  * Message types
  */
 #define MM_ContactNotificationData MERLIN_MESSAGE__TYPE__CONTACT_NOTIFICATION_DATA
+#define MM_MerlinCtrlPacket MERLIN_MESSAGE__TYPE__MERLIN_CTRL_PACKET
 
 /**
  * Converts the supplied data to a MerlinMessage of the supplied type.
@@ -36,7 +37,7 @@ typedef MerlinCtrlPacket__Code MerlinCtrlPacketCode;
  * @return The message, or NULL on error
  */
 MerlinMessage *
-merlin_message_from_nebstruct(MerlinMessage__Type type, void *data);
+merlin_message_from_basedata(MerlinMessage__Type type, void *data);
 
 /**
  * Converts the supplied MerlinMessage to its nebstruct representation.
@@ -75,6 +76,7 @@ size_t
 merlin_encode_message(const MerlinMessage *, unsigned char **buffer);
 
 
+void merlin_message_ctrl_packet_set_code(const MerlinMessage *message, int code);
 void merlin_message_set_sent(const MerlinMessage *message, struct timeval *when);
 /**
  * Sets the selection for this message. Selection should be a bitwise OR

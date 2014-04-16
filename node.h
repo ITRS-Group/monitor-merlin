@@ -260,7 +260,7 @@ extern int node_send_binlog(merlin_node *node, merlin_event *pkt);
 extern const char *node_state(merlin_node *node);
 extern const char *node_type(merlin_node *node);
 extern void node_set_state(merlin_node *node, int state, const char *reason);
-extern int node_ctrl(merlin_node *node, int code, uint selection, void *data, uint32_t len, int msec);
+extern int node_ctrl(merlin_node *node, int code, uint selection, merlin_nodeinfo *data, int msec);
 extern merlin_node *node_by_id(uint id);
 
 /*
@@ -269,11 +269,11 @@ extern merlin_node *node_by_id(uint id);
  */
 static inline int node_send_ctrl_inactive(merlin_node *node, uint id, int msec)
 {
-	return node_ctrl(node, CTRL_INACTIVE, id, NULL, 0, msec);
+	return node_ctrl(node, CTRL_INACTIVE, id, NULL, msec);
 }
 
 static inline int node_send_ctrl_active(merlin_node *node, uint id, merlin_nodeinfo *info, int msec)
 {
-	return node_ctrl(node, CTRL_ACTIVE, id, (void *)info, sizeof(*info), msec);
+	return node_ctrl(node, CTRL_ACTIVE, id, info, msec);
 }
 #endif

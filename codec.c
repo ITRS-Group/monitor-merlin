@@ -177,6 +177,9 @@ nebstruct_contact_notification_data_from_message(ContactNotificationData *messag
 static MerlinTimeval *
 merlin_timeval_create( struct timeval tv);
 
+static NodeInfo *
+nodeinfo_create(void);
+
 #define assert_return(Assert, Return)  do { if (!Assert) return Return;} while (0);
 #define MESSAGE_TYPE(T) MERLIN_MESSAGE__TYPE__ ## T
 #define PB_SET(Target, Source, What) Target->What = Source->What; Target->has_ ## What = 1;
@@ -201,6 +204,13 @@ void merlin_message_set_selection(const MerlinMessage *message, int32_t selectio
 	message->header->has_selection = 1;
 }
 
+void merlin_message_ctrl_packet_set_code(const MerlinMessage *message, int code)
+{
+	if (!message || merlin_message_is_ctrl_packet(message)) {
+		return;
+	}
+	message->merlin_ctrl_packet->code = code;
+}
 int32_t merlin_message_get_selection(const MerlinMessage *message)
 {
 	return message->header->selection;
@@ -427,6 +437,52 @@ contact_notification_data_from_nebstruct(nebstruct_contact_notification_data *ds
 	return message;
 }
 
+static NodeInfo *
+nodeinfo_create(void)
+{
+	NodeInfo *message = calloc(1, sizeof(NodeInfo));
+	if (!message) {
+		lerr("Memory allocation error");
+		return NULL;
+	}
+
+	node_info__init(message);
+	return message;
+}
+
+static void
+nodeinfo_destroy(NodeInfo *info)
+{
+	free(info);
+}
+
+static MerlinCtrlPacket *
+merlin_message_ctrl_packet_from_nodeinfo(merlin_nodeinfo *info)
+{
+
+	MerlinCtrlPacket *message = NULL;
+	assert_return(info, NULL);
+	message = calloc(1, sizeof(MerlinCtrlPacket));
+	if (!message) {
+		lerr("Memory allocation error");
+		return NULL;
+	}
+
+	merlin_ctrl_packet__init(message);
+	message->nodeinfo = nodeinfo_create();
+	PB_SET(message->nodeinfo, info, last_cfg_change);
+	message->nodeinfo->config_hash = (char *) info->config_hash;
+	PB_SET(message->nodeinfo, info, peer_id);
+	PB_SET(message->nodeinfo, info, active_peers);
+	PB_SET(message->nodeinfo, info, configured_pollers);
+	PB_SET(message->nodeinfo, info, active_masters);
+	PB_SET(message->nodeinfo, info, configured_masters);
+	PB_SET(message->nodeinfo, info, host_checks_handled);
+	PB_SET(message->nodeinfo, info, service_checks_handled);
+	PB_SET(message->nodeinfo, info, monitored_object_state_size);
+	return message;
+}
+
 
 static void
 merlin_timeval_destroy(MerlinTimeval *tv)
@@ -449,6 +505,13 @@ neb_callback_header_destroy(NebCallbackHeader *header)
 }
 
 static void
+merlin_ctrl_packet_destroy(MerlinCtrlPacket *message)
+{
+	nodeinfo_destroy(message->nodeinfo);
+	free(message);
+}
+
+static void
 contact_notification_data_destroy(ContactNotificationData *message)
 {
 	neb_callback_header_destroy(message->neb_header);
@@ -462,6 +525,9 @@ void merlin_message_destroy(MerlinMessage *message)
 {
 	merlin_header_destroy(message->header);
 	switch (merlin_message_type(message)) {
+		case MESSAGE_TYPE(MERLIN_CTRL_PACKET):
+			MERLIN_MESSAGE_DESTROY_DATA(message, merlin_ctrl_packet);
+			break;
 		case MESSAGE_TYPE(CONTACT_NOTIFICATION_DATA):
 			MERLIN_MESSAGE_DESTROY_DATA(message, contact_notification_data);
 			break;
@@ -474,7 +540,7 @@ void merlin_message_destroy(MerlinMessage *message)
 
 #define MERLIN_MESSAGE_FILL_DATA(MESSAGE, MTYPE, DATA) (MESSAGE)->MTYPE = MTYPE ## _from_nebstruct((nebstruct_ ## MTYPE *) DATA);
 MerlinMessage *
-merlin_message_from_nebstruct(MerlinMessage__Type type, void *data)
+merlin_message_from_basedata(MerlinMessage__Type type, void *data)
 {
 	MerlinMessage *message = NULL;
 	if (!data) {
@@ -488,6 +554,10 @@ merlin_message_from_nebstruct(MerlinMessage__Type type, void *data)
 	merlin_message__init(message);
 	message->header = merlin_header_create();
 	switch ( type ) {
+		case MESSAGE_TYPE(MERLIN_CTRL_PACKET):
+			message->type = MESSAGE_TYPE(MERLIN_CTRL_PACKET);
+			message->merlin_ctrl_packet = merlin_message_ctrl_packet_from_nodeinfo((merlin_nodeinfo *) data);
+			break;
 		case MESSAGE_TYPE(CONTACT_NOTIFICATION_DATA):
 			message->type = MESSAGE_TYPE(CONTACT_NOTIFICATION_DATA);
 			MERLIN_MESSAGE_FILL_DATA(message, contact_notification_data, data);

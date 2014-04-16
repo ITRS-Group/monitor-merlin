@@ -324,10 +324,10 @@ int ipc_listen_sock_desc(void)
  * first. If data isn't null, len bytes is copied from it to
  * pkt.body
  */
-int ipc_ctrl(int code, uint sel, void *data, uint32_t len)
+int ipc_ctrl(int code, uint sel, merlin_nodeinfo *data)
 {
 	ipc_is_connected(0);
-	return node_ctrl(&ipc, code, sel, data, len, 100);
+	return node_ctrl(&ipc, code, sel, data, 100);
 }
 
 int ipc_send_event(merlin_event *pkt)

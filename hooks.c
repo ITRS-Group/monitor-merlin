@@ -720,7 +720,7 @@ static int hook_contact_notification(void *data)
 	if (ds->type != NEBTYPE_CONTACTNOTIFICATION_END)
 		return 0;
 
-	if (!(message = merlin_message_from_nebstruct(MM_ContactNotificationData, ds))) {
+	if (!(message = merlin_message_from_basedata(MM_ContactNotificationData, ds))) {
 		lerr("Message creation error");
 		return -1;
 	}
