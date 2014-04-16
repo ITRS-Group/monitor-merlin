@@ -73,7 +73,7 @@ START_TEST(test_merlin_ctrl_packet)
 	gettimeofday(&tv, NULL);
 	info.start = tv;
 	info.last_cfg_change = 12345678L;
-	info.config_hash = (unsigned char *)"6b945c39dcedda030c6a2416c866815b7d988815";
+	strncpy((char *)info.config_hash, "6b945c39dcedda030c6a2416c866815b7d988815", 20);
 	info.peer_id = 1;
 	info.active_peers = 0;
 	info.configured_peers = 0;

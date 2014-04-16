@@ -385,7 +385,7 @@ merlin_nodeinfo_from_ctrl_packet(MerlinCtrlPacket *message)
 	info->start.tv_sec = message->nodeinfo->start->sec;
 	info->start.tv_usec = message->nodeinfo->start->usec;
 	info->last_cfg_change = message->nodeinfo->last_cfg_change;
-	info->config_hash = (unsigned char*) message->nodeinfo->config_hash;
+	strncpy((char *)info->config_hash, message->nodeinfo->config_hash, sizeof(info->config_hash));
 	info->peer_id = message->nodeinfo->peer_id;
 	info->active_peers = message->nodeinfo->active_peers;
 	info->configured_peers = message->nodeinfo->configured_peers;
