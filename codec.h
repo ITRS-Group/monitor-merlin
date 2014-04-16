@@ -11,11 +11,11 @@ typedef MerlinCtrlPacket__Code MerlinCtrlPacketCode;
 /*
  * General nebstruct message data flow:
  *   nebstruct_* ->
- *   merlin_message_from_basedata() -> MerlinMessage *->
+ *   merlin_message_from_payload() -> MerlinMessage *->
  *   merlin_message_encode() -> buffer ->
  *   (wire transmission) ->
  *   buffer -> merlin_message_decode() ->
- *   MerlinMessage * -> merlin_message_to_nebstruct() ->
+ *   MerlinMessage * -> merlin_message_to_payload() ->
  *   nebstruct_*
  */
 
@@ -33,11 +33,11 @@ typedef MerlinCtrlPacket__Code MerlinCtrlPacketCode;
  * the source data (no new memory is allocated), meaning that the source
  * data must not be deallocated while the message is in use.
  * @param type The type of message to create
- * @param data The source data to use (some type of nebstruct_*)
+ * @param data The source data to use (some type of nebstruct_* or nodeinfo)
  * @return The message, or NULL on error
  */
 MerlinMessage *
-merlin_message_from_basedata(MerlinMessage__Type type, void *data);
+merlin_message_from_payload(MerlinMessage__Type type, void *data);
 
 /**
  * Converts the supplied MerlinMessage to its nebstruct representation.
@@ -50,7 +50,7 @@ merlin_message_from_basedata(MerlinMessage__Type type, void *data);
  * @return The resulting nebstruct, or NULL on error
  */
 void *
-merlin_message_to_nebstruct(const MerlinMessage *message);
+merlin_message_to_payload(const MerlinMessage *message);
 
 /**
  * Deallocates the supplied message.

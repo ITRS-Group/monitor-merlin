@@ -1042,7 +1042,7 @@ int node_ctrl(merlin_node *node, int code, uint selection, merlin_nodeinfo *info
 		int msec)
 {
 	int ret = -1;
-	MerlinMessage *message = merlin_message_from_basedata(MM_MerlinCtrlPacket, info);
+	MerlinMessage *message = merlin_message_from_payload(MM_MerlinCtrlPacket, info);
 	if (!message) {
 		lerr("Message creation error");
 		return -1;

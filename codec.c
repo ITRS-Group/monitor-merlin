@@ -171,6 +171,9 @@ int merlin_decode(void *ds, off_t len, int cb_type)
 	return ret;
 }
 
+static merlin_nodeinfo *
+merlin_nodeinfo_from_ctrl_packet(MerlinCtrlPacket *message);
+
 static nebstruct_contact_notification_data *
 nebstruct_contact_notification_data_from_message(ContactNotificationData *message);
 
@@ -303,22 +306,25 @@ merlin_decode_message(size_t len, const unsigned char *data)
 }
 
 void *
-merlin_message_to_nebstruct(const MerlinMessage *message)
+merlin_message_to_payload(const MerlinMessage *message)
 {
 	MerlinMessage__Type type;
-	void *nebstruct_data = NULL;
+	void *payload = NULL;
 	assert_return(message, NULL);
 	type = merlin_message_type(message);
 	switch (type) {
+		case MESSAGE_TYPE(MERLIN_CTRL_PACKET):
+			payload = merlin_nodeinfo_from_ctrl_packet(message->merlin_ctrl_packet);
+			break;
 		case MESSAGE_TYPE(CONTACT_NOTIFICATION_DATA):
-			nebstruct_data = nebstruct_contact_notification_data_from_message(message->contact_notification_data);
+			payload = nebstruct_contact_notification_data_from_message(message->contact_notification_data);
 			break;
 		default:
 			lwarn("Can not convert unknown/unsupported message type %d to nebstruct", (int) type);
 			break;
 	}
 
-	return nebstruct_data;
+	return payload;
 }
 
 static MerlinTimeval *
@@ -365,10 +371,37 @@ neb_callback_header_create(void)
 	return header;
 }
 
+static merlin_nodeinfo *
+merlin_nodeinfo_from_ctrl_packet(MerlinCtrlPacket *message)
+{
+	merlin_nodeinfo *info = NULL;
+	assert_return(message, NULL);
+	info = calloc(1, sizeof(merlin_nodeinfo));
+	if (!info) {
+		lerr("Memory allocation error");
+		return NULL;
+	}
+
+	info->start.tv_sec = message->nodeinfo->start->sec;
+	info->start.tv_usec = message->nodeinfo->start->usec;
+	info->last_cfg_change = message->nodeinfo->last_cfg_change;
+	info->config_hash = (unsigned char*) message->nodeinfo->config_hash;
+	info->peer_id = message->nodeinfo->peer_id;
+	info->active_peers = message->nodeinfo->active_peers;
+	info->configured_peers = message->nodeinfo->configured_peers;
+	info->active_pollers = message->nodeinfo->active_pollers;
+	info->configured_pollers = message->nodeinfo->configured_pollers;
+	info->active_masters = message->nodeinfo->active_masters;
+	info->configured_masters = message->nodeinfo->configured_masters;
+	info->host_checks_handled = message->nodeinfo->host_checks_handled;
+	info->service_checks_handled = message->nodeinfo->service_checks_handled;
+	return info;
+}
 static nebstruct_contact_notification_data *
 nebstruct_contact_notification_data_from_message(ContactNotificationData *message)
 {
 	nebstruct_contact_notification_data *ds = NULL;
+	assert_return(message, NULL);
 	ds = calloc(1, sizeof(nebstruct_contact_notification_data));
 	if (!ds) {
 		lerr("Memory allocation error");
@@ -453,6 +486,7 @@ nodeinfo_create(void)
 static void
 nodeinfo_destroy(NodeInfo *info)
 {
+	free(info->start);
 	free(info);
 }
 
@@ -470,16 +504,18 @@ merlin_message_ctrl_packet_from_nodeinfo(merlin_nodeinfo *info)
 
 	merlin_ctrl_packet__init(message);
 	message->nodeinfo = nodeinfo_create();
+	message->nodeinfo->start = merlin_timeval_create(info->start);
 	PB_SET(message->nodeinfo, info, last_cfg_change);
 	message->nodeinfo->config_hash = (char *) info->config_hash;
 	PB_SET(message->nodeinfo, info, peer_id);
 	PB_SET(message->nodeinfo, info, active_peers);
+	PB_SET(message->nodeinfo, info, configured_peers);
+	PB_SET(message->nodeinfo, info, active_pollers);
 	PB_SET(message->nodeinfo, info, configured_pollers);
 	PB_SET(message->nodeinfo, info, active_masters);
 	PB_SET(message->nodeinfo, info, configured_masters);
 	PB_SET(message->nodeinfo, info, host_checks_handled);
 	PB_SET(message->nodeinfo, info, service_checks_handled);
-	PB_SET(message->nodeinfo, info, monitored_object_state_size);
 	return message;
 }
 
@@ -540,7 +576,7 @@ void merlin_message_destroy(MerlinMessage *message)
 
 #define MERLIN_MESSAGE_FILL_DATA(MESSAGE, MTYPE, DATA) (MESSAGE)->MTYPE = MTYPE ## _from_nebstruct((nebstruct_ ## MTYPE *) DATA);
 MerlinMessage *
-merlin_message_from_basedata(MerlinMessage__Type type, void *data)
+merlin_message_from_payload(MerlinMessage__Type type, void *data)
 {
 	MerlinMessage *message = NULL;
 	if (!data) {

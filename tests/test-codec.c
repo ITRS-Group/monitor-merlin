@@ -33,7 +33,7 @@ START_TEST(test_contact_notification_data)
 	ds.reason_type = NOTIFICATION_NORMAL;
 	ds.state = 2;
 	ds.output = "Oh no! The service was eaten by a grue!";
-	MerlinMessage *message = merlin_message_from_nebstruct(MM_ContactNotificationData, &ds);
+	MerlinMessage *message = merlin_message_from_payload(MM_ContactNotificationData, &ds);
 	merlin_message_set_selection(message, DEST_BROADCAST);
 
 	ck_assert(!merlin_message_is_ctrl_packet(message));
@@ -46,7 +46,7 @@ START_TEST(test_contact_notification_data)
 	message = NULL;
 	/* decode */
 	message = merlin_decode_message(bufsz, buf);
-	ds2 = merlin_message_to_nebstruct(message);
+	ds2 = merlin_message_to_payload(message);
 	ck_assert_msg(NULL != ds2, "Converted nebstruct is unexpectedly NULL");
 	ck_assert_int_eq(ds.type, ds2->type);
 	ck_assert_int_eq(ds.timestamp.tv_sec, ds2->timestamp.tv_sec);
@@ -59,6 +59,57 @@ START_TEST(test_contact_notification_data)
 	ck_assert_int_eq(ds.reason_type, ds2->reason_type);
 	ck_assert_int_eq(ds.state, ds2->state);
 	ck_assert_str_eq(ds.output, ds2->output);
+	free(ds2);
+}
+END_TEST
+
+START_TEST(test_merlin_ctrl_packet)
+{
+	struct timeval tv;
+	merlin_nodeinfo info = {0,};
+	merlin_nodeinfo *info2 = NULL;
+	size_t bufsz;
+	unsigned char *buf = NULL;
+	gettimeofday(&tv, NULL);
+	info.start = tv;
+	info.last_cfg_change = 12345678L;
+	info.config_hash = (unsigned char *)"6b945c39dcedda030c6a2416c866815b7d988815";
+	info.peer_id = 1;
+	info.active_peers = 0;
+	info.configured_peers = 0;
+	info.active_pollers = 1;
+	info.configured_pollers = 1;
+	info.active_masters = 0;
+	info.configured_masters = 0;
+	info.host_checks_handled = 5;
+	info.service_checks_handled = 10;
+	MerlinMessage *message = merlin_message_from_payload(MM_MerlinCtrlPacket, &info);
+	merlin_message_set_selection(message, DEST_PEERS_POLLERS);
+	ck_assert(merlin_message_is_ctrl_packet(message));
+	ck_assert(!merlin_message_is_nonet(message));
+	ck_assert_int_eq(DEST_PEERS_POLLERS, merlin_message_get_selection(message));
+	bufsz = merlin_encode_message(message, &buf);
+	ck_assert(bufsz > 0);
+	ck_assert_msg(NULL != buf, "Encoded buffer is unexpectedly NULL");
+	merlin_message_destroy(message);
+	message = NULL;
+	/* decode */
+	message = merlin_decode_message(bufsz, buf);
+	info2 = merlin_message_to_payload(message);
+	ck_assert_msg(NULL != info2, "Converted nodeinfo is unexpectedly NULL");
+	ck_assert_int_eq(info.start.tv_sec, info2->start.tv_sec);
+	ck_assert_int_eq(info.start.tv_usec, info2->start.tv_usec);
+	ck_assert_int_eq(info.last_cfg_change, info2->last_cfg_change);
+	ck_assert_str_eq(info.config_hash, info2->config_hash);
+	ck_assert_int_eq(info.peer_id, info2->peer_id);
+	ck_assert_int_eq(info.active_peers, info2->active_peers);
+	ck_assert_int_eq(info.configured_peers, info2->configured_peers);
+	ck_assert_int_eq(info.active_pollers, info2->active_pollers);
+	ck_assert_int_eq(info.configured_pollers, info2->configured_pollers);
+	ck_assert_int_eq(info.active_masters, info2->active_masters);
+	ck_assert_int_eq(info.configured_masters, info2->configured_masters);
+	ck_assert_int_eq(info.host_checks_handled, info2->host_checks_handled);
+	ck_assert_int_eq(info.service_checks_handled, info2->service_checks_handled);
 }
 END_TEST
 
@@ -69,6 +120,7 @@ check_codec_suite(void)
 
 	TCase *tc = tcase_create("messages");
 	tcase_add_test(tc, test_contact_notification_data);
+	tcase_add_test(tc, test_merlin_ctrl_packet);
 	suite_add_tcase(s, tc);
 
 	return s;

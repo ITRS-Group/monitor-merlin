@@ -21,12 +21,13 @@ message NodeInfo {
 	optional string config_hash = 3;   /* SHA1 hash of object config hash */
 	optional uint32 peer_id = 4;
 	optional uint32 active_peers = 5;
-	optional uint32 configured_pollers = 6;
-	optional uint32 active_masters = 7;
-	optional uint32 configured_masters = 8;
-	optional uint32 host_checks_handled = 9;
-	optional uint32 service_checks_handled = 10;
-	optional uint32 monitored_object_state_size = 11;
+	optional uint32 configured_peers = 6;
+	optional uint32 active_pollers = 7;
+	optional uint32 configured_pollers = 8;
+	optional uint32 active_masters = 9;
+	optional uint32 configured_masters = 10;
+	optional uint32 host_checks_handled = 11;
+	optional uint32 service_checks_handled = 12;
 };
 
 message MerlinAckPacket { // Unused

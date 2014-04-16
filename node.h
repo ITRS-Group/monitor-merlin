@@ -124,7 +124,7 @@ struct merlin_nodeinfo {
 	uint32_t object_structure_version;
 	struct timeval start;   /* module (or daemon) start time */
 	time_t last_cfg_change; /* when config was last changed */
-	unsigned char config_hash[20];   /* SHA1 hash of object config hash */
+	unsigned char *config_hash;   /* SHA1 hash of object config hash */
 	uint32_t peer_id;       /* self-assigned peer-id */
 	uint32_t active_peers;
 	uint32_t configured_peers;
