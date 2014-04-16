@@ -86,6 +86,7 @@ void ipc_init_struct(void)
 	ipc.name = "ipc";
 	ipc.flags = MERLIN_NODE_DEFAULT_IPC_FLAGS;
 	ipc.ioc = iocache_create(MERLIN_IOC_BUFSIZE);
+	ipc.info.config_hash = calloc(1, 20);
 	if (ipc.ioc == NULL) {
 		lerr("Failed to malloc() %d bytes for ipc io cache: %s",
 			 MERLIN_IOC_BUFSIZE, strerror(errno));
@@ -284,6 +285,9 @@ void ipc_deinit(void)
 	/* avoid spurious valgrind/strace warnings */
 	if (listen_sock >= 0)
 		close(listen_sock);
+
+	free(ipc.info.config_hash);
+	ipc.info.config_hash = NULL;
 
 	listen_sock = -1;
 
