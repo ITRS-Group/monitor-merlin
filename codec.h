@@ -60,21 +60,36 @@ void
 merlin_message_destroy(MerlinMessage *message);
 
 /**
- * Encodes a MerlinMessage into the specified buffer. The caller is
- * responsible for deallocating the buffer by passing it to
- * merlin_encoded_message_destroy.
- *
- * This function allocates enough memory for the buffer to hold the
- * entire message. As such, the buffer should NOT be allocated prior
- * to calling this function.
+ * Encodes a MerlinMessage into the specified buffer. The buffer should
+ * be large enough to hold at least message_size(message) bytes.
  *
  * @param msg The message to decode
  * @param buffer The buffer to store the encoded message
- * @return The size of the allocated buffer
+ * @return The number of bytes written to buffer
+ * @see message_size
  */
 size_t
-merlin_encode_message(const MerlinMessage *, unsigned char **buffer);
+merlin_encode_message(const MerlinMessage *, unsigned char *buffer);
 
+/**
+ * Decodes a data buffer containing a MerlinMessage encoded with
+ * merlin_encode_message. The caller is responsible for deallocating
+ * the returned message by passing it to
+ * merlin_message_destroy.
+ * @param len The size of the buffer
+ * @param data The buffer to decode
+ * @return The decoded message, or -1 on error
+ */
+MerlinMessage *
+merlin_decode_message(size_t len, const unsigned char *data);
+
+/**
+ * Returns the size of this message when encoded.
+ * @param message The message
+ * @return The size of the encoded message, or -1 on error
+ * @see merlin_encode_message
+ */
+const size_t merlin_message_size(const MerlinMessage *message);
 
 void merlin_message_ctrl_packet_set_code(const MerlinMessage *message, int code);
 void merlin_message_set_sent(const MerlinMessage *message, struct timeval *when);
@@ -137,15 +152,4 @@ merlin_message_timeval_usec(const MerlinTimeval *);
 int
 merlin_message_is_nonet(const MerlinMessage *);
 
-/**
- * Decodes a data buffer containing a MerlinMessage encoded with
- * merlin_encode_message. The caller is responsible for deallocating
- * the returned message by passing it to
- * merlin_message_destroy.
- * @param len The size of the buffer
- * @param data The buffer to decode
- * @return The decoded message
- */
-MerlinMessage *
-merlin_decode_message(size_t len, const unsigned char *data);
 #endif

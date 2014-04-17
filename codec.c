@@ -186,7 +186,7 @@ nodeinfo_create(void);
 #define assert_return(Assert, Return)  do { if (!Assert) return Return;} while (0);
 #define MESSAGE_TYPE(T) MERLIN_MESSAGE__TYPE__ ## T
 #define PB_SET(Target, Source, What) Target->What = Source->What; Target->has_ ## What = 1;
-static const size_t message_size(const MerlinMessage *message)
+const size_t merlin_message_size(const MerlinMessage *message)
 {
 	return merlin_message__get_packed_size(message);
 }
@@ -280,22 +280,11 @@ merlin_message_timeval_usec(const MerlinTimeval *timeval)
 }
 
 size_t
-merlin_encode_message(const MerlinMessage *msg, unsigned char **buffer)
+merlin_encode_message(const MerlinMessage *msg, unsigned char *buffer)
 {
-	size_t bufsz = message_size(msg);
-	*buffer = malloc(bufsz);
-	if (!buffer) {
-		lerr("Memory allocation error");
-		return -1;
-	}
-	merlin_message__pack(msg, *buffer);
-	return bufsz;
-}
-
-void
-merlin_encoded_message_destroy(unsigned char *message)
-{
-	free(message);
+	assert_return(msg, -1);
+	assert_return(buffer, -1);
+	return merlin_message__pack(msg, (uint8_t *)buffer);
 }
 
 MerlinMessage *

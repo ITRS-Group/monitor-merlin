@@ -835,13 +835,12 @@ merlin_event *node_get_event(merlin_node *node)
 	return pkt;
 }
 
-
 int node_send_message(merlin_node *node, const MerlinMessage *message, int flags)
 {
 	int sent, sd;
 	NodeInfo *nodeinfo = NULL;
 	unsigned char *data = NULL;
-	size_t len = 0;
+	size_t len = 0, encoded_len = 0, buf_sz = 0;
 
 
 	node_log_event_count(node, 0);
@@ -861,14 +860,30 @@ int node_send_message(merlin_node *node, const MerlinMessage *message, int flags
 			ldebug(" config mtime: %lu", merlin_message_nodeinfo_last_cfg_change(nodeinfo));
 		}
 	}
-	len = merlin_encode_message(message, &data);
-	sent = io_send_all(node->sock, data, len);
+	len = merlin_message_size(message);
+	buf_sz = sizeof(len) + len;
+	data = malloc(buf_sz);
+
+	if (data) {
+		lerr("Memory allocation error");
+		return -1;
+	}
+	memcpy(data, &len, sizeof(len));
+	encoded_len = merlin_encode_message(message, data + sizeof(len));
+
+	if ( encoded_len != len) {
+		lerr("Encoded message is of unexpected size, expected: %zd, actual: %zd", len, encoded_len);
+		free(data);
+		return -1;
+	}
+	sent = io_send_all(node->sock, data, buf_sz);
 	/* success. Should be the normal case */
-	if (sent == (int)len) {
+	if (sent == (int)buf_sz) {
 		node->stats.bytes.sent += sent;
 		node->last_action = node->last_sent = time(NULL);
 
 		node->stats.events.sent++;
+		free(data);
 		return sent;
 	}
 
@@ -877,23 +892,27 @@ int node_send_message(merlin_node *node, const MerlinMessage *message, int flags
 	 * by disconnecting and re-syncing the stream
 	 */
 	sd = node->sock;
-	node_disconnect(node, "Partial or failed write() (sent=%d; len=%zd): %s",
-				   sent, len, strerror(errno));
+	node_disconnect(node, "Partial or failed write() (sent=%d; buf_sz=%zd): %s",
+				   sent, buf_sz, strerror(errno));
 
 	if (sent < 0) {
 		/* if we would have blocked, we simply return 0 */
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			free(data);
 			return 0;
+		}
 
 		/* otherwise we log the error and disconnect the node */
 		lerr("Failed to send(%d, %p, %zd, %d) to %s: %s",
-			 sd, data, len, flags, node->name, strerror(errno));
+			 sd, data, buf_sz, flags, node->name, strerror(errno));
+		free(data);
 		return sent;
 	}
 
 	/* partial write. ugh... */
 	lerr("Partial send() to %s. %d of %zd bytes sent",
-		 node->name, sent, len);
+		 node->name, sent, buf_sz);
+	free(data);
 	return -1;
 }
 /*

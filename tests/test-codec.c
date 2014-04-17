@@ -39,9 +39,10 @@ START_TEST(test_contact_notification_data)
 	ck_assert(!merlin_message_is_ctrl_packet(message));
 	ck_assert(!merlin_message_is_nonet(message));
 	ck_assert_int_eq(DEST_BROADCAST, merlin_message_get_selection(message));
-	bufsz = merlin_encode_message(message, &buf);
+	buf = calloc(1, merlin_message_size(message));
+	ck_assert_msg(NULL != buf, "Buffer is unexpectedly NULL");
+	bufsz = merlin_encode_message(message, buf);
 	ck_assert(bufsz > 0);
-	ck_assert_msg(NULL != buf, "Encoded buffer is unexpectedly NULL");
 	merlin_message_destroy(message);
 	message = NULL;
 	/* decode */
@@ -60,6 +61,7 @@ START_TEST(test_contact_notification_data)
 	ck_assert_int_eq(ds.state, ds2->state);
 	ck_assert_str_eq(ds.output, ds2->output);
 	free(ds2);
+	free(buf);
 }
 END_TEST
 
@@ -88,9 +90,10 @@ START_TEST(test_merlin_ctrl_packet)
 	ck_assert(merlin_message_is_ctrl_packet(message));
 	ck_assert(!merlin_message_is_nonet(message));
 	ck_assert_int_eq(DEST_PEERS_POLLERS, merlin_message_get_selection(message));
-	bufsz = merlin_encode_message(message, &buf);
+	buf = calloc(1, merlin_message_size(message));
+	ck_assert_msg(NULL != buf, "Buffer is unexpectedly NULL");
+	bufsz = merlin_encode_message(message, buf);
 	ck_assert(bufsz > 0);
-	ck_assert_msg(NULL != buf, "Encoded buffer is unexpectedly NULL");
 	merlin_message_destroy(message);
 	message = NULL;
 	/* decode */
@@ -110,6 +113,8 @@ START_TEST(test_merlin_ctrl_packet)
 	ck_assert_int_eq(info.configured_masters, info2->configured_masters);
 	ck_assert_int_eq(info.host_checks_handled, info2->host_checks_handled);
 	ck_assert_int_eq(info.service_checks_handled, info2->service_checks_handled);
+	free(info2);
+	free(buf);
 }
 END_TEST
 
