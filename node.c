@@ -795,6 +795,31 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 	return -1;
 }
 
+
+MerlinMessage *node_get_message(merlin_node *node)
+{
+	MerlinMessage *message = NULL;
+	unsigned char *buffer = NULL;
+	iocache *ioc = node->ioc;
+	uint64_t *message_len =
+		(uint64_t *)(iocache_use_size(ioc, sizeof(*message_len)));
+
+	if (message_len == NULL) {
+		return NULL;
+	}
+
+	if ((unsigned long)*message_len > iocache_available(ioc)) {
+		ldebug("IOC: packet is longer (%lu) than remaining data (%lu) from %s - will read more and try again", *message_len, iocache_available(ioc), node->name);
+		if (iocache_unuse_size(ioc, sizeof(*message_len)) < 0)
+			lerr("IOC: Failed to unuse %du bytes from iocache. Next packet from %s will be invalid\n", sizeof(uint64_t), node->name);
+		return NULL;
+	}
+
+
+	buffer = (unsigned char *)iocache_use_size(ioc, (unsigned long) *message_len);
+	message = merlin_decode_message(*message_len, buffer);
+	return message;
+}
 /*
  * Fetch one event from the node's iocache. If the cache is
  * exhausted, we handle partial events and iocache resets and
