@@ -361,7 +361,7 @@ static int handle_flapping(const nebstruct_flapping_data *p)
 	char *host_name, *service_description = NULL;
 	unsigned long comment_id;
 
-	if (!db_track_current)
+	if (!db_track_current && !db_log_reports)
 		return 0;
 
 	sql_quote(p->host_name, &host_name);
@@ -375,21 +375,46 @@ static int handle_flapping(const nebstruct_flapping_data *p)
 	}
 
 	if (service_description) {
-		result = sql_query
-			("UPDATE service SET is_flapping = %d, "
-			 "flapping_comment_id = %lu, percent_state_change = %f "
-			 "WHERE host_name = %s AND service_description = %s",
-			 p->type == NEBTYPE_FLAPPING_START,
-			 comment_id, p->percent_change,
-			 host_name, service_description);
+		if (db_log_reports) {
+			result = sql_query
+				("INSERT INTO %s(timestamp, event_type, host_name, service_description) VALUES(%lu, %d, %s, %s)",
+				 sql_table_name(), p->timestamp.tv_sec, p->type, host_name,
+				 service_description);
+
+			if (result) {
+				lerr("failed to insert flapping data (host: %s, service: %s, type: %d) into %s",
+						host_name, service_description, p->type, sql_table_name());
+			}
+		}
+		if (db_track_current) {
+			result = sql_query
+				("UPDATE service SET is_flapping = %d, "
+				 "flapping_comment_id = %lu, percent_state_change = %f "
+				 "WHERE host_name = %s AND service_description = %s",
+				 p->type == NEBTYPE_FLAPPING_START,
+				 comment_id, p->percent_change,
+				 host_name, service_description);
+		}
 		free(service_description);
 	} else {
-		result = sql_query
-			("UPDATE host SET is_flapping = %d, "
-			 "flapping_comment_id = %lu, percent_state_change = %f "
-			 "WHERE host_name = %s",
-			 p->type == NEBTYPE_FLAPPING_START,
-			 comment_id, p->percent_change, host_name);
+		if (db_log_reports) {
+			result = sql_query
+				("INSERT INTO %s(timestamp, event_type, host_name) VALUES(%lu, %d, %s)",
+				 sql_table_name(), p->timestamp.tv_sec, p->type, host_name);
+
+			if (result) {
+				lerr("failed to insert flapping data (host: %s, type: %d) into %s",
+						host_name, p->type, sql_table_name());
+			}
+		}
+		if (db_track_current) {
+			result = sql_query
+				("UPDATE host SET is_flapping = %d, "
+				 "flapping_comment_id = %lu, percent_state_change = %f "
+				 "WHERE host_name = %s",
+				 p->type == NEBTYPE_FLAPPING_START,
+				 comment_id, p->percent_change, host_name);
+		}
 	}
 
 	free(host_name);
