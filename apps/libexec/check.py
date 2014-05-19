@@ -198,8 +198,55 @@ def cmd_latency(args=False):
 	check_min_avg_max(args, 'latency', thresh)
 
 def cmd_orphans(args=False):
-	'''This is an old name for check distribution'''
-	cmd_distribution(args)
+	"""
+	Checks for checks that have not been run in too long a time.
+	"""
+	state = nplug.OK
+	otype = 'service'
+	unit = ''
+	warning = critical = 0
+	max_age = 1800
+	for arg in args:
+		if arg.startswith('--warning='):
+			val = arg.split('=', 1)[1]
+			if '%' in val:
+				unit = '%'
+				val = val.replace('%', '')
+			warning = float(val)
+		elif arg.startswith('--critical='):
+			val = arg.split('=', 1)[1]
+			if '%' in val:
+				unit = '%'
+				val = val.replace('%', '')
+			critical = float(val)
+		elif arg.startswith('--maxage=') or arg.startswith('--max-age='):
+			max_age = arg.split('=', 1)[1]
+			max_age = int(max_age)
+		elif arg == 'host' or arg == 'service':
+			otype = arg
+
+	now = time.time()
+	query = 'GET %ss\nFilter: should_be_scheduled = 1\nFilter: in_check_period = 1\nFilter: next_check < %s\nStats: state != 999'
+	try:
+		orphans = int(lsc.query_value(query % (otype, now - max_age)))
+		if not warning and not critical:
+			total = int(lsc.query_value('GET %ss\nFilter: should_be_scheduled = 1\nFilter: in_check_period = 1\nStats: state != 999' % (otype,)))
+			critical = total * 0.01
+			warning = total * 0.005
+	except livestatus.livestatus.MKLivestatusSocketError:
+		print "UNKNOWN: Error asking livestatus for info, bailing out"
+		sys.exit(nplug.UNKNOWN)
+	if not warning and not critical:
+		warning = critical = 1
+
+	if orphans > critical:
+		state = nplug.CRITICAL
+	elif orphans > warning:
+		state = nplug.WARNING
+
+	sys.stdout.write("%s: Orphaned %s checks: %d / %d" % (nplug.state_name(state), otype, orphans, total))
+	print("|'orphans'=%d;%d;%d;0;%d" % (orphans, warning, critical, total))
+	sys.exit(state)
 
 def cmd_status(args=False):
 	"""
