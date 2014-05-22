@@ -303,12 +303,16 @@ int ipc_is_connected(int msec)
 	}
 
 	if (io_read_ok(listen_sock, msec) > 0) {
+		int i;
 		ipc.sock = ipc_accept();
 		if (ipc.sock < 0) {
 			lerr("ipc: accept() failed: %s", strerror(errno));
 			return 0;
 		}
 		node_set_state(&ipc, STATE_CONNECTED, "Connected");
+		for (i = 0; i < num_nodes; i++) {
+			node_table[i]->csync_num_attempts = 0;
+		}
 	}
 
 	return ipc.sock != -1;
