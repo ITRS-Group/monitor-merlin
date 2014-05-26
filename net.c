@@ -219,12 +219,13 @@ int net_try_connect(merlin_node *node)
 	}
 
 	if (connect(node->sock, sa, sizeof(struct sockaddr_in)) < 0) {
-		if (errno == EISCONN && net_is_connected(node))
+		if (errno == EISCONN && net_is_connected(node)) {
 			return 0;
-		if (errno == EINPROGRESS) {
-			node_set_state(node, STATE_PENDING, NULL);
 		}
-		if (errno == EALREADY) {
+		else if (errno == EINPROGRESS) {
+			node_set_state(node, STATE_PENDING, "Connecting");
+		}
+		else if (errno == EALREADY) {
 			node_set_state(node, STATE_PENDING, "connect() already in progress");
 		} else {
 			/* connection error */
