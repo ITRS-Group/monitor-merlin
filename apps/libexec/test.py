@@ -719,6 +719,12 @@ class fake_mesh:
 		Also tests for log truncation and config pushing
 		"""
 
+		for inst in self.instances:
+			inst.nslog_size = inst.fsize('nagios.log')
+		ret = self._test_restarts('nagios', 8, 3)
+		for inst in self.instances:
+			lsize = inst.fsize('nagios.log')
+			self.tap.test(lsize > inst.nslog_size, True, "%s must keep nagios.log" % inst.name)
 		# this updates both timestamp and hash, so master1 should push
 		if self.num_masters > 1 or len(self.pgroups):
 			f = open(self.master1.fpath('etc/oconf/generated.cfg'), 'a')
@@ -727,16 +733,19 @@ class fake_mesh:
 
 		for inst in self.instances:
 			inst.nslog_size = inst.fsize('nagios.log')
-		ret = self._test_restarts('nagios', 8, 3)
+		self.stop_daemons('nagios', 8)
+		self.start_daemons('nagios', 3)
 		for inst in self.instances:
 			lsize = inst.fsize('nagios.log')
 			self.tap.test(lsize > inst.nslog_size, True, "%s must keep nagios.log" % inst.name)
 
 		# check to make sure pushing works as expected
 		if self.num_masters > 1 or len(self.pgroups):
-			has_pushed = os.path.exists(self.master1.fpath('oconf-push.log'))
-			if not self.tap.test(has_pushed, True, "master1 must push config"):
-				ret = False
+			def has_pushed(sub):
+				has_pushed = os.path.exists(self.master1.fpath('oconf-push.log'))
+				sub.test(has_pushed, True, "master1 must push config")
+				return sub.get_status() == 0
+			ret += self.test_until_or_fail('pushed config', has_pushed, 15)
 
 		return ret
 
