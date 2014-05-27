@@ -81,13 +81,19 @@ void set_host_check_node(merlin_node *node, host *h, int flags)
 	responsible = pgroup_host_node(h->id);
 
 	if (!flags && node != responsible && node != old) {
-		lerr("Error: Migrating hostcheck '%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u; sa-p-id=%u). Responsible node is %s %s (p-id=%u; sa-p-id=%u)",
-		   h->name, h->id,
-		   node_type(old), old->name, old->peer_id,
-		   node_type(node), node->name, node->peer_id,
-		   node->info.peer_id,
-		   node_type(responsible), responsible->name, responsible->peer_id,
-		   responsible->info.peer_id);
+		if (old == &untracked_checks_node)
+			linfo("Got initial hostcheck for '%s' (id=%u) from %s '%s' (p-id=%u). Responsible node is %s %s (p-id=%u)",
+			      h->name, h->id,
+			      node_type(node), node->name, node->peer_id,
+			      node_type(responsible), responsible->name, responsible->peer_id);
+		else
+			lerr("Error: Migrating hostcheck '%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u; sa-p-id=%u). Responsible node is %s %s (p-id=%u; sa-p-id=%u)",
+			     h->name, h->id,
+			     node_type(old), old->name, old->peer_id,
+			     node_type(node), node->name, node->peer_id,
+			     node->info.peer_id,
+			     node_type(responsible), responsible->name, responsible->peer_id,
+			     responsible->info.peer_id);
 	}
 
 	old->host_checks--;
@@ -114,12 +120,18 @@ void set_service_check_node(merlin_node *node, service *s, int flags)
 	 * passive checks come in
 	 */
 	if (!flags && node != responsible && node != old) {
-		lerr("Error: Migrating servicecheck '%s;%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u). Should go to %s %s (p-id=%u) (pg->active_nodes=%u)",
-		     s->host_name, s->description, s->id,
-		     node_type(old), old->name, old->peer_id,
-		     node_type(node), node->name, node->peer_id,
-		     node_type(responsible), responsible->name, responsible->peer_id,
-		     responsible->pgroup->active_nodes);
+		if (old == &untracked_checks_node)
+			linfo("Got initial servicecheck for '%s;%s' (id=%u) from %s '%s' (p-id=%u). Should be %s %s (p-id=%u)",
+			      s->host_name, s->description, s->id,
+			      node_type(node), node->name, node->peer_id,
+			      node_type(responsible), responsible->name, responsible->peer_id);
+		else
+			lerr("Error: Migrating servicecheck '%s;%s' (id=%u) from %s '%s' (p-id=%u) to %s '%s' (p-id=%u). Should go to %s %s (p-id=%u) (pg->active_nodes=%u)",
+			     s->host_name, s->description, s->id,
+			     node_type(old), old->name, old->peer_id,
+			     node_type(node), node->name, node->peer_id,
+			     node_type(responsible), responsible->name, responsible->peer_id,
+			     responsible->pgroup->active_nodes);
 	}
 
 	old->service_checks--;

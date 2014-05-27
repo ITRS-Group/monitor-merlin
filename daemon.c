@@ -613,6 +613,9 @@ void csync_node_active(merlin_node *node)
 	val = csync_config_cmp(node);
 	if (!val)
 		return;
+
+	node_disconnect(node, "Disconnecting from %s, as config is out of sync", node->name);
+
 	/*
 	 * The most common setup is that configuration is done on a master
 	 * node and then pushed to the pollers, so if a master has older
