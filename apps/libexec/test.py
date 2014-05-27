@@ -686,7 +686,7 @@ class fake_mesh:
 		"""Tests connections between nodes in the mesh.
 		This is a mandatory test"""
 		self.intermission('Allowing nodes to connect', 2.5)
-		return self.ptest('connections', self._test_connections, 45)
+		return self.test_until_or_fail('connections', self._test_connections, 45)
 
 
 	def test_imports(self):
@@ -771,7 +771,7 @@ class fake_mesh:
 
 		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('START_EXECUTING_SVC_CHECKS')
-		status = self.ptest('parents', self._test_parents, 90, predicate = lambda x: not x.name.startswith('pg1'))
+		status = self.test_until_or_fail('parents', self._test_parents, 90, predicate = lambda x: not x.name.startswith('pg1'))
 		master.submit_raw_command('STOP_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('STOP_EXECUTING_SVC_CHECKS')
 		self.intermission('Letting active check disabling spread', 10)
@@ -810,7 +810,7 @@ class fake_mesh:
 		master = self.masters.nodes[0]
 		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('START_EXECUTING_SVC_CHECKS')
-		status = self.ptest('active checks', self._test_active_checks, 60)
+		status = self.test_until_or_fail('active checks', self._test_active_checks, 60)
 		master.submit_raw_command('STOP_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('STOP_EXECUTING_SVC_CHECKS')
 		self.intermission('Letting active check disabling spread', 10)
@@ -871,7 +871,7 @@ class fake_mesh:
 			sub.test(ret, True, "Should be able to submit %s" % cmd)
 		if sub.done() != 0:
 			return False
-		return self.ptest('global command spreading', self._test_global_command_spread)
+		return self.test_until_or_fail('global command spreading', self._test_global_command_spread)
 
 
 	def _test_notifications(self, sub, inst, **kwargs):
@@ -942,14 +942,14 @@ class fake_mesh:
 
 		# if passive checks don't spread, there's no point checking
 		# for notifications
-		if not self.ptest("passive check distribution", self._test_passive_checks, 30):
+		if not self.test_until_or_fail("passive check distribution", self._test_passive_checks, 30):
 			return sub.done() == 0
 
 		# make sure 'master1' has sent notifications
 		self.intermission("Letting notifications trigger", 5)
 		sub = self.tap.sub_init('passive check notifications')
 		# make sure 'master1' has sent notifications
-		self.ptest('passive check notifications', self._test_notifications, tap=sub, inst=master, hosts=True, services=True)
+		self.test_until_or_fail('passive check notifications', self._test_notifications, tap=sub, inst=master, hosts=True, services=True)
 		for n in self.instances[1:]:
 			self._test_notifications(sub, n, hosts=False, services=False)
 		return sub.done() == 0
@@ -1003,7 +1003,7 @@ class fake_mesh:
 
 		if sub.done() != 0:
 			return False
-		if not self.ptest('ack distribution', self._test_ack_spread, 30):
+		if not self.test_until_or_fail('ack distribution', self._test_ack_spread, 30):
 			return False
 
 		# ack notifications
@@ -1125,10 +1125,10 @@ class fake_mesh:
 		for s in master.group.have_objects['service']:
 			master.submit_raw_command('SCHEDULE_SVC_DOWNTIME;%s;%d;%d;1;0;%d;mon test suite;expire downtime test for %s' %
 				(s, start_time, end_time, duration, s))
-		self.ptest('downtime spread', self._test_dt_count, 30, sub)
+		self.test_until_or_fail('downtime spread', self._test_dt_count, 30, sub)
 		expire_start = time.time()
 		self.intermission("Letting downtime expire", 10)
-		self.ptest("downtime expiration", self._test_dt_count,
+		self.test_until_or_fail("downtime expiration", self._test_dt_count,
 			15, sub, hosts=0, services=0
 		)
 		sub.done()
@@ -1140,12 +1140,12 @@ class fake_mesh:
 
 		# give all nodes some time before we check to
 		# make sure the downtime has spread
-		self.ptest('poller-scheduled downtime: spread', self._test_dt_count, 45, sub)
+		self.test_until_or_fail('poller-scheduled downtime: spread', self._test_dt_count, 45, sub)
 
 		host_downtimes = [x[0] for x in master.live.query('GET downtimes\nColumns: id\nFilter: is_service = 0')]
 		service_downtimes = [x[0] for x in master.live.query('GET downtimes\nColumns: id\nFilter: is_service = 1')]
 		self._unschedule_downtime(sub, master, host_downtimes, service_downtimes)
-		self.ptest('poller-scheduled downtime: deletion', self._test_dt_count, 30, sub, hosts=0, services=0)
+		self.test_until_or_fail('poller-scheduled downtime: deletion', self._test_dt_count, 30, sub, hosts=0, services=0)
 		sub.done()
 
 		sub = self.tap.sub_init('propagating triggered downtime')
@@ -1153,7 +1153,7 @@ class fake_mesh:
 		print("Submitting propagating downtime to master %s" % master.name)
 		master.submit_raw_command('SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME;%s;%d;%d;%d;%d;%d;%s;%s' %
 			(poller.group_name + '.0001', time.time(), time.time() + 54321, 1, 0, 0, poller.group_name + '.0001', master.name))
-		self.ptest('propagating downtime: spread', self._test_dt_count, 30, sub,
+		self.test_until_or_fail('propagating downtime: spread', self._test_dt_count, 30, sub,
 				hosts=poller.group.num_objects['host'],
 				services=0,
 				nodes=self.masters.nodes + poller.group.nodes
@@ -1163,7 +1163,7 @@ class fake_mesh:
 		    (poller.group_name + '.0001'))
 		sub.test(len(parent_downtime), 1, "There should be exactly one parent downtime")
 		self._unschedule_downtime(sub, master, parent_downtime[0], [])
-		self.ptest('propagating downtime: deletion', self._test_dt_count, 30, sub, hosts=0, services=0)
+		self.test_until_or_fail('propagating downtime: deletion', self._test_dt_count, 30, sub, hosts=0, services=0)
 		sub.done()
 
 		return None
@@ -1224,7 +1224,7 @@ class fake_mesh:
 
 		# give all nodes some time before we check to make
 		# sure the ack has spread
-		if ret or self.ptest('comment spread', self._test_comment_spread, 30):
+		if ret or self.test_until_or_fail('comment spread', self._test_comment_spread, 30):
 			return False
 		return True
 
@@ -1244,7 +1244,7 @@ class fake_mesh:
 		)
 		sys.stdout.flush()
 
-	def ptest(self, sub_name, func, max_time=30, tap=False, **kwargs):
+	def test_until_or_fail(self, sub_name, func, max_time=30, tap=False, **kwargs):
 		"""progressively run tests and output status
 		sub_name: name of subsuite
 		func: Function to use for testing subsuite
