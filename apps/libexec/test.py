@@ -745,7 +745,7 @@ class fake_mesh:
 				has_pushed = os.path.exists(self.master1.fpath('oconf-push.log'))
 				sub.test(has_pushed, True, "master1 must push config")
 				return sub.get_status() == 0
-			ret += self.test_until_or_fail('pushed config', has_pushed, 15)
+			ret += self.ptest('pushed config', has_pushed, 15)
 
 		return ret
 
