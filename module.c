@@ -518,6 +518,28 @@ static int handle_service_result(merlin_node *node, merlin_header *hdr, void *bu
 	return 0;
 }
 
+static int handle_notification_data(merlin_node *node, void *buf)
+{
+	nebstruct_notification_data *ds = (nebstruct_notification_data *)buf;
+
+	/* only increment notification counter for "normal" notifications */
+	if (ds->notification_type != NOTIFICATION_NORMAL)
+		return 0;
+
+	if (ds->notification_type == HOST_NOTIFICATION) {
+		struct host *h = find_host(ds->host_name);
+		if (!h)
+			return -1;
+		h->current_notification_number++;
+	} else {
+		struct service *s = find_service(ds->host_name, ds->service_description);
+		if (!s)
+			return -1;
+		s->current_notification_number++;
+	}
+	return 0;
+}
+
 static int handle_external_command(merlin_node *node, void *buf)
 {
 	nebstruct_external_command_data *ds = (nebstruct_external_command_data *)buf;
@@ -758,6 +780,9 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
 		ret = handle_service_result(node, &pkt->hdr, pkt->body);
+		break;
+	case NEBCALLBACK_NOTIFICATION_DATA:
+		ret = handle_notification_data(node, pkt->body);
 		break;
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
 		ret = handle_external_command(node, pkt->body);
