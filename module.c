@@ -532,14 +532,14 @@ static int handle_notification_data(merlin_node *node, void *buf)
 			return -1;
 		h->current_notification_number++;
 		h->last_notification = time(NULL);
-		h->next_notification = get_next_host_notification(h, h->last_notification);
+		h->next_notification = get_next_host_notification_time(h, h->last_notification);
 	} else {
 		struct service *s = find_service(ds->host_name, ds->service_description);
 		if (!s)
 			return -1;
 		s->current_notification_number++;
 		s->last_notification = time(NULL);
-		s->next_notification = get_next_service_notification(s, s->last_notification);
+		s->next_notification = get_next_service_notification_time(s, s->last_notification);
 	}
 	return 0;
 }
