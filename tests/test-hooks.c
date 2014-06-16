@@ -46,6 +46,8 @@ int neb_register_callback(int callback_type, void *mod_handle, int priority, int
 const char *notification_reason_name(unsigned int reason_type) { return NULL; }
 void logit(int data_type, int display, const char *fmt, ...) {}
 void remove_event(squeue_t *sq, timed_event *event) {}
+time_t get_next_service_notification_time(service *temp_service, time_t time_t1) {return 0;}
+time_t get_next_host_notification_time(host *temp_host, time_t time_t1) {return 0;}
 
 merlin_node ipc;
 struct merlin_notify_stats merlin_notify_stats[9][2][2];
@@ -56,6 +58,7 @@ int ipc_is_connected(int msec) { return 0; }
 void ipc_init_struct(void) {}
 void ipc_deinit(void) {}
 int dump_nodeinfo(merlin_node *n, int sd, int instance_id) {return 0;}
+
 
 static merlin_event last_decoded_event;
 int ipc_send_event(merlin_event *pkt) {
