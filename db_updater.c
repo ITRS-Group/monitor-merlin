@@ -61,7 +61,7 @@
 static int handle_host_status(merlin_node *node, int cb, const merlin_host_status *p)
 {
 	char *host_name;
-	char *output = NULL, *long_output = NULL, *unescaped_long_output = NULL, *sql_safe_unescaped_long_output = NULL, *perf_data = NULL;
+	char *output = NULL, *long_output = NULL, *sql_safe_unescaped_long_output = NULL, *perf_data = NULL;
 	int result = 0, node_id, rpt_log = 0, perf_log = 0;
 
 	if (cb == NEBCALLBACK_HOST_CHECK_DATA) {
@@ -81,6 +81,7 @@ static int handle_host_status(merlin_node *node, int cb, const merlin_host_statu
 	if (db_track_current || rpt_log) {
 		sql_quote(p->state.plugin_output, &output);
 		if (rpt_log && p->state.long_plugin_output) {
+			char *unescaped_long_output = NULL;
 			if((unescaped_long_output = malloc(strlen(p->state.long_plugin_output))) == NULL) {
 				lerr("failed to allocate memory for unescaped long output");
 				return 1;
@@ -140,7 +141,7 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 {
 	char *host_name, *service_description;
 	char *output = NULL, *long_output = NULL, *perf_data = NULL;
-	char *unescaped_long_output = NULL, *sql_safe_unescaped_long_output = NULL;
+	char *sql_safe_unescaped_long_output = NULL;
 	int result = 0, node_id, rpt_log = 0, perf_log = 0;
 
 	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA) {
@@ -159,6 +160,7 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->service_description, &service_description);
 	if (db_track_current || rpt_log) {
+		char *unescaped_long_output = NULL;
 		sql_quote(p->state.plugin_output, &output);
 		if(rpt_log && p->state.long_plugin_output) {
 			if((unescaped_long_output = malloc(strlen(p->state.long_plugin_output))) == NULL) {
