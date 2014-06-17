@@ -310,7 +310,6 @@ void cfg_destroy_compound(struct cfg_comp *comp)
 	/* free() children so this can be entered anywhere in the middle */
 	for (i = 0; i < comp->nested; i++) {
 		cfg_destroy_compound(comp->nest[i]);
-		free(comp->nest[i]);
 	}
 
 	for (i = 0; i < comp->vars; i++)
@@ -328,16 +327,7 @@ void cfg_destroy_compound(struct cfg_comp *comp)
 	if (comp->name)
 		free(comp->name);
 
-	if (!comp->parent)
-		free(comp);
-	else {
-		/* If there is a parent we'll likely enter this compound again.
-		 * If so, it mustn't try to free anything or read from any list,
-		 * so zero the entire compound, but preserve the parent pointer. */
-		struct cfg_comp *parent = comp->parent;
-		memset(comp, 0, sizeof(struct cfg_comp));
-		comp->parent = parent;
-	}
+	free(comp);
 }
 
 struct cfg_comp *cfg_parse_file(const char *path)
