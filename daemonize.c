@@ -208,7 +208,7 @@ int daemonize(const char *runas, const char *jail, const char *pidfile, int flag
 		/* start a new process group */
 		setsid();
 
-		if (jail && flags & DMNZ_CHROOT && chroot(".") < 0) {
+		if (jail && flags & DMNZ_CHROOT && (chroot(".") < 0 || chdir("/") < 0)) {
 			fprintf(stderr, "chroot(%s) failed: %s", jail, strerror(errno));
 			exit(EXIT_FAILURE);
 		}
