@@ -14,7 +14,7 @@ tar czf perfdata-backup.tar.gz perfdata
 service rrdcached start
 su monitor -c 'for check in $(./rrd_convert.pl --cfg_dir=/opt/monitor/etc/pnp --list_commands|awk "{print \$2 }"); do yes|./rrd_convert.pl --cfg_dir=/opt/monitor/etc/pnp --check_command=$check --no_structure_check;done'
 sed -i -e 's/RRD_STORAGE_TYPE = SINGLE/RRD_STORAGE_TYPE = MULTIPLE/' /opt/monitor/etc/pnp/process_perfdata.cfg
-find perfdata -name *.xml -exec rm {} \;
+find perfdata -name '*.xml' -exec rm {} \;
 tar tvzf perfdata-backup.tar.gz |grep rrd|awk '{print $6}'|xargs rm
 popd
 service rrdcached start
