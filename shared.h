@@ -63,13 +63,7 @@
 
 #define is_flag_set(bfield, flag) (!!((bfield) & (flag)))
 #define safe_str(str) (str == NULL ? "NULL" : str)
-static inline void *safe_free(void *ptr)
-{
-	if (ptr)
-		free(ptr);
-
-	return NULL;
-}
+#define safe_free my_free
 
 static inline int max(int a, int b)
 {

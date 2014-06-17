@@ -242,7 +242,8 @@ clear_renames(renames *renames)
 		tmp += new;
 	}
 	sql_query("DELETE FROM rename_log WHERE id IN (%s)", ++buf);
-	safe_free(--buf);
+	buf--;
+	safe_free(buf);
 	return 0;
 }
 
