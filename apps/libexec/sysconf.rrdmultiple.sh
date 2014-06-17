@@ -17,5 +17,5 @@ sed -i -e 's/RRD_STORAGE_TYPE = SINGLE/RRD_STORAGE_TYPE = MULTIPLE/' /opt/monito
 find perfdata -name *.xml -exec rm {} \;
 tar tvzf perfdata-backup.tar.gz |grep rrd|awk '{print $6}'|xargs rm
 popd
-service npcd start
 service rrdcached start
+service npcd start
