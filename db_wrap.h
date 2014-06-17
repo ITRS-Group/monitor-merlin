@@ -111,7 +111,7 @@ struct db_wrap_api {
 	   ACHTUNG: this is itended for use with individual SQL statement
 	   parts, not whole SQL statements.
 	*/
-	size_t (*sql_quote)(db_wrap *db, char const *src, size_t len, char **dest);
+	size_t (*sql_quote)(db_wrap *db, char const *src, size_t len, /*@out@*/ char **dest);
 
 	/**
 	   Frees a string allocated by sql_quote(). Results are undefined

@@ -359,9 +359,9 @@ static int handle_program_status(merlin_node *node, const nebstruct_program_stat
 
 static int handle_flapping(const nebstruct_flapping_data *p)
 {
-	int result;
+	int result = 0;
 	char *host_name, *service_description = NULL;
-	unsigned long comment_id;
+	unsigned long comment_id = 0;
 
 	if (!db_track_current && !db_log_reports)
 		return 0;
@@ -369,10 +369,8 @@ static int handle_flapping(const nebstruct_flapping_data *p)
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->service_description, &service_description);
 
-	if (p->type == NEBTYPE_FLAPPING_STOP) {
-		/* comments are deleted by a separate broker event */
-		comment_id = 0;
-	} else {
+	/* comments are deleted by a separate broker event */
+	if (p->type != NEBTYPE_FLAPPING_STOP) {
 		comment_id = p->comment_id;
 	}
 
@@ -491,7 +489,7 @@ static int handle_downtime(merlin_node *node, const nebstruct_downtime_data *p)
 		result = sql_query
 			("DELETE FROM scheduled_downtime WHERE downtime_id = %lu",
 			 p->downtime_id);
-		/* fallthrough */
+		/*@fallthrough@*/
 	case NEBTYPE_DOWNTIME_ADD:
 		sql_quote(p->host_name, &host_name);
 		sql_quote(p->service_description, &service_description);
@@ -755,11 +753,11 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 		break;
 	case NEBCALLBACK_HOST_CHECK_DATA:
 	case NEBCALLBACK_HOST_STATUS_DATA:
-		errors = handle_host_status(node, pkt->hdr.type, (void *)pkt->body);
+		errors = handle_host_status(node, (int)pkt->hdr.type, (void *)pkt->body);
 		break;
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
-		errors = handle_service_status(node, pkt->hdr.type, (void *)pkt->body);
+		errors = handle_service_status(node, (int)pkt->hdr.type, (void *)pkt->body);
 		break;
 
 		/* some callbacks are unhandled by design */
@@ -770,7 +768,6 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 		lerr("Unknown callback type %d. Weird, to say the least...",
 			 pkt->hdr.type);
 		return -1;
-		break;
 	}
 	sql_free_result();
 

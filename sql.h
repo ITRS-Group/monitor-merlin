@@ -18,7 +18,7 @@ extern int sql_repair_table(const char *table);
 extern int sql_init(void);
 extern int sql_close(void);
 extern int sql_reinit(void);
-extern size_t sql_quote(const char *src, char **dst);
+extern void sql_quote(const char *src, /*@out@*/char **dst);
 extern int sql_error(const char **msg);
 extern const char *sql_error_msg(void);
 extern void sql_free_result(void);

@@ -407,11 +407,11 @@ const char *human_bytes(unsigned long long n)
 		return tbuf[t];
 	}
 
-	while (n >> (shift * 10) > 1024 && shift < sizeof(suffix) - 1)
+	while (n >> (shift * 10) > 1024 && shift < strlen(suffix) - 1)
 		shift++;
 
 	sprintf(tbuf[t], "%0.2f %ciB",
-			(float)n / (float)(1 << (shift * 10)), suffix[shift - 1]);
+			(float)n / (float)(1L << (shift * 10)), suffix[shift - 1]);
 
 	return tbuf[t];
 }

@@ -55,13 +55,12 @@ NULL/*result*/,
  * If src is NULL or !*src then 0 is returned and *dest is not modified.
  * *dst must be free()'d by the caller.
  */
-size_t sql_quote(const char *src, char **dst)
+void sql_quote(const char *src, char **dst)
 {
 	size_t ret;
 
 	if (!sql_is_connected(1)) {
 		*dst = NULL;
-		return 0;
 	}
 
 	assert(db.conn != NULL);
@@ -69,8 +68,6 @@ size_t sql_quote(const char *src, char **dst)
 	if (!ret) {
 		*dst = NULL;
 	}
-
-	return ret;
 }
 
 /*
@@ -584,9 +581,9 @@ int sql_config(const char *key, const char *value)
 		free(value_cpy);
 		return err;
 	}
-	else if (!strcmp(key, "commit_queries")) {
+	else if (!strcmp(key, "commit_queries") && value_cpy != NULL) {
 		char *endp;
-		commit_queries = strtoul(value, &endp, 0);
+		commit_queries = strtoul(value_cpy, &endp, 0);
 		ldebug("DB: commit_queries set to %ld queries", commit_queries);
 		free(value_cpy);
 	}
