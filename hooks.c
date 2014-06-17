@@ -694,9 +694,15 @@ static int hook_external_command(merlin_event *pkt, void *data)
 static int hook_contact_notification(merlin_event *pkt, void *data)
 {
 	nebstruct_contact_notification_data *ds = (nebstruct_contact_notification_data *)data;
-
 	if (ds->type != NEBTYPE_CONTACTNOTIFICATION_END)
 		return 0;
+
+	if (ds->notification_type == HOST_NOTIFICATION)
+		ds->object_ptr = (void *)(uintptr_t)((host *)ds->object_ptr)->current_notification_number;
+	else if (ds->notification_type == SERVICE_NOTIFICATION)
+		ds->object_ptr = (void *)(uintptr_t)((service *)ds->object_ptr)->current_notification_number;
+	else
+		lerr("Unknown notification type %i", ds->notification_type);
 
 	return send_generic(pkt, data);
 }
