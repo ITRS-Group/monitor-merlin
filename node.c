@@ -77,6 +77,11 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 	prev_state = node->state;
 	node->state = state;
 
+	if (node->state == STATE_NEGOTIATING && prev_state <= STATE_NEGOTIATING && node != &ipc) {
+		ldebug("Sending CTRL_ACTIVE to %s", node->name);
+		node_send_ctrl_active(node, CTRL_GENERIC, &ipc.info, 100);
+	}
+
 	if (node->state != STATE_CONNECTED && prev_state != STATE_CONNECTED)
 		return;
 
@@ -619,6 +624,10 @@ void node_disconnect(merlin_node *node, const char *fmt, ...)
 		close(node->sock);
 	node->sock = -1;
 
+	/* csync checks only run on reconnect if node->info isn't "identical", so reset it */
+	if (node != &ipc)
+		memset(&(node->info), 0, sizeof(node->info));
+
 	iocache_reset(node->ioc);
 }
 
@@ -1000,5 +1009,200 @@ int node_ctrl(merlin_node *node, int code, uint selection, void *data,
 	if (data)
 		memcpy(&pkt.body, data, len);
 
-	return node_send_event(node, &pkt, msec);
+	return node_send(node, &pkt, packet_size(&pkt), MSG_DONTWAIT);
+}
+
+/*
+ * Handles all the subtleties regarding CTRL_ACTIVE packets,
+ * which also send a sort of compatibility check along with
+ * capabilities and attributes about node.
+ * node is in this case the source, for which we want to set
+ * the proper info structure. Since CTRL_ACTIVE packets are
+ * only ever forwarded from daemon to module and from module
+ * to 'hood', and never from network to 'hood', we know this
+ * packet originated from the module at 'node'.
+ *
+ * Returns 0 if everything is fine and dandy and info is new
+ * Returns -1 on general muppet errors
+ * Returns < -1 if node is incompatible with us.
+ * Returns 1 if node is compatible, but info isn't new
+ * Returns > 1 if node is compatible but lacks features we have
+ */
+int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
+{
+	merlin_nodeinfo *info;
+	uint32_t len;
+	int ret = 0; /* assume ok. we'll flip it if needed */
+	int version_delta = 0;
+
+	if (!node || !pkt)
+		return -1;
+
+	info = (merlin_nodeinfo *)&pkt->body;
+	len = pkt->hdr.len;
+
+	/* if body len is smaller than the least amount of
+	 * data we will check, we're too incompatible to check
+	 * for and report incompatibilities, so just bail out
+	 * with an error
+	 */
+	if (len < MERLIN_NODEINFO_MINSIZE) {
+		lerr("FATAL: %s: incompatible nodeinfo body size %d. Ours is %d. Required: %d",
+			 node->name, len, sizeof(node->info), MERLIN_NODEINFO_MINSIZE);
+		lerr("FATAL: Completely incompatible");
+		return -128;
+	}
+
+	/*
+	 * Basic check first, so people know what to expect of the
+	 * comparisons below, but if byte_order differs, so may this.
+	 */
+	version_delta = info->version - MERLIN_NODEINFO_VERSION;
+	if (version_delta) {
+		lwarn("%s: incompatible nodeinfo version %d. Ours is %d",
+			  node->name, info->version, MERLIN_NODEINFO_VERSION);
+		lwarn("Further compatibility comparisons may be wrong");
+	}
+
+	/*
+	 * these two checks should never trigger for the daemon
+	 * when node is &ipc unless someone hacks merlin to connect
+	 * to a remote site instead of over the ipc socket.
+	 * It will happen in net-to-net cases where the two systems
+	 * have different wordsize (32-bit vs 64-bit) or byte order
+	 * (big vs little endian, fe)
+	 * If someone wants to jack in conversion functions into
+	 * merlin, the right place to activate them would be here,
+	 * setting them as in_handler(pkt) for the node in question
+	 * (no out_handler() is needed, since the receiving end will
+	 * transform the packet itself).
+	 */
+	if (info->word_size != COMPAT_WORDSIZE) {
+		lerr("FATAL: %s: incompatible wordsize %d. Ours is %d",
+			 node->name, info->word_size, COMPAT_WORDSIZE);
+		ret -= 4;
+	}
+	if (info->byte_order != endianness()) {
+		lerr("FATAL: %s: incompatible byte order %d. Ours is %d",
+		     node->name, info->byte_order, endianness());
+		ret -= 8;
+	}
+
+	/*
+	 * this could potentially happen if someone forgets to
+	 * restart either Nagios or Merlin after upgrading either
+	 * or both to a newer version and the object structure
+	 * version has been bumped. It's quite unlikely though,
+	 * but since CTRL_ACTIVE packets are so uncommon we can
+	 * afford to waste the extra cycles.
+	 */
+	if (info->object_structure_version != CURRENT_OBJECT_STRUCTURE_VERSION) {
+		lerr("FATAL: %s: incompatible object structure version %d. Ours is %d",
+			 node->name, info->object_structure_version, CURRENT_OBJECT_STRUCTURE_VERSION);
+		ret -= 16;
+	}
+
+	/*
+	 * If the remote end has a newer info_version we can be reasonably
+	 * sure that everything we want from it is present
+	 */
+	if (!ret) {
+		if (version_delta > 0 && len > sizeof(node->info)) {
+			/*
+			 * version is greater and struct is bigger. Everything we
+			 * need is almost certainly present in that struct
+			 */
+			lwarn("WARNING: Possible compatibility issues with '%s'", node->name);
+			lwarn("  - '%s' nodeinfo version %d; nodeinfo size %d.",
+				  node->name, info->version, len);
+			lwarn("  - we have nodeinfo version %d; nodeinfo size %d.",
+				  self->version, sizeof(node->info));
+			len = sizeof(node->info);
+		} else if (version_delta < 0 && len < sizeof(node->info)) {
+			/*
+			 * version is less, and struct is smaller. Update this
+			 * place with warnings about what won't work when we
+			 * add new things to the info struct, and ignore copying
+			 * anything right now
+			 */
+			lwarn("WARNING: '%s' needs to be updated", node->name);
+			ret -= 2;
+		} else if (version_delta && len != sizeof(node->info)) {
+			/*
+			 * version is greater and struct is smaller, or
+			 * version is lesser and struct is bigger. Either way,
+			 * this should never happen
+			 */
+			lerr("FATAL: %s: impossible info_version / sizeof(nodeinfo_version) combo",
+				 node->name);
+			lerr("FATAL: %s: %d / %d; We: %d / %d",
+				 node->name, len, info->version, sizeof(node->info), MERLIN_NODEINFO_VERSION);
+			ret -= 32;
+		}
+		if (node->type == MODE_PEER) {
+			if (info->configured_peers != ipc.info.configured_peers) {
+				lerr("Node %s has a different number of peers from us", node->name);
+				ret -= 512;
+			} else if (info->configured_masters != ipc.info.configured_masters) {
+				lerr("Node %s has a different number of masters from us", node->name);
+				ret -= 512;
+			} else if (info->configured_pollers != ipc.info.configured_pollers) {
+				lerr("Node %s has a different number of pollers from us", node->name);
+				ret -= 512;
+			}
+		} else if (node->type == MODE_POLLER) {
+			if (info->configured_masters != ipc.info.configured_peers + 1) {
+				lerr("Node %s is a poller, but it has a different number of masters than we have peers", node->name);
+				ret -= 512;
+			} else if (info->configured_peers > ipc.info.configured_pollers) {
+				lerr("Node %s is a poller, but it has more peers than we have pollers", node->name);
+				ret -= 512;
+			}
+		}
+		if (!ret && info->last_cfg_change != ipc.info.last_cfg_change) {
+			linfo("Node %s's config isn't in sync with ours", node->name);
+			ret -= 256;
+		}
+	}
+
+	if (ret < 0 && ret != -256 && ret != -512) {
+		lerr("FATAL: %s; incompatibility code %d. Ignoring CTRL_ACTIVE event",
+			 node->name, ret);
+		memset(&node->info, 0, sizeof(node->info));
+		return ret;
+	}
+
+	/* everything seems ok, so handle it properly */
+
+
+	/* if info isn't new, we return 1 */
+	if (!memcmp(&node->info.start, &info->start, sizeof(info->start)) &&
+		node->info.last_cfg_change == info->last_cfg_change &&
+		!strcmp((char *)node->info.config_hash, (char *)info->config_hash))
+	{
+		ret = 1;
+	}
+
+	/*
+	 * otherwise update the node's info and
+	 * print some debug logging.
+	 */
+	memcpy(&node->info, pkt->body, len);
+	if (!ret) {
+		ldebug("Received CTRL_ACTIVE from %s", node->name);
+		ldebug("      version: %u", info->version);
+		ldebug("    word_size: %u", info->word_size);
+		ldebug("   byte_order: %u", info->byte_order);
+		ldebug("object struct: %u", info->object_structure_version);
+		ldebug("   start time: %lu.%lu",
+			   info->start.tv_sec, info->start.tv_usec);
+		ldebug("  config hash: %s", tohex(info->config_hash, 20));
+		ldebug(" config mtime: %lu", info->last_cfg_change);
+		ldebug("      peer id: %u", node->peer_id);
+		ldebug(" self peer id: %u", info->peer_id);
+		ldebug(" active peers: %u", info->active_peers);
+		ldebug(" confed peers: %u", info->configured_peers);
+	}
+
+	return ret;
 }

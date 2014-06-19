@@ -127,7 +127,7 @@ int ipc_accept(void)
 		return -1;
 	}
 
-	node_set_state(&ipc, STATE_CONNECTED, "Accepted");
+	node_set_state(&ipc, STATE_NEGOTIATING, "Accepted");
 
 	return ipc.sock;
 }

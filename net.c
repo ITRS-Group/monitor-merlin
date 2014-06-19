@@ -53,7 +53,7 @@ merlin_node *find_node(struct sockaddr_in *sain, const char *name)
 /*
  * checks if a socket is connected or not by looking up the ip and port
  * of the remote host.
- * Returns 1 if connected and 0 if not.
+ * Returns the merlin connection state if connected (CONNECTED vs NEGOTIATING), and 0 if not.
  */
 int net_is_connected(merlin_node *node)
 {
@@ -64,7 +64,7 @@ int net_is_connected(merlin_node *node)
 	if (!node || node->sock < 0)
 		return 0;
 
-	if (node->state == STATE_CONNECTED || node->state == STATE_NEGOTIATING)
+	if (node->state == STATE_CONNECTED)
 		return node->state;
 
 	if (node->state != STATE_PENDING)
@@ -89,10 +89,6 @@ int net_is_connected(merlin_node *node)
 		node_set_state(node, STATE_NEGOTIATING, "connect() attempt completed successfully. Negotiating...");
 		return node->state;
 	}
-
-	/* diagnostics first */
-	ldebug("%s is not connected: gpn/gso: %d:%d/%d:%d; optval: %d",
-	       node->name, gpnres, gpnerr, gsores, gsoerr, optval);
 
 	if (optval) {
 		node_disconnect(node, "connect() to %s node %s failed: %s",
@@ -155,8 +151,6 @@ int net_try_connect(merlin_node *node)
 
 	/* if it's not yet time to connect, don't even try it */
 	if (node->last_conn_attempt + interval > time(NULL)) {
-		ldebug("connect to %s blocked for %lu more seconds", node->name,
-			   node->last_conn_attempt + interval - time(NULL));
 		return 0;
 	}
 
@@ -496,39 +490,31 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 	uint i;
 
 	if (pkt->hdr.type == CTRL_PACKET) {
-		/*
-		 * if this is a CTRL_ALIVE packet from a remote module, we
-		 * must take care to stash the start-time here so we can
-		 * forward it to our module later. It only matters for
-		 * peers, but we might as well set it for all modules
-		 */
 		if (pkt->hdr.code == CTRL_ACTIVE) {
+			ldebug("Got CTRL_ACTIVE from %s", node->name);
 			int result = handle_ctrl_active(node, pkt);
 
-			/*
-			 * If the CTRL_ACTIVE packet shows compatibility
-			 * problems, we ignore it and move on
-			 */
 			if (result < 0) {
+				if (result == -512) {
+					node_disconnect(node, "Incompatible merlin configuration");
+				} else if (result == -256) {
+					node_disconnect(node, "Out of date object configuration");
+					csync_node_active(node);
+				} else {
+					node_disconnect(node, "Incompatible protocol");
+				}
 				return 0;
 			}
 
 			node_set_state(node, STATE_CONNECTED, "Version and protocol successfully negotiated");
-
-			/*
-			 * If the info is new, we run the confsync check
-			 * for the recently activated node
-			 */
-			if (!result) {
-				ldebug("Module @ %s is ACTIVE", node->name);
-				csync_node_active(node);
-			}
 		}
 		if (pkt->hdr.code == CTRL_INACTIVE) {
-			memset(&node->info, 0, sizeof(node->info));
 			ldebug("Module @ %s is INACTIVE", node->name);
 			db_mark_node_inactive(node);
 		}
+	} else if (node->state != STATE_CONNECTED) {
+		/* yeah, sarry, but if yer nat on the list, yer nat gettin' in */
+		return 0;
 	} else if (node->type == MODE_POLLER && num_masters) {
 		ldebug("Passing on event from poller %s to %d masters",
 		       node->name, num_masters);
@@ -571,6 +557,10 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 
 	/* and not all packets get sent to the database */
 	case CTRL_PACKET:
+		/* the module doesn't need to know about negotiations */
+		if (pkt->hdr.code != CTRL_ACTIVE && pkt->hdr.code != CTRL_INACTIVE)
+			break;
+		/*@fallthrough@*/
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
 		return ipc_send_event(pkt);
 
@@ -712,9 +702,6 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 
 		check_node_activity(node);
 
-		if (!net_is_connected(node) || node->state == STATE_NONE)
-			continue;
-
 		/*
 		 * safeguard against bugs in net_is_connected() or any of
 		 * the system and library calls it makes. node->sock has to
@@ -730,7 +717,7 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 		 * if this node's binlog has entries we check for writability
 		 * as well, so we can send it from the outer polling loop.
 		 */
-		if (binlog_has_entries(node->binlog))
+		if (net_is_connected(node) == STATE_CONNECTED && binlog_has_entries(node->binlog))
 			FD_SET(node->sock, wr);
 
 		if (node->sock > sel_val)
@@ -760,9 +747,7 @@ int net_handle_polling_results(fd_set *rd, fd_set *wr)
 
 		/* handle new connections first */
 		if (FD_ISSET(node->sock, wr)) {
-			if (net_is_connected(node)) {
-				node_set_state(node, STATE_CONNECTED, "select()'ed for writing");
-
+			if (net_is_connected(node) == STATE_CONNECTED) {
 				if (binlog_has_entries(node->binlog)) {
 					node_send_binlog(node, NULL);
 				}

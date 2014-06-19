@@ -22,18 +22,5 @@ extern int ipc_reinit(void);
 extern int ipc_accept(void);
 extern void ipc_log_event_count(void);
 
-/*
- * we make these inlines rather than macros so the compiler
- * can do type-checking of the arguments
- */
-static inline int ipc_send_ctrl_inactive(uint id)
-{
-	return ipc_ctrl(CTRL_INACTIVE, id, NULL, 0);
-}
-
-static inline int ipc_send_ctrl_active(uint id, merlin_nodeinfo *info)
-{
-	return ipc_ctrl(CTRL_ACTIVE, id, (void *)info, sizeof(*info));
-}
 #define ipc_send_ctrl(code, sel) ipc_ctrl(code, sel, NULL, 0)
 #endif /* INCLUDE_ipc_h__ */
