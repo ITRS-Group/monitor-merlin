@@ -1134,9 +1134,9 @@ class fake_mesh:
 		for s in master.group.have_objects['service']:
 			master.submit_raw_command('SCHEDULE_SVC_DOWNTIME;%s;%d;%d;1;0;%d;mon test suite;expire downtime test for %s' %
 				(s, start_time, end_time, duration, s))
-		self.test_until_or_fail('downtime spread', self._test_dt_count, 30, sub)
+		self.test_until_or_fail('downtime spread', self._test_dt_count, 15, sub)
 		expire_start = time.time()
-		self.intermission("Letting downtime expire", 10)
+		self.intermission("Letting downtime expire", 15)
 		self.test_until_or_fail("downtime expiration", self._test_dt_count,
 			15, sub, hosts=0, services=0
 		)
