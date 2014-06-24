@@ -902,7 +902,7 @@ class fake_mesh:
 		"""
 		queries = {
 			'DOWN hosts': 'GET hosts\nColumns: host_name\nFilter: state = 1',
-			'UNRACHABLE hosts': 'GET hosts\nColumns: host_name\nFilter: state = 2',
+			'UNREACHABLE hosts': 'GET hosts\nColumns: host_name\nFilter: state = 2',
 			'CRITICAL services': 'GET services\nColumns: host_name service_description\nFilter: state = 2',
 		}
 		for inst in self.instances:
@@ -911,14 +911,14 @@ class fake_mesh:
 				expect_down += len(self.pgroups)
 			expected = {
 				'DOWN hosts': expect_down,
-				'UNRACHABLE hosts': inst.group.num_objects['host'] - expect_down,
+				'UNREACHABLE hosts': inst.group.num_objects['host'] - expect_down,
 				'CRITICAL services': inst.group.num_objects['service'],
 			}
 			for otype, query in queries.items():
 				value = inst.live.query(query)
 				ret = (sub.test(len(value), expected[otype], '%s should have right amount of %s' % (inst.name, otype)))
 				if ret == False:
-					sub.diag('not updated:')
+					sub.diag('got:')
 					if 'host' in otype:
 						for l in value:
 							sub.diag('  %s' % l[0])
