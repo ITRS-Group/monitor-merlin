@@ -11,6 +11,7 @@ lic_file='/etc/op5license/op5license.xml'
 [ -r "$lic_file" ] || \
   dieplug '3' "Unable to read op5 license file ($lic_file)."
 
+PATH="/opt/op5sys/bin:$PATH"
 depchk op5license-verify
 
 if op5license-verify "$lic_file" &> /dev/null; then
