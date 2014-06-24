@@ -263,6 +263,10 @@ sh /etc/init.d/monitor start || :
 /opt/plugins/*
 /opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
 
+%attr(700, -, -) %_libdir/merlin/mon/syscheck.db_mysql_check.sh
+%attr(700, -, -) %_libdir/merlin/mon/syscheck.fs_ext_state.sh
+%attr(700, -, -) %_libdir/merlin/mon/syscheck.proc_smsd.sh
+
 %exclude %_libdir/merlin/mon/test.py*
 %exclude %_libdir/merlin/mon/run-ci-test.sh
 %exclude %_libdir/merlin/merlin.so
