@@ -1651,6 +1651,18 @@ def cmd_dist(args):
 	avail_tests = []
 	test_doc = {}
 	all_tests = dir(fake_mesh)
+
+	if not os.getuid():
+		from pwd import getpwnam
+		try:
+			monuser = getpwnam('monitor')
+		except KeyError:
+			print "mon test dist can't be run as root, and I couldn't find\n" \
+				"a monitor user to become. Exiting"
+			os.exit(1)
+		os.setgid(monuser.pw_gid)
+		os.setuid(monuser.pw_uid)
+
 	for m in all_tests:
 		thing = getattr(fake_mesh, m)
 		if type(thing) == type(fake_mesh.test_connections) and m.startswith('test_'):
