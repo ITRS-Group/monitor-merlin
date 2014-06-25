@@ -902,7 +902,7 @@ class fake_mesh:
 		"""
 		queries = {
 			'DOWN hosts': 'GET hosts\nColumns: host_name\nFilter: state = 1',
-			'UNRACHABLE hosts': 'GET hosts\nColumns: host_name\nFilter: state = 2',
+			'UNREACHABLE hosts': 'GET hosts\nColumns: host_name\nFilter: state = 2',
 			'CRITICAL services': 'GET services\nColumns: host_name service_description\nFilter: state = 2',
 		}
 		for inst in self.instances:
@@ -911,14 +911,14 @@ class fake_mesh:
 				expect_down += len(self.pgroups)
 			expected = {
 				'DOWN hosts': expect_down,
-				'UNRACHABLE hosts': inst.group.num_objects['host'] - expect_down,
+				'UNREACHABLE hosts': inst.group.num_objects['host'] - expect_down,
 				'CRITICAL services': inst.group.num_objects['service'],
 			}
 			for otype, query in queries.items():
 				value = inst.live.query(query)
 				ret = (sub.test(len(value), expected[otype], '%s should have right amount of %s' % (inst.name, otype)))
 				if ret == False:
-					sub.diag('not updated:')
+					sub.diag('got:')
 					if 'host' in otype:
 						for l in value:
 							sub.diag('  %s' % l[0])
@@ -1134,9 +1134,9 @@ class fake_mesh:
 		for s in master.group.have_objects['service']:
 			master.submit_raw_command('SCHEDULE_SVC_DOWNTIME;%s;%d;%d;1;0;%d;mon test suite;expire downtime test for %s' %
 				(s, start_time, end_time, duration, s))
-		self.test_until_or_fail('downtime spread', self._test_dt_count, 30, sub)
+		self.test_until_or_fail('downtime spread', self._test_dt_count, 15, sub)
 		expire_start = time.time()
-		self.intermission("Letting downtime expire", 10)
+		self.intermission("Letting downtime expire", 15)
 		self.test_until_or_fail("downtime expiration", self._test_dt_count,
 			15, sub, hosts=0, services=0
 		)
@@ -1651,6 +1651,18 @@ def cmd_dist(args):
 	avail_tests = []
 	test_doc = {}
 	all_tests = dir(fake_mesh)
+
+	if not os.getuid():
+		from pwd import getpwnam
+		try:
+			monuser = getpwnam('monitor')
+		except KeyError:
+			print "mon test dist can't be run as root, and I couldn't find\n" \
+				"a monitor user to become. Exiting"
+			os.exit(1)
+		os.setgid(monuser.pw_gid)
+		os.setuid(monuser.pw_uid)
+
 	for m in all_tests:
 		thing = getattr(fake_mesh, m)
 		if type(thing) == type(fake_mesh.test_connections) and m.startswith('test_'):

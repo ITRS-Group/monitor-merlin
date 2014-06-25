@@ -1079,12 +1079,6 @@ def cmd_push(args):
 			errors += 1
 			continue
 
-		restart_nodes[name] = node
-
-	# now sync additional paths. We do them one by one and always
-	# to identical directories so we know where we're heading
-	for name, node in mconf.configured_nodes.items():
-		ssh_user = node.options.get('oconf_ssh_user', False)
 		# XXX FIXME: ugly hack to get synergy rules
 		# synchronized every once in a while
 		if os.path.isdir('/opt/synergy/etc/bps'):
@@ -1103,14 +1097,6 @@ def cmd_push(args):
 				rsync_args = base_rsync_args + [src, '-e', node.ssh_cmd, address_dest]
 				ret = os.spawnvp(os.P_WAIT, 'rsync', rsync_args)
 
-			if node.sync_requires_restart:
-				restart_nodes[name] = node
-
-
-	# we restart all nodes after having pushed configuration to all
-	# of them, or we might trigger an avalanche of config pushes
-	# that trigger and re-trigger each other.
-	for name, node in restart_nodes.items():
 		if restart and not node.ctrl("mon oconf reload"):
 			print("Restart failed for node '%s'" % name)
 			errors += 1
