@@ -360,14 +360,6 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 
 			ldebug("##NSTATE##: Got fresh CTRL_ACTIVE from %s node %s",
 				   node_type(node), node->name);
-			/*
-			 * We got an update to our status of neighbours.
-			 * Other nodes don't know about our new status yet, so
-			 * let's inform them.
-			 */
-			ldebug("##NSTATE##: Sending CTRL_ACTIVE volley for %s node %s",
-				   node_type(node), node->name);
-			node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info, 100);
 		}
 		break;
 	case CTRL_STALL:

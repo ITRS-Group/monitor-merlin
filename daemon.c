@@ -57,20 +57,11 @@ void db_mark_node_inactive(merlin_node *node)
 static int node_action_handler(merlin_node *node, int prev_state)
 {
 	switch (node->state) {
-	case STATE_CONNECTED:
-		/*
-		 * If we've received the timestamp marker from our module,
-		 * We  need to send our own timestamp to the other end so
-		 * they know how to sort us in case we're a peer to them.
-		 */
-		if (ipc.info.start.tv_sec && ipc_is_connected(0)) {
-			node_send_ctrl_active(node, CTRL_GENERIC, &ipc.info, 100);
-		}
-		break;
-
 	case STATE_PENDING:
 	case STATE_NEGOTIATING:
 	case STATE_NONE:
+		node_disconnect(node, "%s disconnected", node->name);
+
 		/* only send INACTIVE if we haven't already */
 		if (prev_state == STATE_CONNECTED) {
 			db_mark_node_inactive(node);
@@ -92,20 +83,6 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 			sql_query("UPDATE program_status SET "
 			          "is_running = 1, last_alive = %lu "
 			          "WHERE instance_id = 0", time(NULL));
-		}
-
-		for (i = 0; i < num_nodes; i++) {
-			merlin_node *n = node_table[i];
-			if (n->state == STATE_CONNECTED && n->info.start.tv_sec > 0)
-				ipc_send_ctrl_active(n->id, &n->info);
-			else
-				ipc_send_ctrl_inactive(n->id);
-
-			/*
-			 * we mustn't notify our connected nodes that the module once
-			 * again came online, since the module is supposed to create
-			 * that event itself
-			 */
 		}
 		break;
 
@@ -534,9 +511,10 @@ static int read_nagios_paths(merlin_event *pkt)
  * This should only happen rarely, but it will ensure that not
  * both sides try to fetch or push at the same time.
  */
-static int csync_config_cmp(merlin_node *node)
+static int csync_config_cmp(merlin_node *node, int *was_error)
 {
 	int mtime_delta;
+	*was_error =0;
 
 	ldebug("CSYNC: %s: Comparing config", node->name);
 	if (!ipc.info.last_cfg_change) {
@@ -546,6 +524,7 @@ static int csync_config_cmp(merlin_node *node)
 		 * change time, since it might be being changed as we speak.
 		 */
 		ldebug("CSYNC: %s: Our module is inactive, so can't check", node->name);
+		*was_error = 1;
 		return 0;
 	}
 
@@ -559,11 +538,12 @@ static int csync_config_cmp(merlin_node *node)
 			ldebug("CSYNC: %s: hashes match. No sync required", node->name);
 			return 0;
 		}
+		*was_error = 1;
 	}
 
 	/* For non-peers, we simply move on from here. */
 	mtime_delta = node->info.last_cfg_change - ipc.info.last_cfg_change;
-	if (mtime_delta || node->type != MODE_PEER) {
+	if (mtime_delta) {
 		ldebug("CSYNC: %s: mtime_delta (%lu - %lu): %d", node->name,
 			node->info.last_cfg_change, ipc.info.last_cfg_change, mtime_delta);
 		return mtime_delta;
@@ -580,6 +560,7 @@ static int csync_config_cmp(merlin_node *node)
 	lerr("CSYNC: %s: hash mismatch but mtime matches", node->name);
 	lerr("CSYNC: %s: User intervention required.", node->name);
 
+	*was_error = 1;
 	return 0;
 }
 
@@ -598,7 +579,7 @@ static int csync_config_cmp(merlin_node *node)
 void csync_node_active(merlin_node *node)
 {
 	time_t now;
-	int val = 0;
+	int val = 0, error = 0;
 	merlin_confsync *cs = NULL;
 	merlin_child *child = NULL;
 
@@ -607,14 +588,16 @@ void csync_node_active(merlin_node *node)
 	cs = &node->csync;
 	if (!cs->push.cmd && !cs->fetch.cmd) {
 		ldebug("CSYNC: %s: No config sync configured.", node->name);
+		node_disconnect(node, "Disconnecting from %s, as config can't be synced", node->name);
 		return;
 	}
 
-	val = csync_config_cmp(node);
+	val = csync_config_cmp(node, &error);
+	if (val || error)
+		node_disconnect(node, "Disconnecting from %s, as config is out of sync", node->name);
+
 	if (!val)
 		return;
-
-	node_disconnect(node, "Disconnecting from %s, as config is out of sync", node->name);
 
 	/*
 	 * The most common setup is that configuration is done on a master
@@ -693,7 +676,6 @@ void csync_node_active(merlin_node *node)
 static int handle_ipc_event(merlin_event *pkt)
 {
 	int result = 0;
-	unsigned int i;
 
 	if (pkt->hdr.type == CTRL_PACKET) {
 		switch (pkt->hdr.code) {
@@ -702,41 +684,22 @@ static int handle_ipc_event(merlin_event *pkt)
 			return 0;
 
 		case CTRL_ACTIVE:
-			/*
-			 * handle_ctrl_active() should basically never return
-			 * anything but 0 or 1 from our module. If it does, it
-			 * will already have logged everything the user needs
-			 * to know, so we can just return without further
-			 * actions, even if the info returned is the same as
-			 * we already have, but if no problems were found we
-			 * forward the packet to the network anyway.
-			 */
 			result = handle_ctrl_active(&ipc, pkt);
-			if (result < 0) {
+			/* -512 = incorrect number of peers, -256 = incorrect config.
+			 * both are fine from IPC, but means we need to make sure all
+			 * other nodes are disconnected before continuing
+			 */
+			if (result == -512 || result == -256) {
+				int i;
+				result = 0;
+				for (i = 0; i < num_nodes; i++) {
+					node_disconnect(node_table[i], "Local config changed, node must reconnect with new config.");
+				}
+			} else if (result < 0) {
 				/* ipc is incompatible with us. weird */
 				return 0;
 			}
-
-			/*
-			 * info checks out, so we forward it. If ipc resent same
-			 * info, we won't do the config sync check
-			 */
-			if (result >= 1) {
-				break;
-			}
-
-			/*
-			 * info checks out and is new. Check to see if we
-			 * should run any config sync actions.
-			 */
-			for (i = 0; i < num_nodes; i++) {
-				merlin_node *node = node_table[i];
-				/* skip nodes that have no start or mtime */
-				if (!node->info.start.tv_sec || !node->info.last_cfg_change)
-					continue;
-				csync_node_active(node_table[i]);
-			}
-
+			node_set_state(&ipc, STATE_CONNECTED, "Connected");
 			break;
 
 		case CTRL_INACTIVE:
@@ -781,7 +744,6 @@ static int ipc_reap_events(void)
 		events++;
 		handle_ipc_event(pkt);
 	}
-	ldebug("Read %d events in %s from %s", events, human_bytes(len), ipc.name);
 
 	return 0;
 }
@@ -883,29 +845,20 @@ static void polling_loop(void)
 			ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
 		}
 
-		/*
-		 * We try accepting inbound connections first. This is kinda
-		 * useful since we open the listening network socket before
-		 * we launch into the ipc socket code. It's not rare for other
-		 * nodes to have initiated connection attempts in that short
-		 * time. if they have and are currently waiting for us to just
-		 * accept that connection, we can humor them and avoid the
-		 * whole socket negotiation thing.
+		/* When the module is disconnected, we can't validate handshakes,
+		 * so any negotiation would need to be redone after the module
+		 * has started. Don't even bother.
 		 */
-		while (!merlind_sig && net_accept_one() >= 0)
-			; /* nothing */
+		if (ipc.state == STATE_CONNECTED) {
+			while (!merlind_sig && net_accept_one() >= 0)
+				; /* nothing */
 
-		/*
-		 * Next we try to connect to all nodes that aren't yet
-		 * connected. Quite often we'll run into firewall rules that
-		 * say one network can't connect to the other, but not the
-		 * other way around, so it's useful to try from both sides
-		 */
-		for (i = 0; !merlind_sig && i < num_nodes; i++) {
-			merlin_node *node = node_table[i];
-			/* try connecting if we're not already */
-			if (!net_is_connected(node)) {
-				net_try_connect(node);
+			for (i = 0; !merlind_sig && i < num_nodes; i++) {
+				merlin_node *node = node_table[i];
+				/* try connecting if we're not already */
+				if (!net_is_connected(node) && node->state == STATE_NONE) {
+					net_try_connect(node);
+				}
 			}
 		}
 
