@@ -587,81 +587,6 @@ static int handle_comment(merlin_node *node, const nebstruct_comment_data *p)
 	return result;
 }
 
-static int handle_contact_notification(const nebstruct_contact_notification_data *p)
-{
-	int result;
-	char *contact_name, *host_name, *service_description;
-	char *output, *ack_author, *ack_data;
-
-	if (!db_log_notifications)
-		return 0;
-
-	sql_quote(p->contact_name, &contact_name);
-	sql_quote(p->host_name, &host_name);
-	sql_quote(p->service_description, &service_description);
-	sql_quote(p->output, &output);
-	sql_quote(p->ack_author, &ack_author);
-	sql_quote(p->ack_data, &ack_data);
-
-	result = sql_query
-		("INSERT INTO notification "
-		 "(notification_type, start_time, end_time, "
-		 "contact_name, host_name, service_description, "
-		 "reason_type, state, output,"
-		 "ack_author, ack_data, escalated) "
-		 "VALUES(%d, %lu, %lu, %s, %s,"
-		 "%s, %d, %d, %s, %s, %s, %d)",
-		 p->notification_type, p->start_time.tv_sec, p->end_time.tv_sec,
-		 contact_name, host_name,  safe_str(service_description),
-		 p->reason_type, p->state, safe_str(output),
-		 safe_str(ack_author), safe_str(ack_data), p->escalated);
-
-	free(host_name);
-	free(contact_name);
-	safe_free(service_description);
-	safe_free(output);
-	safe_free(ack_author);
-	safe_free(ack_data);
-
-	return result;
-}
-
-static int handle_notification(const nebstruct_notification_data *p)
-{
-	int result;
-	char *host_name, *service_description;
-	char *output, *ack_author, *ack_data;
-
-	if(!db_log_notifications)
-		return 0;
-
-	sql_quote(p->host_name, &host_name);
-	sql_quote(p->service_description, &service_description);
-	sql_quote(p->output, &output);
-	sql_quote(p->ack_author, &ack_author);
-	sql_quote(p->ack_data, &ack_data);
-
-	result = sql_query
-		("INSERT INTO notification "
-		 "(notification_type, start_time, end_time, host_name,"
-		 "service_description, reason_type, state, output,"
-		 "ack_author, ack_data, escalated, contacts_notified) "
-		 "VALUES(%d, %lu, %lu, %s,"
-		 "%s, %d, %d, %s, %s, %s, %d, %d)",
-		 p->notification_type, p->start_time.tv_sec, p->end_time.tv_sec,
-		 host_name,  safe_str(service_description), p->reason_type, p->state,
-		 safe_str(output), safe_str(ack_author), safe_str(ack_data),
-		 p->escalated, p->contacts_notified);
-
-	safe_free(host_name);
-	safe_free(service_description);
-	safe_free(output);
-	safe_free(ack_author);
-	safe_free(ack_data);
-
-	return result;
-}
-
 static int handle_contact_notification_method(const nebstruct_contact_notification_method_data *p)
 {
 	int result;
@@ -742,12 +667,6 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 	case NEBCALLBACK_FLAPPING_DATA:
 		errors = handle_flapping((void *)pkt->body);
 		break;
-	case NEBCALLBACK_NOTIFICATION_DATA:
-		errors = handle_notification((void *)pkt->body);
-		break;
-	case NEBCALLBACK_CONTACT_NOTIFICATION_DATA:
-		errors = handle_contact_notification((void *)pkt->body);
-		break;
 	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
 		errors = handle_contact_notification_method((void *)pkt->body);
 		break;
@@ -760,7 +679,9 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 		errors = handle_service_status(node, (int)pkt->hdr.type, (void *)pkt->body);
 		break;
 
-		/* some callbacks are unhandled by design */
+	/* some callbacks are unhandled by design */
+	case NEBCALLBACK_NOTIFICATION_DATA:
+	case NEBCALLBACK_CONTACT_NOTIFICATION_DATA:
 	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
 		return 0;
 
