@@ -691,22 +691,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
-static int hook_contact_notification(merlin_event *pkt, void *data)
-{
-	nebstruct_contact_notification_data *ds = (nebstruct_contact_notification_data *)data;
-	if (ds->type != NEBTYPE_CONTACTNOTIFICATION_END)
-		return 0;
-
-	if (ds->notification_type == HOST_NOTIFICATION)
-		ds->object_ptr = (void *)(uintptr_t)((host *)ds->object_ptr)->current_notification_number;
-	else if (ds->notification_type == SERVICE_NOTIFICATION)
-		ds->object_ptr = (void *)(uintptr_t)((service *)ds->object_ptr)->current_notification_number;
-	else
-		lerr("Unknown notification type %i", ds->notification_type);
-
-	return send_generic(pkt, data);
-}
-
 static int hook_contact_notification_method(merlin_event *pkt, void *data)
 {
 	nebstruct_contact_notification_method_data *ds =
@@ -730,6 +714,27 @@ static int hook_notification(merlin_event *pkt, void *data)
 	struct merlin_notify_stats *mns = NULL;
 	struct service *s = NULL;
 	struct host *h = NULL;
+
+	if (ds->type == NEBTYPE_NOTIFICATION_END){
+		if (ds->notification_type == HOST_NOTIFICATION) {
+			host *hst = ds->object_ptr;
+			ds->object_ptr = (void *)(uintptr_t)(hst->current_notification_number);
+			ds->start_time.tv_usec = hst->no_more_notifications;
+			ds->start_time.tv_sec = hst->last_notification;
+			ds->end_time.tv_usec = 0;
+			ds->end_time.tv_sec = hst->next_notification;
+		} else if (ds->notification_type == SERVICE_NOTIFICATION) {
+			service *svc = ds->object_ptr;
+			ds->object_ptr = (void *)(uintptr_t)(svc->current_notification_number);
+			ds->start_time.tv_usec = svc->no_more_notifications;
+			ds->start_time.tv_sec = svc->last_notification;
+			ds->end_time.tv_usec = 0;
+			ds->end_time.tv_sec = svc->next_notification;
+		} else {
+			lerr("Unknown notification type %i", ds->notification_type);
+		}
+		return send_generic(pkt, data);
+	}
 
 	/* don't count or (try to) block notifications after they're sent */
 	if (ds->type != NEBTYPE_NOTIFICATION_START)
@@ -875,10 +880,6 @@ int merlin_mod_hook(int cb, void *data)
 	switch (cb) {
 	case NEBCALLBACK_NOTIFICATION_DATA:
 		result = hook_notification(&pkt, data);
-		break;
-
-	case NEBCALLBACK_CONTACT_NOTIFICATION_DATA:
-		result = hook_contact_notification(&pkt, data);
 		break;
 
 	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
