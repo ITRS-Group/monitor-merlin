@@ -498,8 +498,8 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 				if (result == -512) {
 					node_disconnect(node, "Incompatible merlin configuration");
 				} else if (result == -256) {
-					node_disconnect(node, "Out of date object configuration");
 					csync_node_active(node);
+					node_disconnect(node, "Out of date object configuration");
 				} else {
 					node_disconnect(node, "Incompatible protocol");
 				}
