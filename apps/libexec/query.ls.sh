@@ -55,10 +55,12 @@ Filter operators (Test, LQL):
  -nri, !~~       Column does not match regex (case-insensitive).
 
  -ge, >=         Column is greater or equal to value.
-                 NOTE: '-ge' or '>=' is also used to match entries in lists.
  -gt, >          Column is greater than value.
  -le, <=         Column is less than or equal to value.
  -lt, <          Column is less than value.
+
+ -ct, >=         Column (list) contains entry (same as -ge).
+ -nct, !>=       Column (list) does not contain entry.
 
 Logical operations:
  -o <num>        OR the last <num> filters.
@@ -150,7 +152,7 @@ display_columns()
 filter_is_raw()
 {
   local r
-  r='^([a-z]+[0-9a-z_]*[0-9a-z]+)(!?=~?|!?~~?|[<>]=?)(.*)$'
+  r='^([a-z]+[0-9a-z_]*[0-9a-z]+)(!?=~?|!?~~?|!?[<>]=?)(.*)$'
   [[ $1 =~ $r ]] && return 0 || return 1
 }
 
@@ -205,6 +207,10 @@ verify_and_translate_operator()
       FILTEROP='>=' ;;
     -gt)
       FILTEROP='>' ;;
+    -ct)
+      FILTEROP='>=' ;;
+    -nct)
+      FILTEROP='!>=' ;;
     *)
       syntax '1' "Invalid filter operator specified ($1)."
   esac
