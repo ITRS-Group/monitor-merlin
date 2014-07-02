@@ -187,10 +187,11 @@ else
   exit 1
 fi
 
+/sbin/chkconfig --add merlind || :
+
 # If mysql-server is running _or_ this is an upgrade
 # we import logs
 if [ $1 -eq 2 ]; then
-  /sbin/chkconfig --add merlind || :
   echo "Importing status events from logfiles to database"
   mon log import --incremental || :
   echo "Importing notifications from logfiles to database"
