@@ -225,7 +225,7 @@ def mod_fail_print(text, mod):
 
 def show_usage(ret):
 	load_commands()
-	print('''usage: mon [category] <command> [options]
+	print('usage: ' + os.path.basename(__file__) + ''' [category] <command> [options]
 
 Where category is sometimes optional.\n''')
 	topic = 'Available categorized commands:'
