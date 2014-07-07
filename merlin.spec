@@ -260,6 +260,7 @@ sh /etc/init.d/monitor start || :
 %mod_path/rename
 %_libdir/merlin/*
 %_bindir/mon
+%_bindir/op5
 %_sysconfdir/cron.d/*
 /opt/plugins/*
 /opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
