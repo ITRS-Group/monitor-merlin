@@ -3,7 +3,7 @@
 cmdline_rhel='crond'
 cmdline_sles='/usr/sbin/cron'
 lockfile_rhel='/var/run/crond.pid'
-lockfile_sles="$lockfile_sles"
+lockfile_sles='/var/run/cron.pid'
 max='1'
 
 # make sure $d is a valid path
