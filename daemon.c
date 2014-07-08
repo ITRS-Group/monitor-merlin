@@ -650,15 +650,6 @@ void csync_node_active(merlin_node *node)
 		       now - node->csync_last_attempt, 30 - (now - node->csync_last_attempt));
 		return;
 	}
-	if (node->csync_num_attempts >= node->csync_max_attempts) {
-		lerr("CSYNC: Config sync already attempted too many times for %s node %s",
-		     node_type(node), node->name);
-		lerr("CSYNC: Most likely there's a config sync configuration error for %s node %s",
-		     node_type(node), node->name);
-		lerr("CSYNC: If this might be due to sporadic errors, increase 'max_sync_attempts' for %s",
-		     node->name);
-		return;
-	}
 
 	node->csync_num_attempts++;
 	linfo("CSYNC: triggered to %s node %s; val: %d; command: [%s]",
