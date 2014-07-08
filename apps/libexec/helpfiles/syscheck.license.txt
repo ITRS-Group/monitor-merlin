@@ -1,2 +1,0 @@
-
-Verifies that the op5 license file is installed and valid.

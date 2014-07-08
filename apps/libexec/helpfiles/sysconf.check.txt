@@ -1,3 +1,9 @@
-[-c|--complete]
-Summarizes the results of all "mon syscheck" handlers.
-The -c switch will output all check results, regardless of state.
+[OPTION].. [HANDLER]..
+Executes one or more sysconf check handlers.
+
+If no handler names given, all available handlers will be run.
+
+ -c, --complete  Output all check results, regardless of state.
+ -h, --help      This syntax text.
+ -l, --list      List all available handlers.
+ -v, --verbose   Output full multi line check results.
