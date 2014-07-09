@@ -104,9 +104,6 @@ $info_max
 }
 
 
-# Source the ordinary generic functions.
-. "$d/bash/inc.sh"
-
 # Set up $procname for info_proc(), based on the $0 argument:
 # * Strip the longest prefixing match of *syscheck.proc_
 procname="${0##*syscheck.proc_}"

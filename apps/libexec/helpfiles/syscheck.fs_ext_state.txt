@@ -1,3 +1,0 @@
-
-Checks if any of the currently mounted ext-based filesystems have been
-marked as non-clean.

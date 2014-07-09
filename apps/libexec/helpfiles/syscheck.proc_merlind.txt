@@ -1,2 +1,0 @@
-[--info]
-Checks the running state of process *merlind*
