@@ -81,11 +81,12 @@ static int handle_host_status(merlin_node *node, int cb, const merlin_host_statu
 	if (db_track_current || rpt_log) {
 		sql_quote(p->state.plugin_output, &output);
 		if (rpt_log && p->state.long_plugin_output) {
-			if((unescaped_long_output = malloc(strlen(p->state.long_plugin_output))) == NULL) {
+			size_t long_len = strlen(p->state.long_plugin_output) + 1;
+			if (unescaped_long_output = malloc(long_len) == NULL) {
 				lerr("failed to allocate memory for unescaped long output");
 				return 1;
 			}
-			unescape_newlines(unescaped_long_output, p->state.long_plugin_output, strlen(p->state.long_plugin_output));
+			unescape_newlines(unescaped_long_output, p->state.long_plugin_output, long_len);
 			sql_quote(unescaped_long_output, &sql_safe_unescaped_long_output);
 			free(unescaped_long_output);
 			unescaped_long_output = NULL;
@@ -161,11 +162,12 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 	if (db_track_current || rpt_log) {
 		sql_quote(p->state.plugin_output, &output);
 		if(rpt_log && p->state.long_plugin_output) {
-			if((unescaped_long_output = malloc(strlen(p->state.long_plugin_output))) == NULL) {
+			size_t long_len = strlen(p->state.long_plugin_output) + 1;
+			if (unescaped_long_output = malloc(long_len) == NULL) {
 				lerr("failed to allocate memory for unescaped long output");
 				return 1;
 			}
-			unescape_newlines(unescaped_long_output, p->state.long_plugin_output, strlen(p->state.long_plugin_output));
+			unescape_newlines(unescaped_long_output, p->state.long_plugin_output, long_len);
 			sql_quote(unescaped_long_output, &sql_safe_unescaped_long_output);
 			free(unescaped_long_output);
 			unescaped_long_output = NULL;
