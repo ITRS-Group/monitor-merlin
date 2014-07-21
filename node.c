@@ -700,12 +700,10 @@ int node_recv(merlin_node *node)
 	}
 
 	if (!iocache_capacity(ioc)) {
-		lwarn("IOC: node_recv() called for %s %s, but iocache is full",
-		      node_type(node), node->name);
-		lwarn("IOC: size=%lu; capacity=%lu; available=%lu",
-			  iocache_size(ioc), iocache_capacity(ioc), iocache_available(ioc));
+		/* Cache full, maybe next time?  */
 		return 0;
 	}
+
 	bytes_read = iocache_read(ioc, node->sock);
 
 	/*
