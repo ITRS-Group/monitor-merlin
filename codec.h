@@ -90,9 +90,10 @@ merlin_decode_message(size_t len, const unsigned char *data);
  * @see merlin_encode_message
  */
 const size_t merlin_message_size(const MerlinMessage *message);
+int32_t merlin_message_type(const MerlinMessage *message);
 
 void merlin_message_ctrl_packet_set_code(const MerlinMessage *message, int code);
-void merlin_message_set_sent(const MerlinMessage *message, struct timeval *when);
+struct timeval * merlin_message_get_sent(const MerlinMessage *message, struct timeval *out);
 /**
  * Sets the selection for this message. Selection should be a bitwise OR
  * of the DEST_* macros defined in node.h.
@@ -112,7 +113,7 @@ merlin_message_get_selection(const MerlinMessage *);
 
 /* CtrlPacket functions*/
 /**
- * Returns the non-zero if this message is of the MERLIN_CTRL_PACKET type and
+ * Returns non-zero if this message is of the MERLIN_CTRL_PACKET type and
  * zero if it is not.
  * @param message The message
  * @return "bool" indicating whether the message is a MERLIN_CTRL_PACKET

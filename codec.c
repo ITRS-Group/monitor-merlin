@@ -191,7 +191,7 @@ const size_t merlin_message_size(const MerlinMessage *message)
 	return merlin_message__get_packed_size(message);
 }
 
-static MerlinMessage__Type merlin_message_type(const MerlinMessage *message)
+int32_t merlin_message_type(const MerlinMessage *message)
 {
 	return message->type;
 }
@@ -201,6 +201,17 @@ void merlin_message_set_sent(const MerlinMessage *message, struct timeval *when)
 	message->header->sent = merlin_timeval_create(*when);
 }
 
+struct timeval * merlin_message_get_sent(const MerlinMessage *message, struct timeval *out)
+{
+	assert_return(message, NULL);
+	assert_return(out, NULL);
+
+	MerlinTimeval *mtv = message->header->sent;
+
+	out->tv_sec = mtv->sec;
+	out->tv_usec = mtv->usec;
+	return out;
+}
 void merlin_message_set_selection(const MerlinMessage *message, int32_t selection)
 {
 	message->header->selection = selection;

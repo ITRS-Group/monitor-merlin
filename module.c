@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <nagios/lib/iobroker.h>
 #include "module.h"
+#include "codec.h"
 #include "dlist.h"
 #include <nagios/nagios.h>
 #include <nagios/objects.h>
@@ -774,8 +775,9 @@ static int ipc_reaper(int sd, int events, void *arg)
 {
 	merlin_node *source = (merlin_node *)arg;
 	int recv_result;
-	merlin_event *pkt;
+	MerlinMessage *message;
 	struct timeval tv;
+	struct timeval sent;
 
 	if ((recv_result = node_recv(source)) <= 0) {
 		return 1;
@@ -785,27 +787,29 @@ static int ipc_reaper(int sd, int events, void *arg)
 	gettimeofday(&tv, NULL);
 
 	/* and then just loop over the received packets */
-	while ((pkt = node_get_event(source))) {
-		merlin_node *node = node_by_id(pkt->hdr.selection);
+	while ((message = node_get_message(source))) {
+		merlin_node *node = node_by_id(
+				merlin_message_get_selection(message)
+				);
 
 		if (node) {
-			int type = pkt->hdr.type == CTRL_PACKET ? NEBCALLBACK_NUMITEMS : pkt->hdr.type;
-			node->latency = tv_delta_msec(&pkt->hdr.sent, &tv);
+			merlin_message_get_sent(message, &sent);
+			node->latency = tv_delta_msec(&sent, &tv);
 			if (node->latency < 0) {
 				if (!(node->warn_flags & NODE_WARN_CLOCK))
 					lwarn("Warning: Clock skew of ~%lu seconds detected to %s",
-						  tv.tv_sec - pkt->hdr.sent.tv_sec, node->name);
+						  tv.tv_sec - sent.tv_sec, node->name);
 				node->warn_flags |= NODE_WARN_CLOCK;
 			}
 			node->last_action = node->last_recv = tv.tv_sec;
-			node->stats.cb_count[type].in++;
+			node->stats.cb_count[merlin_message_type(message)].in++;
 		}
 
 		/* control packets are handled separately */
-		if (pkt->hdr.type == CTRL_PACKET) {
-			handle_control(node, pkt);
+		if (merlin_message_is_ctrl_packet(message)) {
+			handle_control(node, message);
 		} else {
-			handle_ipc_event(node, pkt);
+			handle_ipc_event(node, message);
 		}
 	}
 
