@@ -821,8 +821,8 @@ static int ipc_reaper(int sd, int events, void *arg)
 			node->latency = tv_delta_msec(&pkt->hdr.sent, &tv);
 			if (node->latency < 0) {
 				if (!(node->warn_flags & NODE_WARN_CLOCK))
-					lwarn("Warning: Clock skew of ~%lu seconds detected to %s",
-						  tv.tv_sec - pkt->hdr.sent.tv_sec, node->name);
+					lwarn("Warning: Clock skew of %.3f seconds detected to %s",
+						  (float)node->latency / (float)1000, node->name);
 				node->warn_flags |= NODE_WARN_CLOCK;
 			}
 			node->last_action = node->last_recv = tv.tv_sec;
