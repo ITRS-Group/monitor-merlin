@@ -112,7 +112,7 @@ static int handle_host_status(merlin_node *node, int cb, const merlin_host_statu
 				sql_table_name(), p->state.last_check,
 				NEBTYPE_HOSTCHECK_PROCESSED, host_name,
 				p->state.current_state,
-				p->state.state_type == HARD_STATE,
+				p->state.state_type == HARD_STATE || p->state.current_state == STATE_UP,
 				p->state.current_attempt, output,
 				sql_safe_unescaped_long_output,
 				p->state.scheduled_downtime_depth);
@@ -197,7 +197,7 @@ static int handle_service_status(merlin_node *node, int cb, const merlin_service
 				sql_table_name(), p->state.last_check,
 				NEBTYPE_SERVICECHECK_PROCESSED, host_name,
 				service_description, p->state.current_state,
-				p->state.state_type == HARD_STATE,
+				p->state.state_type == HARD_STATE || p->state.current_state == STATE_OK,
 				p->state.current_attempt, output,
 				sql_safe_unescaped_long_output,
 				p->state.scheduled_downtime_depth);
