@@ -3,6 +3,14 @@
 #define TEST_PASS 1
 #define TEST_FAIL 0
 
+/*
+ * You might suspect test utils is test specific code.
+ * You'd be wrong.
+ *
+ * As our tools are mostly invoked by daemons, printing their output to stdout
+ * might be considered unhelpful, but I guess that's a future fix.
+ */
+
 extern const char *red, *green, *yellow, *cyan, *reset;
 extern unsigned int passed, failed, t_verbose;
 

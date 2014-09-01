@@ -1,10 +1,15 @@
 #ifndef INCLUDE_pgroup_h__
 #define INCLUDE_pgroup_h__
 
+#include <nagios/lib/bitmap.h>
+#include <stdint.h>
+
 struct merlin_node;
 
 /* nodeflags that must be shared between all nodes in a peer group */
 #define PGROUP_NODE_FLAGS (MERLIN_NODE_TAKEOVER)
+
+#define assigned_peer(id, active_peers) (active_peers ? ((id) % (active_peers)) : 0)
 
 /* track assigned objects */
 struct merlin_assigned_objects {

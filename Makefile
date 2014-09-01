@@ -38,13 +38,13 @@ NAGIOS_LIBDIR ?= $(NAGIOS_PREFIX)/lib
 NAGIOS_INCDIR ?= $(NAGIOS_PREFIX)/include
 ALL_CFLAGS = $(CFLAGS) $(TWEAK_CPPFLAGS) $(SYS_CFLAGS) $(CPPFLAGS) $(PTHREAD_CFLAGS)
 ALL_CFLAGS += -D__USE_FILE_OFFSET64
-ALL_CFLAGS += -I$(NAGIOS_INCDIR)
+ALL_CFLAGS += -I$(NAGIOS_INCDIR) -Ishared
 ALL_LDFLAGS = $(LDFLAGS) $(TWEAK_LDFLAGS)
 LIBNAGIOS_LDFLAGS = -L$(NAGIOS_LIBDIR) -lnagios
 WARN_FLAGS = -Wall -Wno-unused-parameter
 #WARN_FLAGS += -Wextra# is not supported on older gcc versions.
 
-DBWRAP_OBJS := sql.o db_wrap.o
+DBWRAP_OBJS := daemon/sql.o daemon/db_wrap.o
 DB_LDFLAGS :=
 DBWRAP_CFLAGS :=
 # FIXME: try to find libdbi dynamically. Until then, the client
@@ -58,24 +58,24 @@ LIBDBI_CFLAGS := -I$(LIBDBI_PREFIX)/include -DDB_WRAP_CONFIG_ENABLE_LIBDBI=1
 LIBDBI_LDFLAGS := -L$(LIBDBI_PREFIX)/lib -ldbi
 DB_CFLAGS += $(LIBDBI_CFLAGS) -DENABLE_LIBDBI=1
 DB_LDFLAGS += $(LIBDBI_LDFLAGS)
-db_wrap.o: db_wrap_dbi.c
+daemon/db_wrap.o: daemon/db_wrap_dbi.c
 endif
-sql.o test-dbwrap.o db_wrap.o: CFLAGS+=$(DB_CFLAGS)
+daemon/sql.o test-dbwrap.o daemon/db_wrap.o: CFLAGS+=$(DB_CFLAGS)
 
-COMMON_OBJS = cfgfile.o shared.o version.o logging.o dlist.o
-SHARED_OBJS = $(COMMON_OBJS) ipc.o io.o node.o codec.o binlog.o
-TEST_OBJS = test_utils.o $(SHARED_OBJS)
-DAEMON_OBJS = status.o daemonize.o net.o $(DBWRAP_OBJS) db_updater.o state.o string_utils.o
+COMMON_OBJS = shared/cfgfile.o shared/shared.o shared/version.o shared/logging.o shared/dlist.o
+SHARED_OBJS = $(COMMON_OBJS) shared/ipc.o shared/io.o shared/node.o shared/codec.o shared/binlog.o
+TEST_OBJS = tools/test_utils.o $(SHARED_OBJS)
+DAEMON_OBJS = daemon/status.o daemon/daemonize.o daemon/net.o $(DBWRAP_OBJS) daemon/db_updater.o daemon/state.o daemon/string_utils.o
 DAEMON_OBJS += $(SHARED_OBJS)
-MODULE_OBJS = $(SHARED_OBJS) module.o hooks.o misc.o sha1.o
-MODULE_OBJS += queries.o pgroup.o
-MODULE_DEPS = module.h node.h pgroup.h
-DAEMON_DEPS = net.h sql.h daemon.h node.h
-APP_OBJS = $(COMMON_OBJS) state.o logutils.o lparse.o test_utils.o
-IMPORT_OBJS = $(APP_OBJS) import.o $(DBWRAP_OBJS)
-SHOWLOG_OBJS = $(APP_OBJS) showlog.o auth.o
-RENAME_OBJS = $(APP_OBJS) rename.o logutils.o lparse.o $(DBWRAP_OBJS)
-DEPS = Makefile cfgfile.h ipc.h mrln_logging.h shared.h
+MODULE_OBJS = $(SHARED_OBJS) module/module.o module/hooks.o module/misc.o module/sha1.o
+MODULE_OBJS += module/queries.o shared/pgroup.o
+MODULE_DEPS = module/module.h shared/node.h shared/pgroup.h
+DAEMON_DEPS = daemon/net.h daemon/sql.h daemon/daemon.h shared/node.h
+APP_OBJS = $(COMMON_OBJS) daemon/state.o tools/logutils.o tools/lparse.o tools/test_utils.o
+IMPORT_OBJS = $(APP_OBJS) tools/import.o $(DBWRAP_OBJS)
+SHOWLOG_OBJS = $(APP_OBJS) tools/showlog.o tools/auth.o
+RENAME_OBJS = $(APP_OBJS) tools/rename.o tools/logutils.o tools/lparse.o $(DBWRAP_OBJS)
+DEPS = Makefile shared/cfgfile.h shared/ipc.h shared/mrln_logging.h shared/shared.h
 APPS = showlog import oconf ocimp rename
 MOD_LDFLAGS = -shared -ggdb3 -fPIC
 DAEMON_LIBS = $(LIB_NET)
@@ -96,10 +96,10 @@ ifdef NEEDS_ASPRINTF
 	COMMON_OBJS += compat/asprintf.o
 endif
 
-ifndef V
-	QUIET_CC    = @echo '   ' CC $@;
-	QUIET_LINK  = @echo '   ' LINK $@;
-endif
+#ifndef V
+#	QUIET_CC    = @echo '   ' CC $@;
+#	QUIET_LINK  = @echo '   ' LINK $@;
+#endif
 
 all: merlin.so merlind $(APPS)
 
@@ -122,13 +122,13 @@ check:
 check_latency: check_latency.o cfgfile.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(ALL_LDFLAGS)
 
-test-csync: test-csync.o test_utils.o $(DAEMON_OBJS)
+test-csync: tests/test-csync.o tools/test_utils.o $(DAEMON_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(DAEMON_LDFLAGS)
 
-test-lparse: test-lparse.o lparse.o logutils.o test_utils.o
+test-lparse: tests/test-lparse.o tools/lparse.o tools/logutils.o tools/test_utils.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LIBNAGIOS_LDFLAGS)
 
-ocimp: ocimp.o $(DBWRAP_OBJS) $(TEST_OBJS) sha1.o slist.o
+ocimp: tools/ocimp.o $(DBWRAP_OBJS) $(TEST_OBJS) module/sha1.o tools/slist.o
 	$(QUIET_LINK)$(CC) $^ -o $@ -ggdb3 $(DB_LDFLAGS) $(LIBNAGIOS_LDFLAGS) $(LDFLAGS)
 
 import: $(IMPORT_OBJS)
@@ -137,13 +137,13 @@ import: $(IMPORT_OBJS)
 showlog: $(SHOWLOG_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LIB_NET) $(LIBNAGIOS_LDFLAGS)
 
-merlind: daemon.o merlind.o $(DAEMON_OBJS)
+merlind: daemon/daemon.o daemon/merlind.o $(DAEMON_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(DAEMON_LDFLAGS)
 
 merlin.so: $(MODULE_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(MOD_LDFLAGS) $(LDFLAGS)
 
-oconf: oconf.o sha1.o misc.o
+oconf: tools/oconf.o module/sha1.o module/misc.o
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(LIBNAGIOS_LDFLAGS)
 
 rename: $(RENAME_OBJS)
@@ -151,8 +151,14 @@ rename: $(RENAME_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ -ggdb3 $(DB_LDFLAGS) $(LDFLAGS) $(LIBNAGIOS_LDFLAGS)
 	@ln -s $$(pwd)/oconf apps/libexec/-oconf
 
+# hacks, because dependency tracking is depressing
+tools/%.o: tools/%.c
+	$(CC) $(ALL_CFLAGS) -Idaemon -Imodule -c $< -o $@
+tests/%.o: tests/%.c
+	$(CC) $(ALL_CFLAGS) -Idaemon -Imodule -Itools -c $< -o $@
+
 %.o: %.c
-	$(QUIET_CC)$(CC) $(ALL_CFLAGS) -c $< -o $@
+	$(CC) $(ALL_CFLAGS) -c $< -o $@
 
 #test: test-binlog test-slist test__lparse
 test: test-slist test__csync test__lparse test-hooks test-stringutils test-showlog test-dbwrap
@@ -178,23 +184,23 @@ test-stringutils: stringutilstest
 test-showlog: showlogtest
 	@./showlogtest
 
-sltest: sltest.o test_utils.o slist.o
+sltest: tests/sltest.o tools/test_utils.o tools/slist.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
-bltest: binlog.o bltest.o test_utils.o
+bltest: shared/binlog.o tests/bltest.o tools/test_utils.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $(DAEMON_LDFLAGS) $^ -o $@
 
-hooktest: tests/test-hooks.o $(filter-out pgroup.o, $(filter-out ipc.o,$(filter-out hooks.o,$(filter-out module.o,$(MODULE_OBJS)))))
+hooktest: tests/test-hooks.o $(filter-out shared/pgroup.o, $(filter-out shared/ipc.o,$(filter-out module/hooks.o,$(filter-out module/module.o,$(MODULE_OBJS)))))
 	$(QUIET_LINK)$(CC) $(CFLAGS) $^ -o $@ $(HOOKTEST_LDFLAGS) `pkg-config --libs check`
 
-stringutilstest: test-stringutils.o test_utils.o string_utils.o
+stringutilstest: tests/test-stringutils.o tools/test_utils.o daemon/string_utils.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $^ -o $@ $(STRINGUTILSTEST_LDFLAGS)
 
 showlogtest: tests/test-showlog.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $^ -o $@ $(LIBNAGIOS_LDFLAGS) `pkg-config --libs check`
 
 tests/test-showlog.o: tests/test-showlog.c showlog
-	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@ -I$(NAGIOS_INCDIR) `pkg-config --cflags check`
+	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@ -I$(NAGIOS_INCDIR) -Ishared -Itools `pkg-config --cflags check`
 
 tests/test-hook.o: tests/test-hook.c
 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@ -I$(NAGIOS_INCDIR) `pkg-config --cflags check`
@@ -221,16 +227,15 @@ module.o: module.c $(MODULE_DEPS) $(DEPS)
 $(DAEMON_OBJS): $(DAEMON_DEPS) $(DEPS)
 $(MODULE_OBJS): $(MODULE_DEPS) $(DEPS)
 
-test-dbwrap.o: test-dbwrap.c
-test-dbwrap: test-dbwrap.o db_wrap.o $(SHARED_OBJS)
+test-dbwrap: tests/test-dbwrap.o daemon/db_wrap.o $(SHARED_OBJS)
 	$(QUIET_LINK)$(CC) $^ -o $@ $(LDFLAGS) $(DBTEST_LDFLAGS)
 db_wrap.o: db_wrap.h db_wrap.c
 
-version.c: gen-version.sh
+shared/version.c: gen-version.sh
 	sh gen-version.sh
 
 clean: clean-core clean-log clean-test
-	rm -f merlin.so merlind $(APPS) *.o blread endpoint nagios.tmp* tests/*.o
+	rm -f merlin.so merlind $(APPS) *.o blread endpoint nagios.tmp* tests/*.o shared/*.o daemon/*.o module/*.o tools/*.o
 
 clean-test:
 	rm -f sltest bltest test-lparse

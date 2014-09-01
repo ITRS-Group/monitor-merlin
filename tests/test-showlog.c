@@ -1,6 +1,6 @@
 #include <check.h>
 #include <stdlib.h>
-#include "../auth.c"
+#include "auth.c"
 
 START_TEST (hosts_services)
 {

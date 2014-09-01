@@ -1,6 +1,9 @@
-#include "module.h"
+#define _GNU_SOURCE 1
+#include <stdio.h>
+
 #include "pgroup.h"
 #include "node.h"
+#include "ipc.h"
 
 /* Tables to locate the correct peer-group by object id */
 static merlin_peer_group **host_id2pg;

@@ -27,7 +27,7 @@ elif test -f version; then
 else
 	version="$DEF_VER"
 fi
-cat << EOF > version.c
+cat << EOF > shared/version.c
 #include "shared.h"
 const char *merlin_version = "$version";
 EOF

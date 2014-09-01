@@ -1,5 +1,5 @@
-#include "../hooks.c"
-#include "../node.h"
+#include "hooks.c"
+#include "node.h"
 #include <check.h>
 
 #include <nagios/objects.h>
@@ -68,8 +68,8 @@ int ipc_send_event(merlin_event *pkt) {
 }
 int ipc_grok_var(char *var, char *val) {return 1;}
 
-#include "../module.c"
-#include "../pgroup.c"
+#include "module.c"
+#include "pgroup.c"
 
 void general_setup()
 {

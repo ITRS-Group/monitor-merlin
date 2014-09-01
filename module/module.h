@@ -66,7 +66,6 @@ extern void *neb_handle;
 extern int __nagios_object_structure_version;
 
 /** prototypes **/
-#define assigned_peer(id, active_peers) (active_peers ? ((id) % (active_peers)) : 0)
 extern void schedule_expiration_event(int type, merlin_node *node, void *obj);
 extern int send_paths(void);
 extern int handle_ipc_event(merlin_node *node, merlin_event *pkt);
