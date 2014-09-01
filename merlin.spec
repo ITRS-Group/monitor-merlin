@@ -224,7 +224,7 @@ if [ $1 -eq 0 ]; then
 fi
 
 %post -n monitor-merlin
-sed -i 's#import_program = /opt/monitor/op5/merlin/import.php#import_program = /opt/monitor/op5/merlin/ocimp#g' %mod_path/merlin.conf
+sed -i 's#import_program = php /opt/monitor/op5/merlin/import.php#import_program = /opt/monitor/op5/merlin/ocimp#g' %mod_path/merlin.conf
 %mod_path/install-merlin.sh %install_args --install=config || :
 sh /etc/init.d/monitor start || :
 
