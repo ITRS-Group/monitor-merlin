@@ -1,9 +1,6 @@
 %define mod_path /opt/monitor/op5/merlin
 %define nagios_cfg /opt/monitor/etc/nagios.cfg
 
-%define install_args --batch --dest-dir=%mod_path \\\
-	--bindir=%_bindir --libexecdir=%_libdir/merlin --nagios-cfg=%nagios_cfg
-
 %if 0%{?suse_version}
 %define mysqld mysql
 %define mysql_rpm mysql
@@ -29,9 +26,10 @@ Requires: merlin-apps >= %version
 Requires: monitor-config
 Requires: op5-mysql
 BuildRequires: mysql-devel
-BuildRequires: op5-nagios-devel >= 3.99.99.7
+BuildRequires: op5-naemon-devel
 Obsoletes: monitor-reports-module
 BuildRequires: check-devel
+BuildRequires: autoconf, automake, libtool
 
 %if 0%{?suse_version}
 BuildRequires: libdbi-devel
@@ -56,7 +54,7 @@ data into a variety of databases, using libdbi.
 %package -n monitor-merlin
 Summary: A Nagios module designed to communicate with the Merlin daemon
 Group: op5/Monitor
-Requires: op5-nagios >= 3.99.99.7, merlin = %version-%release
+Requires: op5-naemon, merlin = %version-%release
 Requires: monitor-config
 Requires: op5-monitor-supported-database
 
@@ -101,7 +99,7 @@ network monitoring setup.
 Summary: Test files for merlin
 Group: op5/Monitor
 Requires: monitor-livestatus
-Requires: op5-nagios
+Requires: op5-naemon
 Requires: merlin merlin-apps monitor-merlin
 
 %description test
@@ -111,24 +109,17 @@ Some additional test files for merlin
 %setup -q
 
 %build
-sed -i 's/^DEF_VER=.*/DEF_VER=%{version}-%{release}/' gen-version.sh
+echo %{version} > .version_number
+autoreconf -i -s
+%configure --disable-auto-postinstall --with-pkgconfdir=%mod_path
 
-# If we're building for CentOS 5 we have some sed'ing to do
-%if ( ! 0%{?suse_version} ) && ( 0%{?rhel} <= 5 )
-# use python26 for 'mon'
-sed -i '1s#/bin/python.*#/bin/python26#' apps/mon.py
-%endif
-
-
-make ENABLE_LIBDBI=1 NAGIOS_PREFIX=/opt/monitor
-make ENABLE_LIBDBI=1 NAGIOS_PREFIX=/opt/monitor test
-
+%__make
+%__make check
 
 %install
 rm -rf %buildroot
-sh install-merlin.sh %install_args --root=%buildroot --install=files,apps,init
+%__make install DESTDIR=%buildroot
 
-chmod 777 %buildroot/%mod_path/logs
 mkdir -p %buildroot/%mod_path/binlogs
 mkdir -p %buildroot%_sysconfdir/logrotate.d
 cp merlin.logrotate %buildroot%_sysconfdir/logrotate.d/merlin
@@ -137,6 +128,7 @@ ln -s ../../../../%_libdir/merlin/import %buildroot/%mod_path/import
 ln -s ../../../../%_libdir/merlin/ocimp %buildroot/%mod_path/ocimp
 ln -s ../../../../%_libdir/merlin/showlog %buildroot/%mod_path/showlog
 ln -s ../../../../%_libdir/merlin/merlin.so %buildroot/%mod_path/merlin.so
+ln -s op5 %buildroot/%_bindir/mon
 
 # install plugins and create their symlinks
 mkdir -p %buildroot/opt
@@ -179,13 +171,7 @@ if [ $? -gt 0 ]; then
   fi
 fi
 
-$(mysql -Be "quit" 2>/dev/null) && MYSQL_AVAILABLE=1
-if [ -n "$MYSQL_AVAILABLE" ]; then
-  %mod_path/install-merlin.sh %install_args --batch --install=db
-else
-  echo "Can't login to %mysqld, probably because you have a root password set, bailing out..."
-  exit 1
-fi
+%mod_path/install-merlin.sh
 
 /sbin/chkconfig --add merlind || :
 
@@ -225,57 +211,56 @@ fi
 
 %post -n monitor-merlin
 sed -i 's#import_program = php /opt/monitor/op5/merlin/import.php#import_program = /opt/monitor/op5/merlin/ocimp#g' %mod_path/merlin.conf
-%mod_path/install-merlin.sh %install_args --install=config || :
+%mod_path/install-merlin.sh || :
 sh /etc/init.d/monitor start || :
 
 
 %files
 %defattr(-,root,root)
 %config(noreplace) %mod_path/merlin.conf
-%mod_path/sample.merlin.conf
-%mod_path/sql
+%_datadir/merlin/sql
 %mod_path/merlind
-%mod_path/install-merlin.sh
+%_bindir/merlind
+#%mod_path/install-merlin.sh
 %_sysconfdir/logrotate.d/merlin
 %_sysconfdir/op5kad/conf.d/merlin.kad
 %_sysconfdir/nrpe.d/nrpe-merlin.cfg
-/etc/init.d/merlind
-%dir %mod_path
-%dir %mod_path/logs
-%mod_path/binlogs
-/usr/bin/merlind
+%_sysconfdir/init.d/merlind
+#%mod_path/binlogs
 
 
 %files -n monitor-merlin
 %defattr(-,root,root)
+%_libdir/merlin/merlin.*
 %mod_path/merlin.so
-%_libdir/merlin/merlin.so
-
 
 %files apps
 %defattr(-,root,root)
+%_libexecdir/merlin/import
+%_libexecdir/merlin/showlog
+%_libexecdir/merlin/ocimp
+%_libexecdir/merlin/rename
 %mod_path/import
 %mod_path/showlog
 %mod_path/ocimp
-%mod_path/rename
-%_libdir/merlin/*
+%_libdir/merlin/mon
 %_bindir/mon
 %_bindir/op5
 %_sysconfdir/cron.d/*
 /opt/plugins/*
 /opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
-
+#
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/db_mysql_check.sh
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/fs_ext_state.sh
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/proc_smsd.sh
 
 %exclude %_libdir/merlin/mon/test.py*
-%exclude %_libdir/merlin/mon/run-ci-test.sh
-%exclude %_libdir/merlin/merlin.so
+#%exclude %_libdir/merlin/mon/run-ci-test.sh
+%exclude %_libdir/merlin/merlin.*
 
 %files test
 %_libdir/merlin/mon/test.py*
-%_libdir/merlin/mon/run-ci-test.sh
+#%_libdir/merlin/mon/run-ci-test.sh
 
 %clean
 rm -rf %buildroot

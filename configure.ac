@@ -1,0 +1,52 @@
+AC_PREREQ([2.59])
+AC_INIT([merlin], m4_esyscmd([./generate_version_number.sh]), [dev@op5.org])
+AC_CONFIG_SRCDIR([daemon/daemon.c])
+AM_INIT_AUTOMAKE
+
+AC_CONFIG_HEADERS([config.h])
+
+# Checks for programs.
+AC_PROG_CC
+AM_PROG_CC_C_O
+AC_PROG_LIBTOOL
+AM_PATH_PYTHON
+
+PKG_CHECK_MODULES(
+	[naemon],
+	[naemon >= 0.8],
+	[],
+	[PKG_CHECK_MODULES([naemon], [op5-core >= 4.0])])
+nagios_cfg=`$PKG_CONFIG --variable=mainconf naemon`
+AC_SUBST(nagios_cfg)
+
+PKG_CHECK_MODULES([check], [check])
+
+AC_ARG_ENABLE(auto_postinstall, AS_HELP_STRING([--disable-auto-postinstall], [Don't try to modify naemon's configuration or setup the SQL database. If you disable this, you must manually run the install-merlin.sh script in the source distribution after installation. You should disable this if you build redistributable packages.]))
+AM_CONDITIONAL(AUTO_POSTINSTALL, [test "x$enable_auto_postinstall" != "xno"])
+
+AC_ARG_ENABLE(libdbi, AS_HELP_STRING([--disable-libdbi], [Don't use the libdbi database abstraction layer to broker information to mysql]))
+AS_IF([test "x$enable_libdbi" != "xno"],
+	[
+		AC_CHECK_HEADERS([dbi/dbi.h], [], [AC_ERROR([Couldn't find dbi/dbi.h - make sure it's installed and can be found with your CFLAGS, or run configure with --disable-libdbi])])
+		AC_CHECK_LIB([dbi], [dbi_initialize], [],[AC_ERROR([Couldn't find the dbi library - make sure it's installed and can be found with your FLAGS, or run configure with --disable-libdbi])] )
+	])
+AM_CONDITIONAL(HAVE_LIBDBI, [test x$HAVE_LIBDBI != x])
+
+AC_ARG_WITH(db-type, AS_HELP_STRING([--with-db-type], [Use this database type when installing SQL tables (default=mysql, supported values=mysql)]), [db_type=$withval], [db_type=mysql])
+AC_SUBST(db_type)
+AC_ARG_WITH(db-name, AS_HELP_STRING([--with-db-name], [Install SQL tables into this database (default=merlin)]), [db_name=$withval], [db_name=merlin])
+AC_SUBST(db_name)
+AC_ARG_WITH(db-user, AS_HELP_STRING([--with-db-user], [Use this SQL user in merlin during normal operation, will be created (default=merlin)]), [db_user=$withval], [db_user=merlin])
+AC_SUBST(db_user)
+AC_ARG_WITH(db-pass, AS_HELP_STRING([--with-db-pass], [Use this password for merlin's normal database user (default=merlin)]), [db_pass=$withval], [db_pass=merlin])
+AC_SUBST(db_pass)
+AC_ARG_WITH(db-root-user, AS_HELP_STRING([--with-db-root-user], [A user with privilegies to create the database structure that merlin requires (default=root)]), [db_root_user=$withval], [db_root_user=root])
+AC_SUBST(db_root_user)
+AC_ARG_WITH(db-root-pass, AS_HELP_STRING([--with-db-root-pass], [The password for the superuser given by --with-db-root-user (default='')]), [db_root_pass=$withval], [db_root_pass=''])
+AC_SUBST(db_root_pass)
+
+AC_ARG_WITH(pkgconfdir, AS_HELP_STRING([--with-pkgconfdir], [The directory where merlin installs its configuration (default=${sysconfdir}/merlin)]), [pkgconfdir=$withval], [pkgconfdir=\${sysconfdir}/merlin])
+AC_SUBST(pkgconfdir)
+
+AC_CONFIG_FILES([Makefile data/merlind install-merlin.sh apps/mon.py], [test -f apps/mon.py && cp apps/mon.py apps/op5])
+AC_OUTPUT

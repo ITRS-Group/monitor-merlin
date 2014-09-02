@@ -1462,7 +1462,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	/* only the ipc node has an action handler */
 	ipc.action = ipc_action_handler;
 
-	linfo("Merlin module %s initialized successfully", merlin_version);
+	linfo("Merlin module " PACKAGE_VERSION " initialized successfully");
 
 	return 0;
 }

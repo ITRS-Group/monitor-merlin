@@ -1,7 +1,8 @@
 Requirements
 ------------
-Merlin requires Nagios 4, and needs the libnagios-devel package
-for building, as well as for running.
+Merlin requires Naemon, including its development headers for building.
+Currently, it requires the very latest development version for auto-detecting
+paths to Naemon.
 
 For running merlin with its default configuration, you'll need
 to have libdbi-dbd-mysql and all of its dependencies (generally
@@ -14,54 +15,36 @@ merlin module can plug in to. The import script is currently
 limited to MySQL only, so that's currently the only database
 supported.
 
-For the import script to work, you need to have php-cli and
-php-mysql installed. They may be named differently in your
-distribution, but I'm sure you get the idea.
-
-The install script requires administration privileges to create
-its installation directories and copy files there, as well as
-sql administration privileges in order to create the database
-that merlin will populate for you.
+The install script requires sql administration privileges in order to create
+the database that merlin will populate for you.
 
 GNU sed 4.0.9 or better is required for the install script to
 be able to modify your nagios configuration files.
 
 
-Compilation
+Building and installation
 -----------
-Merlin doesn't support autoconf (and I'm reluctant to take
-patches that makes it do so). You'll need to have libdbi-devel
-installed. If it's not in a default location, please amend the
-CPPFLAGS manually while running make, like so:
+Building is a standard autotools fair: released tarballs does what you need
+with
+ ./configure
+ make
+ sudo make install
 
-     make CPPFLAGS="-I/usr/local/include"
+For git checkouts, do
+ ./autogen.sh
+ make
+ sudo make install
 
-
-Installation
-------------
-There is an install-script provided here which will attempt to
-make all the necessary modifications to your nagios.cfg file
-as well as installing merlin on your system. Please run
-
-  sh install-merlin.sh --dest-dir=/path/to/merlin \
-           --nagios-cfg=/path/to/nagios.cfg \
-		   --db-type=mysql --db-user=merlin --db-pass=merlin \
-		   --db-name=merlin
-
-Note that the install-merlin.sh script requires write access to
-whatever directory you choose as --dest-dir, as well as access
-to write to your nagios.cfg file.
-Also note that the install script can only handle setting up
-mysql databases at the moment. Patches welcome to make it also
-handle postgresql and whatever else you feel there is a need for.
-If a different database type is selected, the install script will
-still work, but it will not create the database for you.
+The install will by default try to install merlin's database. The configure
+script provides a way to configure database name and users, as well as a way to
+prevent merlin from doing this automatically, in which case you need to run the
+install-merlin.sh script manually. Run ./configure --help for more information.
 
 Configuration
 -------------
-Configuring merlin is pretty straight-forward. Check the example.conf
-file that accompanies this release and you'll see most of the common
-examples available.
+Configuring merlin is pretty straight-forward. Merlin's default config - by
+default installed into /usr/local/etc/merlin/merlin.conf - contains most of the
+common examples available.
 
 The syntax is fairly standard, being made up of a key without
 spaces and a value containing arbitrary characters (although no

@@ -14,11 +14,13 @@
 # Description: Merlin is an event-distribution system for Nagios
 ### END INIT INFO
 
+prefix=@prefix@
+exec_prefix=@exec_prefix@
 
 ulimit -c unlimited
 prog=merlind
-BINDIR=@@BINDIR@@
-CONFIG_FILE=@@DESTDIR@@/merlin.conf
+BINDIR=@bindir@
+CONFIG_FILE=@sysconfdir@/merlin/merlin.conf
 
 start ()
 {

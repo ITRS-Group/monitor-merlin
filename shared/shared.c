@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include "logging.h"
 #include "shared.h"
 #include "ipc.h"
 

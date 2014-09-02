@@ -1,32 +1,15 @@
-#!/usr/bin/python -tt
+#!@PYTHON@ -tt
 
 import os, sys, subprocess, tempfile
 from subprocess import Popen, PIPE
 
-merlin_dir = "@@DESTDIR@@"
-libexec_dir = "@@LIBEXECDIR@@/mon/"
+exec_prefix = '@exec_prefix@'
+prefix = '@prefix@'
+libexec_dir = "@libdir@/merlin/mon".replace('${exec_prefix}', exec_prefix).replace('${prefix}', prefix)
+merlin_dir = "@libexecdir@/merlin".replace('${prefix}', prefix)
+merlin_conf_dir = "@pkgconfdir@".replace('${prefix}', prefix)
 
-# default to op5-ish systems
-if merlin_dir == "@" + "@DESTDIR@@":
-	merlin_dir = os.path.abspath(os.path.dirname(os.path.realpath(__file__))+'/..')
-if libexec_dir == "@" + "@LIBEXECDIR@@/mon/":
-	libexec_dir = os.path.dirname(os.path.realpath(__file__)) + '/libexec/'
-
-module_dir = libexec_dir + '/modules'
-if not libexec_dir in sys.path:
-	sys.path.insert(0, libexec_dir)
-if not module_dir in sys.path:
-	sys.path.append(module_dir)
-
-import merlin_conf as mconf
-import node
-from merlin_apps_utils import *
-
-
-mconf.config_file = '%s/merlin.conf' % merlin_dir
-nagios_cfg = '@@NAGIOSCFG@@'
-if nagios_cfg == '@' + '@NAGIOSCFG@@':
-	nagios_cfg = '/opt/monitor/etc/nagios.cfg'
+nagios_cfg = '@nagios_cfg@'
 
 # run a generic helper from the libexec dir
 def run_helper(helper, args):
@@ -250,28 +233,37 @@ Uncategorized commands are run by: mon <command>\n''')
 		mod_fail_print("(nonfatal)", mod)
 	sys.exit(ret)
 
+config_file = None
 args = []
 i = 0
 for arg in sys.argv[1:]:
 	i += 1
 	if arg.startswith('--merlin-cfg=') or arg.startswith('--merlin-conf='):
-		mconf.config_file = arg.split('=', 1)[1]
+		config_file = arg.split('=', 1)[1]
 	elif arg.startswith('--nagios-cfg=') or arg.startswith('--nagios-conf='):
 		nagios_cfg = arg.split('=', 1)[1]
 	elif arg.startswith('--object-cache='):
 		object_cache = arg.split('=', 1)[1]
+	elif arg.startswith('--libexecdir='):
+		libexec_dir = arg.split('=', 1)[1]
 	else:
 		args.append(arg)
 		continue
+
+module_dir = libexec_dir + '/modules'
+sys.path.insert(0, libexec_dir)
+sys.path.append(module_dir)
+
+import merlin_conf as mconf
+import node
+from merlin_apps_utils import *
+
+mconf.config_file = config_file if config_file else '%s/merlin.conf' % merlin_conf_dir
 
 if len(args) < 1:
 	show_usage(1)
 if args[0] == '-h' or args[0] == '--help' or args[0] == 'help':
 	show_usage(0)
-
-if args[0] == '--libexecdir':
-	print("libexecdir=%s" % libexec_dir)
-	sys.exit(0)
 
 autohelp = False
 cmd = cat = args[0]

@@ -1,6 +1,7 @@
 #define _GNU_SOURCE 1
 #include <stdio.h>
 
+#include "logging.h"
 #include "pgroup.h"
 #include "node.h"
 #include "ipc.h"

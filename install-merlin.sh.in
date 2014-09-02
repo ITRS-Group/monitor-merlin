@@ -1,0 +1,129 @@
+#!/bin/bash
+
+# common variables used in default rules:
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+
+libexecdir=@libexecdir@
+merlin_cfgdir=@mrlnconfdir@/merlin
+nagios_cfg=@nagios_cfg@
+sqldir=@datarootdir@/merlin/sql
+db_type=@db_type@
+db_name=@db_name@
+db_user=@db_user@
+db_pass=@db_pass@
+db_root_user=@db_root_user@
+db_root_pass=@db_root_pass@
+
+raw_sed_version=$(sed --version | sed '1q')
+sed_version=$(echo "$raw_sed_version" | sed -e 's/[^0-9]*//' -e 's/[.]//g')
+if [ "$sed_version" -lt 409 ]; then
+	echo "You need GNU sed version 4.0.9 or above for this script to work"
+	echo "Your sed claims to be \"$raw_sed_version\" ($sed_version)"
+	exit 1
+fi
+
+modify_nagios_cfg ()
+{
+	if ! grep -q "merlin.so" "$nagios_cfg"; then
+		say "Adding merlin.so as eventbroker to nagios"
+		sed -i "s#^log_file.*#broker_module=$libexecdir/merlin.so $merlin_cfgdir/merlin.conf\\n\\n&#" \
+			"$nagios_cfg"
+		return 0
+	fi
+
+	if grep -q "$libexecdir/merlin.so" "$nagios_cfg"; then
+		say "merlin.so is already a registered eventbroker in Nagios"
+		return 0
+	fi
+
+	say "Updating path to merlin.so in $nagios_cfg"
+	sed -i "s#broker_module.*merlin.so.*#broker_module=$libexecdir/merlin.so $merlin_cfgdir/merlin.conf#" \
+		"$nagios_cfg"
+	return 0
+}
+
+
+db_setup ()
+{
+	mysql="mysql"
+	if [ -n "$db_root_user" ]; then
+		mysql="$mysql -u$db_root_user"
+		test -n "$db_root_pass" && mysql="$mysql -p$db_root_pass"
+	fi
+
+	case "$db_type" in
+		mysql)
+			# Try to connect to database
+			$(eval "$mysql -e ''")
+			if [ $? -ne 0 ]; then
+				echo "Couldn't connect to database, giving up."
+				exit 1
+			fi
+			new_install=0
+			# Create database if it do not exist
+			db_count=$(eval "$mysql -N -s -e \"SHOW DATABASES LIKE '$db_name'\"" | wc -l)
+			if [ $db_count -eq 0 ]; then
+				echo "Creating database $db_name"
+				eval "$mysql -e \"CREATE DATABASE IF NOT EXISTS $db_name\""
+				new_install=1
+			fi
+			# Always set privileges (to be on the extra safe side)
+			eval "$mysql -e \
+			  \"GRANT ALL ON $db_name.* TO $db_user@localhost IDENTIFIED BY '$db_pass'\""
+			eval "$mysql -e 'FLUSH PRIVILEGES'"
+
+			eval "$mysql -f $db_name" < $sqldir/mysql/merlin.sql > /tmp/merlin-sql-upgrade.log 2>&1
+
+			# Fetch db_version and do upgrade stuff if/when needed
+			query="SELECT version FROM db_version"
+			db_version=$(eval "$mysql $db_name -BNe \"$query\"" 2>/dev/null)
+
+			# Check for upgrade scripts
+			ver=$db_version
+			if test "$db_version"; then
+				while true; do
+					nextver=$((ver+1))
+					f="$sqldir/update-db-${ver}to${nextver}.sql"
+					test -f "$f" || break
+					eval "$mysql $db_name" < $f 2>&1 >>/tmp/merlin-sql-upgrade.log || abort "Incremental database upgrade from version $ver to version $nextver failed!"
+					eval "$mysql $db_name -e \"UPDATE db_version SET version=$nextver\"" 2>&1 >> /tmp/merlin-sql-upgrade.log || abort "Failed to set new database version $nextver!"
+					ver=$nextver
+				done
+			fi
+			if [ $new_install -eq 1 ]; then
+				for index in $sqldir/mysql/*-indexes.sql; do
+					eval "$mysql -f $db_name" < $index 2>&1 >>/tmp/merlin-sql-upgrade.log
+				done
+			else
+				# only check for indexes in report_data. sloppy, yes, but should be sufficient
+				idx=$(eval "$mysql $db_name -N -s -e \"SHOW INDEX IN report_data\"" | wc -l);
+				if [ $idx -eq '1' ]; then
+					cat <<EOF
+***************
+*** WARNING ***
+***************
+
+Some of your tables lack indexes, which might cause bad performance.
+Installing indexes might take quite some time (several hours for big installations), so I'm going
+to let you install them when it's convenient for you.
+
+To install them manually, run:
+
+    mon db fixindexes
+
+EOF
+				fi
+			fi
+			;;
+		*)
+			echo "Unknown database type '$db_type'"
+			echo "I understand only lower-case database types."
+			return 0
+			;;
+	esac
+}
+
+modify_nagios_cfg
+
+db_setup

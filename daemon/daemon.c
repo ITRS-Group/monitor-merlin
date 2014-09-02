@@ -1043,7 +1043,7 @@ int merlind_main(int argc, char **argv)
 		}
 	}
 	state_init();
-	linfo("Merlin daemon %s successfully initialized", merlin_version);
+	linfo("Merlin daemon " PACKAGE_VERSION " successfully initialized");
 	polling_loop();
 
 	clean_exit(0);

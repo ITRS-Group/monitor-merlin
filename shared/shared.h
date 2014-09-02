@@ -27,11 +27,11 @@
 #include <sys/param.h>
 #include <ctype.h>
 
+#include "logging.h"
 #include "compat.h"
 #include "node.h"
 #include "io.h"
 #include "ipc.h"
-#include "mrln_logging.h"
 #include "cfgfile.h"
 #include "binlog.h"
 #include <naemon/naemon.h>
@@ -201,22 +201,4 @@ extern const char *ctrl_name(uint code);
 extern const char *node_state_name(int state);
 extern const char *tv_delta(const struct timeval *start, const struct timeval *stop);
 extern int dump_nodeinfo(merlin_node *n, int sd, int instance_id);
-
-/* data encoding/decoding routines */
-extern int merlin_encode(void *data, int cb_type, char *buf, int buflen);
-extern int merlin_decode(void *ds, off_t len, int cb_type);
-static inline int merlin_encode_event(merlin_event *pkt, void *data)
-{
-	return merlin_encode(data, pkt->hdr.type, pkt->body, sizeof(pkt->body));
-}
-static inline int merlin_decode_event(merlin_node *node, merlin_event *pkt)
-{
-	int ret = merlin_decode(pkt->body, pkt->hdr.len, pkt->hdr.type);
-
-	if (ret) {
-		lerr("CODEC: Failed to decode packet from '%s'. type: %u (%s); code: %u; len: %u",
-			 node ? node->name : "(unknown)", pkt->hdr.type, callback_name(pkt->hdr.type), pkt->hdr.code, pkt->hdr.len);
-	}
-	return ret;
-}
 #endif

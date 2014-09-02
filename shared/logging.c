@@ -1,3 +1,4 @@
+#include "logging.h"
 #include "shared.h"
 
 static FILE *merlin_log_fp;

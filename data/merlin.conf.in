@@ -3,22 +3,22 @@
 #
 # Default options have been commented out
 #
-ipc_socket = @@DESTDIR@@/ipc.sock;
+ipc_socket = @localstatedir@/lib/merlin/ipc.sock;
 
 log_level = warn;
 
 # module-specific configuration options.
 module {
 	# textual log of normal hum-drum events
-	log_file = @@DESTDIR@@/logs/neb.log;
+	log_file = @localstatedir@/log/merlin/neb.log;
 }
 
 # daemon-specific config options
 daemon {
-	pidfile = /var/run/merlin.pid;
+	pidfile = @localstatedir@/run/merlin/merlin.pid;
 
 	# same as the "module" section above
-	log_file = @@DESTDIR@@/logs/daemon.log;
+	log_file = @localstatedir@/log/merlin/daemon.log;
 
 	# The import_program is responsible for priming the merlin database
 	# with configuration information and an initial import of status data.
@@ -32,7 +32,7 @@ daemon {
 	# --db-conn_str=database_connection_string
 	# The database parameters are taken from "database" section if such
 	# a section exists.
-	import_program = @@DESTDIR@@/ocimp
+	import_program = @libexecdir@/ocimp
 
 	# address to listen to. 0.0.0.0 is default
 	#address = 0.0.0.0;
@@ -57,11 +57,11 @@ daemon {
 		# track_current = no;
 
 		# server location and authentication variables
-		name = @@DBNAME@@;
-		user = @@DBUSER@@;
-		pass = @@DBPASS@@;
+		name = @db_name@;
+		user = @db_user@;
+		pass = @db_pass@;
 		host = localhost;
-		type = @@DBTYPE@@;
+		type = @db_type@;
 	}
 
 	# this section describes how we handle config synchronization
