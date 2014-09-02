@@ -161,7 +161,7 @@ tests/%.o: tests/%.c
 	$(CC) $(ALL_CFLAGS) -c $< -o $@
 
 #test: test-binlog test-slist test__lparse
-test: test-slist test__csync test__lparse test-hooks test-stringutils test-showlog test-dbwrap
+test: test-slist test__csync test__lparse test-hooks test-stringutils test-showlog test-dbwrap test-binlog
 
 test-slist: sltest
 	@./sltest
