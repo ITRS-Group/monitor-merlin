@@ -33,6 +33,4 @@ ca-debug.py
 .lock*
 rename
 /Documentation
-.waf*
-WAFBUILD
 *.swp
