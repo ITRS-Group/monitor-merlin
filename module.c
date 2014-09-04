@@ -1051,6 +1051,7 @@ static int read_config(char *cfg_file)
 	if (!(config = cfg_parse_file(merlin_config_file))) {
 		lwarn("Failed to read config file %s", merlin_config_file);
 		free(merlin_config_file);
+		merlin_config_file = NULL;
 		return -1;
 	}
 
