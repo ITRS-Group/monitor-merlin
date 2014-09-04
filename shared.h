@@ -5,8 +5,6 @@
 #ifndef INCLUDE_shared_h__
 #define INCLUDE_shared_h__
 
-#define NSCORE
-
 #ifndef _GNU_SOURCE
 # define _GNU_SOURCE 1
 #endif
