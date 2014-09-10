@@ -34,7 +34,14 @@ static void usage(char *fmt, ...)
 		putchar('\n');
 	}
 
-	printf("Usage: %s -c <config-file> [-d] [-h]\n\n", progname);
+	printf("Usage: %s -c <config-file> [-d] [-k] [-s] [-h]\n"
+		"\t-c|--config   Specify the configuration file name. Unknown, non-flag\n"
+		"\t              arguments might also be interprented as the config file.\n"
+		"\t-d|--debug    Enter \"debug\" mode - this just means it won't daemonize.\n"
+		"\t-s            Don't start. Instead, print if merlin is already running.\n"
+		"\t-k|--kill     Don't start. Instead, find a running instance and kill it.\n"
+		"\t-h|--help     Print this help text.\n"
+		, progname);
 
 	exit(1);
 }
