@@ -565,7 +565,7 @@ class fake_mesh:
 
 		# we got a pid and a status, so check what happened
 		if os.WIFEXITED(status):
-			msg = "%s: Exited with status %d" % (msg, os.WEXITSTATUS(status))
+			msg = "%s: %d exited with status %d" % (msg, proc.pid, os.WEXITSTATUS(status))
 			if exp == False:
 				return sub.test(os.WEXITSTATUS(status), 0, msg)
 			return sub.fail(msg)
@@ -914,7 +914,7 @@ class fake_mesh:
 			}
 			for otype, query in queries.items():
 				value = inst.live.query(query)
-				ret = (sub.test(len(value), expected[otype], '%s should have right amount of %s' % (inst.name, otype)))
+				ret = (sub.test(len(value), expected[otype], '%s should have %d %s, had %d' % (inst.name, expected[otype], otype, len(value))))
 				if ret == False:
 					sub.diag('got:')
 					if 'host' in otype:
@@ -1079,11 +1079,15 @@ class fake_mesh:
 		sub.test(value, hosts, '%s: %d/%d hosts have scheduled_downtime_depth > 0' % (inst.name, value, hosts))
 		value = inst.live.query('GET downtimes\nStats: downtime_type = 2')[0][0]
 		sub.test(value, hosts, '%s: %d/%d host downtime entries' % (inst.name, value, hosts))
-		value = inst.live.query('GET comments\nStats: type = 1\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
-		sub.test(value, hosts, '%s: %d/%d host downtime comments present' % (inst.name, value, hosts))
+		value = inst.live.query('GET comments\nColumns: host_name\nFilter: type = 1\nFilter: entry_type = 2\nAnd: 2')
+		sub.test(len(value), hosts, '%s: %d host downtime comments present, expected %d' % (inst.name, len(value), hosts))
+		if len(value) != hosts:
+			sub.diag("Affected hosts:\n\t" + "\n\t".join((x[0] for x in value)))
 
-		value = inst.live.query('GET services\nStats: scheduled_downtime_depth > 0')[0][0]
-		sub.test(value, services, '%s: %d/%d services have scheduled_downtime_depth > 0' % (inst.name, value, services))
+		value = inst.live.query('GET services\nColumns: host_name description scheduled_downtime_depth\nFilter: scheduled_downtime_depth > 0')
+		sub.test(len(value), services, '%s: %d services have scheduled_downtime_depth > 0, expected %d' % (inst.name, len(value), services))
+		if len(value) != services:
+			sub.diag("Affected services:\n\t" + "\n\t".join((("%s;%s: %s" % (x,y,z)) for x,y,z in value)))
 		value = inst.live.query('GET downtimes\nStats: downtime_type = 1')[0][0]
 		sub.test(value, services, '%s: %d/%d service downtime entries' % (inst.name, value, services))
 		value = inst.live.query('GET comments\nStats: type = 2\nStats: entry_type = 2\nStatsAnd: 2')[0][0]
@@ -1272,7 +1276,7 @@ class fake_mesh:
 				ret = func(sub, **kwargs)
 			except Exception, e:
 				if last:
-					raise e
+					raise
 				time.sleep(interval)
 				continue
 
