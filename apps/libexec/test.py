@@ -320,7 +320,7 @@ class fake_instance:
 				print("ERROR: %s already started, so not relaunching it" % name)
 				sys.exit(1)
 
-			if name == 'nagios':
+			if name == 'naemon':
 				cmd = [program, '%s/etc/nagios.cfg' % self.home]
 			elif name == 'merlin':
 				cmd = [program, '-d', '-c', '%s/merlin/merlin.conf' % self.home]
@@ -718,7 +718,7 @@ class fake_mesh:
 
 		for inst in self.instances:
 			inst.nslog_size = inst.fsize('nagios.log')
-		ret = self._test_restarts('nagios', 8, 3)
+		ret = self._test_restarts('naemon', 8, 3)
 		for inst in self.instances:
 			lsize = inst.fsize('nagios.log')
 			self.tap.test(lsize > inst.nslog_size, True, "%s must keep nagios.log" % inst.name)
@@ -730,8 +730,8 @@ class fake_mesh:
 
 		for inst in self.instances:
 			inst.nslog_size = inst.fsize('nagios.log')
-		self.stop_daemons('nagios', 8)
-		self.start_daemons('nagios', 3)
+		self.stop_daemons('naemon', 8)
+		self.start_daemons('naemon', 3)
 		for inst in self.instances:
 			lsize = inst.fsize('nagios.log')
 			self.tap.test(lsize > inst.nslog_size, True, "%s must keep nagios.log" % inst.name)
@@ -1804,7 +1804,7 @@ def cmd_dist(args):
 	mesh = fake_mesh(
 		basepath,
 		prog_merlin=merlin_binary,
-		prog_nagios=nagios_binary,
+		prog_naemon=nagios_binary,
 		num_masters=num_masters,
 		opt_pgroups=opt_pgroups,
 		merlin_mod_path=merlin_mod_path,
