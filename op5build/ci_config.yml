@@ -1,4 +1,3 @@
 post:
- steps: |
-  chmod o+rwx /mnt/logs
-  mon run-ci-test
+  steps: |
+    mon test dist
