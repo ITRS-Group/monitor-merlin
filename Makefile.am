@@ -1,4 +1,5 @@
 AM_CFLAGS = $(CFLAGS) -I$(srcdir)/shared $(naemon_CFLAGS)
+AM_CPPFLAGS="-D_GNU_SOURCE"
 
 bin_PROGRAMS = merlind
 pkglibexecdir = $(libexecdir)/merlin

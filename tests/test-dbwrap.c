@@ -1,5 +1,3 @@
-#define _GNU_SOURCE 1 /* for vasprintf */
-
 #include "db_wrap.h"
 #include <assert.h>
 

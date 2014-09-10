@@ -1,4 +1,3 @@
-#define _GNU_SOURCE 1 /* for vasprintf */
 #include <stdio.h>
 #include <stdarg.h>
 #include <sys/types.h>

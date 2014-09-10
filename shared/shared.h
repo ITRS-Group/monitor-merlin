@@ -5,10 +5,6 @@
 #ifndef INCLUDE_shared_h__
 #define INCLUDE_shared_h__
 
-#ifndef _GNU_SOURCE
-# define _GNU_SOURCE 1
-#endif
-
 /** common include files required practically everywhere **/
 #include <stdio.h>
 #include <string.h>
