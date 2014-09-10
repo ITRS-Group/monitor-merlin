@@ -1,4 +1,4 @@
-AM_CFLAGS = $(CFLAGS) -I$(srcdir)/shared $(naemon_CFLAGS) -D__USE_FILE_OFFSET64
+AM_CFLAGS = $(CFLAGS) -I$(srcdir)/shared $(naemon_CFLAGS)
 
 bin_PROGRAMS = merlind
 pkglibexecdir = $(libexecdir)/merlin

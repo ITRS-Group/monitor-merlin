@@ -18,6 +18,7 @@ PKG_CHECK_MODULES(
 	[PKG_CHECK_MODULES([naemon], [op5-core >= 4.0])])
 nagios_cfg=`$PKG_CONFIG --variable=mainconf naemon`
 AC_SUBST(nagios_cfg)
+AC_SYS_LARGEFILE
 
 PKG_CHECK_MODULES([check], [check])
 
