@@ -683,7 +683,6 @@ class fake_mesh:
 	def test_connections(self):
 		"""Tests connections between nodes in the mesh.
 		This is a mandatory test"""
-		self.intermission('Allowing nodes to connect', 2.5)
 		return self.test_until_or_fail('connections', self._test_connections, 45)
 
 
@@ -1138,9 +1137,8 @@ class fake_mesh:
 				(s, start_time, end_time, duration, s))
 		self.test_until_or_fail('downtime spread', self._test_dt_count, 15, sub)
 		expire_start = time.time()
-		self.intermission("Letting downtime expire", 15)
 		self.test_until_or_fail("downtime expiration", self._test_dt_count,
-			15, sub, hosts=0, services=0
+			20, sub, hosts=0, services=0
 		)
 		sub.done()
 
