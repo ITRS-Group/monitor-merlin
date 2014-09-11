@@ -12,8 +12,6 @@ db_type=@db_type@
 db_name=@db_name@
 db_user=@db_user@
 db_pass=@db_pass@
-db_root_user=@db_root_user@
-db_root_pass=@db_root_pass@
 
 raw_sed_version=$(sed --version | sed '1q')
 sed_version=$(echo "$raw_sed_version" | sed -e 's/[^0-9]*//' -e 's/[.]//g')
@@ -47,33 +45,29 @@ modify_nagios_cfg ()
 db_setup ()
 {
 	mysql="mysql"
-	if [ -n "$db_root_user" ]; then
-		mysql="$mysql -u$db_root_user"
-		test -n "$db_root_pass" && mysql="$mysql -p$db_root_pass"
+	if [ -n "$db_user" ]; then
+		mysql="$mysql -u$db_user"
+		test -n "$db_pass" && mysql="$mysql -p$db_pass"
 	fi
 
 	case "$db_type" in
 		mysql)
-			# Try to connect to database
 			$(eval "$mysql -e ''")
 			if [ $? -ne 0 ]; then
 				echo "Couldn't connect to database, giving up."
+				echo ""
+				echo "Make sure there is a $db_type database called '$db_name',"
+				echo "that $db_user can access it, and that you have provided the correct password"
+				echo ""
+				echo "Something similar to the below, depending on your mysql user login, should work:"
+				echo "    mysql -uroot -e \"CREATE DATABASE IF NOT EXISTS $db_name\""
+				echo "    mysql -uroot -e \"GRANT ALL ON $db_name.* TO $db_user@localhost IDENTIFIED BY '<password>'\""
 				exit 1
 			fi
-			new_install=0
-			# Create database if it do not exist
-			db_count=$(eval "$mysql -N -s -e \"SHOW DATABASES LIKE '$db_name'\"" | wc -l)
-			if [ $db_count -eq 0 ]; then
-				echo "Creating database $db_name"
-				eval "$mysql -e \"CREATE DATABASE IF NOT EXISTS $db_name\""
-				new_install=1
-			fi
-			# Always set privileges (to be on the extra safe side)
-			eval "$mysql -e \
-			  \"GRANT ALL ON $db_name.* TO $db_user@localhost IDENTIFIED BY '$db_pass'\""
-			eval "$mysql -e 'FLUSH PRIVILEGES'"
 
-			eval "$mysql -f $db_name" < $sqldir/mysql/merlin.sql > /tmp/merlin-sql-upgrade.log 2>&1
+			test -z "$(eval "$mysql -f $db_name -se \"SHOW TABLES\"")"
+			new_install=$?
+			eval "$mysql -f $db_name" < $sqldir/mysql/merlin.sql
 
 			# Fetch db_version and do upgrade stuff if/when needed
 			query="SELECT version FROM db_version"

@@ -171,7 +171,9 @@ if [ $? -gt 0 ]; then
   fi
 fi
 
-%mod_path/install-merlin.sh
+mysql -uroot -e "CREATE DATABASE IF NOT EXISTS merlin"
+mysql -uroot -e "GRANT ALL ON merlin.* TO merlin@localhost IDENTIFIED BY 'merlin'"
+%_libexecdir/merlin/install-merlin.sh
 
 /sbin/chkconfig --add merlind || :
 
@@ -211,7 +213,7 @@ fi
 
 %post -n monitor-merlin
 sed -i 's#import_program = php /opt/monitor/op5/merlin/import.php#import_program = /opt/monitor/op5/merlin/ocimp#g' %mod_path/merlin.conf
-%mod_path/install-merlin.sh || :
+%_libexecdir/merlin/install-merlin.sh || :
 sh /etc/init.d/monitor start || :
 
 
@@ -221,7 +223,7 @@ sh /etc/init.d/monitor start || :
 %_datadir/merlin/sql
 %mod_path/merlind
 %_bindir/merlind
-#%mod_path/install-merlin.sh
+%_libexecdir/merlin/install-merlin.sh
 %_sysconfdir/logrotate.d/merlin
 %_sysconfdir/op5kad/conf.d/merlin.kad
 %_sysconfdir/nrpe.d/nrpe-merlin.cfg

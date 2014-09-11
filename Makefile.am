@@ -3,6 +3,7 @@ AM_CFLAGS = $(CFLAGS) -I$(srcdir)/shared $(naemon_CFLAGS) -D__USE_FILE_OFFSET64
 bin_PROGRAMS = merlind
 pkglibexecdir = $(libexecdir)/merlin
 pkglibexec_PROGRAMS = import ocimp showlog rename
+pkglibexec_SCRIPTS = install-merlin.sh
 bin_SCRIPTS = apps/op5
 
 mondir = $(libdir)/merlin/mon
