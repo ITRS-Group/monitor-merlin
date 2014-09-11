@@ -3,7 +3,7 @@
 #
 # Default options have been commented out
 #
-ipc_socket = @localstatedir@/lib/merlin/ipc.sock;
+ipc_socket = @localstatedir@/merlin/lib/ipc.sock;
 
 log_level = warn;
 

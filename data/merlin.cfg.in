@@ -1,0 +1,3 @@
+# Naemon config
+broker_module=@libdir@/merlin/merlin.so @merlin_cfgdir@/merlin.conf
+event_broker_options=-1

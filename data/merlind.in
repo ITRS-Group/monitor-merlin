@@ -20,7 +20,7 @@ exec_prefix=@exec_prefix@
 ulimit -c unlimited
 prog=merlind
 BINDIR=@bindir@
-CONFIG_FILE=@sysconfdir@/merlin/merlin.conf
+CONFIG_FILE=@pkgconfdir@/merlin.conf
 
 start ()
 {

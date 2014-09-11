@@ -9,7 +9,7 @@ libexec_dir = "@libdir@/merlin/mon".replace('${exec_prefix}', exec_prefix).repla
 merlin_dir = "@libexecdir@/merlin".replace('${prefix}', prefix)
 merlin_conf_dir = "@pkgconfdir@".replace('${prefix}', prefix)
 
-nagios_cfg = '@nagios_cfg@'
+nagios_cfg = '@naemon_cfg@'
 
 # run a generic helper from the libexec dir
 def run_helper(helper, args):

@@ -40,6 +40,12 @@ script provides a way to configure database name and users, as well as a way to
 prevent merlin from doing this automatically, in which case you need to run the
 install-merlin.sh script manually. Run ./configure --help for more information.
 
+Merlin will drop a naemon configuration file into the directory naemon's
+configuration lies. You can include it in your main naemon config file with
+ include_file=merlin.cfg
+or by putting the config file in an already included directory with the
+--with-naemon-config-dir argument to the configure script.
+
 Configuration
 -------------
 Configuring merlin is pretty straight-forward. Merlin's default config - by

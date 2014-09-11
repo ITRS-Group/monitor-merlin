@@ -31,6 +31,8 @@ pkgconf_DATA = data/merlin.conf
 sqldir = $(datarootdir)/merlin
 nobase_sql_DATA = sql/update-db-1to2.sql sql/update-db-2to3.sql sql/mysql/*
 
+naemonconf_DATA = data/merlin.cfg
+
 merlin_la_LDFLAGS = -module -shared -fPIC
 
 merlin_la_CFLAGS = $(AM_CFLAGS)
@@ -139,11 +141,12 @@ install-exec-hook:
 else
 endif
 
-data/merlin.conf : % : %.in
+data/merlin.cfg data/merlin.conf : % : %.in
 	$(AM_V_GEN) sed \
 		-e 's,@localstatedir[@],$(localstatedir),g' \
 		-e 's,@libexecdir[@],$(libexecdir),g' \
-		-e 's,@merlin_cfgdir[@],$(merlin_cfgdir),g' \
+		-e 's,@libdir[@],$(libdir),g' \
+		-e 's,@merlin_cfgdir[@],$(pkgconfdir),g' \
 		-e 's,@db_name[@],$(db_name),g' \
 		-e 's,@db_type[@],$(db_type),g' \
 		-e 's,@db_user[@],$(db_user),g' \

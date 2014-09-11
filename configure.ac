@@ -16,8 +16,10 @@ PKG_CHECK_MODULES(
 	[naemon >= 0.8],
 	[],
 	[PKG_CHECK_MODULES([naemon], [op5-core >= 4.0])])
-nagios_cfg=`$PKG_CONFIG --variable=mainconf naemon`
-AC_SUBST(nagios_cfg)
+naemon_cfg=`$PKG_CONFIG --variable=mainconf naemon`
+AS_IF([test "x$naemon_cfg" == "x"],
+	  [naemon_cfg=/etc/naemon/naemon.cfg])
+AC_SUBST(naemon_cfg)
 AC_SYS_LARGEFILE
 
 PKG_CHECK_MODULES([check], [check])
@@ -33,6 +35,8 @@ AS_IF([test "x$enable_libdbi" != "xno"],
 	])
 AM_CONDITIONAL(HAVE_LIBDBI, [test x$HAVE_LIBDBI != x])
 
+AC_ARG_WITH(naemon-config-dir, AS_HELP_STRING([--with-naemon-config-dir], [Install merlin's naemon config into this directory (default is your naemon.cfg directory)]), [naemonconfdir=$withval], [naemonconfdir=`AS_DIRNAME([${naemon_cfg}])`])
+AC_SUBST(naemonconfdir)
 AC_ARG_WITH(db-type, AS_HELP_STRING([--with-db-type], [Use this database type for logging report data (default=mysql, supported values=mysql)]), [db_type=$withval], [db_type=mysql])
 AC_SUBST(db_type)
 AC_ARG_WITH(db-name, AS_HELP_STRING([--with-db-name], [Install SQL tables into this database. This database must be created manually. (default=merlin)]), [db_name=$withval], [db_name=merlin])

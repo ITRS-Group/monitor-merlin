@@ -1,5 +1,4 @@
 %define mod_path /opt/monitor/op5/merlin
-%define nagios_cfg /opt/monitor/etc/nagios.cfg
 
 %if 0%{?suse_version}
 %define mysqld mysql
@@ -111,7 +110,7 @@ Some additional test files for merlin
 %build
 echo %{version} > .version_number
 autoreconf -i -s
-%configure --disable-auto-postinstall --with-pkgconfdir=%mod_path
+%configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=/opt/monitor/etc/mconf
 
 %__make
 %__make check
@@ -212,8 +211,8 @@ if [ $1 -eq 0 ]; then
 fi
 
 %post -n monitor-merlin
-sed -i 's#import_program = php /opt/monitor/op5/merlin/import.php#import_program = /opt/monitor/op5/merlin/ocimp#g' %mod_path/merlin.conf
-%_libexecdir/merlin/install-merlin.sh || :
+sed --follow-symlinks -i 's#import_program = php /opt/monitor/op5/merlin/import.php#import_program = /opt/monitor/op5/merlin/ocimp#g' %mod_path/merlin.conf
+sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon.cfg
 sh /etc/init.d/monitor start || :
 
 
@@ -235,6 +234,7 @@ sh /etc/init.d/monitor start || :
 %defattr(-,root,root)
 %_libdir/merlin/merlin.*
 %mod_path/merlin.so
+/opt/monitor/etc/mconf/merlin.cfg
 
 %files apps
 %defattr(-,root,root)
