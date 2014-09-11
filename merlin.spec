@@ -198,16 +198,16 @@ done
 # config and then restart. Either way, it's safe to stop it
 # unconditionally here
 sh /etc/init.d/monitor stop || :
-sh /etc/init.d/monitor slay || :
 
 %preun -n monitor-merlin
 if [ $1 -eq 0 ]; then
-	# removing the merlin module entirely
-	sh /etc/init.d/monitor stop || :
-	sh /etc/init.d/monitor slay || :
-	sed -i /merlin.so/d %prefix/etc/nagios.cfg
-	sh /etc/init.d/monitor start || :
 	sh /etc/init.d/merlind stop || :
+fi
+
+%postun -n monitor-merlin
+if [ $1 -eq 0 ]; then
+	# remove the merlin module
+	sh /etc/init.d/monitor restart || :
 fi
 
 %post -n monitor-merlin
