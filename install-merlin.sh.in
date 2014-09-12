@@ -85,7 +85,7 @@ db_setup ()
 					ver=$nextver
 				done
 			fi
-			if [ $new_install -eq 1 ]; then
+			if [ $new_install -eq 0 ]; then
 				for index in $sqldir/mysql/*-indexes.sql; do
 					eval "$mysql -f $db_name" < $index
 				done
