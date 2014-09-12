@@ -1,3 +1,4 @@
+#include "config.h"
 #include "db_wrap.h"
 #include <assert.h>
 
@@ -265,7 +266,7 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 
 static void test_mysql_1(void)
 {
-#if ! DB_WRAP_CONFIG_ENABLE_LIBDBI
+#ifndef DB_WRAP_CONFIG_ENABLE_LIBDBI
 	assert(0 && "ERROR: dbi:mysql support not compiled in!");
 #else
 	db_wrap *wr = NULL;
@@ -295,7 +296,7 @@ static void test_mysql_1(void)
 
 static void test_sqlite_1(void)
 {
-#if ! DB_WRAP_CONFIG_ENABLE_LIBDBI
+#ifndef DB_WRAP_CONFIG_ENABLE_LIBDBI
 	assert(0 && "ERROR: dbi:sqlite3 support not compiled in!");
 #else
 	db_wrap *wr = NULL;

@@ -6,10 +6,6 @@
 #include <stddef.h> /* size_t on Linux */
 
 
-#if ! defined(DB_WRAP_CONFIG_ENABLE_LIBDBI)
-#  define DB_WRAP_CONFIG_ENABLE_LIBDBI 0
-#endif
-
 enum db_wrap_constants {
 	/**
 	   The non-error code.

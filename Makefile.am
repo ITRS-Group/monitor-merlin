@@ -1,5 +1,5 @@
 AM_CFLAGS = $(CFLAGS) -I$(srcdir)/shared $(naemon_CFLAGS)
-AM_CPPFLAGS="-D_GNU_SOURCE"
+AM_CPPFLAGS = $(CPPFLAGS) -D_GNU_SOURCE
 
 bin_PROGRAMS = merlind
 pkglibexecdir = $(libexecdir)/merlin
@@ -34,9 +34,10 @@ nobase_sql_DATA = sql/update-db-1to2.sql sql/update-db-2to3.sql sql/mysql/*
 naemonconf_DATA = data/merlin.cfg
 
 merlin_la_LDFLAGS = -module -shared -fPIC
-
 merlin_la_CFLAGS = $(AM_CFLAGS)
+merlin_la_CPPFLAGS = $(AM_CPPFLAGS)
 merlind_LDADD = $(naemon_LIBS) $(AM_LDADD)
+merlind_CPPFLAGS = $(AM_CPPFLAGS)
 
 initdir = $(sysconfdir)/init.d
 init_SCRIPTS = data/merlind
@@ -89,23 +90,23 @@ showlog_SOURCES = $(app_sources) \
 	tools/showlog.c \
 	tools/auth.c tools/auth.h
 showlog_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
-showlog_LDADD = $(naemon_LIBS)
+showlog_LDADD = $(naemon_LIBS) $(AM_LDADD)
 import_SOURCES = $(app_sources) tools/import.c $(db_wrap_sources)
 import_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
-import_LDADD = $(naemon_LIBS)
+import_LDADD = $(naemon_LIBS) $(AM_LDADD)
 oconf_SOURCES = tools/oconf.c module/sha1.c module/misc.c
 oconf_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module
-oconf_LDADD = $(naemon_LIBS)
+oconf_LDADD = $(naemon_LIBS) $(AM_LDADD)
 ocimp_SOURCES = $(shared_sources) $(db_wrap_sources) \
 	tools/ocimp.c tools/ocimp.h \
 	tools/test_utils.c tools/test_utils.h \
 	module/sha1.c module/sha1.h \
 	tools/slist.c tools/slist.h
 ocimp_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon -I$(srcdir)/module
-ocimp_LDADD = $(naemon_LIBS)
+ocimp_LDADD = $(naemon_LIBS) $(AM_LDADD)
 rename_SOURCES = $(app_sources) tools/rename.c $(db_wrap_sources)
 rename_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
-rename_LDADD = $(naemon_LIBS)
+rename_LDADD = $(naemon_LIBS) $(AM_LDADD)
 
 check_PROGRAMS = $(TESTS) test-dbwrap
 TESTS = sltest test-csync test-lparse hooktest stringutilstest showlogtest bltest
@@ -117,6 +118,7 @@ test_csync_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon -I$(srcdir)/tools
 test_csync_LDADD = $(naemon_LIBS)
 test_lparse_SOURCES = tests/test-lparse.c tools/lparse.c tools/logutils.c tools/test_utils.c
 test_lparse_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools
+test_lparse_CPPFLAGS = $(AM_CPPFLAGS)
 test_lparse_LDADD = $(naemon_LIBS)
 hooktest_SOURCES = tests/test-hooks.c shared/cfgfile.c shared/shared.c shared/logging.c shared/dlist.c shared/io.c shared/node.c shared/codec.c shared/binlog.c module/misc.c module/sha1.c tools/test_utils.c
 hooktest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module -I$(srcdir)/tools $(check_CFLAGS)
@@ -131,9 +133,9 @@ bltest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools
 
 # So, it turns out that this test isn't actually a test that has ever executed
 # It's just a binary that could be used for writing tests against. I give up :(
-test_dbwrap_SOURCES = tests/test-dbwrap.c daemon/db_wrap.c $(shared_sources)
+test_dbwrap_SOURCES = tests/test-dbwrap.c $(db_wrap_sources) $(shared_sources)
 test_dbwrap_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
-test_dbwrap_LDADD = $(naemon_LIBS)
+test_dbwrap_LDADD = $(naemon_LIBS) $(AM_LDADD)
 
 if AUTO_POSTINSTALL
 install-exec-hook:

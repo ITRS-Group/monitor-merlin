@@ -1,21 +1,15 @@
+#include "config.h"
 #include "db_wrap.h"
 #include <assert.h>
 #include <string.h> /* strdup() */
+#ifdef DB_WRAP_CONFIG_ENABLE_LIBDBI
+#include "db_wrap_dbi.h"
+#endif
 const db_wrap_impl db_wrap_impl_empty = db_wrap_impl_empty_m;
 const db_wrap db_wrap_empty = db_wrap_empty_m;
 const db_wrap_result db_wrap_result_empty = db_wrap_result_empty_m;
 const db_wrap_conn_params db_wrap_conn_params_empty = db_wrap_conn_params_empty_m;
 #define TODO(X)
-
-/**
-   Experiment: include the driver-specific .c files here so that we
-   can avoid adding the extra files to the Makefile. i suspect that
-   this will be easier to maintain.
-*/
-#if DB_WRAP_CONFIG_ENABLE_LIBDBI
-#  include "db_wrap_dbi.c"
-#endif
-
 
 /**
    Prepares a query which is expected to evaluate to a single value.
@@ -143,7 +137,7 @@ int db_wrap_result_string_copy_ndx(db_wrap_result *res, unsigned int ndx, char *
 int db_wrap_driver_init(char const *driver, db_wrap_conn_params const *param, db_wrap **tgt)
 {
 	if (! driver || ! param || !tgt) { return DB_WRAP_E_BAD_ARG; }
-#if DB_WRAP_CONFIG_ENABLE_LIBDBI
+#ifdef DB_WRAP_CONFIG_ENABLE_LIBDBI
 	char const *prefix = NULL;
 	size_t preLen = 0;
 	prefix = "dbi:";

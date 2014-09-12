@@ -32,6 +32,8 @@ AS_IF([test "x$enable_libdbi" != "xno"],
 	[
 		AC_CHECK_HEADERS([dbi/dbi.h], [], [AC_ERROR([Couldn't find dbi/dbi.h - make sure it's installed and can be found with your CFLAGS, or run configure with --disable-libdbi])])
 		AC_CHECK_LIB([dbi], [dbi_initialize], [],[AC_ERROR([Couldn't find the dbi library - make sure it's installed and can be found with your FLAGS, or run configure with --disable-libdbi])] )
+		HAVE_LIBDBI=1
+		AC_DEFINE(DB_WRAP_CONFIG_ENABLE_LIBDBI, 1, [Set if we build against libdbi])
 	])
 AM_CONDITIONAL(HAVE_LIBDBI, [test x$HAVE_LIBDBI != x])
 
