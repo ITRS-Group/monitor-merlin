@@ -1,8 +1,5 @@
 import sys, os
 
-mod_path = os.path.dirname(os.path.abspath(__file__))
-if not mod_path in sys.path:
-	sys.path.append(mod_path)
 import merlin_conf as mconf
 from merlin_qh import get_merlin_nodeinfo
 

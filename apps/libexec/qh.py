@@ -1,9 +1,6 @@
 import os, sys
 import compound_config as cconf
 
-modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
-if not modpath in sys.path:
-	sys.path.append(modpath)
 from nagios_qh import nagios_qh
 from merlin_apps_utils import *
 

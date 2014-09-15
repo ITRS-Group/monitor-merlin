@@ -1,10 +1,6 @@
 import os, sys
 import time
 
-modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
-if not modpath in sys.path:
-	sys.path.append(modpath)
-
 import merlin_db
 
 def cmd_install_time(args):

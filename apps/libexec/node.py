@@ -1,8 +1,5 @@
 import os, sys, re, time, socket, select
 
-modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
-if not modpath in sys.path:
-	sys.path.append(modpath)
 from merlin_apps_utils import *
 from merlin_qh import *
 import compound_config as cconf

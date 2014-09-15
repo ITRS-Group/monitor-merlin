@@ -1,8 +1,5 @@
 import os, sys
 
-modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
-if not modpath in sys.path:
-	sys.path.append(modpath)
 from merlin_apps_utils import *
 
 def cmd_merlin(discard):

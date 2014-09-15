@@ -16,9 +16,6 @@ try:
 except ImportError:
 	import sha as hashlib
 
-modpath = os.path.dirname(__file__) + '/modules'
-if not modpath in sys.path:
-	sys.path.insert(0, modpath)
 from merlin_apps_utils import *
 from merlin_test_utils import *
 from nagios_command import nagios_command
@@ -27,6 +24,7 @@ from qhcheck import QhChannel
 import nagios_plugin as nplug
 import compound_config as cconf
 
+modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
 modpytap_path = modpath + '/pytap'
 if not modpytap_path in sys.path:
 	sys.path.insert(0, modpytap_path)

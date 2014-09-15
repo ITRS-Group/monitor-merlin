@@ -4,10 +4,6 @@ try:
 except ImportError:
 	from sha import sha as sha1
 
-modpath = os.path.dirname(__file__) + '/modules'
-if not modpath in sys.path:
-	sys.path.insert(0, modpath)
-
 import merlin_db
 
 log_file = '/tmp/merlin-sql-upgrade.log'

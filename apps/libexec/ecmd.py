@@ -1,7 +1,4 @@
 import os, sys, re, time, errno, json
-modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
-if not modpath in sys.path:
-	sys.path.append(modpath)
 from merlin_apps_utils import *
 from nagios_command import *
 from compound_config import parse_nagios_cfg

@@ -2,9 +2,6 @@ import os, sys, re, time, errno
 
 import livestatus
 
-modpath = os.path.dirname(os.path.abspath(__file__)) + '/modules'
-if not modpath in sys.path:
-	sys.path.append(modpath)
 from merlin_apps_utils import *
 from merlin_status import *
 import nagios_plugin as nplug
