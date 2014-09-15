@@ -137,11 +137,14 @@ test_dbwrap_SOURCES = tests/test-dbwrap.c $(db_wrap_sources) $(shared_sources)
 test_dbwrap_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
 test_dbwrap_LDADD = $(naemon_LIBS) $(AM_LDADD)
 
-if AUTO_POSTINSTALL
 install-exec-hook:
+if AUTO_POSTINSTALL
 	bash install-merlin.sh
 else
 endif
+	$(mkinstalldirs) $(DESTDIR)$(localstatedir)/lib/merlin
+	$(mkinstalldirs) $(DESTDIR)$(localstatedir)/log/merlin
+	$(mkinstalldirs) $(DESTDIR)$(localstatedir)/run/merlin
 
 data/merlin.cfg data/merlin.conf : % : %.in
 	$(AM_V_GEN) sed \

@@ -226,13 +226,17 @@ sh /etc/init.d/monitor start || :
 %_sysconfdir/nrpe.d/nrpe-merlin.cfg
 %_sysconfdir/init.d/merlind
 #%mod_path/binlogs
-
+%dir %_localstatedir/lib/merlin
+%dir %_localstatedir/log/merlin
+%dir %_localstatedir/run/merlin
 
 %files -n monitor-merlin
 %defattr(-,root,root)
 %_libdir/merlin/merlin.*
 %mod_path/merlin.so
 /opt/monitor/etc/mconf/merlin.cfg
+%dir %_localstatedir/lib/merlin
+%dir %_localstatedir/log/merlin
 
 %files apps
 %defattr(-,root,root)
