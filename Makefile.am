@@ -3,13 +3,11 @@ AM_CPPFLAGS = $(CPPFLAGS) -D_GNU_SOURCE
 
 bin_PROGRAMS = merlind
 pkglibexecdir = $(libexecdir)/merlin
-pkglibexec_PROGRAMS = import ocimp showlog rename
+pkglibexec_PROGRAMS = import ocimp showlog rename oconf
 pkglibexec_SCRIPTS = install-merlin.sh
 bin_SCRIPTS = apps/op5
 
 mondir = $(libdir)/merlin/mon
-mon_PROGRAMS = oconf
-
 mon_PYTHON = apps/libexec/*.py
 mon_SCRIPTS = apps/libexec/*.sh apps/libexec/*.php
 monmoduledir = $(mondir)/modules

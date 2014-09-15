@@ -124,8 +124,8 @@ def load_commands(name=False):
 		for rh in raw_helpers:
 			path = libexec_dir + '/' + rh
 
-			# ignore entries starting with dot or dash
-			if rh[0] == '.' or rh[0] == '-':
+			# ignore entries starting with dot
+			if rh[0] == '.':
 				continue
 
 			# ignore directories

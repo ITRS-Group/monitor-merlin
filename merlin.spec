@@ -244,6 +244,7 @@ sh /etc/init.d/monitor start || :
 %_libexecdir/merlin/showlog
 %_libexecdir/merlin/ocimp
 %_libexecdir/merlin/rename
+%_libexecdir/merlin/oconf
 %mod_path/import
 %mod_path/showlog
 %mod_path/ocimp
