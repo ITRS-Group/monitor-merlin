@@ -185,7 +185,7 @@ int unexpire_service(struct service *s)
 static int expire_event(struct merlin_expired_check *evt)
 {
 	time_t last_check = 0, previous_check_time = 0;
-	service *s;
+	service *s = NULL;
 	host *h = NULL;
 	struct merlin_expired_check *last;
 	int32_t *last_counter, *this_counter;
@@ -282,8 +282,8 @@ void schedule_expiration_event(int type, merlin_node *node, void *obj)
 {
 	struct merlin_expired_check *evt;
 	time_t when, now;
-	struct host *h;
-	struct service *s;
+	struct host *h = NULL;
+	struct service *s = NULL;
 	struct timed_event *expiry_evt;
 
 	if (type == SERVICE_CHECK) {
