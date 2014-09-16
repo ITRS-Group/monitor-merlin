@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <signal.h>
 
+#include "logging.h"
 #include <naemon/naemon.h>
 #include "shared.h"
 #include "sql.h"

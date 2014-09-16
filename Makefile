@@ -209,7 +209,7 @@ bltest.o: bltest.c binlog.h
 
 blread: blread.o codec.o $(COMMON_OBJS)
 
-codec.o: hookinfo.h
+codec.o: codec.h
 
 blread.o: test/blread.c $(DEPS)
 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@

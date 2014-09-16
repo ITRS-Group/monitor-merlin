@@ -1,4 +1,4 @@
-#include "module.h"
+#include "misc.h"
 #include "sha1.h"
 #include <sys/mman.h>
 #include <naemon/naemon.h>

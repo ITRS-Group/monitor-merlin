@@ -3,13 +3,12 @@
 Concrete db_wrap implementation based off of libdbi.
 
 */
-
 #include <string.h> /* strcmp() */
 #include <assert.h>
 #include <stdlib.h> /* atexit() */
 #include <dbi/dbi.h> /* libdbi */
 #include "db_wrap_dbi.h"
-#include "mrln_logging.h" /* lerr() */
+#include "logging.h" /* lerr() */
 #undef MARKER
 #undef TODO
 #undef FIXME

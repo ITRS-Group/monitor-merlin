@@ -1,8 +1,14 @@
 #define _GNU_SOURCE 1
 #include <stdarg.h>
-#include "module.h"
-#include "dlist.h"
+#include <stdio.h>
 #include <naemon/naemon.h>
+#include "module.h"
+#include "misc.h"
+#include "dlist.h"
+#include "hooks.h"
+#include "codec.h"
+#include "config.h"
+#include "queries.h"
 
 merlin_node **host_check_node = NULL;
 merlin_node **service_check_node = NULL;

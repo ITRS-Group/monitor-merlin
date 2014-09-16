@@ -2,6 +2,7 @@
 #define INCLUDE_mrln_logging_h__
 
 #include <stdarg.h>
+#include <stdio.h>
 
 #define	LOG_EMERG	0	/* system is unusable */
 #define	LOG_ALERT	1	/* action must be taken immediately */
@@ -30,8 +31,6 @@
 # define lwarn(fmt, args...) log_msg(LOG_WARNING, fmt, ##args)
 # define lerr(fmt, args...) log_msg(LOG_ERR, fmt, ##args)
 #endif
-
-#define logerr lerr
 
 extern int log_init(void);
 extern void log_deinit(void);

@@ -1,3 +1,4 @@
+#include "codec.h"
 #include "hooks.c"
 #include "node.h"
 #include <check.h>

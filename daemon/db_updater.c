@@ -1,6 +1,7 @@
-#include <naemon/naemon.h>
+#include "codec.h"
 #include "daemon.h"
 #include "string_utils.h"
+#include <naemon/naemon.h>
 
 #define STATUS_QUERY(type) \
 	"UPDATE " type " SET " \

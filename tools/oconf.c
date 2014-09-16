@@ -1,4 +1,5 @@
 #include "module.h"
+#include "misc.h"
 
 /*
  * the code in misc.c expects this to be a global variable. Yes, that's

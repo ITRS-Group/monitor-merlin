@@ -8,7 +8,12 @@
  * In short, these functions are only called from the triggered event
  * thingie.
  */
+#include "hooks.h"
+#include "node.h"
+#include "shared.h"
+#include "node.h"
 #include "module.h"
+#include "codec.h"
 #include <naemon/naemon.h>
 
 static nebstruct_comment_data *block_comment;
@@ -961,7 +966,6 @@ static struct callback_struct {
 	CB_ENTRY(1, NEBCALLBACK_EXTERNAL_COMMAND_DATA, hook_generic),
 };
 
-extern void *neb_handle;
 int merlin_hooks_init(uint32_t mask)
 {
 	uint i;

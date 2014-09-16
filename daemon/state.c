@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "state.h"
-#include "mrln_logging.h"
+#include "logging.h"
 #include <naemon/naemon.h>
 
 #define HOST_STATES_HASH_BUCKETS 4096

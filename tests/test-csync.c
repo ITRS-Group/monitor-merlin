@@ -1,6 +1,6 @@
 #include "daemon.c"
 #include "shared.h"
-#include "mrln_logging.h"
+#include "logging.h"
 #include "test_utils.h"
 
 int main(int argc, char **argv)

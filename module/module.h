@@ -10,9 +10,8 @@
 # define USE_EVENT_BROKER 1
 #endif
 
+#include "node.h"
 #include "shared.h"
-#include "pgroup.h"
-
 #include <naemon/naemon.h>
 
 typedef struct file_list {
@@ -57,7 +56,6 @@ extern node_selection *node_selection_by_hostname(const char *name);
 
 /* global variables in the module only */
 extern time_t merlin_should_send_paths;
-extern void *neb_handle;
 
 /** global variables exported by Nagios **/
 extern int __nagios_object_structure_version;
@@ -66,21 +64,10 @@ extern int __nagios_object_structure_version;
 extern void schedule_expiration_event(int type, merlin_node *node, void *obj);
 extern int send_paths(void);
 extern int handle_ipc_event(merlin_node *node, merlin_event *pkt);
-extern void file_list_free(struct file_list *list);
-extern time_t get_last_cfg_change(void);
-extern int get_config_hash(unsigned char *hash);
-extern file_list **get_sorted_oconf_files(unsigned int *n_files);
-
-extern int merlin_qh(int sd, char *buf, unsigned int len);
 
 extern int is_stalling(void);
 extern void ctrl_stall_start(void);
 extern void ctrl_stall_stop(void);
-
-extern int merlin_hooks_init(uint32_t mask);
-extern int merlin_hooks_deinit(void);
-extern int merlin_mod_hook(int cb, void *data);
-extern void merlin_set_block_comment(nebstruct_comment_data *cmnt);
 
 int unexpire_service(struct service *s);
 int unexpire_host(struct host *h);

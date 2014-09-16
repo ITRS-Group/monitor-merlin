@@ -1,5 +1,6 @@
 #define _GNU_SOURCE 1
 #include "daemon.h"
+#include "logging.h"
 
 #include <stdio.h> /* debuggering only. */
 

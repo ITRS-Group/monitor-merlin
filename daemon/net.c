@@ -2,6 +2,7 @@
 #include <sys/select.h>
 #include <fcntl.h>
 #include "daemon.h"
+#include "db_updater.h"
 
 #define MERLIN_CONNECT_TIMEOUT 20 /* the (hardcoded) connect timeout we use */
 #define MERLIN_CONNECT_INTERVAL 5 /* connect interval */

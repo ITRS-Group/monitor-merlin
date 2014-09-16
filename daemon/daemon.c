@@ -3,6 +3,8 @@
 #include "sql.h"
 #include "daemonize.h"
 #include "daemon.h"
+#include "db_updater.h"
+#include "config.h"
 
 static const char *progname;
 static const char *pidfile, *merlin_user;
