@@ -8,7 +8,7 @@
 #include "shared.h"
 #include "sha1.h"
 #include "ocimp.h"
-#include <nagios/objects.h>
+#include <naemon/naemon.h>
 
 #ifdef __GLIBC__
 #include <malloc.h>

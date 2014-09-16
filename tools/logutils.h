@@ -9,9 +9,7 @@
 #include <stdarg.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <nagios/broker.h>
-#include <nagios/nebcallbacks.h>
-#include <nagios/lib/dkhash.h>
+#include <naemon/naemon.h>
 #include "shared.h"
 #include "colors.h"
 

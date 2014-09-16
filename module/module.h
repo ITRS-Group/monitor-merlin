@@ -13,10 +13,7 @@
 #include "shared.h"
 #include "pgroup.h"
 
-#include <nagios/nebmods.h>
-#include <nagios/nebmodules.h>
-#include <nagios/broker.h>
-#include <nagios/lib/dkhash.h>
+#include <naemon/naemon.h>
 
 typedef struct file_list {
 	char *name;

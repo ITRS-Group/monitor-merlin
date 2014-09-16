@@ -1,6 +1,6 @@
 #include "module.h"
 #include "dlist.h"
-#include <nagios/nagios.h>
+#include <naemon/naemon.h>
 
 static int dump_cbstats(merlin_node *n, int sd)
 {

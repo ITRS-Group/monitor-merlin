@@ -4,7 +4,7 @@
 #include "sql.h"
 #include "logutils.h"
 #include "lparse.h"
-#include <nagios/defaults.h>
+#include <naemon/naemon.h>
 #include <string.h>
 #include <stdio.h>
 #include <sys/types.h>

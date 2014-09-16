@@ -1,7 +1,7 @@
 #ifndef INCLUDE_pgroup_h__
 #define INCLUDE_pgroup_h__
 
-#include <nagios/lib/bitmap.h>
+#include <naemon/naemon.h>
 #include <stdint.h>
 
 struct merlin_node;

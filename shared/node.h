@@ -4,8 +4,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/time.h>
-#include <nagios/lib/iocache.h>
-#include <nagios/nebcallbacks.h>
+#include <naemon/naemon.h>
 #include "cfgfile.h"
 #include "binlog.h"
 #include "pgroup.h"

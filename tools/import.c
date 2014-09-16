@@ -2,8 +2,7 @@
 #include <sys/types.h>
 #include <signal.h>
 
-#include <nagios/broker.h>
-#include <nagios/nebcallbacks.h>
+#include <naemon/naemon.h>
 #include "shared.h"
 #include "sql.h"
 #include "state.h"

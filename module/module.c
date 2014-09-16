@@ -1,16 +1,8 @@
 #define _GNU_SOURCE 1
 #include <stdarg.h>
-#include <nagios/lib/iobroker.h>
 #include "module.h"
 #include "dlist.h"
-#include <nagios/nagios.h>
-#include <nagios/objects.h>
-#include <nagios/statusdata.h>
-#include <nagios/macros.h>
-#include <nagios/perfdata.h>
-#include <nagios/comments.h>
-#include <nagios/common.h>
-#include <nagios/downtime.h>
+#include <naemon/naemon.h>
 
 merlin_node **host_check_node = NULL;
 merlin_node **service_check_node = NULL;

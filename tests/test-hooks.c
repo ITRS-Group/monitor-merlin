@@ -2,8 +2,7 @@
 #include "node.h"
 #include <check.h>
 
-#include <nagios/objects.h>
-#include <nagios/comments.h>
+#include <naemon/naemon.h>
 
 squeue_t *nagios_squeue;
 struct object_count num_objects = {0,};

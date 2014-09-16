@@ -1,5 +1,4 @@
-#include <nagios/broker.h>
-#include <nagios/comments.h>
+#include <naemon/naemon.h>
 #include "daemon.h"
 #include "string_utils.h"
 

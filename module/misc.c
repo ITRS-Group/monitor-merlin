@@ -1,7 +1,7 @@
 #include "module.h"
 #include "sha1.h"
 #include <sys/mman.h>
-#include <nagios/lib/nspath.h>
+#include <naemon/naemon.h>
 #include <libgen.h>
 
 /* does a deep free of a file_list struct */

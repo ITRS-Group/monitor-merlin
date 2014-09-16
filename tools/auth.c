@@ -1,7 +1,7 @@
 #include "logutils.h"
 #include "cfgfile.h"
 #include "auth.h"
-#include <nagios/lib/dkhash.h>
+#include <naemon/naemon.h>
 
 static dkhash_table *auth_hosts, *auth_services;
 static int blocksize = 1 << 20;

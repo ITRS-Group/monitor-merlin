@@ -1,5 +1,5 @@
 #include "daemon.h"
-#include <nagios/broker.h>
+#include <naemon/naemon.h>
 #include <stdlib.h>
 #include <string.h>
 
