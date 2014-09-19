@@ -3,6 +3,7 @@
 
 static FILE *merlin_log_fp;
 static char *merlin_log_file;
+static int log_to_syslog = 0;
 static int log_levels = (1 << LOG_ERR) | (1 << LOG_WARNING) | (1 << LOG_INFO);
 
 int log_grok_var(char *var, char *val)
@@ -49,6 +50,11 @@ int log_grok_var(char *var, char *val)
 		return 1;
 	}
 
+	if (!strcmp(var, "use_syslog")) {
+		log_to_syslog = (unsigned)strtoul(val, NULL, 10);
+		return 1;
+	}
+
 	if (!strcmp(var, "log_file")) {
 		merlin_log_file = strdup(val);
 		if (debug)
@@ -61,6 +67,9 @@ int log_grok_var(char *var, char *val)
 
 void log_deinit(void)
 {
+	if (log_to_syslog && !is_module)
+		closelog();
+
 	if (merlin_log_fp) {
 		fflush(merlin_log_fp);
 		if (merlin_log_fp != stdout && merlin_log_fp != stderr) {
@@ -73,7 +82,13 @@ void log_deinit(void)
 
 int log_init(void)
 {
-	if (!merlin_log_file || !strcmp(merlin_log_file, "stdout")) {
+	if (log_to_syslog && !is_module)
+		openlog("merlind", 0, LOG_DAEMON);
+
+	if (!merlin_log_file)
+		return 0;
+
+	if (!strcmp(merlin_log_file, "stdout")) {
 		merlin_log_fp = stdout;
 		return 0;
 	}
@@ -103,12 +118,19 @@ void log_msg(int severity, const char *fmt, ...)
 		return;
 	}
 
-	if (!merlin_log_fp)
-		log_init();
-
 	/* if we can't log anywhere, return early */
-	if (!merlin_log_fp && !isatty(fileno(stdout)))
+	if (!merlin_log_fp && !log_to_syslog && !isatty(fileno(stdout)))
 		return;
+
+	if (log_to_syslog) {
+		if (is_module)
+			openlog("merlin_mod", 0, LOG_DAEMON);
+		va_start(ap, fmt);
+		vsyslog(severity, fmt, ap);
+		va_end(ap);
+		if (is_module)
+			closelog();
+	}
 
 	va_start(ap, fmt);
 	len = vsnprintf(msg, sizeof(msg), fmt, ap);

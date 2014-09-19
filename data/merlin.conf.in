@@ -6,6 +6,7 @@
 ipc_socket = @localstatedir@/lib/merlin/ipc.sock;
 
 log_level = warn;
+use_syslog = 1;
 
 # module-specific configuration options.
 module {

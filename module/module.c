@@ -1419,6 +1419,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 		iocache_destroy(ipc.ioc);
 		return -1;
 	}
+	log_init();
 
 	/*
 	 * Must come after reading configuration or we won't know
@@ -1480,6 +1481,7 @@ int nebmodule_deinit(int flags, int reason)
 	linfo("Unloading Merlin module");
 
 	ipc_deinit();
+	log_deinit();
 
 	merlin_hooks_deinit();
 

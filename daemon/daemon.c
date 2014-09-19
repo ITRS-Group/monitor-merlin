@@ -891,6 +891,7 @@ static void clean_exit(int sig)
 	ipc_deinit();
 	sql_close();
 	net_deinit();
+	log_deinit();
 	daemon_shutdown();
 
 	if (!sig || sig == SIGINT || sig == SIGTERM)
@@ -919,7 +920,6 @@ int merlind_main(int argc, char **argv)
 	self = &merlind;
 	ipc_init_struct();
 	gettimeofday(&merlind.start, NULL);
-
 
 	/*
 	 * Solaris doesn't support MSG_NOSIGNAL, so
@@ -993,6 +993,7 @@ int merlind_main(int argc, char **argv)
 		lwarn("the \"daemon\" section of your merlin configuration file");
 	}
 
+	log_init();
 	ipc.action = ipc_action_handler;
 	result = ipc_init();
 	if (result < 0) {
