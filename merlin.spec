@@ -172,7 +172,7 @@ fi
 
 mysql -uroot -e "CREATE DATABASE IF NOT EXISTS merlin"
 mysql -uroot -e "GRANT ALL ON merlin.* TO merlin@localhost IDENTIFIED BY 'merlin'"
-%_libexecdir/merlin/install-merlin.sh
+%_libdir/merlin/install-merlin.sh
 
 /sbin/chkconfig --add merlind || :
 
@@ -220,7 +220,7 @@ sh /etc/init.d/monitor start || :
 %_datadir/merlin/sql
 %mod_path/merlind
 %_bindir/merlind
-%_libexecdir/merlin/install-merlin.sh
+%_libdir/merlin/install-merlin.sh
 %_sysconfdir/logrotate.d/merlin
 %_sysconfdir/op5kad/conf.d/merlin.kad
 %_sysconfdir/nrpe.d/nrpe-merlin.cfg
@@ -240,11 +240,11 @@ sh /etc/init.d/monitor start || :
 
 %files apps
 %defattr(-,root,root)
-%_libexecdir/merlin/import
-%_libexecdir/merlin/showlog
-%_libexecdir/merlin/ocimp
-%_libexecdir/merlin/rename
-%_libexecdir/merlin/oconf
+%_libdir/merlin/import
+%_libdir/merlin/showlog
+%_libdir/merlin/ocimp
+%_libdir/merlin/rename
+%_libdir/merlin/oconf
 %mod_path/import
 %mod_path/showlog
 %mod_path/ocimp

@@ -2,9 +2,9 @@ AM_CFLAGS = $(CFLAGS) -I$(srcdir)/shared $(naemon_CFLAGS)
 AM_CPPFLAGS = $(CPPFLAGS) -D_GNU_SOURCE
 
 bin_PROGRAMS = merlind
-pkglibexecdir = $(libexecdir)/merlin
-pkglibexec_PROGRAMS = import ocimp showlog rename oconf
-pkglibexec_SCRIPTS = install-merlin.sh
+pkglibdir = $(libdir)/merlin
+pkglib_PROGRAMS = import ocimp showlog rename oconf
+pkglib_SCRIPTS = install-merlin.sh
 bin_SCRIPTS = apps/op5
 
 mondir = $(libdir)/merlin/mon
@@ -147,7 +147,6 @@ endif
 data/merlin.cfg data/merlin.conf : % : %.in
 	$(AM_V_GEN) sed \
 		-e 's,@localstatedir[@],$(localstatedir),g' \
-		-e 's,@libexecdir[@],$(libexecdir),g' \
 		-e 's,@libdir[@],$(libdir),g' \
 		-e 's,@merlin_cfgdir[@],$(pkgconfdir),g' \
 		-e 's,@db_name[@],$(db_name),g' \
