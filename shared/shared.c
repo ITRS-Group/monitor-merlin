@@ -553,7 +553,7 @@ int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 		return 1;
 	}
 
-	if (!prefixcmp(v->key, "log_")) {
+	if (!prefixcmp(v->key, "log_") || !strcmp(v->key, "use_syslog")) {
 		if (!log_grok_var(v->key, v->value))
 			cfg_error(config, v, "Failed to grok logging option");
 
