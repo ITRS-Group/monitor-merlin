@@ -129,16 +129,6 @@ ln -s ../../../../%_libdir/merlin/showlog %buildroot/%mod_path/showlog
 ln -s ../../../../%_libdir/merlin/merlin.so %buildroot/%mod_path/merlin.so
 ln -s op5 %buildroot/%_bindir/mon
 
-# install plugins and create their symlinks
-mkdir -p %buildroot/opt
-cp -r apps/plugins %buildroot/opt
-chmod 755 %buildroot/opt/plugins/*
-for path in %buildroot/opt/plugins/*; do
-	full_f=${path##*/}
-	f=${full_f%.*}
-	ln -s $full_f %buildroot/opt/plugins/$f
-done
-
 # install crontabs
 mkdir -p %buildroot%_sysconfdir/cron.d
 cp apps/*.cron %buildroot%_sysconfdir/cron.d/
@@ -252,7 +242,6 @@ sh /etc/init.d/monitor start || :
 %_bindir/mon
 %_bindir/op5
 %_sysconfdir/cron.d/*
-/opt/plugins/*
 /opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
 #
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/db_mysql_check.sh
