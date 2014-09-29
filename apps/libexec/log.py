@@ -168,7 +168,7 @@ def cmd_import(args):
 		ret = subprocess.call([app] + args, stdout=None, stderr=sys.stderr)
 		if ret < 0:
 			print("The import program was killed by signal %d" % ret)
-	except os.OSError, e:
+	except OSError, e:
 		print("An exception was thrown running the import program: %s", e.strerror)
 		ret = -1
 	return ret
