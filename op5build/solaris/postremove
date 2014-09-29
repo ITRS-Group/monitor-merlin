@@ -1,5 +1,0 @@
-#!/bin/sh
-
-if [ -d /usr/libexec ]; then
-	rm -rf /usr/libexec
-fi

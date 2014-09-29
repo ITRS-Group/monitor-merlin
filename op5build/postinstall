@@ -1,5 +1,0 @@
-sh install-merlin.sh --batch --root=/ --install=init --dest-dir $mod_path
-
-mkdir -p -m 775 $mod_path/logs
-
-/etc/init.d/monitor start || :
