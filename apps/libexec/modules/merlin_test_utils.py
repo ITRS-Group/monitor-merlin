@@ -32,7 +32,7 @@ state_retention_file=@@DIR@@/var/status.sav
 retention_update_interval=60
 use_retained_program_state=1
 use_retained_scheduling_info=1
-use_syslog=0
+use_syslog=1
 log_notifications=1
 log_service_retries=1
 log_host_retries=1
@@ -101,6 +101,7 @@ daemon_dumps_core=1
 	merlin_config_in = """ipc_socket = @@DIR@@/merlin/ipc.sock;
 
 log_level = debug
+use_syslog = 1
 
 module {
 	log_file = @@DIR@@/neb.log;
