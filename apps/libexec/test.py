@@ -558,8 +558,8 @@ class fake_mesh:
 		try:
 			result = os.waitpid(proc.pid, flags)
 		except OSError, e:
-			if e.errno == errno.ENOCHILD:
-				return sub.test(False == exp, msg)
+			if e.errno == errno.ECHILD:
+				return sub.test(False, exp, msg)
 			return sub.fail("EXCEPTION for '%s': %s" % (msg, e))
 
 		pid, status = result
