@@ -243,18 +243,16 @@ sh /etc/init.d/monitor start || :
 %_bindir/op5
 %_sysconfdir/cron.d/*
 /opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
-#
+
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/db_mysql_check.sh
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/fs_ext_state.sh
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/proc_smsd.sh
 
 %exclude %_libdir/merlin/mon/test.py*
-#%exclude %_libdir/merlin/mon/run-ci-test.sh
 %exclude %_libdir/merlin/merlin.*
 
 %files test
 %_libdir/merlin/mon/test.py*
-#%_libdir/merlin/mon/run-ci-test.sh
 
 %clean
 rm -rf %buildroot

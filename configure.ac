@@ -11,11 +11,7 @@ AM_PROG_CC_C_O
 AC_PROG_LIBTOOL
 AM_PATH_PYTHON
 
-PKG_CHECK_MODULES(
-	[naemon],
-	[naemon >= 0.8],
-	[],
-	[PKG_CHECK_MODULES([naemon], [op5-core >= 4.0])])
+PKG_CHECK_MODULES([naemon], [naemon >= 0.8])
 naemon_cfg=`$PKG_CONFIG --variable=mainconf naemon`
 AS_IF([test "x$naemon_cfg" == "x"],
 	  [naemon_cfg=/etc/naemon/naemon.cfg])
