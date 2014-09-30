@@ -10,7 +10,7 @@ int pulse_interval = 10;
 int use_database = 0;
 char *merlin_config_file = NULL;
 merlin_nodeinfo *self = NULL;
-char *binlog_dir = "/opt/monitor/op5/merlin/binlogs";
+char *binlog_dir = NULL;
 
 #ifndef ISSPACE
 # define ISSPACE(c) (c == ' ' || c == '\t')
@@ -520,6 +520,8 @@ int grok_confsync_compound(struct cfg_comp *comp, merlin_confsync *csync)
 static int grok_binlog_var(const char *key, const char *value)
 {
 	if (!strcmp(key, "binlog_dir")) {
+		if (binlog_dir != NULL)
+			free(binlog_dir);
 		binlog_dir = strdup(value);
 		return 1;
 	}

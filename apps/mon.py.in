@@ -6,7 +6,7 @@ from subprocess import Popen, PIPE
 exec_prefix = '@exec_prefix@'
 prefix = '@prefix@'
 libexec_dir = "@libdir@/merlin/mon".replace('${exec_prefix}', exec_prefix).replace('${prefix}', prefix)
-merlin_dir = "@libexecdir@/merlin".replace('${prefix}', prefix)
+merlin_dir = "@libdir@/merlin".replace('${prefix}', prefix)
 merlin_conf_dir = "@pkgconfdir@".replace('${prefix}', prefix)
 
 nagios_cfg = '@naemon_cfg@'

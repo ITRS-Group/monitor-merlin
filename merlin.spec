@@ -3,12 +3,12 @@
 %if 0%{?suse_version}
 %define mysqld mysql
 %define mysql_rpm mysql
+%define daemon_group www
 %else
 %define mysqld mysqld
 %define mysql_rpm mysql-server
+%define daemon_group apache
 %endif
-
-%{?dgroup:%define daemon_group %{dgroup}}
 
 Summary: The merlin daemon is a multiplexing event-transport program
 Name: merlin
@@ -110,18 +110,15 @@ Some additional test files for merlin
 %build
 echo %{version} > .version_number
 autoreconf -i -s
-%configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=/opt/monitor/etc/mconf
+%configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=/opt/monitor/etc/mconf --with-naemon-user=monitor --with-naemon-group=%daemon_user
 
 %__make
 %__make check
 
 %install
 rm -rf %buildroot
-%__make install DESTDIR=%buildroot
+%__make install DESTDIR=%buildroot naemon_user=$(id -un) naemon_group=$(id -gn)
 
-mkdir -p %buildroot/%mod_path/binlogs
-mkdir -p %buildroot%_sysconfdir/logrotate.d
-cp merlin.logrotate %buildroot%_sysconfdir/logrotate.d/merlin
 ln -s ../../../../usr/bin/merlind %buildroot/%mod_path/merlind
 ln -s ../../../../%_libdir/merlin/import %buildroot/%mod_path/import
 ln -s ../../../../%_libdir/merlin/ocimp %buildroot/%mod_path/ocimp
@@ -138,7 +135,8 @@ sed -i 's#@@LIBEXECDIR@@#%_libdir/merlin#' op5build/nacoma_hook.py
 install -m 0755 op5build/nacoma_hook.py %buildroot/opt/monitor/op5/nacoma/hooks/save/merlin_hook.py
 
 mkdir -p %buildroot%_sysconfdir/op5kad/conf.d
-cp kad.conf %buildroot%_sysconfdir/op5kad/conf.d/merlin.kad
+make data/kad.conf
+cp data/kad.conf %buildroot%_sysconfdir/op5kad/conf.d/merlin.kad
 
 mkdir -p %buildroot%_sysconfdir/nrpe.d
 cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
@@ -175,6 +173,16 @@ if [ $1 -eq 2 ]; then
   mon log import --only-notifications --incremental || :
 fi
 
+sed --follow-symlinks -i \
+    -e 's#pidfile =.*$#pidfile = /var/run/merlin/merlin.pid;#' \
+    -e 's#log_file =.*neb\.log;$#log_file = /var/log/merlin/neb.log;#' \
+    -e 's#log_file =.*daemon\.log;$#log_file = /var/log/merlin/daemon.log;#' \
+    -e 's#ipc_socket =.*$#ipc_socket = /var/lib/merlin/ipc.sock;#' \
+    %mod_path/merlin.conf
+
+# chown old cached nodesplit data, so it can be deleted
+chown -R monitor:%daemon_group %_localstatedir/cache/merlin
+
 # restart all daemons
 for daemon in merlind op5kad nrpe; do
 	test -f /etc/init.d/$daemon && /etc/init.d/$daemon restart || :
@@ -208,18 +216,18 @@ sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon
 %_sysconfdir/op5kad/conf.d/merlin.kad
 %_sysconfdir/nrpe.d/nrpe-merlin.cfg
 %_sysconfdir/init.d/merlind
-#%mod_path/binlogs
-%dir %_localstatedir/lib/merlin
-%dir %_localstatedir/log/merlin
-%dir %_localstatedir/run/merlin
+%attr(-, monitor, %daemon_group) %dir %_localstatedir/lib/merlin
+%attr(-, monitor, %daemon_group) %dir %_localstatedir/log/merlin
+%attr(-, monitor, %daemon_group) %dir %_localstatedir/run/merlin
+%attr(-, monitor, %daemon_group) %dir %_localstatedir/cache/merlin
 
 %files -n monitor-merlin
 %defattr(-,root,root)
 %_libdir/merlin/merlin.*
 %mod_path/merlin.so
 /opt/monitor/etc/mconf/merlin.cfg
-%dir %_localstatedir/lib/merlin
-%dir %_localstatedir/log/merlin
+%attr(-, monitor, %daemon_group) %dir %_localstatedir/lib/merlin
+%attr(-, monitor, %daemon_group) %dir %_localstatedir/log/merlin
 
 %files apps
 %defattr(-,root,root)
@@ -245,6 +253,7 @@ sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon
 %exclude %_libdir/merlin/merlin.*
 
 %files test
+%defattr(-,root,root)
 %_libdir/merlin/mon/test.py*
 
 %clean

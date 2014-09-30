@@ -44,8 +44,22 @@ AC_SUBST(db_user)
 AC_ARG_WITH(db-pass, AS_HELP_STRING([--with-db-pass], [Use this password for merlin's normal database user (default=merlin)]), [db_pass=$withval], [db_pass=merlin])
 AC_SUBST(db_pass)
 
+AC_ARG_WITH(naemon-user, AS_HELP_STRING([--with-naemon-user], [The (system) user naemon runs as, which merlin will run as, too (default=autodetect)]), [naemon_user=$withval], [naemon_user=`$PKG_CONFIG --variable=naemon_user naemon`])
+AC_SUBST(naemon_user)
+AC_ARG_WITH(naemon-group, AS_HELP_STRING([--with-naemon-group], [The (system) group naemon runs as, which merlin will run as, too (default=autodetect)]), [naemon_group=$withval], [naemon_group=`$PKG_CONFIG --variable=naemon_group naemon`])
+AC_SUBST(naemon_group)
+
 AC_ARG_WITH(pkgconfdir, AS_HELP_STRING([--with-pkgconfdir], [The directory where merlin installs its configuration (default=${sysconfdir}/merlin)]), [pkgconfdir=$withval], [pkgconfdir=\${sysconfdir}/merlin])
 AC_SUBST(pkgconfdir)
+
+binlogdir=${localstatedir}/lib/merlin/binlogs
+AC_SUBST(binlogdir)
+pkgrundir=${localstatedir}/run/merlin
+AC_SUBST(pkgrundir)
+logdir=${localstatedir}/log/merlin
+AC_SUBST(logdir)
+cachedir=${localstatedir}/cache/merlin
+AC_SUBST(cachedir)
 
 AC_CONFIG_FILES([Makefile data/merlind install-merlin.sh apps/mon.py], [test -f apps/mon.py && cp apps/mon.py apps/op5])
 AC_OUTPUT

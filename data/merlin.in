@@ -1,0 +1,18 @@
+@logdir@/*log {
+	create 644 monitor apache
+	weekly
+	rotate 4
+	sharedscripts
+	missingok
+	postrotate
+		service naemon status
+		mon_running=$?
+		service merlin status
+		merlin_running=$?
+		service naemon stop
+		service merlind stop
+		sleep 1
+		test $merlin_running -eq 0 && nice -n 0 service merlind start || :
+		test $mon_running -eq 0 && nice -n 0 service naemon start || :
+	endscript
+}

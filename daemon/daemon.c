@@ -979,7 +979,7 @@ int merlind_main(int argc, char **argv)
 	}
 
 	if (!pidfile)
-		pidfile = "/var/run/merlin.pid";
+		pidfile = PKGRUNDIR "/merlin.pid";
 
 	if (killing)
 		return kill_daemon(pidfile);

@@ -60,19 +60,19 @@ for dest in $source; do
 
 if [ $dest ]; then
 	echo "Fetching config from $source"
-	echo "ssh $ssh_prefix root@$master mon oconf nodesplit"
-	ssh $ssh_prefix root@$master mon oconf nodesplit
+	echo "ssh $ssh_prefix @naemon_user@@$master mon oconf nodesplit"
+	ssh $ssh_prefix @naemon_user@@$master mon oconf nodesplit
 
 	echo "Verify if a update is needed"
 	local_md5=$(cat /opt/monitor/etc/oconf/from-master.cfg | md5sum)
-	remote_md5=$(ssh $ssh_prefix root@$master cat /var/cache/merlin/config/$fetch_name.cfg | md5sum)
+	remote_md5=$(ssh $ssh_prefix @naemon_user@@$master cat @cachedir@/config/$fetch_name.cfg | md5sum)
 
 	if [ "$local_md5" == "$remote_md5" ]; then
 		echo "Same md5sum, no need for a fetch, exiting"
 		exit
 	else
-		echo "scp -p $scp_prefix root@$master:/var/cache/merlin/config/$fetch_name.cfg /opt/monitor/etc/oconf/from-master.cfg"
-		scp -p $scp_prefix root@$master:/var/cache/merlin/config/$fetch_name.cfg /opt/monitor/etc/oconf/from-master.cfg
+		echo "scp -p $scp_prefix @naemon_user@@$master:@cachedir@/config/$fetch_name.cfg /opt/monitor/etc/oconf/from-master.cfg"
+		scp -p $scp_prefix @naemon_user@@$master:@cachedir@/config/$fetch_name.cfg /opt/monitor/etc/oconf/from-master.cfg
 		echo "Restarting local instance"
 		mon restart
 	fi

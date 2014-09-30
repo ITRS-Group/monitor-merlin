@@ -11,15 +11,15 @@ use_syslog = 1;
 # module-specific configuration options.
 module {
 	# textual log of normal hum-drum events
-	log_file = @localstatedir@/log/merlin/neb.log;
+	log_file = @logdir@/neb.log;
 }
 
 # daemon-specific config options
 daemon {
-	pidfile = @localstatedir@/run/merlin/merlin.pid;
+	pidfile = @pkgrundir@/merlin.pid;
 
 	# same as the "module" section above
-	log_file = @localstatedir@/log/merlin/daemon.log;
+	log_file = @logdir@/daemon.log;
 
 	# The import_program is responsible for priming the merlin database
 	# with configuration information and an initial import of status data.

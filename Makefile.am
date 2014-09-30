@@ -1,5 +1,5 @@
 AM_CFLAGS = $(CFLAGS) -I$(srcdir)/shared $(naemon_CFLAGS) -Wall -Wextra # -Werror
-AM_CPPFLAGS = $(CPPFLAGS) -D_GNU_SOURCE
+AM_CPPFLAGS = $(CPPFLAGS) -D_GNU_SOURCE -DBINLOGDIR='"$(binlogdir)"' -DPKGRUNDIR='"$(pkgrundir)"' -DLOGDIR='"$(logdir)"' -DCACHEDIR='"$(cachedir)"'
 
 bin_PROGRAMS = merlind
 
@@ -9,15 +9,41 @@ merlinlib_SCRIPTS = install-merlin.sh
 bin_SCRIPTS = apps/op5
 
 mondir = $(libdir)/merlin/mon
-mon_PYTHON = apps/libexec/*.py
-mon_SCRIPTS = apps/libexec/*.sh apps/libexec/*.php
+mon_SCRIPTS = \
+	apps/libexec/ascii.py  apps/libexec/node.py         apps/libexec/query.lsq.sh \
+	apps/libexec/sysconf.check.sh \
+	apps/libexec/check.py  apps/libexec/node.tree.php   apps/libexec/query.ls.sh \
+	apps/libexec/sysconf.ramdisk.sh \
+	apps/libexec/db.py     apps/libexec/oconf.fetch.sh  apps/libexec/restart.sh \
+	apps/libexec/start.sh         apps/libexec/sysconf.rrdmultiple.sh \
+	apps/libexec/ecmd.py   apps/libexec/oconf.py        apps/libexec/sshkey.fetch.sh \
+	apps/libexec/status.py        apps/libexec/test.py \
+	apps/libexec/log.py    apps/libexec/qh.py           apps/libexec/sshkey.push.sh \
+	apps/libexec/stop.sh
+
 monmoduledir = $(mondir)/modules
 monmodule_PYTHON = apps/libexec/modules/*.py
 # mai gawd
 monmodulepytapdir = $(monmoduledir)/pytap
 monmodulepytap_PYTHON = apps/libexec/modules/pytap/*.py
 monsyscheckdir = $(mondir)/syscheck
-monsyscheck_SCRIPTS = apps/libexec/syscheck/*
+monsyscheck_SCRIPTS = \
+	apps/libexec/syscheck/db_mysql_check.sh  apps/libexec/syscheck/proc_httpd.sh \
+	apps/libexec/syscheck/proc_op5kad.sh \
+	apps/libexec/syscheck/fs_ext_state.sh    apps/libexec/syscheck/proc_merlind.sh \
+	apps/libexec/syscheck/proc_pgsql_postmaster.sh \
+	apps/libexec/syscheck/fs_free_inodes.sh  apps/libexec/syscheck/proc_monitor_core.sh \
+	apps/libexec/syscheck/proc_processor.sh \
+	apps/libexec/syscheck/fs_free_space.sh   apps/libexec/syscheck/proc_monitor_worker.sh \
+	apps/libexec/syscheck/proc_rrdcached.sh \
+	apps/libexec/syscheck/fs_mount_opts.sh   apps/libexec/syscheck/proc_mysqld.sh \
+	apps/libexec/syscheck/proc_smsd.sh \
+	apps/libexec/syscheck/license.sh         apps/libexec/syscheck/proc_npcd.sh \
+	apps/libexec/syscheck/proc_synergy.sh \
+	apps/libexec/syscheck/proc_collector.sh  apps/libexec/syscheck/proc_ntpd.sh \
+	apps/libexec/syscheck/proc_syslog_ng.sh \
+	apps/libexec/syscheck/proc_crond.sh      apps/libexec/syscheck/proc_op5config.sh
+
 monhelpfilesdir = $(mondir)/helpfiles
 monhelpfiles_DATA = apps/libexec/helpfiles/*
 monbashdir = $(mondir)/bash
@@ -40,6 +66,9 @@ merlind_CPPFLAGS = $(AM_CPPFLAGS)
 
 initdir = $(sysconfdir)/init.d
 init_SCRIPTS = data/merlind
+
+logrotatedir = $(sysconfdir)/logrotate.d
+logrotate_DATA = data/merlin
 
 common_sources = \
 	shared/logging.c shared/logging.h \
@@ -141,14 +170,18 @@ if AUTO_POSTINSTALL
 	bash install-merlin.sh
 else
 endif
-	$(mkinstalldirs) $(DESTDIR)$(localstatedir)/lib/merlin
-	$(mkinstalldirs) $(DESTDIR)$(localstatedir)/log/merlin
-	$(mkinstalldirs) $(DESTDIR)$(localstatedir)/run/merlin
+	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(binlogdir)
+	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(logdir)
+	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(pkgrundir)
+	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)
 
-data/merlin.cfg data/merlin.conf : % : %.in
+data/merlin data/merlin.cfg data/merlin.conf data/kad.conf apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.fetch.sh apps/libexec/oconf.py : % : %.in
 	$(AM_V_GEN) sed \
 		-e 's,@localstatedir[@],$(localstatedir),g' \
 		-e 's,@libdir[@],$(libdir),g' \
+		-e 's,@logdir[@],$(logdir),g' \
+		-e 's,@pkgrundir[@],$(pkgrundir),g' \
+		-e 's,@cachedir[@],$(cachedir),g' \
 		-e 's,@merlin_cfgdir[@],$(pkgconfdir),g' \
 		-e 's,@db_name[@],$(db_name),g' \
 		-e 's,@db_type[@],$(db_type),g' \

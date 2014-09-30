@@ -14,22 +14,36 @@
 # Description: Merlin is an event-distribution system for Nagios
 ### END INIT INFO
 
+if [ -e /etc/rc.d/init.d/functions ]; then
+  . /etc/rc.d/init.d/functions
+fi
+
 prefix=@prefix@
 exec_prefix=@exec_prefix@
+sysconfdir=@sysconfdir@
 
-ulimit -c unlimited
 prog=merlind
 BINDIR=@bindir@
 CONFIG_FILE=@pkgconfdir@/merlin.conf
+user=@naemon_user@
+pidfile=@pkgrundir@/merlin.pid
 
 start ()
 {
-	"$BINDIR/$prog" -c "$CONFIG_FILE"
+	echo -n "Starting $prog: "
+	if type start-stop-daemon >/dev/null 2>&1; then
+		start-stop-daemon --start --user $user --name $prog --pidfile $pidfile --exec "$BINDIR/$prog" -c "$CONFIG_FILE"
+	else
+		daemon --user=$user "$BINDIR/$prog" -c "$CONFIG_FILE"
+	fi
+	echo
 }
 
 stop ()
 {
+	echo -n "Stopping $prog: "
 	"$BINDIR/$prog" -c "$CONFIG_FILE" -k
+	echo
 }
 
 status ()

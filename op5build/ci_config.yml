@@ -1,3 +1,4 @@
 post:
   steps: |
-    mon test dist
+    mkdir -p -m 777 /mnt/logs/merlin_dtest
+    mon test dist --basepath=/mnt/logs/merlin_dtest

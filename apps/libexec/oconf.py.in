@@ -832,7 +832,7 @@ def cmd_split(args):
 	for param in argparams:
 		run_param(param)
 
-cache_dir = '/var/cache/merlin'
+cache_dir = '@cachedir@'
 config_dir = cache_dir + '/config'
 def cmd_nodesplit(args):
 	"""--use-helper --cache-dir --force [node1] [node2] [nodeN...]
@@ -1016,7 +1016,7 @@ def cmd_push(args):
 
 	# Copy recursively in 'archive' mode
 	base_rsync_args = ['rsync', '-aotz', '--delete']
-	base_rsync_args += ['-b', '--backup-dir=/var/cache/merlin/backups']
+	base_rsync_args += ['-b', '--backup-dir=@cachedir@/backups']
 
 	for name, node in wanted_nodes:
 		# we don't push to master nodes
