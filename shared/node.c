@@ -79,7 +79,7 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 
 	if (node->state == STATE_NEGOTIATING && prev_state <= STATE_NEGOTIATING && node != &ipc) {
 		ldebug("Sending CTRL_ACTIVE to %s", node->name);
-		node_send_ctrl_active(node, CTRL_GENERIC, &ipc.info, 100);
+		node_send_ctrl_active(node, CTRL_GENERIC, &ipc.info);
 	}
 
 	if (node->state != STATE_CONNECTED && prev_state != STATE_CONNECTED)
@@ -900,13 +900,13 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 int node_send_binlog(merlin_node *node, merlin_event *pkt)
 {
 	merlin_event *temp_pkt;
-	uint len;
+	int len;
 
 	ldebug("Emptying backlog for %s (%u entries, %s)", node->name,
 		   binlog_num_entries(node->binlog), human_bytes(binlog_available(node->binlog)));
 	while (io_write_ok(node->sock, 10) && !binlog_read(node->binlog, (void **)&temp_pkt, &len)) {
 		int result;
-		if (!temp_pkt || packet_size(temp_pkt) != (int)len ||
+		if (!temp_pkt || packet_size(temp_pkt) != len ||
 		    !len || !packet_size(temp_pkt) || packet_size(temp_pkt) > MAX_PKT_SIZE)
 		{
 			if (!temp_pkt) {
@@ -980,7 +980,7 @@ int node_send_binlog(merlin_node *node, merlin_event *pkt)
  * size "len".
  */
 int node_ctrl(merlin_node *node, int code, uint selection, void *data,
-			  uint32_t len, int msec)
+			  uint32_t len)
 {
 	merlin_event pkt;
 

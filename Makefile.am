@@ -1,4 +1,4 @@
-AM_CFLAGS = $(CFLAGS) -I$(srcdir)/shared $(naemon_CFLAGS)
+AM_CFLAGS = $(CFLAGS) -I$(srcdir)/shared $(naemon_CFLAGS) -Wall -Wextra # -Werror
 AM_CPPFLAGS = $(CPPFLAGS) -D_GNU_SOURCE
 
 bin_PROGRAMS = merlind

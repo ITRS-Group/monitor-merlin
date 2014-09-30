@@ -401,29 +401,29 @@ static int dbiw_res_get_int32_ndx(db_wrap_result *self, unsigned int ndx, int32_
 		/* MARKER("SIZE1\n"); */
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
-		    ? dbi_result_get_uchar_idx(dbires, realIdx)
-		    : dbi_result_get_char_idx(dbires, realIdx)
+		    ? (int32_t) dbi_result_get_uchar_idx(dbires, realIdx)
+		    : (int32_t) dbi_result_get_char_idx(dbires, realIdx)
 		    ;
 	} else if (DBI_INTEGER_SIZE2 & a) {
 		/* MARKER("SIZE2\n"); */
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
-		    ? dbi_result_get_ushort_idx(dbires, realIdx)
-		    : dbi_result_get_short_idx(dbires, realIdx)
+		    ? (int32_t) dbi_result_get_ushort_idx(dbires, realIdx)
+		    : (int32_t) dbi_result_get_short_idx(dbires, realIdx)
 		    ;
 	} else if (DBI_INTEGER_SIZE4 & a) {
 		/* MARKER("SIZE4\n"); */
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
-		    ? dbi_result_get_uint_idx(dbires, realIdx)
-		    : dbi_result_get_int_idx(dbires, realIdx)
+		    ? (int32_t) dbi_result_get_uint_idx(dbires, realIdx)
+		    : (int32_t) dbi_result_get_int_idx(dbires, realIdx)
 		    ;
 	} else if (DBI_INTEGER_SIZE8 & a) {
 		/* MARKER("SIZE8\n"); */
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
-		    ? dbi_result_get_ulonglong_idx(dbires, realIdx)
-		    : dbi_result_get_longlong_idx(dbires, realIdx)
+		    ? (int32_t) dbi_result_get_ulonglong_idx(dbires, realIdx)
+		    : (int32_t) dbi_result_get_longlong_idx(dbires, realIdx)
 		    ;
 	} else {
 		/**
@@ -463,29 +463,29 @@ static int dbiw_res_get_int64_ndx(db_wrap_result *self, unsigned int ndx, int64_
 		/* MARKER("SIZE1\n"); */
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
-		    ? dbi_result_get_uchar_idx(dbires, realIdx)
-		    : dbi_result_get_char_idx(dbires, realIdx)
+		    ? (int64_t) dbi_result_get_uchar_idx(dbires, realIdx)
+		    : (int64_t) dbi_result_get_char_idx(dbires, realIdx)
 		    ;
 	} else if (DBI_INTEGER_SIZE2 & a) {
 		/* MARKER("SIZE2\n"); */
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
-		    ? dbi_result_get_ushort_idx(dbires, realIdx)
-		    : dbi_result_get_short_idx(dbires, realIdx)
+		    ? (int64_t) dbi_result_get_ushort_idx(dbires, realIdx)
+		    : (int64_t) dbi_result_get_short_idx(dbires, realIdx)
 		    ;
 	} else if (DBI_INTEGER_SIZE4 & a) {
 		/*MARKER("SIZE4\n");*/
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
-		    ? dbi_result_get_uint_idx(dbires, realIdx)
-		    : dbi_result_get_int_idx(dbires, realIdx)
+		    ? (int64_t) dbi_result_get_uint_idx(dbires, realIdx)
+		    : (int64_t) dbi_result_get_int_idx(dbires, realIdx)
 		    ;
 	} else if (DBI_INTEGER_SIZE8 & a) {
 		/* MARKER("SIZE8\n"); */
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
-		    ? dbi_result_get_ulonglong_idx(dbires, realIdx)
-		    : dbi_result_get_longlong_idx(dbires, realIdx)
+		    ? (int64_t) dbi_result_get_ulonglong_idx(dbires, realIdx)
+		    : (int64_t) dbi_result_get_longlong_idx(dbires, realIdx)
 		    ;
 	} else {
 		/**

@@ -70,7 +70,7 @@
 
 #define HDR_SIZE (sizeof(merlin_header))
 #define PKT_SIZE (sizeof(merlin_event))
-#define MAX_PKT_SIZE (PKT_SIZE)
+#define MAX_PKT_SIZE ((int)PKT_SIZE)
 #define packet_size(pkt) ((int)((pkt)->hdr.len + HDR_SIZE))
 
 struct merlin_header {
@@ -256,7 +256,7 @@ extern int node_send_binlog(merlin_node *node, merlin_event *pkt);
 extern const char *node_state(merlin_node *node);
 extern const char *node_type(merlin_node *node);
 extern void node_set_state(merlin_node *node, int state, const char *reason);
-extern int node_ctrl(merlin_node *node, int code, uint selection, void *data, uint32_t len, int msec);
+extern int node_ctrl(merlin_node *node, int code, uint selection, void *data, uint32_t len);
 extern merlin_node *node_by_id(uint id);
 int handle_ctrl_active(merlin_node *node, merlin_event *pkt);
 
@@ -264,13 +264,13 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt);
  * we make these inlined rather than macros so the compiler
  * does type-checking in the arguments
  */
-static inline int node_send_ctrl_inactive(merlin_node *node, uint id, int msec)
+static inline int node_send_ctrl_inactive(merlin_node *node, uint id)
 {
-	return node_ctrl(node, CTRL_INACTIVE, id, NULL, 0, msec);
+	return node_ctrl(node, CTRL_INACTIVE, id, NULL, 0);
 }
 
-static inline int node_send_ctrl_active(merlin_node *node, uint id, merlin_nodeinfo *info, int msec)
+static inline int node_send_ctrl_active(merlin_node *node, uint id, merlin_nodeinfo *info)
 {
-	return node_ctrl(node, CTRL_ACTIVE, id, (void *)info, sizeof(*info), msec);
+	return node_ctrl(node, CTRL_ACTIVE, id, (void *)info, sizeof(*info));
 }
 #endif

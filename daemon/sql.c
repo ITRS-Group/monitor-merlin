@@ -150,7 +150,7 @@ void sql_try_commit(int query)
 	}
 }
 
-static int run_query(char *query, size_t len, int rerunIGNORED)
+static int run_query(char *query, size_t len)
 {
 	db_wrap_result *res = NULL;
 	int rc;
@@ -229,7 +229,7 @@ int sql_vquery(const char *fmt, va_list ap)
 		return -1;
 	}
 
-	if (run_query(query, len, 0) != 0) {
+	if (run_query(query, len) != 0) {
 		const char *error_msg;
 		int db_error = sql_error(&error_msg);
 		int reconnect = 0;
@@ -278,7 +278,7 @@ int sql_vquery(const char *fmt, va_list ap)
 		if (reconnect) {
 			lwarn("Attempting to reconnect to database and re-run the query");
 			if (!sql_reinit()) {
-				if (!run_query(query, len, 1))
+				if (!run_query(query, len))
 					lwarn("Successfully ran the previously failed query");
 				/* database backlog code goes here */
 			}

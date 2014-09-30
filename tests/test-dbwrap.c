@@ -82,12 +82,12 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 	assert(0 == rc);
 #endif
 
-	int i;
+	size_t i;
 	const size_t count = 10;
 	char const *strVal = "hi, world";
 	for (i = 1; i <= count; ++i) {
 		char *q = NULL;
-		rc = asprintf(&q, "insert into t (vint, vdbl, vstr) values(%d,%2.1lf,'%s')",
+		rc = asprintf(&q, "insert into t (vint, vdbl, vstr) values(%lu,%2.1lf,'%s')",
 		              i, (i * 1.1), strVal);
 		assert(rc > 0);
 		assert(q);
@@ -190,7 +190,7 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 		    ;
 		MARKER("Select COUNT(*)/step/fetch rc=%d, ival=%ld, expecting=%ld\n", rc, (long)ival, (long)gotCount);
 		assert(0 == rc);
-		assert(ival == gotCount);
+		assert((size_t)ival == gotCount);
 		res->api->finalize(res);
 		res = NULL;
 		//assert( res->impl.data == db_wrap_dbi_result(res) );

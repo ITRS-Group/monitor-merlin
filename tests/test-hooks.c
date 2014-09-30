@@ -23,41 +23,41 @@ time_t event_start = 0L;
 int service_check_timeout = 0;
 int host_check_timeout = 0;
 
-int process_check_result(check_result *cr){ return 0; }
-struct host *find_host(const char *name) { return NULL; }
-struct hostgroup *find_hostgroup(const char *name) { return NULL; }
-struct service *find_service(const char *host_name, const char *service_description) { return NULL; }
-struct comment *get_first_comment_by_host(char *host) { return NULL; }
-int delete_comment(int type, unsigned long comment_id) { return 0; }
-int delete_downtime_by_hostname_service_description_start_time_comment(char *hostname, char *service_description, time_t start_time, char *cmnt) { return 0; }
-int init_check_result(check_result *cr) { return 0; }
-int process_external_command2(int cmd, time_t entry_time, char *args) { return 0; }
-int add_new_comment(int type, int entry_type, char *host_name, char *svc_description, time_t entry_time, char *author_name, char *comment_data, int persistent, int source, int expires, time_t expire_time, unsigned long *comment_id) { return 0; }
-timed_event *schedule_new_event(int event_type, int high_priority, time_t run_time, int recurring, unsigned long event_interval, void *timing_func, int compensate_for_time_change, void *event_data, void *event_args, int event_options) {
+int process_check_result(__attribute__((unused)) check_result *cr){ return 0; }
+struct host *find_host(__attribute__((unused)) const char *name) { return NULL; }
+struct hostgroup *find_hostgroup(__attribute__((unused)) const char *name) { return NULL; }
+struct service *find_service(__attribute__((unused)) const char *host_name, __attribute__((unused)) const char *service_description) { return NULL; }
+struct comment *get_first_comment_by_host(__attribute__((unused)) char *host) { return NULL; }
+int delete_comment(__attribute__((unused)) int type, __attribute__((unused)) unsigned long comment_id) { return 0; }
+int delete_downtime_by_hostname_service_description_start_time_comment(__attribute__((unused)) char *hostname, __attribute__((unused)) char *service_description, __attribute__((unused)) time_t start_time, __attribute__((unused)) char *cmnt) { return 0; }
+int init_check_result(__attribute__((unused)) check_result *cr) { return 0; }
+int process_external_command2(__attribute__((unused)) int cmd, __attribute__((unused)) time_t entry_time, __attribute__((unused)) char *args) { return 0; }
+int add_new_comment(__attribute__((unused)) int type, __attribute__((unused)) int entry_type, __attribute__((unused)) char *host_name, __attribute__((unused)) char *svc_description, __attribute__((unused)) time_t entry_time, __attribute__((unused)) char *author_name, __attribute__((unused)) char *comment_data, __attribute__((unused)) int persistent, __attribute__((unused)) int source, __attribute__((unused)) int expires, __attribute__((unused)) time_t expire_time, __attribute__((unused)) unsigned long *comment_id) { return 0; }
+timed_event *schedule_new_event(__attribute__((unused)) int event_type, __attribute__((unused)) int high_priority, __attribute__((unused)) time_t run_time, __attribute__((unused)) int recurring, __attribute__((unused)) unsigned long event_interval, __attribute__((unused)) void *timing_func, __attribute__((unused)) int compensate_for_time_change, __attribute__((unused)) void *event_data, __attribute__((unused)) void *event_args, __attribute__((unused)) int event_options) {
 	timed_event *evt = calloc(1, sizeof(timed_event));
 	evt->event_args = event_args;
 	return evt;
 }
 nagios_macros *get_global_macros() { return NULL; }
-void fcache_timeperiod(FILE *fp, struct timeperiod *temp_timeperiod) {}
-int neb_deregister_callback(int callback_type, int (*callback_func)(int, void *)) { return 0; }
-int qh_register_handler(const char *name, const char *description, unsigned int options, qh_handler handler) { return 0; }
-int neb_register_callback(int callback_type, void *mod_handle, int priority, int (*callback_func)(int, void *)) { return 0; }
-const char *notification_reason_name(unsigned int reason_type) { return NULL; }
-void logit(int data_type, int display, const char *fmt, ...) {}
-void remove_event(squeue_t *sq, timed_event *event) {}
-time_t get_next_service_notification_time(service *temp_service, time_t time_t1) {return 0;}
-time_t get_next_host_notification_time(host *temp_host, time_t time_t1) {return 0;}
+void fcache_timeperiod(__attribute__((unused)) FILE *fp, __attribute__((unused)) struct timeperiod *temp_timeperiod) {}
+int neb_deregister_callback(__attribute__((unused)) int callback_type, __attribute__((unused)) int (*callback_func)(int, void *)) { return 0; }
+int qh_register_handler(__attribute__((unused)) const char *name, __attribute__((unused)) const char *description, __attribute__((unused)) unsigned int options, __attribute__((unused)) qh_handler handler) { return 0; }
+int neb_register_callback(__attribute__((unused)) int callback_type, __attribute__((unused)) void *mod_handle, __attribute__((unused)) int priority, __attribute__((unused)) int (*callback_func)(int, void *)) { return 0; }
+const char *notification_reason_name(__attribute__((unused)) unsigned int reason_type) { return NULL; }
+void logit(__attribute__((unused)) int data_type, __attribute__((unused)) int display, __attribute__((unused)) const char *fmt, ...) {}
+void remove_event(__attribute__((unused)) squeue_t *sq, __attribute__((unused)) timed_event *event) {}
+time_t get_next_service_notification_time(__attribute__((unused)) service *temp_service, __attribute__((unused)) time_t time_t1) {return 0;}
+time_t get_next_host_notification_time(__attribute__((unused)) host *temp_host, __attribute__((unused)) time_t time_t1) {return 0;}
 
 merlin_node ipc;
 struct merlin_notify_stats merlin_notify_stats[9][2][2];
 struct host *merlin_recv_host = NULL;
 struct service *merlin_recv_service = NULL;
 
-int ipc_is_connected(int msec) { return 0; }
+int ipc_is_connected(__attribute__((unused)) int msec) { return 0; }
 void ipc_init_struct(void) {}
 void ipc_deinit(void) {}
-int dump_nodeinfo(merlin_node *n, int sd, int instance_id) {return 0;}
+int dump_nodeinfo(__attribute__((unused)) merlin_node *n, __attribute__((unused)) int sd, __attribute__((unused)) int instance_id) {return 0;}
 
 
 static merlin_event last_decoded_event;
@@ -66,7 +66,7 @@ int ipc_send_event(merlin_event *pkt) {
 	memcpy(&last_decoded_event, pkt, sizeof(merlin_event));
 	return 0;
 }
-int ipc_grok_var(char *var, char *val) {return 1;}
+int ipc_grok_var(__attribute__((unused)) char *var, __attribute__((unused)) char *val) {return 1;}
 
 #include "module.c"
 #include "pgroup.c"
@@ -217,7 +217,7 @@ END_TEST
 START_TEST(set_clear_svc_expire)
 {
 	int res;
-	merlin_event pkt = {{{0,},},};
+	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0}},{0}};
 	nebstruct_service_check_data ds = {0,};
 	ds.type = NEBTYPE_SERVICECHECK_ASYNC_PRECHECK;
 	ds.object_ptr = host_ary[0]->services->service_ptr;
@@ -249,7 +249,7 @@ END_TEST
 START_TEST(set_clear_host_expire)
 {
 	int res;
-	merlin_event pkt = {{{0,},},};
+	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0}},{0}};
 	nebstruct_host_check_data ds = {0,};
 	ds.type = NEBTYPE_HOSTCHECK_ASYNC_PRECHECK;
 	ds.object_ptr = host_ary[0];
@@ -281,7 +281,7 @@ END_TEST
 START_TEST(multiple_svc_expire)
 {
 	int res;
-	merlin_event pkt = {{{0,},},};
+	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0}},{0}};
 	nebstruct_service_check_data ds0 = {0,}, ds1 = {0,};
 	ds0.type = NEBTYPE_SERVICECHECK_ASYNC_PRECHECK;
 	ds0.object_ptr = host_ary[0]->services->service_ptr;
@@ -322,7 +322,7 @@ END_TEST
 START_TEST(multiple_host_expire)
 {
 	int res;
-	merlin_event pkt = {{{0,},},};
+	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0}},{0}};
 	nebstruct_host_check_data ds0 = {0,}, ds1 = {0,};
 	ds0.type = NEBTYPE_HOSTCHECK_ASYNC_PRECHECK;
 	ds0.object_ptr = host_ary[0];
@@ -382,7 +382,7 @@ check_hooks_suite(void)
 	return s;
 }
 
-int main(int argc, char *argv[]) {
+int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[]) {
 		int number_failed;
 	Suite *s = check_hooks_suite();
 	SRunner *sr = srunner_create(s);

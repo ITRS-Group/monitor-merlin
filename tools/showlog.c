@@ -100,12 +100,12 @@ static void print_time_div_iso8601(struct tm *t)
 		   t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour);
 }
 
-static void print_time_duration(struct tm *t)
+static void print_time_duration(__attribute__((unused)) struct tm *t)
 {
 	printf("[%6lu] ", ltime - last_ltime);
 }
 
-static void print_time_raw(struct tm *t)
+static void print_time_raw(__attribute__((unused)) struct tm *t)
 {
 	printf("[%lu] ", ltime);
 }
@@ -145,7 +145,7 @@ static const char *human_duration(time_t now, time_t then)
 	return buf;
 }
 
-static void print_runtime(struct tm *t)
+static void print_runtime(__attribute__((unused)) struct tm *t)
 {
 	printf("[%s] ", human_duration(ltime, last_start_time));
 }
@@ -192,19 +192,19 @@ static inline void pre_print_mangle_line(struct tm *t, char *line, uint len)
 }
 
 
-static void print_line_count(int type, struct tm *t, char *line, uint len)
+static void print_line_count(__attribute__((unused)) int type, __attribute__((unused)) struct tm *t, __attribute__((unused)) char *line, __attribute__((unused)) uint len)
 {
 	return;
 }
 
-static void print_line_ascii(int type, struct tm *t, char *line, uint len)
+static void print_line_ascii(__attribute__((unused)) int type, struct tm *t, char *line, __attribute__((unused)) uint len)
 {
 	print_time(t);
 	puts(line);
 }
 
 
-static void print_line_ansi(int type, struct tm *t, char *line, uint len)
+static void print_line_ansi(int type, struct tm *t, char *line, __attribute__((unused)) uint len)
 {
 	const char *color = NULL;
 
@@ -296,7 +296,7 @@ static void print_time_break(struct tm *t)
 	i = 0; \
 }while(0);
 
-static void print_line_html(int type, struct tm *t, char *line, uint len)
+static void print_line_html(int type, struct tm *t, char *line, __attribute__((unused)) uint len)
 {
 	const char *image = NULL;
 	static time_t last_time_break = 0;
@@ -634,7 +634,7 @@ static int parse_line(char *orig_line, uint len)
  * data to lookup but still want hash_find{,2} to return non-NULL
  * when it finds a match
  */
-static int hash_one_line(char *line, uint len)
+static int hash_one_line(char *line, __attribute__((unused)) uint len)
 {
 	return add_interesting_object(line);
 }

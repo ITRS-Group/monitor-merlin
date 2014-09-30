@@ -507,7 +507,7 @@ static int handle_service_result(merlin_node *node, merlin_header *hdr, void *bu
 	return 0;
 }
 
-static int handle_notification_data(merlin_node *node, void *buf)
+static int handle_notification_data(__attribute__((unused)) merlin_node *node, void *buf)
 {
 	nebstruct_notification_data *ds = (nebstruct_notification_data *)buf;
 
@@ -798,7 +798,7 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	return ret;
 }
 
-static int ipc_reaper(int sd, int events, void *arg)
+static int ipc_reaper(__attribute__((unused)) int sd, __attribute__((unused)) int events, void *arg)
 {
 	merlin_node *source = (merlin_node *)arg;
 	int recv_result;
@@ -1097,9 +1097,9 @@ extern char *config_file;
  * about us. It shouldn't happen, but there are stranger things
  * than random bugs in computer programs.
  */
-static int send_pulse(void *discard)
+static int send_pulse(__attribute__((unused)) void *discard)
 {
-	node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info, 100);
+	node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info);
 	schedule_new_event(EVENT_USER_FUNCTION, TRUE,
 	                   time(NULL) + pulse_interval, FALSE,
 	                   0, NULL, FALSE, send_pulse, NULL, 0);
@@ -1362,7 +1362,7 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	 * need the ipc_is_connected(0) call that ipc_ctrl
 	 * adds before trying to send.
 	 */
-	node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info, 100);
+	node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info);
 
 	/* now we wait for inbound connections */
 	for (gettimeofday(&start, NULL);;) {
@@ -1389,7 +1389,7 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
  * Initialization routine for the eventbroker module. This
  * function gets called by Nagios when it's done loading us
  */
-int nebmodule_init(int flags, char *arg, nebmodule *handle)
+int nebmodule_init(__attribute__((unused)) int flags, char *arg, nebmodule *handle)
 {
 	neb_handle = (void *)handle;
 
@@ -1474,7 +1474,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
  * and make sure we reset it to a state where we can initialize it
  * later.
  */
-int nebmodule_deinit(int flags, int reason)
+int nebmodule_deinit(__attribute__((unused)) int flags, __attribute__((unused)) int reason)
 {
 	unsigned int i;
 

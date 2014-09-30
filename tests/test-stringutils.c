@@ -48,7 +48,7 @@ void test_unescape_newlines() {
 	T_ASSERT(out[3] == '\\', "half an escaped newline isn't parsed");
 }
 
-int main(int argc, char *argv[]) {
+int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[]) {
 	t_set_colors(0);
 	t_verbose = 1;
 

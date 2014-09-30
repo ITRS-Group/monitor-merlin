@@ -136,7 +136,7 @@ parse_line(char *str, unsigned int len)
 }
 
 static int
-rename_log(renames *renames, char *log_dir, char *log_file)
+rename_log(__attribute__((unused)) renames *renames, char *log_dir, char *log_file)
 {
 	int i;
 	if (log_dir)

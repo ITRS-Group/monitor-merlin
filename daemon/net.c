@@ -14,8 +14,7 @@ static unsigned short net_source_port(merlin_node *node)
 	return ntohs(node->sain.sin_port) + default_port;
 }
 
-/* do a node lookup based on name *or* ip-address + port */
-merlin_node *find_node(struct sockaddr_in *sain, const char *name)
+static merlin_node *find_node(struct sockaddr_in *sain)
 {
 	uint i;
 	merlin_node *first = NULL;
@@ -339,7 +338,7 @@ int net_accept_one(void)
 		return -1;
 	}
 
-	node = find_node(&sain, NULL);
+	node = find_node(&sain);
 	linfo("%s connected from %s:%d. Current state is %s",
 		  node ? node->name : "An unregistered node",
 		  inet_ntoa(sain.sin_addr), ntohs(sain.sin_port),

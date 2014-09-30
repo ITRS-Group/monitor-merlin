@@ -36,7 +36,7 @@ void sighandler(int signum)
 
 static uint lines, empty;
 static long long bytes;
-static int check_line(char *str, uint len)
+static int check_line(__attribute__((unused)) char *str, uint len)
 {
 	if (!len)
 		empty++;

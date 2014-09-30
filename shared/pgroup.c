@@ -14,7 +14,7 @@ static unsigned int num_peer_groups;
 bitmap *poller_handled_hosts = NULL;
 bitmap *poller_handled_services = NULL;
 
-static void pgroup_reassign_checks(merlin_peer_group *pgrp)
+static void pgroup_reassign_checks()
 {
 	unsigned int i, x;
 
@@ -152,7 +152,7 @@ void pgroup_assign_peer_ids(merlin_peer_group *pg)
 	ldebug("pg:   Active nodes: %u", pg->active_nodes);
 
 	ldebug("Reassigning checks");
-	pgroup_reassign_checks(pg);
+	pgroup_reassign_checks();
 	if (pg == ipc.pgroup) {
 		ipc.info.peer_id = ipc.peer_id;
 		linfo("We're now peer #%d out of %d active ones",

@@ -41,7 +41,7 @@ static int dump_notify_stats(int sd)
 	return 0;
 }
 
-static int help(int sd, char *buf, unsigned int len)
+static int help(int sd)
 {
 	nsock_printf_nul(sd,
 		"I answer questions regarding the merlin *module*, not the daemon\n"
@@ -77,7 +77,7 @@ int merlin_qh(int sd, char *buf, unsigned int len)
 	unsigned int i;
 
 	if (len == 0)
-		return help(sd, NULL, 0);
+		return help(sd);
 
 	/* last byte is always nul */
 	while (buf[len - 1] == 0 || buf[len - 1] == '\n')
@@ -92,9 +92,9 @@ int merlin_qh(int sd, char *buf, unsigned int len)
 		return 0;
 	}
 	if (len == 4 && !memcmp(buf, "help", len))
-		return help(sd, NULL, 0);
+		return help(sd);
 	if (!prefixcmp(buf, "help"))
-		return help(sd, buf + 5, len - 5);
+		return help(sd);
 	if (len == 7 && !memcmp(buf, "cbstats", len)) {
 		dump_cbstats(&ipc, sd);
 		for(i = 0; i < num_nodes; i++) {

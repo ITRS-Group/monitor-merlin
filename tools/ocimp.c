@@ -405,9 +405,10 @@ static int parse_downtime(struct cfg_comp *comp)
 	static int internal_id = 0;
 	int i = 0;
 	char *author = NULL, *comment_data = NULL;
-	char *host_name, *service_description = NULL;
-	char *downtime_id, *entry_time, *start_time, *end_time;
-	char *triggered_by, fixed, *duration;
+	char *host_name = NULL, *service_description = NULL;
+	char *downtime_id = NULL, *entry_time = NULL, *start_time = NULL, *end_time = NULL;
+	char *triggered_by = NULL, *duration = NULL;
+	char fixed = 0;
 
 	if (!comp || !comp->vars)
 		return -1;
@@ -1749,7 +1750,7 @@ static void fix_contactgroups(const char *what, state_object *o)
 	free(cgroups);
 }
 
-static int fix_host_junctions(void *discard, void *obj)
+static int fix_host_junctions(__attribute__((unused)) void *discard, void *obj)
 {
 	unsigned int i, host_id;
 	state_object *o = (state_object *)obj;
@@ -1787,7 +1788,7 @@ static int fix_host_junctions(void *discard, void *obj)
 	return 0;
 }
 
-static int fix_service_junctions(void *discard, void *obj)
+static int fix_service_junctions(__attribute__((unused)) void *discard, void *obj)
 {
 	state_object *o = (state_object *)obj;
 
@@ -1806,7 +1807,7 @@ static int fix_service_junctions(void *discard, void *obj)
 	return 0;
 }
 
-static int fix_cg_members(void *discard, void *base_obj)
+static int fix_cg_members(__attribute__((unused)) void *discard, void *base_obj)
 {
 	unsigned int i;
 	ocimp_group_object *obj = (ocimp_group_object *)base_obj;
@@ -1854,7 +1855,7 @@ static int fix_cg_members(void *discard, void *base_obj)
 	return 0;
 }
 
-static int fix_hg_members(void *discard, void *base_obj)
+static int fix_hg_members(__attribute__((unused)) void *discard, void *base_obj)
 {
 	unsigned int i;
 	ocimp_group_object *obj = (ocimp_group_object *)base_obj;
@@ -1880,7 +1881,7 @@ static int fix_hg_members(void *discard, void *base_obj)
 	return 0;
 }
 
-static int fix_sg_members(void *discard, void *base_obj)
+static int fix_sg_members(__attribute__((unused)) void *discard, void *base_obj)
 {
 	unsigned int i = 0;
 	ocimp_group_object *obj = (ocimp_group_object *)base_obj;
@@ -1911,7 +1912,7 @@ static int fix_sg_members(void *discard, void *base_obj)
 }
 
 
-static int fix_timeperiod_excludes(void *discard, void *base_obj)
+static int fix_timeperiod_excludes(__attribute__((unused)) void *discard, void *base_obj)
 {
 	unsigned int i = 0;
 	ocimp_group_object *obj = (ocimp_group_object *)base_obj;

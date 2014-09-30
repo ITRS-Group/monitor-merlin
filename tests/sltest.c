@@ -611,7 +611,7 @@ static int cmp_service(const void *a, const void *b)
 	return strcmp(key->description, candidate->description);
 }
 
-int main(int argc, char **argv)
+int main(__attribute__((unused)) int argc, __attribute__((unused)) char **argv)
 {
 	uint i;
 	slist *sl;

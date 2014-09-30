@@ -107,7 +107,7 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 		/* also tell our peers and masters */
 		for (i = 0; i < num_masters + num_peers; i++) {
 			merlin_node *n = node_table[i];
-			node_send_ctrl_inactive(n, CTRL_GENERIC, 100);
+			node_send_ctrl_inactive(n, CTRL_GENERIC);
 		}
 	}
 
@@ -689,7 +689,7 @@ static int handle_ipc_event(merlin_event *pkt)
 			 * other nodes are disconnected before continuing
 			 */
 			if (result == -512 || result == -256) {
-				int i;
+				unsigned int i;
 				result = 0;
 				for (i = 0; i < num_nodes; i++) {
 					node_disconnect(node_table[i], "Local config changed, node must reconnect with new config.");

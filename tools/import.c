@@ -1357,7 +1357,7 @@ static int parse_one_line(char *str, uint len)
 	return 0;
 }
 
-static int hash_one_line(char *line, uint len)
+static int hash_one_line(char *line, __attribute__((unused)) uint len)
 {
 	return add_interesting_object(line);
 }

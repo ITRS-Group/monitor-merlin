@@ -280,7 +280,9 @@ const char *callback_name(int id)
 			return "CTRL_PACKET";
 		if (num_name)
 			free(num_name);
-		asprintf(&num_name, "(invalid/unknown %d)", id);
+		// so, this leaks memory. Let's hope it happens very rarely, shall we?
+		if (!asprintf(&num_name, "(invalid/unknown %d)", id))
+			return "(invalid/unknown)";
 		return num_name;
 	}
 

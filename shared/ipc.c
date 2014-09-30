@@ -303,7 +303,7 @@ int ipc_is_connected(int msec)
 	}
 
 	if (io_read_ok(listen_sock, msec) > 0) {
-		int i;
+		unsigned int i;
 		ipc.sock = ipc_accept();
 		if (ipc.sock < 0) {
 			lerr("ipc: accept() failed: %s", strerror(errno));
@@ -331,7 +331,7 @@ int ipc_listen_sock_desc(void)
 int ipc_ctrl(int code, uint sel, void *data, uint32_t len)
 {
 	ipc_is_connected(0);
-	return node_ctrl(&ipc, code, sel, data, len, 100);
+	return node_ctrl(&ipc, code, sel, data, len);
 }
 
 int ipc_send_event(merlin_event *pkt)

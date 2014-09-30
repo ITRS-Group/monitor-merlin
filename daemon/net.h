@@ -7,7 +7,6 @@
 extern unsigned short default_port;
 extern unsigned int default_addr;
 
-extern merlin_node *find_node(struct sockaddr_in *sain, const char *name);
 extern int net_deinit(void);
 extern int net_init(void);
 extern int net_send_ipc_data(merlin_event *pkt);
