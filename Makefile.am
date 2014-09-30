@@ -2,9 +2,10 @@ AM_CFLAGS = $(CFLAGS) -I$(srcdir)/shared $(naemon_CFLAGS) -Wall -Wextra # -Werro
 AM_CPPFLAGS = $(CPPFLAGS) -D_GNU_SOURCE
 
 bin_PROGRAMS = merlind
-pkglibdir = $(libdir)/merlin
-pkglib_PROGRAMS = import ocimp showlog rename oconf
-pkglib_SCRIPTS = install-merlin.sh
+
+merlinlibdir = $(pkglibdir)
+merlinlib_PROGRAMS = import ocimp showlog rename oconf
+merlinlib_SCRIPTS = install-merlin.sh
 bin_SCRIPTS = apps/op5
 
 mondir = $(libdir)/merlin/mon
