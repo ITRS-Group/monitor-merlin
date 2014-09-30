@@ -30,6 +30,9 @@ if not modpytap_path in sys.path:
 	sys.path.insert(0, modpytap_path)
 import pytap
 
+SIGNALS_TO_NAMES_DICT = dict((getattr(signal, n), n) \
+    for n in dir(signal) if n.startswith('SIG') and '_' not in n )
+
 __doc__ = """  %s%s!!! WARNING !!! WARNING !!! WARNING !!! WARNING !!! WARNING !!!%s
 
 %sAll commands in this category can potentially overwrite configuration,
@@ -575,7 +578,7 @@ class fake_mesh:
 				clr = color.green
 			else:
 				clr = color.bright_red
-			msg = "%s: %sGot sig %d%s" % (msg, clr, os.WTERMSIG(status), color.reset)
+			msg = "%s: %sGot sig %d%s" % (msg, clr, SIGNALS_TO_NAMES_DICT.get(os.WTERMSIG(status), os.WTERMSIG(status)), color.reset)
 			if os.WCOREDUMP(status):
 				msg = "%s (%score dumped%s)" % (msg, color.bright_red, color.reset)
 				return sub.fail(msg)
