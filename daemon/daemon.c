@@ -660,7 +660,7 @@ void csync_node_active(merlin_node *node)
 	}
 
 	node->csync_num_attempts++;
-	linfo("CSYNC: triggered to %s node %s; val: %d; command: [%s]",
+	linfo("CSYNC: triggered against %s node %s; val: %d; command: [%s]",
 	      node_type(node), node->name, val, child->cmd);
 	node->csync_last_attempt = now;
 	run_program("csync", child->cmd, &child->pid);
