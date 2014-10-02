@@ -71,8 +71,8 @@ if [ $dest ]; then
 		echo "Same md5sum, no need for a fetch, exiting"
 		exit
 	else
-		echo "scp $scp_prefix root@$master:/var/cache/merlin/config/$fetch_name.cfg /opt/monitor/etc/oconf/from-master.cfg"
-		scp $scp_prefix root@$master:/var/cache/merlin/config/$fetch_name.cfg /opt/monitor/etc/oconf/from-master.cfg
+		echo "scp -p $scp_prefix root@$master:/var/cache/merlin/config/$fetch_name.cfg /opt/monitor/etc/oconf/from-master.cfg"
+		scp -p $scp_prefix root@$master:/var/cache/merlin/config/$fetch_name.cfg /opt/monitor/etc/oconf/from-master.cfg
 		echo "Restarting local instance"
 		mon restart
 	fi
