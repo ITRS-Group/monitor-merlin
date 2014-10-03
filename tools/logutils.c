@@ -480,8 +480,10 @@ void first_log_time(struct naglog_file *nf)
 	int fd;
 	uint i = 0;
 	char buf[1024];
+	size_t read_len = 0;
 	struct stat st;
 
+	memset(buf, 0, sizeof(buf));
 	if (!(fd = open(nf->path, O_RDONLY)))
 		lp_crash("Failed to open %s: %s", nf->path, strerror(errno));
 
@@ -496,12 +498,12 @@ void first_log_time(struct naglog_file *nf)
 
 	nf->size = st.st_size;
 
-	if (read(fd, buf, sizeof(buf)) < min((int)sizeof(buf), st.st_size))
+	if ((read_len = read(fd, buf, sizeof(buf))) < min((int)sizeof(buf), st.st_size))
 		lp_crash("Incomplete read of %s", nf->path);
 
 	buf[sizeof(buf) - 1] = 0;
 	/* skip empty lines at top of file */
-	while (i < sizeof(buf) - 12 && (buf[i] == '\n' || buf[i] == '\r'))
+	while (i < read_len - 12 && (buf[i] == '\n' || buf[i] == '\r'))
 		i++;
 
 	if (strtotimet(buf + i + 1, &nf->first))
