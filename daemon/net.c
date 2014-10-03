@@ -710,6 +710,16 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 		if (node->sock < 0)
 			continue;
 
+		if (node->sock > sel_val)
+			sel_val = node->sock;
+
+		/* the node is not fully connected - poll for writability to detect when
+		   it's fully (TCP-layer) connected */
+		if (node->state == STATE_PENDING) {
+			FD_SET(node->sock, wr);
+			continue;
+		}
+
 		/* the node is connected, so we can poll it for readability */
 		FD_SET(node->sock, rd);
 
@@ -719,9 +729,6 @@ int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
 		 */
 		if (net_is_connected(node) == STATE_CONNECTED && binlog_has_entries(node->binlog))
 			FD_SET(node->sock, wr);
-
-		if (node->sock > sel_val)
-			sel_val = node->sock;
 	}
 
 	return sel_val;
