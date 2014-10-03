@@ -157,6 +157,7 @@ class merlin_node:
 			prefix_args = ["ssh", self.address]
 		else:
 			prefix_args = ["ssh", self.ssh_user + '@' + self.address]
+		prefix_args += ['-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes']
 		if self.ssh_key:
 			prefix_args += ['-i', self.ssh_key]
 		all_args = prefix_args + [command]
