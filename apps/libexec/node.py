@@ -392,6 +392,18 @@ def cmd_ctrl(args):
 		print("Try 'mon node help' for some assistance")
 		sys.exit(1)
 
+	if not os.getuid():
+		from pwd import getpwnam
+		try:
+			monuser = getpwnam('monitor')
+			os.setgid(monuser.pw_gid)
+			os.setuid(monuser.pw_uid)
+		except KeyError:
+			# root exchanged keys in monitor <= 7.0 so
+			# there's a good chance this used to work and
+			# should continue to do so
+			pass
+
 	run_on_self = False
 	by_name = False
 	nodes = {}
