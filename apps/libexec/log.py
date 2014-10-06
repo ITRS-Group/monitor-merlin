@@ -169,7 +169,7 @@ def cmd_import(args):
 		if ret < 0:
 			print("The import program was killed by signal %d" % ret)
 	except OSError, e:
-		print("An exception was thrown running the import program: %s", e.strerror)
+		print("An exception was thrown running the import program: %s" % e.strerror)
 		ret = -1
 	return ret
 
