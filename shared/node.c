@@ -643,12 +643,12 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 	}
 
 	if (!node->binlog) {
-		char *path;
+		char *path = NULL;
 
-		/* +20 to safely accommodate for "/.module.binlog\0" */
-		path = calloc(1, strlen(binlog_dir) + strlen(node->name) + 20);
-		sprintf(path, "%s/%s.%s.binlog",
-		        binlog_dir, is_module ? "module" : "daemon", node->name);
+		asprintf(&path, "%s/%s.%s.binlog",
+				 binlog_dir,
+				 is_module ? "module" : "daemon",
+				 node->name);
 		linfo("Creating binary backlog for %s. On-disk location: %s",
 			  node->name, path);
 
