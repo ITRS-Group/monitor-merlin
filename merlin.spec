@@ -160,8 +160,10 @@ if [ $? -gt 0 ]; then
   fi
 fi
 
-mysql -uroot -e "CREATE DATABASE IF NOT EXISTS merlin"
-mysql -uroot -e "GRANT ALL ON merlin.* TO merlin@localhost IDENTIFIED BY 'merlin'"
+if ! mysql -umerlin -pmerlin merlin -e 'show tables' > /dev/null 2>&1; then
+    mysql -uroot -e "CREATE DATABASE IF NOT EXISTS merlin"
+    mysql -uroot -e "GRANT ALL ON merlin.* TO merlin@localhost IDENTIFIED BY 'merlin'"
+fi
 %_libdir/merlin/install-merlin.sh
 
 /sbin/chkconfig --add merlind || :
@@ -178,30 +180,21 @@ for daemon in merlind op5kad nrpe; do
 	test -f /etc/init.d/$daemon && /etc/init.d/$daemon restart || :
 done
 
-
-%pre -n monitor-merlin
-# If we're upgrading the module while Nagios makes a call
-# into it, we'll end up with a core-dump due to some weirdness
-# in dlopen(). If we're installing anew, we need to update the
-# config and then restart. Either way, it's safe to stop it
-# unconditionally here
-sh /etc/init.d/monitor stop || :
-
 %preun -n monitor-merlin
 if [ $1 -eq 0 ]; then
-	sh /etc/init.d/merlind stop || :
+	/etc/init.d/merlind stop || :
 fi
 
 %postun -n monitor-merlin
 if [ $1 -eq 0 ]; then
 	# remove the merlin module
-	sh /etc/init.d/monitor restart || :
+	/etc/init.d/monitor restart || :
 fi
 
 %post -n monitor-merlin
 sed --follow-symlinks -i 's#import_program = php /opt/monitor/op5/merlin/import.php#import_program = /opt/monitor/op5/merlin/ocimp#g' %mod_path/merlin.conf
 sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon.cfg
-sh /etc/init.d/monitor start || :
+/etc/init.d/monitor restart || :
 
 
 %files

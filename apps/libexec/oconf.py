@@ -730,7 +730,7 @@ def usage(msg = False):
 	sys.exit(1)
 
 def oconf_helper(args):
-	app = merlindir + '/oconf'
+	app = merlin_dir + '/oconf'
 	have_nagios_cfg = False
 	for arg in args:
 		if arg.startswith('--nagios-cfg'):

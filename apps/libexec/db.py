@@ -21,7 +21,7 @@ def cmd_fixindexes(args):
 	conn = merlin_db.connect(mconf)
 	cursor = conn.cursor()
 	log = []
-	for table in glob.glob(merlin_dir + '/sql/mysql/*-indexes.sql'):
+	for table in glob.glob('/opt/monitor/op5/merlin/sql/mysql/*-indexes.sql'):
 		queries = file(table)
 		try:
 			cursor.execute(queries.read())
