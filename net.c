@@ -349,8 +349,7 @@ int net_accept_one(void)
 	}
 
 	switch (node->state) {
-	case STATE_NEGOTIATING: /* ending up here is probably a bug */
-		/* fallthrough */
+	case STATE_NEGOTIATING:
 	case STATE_CONNECTED: case STATE_PENDING:
 		/* if node->sock >= 0, we must negotiate which one to use */
 		node->sock = net_negotiate_socket(node, sock);

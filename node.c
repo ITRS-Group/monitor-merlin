@@ -77,7 +77,7 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 	prev_state = node->state;
 	node->state = state;
 
-	if (node->state == STATE_NEGOTIATING && prev_state <= STATE_NEGOTIATING && node != &ipc) {
+	if (node->state == STATE_NEGOTIATING && node != &ipc) {
 		ldebug("Sending CTRL_ACTIVE to %s", node->name);
 		node_send_ctrl_active(node, CTRL_GENERIC, &ipc.info, 100);
 	}
