@@ -586,7 +586,6 @@ static char *msg_list[] = {
 	"This is a job for BOB VIOLENCE and SCUM, the INCREDIBLY STUPID MUTANT DOG.",
 };
 
-#define BLPATH "/tmp/binlog-test"
 struct test_binlog {
 	char *path;
 	char *name;
