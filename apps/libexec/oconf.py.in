@@ -17,7 +17,6 @@ import itertools
 import subprocess
 
 from compound_config import *
-from object_importer import ObjectImporter
 from merlin_apps_utils import *
 from nagios_command import *
 
