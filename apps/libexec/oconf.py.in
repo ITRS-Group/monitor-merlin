@@ -1007,7 +1007,7 @@ def cmd_push(args):
 		if node:
 			wanted_nodes.append((node.name, node))
 			continue
-		prettyprint_docstring('dist', cmd_dist.__doc__,
+		prettyprint_docstring('push', cmd_push.__doc__,
 			'Unknown argument: %s' % arg)
 		sys.exit(1)
 
