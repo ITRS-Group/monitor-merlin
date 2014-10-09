@@ -750,7 +750,7 @@ def cmd_reload(args):
 	"""
 	global nagios_cfg
 	safe = True
-	bin = 'monitor'
+	bin = 'naemon'
 	for arg in args:
 		if arg == '--unsafe':
 			safe = False
