@@ -377,6 +377,7 @@ def cmd_ctrl(args):
 	all configured nodes, as does making the first argument '--'.
 	--type=<types> means to run the command on all configured nodes of
 	the given type(s).
+	--self makes the command also run on the local host.
 	The first not understood argument marks the start of the command,
 	but always using double dashes is recommended. Use single-quotes
 	to execute commands with shell variables, output redirection or
