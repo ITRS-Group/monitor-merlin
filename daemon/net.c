@@ -91,8 +91,11 @@ int net_is_connected(merlin_node *node)
 	}
 
 	if (optval) {
-		node_disconnect(node, "connect() to %s node %s failed: %s",
-						node_type(node), node->name, strerror(optval));
+		node_disconnect(node, "connect() to %s node %s (%s:%d) failed: %s",
+		                node_type(node), node->name,
+		                inet_ntoa(node->sain.sin_addr),
+		                ntohs(node->sain.sin_port),
+		                strerror(optval));
 		return 0;
 	}
 
