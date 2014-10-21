@@ -85,12 +85,19 @@ def run_splitter(params):
 	splitters = {}
 	started = 0
 	reaped = 0
+	errors = 0
 	for p in params:
 		outfile = p['file']
 		groups = p['hostgroups']
 		groups = ','.join(groups)
 		cmd = [nsplit_path] + nsplit_helper_args + ['-q', '-o', outfile, '-g', groups]
-		subp = subprocess.Popen(cmd, stdout=sys.stdout.fileno(), stderr=sys.stderr.fileno())
+		try:
+			subp = subprocess.Popen(cmd, stdout=sys.stdout.fileno(), stderr=sys.stderr.fileno())
+		except OSError, err:
+			errors += 1
+			print("Failed to launch '%s': %s" % (nsplit_path, err.strerror))
+			break
+
 		splitters[subp.pid] = outfile
 		started += 1
 
@@ -102,6 +109,10 @@ def run_splitter(params):
 			os.utime(splitters[pid], (last_changed, last_changed))
 			del(splitters[pid])
 		reaped += 1
+
+	if errors:
+		sys.exit(1)
+
 
 def usage(msg = False):
 	if msg:
@@ -207,7 +218,7 @@ def cmd_split(args):
 	if not len(argparams):
 		return
 
-	run_splitter(argparams)
+	sys.exit(run_splitter(argparams))
 
 
 def cmd_nodesplit(args):
@@ -245,10 +256,6 @@ def cmd_nodesplit(args):
 			continue
 		# some random argument; so pass it to the helper
 		nsplit_helper_args.append(arg)
-
-	if not os.access(nsplit_path, os.X_OK):
-		print("Config splitter %s unavailable. Aborting" % nsplit_path)
-		sys.exit(1)
 
 	if not wanted_nodes:
 		wanted_nodes = mconf.configured_nodes
