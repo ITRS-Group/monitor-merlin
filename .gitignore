@@ -1,5 +1,6 @@
 *.o
 *.so
+*.lo
 core.[0-9]*
 core
 mod.log
