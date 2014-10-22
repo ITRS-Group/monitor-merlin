@@ -48,6 +48,7 @@ static int help(int sd)
 		"nodeinfo      Print info about all nodes I know about\n"
 		"cbstats       Print callback statistics for each node\n"
 		"notify-stats  Print notification statistics\n"
+		"expired       Print information regarding expired events\n"
 	);
 	return 0;
 }
