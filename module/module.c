@@ -19,7 +19,6 @@ static merlin_node untracked_checks_node = {
 };
 
 static timed_event **host_expiry_map, **service_expiry_map;
-struct dlist_entry *queued_expire_events;
 struct dlist_entry *expired_events;
 static struct dlist_entry **expired_hosts;
 static struct dlist_entry **expired_services;
