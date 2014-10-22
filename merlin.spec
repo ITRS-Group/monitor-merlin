@@ -110,7 +110,7 @@ Some additional test files for merlin
 %build
 echo %{version} > .version_number
 autoreconf -i -s
-%configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=/opt/monitor/etc/mconf --with-naemon-user=monitor --with-naemon-group=%daemon_user
+%configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=/opt/monitor/etc/mconf --with-naemon-user=monitor --with-naemon-group=%daemon_user --with-logdir=/var/log/op5/merlin
 
 %__make
 %__make check
@@ -175,8 +175,8 @@ fi
 
 sed --follow-symlinks -i \
     -e 's#pidfile =.*$#pidfile = /var/run/merlin/merlin.pid;#' \
-    -e 's#log_file =.*neb\.log;$#log_file = /var/log/merlin/neb.log;#' \
-    -e 's#log_file =.*daemon\.log;$#log_file = /var/log/merlin/daemon.log;#' \
+    -e 's#log_file =.*neb\.log;$#log_file = /var/log/op5/merlin/neb.log;#' \
+    -e 's#log_file =.*daemon\.log;$#log_file = /var/log/op5/merlin/daemon.log;#' \
     -e 's#ipc_socket =.*$#ipc_socket = /var/lib/merlin/ipc.sock;#' \
     %mod_path/merlin.conf
 
@@ -217,7 +217,7 @@ sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon
 %_sysconfdir/nrpe.d/nrpe-merlin.cfg
 %_sysconfdir/init.d/merlind
 %attr(-, monitor, %daemon_group) %dir %_localstatedir/lib/merlin
-%attr(-, monitor, %daemon_group) %dir %_localstatedir/log/merlin
+%attr(-, monitor, %daemon_group) %dir %_localstatedir/log/op5/merlin
 %attr(-, monitor, %daemon_group) %dir %_localstatedir/run/merlin
 %attr(-, monitor, %daemon_group) %dir %_localstatedir/cache/merlin
 
@@ -227,7 +227,7 @@ sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon
 %mod_path/merlin.so
 /opt/monitor/etc/mconf/merlin.cfg
 %attr(-, monitor, %daemon_group) %dir %_localstatedir/lib/merlin
-%attr(-, monitor, %daemon_group) %dir %_localstatedir/log/merlin
+%attr(-, monitor, %daemon_group) %dir %_localstatedir/log/op5/merlin
 
 %files apps
 %defattr(-,root,root)

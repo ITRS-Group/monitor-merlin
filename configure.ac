@@ -56,7 +56,7 @@ binlogdir=${localstatedir}/lib/merlin/binlogs
 AC_SUBST(binlogdir)
 pkgrundir=${localstatedir}/run/merlin
 AC_SUBST(pkgrundir)
-logdir=${localstatedir}/log/merlin
+AC_ARG_WITH(logdir, AS_HELP_STRING([--with-logdir], [The directory where merlin installs its logs (default=${localstatedir}/log/merlin)]), [logdir=$withval], [logdir=\${localstatedir}/log/merlin])
 AC_SUBST(logdir)
 cachedir=${localstatedir}/cache/merlin
 AC_SUBST(cachedir)
