@@ -599,38 +599,41 @@ void csync_node_active(merlin_node *node)
 	if (!val)
 		return;
 
-	/*
-	 * The most common setup is that configuration is done on a master
-	 * node and then pushed to the pollers, so if a master has older
-	 * config than we do, a node-specific "push" command is required
-	 * to make us push to that master.
-	 * This is to prevent normal setup behaviour from engaging in
-	 * pingpong action with config-files when config-files take more
-	 * than 1 second to generate
-	 */
-	if (val < 0 && node->type == MODE_MASTER && cs == &csync) {
-		ldebug("CSYNC: Refusing to run global sync to a master node");
+	if (cs == &csync && !(node->flags & MERLIN_NODE_CONNECT)) {
+		ldebug("CSYNC: %s node %s configured with 'connect = no'. Avoiding global push",
+			   node_type(node), node->name);
 		return;
 	}
 
-	if (val < 0) {
+	if (node->type == MODE_MASTER) {
+		if (cs->fetch.cmd && strcmp(cs->fetch.cmd, "no")) {
+			child = &cs->fetch;
+			ldebug("CSYNC: We'll try to fetch");
+		} else {
+			ldebug("CSYNC: Refusing to run global sync to a master node");
+		}
+	} else if (node->type == MODE_POLLER) {
 		if (cs->push.cmd && strcmp(cs->push.cmd, "no")) {
 			child = &cs->push;
 			ldebug("CSYNC: We'll try to push");
 		} else {
 			ldebug("CSYNC: Should have pushed, but push not configured for %s", node->name);
 		}
-		if (cs == &csync && !(node->flags & MERLIN_NODE_CONNECT)) {
-			ldebug("CSYNC: %s node %s configured with 'connect = no'. Avoiding global push",
-			       node_type(node), node->name);
-			return;
-		}
-	} else if (val > 0) {
-		if (cs->fetch.cmd && strcmp(cs->fetch.cmd, "no")) {
-			child = &cs->fetch;
-			ldebug("CSYNC: We'll try to fetch");
-		} else {
-			ldebug("CSYNC: Should have fetched, but fetch not configured for %s", node->name);
+	} else {
+		if (val < 0) {
+			if (cs->push.cmd && strcmp(cs->push.cmd, "no")) {
+				child = &cs->push;
+				ldebug("CSYNC: We'll try to push");
+			} else {
+				ldebug("CSYNC: Should have pushed, but push not configured for %s", node->name);
+			}
+		} else if (val > 0) {
+			if (cs->fetch.cmd && strcmp(cs->fetch.cmd, "no")) {
+				child = &cs->fetch;
+				ldebug("CSYNC: We'll try to fetch");
+			} else {
+				ldebug("CSYNC: Should have fetched, but fetch not configured for %s", node->name);
+			}
 		}
 	}
 
