@@ -388,7 +388,7 @@ static void run_program(char *what, char *cmd, int *prog_id)
 	char *args[4] = { "sh", "-c", cmd, NULL };
 	int pid;
 
-	linfo("Executing %s command '%s'", what, cmd);
+	ldebug("Executing %s command '%s'", what, cmd);
 	pid = fork();
 	if (!pid) {
 		/*
