@@ -65,7 +65,6 @@ int neb_deregister_callback(__attribute__((unused)) int callback_type, __attribu
 int qh_register_handler(__attribute__((unused)) const char *name, __attribute__((unused)) const char *description, __attribute__((unused)) unsigned int options, __attribute__((unused)) qh_handler handler) { return 0; }
 int neb_register_callback(__attribute__((unused)) int callback_type, __attribute__((unused)) void *mod_handle, __attribute__((unused)) int priority, __attribute__((unused)) int (*callback_func)(int, void *)) { return 0; }
 const char *notification_reason_name(__attribute__((unused)) unsigned int reason_type) { return NULL; }
-void logit(__attribute__((unused)) int data_type, __attribute__((unused)) int display, __attribute__((unused)) const char *fmt, ...) {}
 void remove_event(__attribute__((unused)) squeue_t *sq, __attribute__((unused)) timed_event *event) {}
 time_t get_next_service_notification_time(__attribute__((unused)) service *temp_service, __attribute__((unused)) time_t time_t1) {return 0;}
 time_t get_next_host_notification_time(__attribute__((unused)) host *temp_host, __attribute__((unused)) time_t time_t1) {return 0;}
