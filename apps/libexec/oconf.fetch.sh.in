@@ -59,10 +59,6 @@ for dest in $source; do
 	fi
 
 if [ $dest ]; then
-	echo "Fetching config from $source"
-	echo "ssh $ssh_prefix @naemon_user@@$master mon oconf nodesplit"
-	ssh $ssh_prefix @naemon_user@@$master mon oconf nodesplit
-
 	echo "Verify if a update is needed"
 	local_md5=$(cat /opt/monitor/etc/oconf/from-master.cfg | md5sum)
 	remote_md5=$(ssh $ssh_prefix @naemon_user@@$master cat @cachedir@/config/$fetch_name.cfg | md5sum)
@@ -71,6 +67,7 @@ if [ $dest ]; then
 		echo "Same md5sum, no need for a fetch, exiting"
 		exit
 	else
+		echo "Fetching config from $source"
 		echo "scp -p $scp_prefix @naemon_user@@$master:@cachedir@/config/$fetch_name.cfg /opt/monitor/etc/oconf/from-master.cfg"
 		scp -p $scp_prefix @naemon_user@@$master:@cachedir@/config/$fetch_name.cfg /opt/monitor/etc/oconf/from-master.cfg
 		echo "Restarting local instance"

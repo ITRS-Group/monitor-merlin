@@ -9,6 +9,7 @@ squeue_t *nagios_squeue;
 struct object_count num_objects = {0,};
 comment *comment_list = NULL;
 hostgroup *hostgroup_list = NULL;
+servicegroup *servicegroup_list = NULL;
 struct timeperiod **timeperiod_ary;
 struct host **host_ary;
 char *config_file_dir = NULL;
@@ -22,8 +23,17 @@ int interval_length = 60;
 time_t event_start = 0L;
 int service_check_timeout = 0;
 int host_check_timeout = 0;
+command *ocsp_command_ptr = NULL;
+command *ochp_command_ptr = NULL;
+command *global_host_event_handler_ptr = NULL;
+command *global_service_event_handler_ptr = NULL;
+char    *host_perfdata_command = NULL;
+char    *service_perfdata_command = NULL;
+char    *host_perfdata_file_processing_command = NULL;
+char    *service_perfdata_file_processing_command = NULL;
 
 int process_check_result(__attribute__((unused)) check_result *cr){ return 0; }
+struct command *find_command(__attribute__((unused)) const char *name) { return NULL; }
 struct host *find_host(__attribute__((unused)) const char *name) { return NULL; }
 struct hostgroup *find_hostgroup(__attribute__((unused)) const char *name) { return NULL; }
 struct service *find_service(__attribute__((unused)) const char *host_name, __attribute__((unused)) const char *service_description) { return NULL; }
@@ -39,6 +49,17 @@ timed_event *schedule_new_event(__attribute__((unused)) int event_type, __attrib
 	return evt;
 }
 nagios_macros *get_global_macros() { return NULL; }
+void fcache_command(__attribute__((unused)) FILE *fp, __attribute__((unused)) struct command *command) {}
+void fcache_contact(__attribute__((unused)) FILE *fp, __attribute__((unused)) struct contact *contact) {}
+void fcache_contactgroup(__attribute__((unused)) FILE *fp, __attribute__((unused)) struct contactgroup *contactgroup) {}
+void fcache_host(__attribute__((unused)) FILE *fp, __attribute__((unused)) struct host *temp_host) {}
+void fcache_hostgroup(__attribute__((unused)) FILE *fp, __attribute__((unused)) struct hostgroup *temp_hostgroup) {}
+void fcache_hostdependency(__attribute__((unused)) FILE *fp, __attribute__((unused)) struct hostdependency *temp_hostdependency) {}
+void fcache_hostescalation(__attribute__((unused)) FILE *fp, __attribute__((unused)) struct hostescalation *temp_hostescalation) {}
+void fcache_service(__attribute__((unused)) FILE *fp, __attribute__((unused)) struct service *temp_service) {}
+void fcache_servicegroup(__attribute__((unused)) FILE *fp, __attribute__((unused)) struct servicegroup *temp_servicegroup) {}
+void fcache_servicedependency(__attribute__((unused)) FILE *fp, __attribute__((unused)) struct servicedependency *temp_servicedependency) {}
+void fcache_serviceescalation(__attribute__((unused)) FILE *fp, __attribute__((unused)) struct serviceescalation *serviceescalation) {}
 void fcache_timeperiod(__attribute__((unused)) FILE *fp, __attribute__((unused)) struct timeperiod *temp_timeperiod) {}
 int neb_deregister_callback(__attribute__((unused)) int callback_type, __attribute__((unused)) int (*callback_func)(int, void *)) { return 0; }
 int qh_register_handler(__attribute__((unused)) const char *name, __attribute__((unused)) const char *description, __attribute__((unused)) unsigned int options, __attribute__((unused)) qh_handler handler) { return 0; }

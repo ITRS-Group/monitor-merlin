@@ -17,8 +17,6 @@ def idx_get(otype):
 	return obj_index[otype]
 
 
-nsplit_path = 'oconfsplit'
-nsplit_helper_args = []
 last_changed = 0
 nagios_cfg = '/opt/monitor/etc/nagios.cfg'
 object_cfg_files = {}
@@ -32,7 +30,6 @@ def module_init(args):
 	rem_args = []
 	for arg in args:
 		if arg.startswith('--use-helper='):
-			nsplit_path = arg.split('=', 1)[1]
 			continue
 		if arg == '--use-helper':
 			continue
@@ -79,40 +76,6 @@ def update_last_changed(path):
 	st = os.stat(path)
 	if st and st.st_mtime > last_changed:
 		last_changed = st.st_mtime
-
-# Run the nsplit helper in parallell for all targeted hostgroups
-def run_splitter(params):
-	splitters = {}
-	started = 0
-	reaped = 0
-	errors = 0
-	for p in params:
-		outfile = p['file']
-		groups = p['hostgroups']
-		groups = ','.join(groups)
-		cmd = [nsplit_path] + nsplit_helper_args + ['-q', '-o', outfile, '-g', groups]
-		try:
-			subp = subprocess.Popen(cmd, stdout=sys.stdout.fileno(), stderr=sys.stderr.fileno())
-		except OSError, err:
-			errors += 1
-			print("Failed to launch '%s': %s" % (nsplit_path, err.strerror))
-			break
-
-		splitters[subp.pid] = outfile
-		started += 1
-
-	while reaped < started:
-		(pid, status) = os.wait()
-		if status != 0:
-			print("process with pid %d exited with status %d" % (pid, status))
-		else:
-			os.utime(splitters[pid], (last_changed, last_changed))
-			del(splitters[pid])
-		reaped += 1
-
-	if errors:
-		sys.exit(1)
-
 
 def usage(msg = False):
 	if msg:
@@ -220,114 +183,6 @@ def cmd_split(args):
 
 	sys.exit(run_splitter(argparams))
 
-
-def cmd_nodesplit(args):
-	"""--use-helper --cache-dir --force [node1] [node2] [nodeN...]
-	Same as 'split', but use merlin's config to split config into
-	configuration files suitable for poller consumption.
-	"""
-	global cache_dir, config_dir
-	global nsplit_path, nsplit_helper_args
-
-	if not mconf.num_nodes['poller']:
-		print("No pollers configured. No way to nodesplit config.")
-		return True
-
-	wanted_nodes = {}
-	force = False
-	nsplit_helper_args = []
-	for arg in args:
-		if arg.startswith('--use-helper='):
-			nsplit_path = arg.split('=', 1)[1]
-			continue
-		if arg == '--use-helper':
-			continue
-		if arg.startswith('--cache-dir='):
-			config_dir = arg.split('=', 1)[1]
-			continue
-		if arg == '--force':
-			force = True
-			nsplit_helper_args.append('-f')
-			continue
-		# check if it's a poller node
-		node = mconf.configured_nodes.get(arg)
-		if node and node.ntype == 'poller':
-			wanted_nodes[node.name] = node
-			continue
-		# some random argument; so pass it to the helper
-		nsplit_helper_args.append(arg)
-
-	if not wanted_nodes:
-		wanted_nodes = mconf.configured_nodes
-
-	config_dir = cache_dir + '/config'
-	mkdir_p(config_dir)
-
-	get_last_changed()
-
-	params = []
-	hardlink = dict()
-	to_create = dict()
-	for node in mconf.sorted_nodes:
-		name = node.name
-		if node.ntype != 'poller':
-			continue
-		hostgroups = node.options.get('hostgroup', False)
-		if not hostgroups:
-			print("%s is a poller without hostgroups assigned to it." % name)
-			print("Fix your config, please")
-			sys.exit(1)
-
-		node.oconf_file = '%s/%s.cfg' % (config_dir, name)
-
-		# if there is another poller with identical hostgroups,
-		# we really don't need to generate it anew for this one
-		sorted_hostgroups = copy.copy(hostgroups)
-		sorted_hostgroups.sort()
-		sorted_hostgroups_str = ';'.join(sorted_hostgroups)
-		cached = to_create.get(sorted_hostgroups_str, False)
-		if cached != False:
-			print("hardlink: %s" % node.oconf_file)
-			hardlink[node.oconf_file] = cached
-			continue
-		to_create[sorted_hostgroups_str] = node.oconf_file
-
-		# if there is a cached config file which is the same age
-		# as the object config and we're not being forced, there's
-		# no need to re-create it
-		if not force and os.access(node.oconf_file, os.R_OK):
-			st = os.stat(node.oconf_file)
-			if int(st.st_mtime) == int(last_changed):
-				print("%s is cached" % (node.oconf_file))
-				continue
-		params.append({'file': node.oconf_file, 'hostgroups': hostgroups})
-
-	# If there are no pollers with hostgroups, we might as well
-	# go home.
-	if not len(params):
-		print("No splitting to do. Quitting")
-		return
-
-	# now that we're done determining the minimum amount of
-	# work we need to do, we run the oconfsplit helper to do
-	# the heavy lifting for us
-
-	# make sure files are created with the proper mode
-	# for the target system
-	old_umask = os.umask(002)
-	run_splitter(params)
-
-	# now create the hardlinks we know we need
-	for (dst, src) in hardlink.items():
-		print("Hardlinking\n     %s\n  to %s" % (src, dst))
-		try:
-			os.unlink(dst)
-		except OSError:
-			# file does not exist, likely, which is fine
-			pass
-		os.link(src, dst)
-
-
 def get_ssh_key(node):
 	ssh_key = node.options.get('oconf_ssh_key', False)
 	if ssh_key and os.path.isfile(ssh_key):
@@ -353,17 +208,12 @@ def get_ssh_key(node):
 
 def cmd_push(args):
 	"""--no-restart [<node1> <node2> <nodeN>]
-	Splits configuration based on merlin's peer and poller configuration
-	and sends object configuration to all peers and pollers, restarting
+	Sends object configuration to all peers and pollers, restarting
 	those that receive a configuration update.
-	'mon oconf push' also supports all arguments that 'mon oconf nodesplit'
-	handles, since any argument we don't understand get passed there.
 
 	SSH keys needs to be set up for this to be usable without admin supervision.
-	This command uses 'nodesplit' as its backend.
 	"""
 	errors = 0
-	cmd_nodesplit(args)
 	restart_nodes = {}
 	wanted_nodes = []
 	restart = True
@@ -390,13 +240,13 @@ def cmd_push(args):
 	for name, node in wanted_nodes:
 		# we don't push to master nodes
 		if node.ntype == 'master':
+			print "%s is a master, refusing to push" % (name,)
 			continue
 
 		# Use compression by default
 		ssh_cmd = 'ssh -C'
 
-		if not node.oconf_file and node.ntype == 'poller':
-			continue
+		oconf_file = '%s/%s.cfg' % (config_dir, name)
 
 		# now we set up source and destination. Pollers and peers
 		# have different demands for this, and peers can be
@@ -405,9 +255,10 @@ def cmd_push(args):
 		# or everything (ship /opt/monitor/etc to /opt/monitor)
 		if node.ntype == 'poller':
 			# pollers without an oconf_file are ignored
-			if not node.oconf_file:
+			if not os.path.exists(oconf_file):
+				print "Can't push to poller, %s, because %s doesn't exist" (name, oconf_file)
 				continue
-			source = node.oconf_file
+			source = oconf_file
 			default_dest = '/opt/monitor/etc/oconf/from-master.cfg'
 		else:
 			source = node.options.get('oconf_source', '/opt/monitor/etc')

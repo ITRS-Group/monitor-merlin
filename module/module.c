@@ -8,6 +8,7 @@
 #include "codec.h"
 #include "config.h"
 #include "queries.h"
+#include "oconfsplit.h"
 
 merlin_node **host_check_node = NULL;
 merlin_node **service_check_node = NULL;
@@ -1255,6 +1256,8 @@ static int post_config_init(int cb, void *ds)
 
 	/* only call this function once */
 	neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);
+
+	split_config();
 
 	linfo("Object configuration parsed.");
 	if (pgroup_init() < 0)
