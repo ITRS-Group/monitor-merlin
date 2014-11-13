@@ -10,16 +10,29 @@ bin_SCRIPTS = apps/op5
 
 mondir = $(libdir)/merlin/mon
 mon_SCRIPTS = \
-	apps/libexec/ascii.py  apps/libexec/node.py         apps/libexec/query.lsq.sh \
+	apps/libexec/ascii.py \
+	apps/libexec/check.py \
+	apps/libexec/db.py \
+	apps/libexec/ecmd.py \
+	apps/libexec/log.py \
+	apps/libexec/log.color.sh \
+	apps/libexec/node.py \
+	apps/libexec/node.tree.php \
+	apps/libexec/oconf.fetch.sh \
+	apps/libexec/oconf.py \
+	apps/libexec/qh.py \
+	apps/libexec/query.ls.sh \
+	apps/libexec/query.lsq.sh \
+	apps/libexec/restart.sh \
+	apps/libexec/sshkey.fetch.sh \
+	apps/libexec/sshkey.push.sh \
+	apps/libexec/start.sh \
+	apps/libexec/status.py \
+	apps/libexec/stop.sh \
 	apps/libexec/sysconf.check.sh \
-	apps/libexec/check.py  apps/libexec/node.tree.php   apps/libexec/query.ls.sh \
 	apps/libexec/sysconf.ramdisk.sh \
-	apps/libexec/db.py     apps/libexec/oconf.fetch.sh  apps/libexec/restart.sh \
-	apps/libexec/start.sh         apps/libexec/sysconf.rrdmultiple.sh \
-	apps/libexec/ecmd.py   apps/libexec/oconf.py        apps/libexec/sshkey.fetch.sh \
-	apps/libexec/status.py        apps/libexec/test.py \
-	apps/libexec/log.py    apps/libexec/qh.py           apps/libexec/sshkey.push.sh \
-	apps/libexec/stop.sh
+	apps/libexec/sysconf.rrdmultiple.sh \
+	apps/libexec/test.py
 
 monmoduledir = $(mondir)/modules
 monmodule_PYTHON = apps/libexec/modules/*.py
@@ -28,21 +41,29 @@ monmodulepytapdir = $(monmoduledir)/pytap
 monmodulepytap_PYTHON = apps/libexec/modules/pytap/*.py
 monsyscheckdir = $(mondir)/syscheck
 monsyscheck_SCRIPTS = \
-	apps/libexec/syscheck/db_mysql_check.sh  apps/libexec/syscheck/proc_httpd.sh \
+	apps/libexec/syscheck/db_mysql_check.sh \
+	apps/libexec/syscheck/fs_ext_state.sh \
+	apps/libexec/syscheck/fs_free_inodes.sh \
+	apps/libexec/syscheck/fs_free_space.sh \
+	apps/libexec/syscheck/fs_mount_opts.sh \
+	apps/libexec/syscheck/license.sh \
+	apps/libexec/syscheck/proc_collector.sh \
+	apps/libexec/syscheck/proc_crond.sh \
+	apps/libexec/syscheck/proc_httpd.sh \
+	apps/libexec/syscheck/proc_merlind.sh \
+	apps/libexec/syscheck/proc_monitor_core.sh \
+	apps/libexec/syscheck/proc_monitor_worker.sh \
+	apps/libexec/syscheck/proc_mysqld.sh \
+	apps/libexec/syscheck/proc_npcd.sh \
+	apps/libexec/syscheck/proc_ntpd.sh \
+	apps/libexec/syscheck/proc_op5config.sh \
 	apps/libexec/syscheck/proc_op5kad.sh \
-	apps/libexec/syscheck/fs_ext_state.sh    apps/libexec/syscheck/proc_merlind.sh \
 	apps/libexec/syscheck/proc_pgsql_postmaster.sh \
-	apps/libexec/syscheck/fs_free_inodes.sh  apps/libexec/syscheck/proc_monitor_core.sh \
 	apps/libexec/syscheck/proc_processor.sh \
-	apps/libexec/syscheck/fs_free_space.sh   apps/libexec/syscheck/proc_monitor_worker.sh \
 	apps/libexec/syscheck/proc_rrdcached.sh \
-	apps/libexec/syscheck/fs_mount_opts.sh   apps/libexec/syscheck/proc_mysqld.sh \
 	apps/libexec/syscheck/proc_smsd.sh \
-	apps/libexec/syscheck/license.sh         apps/libexec/syscheck/proc_npcd.sh \
 	apps/libexec/syscheck/proc_synergy.sh \
-	apps/libexec/syscheck/proc_collector.sh  apps/libexec/syscheck/proc_ntpd.sh \
-	apps/libexec/syscheck/proc_syslog_ng.sh \
-	apps/libexec/syscheck/proc_crond.sh      apps/libexec/syscheck/proc_op5config.sh
+	apps/libexec/syscheck/proc_syslog_ng.sh
 
 monhelpfilesdir = $(mondir)/helpfiles
 monhelpfiles_DATA = apps/libexec/helpfiles/*

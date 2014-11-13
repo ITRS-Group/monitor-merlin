@@ -1,0 +1,3 @@
+[--help|-a] <PATTERN>..
+Colorizes data passed on stdin based on the given PATTERNs.
+See --help for more information and examples.
