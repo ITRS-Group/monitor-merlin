@@ -693,7 +693,7 @@ def run_nsplit(params):
 		outfile = p['file']
 		groups = p['hostgroups']
 		groups = ','.join(groups)
-		cmd = [nsplit_path] + nsplit_helper_args + ['-q', '-o', outfile, '-g', groups]
+		cmd = [nsplit_path] + nsplit_helper_args + ['-o', outfile, '-g', groups]
 		subp = subprocess.Popen(cmd, stdout=sys.stdout.fileno(), stderr=sys.stderr.fileno())
 		splitters[subp.pid] = outfile
 		started += 1
