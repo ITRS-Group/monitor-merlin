@@ -1010,9 +1010,6 @@ def cmd_push(args):
 		if node:
 			wanted_nodes.append((node.name, node))
 			continue
-		prettyprint_docstring('dist', cmd_dist.__doc__,
-			'Unknown argument: %s' % arg)
-		sys.exit(1)
 
 	if not len(wanted_nodes):
 		wanted_nodes = mconf.configured_nodes.items()
