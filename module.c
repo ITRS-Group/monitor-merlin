@@ -1333,6 +1333,8 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 		if (ret)
 			ldebug("  ipc_action_handler(): iobroker_unregister(%p, %d) returned %d: %s",
 				   nagios_iobs, ipc.sock, ret, iobroker_strerror(ret));
+		close(ipc.sock);
+		ipc.sock = -1;
 
 		/*
 		 * if we went from connected to anything else, we must
