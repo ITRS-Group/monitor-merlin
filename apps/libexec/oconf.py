@@ -15,6 +15,7 @@
 import os, sys, posix, re, copy, random
 import itertools
 import subprocess
+import tempfile, stat
 
 modpath = os.path.dirname(__file__) + '/modules'
 if not modpath in sys.path:
@@ -636,7 +637,8 @@ def write_hg_list(path, hg_list):
 	num_written = 0
 	blocked_writes = 0
 
-	f = open(path, "w")
+	(fd, tmppath) = tempfile.mkstemp(prefix=path + '-')
+	f = os.fdopen(fd, 'r+')
 	cmdlist = nagios_objects.get('command')
 	for ctype, command_name in force_include_commands.items():
 		cmd = cmdlist.get(command_name, False)
@@ -658,6 +660,8 @@ def write_hg_list(path, hg_list):
 	print("%s created with %d objects for hostgroup list '%s'" %
 		(path, num_written, ','.join(hg_list)))
 	f.close()
+	os.chmod(tmppath, stat.S_IRUSR | stat.S_IWUSR |  stat.S_IRGRP |  stat.S_IWGRP)
+	os.rename(tmppath, path)
 	os.utime(path, (last_changed, last_changed))
 
 def hg_permute(li):
