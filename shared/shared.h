@@ -186,7 +186,6 @@ extern const char *isotime(struct timeval *tv, int precision);
 extern char *tohex(const unsigned char *data, int len);
 extern void bt_scan(const char *mark, int count);
 extern const char *human_bytes(unsigned long long n);
-extern linked_item *add_linked_item(linked_item *list, void *item);
 extern int merlin_set_socket_options(int sd, int beefup_buffers);
 extern char *next_word(char *str);
 extern int grok_confsync_compound(struct cfg_comp *comp, merlin_confsync *csync);

@@ -164,6 +164,20 @@ int get_num_selections(void)
 	return num_selections;
 }
 
+static linked_item *add_linked_item(linked_item *list, void *item)
+{
+	struct linked_item *entry = malloc(sizeof(linked_item));
+
+	if (!entry) {
+		lerr("Failed to malloc(%u): %s", sizeof(linked_item), strerror(errno));
+		return NULL;
+	}
+
+	entry->item = item;
+	entry->next_item = list;
+	return entry;
+}
+
 static int add_one_selection(char *name, merlin_node *node)
 {
 	int i;

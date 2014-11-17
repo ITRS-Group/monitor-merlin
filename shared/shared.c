@@ -421,20 +421,6 @@ const char *human_bytes(unsigned long long n)
 	return tbuf[t];
 }
 
-linked_item *add_linked_item(linked_item *list, void *item)
-{
-	struct linked_item *entry = malloc(sizeof(linked_item));
-
-	if (!entry) {
-		lerr("Failed to malloc(%u): %s", sizeof(linked_item), strerror(errno));
-		return NULL;
-	}
-
-	entry->item = item;
-	entry->next_item = list;
-	return entry;
-}
-
 const char *tv_delta(const struct timeval *start, const struct timeval *stop)
 {
 	static char buf[50];
