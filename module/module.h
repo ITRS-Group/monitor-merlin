@@ -53,9 +53,6 @@ extern merlin_node *merlin_sender;
 extern dkhash_table *host_hash_table;
 extern node_selection *node_selection_by_hostname(const char *name);
 
-/* global variables in the module only */
-extern time_t merlin_should_send_paths;
-
 /** global variables exported by Nagios **/
 extern int __nagios_object_structure_version;
 

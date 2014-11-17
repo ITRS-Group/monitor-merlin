@@ -54,9 +54,6 @@ extern int debug;
 extern char *binlog_dir;
 extern char *merlin_config_file;
 
-
-extern int use_database;
-
 struct strvec {
 	unsigned int entries;
 	char **str;

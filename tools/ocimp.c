@@ -30,6 +30,7 @@ static uint dodged_queries;
 static unsigned char ocache_hash[20];
 static char *cache_path, *status_path;
 static int no_ca_query;
+static int use_database = 1;
 
 struct id_tracker {
 	unsigned int min, max, cur;

@@ -1,10 +1,15 @@
 #include "sql.h"
-#include "daemon.h"
+#include "logging.h"
+#include "mdo-configuration.h"
 #include "logging.h"
 #include "shared.h"
+
 #include <assert.h>
-#include <stdio.h> /* debuggering only. */
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h> /* debuggering only. */
+#include <time.h>
+#include <errno.h>
 
 /* where to (optionally) stash performance data */
 char *host_perf_table = NULL;
@@ -127,7 +132,7 @@ void sql_try_commit(int query)
 	static int queries;
 	time_t now = time(NULL);
 
-	if (!db.conn || !use_database || !db.conn->api->commit)
+	if (!db.conn || !db.conn->api->commit)
 		return;
 
 	if (query > 0)
@@ -209,10 +214,6 @@ int sql_vquery(const char *fmt, va_list ap)
 
 	if (!fmt)
 		return 0;
-
-	if (!use_database) {
-		return -1;
-	}
 
 	/*
 	 * don't even bother trying to run the query if the database
@@ -346,9 +347,6 @@ int sql_init(void)
 	static time_t last_logged = 0;
 	db_wrap_conn_params connparam = db_wrap_conn_params_empty;
 
-	if (!use_database)
-		return -1;
-
 	if (sql_is_connected(0)) {
 		ldebug("sql_init(): Already connected. Not reconnecting");
 		return 0;
@@ -469,9 +467,6 @@ int sql_init(void)
 
 int sql_close(void)
 {
-	if (!use_database)
-		return 0;
-
 	sql_free_result();
 	if (db.conn) {
 		db.conn->api->finalize(db.conn);

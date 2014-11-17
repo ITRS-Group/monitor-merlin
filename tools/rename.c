@@ -359,7 +359,6 @@ main(int argc, char **argv)
 	if (log_file == NULL)
 		log_file = strdup(DEFAULT_LOG_FILE);
 
-	use_database = 1;
 	if (db_user)
 		sql_config("user", db_user);
 	if (db_pass)

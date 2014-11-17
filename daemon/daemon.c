@@ -7,28 +7,22 @@
 #include <fcntl.h>
 #include "daemonize.h"
 #include "daemon.h"
-#include "db_updater.h"
 #include "config.h"
 #include "logging.h"
 #include "ipc.h"
 #include "configuration.h"
 #include "net.h"
-#include "sql.h"
 #include "state.h"
 #include "shared.h"
 
 static const char *progname;
 static const char *pidfile, *merlin_user;
-static char *import_program;
 unsigned short default_port = 15551;
 unsigned int default_addr = 0;
-static int importer_pid;
 static merlin_confsync csync;
 static int num_children;
 static int killing;
 static int user_sig;
-int db_log_reports = 1;
-int db_log_notifications = 1;
 static merlin_nodeinfo merlind;
 static int merlind_sig;
 
@@ -133,10 +127,6 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 			merlin_user = strdup(v->value);
 			continue;
 		}
-		if (!strcmp(v->key, "import_program")) {
-			import_program = strdup(v->value);
-			continue;
-		}
 
 		if (grok_common_var(comp, v))
 			continue;
@@ -148,26 +138,7 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 
 	for (i = 0; i < comp->nested; i++) {
 		struct cfg_comp *c = comp->nest[i];
-		uint vi;
 
-		if (!prefixcmp(c->name, "database")) {
-			use_database = 1;
-			for (vi = 0; vi < c->vars; vi++) {
-				struct cfg_var *v = c->vlist[vi];
-				if (!strcmp(v->key, "log_report_data")) {
-					db_log_reports = strtobool(v->value);
-				} else if (!prefixcmp(v->key, "log_notification")) {
-					db_log_notifications = strtobool(v->value);
-				} else if (!prefixcmp(v->key, "track_current")) {
-					cfg_warn(c, v, "'%s' has been removed", v->key);
-				} else if (!strcmp(v->key, "enabled")) {
-					use_database = strtobool(v->value);
-				} else {
-					sql_config(v->key, v->value);
-				}
-			}
-			continue;
-		}
 		if (!strcmp(c->name, "object_config")) {
 			grok_confsync_compound(c, &csync);
 			continue;
@@ -298,10 +269,6 @@ static int grok_config(char *path)
 	return 1;
 }
 
-/*
- * if the import isn't done yet waitpid() will return 0
- * and we won't touch importer_pid at all.
- */
 static void reap_child_process(void)
 {
 	int status, pid;
@@ -314,7 +281,7 @@ static void reap_child_process(void)
 	if (pid < 0) {
 		if (errno == ECHILD) {
 			/* no child running. Just reset */
-			num_children = importer_pid = 0;
+			num_children = 0;
 		} else {
 			/* some random error. log it */
 			lerr("waitpid(-1...) failed: %s", strerror(errno));
@@ -332,22 +299,6 @@ static void reap_child_process(void)
 
 	/* looks like we reaped some helper we spawned */
 	linfo("Child with pid %d successfully reaped", pid);
-
-	if (pid == importer_pid) {
-		if (WIFEXITED(status)) {
-			if (!WEXITSTATUS(status)) {
-				linfo("import program finished. Resuming normal operations");
-			} else {
-				lwarn("import program exited with return code %d", WEXITSTATUS(status));
-			}
-		} else {
-			lerr("import program stopped or killed. That's a Bad Thing(tm)");
-		}
-		/* successfully reaped, so reset and resume */
-		importer_pid = 0;
-		ipc_send_ctrl(CTRL_RESUME, CTRL_GENERIC);
-		return;
-	}
 
 	/* not the importer program, so it must be an oconf push or fetch */
 	for (i = 0; i < num_nodes; i++) {
@@ -397,87 +348,6 @@ static void run_program(char *what, char *cmd, int *prog_id)
 	if (prog_id)
 		*prog_id = pid;
 	num_children++;
-}
-
-/*
- * import objects and status from objects.cache and status.log,
- * respecively
- */
-static int import_objects_and_status(char *cfg, char *cache)
-{
-	char *cmd;
-	int result = 0;
-
-	/* don't bother if we're not using a datbase */
-	if (!use_database)
-		return 0;
-
-	/* ... or if an import is already in progress */
-	if (importer_pid) {
-		lwarn("Import already in progress. Ignoring import event");
-		return 0;
-	}
-
-	if (!import_program) {
-		lerr("No import program specified. Ignoring import event");
-		return 0;
-	}
-
-	asprintf(&cmd, "%s --nagios-cfg='%s' "
-			 "--db-type='%s' --db-name='%s' --db-user='%s' --db-pass='%s' --db-host='%s' --db-conn_str='%s'",
-			 import_program, cfg,
-			 sql_db_type(), sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host(), sql_db_conn_str());
-	if (cache && *cache) {
-		char *cmd2 = cmd;
-		asprintf(&cmd, "%s --cache='%s'", cmd2, cache);
-		free(cmd2);
-	}
-
-	if (sql_db_port()) {
-		char *cmd2 = cmd;
-		asprintf(&cmd, "%s --db-port='%u'", cmd2, sql_db_port());
-		free(cmd2);
-	}
-
-	run_program("import", cmd, &importer_pid);
-	free(cmd);
-
-	/*
-	 * If the import program started successfully, we
-	 * ask the module to stall events until it's done
-	 */
-	if (importer_pid > 0) {
-		ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
-	}
-
-	return result;
-}
-
-/* nagios.cfg, objects.cache (optional) and status.log (optional) */
-static int read_nagios_paths(merlin_event *pkt)
-{
-	char *nagios_paths_arena;
-	char *npath[3] = { NULL, NULL, NULL };
-	uint i;
-	size_t offset = 0;
-
-	if (!use_database)
-		return 0;
-
-	nagios_paths_arena = malloc(pkt->hdr.len);
-	if (!nagios_paths_arena)
-		return -1;
-	memcpy(nagios_paths_arena, pkt->body, pkt->hdr.len);
-
-	for (i = 0; i < ARRAY_SIZE(npath) && offset < pkt->hdr.len; i++) {
-		npath[i] = nagios_paths_arena + offset;
-		offset += strlen(npath[i]) + 1;
-	}
-
-	import_objects_and_status(npath[0], npath[1]);
-	free(nagios_paths_arena);
-
-	return 0;
 }
 
 /*
@@ -657,10 +527,6 @@ static int handle_ipc_event(merlin_event *pkt)
 
 	if (pkt->hdr.type == CTRL_PACKET) {
 		switch (pkt->hdr.code) {
-		case CTRL_PATHS:
-			read_nagios_paths(pkt);
-			return 0;
-
 		case CTRL_ACTIVE:
 			result = handle_ctrl_active(&ipc, pkt);
 			/* -512 = incorrect number of peers, -256 = incorrect config.
@@ -691,18 +557,8 @@ static int handle_ipc_event(merlin_event *pkt)
 		}
 	}
 
-	/*
-	 * we must send to the network before we run mrm_db_update(),
-	 * since the latter deblockifies the packet and makes it
-	 * unusable in network transfers without repacking, but only
-	 * if this isn't magically marked as a NONET event
-	 */
 	if (pkt->hdr.code != MAGIC_NONET)
 		result = net_send_ipc_data(pkt);
-
-	/* skip sending control packets to database */
-	if (use_database && pkt->hdr.type != CTRL_PACKET)
-		result |= mrm_db_update(&ipc, pkt);
 
 	return result;
 }
@@ -800,7 +656,6 @@ static void polling_loop(void)
 {
 	for (;!merlind_sig;) {
 		uint i;
-		time_t now = time(NULL);
 
 		if (user_sig & (1 << SIGUSR1))
 			dump_daemon_nodes();
@@ -813,16 +668,6 @@ static void polling_loop(void)
 
 		/* reap any children that might have finished */
 		reap_child_process();
-
-		/*
-		 * reap_child_process() resets importer_pid if
-		 * the import is completed.
-		 * if it's not and at tops 5 seconds have passed,
-		 * ask for some more time.
-		 */
-		if (importer_pid && !(now % 5)) {
-			ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
-		}
 
 		/* When the module is disconnected, we can't validate handshakes,
 		 * so any negotiation would need to be redone after the module
@@ -853,11 +698,6 @@ static void polling_loop(void)
 
 		if (merlind_sig)
 			return;
-
-		/*
-		 * Try to commit any outstanding queries
-		 */
-		sql_try_commit(0);
 	}
 }
 
@@ -869,7 +709,6 @@ static void clean_exit(int sig)
 	}
 
 	ipc_deinit();
-	sql_close();
 	net_deinit();
 	log_deinit();
 	daemon_shutdown();
@@ -967,12 +806,6 @@ int merlind_main(int argc, char **argv)
 	if (status)
 		return daemon_status(pidfile);
 
-	if (use_database && !import_program) {
-		lwarn("Using database, but no import program configured. Are you sure about this?");
-		lwarn("If not, make sure you specify the import_program directive in");
-		lwarn("the \"daemon\" section of your merlin configuration file");
-	}
-
 	log_init();
 	ipc.action = ipc_action_handler;
 	result = ipc_init();
@@ -1007,7 +840,6 @@ int merlind_main(int argc, char **argv)
 	signal(SIGUSR1, sigusr_handler);
 	signal(SIGUSR2, sigusr_handler);
 
-	sql_init();
 	state_init();
 	linfo("Merlin daemon " PACKAGE_VERSION " successfully initialized");
 	polling_loop();

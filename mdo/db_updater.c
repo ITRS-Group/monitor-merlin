@@ -1,60 +1,63 @@
 #include "codec.h"
-#include "daemon.h"
-#include "string_utils.h"
 #include "ipc.h"
 #include "sql.h"
+#include "string_utils.h"
 #include <naemon/naemon.h>
 
+int db_log_reports = 1;
+int db_log_notifications = 1;
 
-static int handle_host_status(int cb, const merlin_host_status *p)
+static int handle_host_status(__attribute__((unused)) int cb, void *data)
 {
+	const nebstruct_host_check_data *p = (const nebstruct_host_check_data *)data;
 	char *host_name;
-	char *output = NULL, *long_output = NULL, *sql_safe_unescaped_long_output = NULL, *perf_data = NULL;
+	char *output = NULL, *sql_safe_unescaped_long_output = NULL, *perf_data = NULL;
 	int result = 0, rpt_log = 0, perf_log = 0;
 
-	if (cb == NEBCALLBACK_HOST_CHECK_DATA) {
-		if (db_log_reports && (p->nebattr & NEBATTR_CHECK_ALERT))
-			rpt_log = 1;
-		if (host_perf_table && p->state.perf_data && *p->state.perf_data) {
-			perf_log = 1;
-		}
+	if (db_log_reports && (p->attr & NEBATTR_CHECK_ALERT))
+		rpt_log = 1;
+	if (host_perf_table && p->perf_data && *p->perf_data) {
+		perf_log = 1;
 	}
 
 	if (!rpt_log && !perf_log)
 		return 0;
 
-	sql_quote(p->name, &host_name);
+	if (!sql_is_connected(1))
+		return 0;
+
+	sql_quote(p->host_name, &host_name);
 	if (rpt_log) {
-		sql_quote(p->state.plugin_output, &output);
-		if (rpt_log && p->state.long_plugin_output) {
+		sql_quote(p->output, &output);
+		if (p->long_output) {
 			char *unescaped_long_output = NULL;
-			size_t long_len = strlen(p->state.long_plugin_output) + 1;
+			size_t long_len = strlen(p->long_output) + 1;
 			if ((unescaped_long_output = malloc(long_len)) == NULL) {
 				lerr("failed to allocate memory for unescaped long output");
 				return 1;
 			}
-			unescape_newlines(unescaped_long_output, p->state.long_plugin_output, long_len);
+			unescape_newlines(unescaped_long_output, p->long_output, long_len);
 			sql_quote(unescaped_long_output, &sql_safe_unescaped_long_output);
 			free(unescaped_long_output);
 			unescaped_long_output = NULL;
 		}
-		sql_quote(p->state.long_plugin_output, &long_output);
 	}
 	if (perf_log)
-		sql_quote(p->state.perf_data, &perf_data);
+		sql_quote(p->perf_data, &perf_data);
 
 	if (rpt_log) {
+		host *hst = (host *)p->object_ptr;
 		result = sql_query
 			("INSERT INTO %s(timestamp, event_type, host_name, state, "
 				"hard, retry, output, long_output, downtime_depth) "
 				"VALUES(%lu, %d, %s, %d, %d, %d, %s, %s, %d)",
-				sql_table_name(), p->state.last_check,
+				sql_table_name(), p->end_time.tv_sec,
 				NEBTYPE_HOSTCHECK_PROCESSED, host_name,
-				p->state.current_state,
-				p->state.state_type == HARD_STATE || p->state.current_state == STATE_UP,
-				p->state.current_attempt, output,
+				p->state,
+				p->state_type == HARD_STATE || p->state == STATE_UP,
+				p->current_attempt, output,
 				sql_safe_unescaped_long_output,
-				p->state.scheduled_downtime_depth);
+				hst->scheduled_downtime_depth);
 	}
 
 	/*
@@ -66,70 +69,69 @@ static int handle_host_status(int cb, const merlin_host_status *p)
 		result = sql_query
 			("INSERT INTO %s(timestamp, host_name, perfdata) "
 				"VALUES(%lu, %s, %s)",
-				host_perf_table, p->state.last_check, host_name, perf_data);
+				host_perf_table, p->end_time.tv_sec, host_name, perf_data);
 	}
 
 	free(host_name);
 	safe_free(output);
-	safe_free(long_output);
 	safe_free(sql_safe_unescaped_long_output);
 	safe_free(perf_data);
 	return result;
 }
 
-static int handle_service_status(int cb, const merlin_service_status *p)
+static int handle_service_status(__attribute__((unused)) int cb, void *data)
 {
+	const nebstruct_service_check_data *p = (const nebstruct_service_check_data *)data;
 	char *host_name, *service_description;
-	char *output = NULL, *long_output = NULL, *perf_data = NULL;
+	char *output = NULL, *perf_data = NULL;
 	char *sql_safe_unescaped_long_output = NULL;
 	int result = 0, rpt_log = 0, perf_log = 0;
 
-	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA) {
-		if (db_log_reports && (p->nebattr & NEBATTR_CHECK_ALERT))
-			rpt_log = 1;
-
-		if (service_perf_table && p->state.perf_data && *p->state.perf_data)
-			perf_log = 1;
-	}
+	if (db_log_reports && (p->attr & NEBATTR_CHECK_ALERT))
+		rpt_log = 1;
+	if (service_perf_table && p->perf_data && *p->perf_data)
+		perf_log = 1;
 
 	if (!rpt_log && !perf_log)
+		return 0;
+
+	if (!sql_is_connected(1))
 		return 0;
 
 	sql_quote(p->host_name, &host_name);
 	sql_quote(p->service_description, &service_description);
 	if (rpt_log) {
 		char *unescaped_long_output = NULL;
-		sql_quote(p->state.plugin_output, &output);
-		if(rpt_log && p->state.long_plugin_output) {
-			size_t long_len = strlen(p->state.long_plugin_output) + 1;
+		sql_quote(p->output, &output);
+		if(p->long_output) {
+			size_t long_len = strlen(p->long_output) + 1;
 			if ((unescaped_long_output = malloc(long_len)) == NULL) {
 				lerr("failed to allocate memory for unescaped long output");
 				return 1;
 			}
-			unescape_newlines(unescaped_long_output, p->state.long_plugin_output, long_len);
+			unescape_newlines(unescaped_long_output, p->long_output, long_len);
 			sql_quote(unescaped_long_output, &sql_safe_unescaped_long_output);
 			free(unescaped_long_output);
 			unescaped_long_output = NULL;
 		}
-
-		sql_quote(p->state.long_plugin_output, &long_output);
 	}
 
 	if (perf_log)
-		sql_quote(p->state.perf_data, &perf_data);
+		sql_quote(p->perf_data, &perf_data);
 
 	if (rpt_log) {
+		service *svc = (service *)p->object_ptr;
 		result = sql_query
 			("INSERT INTO %s(timestamp, event_type, host_name, "
 				"service_description, state, hard, retry, output, long_output, downtime_depth) "
 				"VALUES(%lu, %d, %s, %s, %d, '%d', '%d', %s, %s, %d)",
-				sql_table_name(), p->state.last_check,
+				sql_table_name(), p->end_time.tv_sec,
 				NEBTYPE_SERVICECHECK_PROCESSED, host_name,
-				service_description, p->state.current_state,
-				p->state.state_type == HARD_STATE || p->state.current_state == STATE_OK,
-				p->state.current_attempt, output,
+				service_description, p->state,
+				p->state_type == HARD_STATE || p->state == STATE_OK,
+				p->current_attempt, output,
 				sql_safe_unescaped_long_output,
-				p->state.scheduled_downtime_depth);
+				svc->scheduled_downtime_depth);
 	}
 
 	/*
@@ -142,26 +144,28 @@ static int handle_service_status(int cb, const merlin_service_status *p)
 			("INSERT INTO %s(timestamp, host_name, "
 				"service_description, perfdata) "
 				"VALUES(%lu, %s, %s, %s)",
-				service_perf_table, p->state.last_check,
+				service_perf_table, p->end_time.tv_sec,
 				host_name, service_description, perf_data);
 	}
 
 	free(host_name);
 	free(service_description);
 	safe_free(output);
-	safe_free(long_output);
 	safe_free(sql_safe_unescaped_long_output);
 	safe_free(perf_data);
 	return result;
 }
 
-static int rpt_downtime(void *data)
+static int rpt_downtime(__attribute__((unused)) int cb, void *data)
 {
-	nebstruct_downtime_data *ds = (nebstruct_downtime_data *)data;
+	const nebstruct_downtime_data *ds = (const nebstruct_downtime_data *)data;
 	int depth, result;
 	char *host_name;
 
 	if (!db_log_reports)
+		return 0;
+
+	if (!sql_is_connected(1))
 		return 0;
 
 	switch (ds->type) {
@@ -199,38 +203,34 @@ static int rpt_downtime(void *data)
 	return result;
 }
 
-static int rpt_process_data(void *data)
+static int rpt_process_data(int starting)
 {
-	nebstruct_process_data *ds = (nebstruct_process_data *)data;
-
+	int type;
+	time_t now;
 	if (!db_log_reports)
 		return 0;
 
-	switch(ds->type) {
-	case NEBTYPE_PROCESS_EVENTLOOPSTART:
-		ds->type = NEBTYPE_PROCESS_START;
-		break;
-	case NEBTYPE_PROCESS_START:
-	case NEBTYPE_PROCESS_SHUTDOWN:
-		break;
-	case NEBTYPE_PROCESS_RESTART:
-		ds->type = NEBTYPE_PROCESS_SHUTDOWN;
-		break;
-	default:
+	if (!sql_is_connected(1))
 		return 0;
-	}
+
+	type = starting ? NEBTYPE_PROCESS_START: NEBTYPE_PROCESS_SHUTDOWN;
+	now = time(NULL);
 
 	return sql_query("INSERT INTO %s(timestamp, event_type) "
 					 "VALUES(%lu, %d)",
-					 sql_table_name(), ds->timestamp.tv_sec, ds->type);
+					 sql_table_name(), now, type);
 }
 
-static int handle_flapping(const nebstruct_flapping_data *p)
+static int handle_flapping(__attribute__((unused)) int cb, void *data)
 {
+	const nebstruct_flapping_data *p = (const nebstruct_flapping_data *)data;
 	int result = 0;
 	char *host_name, *service_description = NULL;
 
 	if (!db_log_reports)
+		return 0;
+
+	if (!sql_is_connected(1))
 		return 0;
 
 	sql_quote(p->host_name, &host_name);
@@ -267,13 +267,17 @@ static int handle_flapping(const nebstruct_flapping_data *p)
 	return result;
 }
 
-static int handle_contact_notification_method(const nebstruct_contact_notification_method_data *p)
+static int handle_contact_notification_method(__attribute__((unused)) int cb, void *data)
 {
+	const nebstruct_contact_notification_method_data *p = (const nebstruct_contact_notification_method_data *)data;
 	int result;
 	char *contact_name, *host_name, *service_description;
 	char *output, *ack_author, *ack_data, *command_name;
 
 	if (!db_log_notifications)
+		return 0;
+
+	if (!sql_is_connected(1))
 		return 0;
 
 	sql_quote(p->contact_name, &contact_name);
@@ -310,64 +314,20 @@ static int handle_contact_notification_method(const nebstruct_contact_notificati
 	return result;
 }
 
-int mrm_db_update(merlin_node *node, merlin_event *pkt)
+int db_updater_register(void *neb_handle)
 {
-	int errors = 0;
+	neb_register_callback(NEBCALLBACK_DOWNTIME_DATA, neb_handle, 0, rpt_downtime);
+	neb_register_callback(NEBCALLBACK_FLAPPING_DATA, neb_handle, 0, handle_flapping);
+	neb_register_callback(NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, neb_handle, 0, handle_contact_notification_method);
+	neb_register_callback(NEBCALLBACK_HOST_CHECK_DATA, neb_handle, 0, handle_host_status);
+	neb_register_callback(NEBCALLBACK_SERVICE_CHECK_DATA, neb_handle, 0, handle_service_status);
+	rpt_process_data(1);
+	return 0;
+}
 
-	if (!sql_is_connected(1))
-		return 0;
-
-	if (!pkt) {
-		lerr("pkt is NULL in mrm_db_update()");
-		return 0;
-	}
-	if (!pkt->body) {
-		lerr("pkt->body is NULL in mrm_db_update()");
-		return 0;
-	}
-
-	if (merlin_decode_event(node, pkt)) {
-		return 0;
-	}
-
-	switch (pkt->hdr.type) {
-	case NEBCALLBACK_PROGRAM_STATUS_DATA:
-		break;
-	case NEBCALLBACK_PROCESS_DATA:
-		errors = rpt_process_data(pkt->body);
-		break;
-	case NEBCALLBACK_COMMENT_DATA:
-		break;
-	case NEBCALLBACK_DOWNTIME_DATA:
-		errors = rpt_downtime((void *)pkt->body);
-		break;
-	case NEBCALLBACK_FLAPPING_DATA:
-		errors = handle_flapping((void *)pkt->body);
-		break;
-	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
-		errors = handle_contact_notification_method((void *)pkt->body);
-		break;
-	case NEBCALLBACK_HOST_CHECK_DATA:
-	case NEBCALLBACK_HOST_STATUS_DATA:
-		errors = handle_host_status((int)pkt->hdr.type, (void *)pkt->body);
-		break;
-	case NEBCALLBACK_SERVICE_CHECK_DATA:
-	case NEBCALLBACK_SERVICE_STATUS_DATA:
-		errors = handle_service_status((int)pkt->hdr.type, (void *)pkt->body);
-		break;
-
-	/* some callbacks are unhandled by design */
-	case NEBCALLBACK_NOTIFICATION_DATA:
-	case NEBCALLBACK_CONTACT_NOTIFICATION_DATA:
-	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
-		return 0;
-
-	default:
-		lerr("Unknown callback type %d. Weird, to say the least...",
-			 pkt->hdr.type);
-		return -1;
-	}
-	sql_free_result();
-
-	return errors;
+int db_updater_unregister(void *neb_handle)
+{
+	rpt_process_data(0);
+	neb_deregister_module_callbacks(neb_handle);
+	return 0;
 }

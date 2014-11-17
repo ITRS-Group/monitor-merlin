@@ -879,7 +879,6 @@ int main(int argc, char **argv)
 	progname = strrchr(argv[0], '/');
 	progname = progname ? progname + 1 : argv[0];
 
-	use_database = 1;
 	db_name = db_user = db_pass = NULL;
 	db_conn_str = db_host = db_port = db_type = NULL;
 

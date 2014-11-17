@@ -160,7 +160,7 @@ static int send_generic(merlin_event *pkt, void *data)
 	int result;
 
 	/* avoid sending events that won't cause action in the daemon */
-	if (!use_database && pkt->hdr.code == MAGIC_NONET && pkt->hdr.type != CTRL_PACKET) {
+	if (pkt->hdr.code == MAGIC_NONET && pkt->hdr.type != CTRL_PACKET) {
 		return 0;
 	}
 
@@ -865,12 +865,6 @@ int merlin_mod_hook(int cb, void *data)
 	 */
 	check_dupes = 0;
 
-	/* If we've lost sync, we must make sure we send the paths again */
-	if (merlin_should_send_paths && merlin_should_send_paths < time(NULL)) {
-		/* send_paths resets merlin_should_send_paths if successful */
-		send_paths();
-	}
-
 	/* self-heal nodes that have missed out on the fact that we're up */
 	now = time(NULL);
 	if(!last_pulse || now - last_pulse > 15)
@@ -927,11 +921,6 @@ int merlin_mod_hook(int cb, void *data)
 		break;
 	default:
 		lerr("Unhandled callback '%s' in merlin_hook()", callback_name(cb));
-	}
-
-	if (result < 0) {
-		lwarn("Daemon is flooded and backlogging failed. Staying dormant for %d seconds", MERLIN_SENDPATH_INTERVAL);
-		merlin_should_send_paths = time(NULL) + MERLIN_SENDPATH_INTERVAL;
 	}
 
 	return result;

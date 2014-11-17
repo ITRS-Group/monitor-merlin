@@ -69,7 +69,7 @@ monhelpfiles_DATA = apps/libexec/helpfiles/*
 monbashdir = $(mondir)/bash
 monbash_SCRIPTS = apps/libexec/bash/*
 
-pkglib_LTLIBRARIES = merlin.la
+pkglib_LTLIBRARIES = merlin.la mdo.la
 
 pkgconf_DATA = data/merlin.conf
 
@@ -81,6 +81,9 @@ naemonconf_DATA = data/merlin.cfg
 merlin_la_LDFLAGS = -module -shared -fPIC
 merlin_la_CFLAGS = $(AM_CFLAGS)
 merlin_la_CPPFLAGS = $(AM_CPPFLAGS)
+mdo_la_LDFLAGS = -module -shared -fPIC
+mdo_la_CFLAGS = $(AM_CFLAGS)
+mdo_la_CPPFLAGS = $(AM_CPPFLAGS)
 merlind_LDADD = $(naemon_LIBS) $(AM_LDADD)
 merlind_CPPFLAGS = $(AM_CPPFLAGS)
 
@@ -104,9 +107,9 @@ shared_sources = $(common_sources) \
 	shared/binlog.c shared/binlog.h \
 	shared/configuration.c shared/configuration.h
 
-db_wrap_sources = daemon/sql.c daemon/sql.h daemon/db_wrap.c daemon/db_wrap.h
+db_wrap_sources = mdo/sql.c mdo/sql.h mdo/db_wrap.c mdo/db_wrap.h
 if HAVE_LIBDBI
-db_wrap_sources += daemon/db_wrap_dbi.c daemon/db_wrap_dbi.h
+db_wrap_sources += mdo/db_wrap_dbi.c mdo/db_wrap_dbi.h
 else
 endif
 
@@ -118,47 +121,51 @@ module_sources = $(shared_sources) \
 	module/queries.c module/queries.h \
 	module/oconfsplit.c module/oconfsplit.h \
 	shared/pgroup.c shared/pgroup.h
-daemon_sources = $(shared_sources) $(db_wrap_sources) \
+daemon_sources = $(shared_sources) \
 	daemon/daemonize.c daemon/daemonize.h \
 	daemon/net.c daemon/net.h \
-	daemon/db_updater.c daemon/db_updater.h \
-	daemon/state.c daemon/state.h \
-	daemon/string_utils.c daemon/string_utils.h
+	daemon/state.c daemon/state.h
 app_sources = $(common_sources) \
 	daemon/state.c daemon/state.h \
 	tools/logutils.c tools/logutils.h \
 	tools/lparse.c tools/lparse.h \
 	tools/test_utils.c tools/test_utils.h \
 	tools/colors.h
+mdo_sources = $(db_wrap_sources) $(common_sources) \
+	mdo/mdo-configuration.c mdo/mdo-configuration.h \
+	mdo/string_utils.c mdo/string_utils.h
 
 merlind_SOURCES = $(daemon_sources) \
 	daemon/daemon.c daemon/daemon.h \
 	daemon/merlind.c
 merlin_la_SOURCES = $(module_sources)
+mdo_la_SOURCES = $(mdo_sources) \
+	mdo/db_updater.c mdo/db_updater.h \
+	mdo/module.c
 showlog_SOURCES = $(app_sources) \
 	tools/showlog.c \
 	tools/auth.c tools/auth.h
 showlog_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
 showlog_LDADD = $(naemon_LIBS) $(AM_LDADD)
-import_SOURCES = $(app_sources) tools/import.c $(db_wrap_sources)
-import_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
+import_SOURCES = tools/import.c tools/test_utils.c tools/logutils.c daemon/state.c tools/lparse.c $(mdo_sources)
+import_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/mdo -I$(srcdir)/daemon
 import_LDADD = $(naemon_LIBS) $(AM_LDADD)
-oconf_SOURCES = tools/oconf.c module/sha1.c module/misc.c shared/shared.c shared/shared.h shared/logging.c shared/logging.h
+oconf_SOURCES = tools/oconf.c module/sha1.c module/misc.c $(mdo_sources)
 oconf_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module
 oconf_LDADD = $(naemon_LIBS) $(AM_LDADD)
-ocimp_SOURCES = $(shared_sources) $(db_wrap_sources) \
+ocimp_SOURCES = $(mdo_sources) \
 	tools/ocimp.c tools/ocimp.h \
 	tools/test_utils.c tools/test_utils.h \
 	module/sha1.c module/sha1.h \
 	tools/slist.c tools/slist.h
-ocimp_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon -I$(srcdir)/module
+ocimp_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module -I$(srcdir)/mdo
 ocimp_LDADD = $(naemon_LIBS) $(AM_LDADD)
-rename_SOURCES = $(app_sources) tools/rename.c $(db_wrap_sources)
-rename_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
+rename_SOURCES = tools/rename.c $(mdo_sources) tools/logutils.c tools/test_utils.c tools/lparse.c
+rename_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/mdo
 rename_LDADD = $(naemon_LIBS) $(AM_LDADD)
 
 check_PROGRAMS = $(TESTS) test-dbwrap
-TESTS = sltest test-csync test-lparse hooktest stringutilstest showlogtest bltest codectest
+TESTS = sltest test-csync test-lparse hooktest stringutilstest showlogtest bltest codectest mdotest
 
 sltest_SOURCES = tests/sltest.c tools/test_utils.c tools/slist.c tools/slist.h
 sltest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools
@@ -172,8 +179,8 @@ test_lparse_LDADD = $(naemon_LIBS)
 hooktest_SOURCES = tests/test-hooks.c shared/cfgfile.c shared/shared.c shared/logging.c shared/dlist.c shared/io.c shared/node.c shared/codec.c shared/binlog.c module/misc.c module/sha1.c tools/test_utils.c module/oconfsplit.c shared/configuration.c module/queries.c
 hooktest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module -I$(srcdir)/tools $(check_CFLAGS)
 hooktest_LDADD = $(naemon_LIBS) $(check_LIBS)
-stringutilstest_SOURCES = tests/test-stringutils.c tools/test_utils.c daemon/string_utils.c
-stringutilstest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools -I$(srcdir)/daemon
+stringutilstest_SOURCES = tests/test-stringutils.c tools/test_utils.c mdo/string_utils.c
+stringutilstest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools -I$(srcdir)/mdo
 showlogtest_SOURCES = tests/test-showlog.c $(app_sources)
 showlogtest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools -I$(srcdir)/daemon  $(check_CFLAGS)
 showlogtest_LDADD = $(naemon_LIBS) $(check_LIBS)
@@ -182,11 +189,14 @@ bltest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools
 codectest_SOURCES = tests/codectest.c shared/codec.c shared/logging.h shared/shared.c
 codectest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/shared $(check_CFLAGS)
 codectest_LDADD = $(naemon_LIBS) $(check_LIBS)
+mdotest_SOURCES = tests/test-mdo.c $(mdo_sources)
+mdotest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/mdo
+mdotest_LDADD = $(naemon_LIBS) $(check_LIBS)
 
 # So, it turns out that this test isn't actually a test that has ever executed
 # It's just a binary that could be used for writing tests against. I give up :(
-test_dbwrap_SOURCES = tests/test-dbwrap.c $(db_wrap_sources) $(shared_sources)
-test_dbwrap_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
+test_dbwrap_SOURCES = tests/test-dbwrap.c $(mdo_sources)
+test_dbwrap_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/mdo
 test_dbwrap_LDADD = $(naemon_LIBS) $(AM_LDADD)
 
 install-exec-hook:

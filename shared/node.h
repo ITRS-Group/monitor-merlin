@@ -46,7 +46,6 @@
 #define CTRL_PULSE    1 /* keep-alive signal */
 #define CTRL_INACTIVE 2 /* signals that a slave went offline */
 #define CTRL_ACTIVE   3 /* signals that a slave went online */
-#define CTRL_PATHS    4 /* body contains paths to import */
 #define CTRL_STALL    5 /* signal that we can't accept events for a while */
 #define CTRL_RESUME   6 /* now we can accept events again */
 #define CTRL_STOP     7 /* exit() immediately (only accepted via ipc) */
