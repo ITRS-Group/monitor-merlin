@@ -1,0 +1,107 @@
+#include "logging.h"
+#include "ipc.h"
+
+static const char *config_key_expires(const char *var)
+{
+	if (!strcmp(var, "ipc_debug_write"))
+		return "2011-05";
+	if (!strcmp(var, "ipc_debug_read"))
+		return "2011-05";
+
+	return NULL;
+}
+
+/*
+ * Parse config sync options.
+ *
+ * This is used for each node and also in the daemon compound
+ */
+int grok_confsync_compound(struct cfg_comp *comp, merlin_confsync *csync)
+{
+	unsigned i;
+
+	if (!comp || !csync) {
+		return -1;
+	}
+
+	/*
+	 * first we reset it. An empty compound in the configuration
+	 * means "reset the defaults and don't bother syncing this
+	 * server automagically"
+	 */
+	memset(csync, 0, sizeof(*csync));
+	for (i = 0; i < comp->vars; i++) {
+		struct cfg_var *v = comp->vlist[i];
+		if (!strcmp(v->key, "push")) {
+			csync->push.cmd = strdup(v->value);
+			continue;
+		}
+		if (!strcmp(v->key, "fetch") || !strcmp(v->key, "pull")) {
+			csync->fetch.cmd = strdup(v->value);
+			continue;
+		}
+		/*
+		 * we ignore additional variables here, since the
+		 * config sync script may want to add additional
+		 * stuff to handle
+		 */
+	}
+
+	return 0;
+}
+
+static int grok_binlog_var(const char *key, const char *value)
+{
+	if (!strcmp(key, "binlog_dir")) {
+		if (binlog_dir != NULL)
+			free(binlog_dir);
+		binlog_dir = strdup(value);
+		return 1;
+	}
+
+	return 0;
+}
+
+int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
+{
+	const char *expires;
+
+	if (!strcmp(v->key, "pulse_interval")) {
+		pulse_interval = (unsigned)strtoul(v->value, NULL, 10);
+		if (!pulse_interval) {
+			cfg_warn(config, v, "Illegal pulse_interval. Using default.");
+			pulse_interval = 10;
+		}
+		return 1;
+	}
+
+	expires = config_key_expires(v->key);
+	if (expires) {
+		cfg_warn(config, v, "'%s' is a deprecated variable, scheduled for "
+			 "removal at the first release after %s", v->key, expires);
+		/* it's understood, in a way */
+		return 1;
+	}
+
+	if (!prefixcmp(v->key, "ipc_")) {
+		if (!ipc_grok_var(v->key, v->value))
+			cfg_error(config, v, "Failed to grok IPC option");
+
+		return 1;
+	}
+
+	if (!prefixcmp(v->key, "log_") || !strcmp(v->key, "use_syslog")) {
+		if (!log_grok_var(v->key, v->value))
+			cfg_error(config, v, "Failed to grok logging option");
+
+		return 1;
+	}
+
+	if (!prefixcmp(v->key, "binlog_")) {
+		if (!grok_binlog_var(v->key, v->value))
+			cfg_error(config, v, "Failed to grok binlog option");
+
+		return 1;
+	}
+	return 0;
+}

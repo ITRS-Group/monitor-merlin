@@ -102,7 +102,8 @@ shared_sources = $(common_sources) \
 	shared/io.c shared/io.h \
 	shared/node.c shared/node.h \
 	shared/codec.c shared/codec.h \
-	shared/binlog.c shared/binlog.h
+	shared/binlog.c shared/binlog.h \
+	shared/configuration.c shared/configuration.h
 
 db_wrap_sources = daemon/sql.c daemon/sql.h daemon/db_wrap.c daemon/db_wrap.h
 if HAVE_LIBDBI
@@ -169,7 +170,7 @@ test_lparse_SOURCES = tests/test-lparse.c tools/lparse.c tools/logutils.c tools/
 test_lparse_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools
 test_lparse_CPPFLAGS = $(AM_CPPFLAGS)
 test_lparse_LDADD = $(naemon_LIBS)
-hooktest_SOURCES = tests/test-hooks.c shared/cfgfile.c shared/shared.c shared/logging.c shared/dlist.c shared/io.c shared/node.c shared/codec.c shared/binlog.c module/misc.c module/sha1.c tools/test_utils.c module/oconfsplit.c
+hooktest_SOURCES = tests/test-hooks.c shared/cfgfile.c shared/shared.c shared/logging.c shared/dlist.c shared/io.c shared/node.c shared/codec.c shared/binlog.c module/misc.c module/sha1.c tools/test_utils.c module/oconfsplit.c shared/configuration.c
 hooktest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module -I$(srcdir)/tools $(check_CFLAGS)
 hooktest_LDADD = $(naemon_LIBS) $(check_LIBS)
 stringutilstest_SOURCES = tests/test-stringutils.c tools/test_utils.c daemon/string_utils.c

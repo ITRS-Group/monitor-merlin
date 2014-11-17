@@ -30,6 +30,7 @@
 #include "ipc.h"
 #include "cfgfile.h"
 #include "binlog.h"
+#include "configuration.h"
 #include <naemon/naemon.h>
 
 /*
@@ -178,8 +179,6 @@ extern void bt_scan(const char *mark, int count);
 extern const char *human_bytes(unsigned long long n);
 extern int merlin_set_socket_options(int sd, int beefup_buffers);
 extern char *next_word(char *str);
-extern int grok_confsync_compound(struct cfg_comp *comp, merlin_confsync *csync);
-extern int grok_common_var(struct cfg_comp *config, struct cfg_var *v);
 extern const char *callback_name(int id);
 extern int callback_id(const char *orig_name);
 extern const char *ctrl_name(uint code);
