@@ -7,7 +7,6 @@
 
 #include "shared.h"
 #include "net.h"
-#include "status.h"
 #include "sql.h"
 
 extern int use_database;

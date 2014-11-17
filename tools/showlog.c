@@ -6,7 +6,7 @@
 #include "lparse.h"
 #include "logutils.h"
 #include "auth.h"
-#include "status.h"
+#include "state.h"
 
 #define MAX_NVECS 16
 #define HASH_TABLE_SIZE 128

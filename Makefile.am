@@ -119,7 +119,6 @@ module_sources = $(shared_sources) \
 	module/oconfsplit.c module/oconfsplit.h \
 	shared/pgroup.c shared/pgroup.h
 daemon_sources = $(shared_sources) $(db_wrap_sources) \
-	daemon/status.c daemon/status.h \
 	daemon/daemonize.c daemon/daemonize.h \
 	daemon/net.c daemon/net.h \
 	daemon/db_updater.c daemon/db_updater.h \
