@@ -5,32 +5,8 @@
 #ifndef INCLUDE_shared_h__
 #define INCLUDE_shared_h__
 
-/** common include files required practically everywhere **/
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <netinet/in.h>
-#include <sys/types.h>
 #include <time.h>
-#include <sys/time.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <dirent.h>
-#include <sys/param.h>
-#include <ctype.h>
-
-#include "logging.h"
-#include "compat.h"
-#include "node.h"
-#include "io.h"
-#include "ipc.h"
-#include "cfgfile.h"
-#include "binlog.h"
-#include "configuration.h"
+#include <stdlib.h>
 #include <naemon/naemon.h>
 
 /*
@@ -79,16 +55,7 @@ extern char *binlog_dir;
 extern char *merlin_config_file;
 
 
-#define num_masters self->configured_masters
-#define num_peers self->configured_peers
-#define num_pollers self->configured_pollers
-#define num_nodes (num_masters + num_pollers + num_peers)
-#define online_masters self->active_masters
-#define online_peers self->active_peers
-#define online_pollers self->active_pollers
-#define online_nodes (online_masters + online_pollers + online_peers)
 extern int use_database;
-extern merlin_nodeinfo *self;
 
 struct strvec {
 	unsigned int entries;
@@ -184,5 +151,4 @@ extern int callback_id(const char *orig_name);
 extern const char *ctrl_name(uint code);
 extern const char *node_state_name(int state);
 extern const char *tv_delta(const struct timeval *start, const struct timeval *stop);
-extern int dump_nodeinfo(merlin_node *n, int sd, int instance_id);
 #endif

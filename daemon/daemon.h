@@ -5,9 +5,7 @@
 #ifndef INCLUDE_daemon_h__
 #define INCLUDE_daemon_h__
 
-#include "shared.h"
-#include "net.h"
-#include "sql.h"
+#include "node.h"
 
 extern int use_database;
 extern int db_log_reports;

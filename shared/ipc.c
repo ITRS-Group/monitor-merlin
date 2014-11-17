@@ -1,4 +1,11 @@
+#include <arpa/inet.h>
+#include <string.h>
+
 #include "shared.h"
+#include "logging.h"
+#include "ipc.h"
+#include "io.h"
+#include "node.h"
 
 static int listen_sock = -1; /* for bind() and such */
 static char *ipc_sock_path;

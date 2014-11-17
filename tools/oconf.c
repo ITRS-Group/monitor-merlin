@@ -1,5 +1,7 @@
+#include <string.h>
 #include "module.h"
 #include "misc.h"
+#include "shared.h"
 
 /*
  * the code in misc.c expects this to be a global variable. Yes, that's
@@ -8,29 +10,6 @@
  * that functionality, so it's not, strictly speaking, necessary.
  */
 char *config_file = NULL;
-
-/*
- * converts an arbitrarily long string of data into its
- * hexadecimal representation
- */
-char *tohex(const unsigned char *data, int len)
-{
-	/* number of bufs must be a power of 2 */
-	static char bufs[4][41], hex[] = "0123456789abcdef";
-	static int bufno;
-	char *buf;
-	int i;
-
-	buf = bufs[bufno & (ARRAY_SIZE(bufs) - 1)];
-	for (i = 0; i < 20 && i < len; i++) {
-		unsigned int val = *data++;
-		*buf++ = hex[val >> 4];
-		*buf++ = hex[val & 0xf];
-	}
-	*buf = '\0';
-
-	return bufs[bufno++ & (ARRAY_SIZE(bufs) - 1)];
-}
 
 #define CMD_HASH 1
 #define CMD_LAST_CHANGE 2

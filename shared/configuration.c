@@ -1,5 +1,6 @@
 #include "logging.h"
 #include "ipc.h"
+#include "shared.h"
 
 static const char *config_key_expires(const char *var)
 {

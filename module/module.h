@@ -11,7 +11,6 @@
 #endif
 
 #include "node.h"
-#include "shared.h"
 #include <naemon/naemon.h>
 
 typedef struct file_list {

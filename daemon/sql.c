@@ -1,7 +1,10 @@
+#include "sql.h"
 #include "daemon.h"
 #include "logging.h"
-
+#include "shared.h"
+#include <assert.h>
 #include <stdio.h> /* debuggering only. */
+#include <string.h>
 
 /* where to (optionally) stash performance data */
 char *host_perf_table = NULL;

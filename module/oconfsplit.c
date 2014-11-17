@@ -1,5 +1,7 @@
 #include "shared.h"
 #include "misc.h"
+#include "logging.h"
+#include "ipc.h"
 #include <naemon/naemon.h>
 #include <string.h>
 #include <stdarg.h>

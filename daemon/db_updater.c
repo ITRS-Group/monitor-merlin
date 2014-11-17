@@ -1,6 +1,8 @@
 #include "codec.h"
 #include "daemon.h"
 #include "string_utils.h"
+#include "ipc.h"
+#include "sql.h"
 #include <naemon/naemon.h>
 
 #define STATUS_QUERY(type) \

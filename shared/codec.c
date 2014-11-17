@@ -1,5 +1,6 @@
 #include "shared.h"
 #include "codec.h"
+#include <string.h>
 
 /**
  * Conversion table to encode and decode data-structs sent from

@@ -1,8 +1,16 @@
 #include <netdb.h>
 #include <sys/select.h>
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
 #include "daemon.h"
 #include "db_updater.h"
+#include "logging.h"
+#include "io.h"
+#include "ipc.h"
+#include "net.h"
 
 #define MERLIN_CONNECT_TIMEOUT 20 /* the (hardcoded) connect timeout we use */
 #define MERLIN_CONNECT_INTERVAL 5 /* connect interval */

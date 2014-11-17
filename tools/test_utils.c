@@ -1,6 +1,8 @@
 #include "shared.h"
 #include "colors.h"
 #include "test_utils.h"
+#include <stdarg.h>
+#include <string.h>
 
 const char *cyan = "", *red = "", *green = "", *yellow = "", *reset = "";
 uint passed, failed, t_verbose = 0;

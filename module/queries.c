@@ -1,6 +1,10 @@
+#include "shared.h"
 #include "module.h"
 #include "dlist.h"
+#include "logging.h"
+#include "ipc.h"
 #include <naemon/naemon.h>
+#include <string.h>
 
 static int dump_cbstats(merlin_node *n, int sd)
 {

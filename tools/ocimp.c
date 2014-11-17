@@ -1,6 +1,12 @@
 #define OCIMP 1
 #include <stdio.h>
 #include <sys/mman.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <string.h>
+#include <limits.h>
 #include "cfgfile.h"
 #include "db_wrap.h"
 #include "sql.h"
@@ -8,6 +14,7 @@
 #include "shared.h"
 #include "sha1.h"
 #include "ocimp.h"
+#include "logging.h"
 #include <naemon/naemon.h>
 
 #ifdef __GLIBC__

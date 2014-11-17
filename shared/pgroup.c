@@ -4,6 +4,7 @@
 #include "pgroup.h"
 #include "node.h"
 #include "ipc.h"
+#include "shared.h"
 
 /* Tables to locate the correct peer-group by object id */
 static merlin_peer_group **host_id2pg;

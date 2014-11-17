@@ -1,9 +1,21 @@
 #include <signal.h>
-#include "sql.h"
+#include <stdarg.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "daemonize.h"
 #include "daemon.h"
 #include "db_updater.h"
 #include "config.h"
+#include "logging.h"
+#include "ipc.h"
+#include "configuration.h"
+#include "net.h"
+#include "sql.h"
+#include "state.h"
+#include "shared.h"
 
 static const char *progname;
 static const char *pidfile, *merlin_user;

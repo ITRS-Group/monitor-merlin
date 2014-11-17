@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <stdint.h>
 #include <naemon/naemon.h>
 #include "shared.h"
 #include "colors.h"

@@ -1,4 +1,11 @@
 #include "shared.h"
+#include "configuration.h"
+#include "logging.h"
+#include "ipc.h"
+#include "io.h"
+#include "compat.h"
+#include <arpa/inet.h>
+#include <string.h>
 #include <netdb.h>
 
 static time_t stall_start;

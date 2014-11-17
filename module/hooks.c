@@ -14,6 +14,8 @@
 #include "node.h"
 #include "module.h"
 #include "codec.h"
+#include "ipc.h"
+#include <string.h>
 #include <naemon/naemon.h>
 
 static nebstruct_comment_data *block_comment;

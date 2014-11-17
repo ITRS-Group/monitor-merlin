@@ -3,7 +3,7 @@
 
 #include <unistd.h>
 #include <sys/un.h>
-#include "shared.h"
+#include "node.h"
 
 #ifndef UNIX_PATH_MAX
 # define UNIX_PATH_MAX 108

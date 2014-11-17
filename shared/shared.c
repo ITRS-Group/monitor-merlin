@@ -1,7 +1,11 @@
 #include <stdio.h>
-#include "logging.h"
+#include <string.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "shared.h"
-#include "ipc.h"
+#include "logging.h"
+#include "node.h"
 
 /** global variables present in both daemon and module **/
 int debug = 0;  /* doesn't actually do anything right now */
@@ -12,17 +16,12 @@ char *merlin_config_file = NULL;
 merlin_nodeinfo *self = NULL;
 char *binlog_dir = NULL;
 
-#ifndef ISSPACE
-# define ISSPACE(c) (c == ' ' || c == '\t')
-#endif
-
-
 char *next_word(char *str)
 {
-	while (!ISSPACE(*str) && *str != 0)
+	while (!isblank(*str) && *str != 0)
 		str++;
 
-	while (ISSPACE(*str) || *str == ',')
+	while (isblank(*str) || *str == ',')
 		str++;
 
 	if (*str)

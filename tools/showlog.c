@@ -7,6 +7,7 @@
 #include "logutils.h"
 #include "auth.h"
 #include "state.h"
+#include "cfgfile.h"
 
 #define MAX_NVECS 16
 #define HASH_TABLE_SIZE 128

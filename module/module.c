@@ -1,6 +1,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <naemon/naemon.h>
+#include "ipc.h"
+#include "configuration.h"
+#include "compat.h"
 #include "module.h"
 #include "misc.h"
 #include "dlist.h"

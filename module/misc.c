@@ -1,8 +1,15 @@
+#include "shared.h"
 #include "misc.h"
 #include "sha1.h"
 #include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <string.h>
+#include <dirent.h>
+#include <fcntl.h>
 #include <naemon/naemon.h>
 #include <libgen.h>
+#include <ctype.h>
 
 /* does a deep free of a file_list struct */
 void file_list_free(struct file_list *list)

@@ -238,6 +238,16 @@ typedef struct merlin_node merlin_node;
 
 #define node_table noc_table
 extern merlin_node **noc_table, **peer_table, **poller_table;
+extern merlin_nodeinfo *self;
+
+#define num_masters self->configured_masters
+#define num_peers self->configured_peers
+#define num_pollers self->configured_pollers
+#define num_nodes (num_masters + num_pollers + num_peers)
+#define online_masters self->active_masters
+#define online_peers self->active_peers
+#define online_pollers self->active_pollers
+#define online_nodes (online_masters + online_pollers + online_peers)
 
 extern node_selection *node_selection_by_name(const char *name);
 extern char *get_sel_name(int index);
@@ -259,6 +269,7 @@ extern void node_set_state(merlin_node *node, int state, const char *reason);
 extern int node_ctrl(merlin_node *node, int code, uint selection, void *data, uint32_t len);
 extern merlin_node *node_by_id(uint id);
 int handle_ctrl_active(merlin_node *node, merlin_event *pkt);
+int dump_nodeinfo(merlin_node *n, int sd, int instance_id);
 
 /*
  * we make these inlined rather than macros so the compiler

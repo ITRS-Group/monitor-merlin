@@ -1,6 +1,8 @@
 #include "logging.h"
 #include "shared.h"
 
+#include <string.h>
+
 static FILE *merlin_log_fp;
 static char *merlin_log_file;
 static int log_to_syslog = 0;

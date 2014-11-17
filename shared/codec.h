@@ -1,8 +1,10 @@
-#include "logging.h"
-#include "shared.h"
-
 #ifndef INCLUDE_codec_h__
 #define INCLUDE_codec_h__
+
+#include "logging.h"
+#include "shared.h"
+#include "node.h"
+#include <naemon/naemon.h>
 
 int merlin_encode(void *data, int cb_type, char *buf, int buflen);
 int merlin_decode(void *ds, off_t len, int cb_type);

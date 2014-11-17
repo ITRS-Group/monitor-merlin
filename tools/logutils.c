@@ -1,5 +1,8 @@
 #include "shared.h"
 #include "logutils.h"
+#include <sys/types.h>
+#include <dirent.h>
+#include <stdarg.h>
 
 /* stubs required for linking */
 int ipc_grok_var(__attribute__((unused)) char *var, __attribute__((unused)) char *val) { return 0; }
