@@ -159,63 +159,6 @@ int grok_seconds(const char *p, long *result)
 
 
 /*
- * Returns an ISO 8601 formatted date string (YYYY-MM-DD HH:MM:SS.UUU)
- * with the desired precision.
- * Semi-threadsafe since we round-robin rotate between two buffers for
- * the return value
- */
-const char *isotime(struct timeval *tv, int precision)
-{
-	static char buffers[2][32];
-	static int bufi = 0;
-	struct timeval now;
-	struct tm tm;
-	char *buf;
-	int bufsize;
-	size_t len;
-
-	bufsize = sizeof(buffers[0]) - 1;
-
-	if (!tv) {
-		gettimeofday(&now, NULL);
-		tv = &now;
-	}
-
-	buf = buffers[bufi++ % ARRAY_SIZE(buffers)];
-	localtime_r(&tv->tv_sec, &tm);
-
-	switch (precision) {
-	case ISOTIME_PREC_YEAR:
-		len = strftime(buf, sizeof(buffers[0]) - 1, "%Y", &tm);
-		break;
-	case ISOTIME_PREC_MONTH:
-		len = strftime(buf, sizeof(buffers[0]) - 1, "%Y-%m", &tm);
-		break;
-	case ISOTIME_PREC_DAY:
-		len = strftime(buf, sizeof(buffers[0]) - 1, "%F", &tm);
-		break;
-	case ISOTIME_PREC_HOUR:
-		len = strftime(buf, sizeof(buffers[0]) - 1, "%F %H", &tm);
-		break;
-	case ISOTIME_PREC_MINUTE:
-		len = strftime(buf, sizeof(buffers[0]) - 1, "%F %H:%M", &tm);
-		break;
-	case ISOTIME_PREC_SECOND:
-	case ISOTIME_PREC_USECOND:
-	default: /* second precision is the default */
-		len = strftime(buf, sizeof(buffers[0]) - 1, "%F %H:%M:%S", &tm);
-		break;
-	}
-
-	if (precision != ISOTIME_PREC_USECOND)
-		return buf;
-	snprintf(&buf[len], bufsize - len, ".%4lu", (unsigned long)tv->tv_usec);
-
-	return buf;
-}
-
-
-/*
  * converts an arbitrarily long string of data into its
  * hexadecimal representation
  */
