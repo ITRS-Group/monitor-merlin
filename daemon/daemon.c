@@ -29,7 +29,6 @@ static int killing;
 static int user_sig;
 int db_log_reports = 1;
 int db_log_notifications = 1;
-int db_track_current = 0;
 static merlin_nodeinfo merlind;
 static int merlind_sig;
 
@@ -59,20 +58,6 @@ static void usage(char *fmt, ...)
 	exit(1);
 }
 
-void db_mark_node_inactive(merlin_node *node)
-{
-	int node_id;
-
-	if (!use_database || !db_track_current)
-		return;
-
-	node_id = node == &ipc ? 0 : node->id + 1;
-	sql_query("UPDATE program_status "
-	          "SET is_running = 0 "
-	          "WHERE instance_id = %d",
-	          node_id);
-}
-
 /* node connect/disconnect handlers */
 static int node_action_handler(merlin_node *node, int prev_state)
 {
@@ -84,7 +69,6 @@ static int node_action_handler(merlin_node *node, int prev_state)
 
 		/* only send INACTIVE if we haven't already */
 		if (prev_state == STATE_CONNECTED) {
-			db_mark_node_inactive(node);
 			ldebug("Sending IPC control INACTIVE for '%s'", node->name);
 			return ipc_send_ctrl(CTRL_INACTIVE, node->id);
 		}
@@ -99,11 +83,6 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 
 	switch (node->state) {
 	case STATE_CONNECTED:
-		if (db_track_current && sql_is_connected(1)) {
-			sql_query("UPDATE program_status SET "
-			          "is_running = 1, last_alive = %lu "
-			          "WHERE instance_id = 0", time(NULL));
-		}
 		break;
 
 	case STATE_PENDING:
@@ -112,9 +91,6 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 		/* if ipc wasn't connected before, we return early */
 		if (prev_state != STATE_CONNECTED)
 			return 0;
-
-		/* make sure the gui knows the module isn't running any more */
-		db_mark_node_inactive(&ipc);
 
 		/* also tell our peers and masters */
 		for (i = 0; i < num_masters + num_peers; i++) {
@@ -183,7 +159,7 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 				} else if (!prefixcmp(v->key, "log_notification")) {
 					db_log_notifications = strtobool(v->value);
 				} else if (!prefixcmp(v->key, "track_current")) {
-					db_track_current = strtobool(v->value);
+					cfg_warn(c, v, "'%s' has been removed", v->key);
 				} else if (!strcmp(v->key, "enabled")) {
 					use_database = strtobool(v->value);
 				} else {
@@ -428,7 +404,7 @@ static void run_program(char *what, char *cmd, int *prog_id)
  * import objects and status from objects.cache and status.log,
  * respecively
  */
-static int import_objects_and_status(char *cfg, char *cache, char *status)
+static int import_objects_and_status(char *cfg, char *cache)
 {
 	char *cmd;
 	int result = 0;
@@ -456,12 +432,6 @@ static int import_objects_and_status(char *cfg, char *cache, char *status)
 		char *cmd2 = cmd;
 		asprintf(&cmd, "%s --cache='%s'", cmd2, cache);
 		free(cmd2);
-
-		if (db_track_current && status && *status) {
-			cmd2 = cmd;
-			asprintf(&cmd, "%s --status-log='%s'", cmd2, status);
-			free(cmd2);
-		}
 	}
 
 	if (sql_db_port()) {
@@ -505,7 +475,7 @@ static int read_nagios_paths(merlin_event *pkt)
 		offset += strlen(npath[i]) + 1;
 	}
 
-	import_objects_and_status(npath[0], npath[1], npath[2]);
+	import_objects_and_status(npath[0], npath[1]);
 	free(nagios_paths_arena);
 
 	return 0;
@@ -1038,20 +1008,6 @@ int merlind_main(int argc, char **argv)
 	signal(SIGUSR2, sigusr_handler);
 
 	sql_init();
-	if (use_database && db_track_current) {
-		sql_query("TRUNCATE TABLE program_status");
-		sql_query("INSERT INTO program_status(instance_id, instance_name, is_running) "
-		          "VALUES(0, 'Local Nagios daemon', 0)");
-		for (i = 0; i < (int)num_nodes; i++) {
-			char *node_name;
-			merlin_node *node = noc_table[i];
-
-			sql_quote(node->name, &node_name);
-			sql_query("INSERT INTO program_status(instance_id, instance_name, is_running) "
-			          "VALUES(%d, %s, 0)", node->id + 1, node_name);
-			safe_free(node_name);
-		}
-	}
 	state_init();
 	linfo("Merlin daemon " PACKAGE_VERSION " successfully initialized");
 	polling_loop();

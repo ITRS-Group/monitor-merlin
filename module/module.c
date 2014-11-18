@@ -44,7 +44,6 @@ extern comment *comment_list;
 /** code start **/
 extern hostgroup *hostgroup_list;
 static int merlin_sendpath_interval = MERLIN_SENDPATH_INTERVAL;
-static int db_track_current = 0;
 
 /*
  * the sending node, in case it triggers more
@@ -1027,10 +1026,6 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 			use_database = 1;
 			for (vi = 0; vi < c->vars; vi++) {
 				struct cfg_var *v = c->vlist[vi];
-				if (!prefixcmp(v->key, "track_current")) {
-					db_track_current = strtobool(v->value);
-					continue;
-				}
 				if (!prefixcmp(v->key, "enabled")) {
 					use_database = strtobool(v->value);
 					continue;
@@ -1140,10 +1135,7 @@ int send_paths(void)
 		return 0;
 
 	mac = get_global_macros();
-	if (db_track_current)
-		cache_file = nagios_object_cache;
-	else
-		asprintf(&cache_file, "/%s/timeperiods.cache", temp_path);
+	asprintf(&cache_file, "/%s/timeperiods.cache", temp_path);
 	status_log = nagios_status_log;
 
 	ldebug("config_file: %p; nagios_object_cache: %p; status_log: %p",
@@ -1180,11 +1172,6 @@ int send_paths(void)
 			memcpy(pkt.body + pkt.hdr.len + 1, status_log, strlen(status_log));
 			pkt.hdr.len += strlen(status_log) + 1;
 		}
-	}
-
-	if (!db_track_current) {
-		free(cache_file);
-		cache_file = NULL;
 	}
 
 	/* nul-terminate and include the nul-char */
@@ -1230,32 +1217,30 @@ static int post_config_init(int cb, void *ds)
 	host_expiry_map = calloc(num_objects.hosts, sizeof(timed_event *));
 	service_expiry_map = calloc(num_objects.services, sizeof(timed_event *));
 
-	if (!db_track_current) {
-		char *cache_file = NULL;
-		FILE *fp = NULL;
-		time_t current_time = 0L;
-		unsigned int i;
+	char *cache_file = NULL;
+	FILE *fp = NULL;
+	time_t current_time = 0L;
+	unsigned int i;
 
-		time(&current_time);
+	time(&current_time);
 
-		asprintf(&cache_file, "/%s/timeperiods.cache", temp_path);
+	asprintf(&cache_file, "/%s/timeperiods.cache", temp_path);
 
-		/* open the cache file for writing */
-		fp = fopen(cache_file, "w");
-		if(fp != NULL) {
-			fprintf(fp, "########################################\n");
-			fprintf(fp, "#       MERLIN TIMEPERIOD CACHE FILE\n");
-			fprintf(fp, "#\n");
-			fprintf(fp, "# Created: %s", ctime(&current_time));
-			fprintf(fp, "########################################\n\n");
+	/* open the cache file for writing */
+	fp = fopen(cache_file, "w");
+	if(fp != NULL) {
+		fprintf(fp, "########################################\n");
+		fprintf(fp, "#       MERLIN TIMEPERIOD CACHE FILE\n");
+		fprintf(fp, "#\n");
+		fprintf(fp, "# Created: %s", ctime(&current_time));
+		fprintf(fp, "########################################\n\n");
 
-			/* cache timeperiods */
-			for(i = 0; i < num_objects.timeperiods; i++)
-				fcache_timeperiod(fp, timeperiod_ary[i]);
-			fclose(fp);
-		}
-		free(cache_file);
+		/* cache timeperiods */
+		for(i = 0; i < num_objects.timeperiods; i++)
+			fcache_timeperiod(fp, timeperiod_ary[i]);
+		fclose(fp);
 	}
+	free(cache_file);
 
 	/* only call this function once */
 	neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);

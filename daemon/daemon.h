@@ -10,7 +10,6 @@
 extern int use_database;
 extern int db_log_reports;
 extern int db_log_notifications;
-extern int db_track_current;
 extern void db_mark_node_inactive(merlin_node *node);
 extern void csync_node_active(merlin_node *node);
 

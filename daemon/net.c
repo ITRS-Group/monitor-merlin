@@ -520,7 +520,6 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 		}
 		if (pkt->hdr.code == CTRL_INACTIVE) {
 			ldebug("Module @ %s is INACTIVE", node->name);
-			db_mark_node_inactive(node);
 		}
 	} else if (node->state != STATE_CONNECTED) {
 		/* yeah, sarry, but if yer nat on the list, yer nat gettin' in */
