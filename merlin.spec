@@ -122,6 +122,7 @@ rm -rf %buildroot
 ln -s ../../../../usr/bin/merlind %buildroot/%mod_path/merlind
 ln -s ../../../../%_libdir/merlin/import %buildroot/%mod_path/import
 ln -s ../../../../%_libdir/merlin/ocimp %buildroot/%mod_path/ocimp
+ln -s ../../../../%_libdir/merlin/rename %buildroot/%mod_path/rename
 ln -s ../../../../%_libdir/merlin/showlog %buildroot/%mod_path/showlog
 ln -s ../../../../%_libdir/merlin/merlin.so %buildroot/%mod_path/merlin.so
 ln -s op5 %buildroot/%_bindir/mon
