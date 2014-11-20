@@ -394,8 +394,6 @@ static int pgroup_map_objects(void)
 			hg = find_hostgroup(p);
 			if (!hg) {
 				lerr("Fatal: Hostgroup '%s' not found", p);
-				logit(NSLOG_CONFIG_ERROR, TRUE, "Error: Hostgroup '%s' configured for merlin poller '%s' not found\n",
-					  p, pg->nodes[0]->name);
 				sigshutdown = TRUE;
 				return -1;
 			}
