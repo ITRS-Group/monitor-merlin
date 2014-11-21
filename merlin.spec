@@ -240,6 +240,7 @@ sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon
 %mod_path/import
 %mod_path/showlog
 %mod_path/ocimp
+%mod_path/rename
 %_libdir/merlin/mon
 %_bindir/mon
 %_bindir/op5
