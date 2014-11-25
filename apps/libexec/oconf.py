@@ -660,7 +660,7 @@ def write_hg_list(path, hg_list):
 	print("%s created with %d objects for hostgroup list '%s'" %
 		(path, num_written, ','.join(hg_list)))
 	f.close()
-	os.chmod(tmppath, stat.S_IRUSR | stat.S_IWUSR |  stat.S_IRGRP |  stat.S_IWGRP)
+	os.chmod(tmppath, stat.S_IRUSR | stat.S_IWUSR |  stat.S_IRGRP |  stat.S_IWGRP | stat.S_IROTH)
 	os.rename(tmppath, path)
 	os.utime(path, (last_changed, last_changed))
 
