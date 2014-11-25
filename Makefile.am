@@ -158,7 +158,7 @@ rename_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
 rename_LDADD = $(naemon_LIBS) $(AM_LDADD)
 
 check_PROGRAMS = $(TESTS) test-dbwrap
-TESTS = sltest test-csync test-lparse hooktest stringutilstest showlogtest bltest
+TESTS = sltest test-csync test-lparse hooktest stringutilstest showlogtest bltest codectest
 
 sltest_SOURCES = tests/sltest.c tools/test_utils.c tools/slist.c tools/slist.h
 sltest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools
@@ -179,6 +179,9 @@ showlogtest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools -I$(srcdir)/daemon  $(check_
 showlogtest_LDADD = $(naemon_LIBS) $(check_LIBS)
 bltest_SOURCES = tests/bltest.c shared/binlog.c tools/test_utils.c
 bltest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools
+codectest_SOURCES = tests/codectest.c shared/codec.c shared/logging.h shared/shared.c
+codectest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/shared
+codectest_LDADD = $(naemon_LIBS) $(check_LIBS)
 
 # So, it turns out that this test isn't actually a test that has ever executed
 # It's just a binary that could be used for writing tests against. I give up :(
