@@ -241,7 +241,7 @@ int merlin_encode(void *data, int cb_type, char *buf, int buflen)
 	memcpy(buf, data, offset);
 
 	for(i = 0; i < num_strings; i++) {
-		char *sp;
+		char *sp = NULL;
 
 		/* get the pointer to the real string */
 		memcpy(&sp, (char *)buf + ptrs[i], sizeof(sp));
@@ -254,14 +254,17 @@ int merlin_encode(void *data, int cb_type, char *buf, int buflen)
 		if (buflen <= offset) {
 			lwarn("No space remaining in buffer. Skipping remaining %d strings",
 				  num_strings - i);
+			for (; i < num_strings; i++) {
+				memset(buf + ptrs[i], 0, sizeof(char *));
+			}
 			break;
 		}
 		len = strlen(sp);
 
-		if (len > buflen - offset) {
+		if (len > buflen - offset - 1) {
 			linfo("String is too long (%d bytes, %lu remaining). Truncating",
-				  len, buflen - offset);
-			len = buflen - offset;
+				  len, buflen - offset - 1);
+			len = buflen - offset - 1;
 		}
 
 		/* set the destination pointer */
