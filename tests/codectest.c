@@ -30,7 +30,7 @@ START_TEST(test_encode_serviceevent)
 	ds.host_name = "foo";
 	ds.state.perf_data = "bar";
 	ret = merlin_encode_event(&pkt, (void *)&ds);
-	ck_assert_int_gt(ret, 0);
+	ck_assert(ret > 0);
 	pkt.hdr.len = ret;
 	ret = merlin_decode_event(NULL, &pkt);
 	ck_assert_int_eq(ret, 0);
@@ -62,7 +62,7 @@ START_TEST(test_encode_too_long)
 	ds.state.plugin_output = "This should be truncated away";
 	ds.state.long_plugin_output = "This should be truncated away";
 	ret = merlin_encode_event(&pkt, (void *)&ds);
-	ck_assert_int_gt(ret, 0);
+	ck_assert(ret > 0);
 	pkt.hdr.len = ret;
 	ret = merlin_decode_event(NULL, &pkt);
 	ck_assert_int_eq(ret, 0);
@@ -70,7 +70,7 @@ START_TEST(test_encode_too_long)
 	ck_assert(pkt.body[(128 << 10) - 1] == 0);
 	ck_assert(strcmp(input, out->host_name));
 	ck_assert(!strncmp(input, out->host_name, 120<<10));
-	ck_assert_ptr_eq(NULL, out->service_description);
+	ck_assert(NULL == out->service_description);
 }
 END_TEST
 

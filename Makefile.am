@@ -180,7 +180,7 @@ showlogtest_LDADD = $(naemon_LIBS) $(check_LIBS)
 bltest_SOURCES = tests/bltest.c shared/binlog.c tools/test_utils.c
 bltest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools
 codectest_SOURCES = tests/codectest.c shared/codec.c shared/logging.h shared/shared.c
-codectest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/shared
+codectest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/shared $(check_CFLAGS)
 codectest_LDADD = $(naemon_LIBS) $(check_LIBS)
 
 # So, it turns out that this test isn't actually a test that has ever executed
