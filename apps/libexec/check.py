@@ -277,7 +277,7 @@ def cmd_status(args=False):
 		if info['type'] == 'peer' \
 				and not (int(info.get('connect_time', 0)) + 30 > int(time.time())) \
 				and info.get('self_assigned_peer_id', 0) != info.get('peer_id', 0):
-			print "Warning: Peer id mismatch for %s: self-assigned=%d; real=%d." % (
+			print "Warning: Peer id mismatch for %s: self-assigned=%s; real=%s." % (
 					info['name'],
 					info.get('self_assigned_peer_id', 0),
 					info.get('peer_id', 0))
