@@ -160,7 +160,7 @@ static int insert_host_result(nebstruct_host_check_data *ds)
 		 ") VALUES(%lu, %d, %s, %d, %d, %d, %s)",
 		 db_table,
 		 ds->timestamp.tv_sec, ds->type, host_name, ds->state,
-		 ds->state_type == HARD_STATE, ds->current_attempt,
+		 ds->state_type == HARD_STATE || ds->state == 0, ds->current_attempt,
 		 output);
 
 	free(host_name);
@@ -191,7 +191,7 @@ static int insert_service_result(nebstruct_service_check_data *ds)
 		 db_table,
 		 ds->timestamp.tv_sec, ds->type, host_name,
 		 service_description, ds->state,
-		 ds->state_type == HARD_STATE, ds->current_attempt,
+		 ds->state_type == HARD_STATE || ds->state == 0, ds->current_attempt,
 		 output);
 	free(host_name);
 	free(service_description);
