@@ -37,40 +37,10 @@ static int lines_since_progress, do_progress, list_files;
 static struct timeval import_start;
 static time_t daemon_start, daemon_stop, incremental;
 static int daemon_is_running;
-static uint max_dt_depth, skipped_files;
+static uint skipped_files;
 static int repair_table;
 
-static time_t next_dt_purge; /* when next to purge expired downtime */
-#define DT_PURGE_GRACETIME 300 /* seconds to add to next_dt_purge */
-
 static time_t ltime; /* the timestamp from the current log-line */
-
-static uint dt_start, dt_stop, dt_skip;
-#define dt_depth (dt_start - dt_stop)
-static dkhash_table *host_downtime;
-static dkhash_table *service_downtime;
-static int downtime_id;
-
-struct downtime_entry {
-	int id;
-	int code;
-	char *host;
-	char *service;
-	time_t start;
-	time_t stop;
-	int fixed;
-	time_t duration;
-	time_t started;
-	time_t ended;
-	int purged;
-	int trigger;
-	int slot;
-	struct downtime_entry *next;
-};
-
-#define NUM_DENTRIES 1024
-static struct downtime_entry **dentry;
-static time_t last_downtime_start;
 
 static struct string_code event_codes[] = {
 	add_ignored("Error"),
@@ -201,33 +171,8 @@ static int insert_service_result(nebstruct_service_check_data *ds)
 
 static int sql_insert_downtime(nebstruct_downtime_data *ds)
 {
-	int depth = 0, result;
+	int result;
 	char *host_name, *service_description;
-
-	switch (ds->type) {
-	case NEBTYPE_DOWNTIME_START:
-		/*
-		 * If downtime is starting, it will always be at least
-		 * 1 deep. Since the report UI doesn't care about the
-		 * actual depth but only whether downtime is in effect
-		 * or not we can get away with cheating here.
-		 */
-		depth = 1;
-	case NEBTYPE_DOWNTIME_STOP:
-		break;
-	case NEBTYPE_DOWNTIME_DELETE:
-		/*
-		 * if we're deleting a downtime that hasn't started yet, nothing
-		 * should be added to the database. Otherwise, transform it to a
-		 * NEBTYPE_DOWNTIME_STOP event to mark the downtime as stopped.
-		 */
-		if (ds->start_time > time(NULL))
-			return 0;
-		ds->type = NEBTYPE_DOWNTIME_STOP;
-		break;
-	default:
-		return 0;
-	}
 
 	sql_quote(ds->host_name, &host_name);
 	if (ds->service_description) {
@@ -240,7 +185,7 @@ static int sql_insert_downtime(nebstruct_downtime_data *ds)
 			 "VALUES(%lu, %d, %s, %s, %d)",
 			 db_table,
 			 ds->timestamp.tv_sec, ds->type, host_name,
-			 service_description, depth);
+			 service_description, ds->type == NEBTYPE_DOWNTIME_START);
 		free(service_description);
 	} else {
 		result = sql_query
@@ -248,7 +193,8 @@ static int sql_insert_downtime(nebstruct_downtime_data *ds)
 			 "timestamp, event_type, host_name, downtime_depth)"
 			 "VALUES(%lu, %d, %s, %d)",
 			 db_table,
-			 ds->timestamp.tv_sec, ds->type, host_name, depth);
+			 ds->timestamp.tv_sec, ds->type, host_name,
+			 ds->type == NEBTYPE_DOWNTIME_START);
 	}
 	free(host_name);
 	return result;
@@ -407,18 +353,13 @@ static void enable_indexes(void)
 		   entries, time(NULL) - start);
 }
 
-static int insert_downtime_event(int type, char *host, char *service, int id)
+static int insert_downtime_event(int type, char *host, char *service)
 {
 	nebstruct_downtime_data ds;
 	int result;
 
 	if (!is_interesting_service(host, service))
 		return 0;
-
-	dt_start += type == NEBTYPE_DOWNTIME_START;
-	dt_stop += type == NEBTYPE_DOWNTIME_STOP;
-	if (dt_depth > max_dt_depth)
-		max_dt_depth = dt_depth;
 
 	if (!use_database || only_notifications)
 		return 0;
@@ -429,13 +370,13 @@ static int insert_downtime_event(int type, char *host, char *service, int id)
 	ds.timestamp.tv_sec = ltime;
 	ds.host_name = host;
 	ds.service_description = service;
-	ds.downtime_id = id;
+	ds.downtime_id = 0;
 
 	disable_indexes();
 	result = sql_insert_downtime(&ds);
 	if (result < 0)
-		lp_crash("Failed to insert downtime:\n  type=%d, host=%s, service=%s, id=%d",
-				 type, host, service, id);
+		lp_crash("Failed to insert downtime:\n  type=%d, host=%s, service=%s",
+				 type, host, service);
 
 	return result;
 }
@@ -624,399 +565,15 @@ static int insert_acknowledgement(struct string_code *sc)
 # define insert_acknowledgement(foo) /* nothing */ ;
 #endif
 
-static void dt_print(char *tpc, time_t when, struct downtime_entry *dt)
-{
-	if (!debug_level)
-		return;
-
-	printf("%s: time=%lu started=%lu start=%lu stop=%lu duration=%lu id=%d ",
-		   tpc, when, dt->started, dt->start, dt->stop, dt->duration, dt->id);
-	printf("%s", dt->host);
-	if (dt->service)
-		printf(";%s", dt->service);
-	putchar('\n');
-}
-
-static struct downtime_entry *last_dte;
-static struct downtime_entry *del_dte;
-
-static void remove_downtime(struct downtime_entry *dt);
-static int del_matching_dt(void *data)
-{
-	struct downtime_entry *dt = data;
-
-	if (del_dte->id == dt->id) {
-		dt_print("ALSO", 0, dt);
-		remove_downtime(dt);
-		return DKHASH_WALK_REMOVE;
-	}
-
-	return 0;
-}
-
-static void stash_downtime_command(struct downtime_entry *dt)
-{
-	dt->slot = dt->start % NUM_DENTRIES;
-	dt->next = dentry[dt->slot];
-	dentry[dt->slot] = dt;
-}
-
-static void remove_downtime(struct downtime_entry *dt)
-{
-	if (!is_interesting_service(dt->host, dt->service))
-		return;
-
-	insert_downtime_event(NEBTYPE_DOWNTIME_STOP, dt->host, dt->service, dt->id);
-
-	dt_print("RM_DT", ltime, dt);
-	dt->purged = 1;
-}
-
-static struct downtime_entry *
-dt_matches_command(struct downtime_entry *dt, char *host, char *service)
-{
-	for (; dt; dt = dt->next) {
-		time_t diff;
-
-		if (ltime > dt->stop || ltime < dt->start) {
-			continue;
-		}
-
-		switch (dt->code) {
-		case SCHEDULE_SVC_DOWNTIME:
-			if (service && strcmp(service, dt->service))
-				continue;
-
-			/* fallthrough */
-		case SCHEDULE_HOST_DOWNTIME:
-		case SCHEDULE_HOST_SVC_DOWNTIME:
-			if (strcmp(host, dt->host)) {
-				continue;
-			}
-
-		case SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME:
-		case SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME:
-			/* these two have host set in dt, but
-			 * it will not match all the possible hosts */
-
-			/* fallthrough */
-		case SCHEDULE_HOSTGROUP_HOST_DOWNTIME:
-		case SCHEDULE_HOSTGROUP_SVC_DOWNTIME:
-		case SCHEDULE_SERVICEGROUP_HOST_DOWNTIME:
-		case SCHEDULE_SERVICEGROUP_SVC_DOWNTIME:
-			break;
-		default:
-			lp_crash("dt->code not set properly\n");
-		}
-
-		/*
-		 * Once we get here all the various other criteria have
-		 * been matched, so we need to check if the daemon was
-		 * running when this downtime was supposed to have
-		 * started, and otherwise use the daemon start time
-		 * as the value to diff against
-		 */
-		if (daemon_stop < dt->start && daemon_start > dt->start) {
-			debug("Adjusting dt->start (%lu) to (%lu)\n",
-				  dt->start, daemon_start);
-			dt->start = daemon_start;
-			if (dt->trigger && dt->duration)
-				dt->stop = dt->start + dt->duration;
-		}
-
-		diff = ltime - dt->start;
-		if (diff < 3 || dt->trigger || !dt->fixed)
-			return dt;
-	}
-
-	return NULL;
-}
-
-static struct downtime_entry *
-find_downtime_command(char *host, char *service)
-{
-	int i;
-	struct downtime_entry *shortcut = NULL;
-
-	if (last_dte && last_dte->start == ltime) {
-		shortcut = last_dte;
-//		return last_dte;
-	}
-	for (i = 0; i < NUM_DENTRIES; i++) {
-		struct downtime_entry *dt;
-		dt = dt_matches_command(dentry[i], host, service);
-		if (dt) {
-			if (shortcut && dt != shortcut)
-				if (debug_level)
-					printf("FIND shortcut no good\n");
-			last_dte = dt;
-			return dt;
-		}
-	}
-
-	debug("FIND not\n");
-	return NULL;
-}
-
-static int print_downtime(void *data)
-{
-	struct downtime_entry *dt = (struct downtime_entry *)data;
-
-	dt_print("UNCLOSED", ltime, dt);
-
-	return 0;
-}
-
-static inline void set_next_dt_purge(time_t base, time_t add)
-{
-	if (!next_dt_purge || next_dt_purge > base + add)
-		next_dt_purge = base + add;
-
-	if (next_dt_purge <= ltime)
-		next_dt_purge = ltime + 1;
-}
-
-static inline void mrln_add_downtime(char *host, char *service, int id)
-{
-	struct downtime_entry *dt, *cmd, *old;
-	dkhash_table *the_table;
-
-	if (!is_interesting_service(host, service))
-		return;
-
-	dt = malloc(sizeof(*dt));
-	cmd = find_downtime_command(host, service);
-	if (!cmd) {
-		warn("DT with no ext cmd? %lu %s;%s", ltime, host, service);
-		memset(dt, 0, sizeof(*dt));
-		dt->duration = 7200; /* the default downtime duration in nagios */
-		dt->start = ltime;
-		dt->stop = dt->start + dt->duration;
-	}
-	else
-		memcpy(dt, cmd, sizeof(*dt));
-
-	dt->host = strdup(host);
-	dt->id = id;
-	dt->started = ltime;
-
-	set_next_dt_purge(ltime, dt->duration);
-
-	if (service) {
-		dt->service = strdup(service);
-		the_table = service_downtime;
-	}
-	else {
-		dt->service = NULL;
-		the_table = host_downtime;
-	}
-
-	old = dkhash_get(the_table, dt->host, dt->service);
-	if (old) {
-		dkhash_remove(the_table, old->host, old->service);
-		free(old->host);
-		if (old->service)
-			free(old->service);
-		free(old);
-	}
-	dkhash_insert(the_table, dt->host, dt->service, dt);
-
-	dt_print("IN_DT", ltime, dt);
-	insert_downtime_event(NEBTYPE_DOWNTIME_START, dt->host, dt->service, dt->id);
-}
-
-static time_t last_host_dt_del, last_svc_dt_del;
-static int register_downtime_command(struct string_code *sc, int nvecs)
-{
-	struct downtime_entry *dt;
-	char *start_time, *end_time, *duration = NULL;
-	char *host = NULL, *service = NULL, *fixed, *triggered_by = NULL;
-	time_t foo;
-
-	/*
-	 * this could cause crashes if we let it go on, so
-	 * bail early if we didn't parse enough fields from
-	 * the file.
-	 */
-	if (nvecs < sc->nvecs) {
-		return -1;
-	}
-
-	switch (sc->code) {
-	case DEL_HOST_DOWNTIME:
-		last_host_dt_del = ltime;
-		return 0;
-	case DEL_SVC_DOWNTIME:
-		last_svc_dt_del = ltime;
-		return 0;
-
-	case SCHEDULE_HOST_DOWNTIME:
-		if (strtotimet(strv[5], &foo))
-			duration = strv[4];
-		/* fallthrough */
-	case SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME:
-	case SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME:
-	case SCHEDULE_HOST_SVC_DOWNTIME:
-		host = strv[0];
-		/* fallthrough */
-	case SCHEDULE_HOSTGROUP_HOST_DOWNTIME:
-	case SCHEDULE_HOSTGROUP_SVC_DOWNTIME:
-	case SCHEDULE_SERVICEGROUP_HOST_DOWNTIME:
-	case SCHEDULE_SERVICEGROUP_SVC_DOWNTIME:
-		start_time = strv[1];
-		end_time = strv[2];
-		fixed = strv[3];
-		if (strtotimet(strv[5], &foo))
-			triggered_by = strv[4];
-		if (!duration)
-			duration = strv[5];
-
-		break;
-
-	case SCHEDULE_SVC_DOWNTIME:
-		host = strv[0];
-		service = strv[1];
-		start_time = strv[2];
-		end_time = strv[3];
-		fixed = strv[4];
-		if (strtotimet(strv[6], &foo)) {
-			triggered_by = strv[5];
-			duration = strv[6];
-		}
-		else {
-			duration = strv[5];
-		}
-		break;
-
-	default:
-		lp_crash("Unknown downtime type: %d", sc->code);
-	}
-
-	if (!(dt = calloc(sizeof(*dt), 1)))
-		lp_crash("calloc(%u, 1) failed: %s", (uint)sizeof(*dt), strerror(errno));
-
-	dt->code = sc->code;
-	if (host)
-		dt->host = strdup(host);
-	if (service)
-		dt->service = strdup(service);
-
-	dt->trigger = triggered_by ? !!(*triggered_by - '0') : 0;
-	dt->start = dt->stop = 0;
-	strtotimet(start_time, &dt->start);
-	strtotimet(end_time, &dt->stop);
-
-	/*
-	 * if neither of these is set, we can't use this command,
-	 * so log it as an unknown event and move on. We really
-	 * shouldn't crash here no matter what anyways.
-	 */
-	if (!dt->start && !dt->stop) {
-		devectorize_string(strv, nvecs);
-		warn("No dt->start or dt->stop in: %s", strv[0]);
-		return -1;
-	}
-
-	/*
-	 * sometimes downtime commands can be logged according to
-	 * log version 1, while the log still claims to be version 2.
-	 * Apparently, this happens when using a daemon supporting
-	 * version 2 logging but a downtime command is added that
-	 * follows the version 1 standard.
-	 * As such, we simply ignore the result of the "duration"
-	 * field conversion and just accept that it might not work.
-	 * If it doesn't, we force-set it to 7200, since that's what
-	 * Nagios uses as a default, and we'll need two of duration,
-	 * start_time and end_time in order to make some sense of
-	 * this downtime entry
-	 */
-	if (strtotimet(duration, &dt->duration) < 0)
-		dt->duration = 7200;
-	dt->fixed = *fixed - '0';
-
-	/*
-	 * we know we have a duration and at least one of stop
-	 * and start. Calculate the other if one is missing.
-	 */
-	if (!dt->stop) {
-		dt->stop = dt->start + dt->duration;
-	} else if (!dt->start) {
-		dt->start = dt->stop - dt->duration;
-	}
-
-	/* make sure we're not starting timeperiod in the past */
-	if (dt->start < ltime) {
-		dt->start = ltime;
-		if (dt->stop <= dt->start)
-			return 0;
-
-		/* if fixed, we alter duration. Otherwise we alter 'stop' */
-		if (dt->fixed == 1)
-			dt->duration = dt->stop - dt->start;
-		else
-			dt->stop = dt->start + dt->duration;
-	}
-
-	/*
-	 * ignore downtime scheduled to take place in the future.
-	 * It will be picked up by the module anyways
-	 */
-	if (dt->start > time(NULL)) {
-		free(dt);
-		return 0;
-	}
-
-	if (dt->duration > time(NULL)) {
-		warn("Bizarrely large duration (%lu)", dt->duration);
-	}
-	if (dt->start < ltime) {
-		if (dt->duration && dt->duration > ltime - dt->start)
-			dt->duration -= ltime - dt->start;
-
-		dt->start = ltime;
-	}
-	if (dt->stop < ltime || dt->stop < dt->start)  {
-		/* retroactively scheduled downtime, or just plain wrong */
-		dt->stop = dt->start;
-		dt->duration = 0;
-	}
-
-	if (dt->fixed && dt->duration != dt->stop - dt->start) {
-//		warn("duration doesn't match stop - start: (%lu : %lu)",
-//			 dt->duration, dt->stop - dt->start);
-
-		dt->duration = dt->stop - dt->start;
-	}
-	else if (dt->duration > 86400 * 14) {
-		warn("Oddly long duration: %lu", dt->duration);
-	}
-
-	debug("start=%lu; stop=%lu; duration=%lu; fixed=%d; trigger=%d; host=%s service=%s\n",
-		  dt->start, dt->stop, dt->duration, dt->fixed, dt->trigger, dt->host, dt->service);
-
-	stash_downtime_command(dt);
-	return 0;
-}
-
 static int insert_downtime(struct string_code *sc)
 {
 	int type;
-	struct downtime_entry *dt = NULL;
-	int id = 0;
-	time_t dt_del_cmd;
 	char *host, *service = NULL;
 
 	host = strv[0];
 	if (sc->nvecs == 4) {
 		service = strv[1];
-		dt = dkhash_get(service_downtime, host, service);
 	}
-	else {
-		dt = dkhash_get(host_downtime, host, NULL);
-	}
-
-
-
 	/*
 	 * to stop a downtime we can either get STOPPED or
 	 * CANCELLED. So far, I've only ever seen STARTED
@@ -1031,51 +588,11 @@ static int insert_downtime(struct string_code *sc)
 
 	switch (type) {
 	case NEBTYPE_DOWNTIME_START:
-		if (ltime - last_downtime_start > 1)
-			downtime_id++;
-
-		id = downtime_id;
-		mrln_add_downtime(host, service, id);
-		last_downtime_start = ltime;
+		insert_downtime_event(NEBTYPE_DOWNTIME_START, host, service);
 		break;
 
 	case NEBTYPE_DOWNTIME_STOP:
-		if (!dt) {
-			/*
-			 * this can happen when overlapping downtime entries
-			 * occur, and the start event for the second (or nth)
-			 * downtime starts before the first downtime has had
-			 * a stop event. It basically means we've almost
-			 * certainly done something wrong.
-			 */
-			//printf("no dt. ds.host_name == '%s'\n", ds.host_name);
-			//fprintf(stderr, "CRASHING: %s;%s\n", ds.host_name, ds.service_description);
-			//crash("DOWNTIME_STOP without matching DOWNTIME_START");
-			dt_skip++;
-			return 0;
-		}
-
-		dt_del_cmd = !dt->service ? last_host_dt_del : last_svc_dt_del;
-
-		if ((ltime - dt_del_cmd) > 1 && dt->duration - (ltime - dt->started) > 60) {
-			debug("Short dt duration (%lu) for %s;%s (dt->duration=%lu)\n",
-				   ltime - dt->started, dt->host, dt->service, dt->duration);
-		}
-		if (ltime - dt->started > dt->duration + DT_PURGE_GRACETIME)
-			dt_print("Long", ltime, dt);
-
-		remove_downtime(dt);
-		/*
-		 * Now delete whatever matching downtimes we can find.
-		 * this must be here, or we'll recurse like crazy into
-		 * remove_downtime(), possibly exhausting the stack
-		 * frame buffer
-		 */
-		del_dte = dt;
-		if (!dt->service)
-			dkhash_walk_data(host_downtime, del_matching_dt);
-		else
-			dkhash_walk_data(service_downtime, del_matching_dt);
+		insert_downtime_event(NEBTYPE_DOWNTIME_STOP, host, service);
 		break;
 
 	default:
@@ -1083,58 +600,6 @@ static int insert_downtime(struct string_code *sc)
 	}
 
 	return 0;
-}
-
-static int dt_purged;
-static int purge_expired_dt(void *data)
-{
-	struct downtime_entry *dt = data;
-
-	if (dt->purged) {
-		dt_skip++;
-		return 0;
-	}
-
-	set_next_dt_purge(dt->started, dt->duration);
-
-	if (ltime + DT_PURGE_GRACETIME > dt->stop) {
-		dt_purged++;
-		debug("PURGE %lu: purging expired dt %d (start=%lu; started=%lu; stop=%lu; duration=%lu; host=%s; service=%s",
-			  ltime, dt->id, dt->start, dt->started, dt->stop, dt->duration, dt->host, dt->service);
-		remove_downtime(dt);
-		return DKHASH_WALK_REMOVE;
-	}
-	else {
-		dt_print("PURGED_NOT_TIME", ltime, dt);
-	}
-
-	return 0;
-}
-
-static int purged_downtimes;
-static void purge_expired_downtime(void)
-{
-	int tot_purged = 0;
-
-	next_dt_purge = 0;
-	dt_purged = 0;
-	dkhash_walk_data(host_downtime, purge_expired_dt);
-	if (dt_purged)
-		debug("PURGE %d host downtimes purged", dt_purged);
-	tot_purged += dt_purged;
-	dt_purged = 0;
-	dkhash_walk_data(service_downtime, purge_expired_dt);
-	if (dt_purged)
-		debug("PURGE %d service downtimes purged", dt_purged);
-	tot_purged += dt_purged;
-	if (tot_purged)
-		debug("PURGE total %d entries purged", tot_purged);
-
-	if (next_dt_purge)
-		debug("PURGE next downtime purge supposed to run @ %lu, in %lu seconds",
-			  next_dt_purge, next_dt_purge - ltime);
-
-	purged_downtimes += tot_purged;
 }
 
 static inline void handle_start_event(void)
@@ -1205,9 +670,6 @@ static int parse_line(char *line, uint len)
 	 */
 	if (ltime < incremental)
 		return 0;
-
-	if (next_dt_purge && ltime >= next_dt_purge)
-		purge_expired_downtime();
 
 	while (*ptr == ']' || *ptr == ' ')
 		ptr++;
@@ -1313,11 +775,9 @@ static int parse_line(char *line, uint len)
 		if (nvecs != sc->nvecs) {
 			warn("nvecs discrepancy: %d vs %d (%s)\n", nvecs, sc->nvecs, ptr);
 		}
-		if (sc->code != ACKNOWLEDGE_HOST_PROBLEM &&
-			sc->code != ACKNOWLEDGE_SVC_PROBLEM)
+		if (sc->code == ACKNOWLEDGE_HOST_PROBLEM ||
+			sc->code == ACKNOWLEDGE_SVC_PROBLEM)
 		{
-			register_downtime_command(sc, nvecs);
-		} else {
 			insert_acknowledgement(sc);
 		}
 		break;
@@ -1433,8 +893,7 @@ int main(int argc, char **argv)
 	do_progress = isatty(fileno(stdout));
 
 	strv = calloc(sizeof(char *), MAX_NVECS);
-	dentry = calloc(sizeof(*dentry), NUM_DENTRIES);
-	if (!strv || !dentry)
+	if (!strv)
 		crash("Failed to alloc initial structs");
 
 
@@ -1691,9 +1150,6 @@ int main(int argc, char **argv)
 
 	qsort(nfile, num_nfile, sizeof(*nfile), nfile_cmp);
 
-	host_downtime = dkhash_create(HASH_TABLE_SIZE);
-	service_downtime = dkhash_create(HASH_TABLE_SIZE);
-
 	if (state_init() < 0)
 		crash("Failed to initialize state machinery");
 
@@ -1741,27 +1197,7 @@ int main(int argc, char **argv)
 	}
 
 	ltime = time(NULL);
-	purge_expired_downtime();
 	end_progress();
-
-	if (debug_level) {
-		if (dt_depth) {
-			printf("Unclosed host downtimes:\n");
-			puts("------------------------");
-			dkhash_walk_data(host_downtime, print_downtime);
-			printf("Unclosed service downtimes:\n");
-			puts("---------------------------");
-			dkhash_walk_data(service_downtime, print_downtime);
-
-			printf("dt_depth: %d\n", dt_depth);
-		}
-		printf("purged downtimes: %d\n", purged_downtimes);
-		printf("max simultaneous host downtime hashes: %u\n",
-		       dkhash_num_entries_max(host_downtime));
-		printf("max simultaneous service downtime hashes: %u\n",
-		       dkhash_num_entries_max(service_downtime));
-		printf("max downtime depth: %u\n", max_dt_depth);
-	}
 
 	if (use_database) {
 		if (!only_notifications)
@@ -1772,18 +1208,6 @@ int main(int argc, char **argv)
 
 	if (warnings && debug_level)
 		fprintf(stderr, "Total warnings: %d\n", warnings);
-
-	if (debug_level || dt_start > dt_stop) {
-		uint count;
-		fprintf(stderr, "Downtime data %s\n  started: %d\n  stopped: %d\n  delta  : %d\n  skipped: %d\n",
-		        dt_depth ? "mismatch!" : "consistent", dt_start, dt_stop, dt_depth, dt_skip);
-		if ((count = dkhash_num_entries(host_downtime))) {
-			fprintf(stderr, "host_downtime as %u entries remaining\n", count);
-		}
-		if ((count = dkhash_num_entries(service_downtime))) {
-			fprintf(stderr, "service_downtime has %u entries remaining\n", count);
-		}
-	}
 
 	print_unhandled_events();
 
