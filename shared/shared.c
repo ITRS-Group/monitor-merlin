@@ -6,6 +6,7 @@
 #include "shared.h"
 #include "logging.h"
 #include "node.h"
+#include "configuration.h"
 
 /** global variables present in both daemon and module **/
 int debug = 0;  /* doesn't actually do anything right now */
