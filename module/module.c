@@ -153,8 +153,7 @@ int unexpire_host(struct host *h)
 
 	/* next expiration event is unneeded, remove it */
 	if (host_expiry_map[h->id]) {
-		remove_event(nagios_squeue, host_expiry_map[h->id]);
-		free(host_expiry_map[h->id]);
+		destroy_event(host_expiry_map[h->id]);
 		host_expiry_map[h->id] = NULL;
 	}
 
@@ -176,22 +175,27 @@ int unexpire_service(struct service *s)
 
 	/* next expiration event is unneeded, remove it */
 	if (service_expiry_map[s->id]) {
-		remove_event(nagios_squeue, service_expiry_map[s->id]);
-		free(service_expiry_map[s->id]);
+		destroy_event(service_expiry_map[s->id]);
 		service_expiry_map[s->id] = NULL;
 	}
 
 	return 0;
 }
 
-static int expire_event(struct merlin_expired_check *evt)
+static void expire_event(struct timed_event_properties *evprop)
 {
+	struct merlin_expired_check *evt = (struct merlin_expired_check *)evprop->user_data;
 	time_t last_check = 0, previous_check_time = 0;
 	service *s = NULL;
 	host *h = NULL;
 	struct merlin_expired_check *last;
 	int32_t *last_counter, *this_counter;
 	struct dlist_entry *le;
+
+	if(!(evprop->flags & EVENT_EXEC_FLAG_TIMED)) {
+		free(evt);
+		return;
+	}
 
 	if (evt->type == HOST_CHECK) {
 		h = evt->object;
@@ -246,7 +250,7 @@ static int expire_event(struct merlin_expired_check *evt)
 	if (last && last->node == evt->node) {
 		ldebug("EXPIR:  expired again on same node");
 		free(evt);
-		return 0;
+		return;
 	}
 
 	/* if we have an old event, keep using that list entry */
@@ -256,7 +260,7 @@ static int expire_event(struct merlin_expired_check *evt)
 		(*this_counter)++;
 		le->data = evt;
 		free(last);
-		return 0;
+		return;
 	}
 
 	/*
@@ -266,7 +270,7 @@ static int expire_event(struct merlin_expired_check *evt)
 	if (!le) {
 		lerr("Failed to allocate memory for event expiration.\n");
 		free(evt);
-		return -1;
+		return;
 	}
 
 	expired_events = le;
@@ -277,7 +281,7 @@ static int expire_event(struct merlin_expired_check *evt)
 		expired_hosts[h->id] = le;
 	}
 
-	return 0;
+	return;
 }
 
 void schedule_expiration_event(int type, merlin_node *node, void *obj)
@@ -290,12 +294,12 @@ void schedule_expiration_event(int type, merlin_node *node, void *obj)
 
 	if (type == SERVICE_CHECK) {
 		s = (struct service *)obj;
-		when = service_check_timeout;
+		when = service_check_timeout * 2;
 		if (service_expiry_map[s->id] != NULL)
 			return;
 	} else {
 		h = (struct host *)obj;
-		when = host_check_timeout;
+		when = host_check_timeout * 2;
 		if (host_expiry_map[h->id] != NULL)
 			return;
 	}
@@ -311,8 +315,8 @@ void schedule_expiration_event(int type, merlin_node *node, void *obj)
 	evt->object = obj;
 	evt->node = node;
 	evt->type = type;
-	when += now + (type == HOST_CHECK ? host_check_timeout : service_check_timeout) + node->data_timeout;
-	expiry_evt = schedule_new_event(EVENT_USER_FUNCTION, FALSE, when, FALSE, 0, NULL, FALSE, expire_event, evt, 0);
+	when += node->data_timeout;
+	expiry_evt = schedule_event(when, expire_event, evt);
 	if (type == SERVICE_CHECK) {
 		service_expiry_map[s->id] = expiry_evt;
 	} else {
@@ -1095,13 +1099,11 @@ extern char *config_file;
  * about us. It shouldn't happen, but there are stranger things
  * than random bugs in computer programs.
  */
-static int send_pulse(__attribute__((unused)) void *discard)
+static void send_pulse(struct timed_event_properties *evprop)
 {
-	node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info);
-	schedule_new_event(EVENT_USER_FUNCTION, TRUE,
-	                   time(NULL) + pulse_interval, FALSE,
-	                   0, NULL, FALSE, send_pulse, NULL, 0);
-	return 0;
+	schedule_event(pulse_interval, send_pulse, NULL);
+	if (evprop->flags & EVENT_EXEC_FLAG_TIMED)
+		node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info);
 }
 
 /*
@@ -1266,7 +1268,7 @@ static int post_config_init(int cb, void *ds)
 	 * we know the local host could parse it properly.
 	 * Note that this also sets up the repeating pulse-timer.
 	 */
-	send_pulse(NULL);
+	schedule_event(0, send_pulse, NULL);
 
 	/*
 	 * now we register the hooks we're interested in, avoiding
