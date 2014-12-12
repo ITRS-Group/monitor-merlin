@@ -32,7 +32,7 @@ start ()
 {
 	echo -n "Starting $prog: "
 	if type start-stop-daemon >/dev/null 2>&1; then
-		start-stop-daemon --start --user $user --name $prog --pidfile $pidfile --exec "$BINDIR/$prog" -c "$CONFIG_FILE"
+		start-stop-daemon --start --user $user --name $prog --pidfile $pidfile --exec "$BINDIR/$prog" -- -c "$CONFIG_FILE"
 	else
 		daemon --user=$user "$BINDIR/$prog" -c "$CONFIG_FILE"
 	fi
