@@ -241,7 +241,7 @@ static void expire_event(struct timed_event_properties *evprop)
 		} else {
 			unexpire_host(h);
 		}
-		return 0;
+		return;
 	}
 
 	ldebug("EXPIR:   Event expired. We have an orphan check :'(");

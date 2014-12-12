@@ -43,10 +43,22 @@ int delete_downtime_by_hostname_service_description_start_time_comment(__attribu
 int init_check_result(__attribute__((unused)) check_result *cr) { return 0; }
 int process_external_command2(__attribute__((unused)) int cmd, __attribute__((unused)) time_t entry_time, __attribute__((unused)) char *args) { return 0; }
 int add_new_comment(__attribute__((unused)) int type, __attribute__((unused)) int entry_type, __attribute__((unused)) char *host_name, __attribute__((unused)) char *svc_description, __attribute__((unused)) time_t entry_time, __attribute__((unused)) char *author_name, __attribute__((unused)) char *comment_data, __attribute__((unused)) int persistent, __attribute__((unused)) int source, __attribute__((unused)) int expires, __attribute__((unused)) time_t expire_time, __attribute__((unused)) unsigned long *comment_id) { return 0; }
-timed_event *schedule_new_event(__attribute__((unused)) int event_type, __attribute__((unused)) int high_priority, __attribute__((unused)) time_t run_time, __attribute__((unused)) int recurring, __attribute__((unused)) unsigned long event_interval, __attribute__((unused)) void *timing_func, __attribute__((unused)) int compensate_for_time_change, __attribute__((unused)) void *event_data, __attribute__((unused)) void *event_args, __attribute__((unused)) int event_options) {
-	timed_event *evt = calloc(1, sizeof(timed_event));
-	evt->event_args = event_args;
-	return evt;
+
+void *last_event;
+void *last_user_data;
+
+timed_event *
+schedule_event(__attribute__((unused)) time_t delay, __attribute__((unused)) event_callback callback, void *user_data)
+{
+	last_user_data = user_data;
+	void *res = calloc(1, 1);
+	last_event = res;
+	return res;
+}
+void
+destroy_event(timed_event *event)
+{
+	ck_assert(last_event == event);
 }
 nagios_macros *get_global_macros() { return NULL; }
 void fcache_command(__attribute__((unused)) FILE *fp, __attribute__((unused)) struct command *command) {}
@@ -65,7 +77,6 @@ int neb_deregister_callback(__attribute__((unused)) int callback_type, __attribu
 int qh_register_handler(__attribute__((unused)) const char *name, __attribute__((unused)) const char *description, __attribute__((unused)) unsigned int options, __attribute__((unused)) qh_handler handler) { return 0; }
 int neb_register_callback(__attribute__((unused)) int callback_type, __attribute__((unused)) void *mod_handle, __attribute__((unused)) int priority, __attribute__((unused)) int (*callback_func)(int, void *)) { return 0; }
 const char *notification_reason_name(__attribute__((unused)) unsigned int reason_type) { return NULL; }
-void remove_event(__attribute__((unused)) squeue_t *sq, __attribute__((unused)) timed_event *event) {}
 time_t get_next_service_notification_time(__attribute__((unused)) service *temp_service, __attribute__((unused)) time_t time_t1) {return 0;}
 time_t get_next_host_notification_time(__attribute__((unused)) host *temp_host, __attribute__((unused)) time_t time_t1) {return 0;}
 
@@ -153,6 +164,9 @@ void expiration_teardown()
 	nebmodule_deinit(0, 0);
 }
 
+#define to_timed_event(user_data) \
+	((struct timed_event_properties) {(user_data), last_event, 0, EVENT_EXEC_FLAG_TIMED})
+
 START_TEST(test_callback_host_check)
 {
 	time_t expected_last_check = time(NULL);
@@ -236,7 +250,6 @@ END_TEST
 
 START_TEST(set_clear_svc_expire)
 {
-	int res;
 	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0}},{0}};
 	nebstruct_service_check_data ds = {0,};
 	ds.type = NEBTYPE_SERVICECHECK_ASYNC_PRECHECK;
@@ -244,8 +257,7 @@ START_TEST(set_clear_svc_expire)
 	hook_service_result(&pkt, &ds);
 	ck_assert_msg(service_expiry_map[0] != NULL, "Service sending a precheck should trigger expiration check");
 	ck_assert_msg(expired_services[0] == NULL, "Service precheck should not expire service");
-	res = expire_event(service_expiry_map[0]->event_args);
-	ck_assert_int_eq(0, res);
+	expire_event(&to_timed_event(last_user_data));
 	ck_assert_msg(expired_services[0] != NULL, "Service should become expired after expire_event runs");
 	ck_assert_msg(service_expiry_map[0] == NULL, "Expiring a check should clear expiration check");
 	ds.type = NEBTYPE_SERVICECHECK_PROCESSED;
@@ -268,7 +280,6 @@ END_TEST
 
 START_TEST(set_clear_host_expire)
 {
-	int res;
 	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0}},{0}};
 	nebstruct_host_check_data ds = {0,};
 	ds.type = NEBTYPE_HOSTCHECK_ASYNC_PRECHECK;
@@ -276,8 +287,7 @@ START_TEST(set_clear_host_expire)
 	hook_host_result(&pkt, &ds);
 	ck_assert_msg(host_expiry_map[0] != NULL, "Host sending a precheck should trigger expiration check");
 	ck_assert_msg(expired_hosts[0] == NULL, "Host precheck should not expire host");
-	res = expire_event(host_expiry_map[0]->event_args);
-	ck_assert_int_eq(0, res);
+	expire_event(&to_timed_event(last_user_data));
 	ck_assert_msg(expired_hosts[0] != NULL, "Host should become expired after expire_event runs");
 	ck_assert_msg(host_expiry_map[0] == NULL, "Expiring a check should clear expiration check");
 	ds.type = NEBTYPE_HOSTCHECK_PROCESSED;
@@ -300,7 +310,7 @@ END_TEST
 
 START_TEST(multiple_svc_expire)
 {
-	int res;
+	void *first_user_data;
 	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0}},{0}};
 	nebstruct_service_check_data ds0 = {0,}, ds1 = {0,};
 	ds0.type = NEBTYPE_SERVICECHECK_ASYNC_PRECHECK;
@@ -311,11 +321,11 @@ START_TEST(multiple_svc_expire)
 	ck_assert_msg(service_expiry_map[0] != NULL, "Service sending a precheck should trigger expiration check");
 	ck_assert_msg(service_expiry_map[1] == NULL, "Service sending a precheck should not trigger other expiration checks");
 	ck_assert_msg(expired_services[0] == NULL, "Service precheck should not expire service");
+	first_user_data = last_user_data;
 	hook_service_result(&pkt, &ds1);
 	ck_assert_msg(service_expiry_map[0] != NULL, "Old expiration check should still be around");
 	ck_assert_msg(service_expiry_map[1] != NULL, "New service sending a precheck should trigger expiration check, too");
-	res = expire_event(service_expiry_map[0]->event_args);
-	ck_assert_int_eq(0, res);
+	expire_event(&to_timed_event(first_user_data));
 	ck_assert_msg(expired_services[0] != NULL, "Service should become expired after expire_event runs");
 	ck_assert_msg(service_expiry_map[0] == NULL, "Expiring a check should clear expiration check");
 	ck_assert_msg(service_expiry_map[1] != NULL, "Other services in expiration precheck should not be affected by an expiration");
@@ -326,10 +336,11 @@ START_TEST(multiple_svc_expire)
 	ck_assert_msg(expired_services[0] == NULL, "Service should not be expired after check result comes in");
 	ck_assert_msg(service_expiry_map[1] != NULL, "Other services in expiration precheck should not be affected by an expiration");
 	ck_assert_msg(expired_services[1] == NULL, "Other services in expiration precheck should not be affected by an expiration");
+	first_user_data = last_user_data;
 	ds0.type = NEBTYPE_SERVICECHECK_ASYNC_PRECHECK;
 	hook_service_result(&pkt, &ds0);
-	res = expire_event(service_expiry_map[0]->event_args);
-	res = expire_event(service_expiry_map[1]->event_args);
+	expire_event(&to_timed_event(first_user_data));
+	expire_event(&to_timed_event(last_user_data));
 	ck_assert_msg(expired_services[0] != NULL, "Service should become expired after expire_event runs");
 	ck_assert_msg(expired_services[1] != NULL, "Service should become expired after expire_event runs");
 	ds0.type = NEBTYPE_SERVICECHECK_PROCESSED;
@@ -341,7 +352,7 @@ END_TEST
 
 START_TEST(multiple_host_expire)
 {
-	int res;
+	void *first_user_data;
 	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0}},{0}};
 	nebstruct_host_check_data ds0 = {0,}, ds1 = {0,};
 	ds0.type = NEBTYPE_HOSTCHECK_ASYNC_PRECHECK;
@@ -352,11 +363,11 @@ START_TEST(multiple_host_expire)
 	ck_assert_msg(host_expiry_map[0] != NULL, "Host sending a precheck should trigger expiration check");
 	ck_assert_msg(host_expiry_map[1] == NULL, "Host sending a precheck should not trigger other expiration checks");
 	ck_assert_msg(expired_hosts[0] == NULL, "Host precheck should not expire host");
+	first_user_data = last_user_data;
 	hook_host_result(&pkt, &ds1);
 	ck_assert_msg(host_expiry_map[0] != NULL, "Old expiration check should still be around");
 	ck_assert_msg(host_expiry_map[1] != NULL, "New host sending a precheck should trigger expiration check, too");
-	res = expire_event(host_expiry_map[0]->event_args);
-	ck_assert_int_eq(0, res);
+	expire_event(&to_timed_event(first_user_data));
 	ck_assert_msg(expired_hosts[0] != NULL, "Host should become expired after expire_event runs");
 	ck_assert_msg(host_expiry_map[0] == NULL, "Expiring a check should clear expiration check");
 	ck_assert_msg(host_expiry_map[1] != NULL, "Other hosts in expiration precheck should not be affected by an expiration");
@@ -367,10 +378,11 @@ START_TEST(multiple_host_expire)
 	ck_assert_msg(expired_hosts[0] == NULL, "Host should not be expired after check result comes in");
 	ck_assert_msg(host_expiry_map[1] != NULL, "Other hosts in expiration precheck should not be affected by an expiration");
 	ck_assert_msg(expired_hosts[1] == NULL, "Other hosts in expiration precheck should not be affected by an expiration");
+	first_user_data = last_user_data;
 	ds0.type = NEBTYPE_HOSTCHECK_ASYNC_PRECHECK;
 	hook_host_result(&pkt, &ds0);
-	res = expire_event(host_expiry_map[0]->event_args);
-	res = expire_event(host_expiry_map[1]->event_args);
+	expire_event(&to_timed_event(first_user_data));
+	expire_event(&to_timed_event(last_user_data));
 	ck_assert_msg(expired_hosts[0] != NULL, "Host should become expired after expire_event runs");
 	ck_assert_msg(expired_hosts[1] != NULL, "Host should become expired after expire_event runs");
 	ds0.type = NEBTYPE_HOSTCHECK_PROCESSED;
