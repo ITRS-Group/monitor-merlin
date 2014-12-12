@@ -578,7 +578,7 @@ class fake_mesh:
 				clr = color.green
 			else:
 				clr = color.bright_red
-			msg = "%s: %sGot sig %d%s" % (msg, clr, SIGNALS_TO_NAMES_DICT.get(os.WTERMSIG(status), os.WTERMSIG(status)), color.reset)
+			msg = "%s: %sGot sig %s%s" % (msg, clr, SIGNALS_TO_NAMES_DICT.get(os.WTERMSIG(status), os.WTERMSIG(status)), color.reset)
 			if os.WCOREDUMP(status):
 				msg = "%s (%score dumped%s)" % (msg, color.bright_red, color.reset)
 				return sub.fail(msg)
