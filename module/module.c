@@ -1101,9 +1101,10 @@ extern char *config_file;
  */
 static void send_pulse(struct timed_event_properties *evprop)
 {
-	schedule_event(pulse_interval, send_pulse, NULL);
-	if (evprop->flags & EVENT_EXEC_FLAG_TIMED)
+	if (evprop->flags & EVENT_EXEC_FLAG_TIMED) {
+		schedule_event(pulse_interval, send_pulse, NULL);
 		node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info);
+	}
 }
 
 /*
