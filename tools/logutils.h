@@ -41,16 +41,6 @@
 #define ACKNOWLEDGE_SVC_PROBLEM                        13
 #define RESTART_PROGRAM                                14
 
-/* for some reason these aren't defined inside Nagios' headers */
-#define SERVICE_OK 0
-#define SERVICE_WARNING 1
-#define SERVICE_CRITICAL 2
-#define SERVICE_UNKNOWN 3
-
- /*duplicate typedef error on my box:
-typedef unsigned int uint;
- */
-
 struct naglog_file {
 	time_t first;
 	char *path;

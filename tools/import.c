@@ -19,12 +19,6 @@
 #define MAX_NVECS 16
 #define HASH_TABLE_SIZE 128
 
-/* for some reason these aren't defined inside Nagios' headers */
-#define SERVICE_OK 0
-#define SERVICE_WARNING 1
-#define SERVICE_CRITICAL 2
-#define SERVICE_UNKNOWN 3
-
 #define PROGRESS_INTERVAL 25000 /* lines to parse between progress updates */
 
 

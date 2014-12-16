@@ -19,19 +19,18 @@ uint num_unhandled = 0;
 uint warnings = 0;
 static dkhash_table *interesting_hosts, *interesting_services;
 
-#define host_code(S) { 0, #S, sizeof(#S) - 1, HOST_##S }
+#define state_code(S) { 0, #S, sizeof(#S) - 1, STATE_##S }
 static struct string_code host_state[] = {
-	host_code(UP),
-	host_code(DOWN),
-	host_code(UNREACHABLE),
+	state_code(UP),
+	state_code(DOWN),
+	state_code(UNREACHABLE),
 };
 
-#define service_code(S) { 0, #S, sizeof(#S) - 1, SERVICE_##S }
 static struct string_code service_state[] = {
-	service_code(OK),
-	service_code(WARNING),
-	service_code(CRITICAL),
-	service_code(UNKNOWN),
+	state_code(OK),
+	state_code(WARNING),
+	state_code(CRITICAL),
+	state_code(UNKNOWN),
 };
 
 #define notification_code(S) { 0, #S, sizeof(#S) - 1, NOTIFICATION_##S }

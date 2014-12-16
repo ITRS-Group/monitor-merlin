@@ -212,7 +212,7 @@ static void print_line_ansi(int type, struct tm *t, char *line, __attribute__((u
 	switch (type) {
 	case EVT_ALERT | EVT_HOST:
 	case EVT_STATE | EVT_HOST:
-		if (severity == HOST_UP)
+		if (severity == STATE_UP)
 			color = CLR_GREEN;
 		else
 			color = CLR_RED;
@@ -221,10 +221,10 @@ static void print_line_ansi(int type, struct tm *t, char *line, __attribute__((u
 	case EVT_ALERT | EVT_SERVICE:
 	case EVT_STATE | EVT_SERVICE:
 		switch (severity) {
-		case SERVICE_OK: color = CLR_GREEN; break;
-		case SERVICE_WARNING: color = CLR_YELLOW; break;
-		case SERVICE_CRITICAL: color = CLR_RED; break;
-		case SERVICE_UNKNOWN: color = CLR_BROWN; break;
+		case STATE_OK: color = CLR_GREEN; break;
+		case STATE_WARNING: color = CLR_YELLOW; break;
+		case STATE_CRITICAL: color = CLR_RED; break;
+		case STATE_UNKNOWN: color = CLR_BROWN; break;
 		}
 		break;
 
@@ -307,7 +307,7 @@ static void print_line_html(int type, struct tm *t, char *line, __attribute__((u
 	switch (type) {
 	case EVT_ALERT | EVT_HOST:
 	case EVT_STATE | EVT_HOST:
-		if (severity == HOST_UP)
+		if (severity == STATE_UP)
 			image = "shield-ok.png";
 		else
 			image = "shield-critical.png";
@@ -316,10 +316,10 @@ static void print_line_html(int type, struct tm *t, char *line, __attribute__((u
 	case EVT_ALERT | EVT_SERVICE:
 	case EVT_STATE | EVT_SERVICE:
 		switch (severity) {
-		case SERVICE_OK: image = "shield-ok.png"; break;
-		case SERVICE_WARNING: image = "shield-warning.png"; break;
-		case SERVICE_CRITICAL: image = "shield-critical.png"; break;
-		case SERVICE_UNKNOWN: image = "shield-unknown.png"; break;
+		case STATE_OK: image = "shield-ok.png"; break;
+		case STATE_WARNING: image = "shield-warning.png"; break;
+		case STATE_CRITICAL: image = "shield-critical.png"; break;
+		case STATE_UNKNOWN: image = "shield-unknown.png"; break;
 		}
 		break;
 
@@ -661,13 +661,13 @@ static void parse_host_state_filter(char *p)
 			host_state_filter = -1;
 			break;
 		case 'u':
-			host_state_filter |= 1 << HOST_UNREACHABLE;
+			host_state_filter |= 1 << STATE_UNREACHABLE;
 			break;
 		case 'd':
-			host_state_filter |= 1 << HOST_DOWN;
+			host_state_filter |= 1 << STATE_DOWN;
 			break;
 		case 'r':
-			host_state_filter |= 1 << HOST_UP;
+			host_state_filter |= 1 << STATE_UP;
 			break;
 		}
 	}
@@ -682,16 +682,16 @@ static void parse_service_state_filter(char *p)
 			service_state_filter = -1;
 			break;
 		case 'r':
-			service_state_filter |= 1 << SERVICE_OK;
+			service_state_filter |= 1 << STATE_OK;
 			break;
 		case 'w':
-			service_state_filter |= 1 << SERVICE_WARNING;
+			service_state_filter |= 1 << STATE_WARNING;
 			break;
 		case 'c':
-			service_state_filter |= 1 << SERVICE_CRITICAL;
+			service_state_filter |= 1 << STATE_CRITICAL;
 			break;
 		case 'u':
-			service_state_filter |= 1 << SERVICE_UNKNOWN;
+			service_state_filter |= 1 << STATE_UNKNOWN;
 		}
 	}
 }
