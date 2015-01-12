@@ -104,6 +104,22 @@ find_key_for_user()
 	echo "$key"
 }
 
+# if we're root, make sure monitor's .ssh/known_hosts file exists
+# so we don't get errors trying to insert the keys there
+if test $(id -u) -eq 0; then
+	if ! test -d ~monitor/.ssh; then
+		mkdir ~monitor/.ssh
+		chown monitor ~monitor/.ssh
+		chmod 700 ~monitor/.ssh
+	fi
+	if ! test -f ~monitor/.ssh/known_hosts; then
+		touch ~monitor/.ssh/known_hosts
+		chown monitor ~monitor/.ssh/known_hosts
+		chmod 600 ~monitor/.ssh/known_hosts
+	fi
+fi
+
+
 for dest in $destinations; do
 	echo "Appending $key to $dest"
 	case "$dest" in
@@ -117,6 +133,11 @@ for dest in $destinations; do
 		if [ -z "$key" -a $(whoami) == "root" ]; then
 			export -f find_key_for_user
 			append_key $(su monitor -c find_key_for_user) "monitor@$dest" | sed 's/^./  &/'
+			# now copy the known_hosts entry to monitor's
+			# known_hosts file if it doesn't already exist.
+			if ! ssh-keygen -F $dest -f ~monitor/.ssh/known_hosts; then
+				ssh-keygen -H -F $dest | sed 1d >> ~monitor/.ssh/known_hosts
+			fi
 		fi
 	;;
 	esac
