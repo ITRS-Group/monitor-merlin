@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <pwd.h>
 
 #ifdef __GLIBC__
