@@ -8,6 +8,7 @@ get_val ()
 append_key() {
 	cat $1 | ssh "$2" -C '
 key=$(cat);
+uid=$(id -u)
 
 install_key()
 {
@@ -27,12 +28,16 @@ install_key()
 		echo "$key" >> $keyfile
 		echo "Successfully installed public ssh key";
 	fi
-	chown -R monitor:apache "$keydir"
 	chmod 700 "$keydir"
 	chmod 600 "$keydir/"*
 }
 
-install_key ~monitor/.ssh/authorized_keys
+install_key ~/.ssh/authorized_keys
+# If we logged in as root we set up the key for monitor as well
+if test "$uid" -eq 0; then
+	install_key ~monitor/.ssh/authorized_keys
+	chown -R monitor ~monitor/.ssh
+fi
 '
 }
 
@@ -106,14 +111,12 @@ for dest in $destinations; do
 		append_key $(find_key_for_user) $dest | sed 's/^./  &/'
 	;;
 	*)
-		# first install our key into monitor user
+		# first install our key into (root and) monitor user
+		append_key $(find_key_for_user) $dest | sed 's/^./  &/'
 		# and then use that key for uploading monitor's key to monitor user
 		if [ -z "$key" -a $(whoami) == "root" ]; then
 			export -f find_key_for_user
-			append_key $(su monitor -c find_key_for_user) "$dest" | sed 's/^./  &/'
-			su monitor --session-command "ssh $dest echo 'Keys successfully pushed to $dest'"
-		else
-			append_key $(find_key_for_user) $dest | sed 's/^./  &/'
+			append_key $(su monitor -c find_key_for_user) "monitor@$dest" | sed 's/^./  &/'
 		fi
 	;;
 	esac

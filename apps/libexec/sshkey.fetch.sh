@@ -99,12 +99,15 @@ add_key_locally()
 
 add_key_for_all()
 {
+	# if we're root, we should setup
+	# root->root, root->monitor, monitor->monitor
+	# without doing monitor->root
 	if [ "`whoami`" == "root" ]; then
 		export -f add_key_locally grab_key
 		su monitor --session-command "export outfile=~monitor/.ssh/authorized_keys; add_key_locally $1"
-    else
-		add_key_locally $1
+		su monitor --session-command "export outfile=~monitor/.ssh/authorized_keys; add_key_locally root@$1"
 	fi
+	add_key_locally $1
 }
 
 for dest in $destinations; do
@@ -119,4 +122,4 @@ for dest in $destinations; do
 	esac
 done
 
-chmod 600 ~monitor/.ssh/authorized_keys
+chmod 600 "$outfile"
