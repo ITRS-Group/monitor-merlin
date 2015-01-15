@@ -840,6 +840,7 @@ static int ipc_reaper(__attribute__((unused)) int sd, __attribute__((unused)) in
 		} else {
 			handle_ipc_event(node, pkt);
 		}
+		free(pkt);
 	}
 
 	return 0;
@@ -1410,7 +1411,7 @@ int nebmodule_init(__attribute__((unused)) int flags, char *arg, nebmodule *hand
 	ipc_init_struct();
 
 	if (read_config(arg) < 0) {
-		iocache_destroy(ipc.ioc);
+		nm_bufferqueue_destroy(ipc.bq);
 		return -1;
 	}
 	log_init();
@@ -1486,7 +1487,7 @@ int nebmodule_deinit(__attribute__((unused)) int flags, __attribute__((unused)) 
 	 * Nagios' command pipe. We also (currently) loose
 	 * the ipc binlog, if any, which is slightly annoying
 	 */
-	iocache_destroy(ipc.ioc);
+	nm_bufferqueue_destroy(ipc.bq);
 	for (i = 0; i < num_nodes; i++) {
 		struct merlin_node *node = node_table[i];
 		free(node->name);

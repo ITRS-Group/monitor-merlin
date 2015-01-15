@@ -227,7 +227,7 @@ struct merlin_node {
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
 	binlog *binlog;         /* binary backlog for this node */
 	merlin_node_stats stats; /* event/data statistics */
-	iocache *ioc;     /* I/O cache for bulk reads */
+	nm_bufferqueue *bq;     /* I/O cache for bulk reads */
 	merlin_confsync csync; /* config synchronization configuration */
 	unsigned int csync_num_attempts;
 	unsigned int csync_max_attempts;

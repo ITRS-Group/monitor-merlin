@@ -59,7 +59,7 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 inet_ntoa(n->sain.sin_addr), ntohs(n->sain.sin_port),
 				 n->data_timeout, n->last_recv, n->last_sent,
 				 n->last_conn_attempt, n->last_action, n->latency,
-				 binlog_size(n->binlog), iocache_available(n->ioc),
+				 binlog_size(n->binlog), nm_bufferqueue_get_available(n->bq),
 				 s->events.sent, s->events.read,
 				 s->events.logged, s->events.dropped,
 				 s->bytes.sent, s->bytes.read,
@@ -92,10 +92,9 @@ void ipc_init_struct(void)
 	ipc.type = MODE_LOCAL;
 	ipc.name = "ipc";
 	ipc.flags = MERLIN_NODE_DEFAULT_IPC_FLAGS;
-	ipc.ioc = iocache_create(MERLIN_IOC_BUFSIZE);
-	if (ipc.ioc == NULL) {
-		lerr("Failed to malloc() %d bytes for ipc io cache: %s",
-			 MERLIN_IOC_BUFSIZE, strerror(errno));
+	ipc.bq = nm_bufferqueue_create();
+	if (ipc.bq == NULL) {
+		lerr("Failed to create ipc io cache: %s", strerror(errno));
 		/*
 		 * failing to create this buffer means we can't communicate
 		 * with the daemon in any sensible fashion, so we must bail
