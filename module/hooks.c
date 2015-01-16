@@ -72,7 +72,6 @@ static const char *mos_offset_name(int offset)
 	mos_case(last_notification);
 	mos_case(next_notification);
 	mos_case(next_check);
-	mos_case(should_be_scheduled);
 	mos_case(last_check);
 	mos_case(last_state_change);
 	mos_case(last_hard_state_change);
