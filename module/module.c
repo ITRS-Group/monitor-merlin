@@ -396,7 +396,6 @@ static int handle_checkresult(struct check_result *cr, monitored_object_state *s
 	}
 
 	cr->scheduled_check = 1;
-	cr->reschedule_check = 1;
 	cr->exited_ok = 1;
 	cr->latency = st->latency;
 	cr->start_time.tv_sec = st->last_check;
