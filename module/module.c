@@ -182,7 +182,7 @@ int unexpire_service(struct service *s)
 	return 0;
 }
 
-static void expire_event(struct timed_event_properties *evprop)
+static void expire_event(struct nm_event_execution_properties *evprop)
 {
 	struct merlin_expired_check *evt = (struct merlin_expired_check *)evprop->user_data;
 	time_t last_check = 0, previous_check_time = 0;
@@ -192,7 +192,7 @@ static void expire_event(struct timed_event_properties *evprop)
 	int32_t *last_counter, *this_counter;
 	struct dlist_entry *le;
 
-	if(!(evprop->flags & EVENT_EXEC_FLAG_TIMED)) {
+	if(!(evprop->execution_type == EVENT_EXEC_NORMAL)) {
 		free(evt);
 		return;
 	}
@@ -1099,9 +1099,9 @@ extern char *config_file;
  * about us. It shouldn't happen, but there are stranger things
  * than random bugs in computer programs.
  */
-static void send_pulse(struct timed_event_properties *evprop)
+static void send_pulse(struct nm_event_execution_properties *evprop)
 {
-	if (evprop->flags & EVENT_EXEC_FLAG_TIMED) {
+	if (evprop->execution_type == EVENT_EXEC_NORMAL) {
 		schedule_event(pulse_interval, send_pulse, NULL);
 		node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info);
 	}
