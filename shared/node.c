@@ -645,7 +645,8 @@ void node_disconnect(merlin_node *node, const char *fmt, ...)
 	if (node != &ipc)
 		memset(&(node->info), 0, sizeof(node->info));
 
-	iocache_reset(node->ioc);
+	nm_bufferqueue_destroy(node->bq);
+	node->bq = nm_bufferqueue_create();
 }
 
 static int node_binlog_add(merlin_node *node, merlin_event *pkt)
@@ -714,18 +715,13 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 int node_recv(merlin_node *node)
 {
 	int bytes_read;
-	iocache *ioc = node->ioc;
+	nm_bufferqueue *bq = node->bq;
 
 	if (!node || node->sock < 0) {
 		return -1;
 	}
 
-	if (!iocache_capacity(ioc)) {
-		/* Cache full, maybe next time?  */
-		return 0;
-	}
-
-	bytes_read = iocache_read(ioc, node->sock);
+	bytes_read = nm_bufferqueue_read(bq, node->sock);
 
 	/*
 	 * If we read something, update the stat counter
@@ -751,7 +747,7 @@ int node_recv(merlin_node *node)
 	 */
 	if (bytes_read < 0) {
 		lerr("Failed to read from socket %d into %p for %s node %s: %s",
-		     node->sock, ioc, node_type(node), node->name, strerror(errno));
+		     node->sock, bq, node_type(node), node->name, strerror(errno));
 	}
 
 	/* zero-read. We've been disconnected for some reason */
@@ -825,36 +821,31 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
  */
 merlin_event *node_get_event(merlin_node *node)
 {
+	merlin_header hdr;
 	merlin_event *pkt;
-	iocache *ioc = node->ioc;
+	nm_bufferqueue *bq = node->bq;
 
-	pkt = (merlin_event *)(iocache_use_size(ioc, HDR_SIZE));
-
-	/*
-	 * buffer is empty
-	 */
-	if (pkt == NULL) {
+	if (nm_bufferqueue_peek(bq, HDR_SIZE, (void *)&hdr))
 		return NULL;
-	}
 
 	/*
-	 * If buffer is smaller than expected, put the header back
+	 * If buffer is smaller than expected, leave the header
 	 * and wait for more data
 	 */
-	if (pkt->hdr.len > iocache_available(ioc)) {
-		ldebug("IOC: packet is longer (%i) than remaining data (%lu) from %s - will read more and try again", pkt->hdr.len, iocache_available(ioc), node->name);
-		if (iocache_unuse_size(ioc, HDR_SIZE) < 0)
-			lerr("IOC: Failed to unuse %d bytes from iocache. Next packet from %s will be invalid\n", HDR_SIZE, node->name);
+	if (hdr.len > nm_bufferqueue_get_available(bq)) {
+		ldebug("IOC: packet is longer (%i) than remaining data (%lu) from %s - will read more and try again", hdr.len, nm_bufferqueue_get_available(bq) - HDR_SIZE, node->name);
 		return NULL;
 	}
 
-	if (pkt->hdr.sig.id != MERLIN_SIGNATURE) {
+	if (hdr.sig.id != MERLIN_SIGNATURE) {
 		lerr("Invalid signature on packet from '%s'. Disconnecting node", node->name);
 		node_disconnect(node, "Invalid signature");
 		return NULL;
 	}
 	node->stats.events.read++;
-	iocache_use_size(ioc, pkt->hdr.len);
+
+	pkt = calloc(1, HDR_SIZE + hdr.len);
+	nm_bufferqueue_unshift(bq, HDR_SIZE + hdr.len, (void *)pkt);
 	return pkt;
 }
 

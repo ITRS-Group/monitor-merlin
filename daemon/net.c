@@ -619,6 +619,7 @@ static int net_input(merlin_node *node)
 	while ((pkt = node_get_event(node))) {
 		events++;
 		handle_network_event(node, pkt);
+		free(pkt);
 	}
 	ldebug("Read %d events in %s from %s node %s",
 		   events, human_bytes(len), node_type(node), node->name);
