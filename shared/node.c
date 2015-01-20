@@ -845,7 +845,11 @@ merlin_event *node_get_event(merlin_node *node)
 	node->stats.events.read++;
 
 	pkt = calloc(1, HDR_SIZE + hdr.len);
-	nm_bufferqueue_unshift(bq, HDR_SIZE + hdr.len, (void *)pkt);
+	if (nm_bufferqueue_unshift(bq, HDR_SIZE + hdr.len, (void *)pkt)) {
+		lerr("IOC: Reading from '%s' failed, after checking that enough data was available. Disconnecting node", node->name);
+		node_disconnect(node, "IOC error");
+		return NULL;
+	}
 	return pkt;
 }
 
@@ -861,7 +865,7 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 	node_log_event_count(node, 0);
 
 	if (packet_size(pkt) > MAX_PKT_SIZE) {
-		lerr("header is invalid, or packet is too large. aborting");
+		lerr("Error in communication with %s: header is invalid, or packet is too large. aborting", node->name);
 		return -1;
 	}
 
