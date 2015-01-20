@@ -5,7 +5,6 @@
 
 #include <naemon/naemon.h>
 
-squeue_t *nagios_squeue;
 struct object_count num_objects = {0,};
 comment *comment_list = NULL;
 hostgroup *hostgroup_list = NULL;
@@ -165,7 +164,7 @@ void expiration_teardown()
 }
 
 #define to_timed_event(user_data) \
-	((struct timed_event_properties) {(user_data), last_event, 0, EVENT_EXEC_FLAG_TIMED})
+	((struct nm_event_execution_properties) {EVENT_EXEC_NORMAL, EVENT_TYPE_TIMED, user_data, {{last_event, 0}}})
 
 START_TEST(test_callback_host_check)
 {
