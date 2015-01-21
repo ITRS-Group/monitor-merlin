@@ -221,6 +221,7 @@ sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon
 %attr(-, monitor, %daemon_group) %dir %_localstatedir/log/op5/merlin
 %attr(-, monitor, %daemon_group) %dir %_localstatedir/run/merlin
 %attr(-, monitor, %daemon_group) %dir %_localstatedir/cache/merlin
+%attr(-, monitor, %daemon_group) %dir %_localstatedir/cache/merlin/config
 
 %files -n monitor-merlin
 %defattr(-,root,root)
