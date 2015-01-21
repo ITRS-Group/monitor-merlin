@@ -800,9 +800,9 @@ class fake_mesh:
 				hchecks += int(i.host_checks_executed)
 				schecks += int(i.service_checks_executed)
 				sub.test(i.assigned_hosts, i.host_checks_executed,
-					"host checks for %s from %s" % (i.name, inst.name))
+					 "%s expected %s to run %s host checks, but thinks %s were run" % (inst.name, i.name, i.assigned_hosts, i.host_checks_executed))
 				sub.test(i.assigned_services, i.service_checks_executed,
-					"service checks for %s from %s" % (i.name, inst.name))
+					 "%s expected %s to run %s service checks, but thinks %s were run" % (inst.name, i.name, i.assigned_services, i.service_checks_executed))
 			sub.test(hchecks, inst.group.num_objects['host'],
 				"%s should have all host checks accounted for" % inst.name)
 			sub.test(schecks, inst.group.num_objects['service'],
