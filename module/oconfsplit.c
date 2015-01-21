@@ -226,56 +226,52 @@ static int nsplit_partial_groups(void)
 
 	for (hg = hostgroup_list; hg; hg = hg->next) {
 		struct hostsmember *hm, *prev = NULL, *next;
+		struct hostgroup *tmphg;
 		int removed = 0;
 
 		if (bitmap_isset(map.hostgroups, hg->id)) {
 			continue;
 		}
+		tmphg = create_hostgroup(hg->hostgroup_name, hg->alias, hg->notes, hg->notes_url, hg->action_url);
 		for (hm = hg->members; hm; hm = next) {
 			next = hm->next;
 			if (bitmap_isset(map.hosts, hm->host_ptr->id)) {
-				prev = hm;
-				continue;
+				add_host_to_hostgroup(tmphg, hm->host_name);
+			} else {
+				/* not a tracked host */
+				removed++;
 			}
-			/* not a tracked host. Remove it */
-			removed++;
-			if (prev)
-				prev->next = next;
-			else
-				hg->members = next;
-			free(hm);
 		}
-		if (hg->members) {
+		if (tmphg->members) {
 			if (removed)
 				partial.hostgroups++;
 			else
 				cached.hostgroups++;
-			fcache_hostgroup(fp, hg);
+			fcache_hostgroup(fp, tmphg);
 		}
+		destroy_hostgroup(tmphg);
 	}
 
 	for (sg = servicegroup_list; sg; sg = sg->next) {
 		struct servicesmember *sm, *prev = NULL, *next;
 		int removed = 0;
+		struct servicegroup *tmpsg;
+		tmpsg = create_hostgroup(sg->servicegroup_name, sg->alias, sg->notes, sg->notes_url, sg->action_url);
 		for (sm = sg->members; sm; sm = next) {
-			next = sm->next;
 			if (bitmap_isset(map.hosts, sm->service_ptr->host_ptr->id)) {
-				prev = sm;
-				continue;
+				add_service_to_servicegroup(tmpsg, sm->host_name, sm->service_description);
+			} else {
+				removed++;
 			}
-			if (prev)
-				prev->next = next;
-			else
-				sg->members = next;
-			free(sm);
 		}
 		if (sg->members) {
 			if (removed)
 				partial.servicegroups++;
 			else
 				cached.servicegroups++;
-			fcache_servicegroup(fp, sg);
+			fcache_servicegroup(fp, tmpsg);
 		}
+		destroy_hostgroup(tmpsg);
 	}
 	return 0;
 }
