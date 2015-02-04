@@ -442,14 +442,6 @@ static int import_objects_and_status(char *cfg, char *cache)
 	run_program("import", cmd, &importer_pid);
 	free(cmd);
 
-	/*
-	 * If the import program started successfully, we
-	 * ask the module to stall events until it's done
-	 */
-	if (importer_pid > 0) {
-		ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
-	}
-
 	return result;
 }
 
@@ -813,16 +805,6 @@ static void polling_loop(void)
 
 		/* reap any children that might have finished */
 		reap_child_process();
-
-		/*
-		 * reap_child_process() resets importer_pid if
-		 * the import is completed.
-		 * if it's not and at tops 5 seconds have passed,
-		 * ask for some more time.
-		 */
-		if (importer_pid && !(now % 5)) {
-			ipc_send_ctrl(CTRL_STALL, CTRL_GENERIC);
-		}
 
 		/* When the module is disconnected, we can't validate handshakes,
 		 * so any negotiation would need to be redone after the module
