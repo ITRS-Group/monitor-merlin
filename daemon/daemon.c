@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include "daemonize.h"
 #include "daemon.h"
