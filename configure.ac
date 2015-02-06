@@ -1,7 +1,7 @@
 AC_PREREQ([2.59])
 AC_INIT([merlin], m4_esyscmd([./generate_version_number.sh]), [dev@op5.org])
 AC_CONFIG_SRCDIR([daemon/daemon.c])
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([subdir-objects])
 
 AC_CONFIG_HEADERS([config.h])
 
