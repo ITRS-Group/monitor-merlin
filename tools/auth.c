@@ -2,24 +2,25 @@
 #include "cfgfile.h"
 #include "auth.h"
 #include <naemon/naemon.h>
+#include <glib.h>
 
-static dkhash_table *auth_hosts, *auth_services;
+static GHashTable *auth_hosts, *auth_services;
 static int blocksize = 1 << 20;
 
 int auth_host_ok(const char *host)
 {
-	return !!dkhash_get(auth_hosts, host, NULL);
+	return !!g_hash_table_lookup(auth_hosts, host);
 }
 
 int auth_service_ok(const char *host, const char *svc)
 {
-	return !!(dkhash_get(auth_services, host, svc) || auth_host_ok(host));
+	return !!(g_hash_table_lookup(auth_services, &((nm_service_key){ (char *) host, (char *) svc })) || auth_host_ok(host));
 }
 
 int auth_read_input(FILE *input)
 {
-	auth_hosts = dkhash_create(8192);
-	auth_services = dkhash_create(131072);
+	auth_hosts = g_hash_table_new_full(g_str_hash, g_str_equal, free, NULL);
+	auth_services = g_hash_table_new_full(nm_service_hash, nm_service_equal, (GDestroyNotify) nm_service_key_destroy, NULL);
 	if (!input)
 		return 0;
 	char *objectstr, *alloced;
@@ -44,7 +45,7 @@ int auth_read_input(FILE *input)
 			delim = *hostend;
 			*hostend = 0;
 		}
-		dkhash_insert(auth_hosts, strdup(objectstr), NULL, (void*)1);
+		g_hash_table_insert(auth_hosts, strdup(objectstr), (void*)1);
 		if (!hostend)
 			break;
 		objectstr = hostend + 1;
@@ -70,7 +71,7 @@ int auth_read_input(FILE *input)
 			delim = *svcend;
 			*svcend = 0;
 		}
-		dkhash_insert(auth_services, strdup(objectstr), strdup(hostend + 1), (void*)1);
+		g_hash_table_insert(auth_services, nm_service_key_create(objectstr, hostend+1), (void*)1);
 		if (!svcend)
 			break;
 		objectstr = svcend + 1;

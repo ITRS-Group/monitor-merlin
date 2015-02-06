@@ -1,5 +1,6 @@
 #include <check.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 #include "auth.c"
 
 START_TEST (hosts_services)
@@ -15,13 +16,13 @@ START_TEST (hosts_services)
 	ck_assert_int_eq(auth_host_ok("host3"), 1);
 	ck_assert_int_eq(auth_host_ok("host4"), 0);
 	ck_assert_int_eq(auth_host_ok("service1"), 0);
-	ck_assert_int_eq(dkhash_num_entries(auth_hosts), 3);
+	ck_assert_int_eq(g_hash_table_size(auth_hosts), 3);
 	ck_assert_int_eq(auth_service_ok("host1", "service1"), 1);
 	ck_assert_int_eq(auth_service_ok("host4", "service2"), 1);
 	ck_assert_int_eq(auth_service_ok("host5", "service1"), 0);
 	/* via host: */
 	ck_assert_int_eq(auth_service_ok("host3", "service1"), 1);
-	ck_assert_int_eq(dkhash_num_entries(auth_services), 2);
+	ck_assert_int_eq(g_hash_table_size(auth_services), 2);
 }
 END_TEST
 
@@ -36,9 +37,9 @@ START_TEST (hosts_only)
 	auth_read_input(fdopen(pipes[0], "r"));
 	ck_assert_int_eq(auth_host_ok("host1"), 1);
 	ck_assert_int_eq(auth_host_ok("host3"), 1);
-	ck_assert_int_eq(dkhash_num_entries(auth_hosts), 3);
+	ck_assert_int_eq(g_hash_table_size(auth_hosts), 3);
 	ck_assert_int_eq(auth_service_ok("host1", "service1"), 1);
-	ck_assert_int_eq(dkhash_num_entries(auth_services), 0);
+	ck_assert_int_eq(g_hash_table_size(auth_services), 0);
 }
 END_TEST
 
@@ -52,9 +53,9 @@ START_TEST (odd_services)
 		write(pipes[1], "\n", 1);
 	auth_read_input(fdopen(pipes[0], "r"));
 	ck_assert_int_eq(auth_host_ok("host1"), 1);
-	ck_assert_int_eq(dkhash_num_entries(auth_hosts), 1);
+	ck_assert_int_eq(g_hash_table_size(auth_hosts), 1);
 	ck_assert_int_eq(auth_service_ok("host1", "service1"), 1);
-	ck_assert_int_eq(dkhash_num_entries(auth_services), 0);
+	ck_assert_int_eq(g_hash_table_size(auth_services), 0);
 }
 END_TEST
 
@@ -68,10 +69,10 @@ START_TEST (multiblock)
 	auth_read_input(fdopen(pipes[0], "r"));
 	ck_assert_int_eq(auth_host_ok("host1"), 1);
 	ck_assert_int_eq(auth_host_ok("host2"), 1);
-	ck_assert_int_eq(dkhash_num_entries(auth_hosts), 2);
+	ck_assert_int_eq(g_hash_table_size(auth_hosts), 2);
 	ck_assert_int_eq(auth_service_ok("host3", "service1"), 1);
 	ck_assert_int_eq(auth_service_ok("host4", "service2"), 1);
-	ck_assert_int_eq(dkhash_num_entries(auth_services), 2);
+	ck_assert_int_eq(g_hash_table_size(auth_services), 2);
 }
 END_TEST
 
@@ -83,9 +84,9 @@ START_TEST (too_many_lines)
 	write(pipes[1], message, strlen(message));
 	auth_read_input(fdopen(pipes[0], "r"));
 	ck_assert_int_eq(auth_host_ok("host1"), 1);
-	ck_assert_int_eq(dkhash_num_entries(auth_hosts), 1);
+	ck_assert_int_eq(g_hash_table_size(auth_hosts), 1);
 	ck_assert_int_eq(auth_service_ok("host2", "service1"), 1);
-	ck_assert_int_eq(dkhash_num_entries(auth_services), 1);
+	ck_assert_int_eq(g_hash_table_size(auth_services), 1);
 }
 END_TEST
 
@@ -97,9 +98,9 @@ START_TEST (empty_params)
 	write(pipes[1], message, strlen(message));
 	auth_read_input(fdopen(pipes[0], "r"));
 	ck_assert_int_eq(auth_host_ok("host1"), 1);
-	ck_assert_int_eq(dkhash_num_entries(auth_hosts), 3);
+	ck_assert_int_eq(g_hash_table_size(auth_hosts), 3);
 	ck_assert_int_eq(auth_service_ok("host2", "service1"), 1);
-	ck_assert_int_eq(dkhash_num_entries(auth_services), 3);
+	ck_assert_int_eq(g_hash_table_size(auth_services), 3);
 }
 END_TEST
 
@@ -141,12 +142,12 @@ START_TEST (long_parameter)
 	}
 	close(pipes[1]);
 	auth_read_input(fdopen(pipes[0], "r"));
-	ck_assert_int_eq(dkhash_num_entries(auth_hosts), 10000);
+	ck_assert_int_eq(g_hash_table_size(auth_hosts), 10000);
 	ck_assert_int_eq(auth_host_ok("h0000"), 1);
 	ck_assert_int_eq(auth_host_ok("h9999"), 1);
 	ck_assert_int_eq(auth_service_ok("i0000", "s00"), 1);
 	ck_assert_int_eq(auth_service_ok("i9999", "s99"), 1);
-	ck_assert_int_eq(dkhash_num_entries(auth_services), 1000000);
+	ck_assert_int_eq(g_hash_table_size(auth_services), 1000000);
 }
 END_TEST
 

@@ -1124,8 +1124,7 @@ int main(int argc, char **argv)
 	if (!num_nfile)
 		usage(NULL);
 
-	if (hide_state_dupes)
-		state_init();
+	state_init();
 
 	/* make sure first_time and last_time are set */
 	last_time = last_time ? last_time : time(NULL);
@@ -1189,7 +1188,7 @@ int main(int argc, char **argv)
 
 		print_unhandled_events();
 	}
-
+	state_deinit();
 	exit_nicely(0);
 	return 0;
 }

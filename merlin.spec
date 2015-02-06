@@ -24,11 +24,13 @@ Requires: libaio
 Requires: merlin-apps >= %version
 Requires: monitor-config
 Requires: op5-mysql
+Requires: glib2
 BuildRequires: mysql-devel
 BuildRequires: op5-naemon-devel
 Obsoletes: monitor-reports-module
 BuildRequires: check-devel
 BuildRequires: autoconf, automake, libtool
+BuildRequires: glib2-devel
 
 %if 0%{?suse_version}
 BuildRequires: libdbi-devel

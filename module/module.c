@@ -846,10 +846,10 @@ static int ipc_reaper(__attribute__((unused)) int sd, __attribute__((unused)) in
 	return 0;
 }
 
-dkhash_table *host_hash_table;
+GHashTable *host_hash_table;
 node_selection *node_selection_by_hostname(const char *name)
 {
-	return dkhash_get(host_hash_table, name, NULL);
+	return g_hash_table_lookup(host_hash_table, name);
 }
 
 struct host_hash_table_add_parameters
@@ -878,7 +878,7 @@ static int host_hash_table_add_host(void *_hst, void *user_data)
 	}
 	params->num_ents[params->sel->id]++;
 
-	dkhash_insert(host_hash_table, hst->name, NULL, params->sel);
+	g_hash_table_insert(host_hash_table, hst->name, params->sel);
 	return 0;
 }
 
@@ -898,12 +898,7 @@ static void setup_host_hash_tables(void)
 	if (!hostgroup_list || !num_pollers || !nsel)
 		return;
 
-	linfo("Creating hash tables");
-	host_hash_table = dkhash_create(num_objects.hosts * 1.3);
-	if (!host_hash_table) {
-		lerr("Failed to initialize hash tables: Out of memory");
-		exit(1);
-	}
+	host_hash_table = g_hash_table_new(g_str_hash, g_str_equal);
 
 	num_ents = calloc(nsel, sizeof(int));
 
@@ -1503,7 +1498,7 @@ int nebmodule_deinit(__attribute__((unused)) int flags, __attribute__((unused)) 
 	}
 	safe_free(node_table);
 
-	dkhash_destroy(host_hash_table);
+	g_hash_table_destroy(host_hash_table);
 
 	binlog_wipe(ipc.binlog, BINLOG_UNLINK);
 

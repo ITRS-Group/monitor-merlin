@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <stdarg.h>
+#include <glib.h>
 
 /* stubs required for linking */
 int ipc_grok_var(__attribute__((unused)) char *var, __attribute__((unused)) char *val) { return 0; }
@@ -17,7 +18,7 @@ struct naglog_file *cur_file; /* the file we're currently importing */
 uint line_no = 0;
 uint num_unhandled = 0;
 uint warnings = 0;
-static dkhash_table *interesting_hosts, *interesting_services;
+static GHashTable *interesting_hosts, *interesting_services;
 
 #define state_code(S) { 0, #S, sizeof(#S) - 1, STATE_##S }
 static struct string_code host_state[] = {
@@ -161,51 +162,51 @@ int soft_hard(const char *str)
 	lp_crash("wtf kind of value is '%s' to determine 'soft' or 'hard' from?", str);
 }
 
-static int print_string(void *data)
-{
-	const char *str = data;
-
-	printf("%p: %s\n", str, str);
-	return 0;
-}
-
 /*
  * prints the objects we consider interesting
  */
 void print_interesting_objects(void)
 {
+	GHashTableIter iter;
+	gpointer key, value;
+
 	if (interesting_hosts) {
 		printf("\nInteresting hosts:\n");
-		dkhash_walk_data(interesting_hosts, print_string);
+		g_hash_table_iter_init(&iter, interesting_hosts);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			const char *str = value;
+			printf("%p: %s\n", str, str);
+		}
 	}
 	if (interesting_services) {
 		printf("\nInteresting services:\n");
-		dkhash_walk_data(interesting_services, print_string);
+		g_hash_table_iter_init(&iter, interesting_services);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			const char *str = value;
+			printf("%p: %s\n", str, str);
+		}
 	}
 	if (interesting_hosts || interesting_services)
 		putchar('\n');
 }
 
 /* marks one object as 'interesting' */
-int add_interesting_object(const char *orig_str)
+int add_interesting_object(const char *str)
 {
-	char *semi_colon, *str;
+	char *semi_colon;
 
-	str = strdup(orig_str);
 	semi_colon = strchr(str, ';');
 	if (!semi_colon) {
 		if (!interesting_hosts)
-			interesting_hosts = dkhash_create(512);
-		if (!interesting_hosts)
-			crash("Failed to initialize hash table for interesting hosts");
-		dkhash_insert(interesting_hosts, str, NULL, strdup(orig_str));
+			interesting_hosts = g_hash_table_new_full(g_str_hash, g_str_equal,
+					free, free);
+		g_hash_table_insert(interesting_hosts, strdup(str), strdup(str));
 	} else {
 		if (!interesting_services)
-			interesting_services = dkhash_create(512);
-		if (!interesting_services)
-			lp_crash("Failed to initialize hash table for interesting services");
+			interesting_services = g_hash_table_new_full(nm_service_hash, nm_service_equal,
+					(GDestroyNotify) nm_service_key_destroy, free);
 		*semi_colon++ = 0;
-		dkhash_insert(interesting_services, str, semi_colon, strdup(orig_str));
+		g_hash_table_insert(interesting_services, nm_service_key_create(str, semi_colon), strdup(str));
 	}
 
 	return 0;
@@ -214,7 +215,7 @@ int add_interesting_object(const char *orig_str)
 int is_interesting_host(const char *host)
 {
 	if (interesting_hosts)
-		return !!dkhash_get(interesting_hosts, host, NULL);
+		return g_hash_table_lookup(interesting_hosts, host) == NULL ? 0 : 1;
 
 	return 1;
 }
@@ -225,7 +226,8 @@ int is_interesting_service(const char *host, const char *service)
 	if (!service || !interesting_services)
 		return is_interesting_host(host);
 
-	return !!dkhash_get(interesting_services, host, service);
+	return g_hash_table_lookup(interesting_services, &((nm_service_key) {(char *) host,
+				(char *)service})) == NULL ? 0 : 1;
 }
 
 struct unhandled_event {

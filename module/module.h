@@ -12,6 +12,7 @@
 
 #include "node.h"
 #include <naemon/naemon.h>
+#include <glib.h>
 
 typedef struct file_list {
 	char *name;
@@ -50,7 +51,7 @@ extern merlin_node **host_check_node;
 extern merlin_node **service_check_node;
 extern merlin_node *merlin_sender;
 
-extern dkhash_table *host_hash_table;
+extern GHashTable *host_hash_table;
 extern node_selection *node_selection_by_hostname(const char *name);
 
 /* global variables in the module only */

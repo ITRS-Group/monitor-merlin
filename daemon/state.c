@@ -2,26 +2,26 @@
 #include <string.h>
 #include "state.h"
 #include "logging.h"
+#include <glib.h>
 #include <naemon/naemon.h>
 
-#define HOST_STATES_HASH_BUCKETS 4096
-#define SERVICE_STATES_HASH_BUCKETS (HOST_STATES_HASH_BUCKETS * 4)
-static dkhash_table *host_states, *svc_states;
+static GHashTable *host_states, *svc_states;
 
 int state_init(void)
 {
-	host_states = dkhash_create(HOST_STATES_HASH_BUCKETS);
-	if (!host_states)
-		return -1;
-
-	svc_states = dkhash_create(SERVICE_STATES_HASH_BUCKETS);
-	if (!svc_states) {
-		free(host_states);
-		host_states = NULL;
-		return -1;
-	}
-
+	host_states = g_hash_table_new_full(g_str_hash, g_str_equal,
+			free, free);
+	svc_states = g_hash_table_new_full(nm_service_hash, nm_service_equal,
+			(GDestroyNotify) nm_service_key_destroy, free);
 	return 0;
+}
+
+void state_deinit(void)
+{
+	g_hash_table_destroy(host_states);
+	g_hash_table_destroy(svc_states);
+	host_states = NULL;
+	svc_states = NULL;
 }
 
 static inline int has_state_change(int *old, int state, int type)
@@ -53,13 +53,13 @@ int host_has_new_state(char *host, int state, int type)
 		lerr("host_has_new_state() called with NULL host");
 		return 0;
 	}
-	old_state = dkhash_get(host_states, host, NULL);
+	old_state = g_hash_table_lookup(host_states, host);
 	if (!old_state) {
 		int *cur_state;
 
 		cur_state = malloc(sizeof(*cur_state));
 		*cur_state = CAT_STATE(state, type);
-		dkhash_insert(host_states, strdup(host), NULL, cur_state);
+		g_hash_table_insert(host_states, strdup(host), cur_state);
 		return 1;
 	}
 
@@ -78,13 +78,13 @@ int service_has_new_state(char *host, char *desc, int state, int type)
 		lerr("service_has_new_state() called with NULL desc");
 		return 0;
 	}
-	old_state = dkhash_get(svc_states, host, desc);
+	old_state = g_hash_table_lookup(svc_states, &((nm_service_key){host, desc}));
 	if (!old_state) {
 		int *cur_state;
 
 		cur_state = malloc(sizeof(*cur_state));
 		*cur_state = CAT_STATE(state, type);
-		dkhash_insert(svc_states, strdup(host), strdup(desc), cur_state);
+		g_hash_table_insert(svc_states, nm_service_key_create(host, desc), cur_state);
 		return 1;
 	}
 

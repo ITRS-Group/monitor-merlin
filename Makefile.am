@@ -79,10 +79,12 @@ nobase_sql_DATA = sql/update-db-1to2.sql sql/update-db-2to3.sql sql/mysql/*
 naemonconf_DATA = data/merlin.cfg
 
 merlin_la_LDFLAGS = -module -shared -fPIC
-merlin_la_CFLAGS = $(AM_CFLAGS)
+merlin_la_LIBADD = $(GLIB_LIBS)
+merlin_la_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS)
 merlin_la_CPPFLAGS = $(AM_CPPFLAGS)
-merlind_LDADD = $(naemon_LIBS) $(AM_LDADD)
+merlind_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 merlind_CPPFLAGS = $(AM_CPPFLAGS)
+merlind_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS)
 
 initdir = $(sysconfdir)/init.d
 init_SCRIPTS = data/merlind
@@ -138,14 +140,14 @@ merlin_la_SOURCES = $(module_sources)
 showlog_SOURCES = $(app_sources) \
 	tools/showlog.c \
 	tools/auth.c tools/auth.h
-showlog_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
-showlog_LDADD = $(naemon_LIBS) $(AM_LDADD)
+showlog_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon $(GLIB_CFLAGS)
+showlog_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 import_SOURCES = $(app_sources) tools/import.c $(db_wrap_sources)
-import_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
-import_LDADD = $(naemon_LIBS) $(AM_LDADD)
+import_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon $(GLIB_CFLAGS)
+import_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 oconf_SOURCES = tools/oconf.c module/sha1.c module/misc.c shared/shared.c shared/shared.h shared/logging.c shared/logging.h
-oconf_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module
-oconf_LDADD = $(naemon_LIBS) $(AM_LDADD)
+oconf_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module $(GLIB_CFLAGS)
+oconf_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 ocimp_SOURCES = $(shared_sources) $(db_wrap_sources) \
 	tools/ocimp.c tools/ocimp.h \
 	tools/test_utils.c tools/test_utils.h \
@@ -154,8 +156,8 @@ ocimp_SOURCES = $(shared_sources) $(db_wrap_sources) \
 ocimp_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon -I$(srcdir)/module
 ocimp_LDADD = $(naemon_LIBS) $(AM_LDADD)
 rename_SOURCES = $(app_sources) tools/rename.c $(db_wrap_sources)
-rename_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
-rename_LDADD = $(naemon_LIBS) $(AM_LDADD)
+rename_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon $(GLIB_CFLAGS)
+rename_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 
 check_PROGRAMS = $(TESTS) test-dbwrap
 TESTS = sltest test-csync test-lparse hooktest stringutilstest showlogtest bltest codectest
@@ -163,19 +165,19 @@ TESTS = sltest test-csync test-lparse hooktest stringutilstest showlogtest bltes
 sltest_SOURCES = tests/sltest.c tools/test_utils.c tools/slist.c tools/slist.h
 sltest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools
 test_csync_SOURCES = tests/test-csync.c tools/test_utils.c $(daemon_sources)
-test_csync_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon -I$(srcdir)/tools
+test_csync_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon -I$(srcdir)/tools $(GLIB_CFLAGS)
 test_csync_LDADD = $(naemon_LIBS)
 test_lparse_SOURCES = tests/test-lparse.c tools/lparse.c tools/logutils.c tools/test_utils.c
-test_lparse_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools
+test_lparse_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools $(GLIB_CFLAGS)
 test_lparse_CPPFLAGS = $(AM_CPPFLAGS)
 test_lparse_LDADD = $(naemon_LIBS)
 hooktest_SOURCES = tests/test-hooks.c shared/cfgfile.c shared/shared.c shared/logging.c shared/dlist.c shared/io.c shared/node.c shared/codec.c shared/binlog.c module/misc.c module/sha1.c tools/test_utils.c module/oconfsplit.c shared/configuration.c module/queries.c
-hooktest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module -I$(srcdir)/tools $(check_CFLAGS)
+hooktest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module -I$(srcdir)/tools $(check_CFLAGS) $(GLIB_CFLAGS)
 hooktest_LDADD = $(naemon_LIBS) $(check_LIBS)
 stringutilstest_SOURCES = tests/test-stringutils.c tools/test_utils.c daemon/string_utils.c
 stringutilstest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools -I$(srcdir)/daemon
 showlogtest_SOURCES = tests/test-showlog.c $(app_sources)
-showlogtest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools -I$(srcdir)/daemon  $(check_CFLAGS)
+showlogtest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools -I$(srcdir)/daemon $(check_CFLAGS) $(GLIB_CFLAGS)
 showlogtest_LDADD = $(naemon_LIBS) $(check_LIBS)
 bltest_SOURCES = tests/bltest.c shared/binlog.c tools/test_utils.c
 bltest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools

@@ -1144,8 +1144,7 @@ int main(int argc, char **argv)
 
 	qsort(nfile, num_nfile, sizeof(*nfile), nfile_cmp);
 
-	if (state_init() < 0)
-		crash("Failed to initialize state machinery");
+	state_init();
 
 	/* go through them once to count the total size for progress output */
 	for (i = 0; i < num_nfile; i++) {
@@ -1205,5 +1204,6 @@ int main(int argc, char **argv)
 
 	print_unhandled_events();
 
+	state_deinit();
 	return 0;
 }
