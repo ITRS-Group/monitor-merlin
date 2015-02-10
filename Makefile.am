@@ -198,6 +198,7 @@ endif
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(logdir)
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(pkgrundir)
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)
+	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)/config
 
 data/merlin data/merlin.cfg data/merlin.conf data/kad.conf apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.fetch.sh apps/libexec/oconf.py : % : %.in
 	$(AM_V_GEN) sed \
