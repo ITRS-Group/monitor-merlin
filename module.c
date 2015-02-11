@@ -1217,6 +1217,8 @@ static int post_config_init(int cb, void *ds)
 	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
 		return 0;
 
+	timing_point("merlin: Starting post-config initialization sequence\n");
+
 	/* required for the 'nodeinfo' query through the query handler */
 	host_check_node = calloc(num_objects.hosts, sizeof(merlin_node *));
 	service_check_node = calloc(num_objects.services, sizeof(merlin_node *));
@@ -1231,6 +1233,7 @@ static int post_config_init(int cb, void *ds)
 
 		time(&current_time);
 
+		timing_point("merlin: Caching timeperiods to %s\n", temp_path);
 		asprintf(&cache_file, "/%s/timeperiods.cache", temp_path);
 
 		/* open the cache file for writing */
@@ -1254,14 +1257,18 @@ static int post_config_init(int cb, void *ds)
 	neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);
 
 	linfo("Object configuration parsed.");
+	timing_point("merlin: Initializing peer groups\n");
 	if (pgroup_init() < 0)
 		return -1;
+	timing_point("merlin: Setting up host hash-tables\n");
 	setup_host_hash_tables();
+	timing_point("merlin: Assigning peer-group peer id's\n");
 	pgroup_assign_peer_ids(ipc.pgroup);
 
 	expired_hosts = calloc(num_objects.hosts, sizeof(void *));
 	expired_services = calloc(num_objects.services, sizeof(void *));
 
+	timing_point("merlin: Registering query handler\n");
 	if((result = qh_register_handler("merlin", "Merlin information", 0, merlin_qh)) < 0)
 		lerr("Failed to register query handler: %s", strerror(-result));
 	else
@@ -1272,6 +1279,7 @@ static int post_config_init(int cb, void *ds)
 	 * we know the local host could parse it properly.
 	 * Note that this also sets up the repeating pulse-timer.
 	 */
+	timing_point("merlin: Sending initial pulse\n");
 	send_pulse(NULL);
 
 	/*
@@ -1280,14 +1288,17 @@ static int post_config_init(int cb, void *ds)
 	 * at us when it's reading its status back in from the
 	 * status.sav file (assuming state retention is enabled)
 	 */
+	timing_point("merlin: Registering hooks\n");
 	merlin_hooks_init(event_mask);
 
+	timing_point("merlin: Sending timeperiod cache location to daemon\n");
 	send_paths();
 
 	/*
 	 * this is the last event related to startup, so the regular mod hook
 	 * must see it to be able to shove startup info into the database.
 	 */
+	timing_point("merlin: Executing merlin mod hook\n");
 	merlin_mod_hook(cb, ds);
 
 	return 0;
@@ -1389,6 +1400,8 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
  */
 int nebmodule_init(int flags, char *arg, nebmodule *handle)
 {
+	timing_point("merlin: Starting pre-config initialization\n");
+
 	neb_handle = (void *)handle;
 
 	self = &ipc.info;
@@ -1413,6 +1426,7 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	 */
 	ipc_init_struct();
 
+	timing_point("merlin: Reading config\n");
 	if (read_config(arg) < 0) {
 		iocache_destroy(ipc.ioc);
 		return -1;
@@ -1454,11 +1468,13 @@ int nebmodule_init(int flags, char *arg, nebmodule *handle)
 	event_broker_options = BROKER_EVERYTHING;
 
 	/* this gets de-registered immediately, so we need to add it manually */
+	timing_point("merlin: Registering initial callback\n");
 	neb_register_callback(NEBCALLBACK_PROCESS_DATA, neb_handle, 0, post_config_init);
 
 	/* only the ipc node has an action handler */
 	ipc.action = ipc_action_handler;
 
+	timing_point("merlin: Primary Initialization completed\n");
 	linfo("Merlin module %s initialized successfully", merlin_version);
 
 	return 0;

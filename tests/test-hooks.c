@@ -38,6 +38,7 @@ timed_event *schedule_new_event(int event_type, int high_priority, time_t run_ti
 	evt->event_args = event_args;
 	return evt;
 }
+void timing_point(const char *fmt, ...) {}
 nagios_macros *get_global_macros() { return NULL; }
 void fcache_timeperiod(FILE *fp, struct timeperiod *temp_timeperiod) {}
 int neb_deregister_callback(int callback_type, int (*callback_func)(int, void *)) { return 0; }
