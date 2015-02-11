@@ -1201,12 +1201,6 @@ int send_paths(void)
 
 	merlin_should_send_paths = 0;
 
-	/*
-	 * start stalling immediately and keep doing so until
-	 * the reaper thread reads a CTRL_RESUME event so we
-	 * wait until the import is completed
-	 */
-	ctrl_stall_start();
 	return 0;
 }
 
