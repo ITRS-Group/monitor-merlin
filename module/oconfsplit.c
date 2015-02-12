@@ -22,41 +22,31 @@ static struct {
 bitmap *htrack; /* tracks hosts passed to fcache_host() */
 
 static FILE *fp;
-static struct object_count cached, partial;
-
-/* remove code for simple lists with only a *next pointer */
-#define nsplit_slist_remove(LSTART, LENTRY, LNEXT, LPREV) \
-	do { \
-		if (LPREV) \
-			LPREV->next = LNEXT; \
-		else \
-			LSTART = LNEXT; \
-		free(LENTRY); \
-	} while (0)
 
 static inline void nsplit_cache_command(struct command *cmd)
 {
 	if (!cmd || bitmap_isset(map.commands, cmd->id))
 		return;
 
-	cached.commands++;
 	fcache_command(fp, cmd);
 	bitmap_set(map.commands, cmd->id);
+}
+
+static int set_hostgroup_host(void *_hst, __attribute__((unused)) void *user_data)
+{
+	bitmap_set(map.hosts, ((host *)_hst)->id);
+	return 0;
 }
 
 static int map_hostgroup_hosts(const char *hg_name)
 {
 	struct hostgroup *hg;
-	struct hostsmember *m;
 
 	if (!(hg = find_hostgroup(hg_name))) {
 		printf("Failed to locate hostgroup '%s'\n", hg_name);
 		return -1;
 	}
-	for (m = hg->members; m; m = m->next) {
-		struct host *h = m->host_ptr;
-		bitmap_set(map.hosts, h->id);
-	}
+	rbtree_traverse(hg->members, set_hostgroup_host, NULL, rbinorder);
 	return 0;
 }
 
@@ -65,7 +55,6 @@ static inline void nsplit_cache_timeperiod(struct timeperiod *tp)
 	if (tp && !bitmap_isset(map.timeperiods, tp->id)) {
 		struct timeperiodexclusion *exc;
 		bitmap_set(map.timeperiods, tp->id);
-		cached.timeperiods++;
 		fcache_timeperiod(fp, tp);
 		for (exc = tp->exclusions; exc; exc = exc->next) {
 			nsplit_cache_timeperiod(exc->timeperiod_ptr);
@@ -81,7 +70,6 @@ static inline void nsplit_cache_hostdependencies(objectlist *olist)
 		struct hostdependency *dep = (struct hostdependency *)list->object_ptr;
 		if (bitmap_isset(map.hosts, dep->master_host_ptr->id)) {
 			nsplit_cache_timeperiod(dep->dependency_period_ptr);
-			cached.hostdependencies++;
 			fcache_hostdependency(fp, dep);
 		}
 	}
@@ -94,7 +82,6 @@ static inline void nsplit_cache_servicedependencies(objectlist *olist)
 		struct servicedependency *dep = (struct servicedependency *)list->object_ptr;
 		if (!bitmap_isset(map.hosts, dep->master_service_ptr->host_ptr->id))
 			continue;
-		cached.servicedependencies++;
 		nsplit_cache_timeperiod(dep->dependency_period_ptr);
 		fcache_servicedependency(fp, dep);
 	}
@@ -119,7 +106,6 @@ static void nsplit_cache_contacts(struct contactsmember *cm_list)
 			nsplit_cache_command(cmdm->command_ptr);
 		}
 		bitmap_set(map.contacts, c->id);
-		cached.contacts++;
 		fcache_contact(fp, c);
 	}
 }
@@ -130,7 +116,6 @@ static void nsplit_cache_contactgroups(contactgroupsmember *cm)
 		struct contactgroup *cg = cm->group_ptr;
 		if (bitmap_isset(map.contactgroups, cg->id))
 			continue;
-		cached.contactgroups++;
 		nsplit_cache_contacts(cg->members);
 		bitmap_set(map.contactgroups, cg->id);
 		fcache_contactgroup(fp, cg);
@@ -153,11 +138,22 @@ static void nsplit_cache_contactgroups(contactgroupsmember *cm)
 	} while (0)
 
 
+static int copy_relevant_parents(void *_parent, void *_duplicate)
+{
+	host *parent = (host *)_parent;
+	host *duplicate = (host *)_duplicate;
+	if (bitmap_isset(map.hosts, parent->id))
+		add_parent_to_host(duplicate, parent);
+	return 0;
+}
 
 static void nsplit_cache_host(struct host *h)
 {
-	struct hostsmember *parent, *next, *prev = NULL;
-	struct servicesmember *sm, *sp, *sp_prev, *sp_next;
+	struct host *tmphst;
+	struct servicesmember *sm, *sp;
+	struct contactsmember *cm;
+	struct contactgroupsmember *cgm;
+	struct customvariablesmember *cvar;
 	objectlist *olist;
 
 	if (bitmap_isset(htrack, h->id)) {
@@ -166,23 +162,17 @@ static void nsplit_cache_host(struct host *h)
 	bitmap_set(htrack, h->id);
 	nsplit_cache_slaves(h);
 
-	/* massage the parent list */
-	for (parent = h->parent_hosts; parent; parent = next) {
-		next = parent->next;
-		if (bitmap_isset(map.hosts, parent->host_ptr->id)) {
-			prev = parent;
-			continue;
-		}
-		free(parent->host_name);
-		free(parent);
-		if (prev)
-			prev->next = next;
-		else {
-			h->parent_hosts = next;
-		}
-	}
-	cached.hosts++;
-	fcache_host(fp, h);
+	tmphst = create_host(h->name, h->display_name, h->alias, h->address, h->check_period, h-> initial_state, h->check_interval, h->retry_interval, h->max_attempts, h->notification_options, h->notification_interval, h->first_notification_delay, h->notification_period, h->notifications_enabled, h->check_command, h->checks_enabled, h->accept_passive_checks, h->event_handler, h->event_handler_enabled, h->flap_detection_enabled, h->low_flap_threshold, h->high_flap_threshold, h->flap_detection_options, h->stalking_options, h->process_performance_data, h->check_freshness, h->freshness_threshold, h->notes, h->notes_url, h->action_url, h->icon_image, h->icon_image_alt, h->vrml_image, h->statusmap_image, h->x_2d, h->y_2d, h->have_2d_coords, h->x_3d, h->y_3d, h->z_3d, h->have_3d_coords, h->should_be_drawn, h->retain_status_information, h->retain_nonstatus_information, h->obsess, h->hourly_value);
+
+	rbtree_traverse(h->parent_hosts, copy_relevant_parents, tmphst, rbinorder);
+	for (cm = h->contacts; cm; cm = cm->next)
+		add_contact_to_host(tmphst, cm->contact_name);
+	for (cgm = h->contact_groups; cgm; cgm = cgm->next)
+		add_contactgroup_to_host(tmphst, cgm->group_name);
+	for (cvar = h->custom_variables; cvar; cvar = cvar->next)
+		add_custom_variable_to_host(tmphst, cvar->variable_name, cvar->variable_value);
+
+	fcache_host(fp, tmphst);
 	nsplit_cache_hostdependencies(h->exec_deps);
 	nsplit_cache_hostdependencies(h->notify_deps);
 
@@ -191,20 +181,24 @@ static void nsplit_cache_host(struct host *h)
 		nsplit_cache_timeperiod(he->escalation_period_ptr);
 		nsplit_cache_contactgroups(he->contact_groups);
 		nsplit_cache_contacts(he->contacts);
-		cached.hostescalations++;
 		fcache_hostescalation(fp, he);
 	}
 
 	for (sm = h->services; sm; sm = sm->next) {
 		struct service *s = sm->service_ptr;
-		nsplit_cache_slaves(s);
+		struct service *tmpsvc = create_service(s->host_name, s->description, s->display_name, s->check_period, s->initial_state, s->max_attempts, s->accept_passive_checks, s->check_interval, s->retry_interval, s->notification_interval, s->first_notification_delay, s->notification_period, s->notification_options, s->notifications_enabled, s->is_volatile, s->event_handler, s->event_handler_enabled, s->check_command, s->checks_enabled, s->flap_detection_enabled, s->low_flap_threshold, s->high_flap_threshold, s->flap_detection_options, s->stalking_options, s->process_performance_data, s->check_freshness, s->freshness_threshold, s->notes, s->notes_url, s->action_url, s->icon_image, s->icon_image_alt, s->retain_status_information, s->retain_nonstatus_information, s->obsess, s->hourly_value);
+		for (cm = s->contacts; cm; cm = cm->next)
+			add_contact_to_service(tmpsvc, cm->contact_name);
+		for (cgm = s->contact_groups; cgm; cgm = cgm->next)
+			add_contactgroup_to_service(tmpsvc, cgm->group_name);
+		for (cvar = s->custom_variables; cvar; cvar = cvar->next)
+			add_custom_variable_to_service(tmpsvc, cvar->variable_name, cvar->variable_value);
+		nsplit_cache_slaves(tmpsvc);
 		/* remove cross-host service parents, if any */
-		for (sp_prev = NULL, sp = s->parents; sp; sp_prev = sp, sp = sp_next) {
-			sp_next = sp->next;
-			if (!bitmap_isset(map.hosts, sp->service_ptr->host_ptr->id))
-				nsplit_slist_remove(s->parents, sp, sp_next, sp_prev);
+		for (sp = s->parents; sp; sp = sp->next) {
+			if (bitmap_isset(map.hosts, sp->service_ptr->host_ptr->id))
+				add_parent_service_to_service(tmpsvc, sp->service_ptr->host_name, sp->service_ptr->description);
 		}
-		cached.services++;
 		fcache_service(fp, s);
 		nsplit_cache_servicedependencies(s->exec_deps);
 		nsplit_cache_servicedependencies(s->notify_deps);
@@ -213,10 +207,20 @@ static void nsplit_cache_host(struct host *h)
 			nsplit_cache_timeperiod(se->escalation_period_ptr);
 			nsplit_cache_contactgroups(se->contact_groups);
 			nsplit_cache_contacts(se->contacts);
-			cached.serviceescalations++;
 			fcache_serviceescalation(fp, se);
 		}
+		destroy_service(tmpsvc);
 	}
+	destroy_host(tmphst);
+}
+
+static int partial_hostgroup(void *_hst, void *user_data)
+{
+	hostgroup *tmphg = (hostgroup *)user_data;
+	host *hst = (host *)_hst;
+	if (bitmap_isset(map.hosts, hst->id))
+		add_host_to_hostgroup(tmphg, hst);
+	return 0;
 }
 
 static int nsplit_partial_groups(void)
@@ -225,58 +229,39 @@ static int nsplit_partial_groups(void)
 	struct servicegroup *sg;
 
 	for (hg = hostgroup_list; hg; hg = hg->next) {
-		struct hostsmember *hm, *prev = NULL, *next;
-		int removed = 0;
+		struct hostgroup *tmphg;
 
 		if (bitmap_isset(map.hostgroups, hg->id)) {
 			continue;
 		}
-		for (hm = hg->members; hm; hm = next) {
-			next = hm->next;
-			if (bitmap_isset(map.hosts, hm->host_ptr->id)) {
-				prev = hm;
-				continue;
-			}
-			/* not a tracked host. Remove it */
-			removed++;
-			if (prev)
-				prev->next = next;
-			else
-				hg->members = next;
-			free(hm);
+		tmphg = create_hostgroup(hg->group_name, hg->alias, hg->notes, hg->notes_url, hg->action_url);
+		rbtree_traverse(tmphg->members, partial_hostgroup, tmphg, rbinorder);
+		if (tmphg->members) {
+			fcache_hostgroup(fp, tmphg);
 		}
-		if (hg->members) {
-			if (removed)
-				partial.hostgroups++;
-			else
-				cached.hostgroups++;
-			fcache_hostgroup(fp, hg);
-		}
+		destroy_hostgroup(tmphg);
 	}
 
 	for (sg = servicegroup_list; sg; sg = sg->next) {
-		struct servicesmember *sm, *prev = NULL, *next;
-		int removed = 0;
-		for (sm = sg->members; sm; sm = next) {
-			next = sm->next;
+		struct servicesmember *sm;
+		struct servicegroup *tmpsg;
+		tmpsg = create_servicegroup(sg->group_name, sg->alias, sg->notes, sg->notes_url, sg->action_url);
+		for (sm = sg->members; sm; sm = sm->next) {
 			if (bitmap_isset(map.hosts, sm->service_ptr->host_ptr->id)) {
-				prev = sm;
-				continue;
+				add_service_to_servicegroup(tmpsg, sm->host_name, sm->service_description);
 			}
-			if (prev)
-				prev->next = next;
-			else
-				sg->members = next;
-			free(sm);
 		}
 		if (sg->members) {
-			if (removed)
-				partial.servicegroups++;
-			else
-				cached.servicegroups++;
-			fcache_servicegroup(fp, sg);
+			fcache_servicegroup(fp, tmpsg);
 		}
+		destroy_servicegroup(tmpsg);
 	}
+	return 0;
+}
+
+static int nsplit_cache_host_in_group(void *hst, __attribute__((unused)) void *user_data)
+{
+	nsplit_cache_host((host *)hst);
 	return 0;
 }
 
@@ -304,16 +289,12 @@ static int nsplit_cache_stuff(const char *orig_groups)
 	/* from here on out, all hosts are tagged. */
 	for (grp = groups; grp != NULL; grp = comma ? comma + 1 : NULL) {
 		struct hostgroup *hg;
-		struct hostsmember *m;
 		if ((comma = strchr(grp, ',')))
 			* comma = 0;
 		hg = find_hostgroup(grp);
-		cached.hostgroups++;
 		fcache_hostgroup(fp, hg);
 		bitmap_set(map.hostgroups, hg->id);
-		for (m = hg->members; m; m = m->next) {
-			nsplit_cache_host(m->host_ptr);
-		}
+		rbtree_traverse(hg->members, nsplit_cache_host_in_group, NULL, rbinorder);
 	} while (grp);
 
 	return 0;

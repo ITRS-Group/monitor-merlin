@@ -852,6 +852,36 @@ node_selection *node_selection_by_hostname(const char *name)
 	return dkhash_get(host_hash_table, name, NULL);
 }
 
+struct host_hash_table_add_parameters
+{
+	node_selection *sel;
+	int *num_ents;
+};
+
+static int host_hash_table_add_host(void *_hst, void *user_data)
+{
+	struct host_hash_table_add_parameters *params = (struct host_hash_table_add_parameters *)user_data;
+	host *hst = (host *)_hst;
+	node_selection *cur = node_selection_by_hostname(hst->name);
+
+	/*
+	 * this should never happen, but if it does
+	 * we just ignore it and move on
+	 */
+	if (cur == params->sel)
+		return 0;
+
+	if (cur) {
+		lwarn("'%s' is checked by selection '%s', so can't add to selection '%s'",
+			  hst->name, cur->name, params->sel->name);
+		return 0;
+	}
+	params->num_ents[params->sel->id]++;
+
+	dkhash_insert(host_hash_table, hst->name, NULL, params->sel);
+	return 0;
+}
+
 static void setup_host_hash_tables(void)
 {
 	hostgroup *hg;
@@ -882,31 +912,14 @@ static void setup_host_hash_tables(void)
 	 * spurious warnings that aren't exactly accurate
 	 */
 	for (hg = hostgroup_list; hg; hg = hg->next) {
-		node_selection *sel = node_selection_by_name(hg->group_name);
-		hostsmember *m;
+		struct host_hash_table_add_parameters params;
+		params.sel = node_selection_by_name(hg->group_name);
+		params.num_ents = num_ents;
 
-		if (!sel)
+		if (!params.sel)
 			continue;
 
-		for (m = hg->members; m; m = m->next) {
-			node_selection *cur = node_selection_by_hostname(m->host_name);
-
-			/*
-			 * this should never happen, but if it does
-			 * we just ignore it and move on
-			 */
-			if (cur == sel)
-				continue;
-
-			if (cur) {
-				lwarn("'%s' is checked by selection '%s', so can't add to selection '%s'",
-					  m->host_name, cur->name, sel->name);
-				continue;
-			}
-			num_ents[sel->id]++;
-
-			dkhash_insert(host_hash_table, m->host_name, NULL, sel);
-		}
+		rbtree_traverse(hg->members, host_hash_table_add_host, &params, rbinorder);
 	}
 
 	for (i = 0; i < nsel; i++) {

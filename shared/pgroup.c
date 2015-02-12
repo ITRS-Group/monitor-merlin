@@ -329,52 +329,52 @@ static int pg_create_id_convtables(merlin_peer_group *pg)
 	return 0;
 }
 
-/* returns -1 if there are config issues and 0 otherwise */
-static int map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
+static int pgroup_hgroup_mapper(void *_hst, void *user_data)
 {
-	hostsmember *hm;
-	int dupes = 0;
+	servicesmember *sm;
+	host *h = (host *)_hst;
+	merlin_peer_group *pg = (merlin_peer_group *)user_data;
 
-	ldebug("Mapping hostgroup '%s' to peer group %d", hg->group_name, pg->id);
-	for (hm = hg->members; hm; hm = hm->next) {
-		servicesmember *sm;
-		host *h = hm->host_ptr;
+	/*
+	 * if the host is already in this selection, such as
+	 * from overlapping hostgroups assigned to a poller group,
+	 * we just move on (this also ensures we don't double-count
+	 * services).
+	 */
+	if (bitmap_isset(pg->host_map, h->id)) {
+		ldebug("  Host %d (%s) is already in this group", h->id, h->name);
+		return 0;
+	}
+	bitmap_set(pg->host_map, h->id);
 
-		/*
-		 * if the host is already in this selection, such as
-		 * from overlapping hostgroups assigned to a poller group,
-		 * we just move on (this also ensures we don't double-count
-		 * services).
-		 */
-		if (bitmap_isset(pg->host_map, h->id)) {
-			ldebug("  Host %d (%s) is already in this group", h->id, h->name);
-			continue;
-		}
-		bitmap_set(pg->host_map, h->id);
+	/*
+	 * if it's not ours but another poller handles it, we
+	 * need to warn about it so we can perform a more
+	 * exact check later
+	 */
+	if (bitmap_isset(poller_handled_hosts, h->id)) {
+		ldebug("Host '%s' is handled by two different poller groups!", h->name);
+		pg->overlapping++;
+	}
+	bitmap_set(poller_handled_hosts, h->id);
 
-		/*
-		 * if it's not ours but another poller handles it, we
-		 * need to warn about it so we can perform a more
-		 * exact check later
-		 */
-		if (bitmap_isset(poller_handled_hosts, h->id)) {
-			ldebug("Host '%s' is handled by two different poller groups!", h->name);
-			dupes++;
-		}
-		bitmap_set(poller_handled_hosts, h->id);
+	pg->assigned.hosts++;
 
-		pg->assigned.hosts++;
+	for (sm = h->services; sm; sm = sm->next) {
+		service *s = sm->service_ptr;
 
-		for (sm = h->services; sm; sm = sm->next) {
-			service *s = sm->service_ptr;
-
-			bitmap_set(pg->service_map, s->id);
-			bitmap_set(poller_handled_services, s->id);
-			pg->assigned.services++;
-		}
+		bitmap_set(pg->service_map, s->id);
+		bitmap_set(poller_handled_services, s->id);
+		pg->assigned.services++;
 	}
 
-	return dupes;
+	return 0;
+}
+
+static void map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
+{
+	ldebug("Mapping hostgroup '%s' to peer group %d", hg->group_name, pg->id);
+	rbtree_traverse(hg->members, pgroup_hgroup_mapper, pg, rbinorder);
 }
 
 static int pgroup_map_objects(void)
@@ -399,12 +399,11 @@ static int pgroup_map_objects(void)
 				return -1;
 			}
 
-			dupes = map_pgroup_hgroup(pg, hg);
-			if (dupes) {
+			map_pgroup_hgroup(pg, hg);
+			if (pg->overlapping) {
 				lerr("CONFIG ANOMALY: Hostgroup '%s' has %d hosts overlapping with another hostgroup used for poller assigment",
 					hg->group_name, dupes);
 			}
-			pg->overlapping += dupes;
 			if (pg_create_id_convtables(pg)) {
 				lerr("  Failed to create object id conversion tables for pg %d", pg->id);
 			}

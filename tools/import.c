@@ -11,6 +11,7 @@
 #include "cfgfile.h"
 #include <stdint.h> /* standard fixed-size integer types. */
 #include <inttypes.h> /* PRIxxx printf specifiers. */
+#include <sys/time.h>
 #define IGNORE_LINE 0
 
 #define CONCERNS_HOST 50

@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <limits.h>
+#include <sys/time.h>
 #include "cfgfile.h"
 #include "db_wrap.h"
 #include "sql.h"
