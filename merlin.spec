@@ -181,6 +181,11 @@ sed --follow-symlinks -i \
     -e 's#ipc_socket =.*$#ipc_socket = /var/lib/merlin/ipc.sock;#' \
     %mod_path/merlin.conf
 
+# error/warn logging is useless, change it to info
+sed --follow-symlinks -r -i \
+  's/^([[:space:]]*log_level[[:space:]]*=[[:space:]]*)(error|warn)[[:space:]]*;[[:space:]]*$/\1info;/' \
+  %mod_path/merlin.conf
+
 # chown old cached nodesplit data, so it can be deleted
 chown -R monitor:%daemon_group %_localstatedir/cache/merlin
 
