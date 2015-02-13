@@ -890,6 +890,8 @@ static void setup_host_hash_tables(void)
 
 	nsel = get_num_selections();
 
+	host_hash_table = g_hash_table_new(g_str_hash, g_str_equal);
+
 	/*
 	 * only bother if we've got hostgroups, pollers and selections.
 	 * Otherwise we'll just be wasting perfectly good memory
@@ -897,8 +899,6 @@ static void setup_host_hash_tables(void)
 	 */
 	if (!hostgroup_list || !num_pollers || !nsel)
 		return;
-
-	host_hash_table = g_hash_table_new(g_str_hash, g_str_equal);
 
 	num_ents = calloc(nsel, sizeof(int));
 

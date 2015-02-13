@@ -32,10 +32,6 @@ char    *host_perfdata_file_processing_command = NULL;
 char    *service_perfdata_file_processing_command = NULL;
 
 int process_check_result(__attribute__((unused)) check_result *cr){ return 0; }
-struct command *find_command(__attribute__((unused)) const char *name) { return NULL; }
-struct host *find_host(__attribute__((unused)) const char *name) { return NULL; }
-struct hostgroup *find_hostgroup(__attribute__((unused)) const char *name) { return NULL; }
-struct service *find_service(__attribute__((unused)) const char *host_name, __attribute__((unused)) const char *service_description) { return NULL; }
 struct comment *get_first_comment_by_host(__attribute__((unused)) char *host) { return NULL; }
 int delete_comment(__attribute__((unused)) int type, __attribute__((unused)) unsigned long comment_id) { return 0; }
 int delete_downtime_by_hostname_service_description_start_time_comment(__attribute__((unused)) char *hostname, __attribute__((unused)) char *service_description, __attribute__((unused)) time_t start_time, __attribute__((unused)) char *cmnt) { return 0; }
@@ -119,27 +115,23 @@ void general_teardown()
 
 void expiration_setup()
 {
+	host *hst;
 	num_peer_groups = 0;
 	peer_group = NULL;
 	nebmodule_init(0, "tests/twopeers.conf", NULL);
-	num_objects.hosts = 3;
-	num_objects.services = 3;
-	host_ary = calloc(3, sizeof(host*));
-	host_ary[0] = calloc(1, sizeof(host));
-	host_ary[0]->id = 0;
-	host_ary[0]->services = calloc(1, sizeof(servicesmember));
-	host_ary[0]->services->service_ptr = calloc(1, sizeof(service));
-	host_ary[0]->services->service_ptr->id = 0;
-	host_ary[1] = calloc(1, sizeof(host));
-	host_ary[1]->id = 1;
-	host_ary[1]->services = calloc(1, sizeof(servicesmember));
-	host_ary[1]->services->service_ptr = calloc(1, sizeof(service));
-	host_ary[1]->services->service_ptr->id = 1;
-	host_ary[2] = calloc(1, sizeof(host));
-	host_ary[2]->id = 2;
-	host_ary[2]->services = calloc(1, sizeof(servicesmember));
-	host_ary[2]->services->service_ptr = calloc(1, sizeof(service));
-	host_ary[2]->services->service_ptr->id = 2;
+	init_objects_command(1);
+	init_objects_host(3);
+	init_objects_service(3);
+	register_command(create_command("command0", "/bin/true"));
+	hst = create_host("host0");
+	register_host(hst);
+	register_service(create_service(hst, "service0", "command0"));
+	hst = create_host("host1");
+	register_host(hst);
+	register_service(create_service(hst, "service1", "command0"));
+	hst = create_host("host2");
+	register_host(hst);
+	register_service(create_service(hst, "service2", "command0"));
 
 	int event_type = NEBTYPE_PROCESS_EVENTLOOPSTART;
 	post_config_init(0, &event_type);
@@ -153,13 +145,9 @@ void expiration_setup()
 
 void expiration_teardown()
 {
-	int i;
-	for (i = 0; i < 3; i++) {
-		free(host_ary[i]->services->service_ptr);
-		free(host_ary[i]->services);
-		free(host_ary[i]);
-	}
-	free(host_ary);
+	destroy_objects_command();
+	destroy_objects_host();
+	destroy_objects_service();
 	nebmodule_deinit(0, 0);
 }
 
@@ -171,18 +159,13 @@ START_TEST(test_callback_host_check)
 	time_t expected_last_check = time(NULL);
 	time_t not_expected_last_check = 2147123099;
 
-	host_ary = calloc(1, sizeof(host*));
-	host hst;
-	memset(&hst, 0, sizeof(host));
-	host_ary[0] = &hst;
-	num_objects.hosts = 1;
+	init_objects_host(1);
+	host *hst = create_host("test-host");
+	register_host(hst);
+	hst->last_check = not_expected_last_check;
 
 	int event_type = NEBTYPE_PROCESS_EVENTLOOPSTART;
 	post_config_init(0, &event_type);
-
-	hst.id = 0;
-	hst.name = "test-host";
-	hst.last_check = not_expected_last_check;
 
 	nebstruct_host_check_data ev_data = {0,};
 	merlin_host_status *event_body;
@@ -192,14 +175,16 @@ START_TEST(test_callback_host_check)
 	ev_data.flags = 0;
 	ev_data.attr = NEBATTR_CHECK_ALERT;
 	ev_data.timestamp = tv;
-	ev_data.object_ptr = &hst;
+	ev_data.object_ptr = hst;
 	ev_data.end_time.tv_sec =  expected_last_check;
 	merlin_mod_hook(NEBCALLBACK_HOST_CHECK_DATA, &ev_data);
 	ck_assert_int_eq(last_decoded_event.hdr.type, NEBCALLBACK_HOST_CHECK_DATA);
 	event_body = (merlin_host_status *)last_decoded_event.body;
 	ck_assert_int_eq(event_body->nebattr, NEBATTR_CHECK_ALERT);
-	ck_assert_str_eq(event_body->name, hst.name);
+	ck_assert_str_eq(event_body->name, hst->name);
 	ck_assert_int_eq(expected_last_check, event_body->state.last_check);
+
+	destroy_objects_host();
 }
 END_TEST
 
@@ -208,22 +193,15 @@ START_TEST(test_callback_service_check)
 	time_t expected_last_check = time(NULL);
 	time_t not_expected_last_check = 2147123099;
 
-	host_ary = calloc(1, sizeof(host*));
-	host hst;
-	hst.id = 0;
-	hst.name = "test-host";
-	service svc;
-	memset(&hst, 0, sizeof(host));
-	host_ary[0] = &hst;
-	hst.services = calloc(1, sizeof(servicesmember));
-	hst.services->service_ptr = &svc;
-	memset(&svc, 0, sizeof(service));
-	svc.id = 0;
-	svc.host_name = "test-host";
-	svc.description = "test-service";
-	svc.last_check = not_expected_last_check;
-	num_objects.hosts = 1;
-	num_objects.services = 1;
+	init_objects_command(1);
+	init_objects_host(1);
+	init_objects_service(1);
+
+	register_command(create_command("test-command", "/bin/true"));
+	register_host(create_host("test-host"));
+	service *svc = create_service(host_ary[0], "test-service", "test-command");
+	register_service(svc);
+	svc->last_check = not_expected_last_check;
 
 	int event_type = NEBTYPE_PROCESS_EVENTLOOPSTART;
 	post_config_init(0, &event_type);
@@ -236,14 +214,18 @@ START_TEST(test_callback_service_check)
 	ev_data.flags = 0;
 	ev_data.attr = NEBATTR_CHECK_ALERT;
 	ev_data.timestamp = tv;
-	ev_data.object_ptr = &svc;
+	ev_data.object_ptr = svc;
 	ev_data.end_time.tv_sec =  expected_last_check;
 	merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, &ev_data);
 	ck_assert_int_eq(last_decoded_event.hdr.type, NEBCALLBACK_SERVICE_CHECK_DATA);
 	event_body = (merlin_service_status *)last_decoded_event.body;
 	ck_assert_int_eq(event_body->nebattr, NEBATTR_CHECK_ALERT);
-	ck_assert_str_eq(event_body->host_name, svc.host_name);
+	ck_assert_str_eq(event_body->host_name, svc->host_name);
 	ck_assert_int_eq(expected_last_check, event_body->state.last_check);
+
+	destroy_objects_command();
+	destroy_objects_host();
+	destroy_objects_service();
 }
 END_TEST
 

@@ -391,6 +391,7 @@ showlog_suite(void)
   tcase_add_test(auth, too_many_lines);
   tcase_add_test(auth, empty_params);
   tcase_add_test(auth, long_parameter);
+  tcase_set_timeout(auth, 30);
   suite_add_tcase(s, auth);
 
   TCase *log = tcase_create("Log selection");

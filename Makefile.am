@@ -161,6 +161,7 @@ rename_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 
 check_PROGRAMS = $(TESTS) test-dbwrap
 TESTS = sltest test-csync test-lparse hooktest stringutilstest showlogtest bltest codectest
+TESTS_ENVIRONMENT = G_DEBUG=fatal-criticals; export G_DEBUG;
 
 sltest_SOURCES = tests/sltest.c tools/test_utils.c tools/slist.c tools/slist.h
 sltest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools
