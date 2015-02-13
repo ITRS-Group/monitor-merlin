@@ -357,10 +357,14 @@ int split_config(void)
 		nsplit_cache_command(ocsp_command_ptr);
 		nsplit_cache_command(global_host_event_handler_ptr);
 		nsplit_cache_command(global_service_event_handler_ptr);
-		nsplit_cache_command(find_command(host_perfdata_command));
-		nsplit_cache_command(find_command(service_perfdata_command));
-		nsplit_cache_command(find_command(host_perfdata_file_processing_command));
-		nsplit_cache_command(find_command(service_perfdata_file_processing_command));
+		if (host_perfdata_command)
+			nsplit_cache_command(find_command(host_perfdata_command));
+		if (service_perfdata_command)
+			nsplit_cache_command(find_command(service_perfdata_command));
+		if (host_perfdata_file_processing_command)
+			nsplit_cache_command(find_command(host_perfdata_file_processing_command));
+		if (service_perfdata_file_processing_command)
+			nsplit_cache_command(find_command(service_perfdata_file_processing_command));
 
 		if (nsplit_cache_stuff(groups) < 0) {
 			lerr("Caching for %s failed. Skipping", node->name);
