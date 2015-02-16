@@ -1322,11 +1322,15 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 
 	if (ipc.state != STATE_CONNECTED) {
 		unsigned int i;
-		ret = iobroker_unregister(nagios_iobs, ipc.sock);
-		if (ret)
-			ldebug("  ipc_action_handler(): iobroker_unregister(%p, %d) returned %d: %s",
-				   nagios_iobs, ipc.sock, ret, iobroker_strerror(ret));
-		close(ipc.sock);
+		ret = iobroker_close(nagios_iobs, ipc.sock);
+		if (ret) {
+			/*
+			 * This is likely to happen on core shutdown, since by then all
+			 * iobrokers will already have been unregistered and closed.
+			 */
+			ldebug("  ipc_action_handler(): iobroker_close(%p, %d) returned %d: %s",
+					nagios_iobs, ipc.sock, ret, iobroker_strerror(ret));
+		}
 		ipc.sock = -1;
 
 		/*
