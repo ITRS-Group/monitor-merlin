@@ -45,6 +45,46 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 	if (node->state == state)
 		return;
 
+	/*
+	 * Allowed nodestate transitions:
+	 * Any state -> NONE
+	 * NONE -> PENDING/NEGOTIATING.
+	 * PENDING -> Any state
+	 * NEGOTIATING -> CONNECTED/NONE
+	 * CONNECTED -> NONE
+	 *
+	 * Some of the if-conditions below will never trigger
+	 * but we keep them for completeness. The compiler optimizes
+	 * them away anyway, so they basically serve as comments.
+	 * We don't do this check for &ipc, as it's special as usual.
+	 */
+	if (state != STATE_NONE && node != &ipc) {
+		int transition_error = 1;
+		switch (node->state) {
+		case STATE_NONE:
+			if (state == STATE_PENDING || state == STATE_NEGOTIATING)
+				transition_error = 0;
+			break;
+		case STATE_PENDING:
+			transition_error = 0;
+			break;
+		case STATE_NEGOTIATING:
+			if (state == STATE_CONNECTED || state == STATE_NONE)
+				transition_error = 0;
+			break;
+		case STATE_CONNECTED:
+			if (state == STATE_NONE)
+				transition_error = 0;
+			break;
+		}
+
+		if (transition_error) {
+			lerr("NODESTATE: Transition error: %s node %s going from %s to %s",
+			     node_type(node), node->name,
+			     node_state_name(node->state), node_state_name(state));
+			node_disconnect(node, "Nodestate transition error");
+		}
+	}
 	if (reason) {
 		linfo("NODESTATE: %s: %s -> %s: %s", node->name,
 		      node_state_name(node->state), node_state_name(state), reason);
