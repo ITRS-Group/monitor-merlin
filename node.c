@@ -83,6 +83,7 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 			     node_type(node), node->name,
 			     node_state_name(node->state), node_state_name(state));
 			node_disconnect(node, "Nodestate transition error");
+			return;
 		}
 	}
 	if (reason) {
