@@ -187,10 +187,12 @@ typedef struct node_selection node_selection;
 #define MODE_INTERNAL  (1 << 3)
 
 /* for node->state */
-#define STATE_NONE 0
-#define STATE_PENDING 1
-#define STATE_NEGOTIATING 2
-#define STATE_CONNECTED 3
+enum {
+	STATE_NONE,
+	STATE_PENDING,
+	STATE_NEGOTIATING,
+	STATE_CONNECTED,
+};
 
 #define NODE_WARN_CLOCK 1   /* clock skew warning */
 
