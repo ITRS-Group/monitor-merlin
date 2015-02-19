@@ -1,8 +1,10 @@
 *.o
 *.so
 *.lo
+*.la
 .deps
 .libs
+.dirstamp
 core.[0-9]*
 core
 mod.log
