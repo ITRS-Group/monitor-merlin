@@ -188,8 +188,8 @@ static int nsplit_cache_host(void *_hst, __attribute__((unused)) void *user_data
 
 	for (sm = h->services; sm; sm = sm->next) {
 		struct service *s = sm->service_ptr;
-		struct service *tmpsvc = create_service(tmphst, s->description, s->check_command);
-		setup_service_variables(s, s->display_name, s->check_period, s->initial_state, s->max_attempts, s->accept_passive_checks, s->check_interval, s->retry_interval, s->notification_interval, s->first_notification_delay, s->notification_period, s->notification_options, s->notifications_enabled, s->is_volatile, s->event_handler, s->event_handler_enabled, s->checks_enabled, s->flap_detection_enabled, s->low_flap_threshold, s->high_flap_threshold, s->flap_detection_options, s->stalking_options, s->process_performance_data, s->check_freshness, s->freshness_threshold, s->notes, s->notes_url, s->action_url, s->icon_image, s->icon_image_alt, s->retain_status_information, s->retain_nonstatus_information, s->obsess, s->hourly_value);
+		struct service *tmpsvc = create_service(tmphst, s->description);
+		setup_service_variables(s, s->display_name, s->check_command, s->check_period, s->initial_state, s->max_attempts, s->accept_passive_checks, s->check_interval, s->retry_interval, s->notification_interval, s->first_notification_delay, s->notification_period, s->notification_options, s->notifications_enabled, s->is_volatile, s->event_handler, s->event_handler_enabled, s->checks_enabled, s->flap_detection_enabled, s->low_flap_threshold, s->high_flap_threshold, s->flap_detection_options, s->stalking_options, s->process_performance_data, s->check_freshness, s->freshness_threshold, s->notes, s->notes_url, s->action_url, s->icon_image, s->icon_image_alt, s->retain_status_information, s->retain_nonstatus_information, s->obsess, s->hourly_value);
 		for (cm = s->contacts; cm; cm = cm->next)
 			add_contact_to_service(tmpsvc, cm->contact_name);
 		for (cgm = s->contact_groups; cgm; cgm = cgm->next)

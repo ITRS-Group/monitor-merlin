@@ -119,19 +119,17 @@ void expiration_setup()
 	num_peer_groups = 0;
 	peer_group = NULL;
 	nebmodule_init(0, "tests/twopeers.conf", NULL);
-	init_objects_command(1);
 	init_objects_host(3);
 	init_objects_service(3);
-	register_command(create_command("command0", "/bin/true"));
 	hst = create_host("host0");
 	register_host(hst);
-	register_service(create_service(hst, "service0", "command0"));
+	register_service(create_service(hst, "service0"));
 	hst = create_host("host1");
 	register_host(hst);
-	register_service(create_service(hst, "service1", "command0"));
+	register_service(create_service(hst, "service1"));
 	hst = create_host("host2");
 	register_host(hst);
-	register_service(create_service(hst, "service2", "command0"));
+	register_service(create_service(hst, "service2"));
 
 	int event_type = NEBTYPE_PROCESS_EVENTLOOPSTART;
 	post_config_init(0, &event_type);
@@ -145,7 +143,6 @@ void expiration_setup()
 
 void expiration_teardown()
 {
-	destroy_objects_command();
 	destroy_objects_host();
 	destroy_objects_service();
 	nebmodule_deinit(0, 0);
@@ -193,13 +190,11 @@ START_TEST(test_callback_service_check)
 	time_t expected_last_check = time(NULL);
 	time_t not_expected_last_check = 2147123099;
 
-	init_objects_command(1);
 	init_objects_host(1);
 	init_objects_service(1);
 
-	register_command(create_command("test-command", "/bin/true"));
 	register_host(create_host("test-host"));
-	service *svc = create_service(host_ary[0], "test-service", "test-command");
+	service *svc = create_service(host_ary[0], "test-service");
 	register_service(svc);
 	svc->last_check = not_expected_last_check;
 
@@ -223,7 +218,6 @@ START_TEST(test_callback_service_check)
 	ck_assert_str_eq(event_body->host_name, svc->host_name);
 	ck_assert_int_eq(expected_last_check, event_body->state.last_check);
 
-	destroy_objects_command();
 	destroy_objects_host();
 	destroy_objects_service();
 }
