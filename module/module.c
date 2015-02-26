@@ -1298,9 +1298,6 @@ static int post_config_init(int cb, void *ds)
  */
 static int ipc_action_handler(merlin_node *node, int prev_state)
 {
-	int ret;
-	struct timeval start, stop;
-
 	ldebug("Running ipc action handler");
 	if (node != &ipc || ipc.state == prev_state) {
 		ldebug("  ipc_action_handler(): First exit");
@@ -1363,24 +1360,6 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	 * adds before trying to send.
 	 */
 	node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info);
-
-	/* now we wait for inbound connections */
-	for (gettimeofday(&start, NULL);;) {
-		int wait;
-		/* exits immediately if we have no peers or pollers */
-		if (online_nodes >= num_nodes)
-			break;
-		gettimeofday(&stop, NULL);
-		wait = 10000 - tv_delta_msec(&start, &stop);
-		if (wait <= 0)
-			break;
-		ldebug("Polling for input for %d msecs", wait);
-		iobroker_poll(nagios_iobs, wait);
-	}
-	gettimeofday(&stop, NULL);
-	linfo("%d/%d pollers, %d/%d peers and %d/%d masters connected in %s",
-		  online_pollers, num_pollers, online_peers, num_peers,
-		  online_masters, num_masters, tv_delta(&start, &stop));
 
 	return 0;
 }
