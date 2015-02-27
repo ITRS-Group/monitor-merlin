@@ -1097,7 +1097,6 @@ static int read_config(char *cfg_file)
 /* Nagios stuff goes below */
 NEB_API_VERSION(CURRENT_NEB_API_VERSION);
 
-extern int daemon_dumps_core;
 void *neb_handle = NULL;
 
 extern char *config_file;

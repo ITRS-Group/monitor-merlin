@@ -82,7 +82,6 @@ debug_file=@@DIR@@/var/nagios.debug
 debug_level=-1
 debug_verbosity=1
 max_debug_file_size=104857600
-daemon_dumps_core=1
 """
 
 	merlin_config_in = """ipc_socket = @@DIR@@/merlin/ipc.sock;
