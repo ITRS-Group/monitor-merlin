@@ -3,7 +3,6 @@
 
 #include <stdarg.h>
 #include "db_wrap.h"
-#define prefixcmp(a, b) strncmp(a, b, strlen(b))
 
 extern char *host_perf_table;
 extern char *service_perf_table;
