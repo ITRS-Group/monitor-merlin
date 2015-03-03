@@ -40,6 +40,8 @@ static int restrict_objects = 0;
 #define EVT_QH       (1 << 12)
 #define EVT_NERD     (1 << 13)
 #define EVT_WPROC    (1 << 14)
+#define EVT_NSR      (1 << 15)
+#define EVT_CONTACT (1 << 16)
 
 #define EVT_HOST    (1 << 20)
 #define EVT_SERVICE (1 << 21)
@@ -68,11 +70,15 @@ static struct string_code event_codes[] = {
 	add_code(5, "CURRENT HOST STATE", EVT_STATE | EVT_HOST),
 	add_code(5, "HOST EVENT HANDLER", EVT_EHANDLER | EVT_HOST),
 	add_code(5, "HOST NOTIFICATION", EVT_NOTIFY | EVT_HOST),
+	add_code(1, "HOST NOTIFICATION SUPPRESSED", EVT_NSR | EVT_NOTIFY | EVT_HOST),
+	add_code(2, "HOST CONTACT NOTIFICATION SUPPRESSED", EVT_NSR | EVT_NOTIFY | EVT_CONTACT | EVT_HOST),
 	add_code(6, "SERVICE ALERT", EVT_ALERT | EVT_SERVICE),
 	add_code(6, "INITIAL SERVICE STATE", EVT_STATE | EVT_SERVICE),
 	add_code(6, "CURRENT SERVICE STATE", EVT_STATE | EVT_SERVICE),
 	add_code(6, "SERVICE EVENT HANDLER", EVT_EHANDLER | EVT_SERVICE),
 	add_code(6, "SERVICE NOTIFICATION", EVT_NOTIFY | EVT_SERVICE),
+	add_code(2, "SERVICE NOTIFICATION SUPPRESSED", EVT_NSR | EVT_NOTIFY | EVT_SERVICE),
+	add_code(3, "SERVICE CONTACT NOTIFICATION SUPPRESSED", EVT_NSR | EVT_NOTIFY | EVT_CONTACT | EVT_HOST),
 	add_code(3, "HOST DOWNTIME ALERT", EVT_DOWNTIME | EVT_HOST),
 	add_code(3, "HOST FLAPPING ALERT", EVT_FLAPPING | EVT_HOST),
 	add_code(4, "SERVICE DOWNTIME ALERT", EVT_DOWNTIME | EVT_SERVICE),
@@ -209,56 +215,27 @@ static void print_line_ansi(int type, struct tm *t, char *line, __attribute__((u
 {
 	const char *color = NULL;
 
-	switch (type) {
-	case EVT_ALERT | EVT_HOST:
-	case EVT_STATE | EVT_HOST:
+	if ((type & EVT_HOST) && ((type & EVT_ALERT) || (type & EVT_STATE))) {
 		if (severity == STATE_UP)
 			color = CLR_GREEN;
 		else
 			color = CLR_RED;
-		break;
-
-	case EVT_ALERT | EVT_SERVICE:
-	case EVT_STATE | EVT_SERVICE:
-		switch (severity) {
-		case STATE_OK: color = CLR_GREEN; break;
-		case STATE_WARNING: color = CLR_YELLOW; break;
-		case STATE_CRITICAL: color = CLR_RED; break;
-		case STATE_UNKNOWN: color = CLR_BROWN; break;
-		}
-		break;
-
-	case EVT_DOWNTIME | EVT_HOST:
-	case EVT_DOWNTIME | EVT_SERVICE:
-		color = CLR_BRIGHT_CYAN;
-		break;
-
-	case EVT_FLAPPING | EVT_HOST:
-	case EVT_FLAPPING | EVT_SERVICE:
-		color = CLR_CYAN;
-		break;
-
-	case EVT_NOTIFY | EVT_HOST:
-	case EVT_NOTIFY | EVT_SERVICE:
-		color = CLR_BRIGHT_RED;
-		break;
-
-	case EVT_PROCESS:
-		color = CLR_MAGENTA;
-		break;
-
-	case EVT_LROTATE:
-		color = CLR_BOLD;
-		break;
-
-	case EVT_COMMAND:
-		color = CLR_BRIGHT_MAGENTA;
-		break;
-
-	case EVT_START: case EVT_STOP:
-		color = CLR_BRIGHT_BLUE;
-		break;
 	}
+	else if ((type & EVT_SERVICE) && ((type & EVT_ALERT) || (type & EVT_STATE))) {
+		switch (severity) {
+			case STATE_OK: color = CLR_GREEN; break;
+			case STATE_WARNING: color = CLR_YELLOW; break;
+			case STATE_CRITICAL: color = CLR_RED; break;
+			case STATE_UNKNOWN: color = CLR_BROWN; break;
+		}
+	}
+	else if (type & EVT_START || type & EVT_STOP)  color = CLR_BRIGHT_BLUE;
+	else if (type & EVT_PROCESS)  color = CLR_MAGENTA;
+	else if (type & EVT_LROTATE)  color = CLR_BOLD;
+	else if (type & EVT_COMMAND)  color = CLR_BRIGHT_MAGENTA;
+	else if (type & EVT_DOWNTIME) color = CLR_BRIGHT_CYAN;
+	else if (type & EVT_NOTIFY)   color = CLR_BRIGHT_RED;
+	else if (type & EVT_FLAPPING) color = CLR_CYAN;
 
 	if (color) {
 		printf("%s", color);
@@ -304,67 +281,33 @@ static void print_line_html(int type, struct tm *t, char *line, __attribute__((u
 	char *tmp;
 	int i = 0;
 
-	switch (type) {
-	case EVT_ALERT | EVT_HOST:
-	case EVT_STATE | EVT_HOST:
-		if (severity == STATE_UP)
-			image = "shield-ok.png";
-		else
-			image = "shield-critical.png";
-		break;
-
-	case EVT_ALERT | EVT_SERVICE:
-	case EVT_STATE | EVT_SERVICE:
-		switch (severity) {
-		case STATE_OK: image = "shield-ok.png"; break;
-		case STATE_WARNING: image = "shield-warning.png"; break;
-		case STATE_CRITICAL: image = "shield-critical.png"; break;
-		case STATE_UNKNOWN: image = "shield-unknown.png"; break;
-		}
-		break;
-
-	case EVT_DOWNTIME | EVT_HOST:
-	case EVT_DOWNTIME | EVT_SERVICE:
-		image = "scheduled-downtime.png";
-		break;
-
-	case EVT_FLAPPING | EVT_HOST:
-	case EVT_FLAPPING | EVT_SERVICE:
-		image = "flapping.gif";
-		break;
-
-	case EVT_NOTIFY | EVT_HOST:
-	case EVT_NOTIFY | EVT_SERVICE:
-		image = "notify-send.png";
-		break;
-
-	case EVT_COMMAND:
-		image = "command.png";
-		break;
-
-	case EVT_LROTATE:
-		image = "logrotate.png";
-		break;
-
-	case EVT_EHANDLER | EVT_HOST:
-		image = "hostevent.gif";
-		break;
-
-	case EVT_EHANDLER | EVT_SERVICE:
-		image = "serviceevent.gif";
-		break;
-
-	case EVT_START:
-		image = "start.png";
-		break;
-
-	case EVT_STOP:
-		image = "stop.png";
-		break;
+	if (type & EVT_HOST && ((type & EVT_ALERT) || (type & EVT_STATE))) {
+		if (severity == STATE_UP) image = "shield-ok.png";
+		else                      image = "shield-critical.png";
 	}
-
-	if (!image)
-		image = "shield-info.png";
+	else if (type & EVT_SERVICE && ((type & EVT_ALERT) || (type & EVT_STATE))) {
+		switch (severity) {
+		case STATE_OK:		 image = "shield-ok.png"; break;
+		case STATE_WARNING:  image = "shield-warning.png"; break;
+		case STATE_CRITICAL: image = "shield-critical.png"; break;
+		case STATE_UNKNOWN:  image = "shield-unknown.png"; break;
+		}
+	}
+	else if (type & EVT_NOTIFY) {
+		if (type & EVT_NSR) image = "notify-disabled.png";
+		else			    image = "notify-send.png";
+	}
+	else if (type & EVT_EHANDLER) {
+		if      (type & EVT_HOST)    image = "hostevent.gif";
+		else if (type & EVT_SERVICE) image = "serviceevent.gif";
+	}
+	else if (type & EVT_DOWNTIME) image = "scheduled-downtime.png";
+	else if (type & EVT_FLAPPING) image = "flapping.gif";
+	else if (type & EVT_COMMAND)  image = "command.png";
+	else if (type & EVT_LROTATE)      image = "logrotate.png";
+	else if (type & EVT_START)    image = "start.png";
+	else if (type & EVT_STOP)     image = "stop.png";
+	else						  image = "shield-info.png";
 
 	if (last_time_break != ltime / 3600) {
 		print_time_break(t);
@@ -623,6 +566,33 @@ static int parse_line(char *orig_line, uint len)
 			return 0;
 		break;
 
+	case EVT_NSR | EVT_NOTIFY | EVT_HOST:
+		if (restrict_objects && !auth_host_ok(strv[0]))
+			return 0;
+		if (!is_interesting_host(strv[0]))
+			return 0;
+		break;
+
+	case EVT_NSR | EVT_NOTIFY | EVT_SERVICE:
+		if (restrict_objects && !auth_service_ok(strv[0], strv[1]))
+			return 0;
+		if (!is_interesting_service(strv[0], strv[1]))
+			return 0;
+		break;
+
+	case EVT_NSR | EVT_NOTIFY | EVT_HOST | EVT_CONTACT:
+		if (restrict_objects && !auth_host_ok(strv[1]))
+			return 0;
+		if (!is_interesting_host(strv[1]))
+			return 0;
+		break;
+
+	case EVT_NSR | EVT_NOTIFY | EVT_SERVICE | EVT_CONTACT:
+		if (restrict_objects && !auth_service_ok(strv[1], strv[2]))
+			return 0;
+		if (!is_interesting_service(strv[1], strv[2]))
+			return 0;
+		break;
 	}
 
 	print_line(sc->code, line, len);
