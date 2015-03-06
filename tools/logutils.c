@@ -495,10 +495,12 @@ static int add_naglog_directory(const char *dir)
 	while ((de = readdir(dirp))) {
 		unsigned int name_len;
 		path[dlen] = 0;
-		if (prefixcmp(de->d_name, "nagios"))
+		if (prefixcmp(de->d_name, "nagios") && prefixcmp(de->d_name, "naemon"))
 			continue;
 		name_len = strlen(de->d_name);
-		if (strcmp(&de->d_name[name_len - 4], ".log"))
+		if (name_len < 10) /* naemon.log = 10 chars */
+			continue;
+		if (!strstr(de->d_name, ".log"))
 			continue;
 
 		/* build some sort of path to the file */
