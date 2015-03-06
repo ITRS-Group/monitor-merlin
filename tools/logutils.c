@@ -417,68 +417,6 @@ int strtotimet(const char *str, time_t *val)
 	return 0;
 }
 
-/*
- * Returns an increasing numeric value for a nagios logfile
- * For a file with a name such as:
- *   nagios-12-01-2002-00.log
- * it will return
- *   2002120100
- */
-#define NUM_PARTS 4
-uint path_cmp_number(char *path)
-{
-	uint ret, len;
-	char *dash = NULL;
-	int i;
-	unsigned long part[NUM_PARTS];
-
-	dash = strrchr(path, '/');
-	if (!dash)
-		dash = path;
-	else
-		dash++;
-
-	/*
-	 * we special-case nagios.log as always being the
-	 * last file to be parsed. It has to be, since it's
-	 * the currently active logfile
-	 */
-	if (!strcmp(dash, "nagios.log"))
-		return 1 << ((8 * sizeof(ret)) - 1);
-
-	len = strlen(dash);
-	if (len < 18 || strcmp(&dash[len - 4], ".log"))
-		return 0;
-
-	for (i = 0; i < NUM_PARTS; i++) {
-		char *endp;
-
-		dash = strchr(dash, '-');
-		if (!dash)
-			return 0;
-
-		dash++;
-		part[i] = strtoul(dash, &endp, 10);
-		if (!part[i] && dash == endp)
-			return 0;
-		if (!endp)
-			return 0;
-		dash = endp;
-	}
-	if (part[0] < 1 || part[0] > 12)
-		return 0;
-	if (part[1] < 1 || part[1] > 31)
-		return 0;
-	if (!part[2])
-		return 0;
-	ret = part[2] *  1000000;
-	ret += part[0] * 10000;
-	ret += part[1] * 100;
-	ret += part[3];
-
-	return ret;
-}
-
 void first_log_time(struct naglog_file *nf)
 {
 	int fd;
@@ -513,39 +451,19 @@ void first_log_time(struct naglog_file *nf)
 	if (strtotimet(buf + i + 1, &nf->first))
 		lp_crash("'%s' has no timestamp for us to parse", buf);
 
-	nf->cmp = path_cmp_number(nf->path);
+	nf->cmp = nf->first;
 	close(fd);
 }
 
-static void filesort_mismatch(const struct naglog_file *a, const struct naglog_file *b)
-{
-	printf("filesort mismatch:\n");
-	printf("  %s:\n    cmp:   %d\n    first: %lu\n", a->path, a->cmp, a->first);
-	printf("  %s:\n    cmp:   %d\n    first: %lu\n", b->path, b->cmp, b->first);
-	lp_crash("%s and %s have same 'first' and 'cmp'? Bizarre...", a->path, b->path);
-}
-
 /*
- * sort function for nagios logfiles. Sorts based on
- * first logged timestamp and then on filename, ascendingly
+ * sort function for logfiles. Sorts based on first logged timestamp
  */
 int nfile_cmp(const void *p1, const void *p2)
 {
 	const struct naglog_file *a = p1;
 	const struct naglog_file *b = p2;
 
-	if (a->first > b->first)
-		return 1;
-	if (b->first > a->first)
-		return -1;
-
-	if (a->cmp > b->cmp)
-		return 1;
-	if (b->cmp > a->cmp)
-		return -1;
-
-	filesort_mismatch(a, b);
-	return 0;
+	return a->first - b->first;
 }
 
 /* same as above, but sorts in reverse order */
@@ -554,19 +472,7 @@ int nfile_rev_cmp(const void *p1, const void *p2)
 	const struct naglog_file *a = p1;
 	const struct naglog_file *b = p2;
 
-	if (a->first < b->first)
-		return 1;
-	if (b->first < a->first)
-		return -1;
-
-	if (a->cmp < b->cmp)
-		return 1;
-	if (b->cmp < a->cmp)
-		return -1;
-
-	filesort_mismatch(a, b);
-	return 0;
-
+	return b->first - a->first;
 }
 
 #ifndef PATH_MAX
