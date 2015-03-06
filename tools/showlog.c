@@ -1034,7 +1034,9 @@ int main(int argc, char **argv)
 		arg_len = strlen(arg);
 		if (arg_len > 7 && !strcmp(&arg[arg_len - 7], "cgi.cfg")) {
 			cgi_cfg = arg;
-		} else if (!strcmp(&arg[strlen(arg) - 10], "nagios.cfg")) {
+		} else if (!strcmp(&arg[strlen(arg) - 10], "nagios.cfg")
+		           || !strcmp(&arg[strlen(arg) - 10], "naemon.cfg"))
+		{
 			nagios_cfg = arg;
 		} else {
 			add_naglog_path(arg);
