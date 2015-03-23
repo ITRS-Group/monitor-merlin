@@ -351,15 +351,27 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 		/*
 		 * Only mark the node as connected if the CTRL_ACTIVE packet
 		 * checks out properly and the info is new. If it *is* new,
+		 * or if this node has reconnected after network problems,
 		 * we must re-do the peer assignment thing.
 		 */
-		if (!handle_ctrl_active(node, pkt)) {
+		{
+			int prev_state, ret;
+
+			prev_state = node->state;
+			ret = handle_ctrl_active(node, pkt);
 			node_set_state(node, STATE_CONNECTED, "Received CTRL_ACTIVE");
+			if (!ret || prev_state != STATE_CONNECTED) {
+				pgroup_assign_peer_ids(node->pgroup);
 
-			pgroup_assign_peer_ids(node->pgroup);
-
-			ldebug("##NSTATE##: Got fresh CTRL_ACTIVE from %s node %s",
-				   node_type(node), node->name);
+				if (!ret) {
+					ldebug("NODESTATE: Got fresh CTRL_ACTIVE from %s node %s",
+					       node_type(node), node->name);
+				}
+				if (prev_state != STATE_CONNECTED) {
+					ldebug("NODESTATE: %s node %s just marked as connected after CTRL_ACTIVE",
+					       node_type(node), node->name);
+				}
+			}
 		}
 		break;
 	case CTRL_STALL:
@@ -741,12 +753,6 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	}
 
 	if (node) {
-		/*
-		 * this node is obviously connected, so mark it as such,
-		 * but warn about nodes with empty info that's sending
-		 * us data.
-		 */
-		node_set_state(node, STATE_CONNECTED, "Data received");
 		if (!node->info.byte_order) {
 			lwarn("STATE: %s is sending event data but hasn't sent %s",
 				  node->name, ctrl_name(CTRL_ACTIVE));
@@ -840,6 +846,18 @@ static int ipc_reaper(int sd, int events, void *arg)
 			}
 			node->last_action = node->last_recv = tv.tv_sec;
 			node->stats.cb_count[type].in++;
+
+			/*
+			 * if this node hasn't sent data before, we set it to
+			 * NEGOTIATING to be able to differentiate it from
+			 * those that aren't sending anything at all. It won't
+			 * be considered fully connected until we receive a
+			 * CTRL_ACTIVE though, as the packages we receive now
+			 * could be backlogged ones from the daemon in case
+			 * we've had local connection issues.
+			 */
+			if (node->state == STATE_NONE)
+				node_set_state(node, STATE_NEGOTIATING, "Data received");
 		}
 
 		/* control packets are handled separately */
