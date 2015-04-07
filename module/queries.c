@@ -88,7 +88,7 @@ int merlin_qh(int sd, char *buf, unsigned int len)
 	while (buf[len - 1] == 0 || buf[len - 1] == '\n')
 		buf[--len] = 0;
 
-	linfo("qh request: '%s' (%u)", buf, len);
+	ldebug("qh request: '%s' (%u)", buf, len);
 	if(len == 8 && !memcmp(buf, "nodeinfo", len)) {
 		dump_nodeinfo(&ipc, sd, 0);
 		for(i = 0; i < num_nodes; i++) {
