@@ -703,6 +703,45 @@ class fake_mesh:
 				status = False
 		return sub.done() == 0
 
+	def test_oconfsplit(self, dir):
+		"""Verifies that configuration split works properly"""
+		sub = self.tap.sub_init("poller configuration split")
+		fd = os.open("/dev/null", os.O_WRONLY)
+		for inst in self.instances:
+			cfg_path = "%s/%s.cfg" % (dir, inst.name)
+			ret = os.access(cfg_path, os.F_OK)
+			if not len(inst.group.master_groups):
+				sub.test(ret, False, "%s should not have a generated config" % inst.name)
+				continue
+			sub.test(ret, True, "%s should have a generated config" % inst.name)
+			# as minimal as possible
+			naemon_cfg = [
+				'cfg_file=%s.cfg' % inst.name,
+				'log_file=/tmp/montestdist.log',
+				'check_result_path=/tmp',
+				'illegal_macro_output_chars=!$<>|'
+			]
+			naemon_cfg_path = "%s/%s-naemon.conf" % (dir, inst.name)
+			fp = open(naemon_cfg_path, "w")
+			fp.write("\n".join(naemon_cfg) + "\n")
+			fp.flush()
+			fp.close()
+			cmd = ['naemon', '-v', '-v', naemon_cfg_path]
+			proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			out, err = proc.communicate()
+			ret = proc.wait()
+			sub.test(ret, 0, "%s should be a valid config" % (cfg_path))
+			sub.diag("COMMAND:")
+			sub.diag(cmd)
+			if len(out):
+				sub.diag("Naemon STDOUT:")
+				sub.diag(out.split('\n'))
+			if len(err):
+				sub.diag("Naemon STDERR:")
+				sub.diag(err.split('\n'))
+
+		return sub.done()
+
 	def _test_restarts(self, daemon, deathtime=3, recontime=3, stagger=True):
 		status = True
 		self.stop_daemons(daemon, deathtime)
@@ -710,12 +749,11 @@ class fake_mesh:
 		return self.test_connections()
 
 	def test_merlin_restarts(self):
-		"""5 second intermission to allow reconnect"""
+		"""Tests merlin restarts"""
 		return self._test_restarts('merlin', 3, 10)
 
 	def test_nagios_restarts(self):
-		"""Verifies that nodes reconnect after a restart of Nagios
-		2 second intermission to allow reconnect
+		"""Verifies that nodes reconnect after a core restart
 		Also tests for log truncation and config pushing
 		"""
 
@@ -1854,6 +1892,8 @@ def cmd_dist(args):
 			if 'acks' in tests:
 				mesh.test_acks()
 
+		if 'oconfsplit' in tests:
+			mesh.test_oconfsplit("/var/cache/merlin/config")
 		if 'active_checks' in tests:
 			mesh.test_active_checks()
 		if 'parents' in tests:

@@ -203,6 +203,7 @@ static int nsplit_cache_host(void *_hst, __attribute__((unused)) void *user_data
 				add_parent_to_service(tmpsvc, sp->service_ptr);
 		}
 		fcache_service(fp, s);
+		nsplit_cache_slaves(s);
 		nsplit_cache_servicedependencies(s->exec_deps);
 		nsplit_cache_servicedependencies(s->notify_deps);
 		for (olist = s->escalation_list; olist; olist = olist->next) {
