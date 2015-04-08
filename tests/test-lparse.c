@@ -104,39 +104,6 @@ static void test_all(int reverse, const char *msg)
 	t_end();
 }
 
-static struct path_cmp_test {
-	char *path;
-	uint correct;
-} testpaths[] = {
-	{ "nagios-12-01-2002-00.log", 2002120100 },
-	{ "nagios-11-30-2006-01.log", 2006113001 },
-	{ "nagios-08-01-2009-00.log", 2009080100 },
-	{ "nagios-12-30-2147-99.log", 2147123099 },
-	/* nagios.log is a special case, as is all logfiles without a dash */
-	{ "nagios.log", 1 << ((8 * (sizeof(int))) - 1) },
-	{ "foo.log", 0 },
-	{ NULL, 0 },
-};
-static void test_path_cmp(void)
-{
-	int i;
-
-	t_start("testing path comparison");
-	for (i = 0; testpaths[i].path; i++) {
-		struct path_cmp_test *t;
-		uint cmp;
-
-		t = &testpaths[i];
-		cmp = path_cmp_number(t->path);
-		if (cmp == t->correct) {
-			t_pass("%s parses to %u", t->path, cmp);
-		} else {
-			t_fail("%s should be %u, got %u", t->path, t->correct, cmp);
-		}
-	}
-	t_end();
-}
-
 int main(int argc, char **argv)
 {
 	int i;
@@ -154,6 +121,5 @@ int main(int argc, char **argv)
 	t_start("testing logfile parsing and sorting");
 	test_all(0, "testing forward parsing");
 	test_all(1, "testing reverse parsing");
-	test_path_cmp();
 	return t_end();
 }
