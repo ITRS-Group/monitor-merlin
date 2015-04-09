@@ -7,7 +7,7 @@
 	postrotate
 		service naemon status
 		mon_running=$?
-		service merlin status
+		service merlind status
 		merlin_running=$?
 		service naemon stop
 		service merlind stop
