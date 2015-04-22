@@ -873,7 +873,7 @@ merlin_event *node_get_event(merlin_node *node)
 	 * If buffer is smaller than expected, leave the header
 	 * and wait for more data
 	 */
-	if (hdr.len > nm_bufferqueue_get_available(bq)) {
+	if (HDR_SIZE + hdr.len > nm_bufferqueue_get_available(bq)) {
 		ldebug("IOC: packet is longer (%i) than remaining data (%lu) from %s - will read more and try again", hdr.len, nm_bufferqueue_get_available(bq) - HDR_SIZE, node->name);
 		return NULL;
 	}
