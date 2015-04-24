@@ -307,6 +307,7 @@ static void reap_child_process(void)
 {
 	int status, pid;
 	unsigned int i;
+	char *name = NULL;
 
 	if (!num_children)
 		return;
@@ -331,38 +332,47 @@ static void reap_child_process(void)
 	/* we reaped an actual child, so decrement the counter */
 	num_children--;
 
-	/* looks like we reaped some helper we spawned */
+	/*
+	 * looks like we reaped some helper we spawned,
+	 * so let's figure out what to call it when we log
+	 */
 	linfo("Child with pid %d successfully reaped", pid);
-
 	if (pid == importer_pid) {
-		if (WIFEXITED(status)) {
-			if (!WEXITSTATUS(status)) {
-				linfo("import program finished. Resuming normal operations");
-			} else {
-				lwarn("import program exited with return code %d", WEXITSTATUS(status));
-			}
-		} else {
-			lerr("import program stopped or killed. That's a Bad Thing(tm)");
-		}
-		/* successfully reaped, so reset and resume */
+		name = strdup("import program");
 		importer_pid = 0;
 		ipc_send_ctrl(CTRL_RESUME, CTRL_GENERIC);
-		return;
-	}
-
-	/* not the importer program, so it must be an oconf push or fetch */
-	for (i = 0; i < num_nodes; i++) {
-		merlin_node *node = node_table[i];
-		if (pid == node->csync.push.pid) {
-			linfo("CSYNC: push finished for %s", node->name);
-			node->csync.push.pid = 0;
-			return;
-		} else if (pid == node->csync.fetch.pid) {
-			linfo("CSYNC: fetch finished from %s", node->name);
-			node->csync.fetch.pid = 0;
-			return;
+	} else {
+		/* not the importer program, so it must be an oconf push or fetch */
+		for (i = 0; i < num_nodes; i++) {
+			merlin_node *node = node_table[i];
+			if (pid == node->csync.push.pid) {
+				linfo("CSYNC: push finished for %s", node->name);
+				node->csync.push.pid = 0;
+				asprintf(&name, "CSYNC: oconf push to %s node %s", node_type(node), node->name);
+			} else if (pid == node->csync.fetch.pid) {
+				linfo("CSYNC: fetch finished from %s", node->name);
+				node->csync.fetch.pid = 0;
+				asprintf(&name, "CSYNC: oconf fetch from %s node %s", node_type(node), node->name);
+			}
 		}
 	}
+
+	if (WIFEXITED(status)) {
+		if (!WEXITSTATUS(status)) {
+			linfo("%s finished successfully", name);
+		} else {
+			lwarn("%s exited with return code %d", name, WEXITSTATUS(status));
+		}
+	} else {
+		if (WIFSIGNALED(status)) {
+			lerr("%s was terminated by signal %d. %s core dump was produced",
+			     name, WTERMSIG(status), WCOREDUMP(status) ? "A" : "No");
+		} else {
+			lerr("%s was shut down by an unknown source", name);
+		}
+	}
+
+	free(name);
 }
 
 /*
