@@ -345,14 +345,17 @@ static void reap_child_process(void)
 		/* not the importer program, so it must be an oconf push or fetch */
 		for (i = 0; i < num_nodes; i++) {
 			merlin_node *node = node_table[i];
+
 			if (pid == node->csync.push.pid) {
 				linfo("CSYNC: push finished for %s", node->name);
 				node->csync.push.pid = 0;
 				asprintf(&name, "CSYNC: oconf push to %s node %s", node_type(node), node->name);
+				break;
 			} else if (pid == node->csync.fetch.pid) {
 				linfo("CSYNC: fetch finished from %s", node->name);
 				node->csync.fetch.pid = 0;
 				asprintf(&name, "CSYNC: oconf fetch from %s node %s", node_type(node), node->name);
+				break;
 			}
 		}
 	}
