@@ -230,6 +230,11 @@ def cmd_push(args):
 			'Unknown argument: %s' % arg)
 		sys.exit(1)
 
+	if not os.getuid() and 'oconf' in push_items:
+		print("  Using 'mon oconf push' to push object config as root is prohibited")
+		print("  Use 'mon oconf push --push=extras' to safely push items as root")
+		sys.exit(1)
+
 	if not len(wanted_nodes):
 		wanted_nodes = mconf.configured_nodes.items()
 
