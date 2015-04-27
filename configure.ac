@@ -62,5 +62,5 @@ AC_SUBST(logdir)
 cachedir=${localstatedir}/cache/merlin
 AC_SUBST(cachedir)
 
-AC_CONFIG_FILES([Makefile data/merlind install-merlin.sh apps/mon.py], [test -f apps/mon.py && cp apps/mon.py apps/op5])
+AC_CONFIG_FILES([Makefile data/merlind install-merlin.sh])
 AC_OUTPUT

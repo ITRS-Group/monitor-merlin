@@ -203,8 +203,13 @@ endif
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)/config
 
-data/merlin data/merlin.cfg data/merlin.conf data/kad.conf apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.fetch.sh apps/libexec/oconf.py : % : %.in
+data/merlin data/merlin.cfg data/merlin.conf data/kad.conf apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.fetch.sh apps/libexec/oconf.py apps/mon.py: % : %.in
 	$(AM_V_GEN) sed \
+		-e 's,@PYTHON[@],$(PYTHON),g' \
+		-e 's,@pkgconfdir[@],$(pkgconfdir),g' \
+		-e 's,@naemon_cfg[@],$(naemon_cfg),g' \
+		-e 's,@prefix[@],$(prefix),g' \
+		-e 's,@exec_prefix[@],$(exec_prefix),g' \
 		-e 's,@localstatedir[@],$(localstatedir),g' \
 		-e 's,@libdir[@],$(libdir),g' \
 		-e 's,@logdir[@],$(logdir),g' \
@@ -216,6 +221,9 @@ data/merlin data/merlin.cfg data/merlin.conf data/kad.conf apps/libexec/syscheck
 		-e 's,@db_user[@],$(db_user),g' \
 		-e 's,@db_pass[@],$(db_pass),g' \
 		$< > $@
+
+apps/op5: apps/mon.py
+	cp $< $@
 
 dist-hook:
 	@if test -d "$(srcdir)/.git"; \

@@ -2,3 +2,5 @@ post:
   steps: |
     mkdir -p -m 777 /mnt/logs/merlin_dtest
     mon test dist --basepath=/mnt/logs/merlin_dtest
+    mon test rsync
+	sudo -u monitor mon test rsync

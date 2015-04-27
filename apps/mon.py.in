@@ -10,6 +10,7 @@ merlin_dir = "@libdir@/merlin".replace('${prefix}', prefix)
 merlin_conf_dir = "@pkgconfdir@".replace('${prefix}', prefix)
 
 nagios_cfg = '@naemon_cfg@'
+cache_dir = '@cachedir@'
 
 # run a generic helper from the libexec dir
 def run_helper(helper, args):
@@ -54,6 +55,9 @@ def load_command_module(path):
 	module.merlin_dir = merlin_dir
 	module.module_dir = module_dir
 	module.nagios_cfg = nagios_cfg
+	module.install_prefix = prefix
+	module.install_exec_prefix = exec_prefix
+	module.cache_dir = cache_dir
 
 	# only initialize category (modname) when needed
 	try:
