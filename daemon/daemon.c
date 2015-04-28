@@ -308,6 +308,7 @@ static void reap_child_process(void)
 	int status, pid;
 	unsigned int i;
 	char *name = NULL;
+	char *cmd_to_try = NULL;
 
 	if (!num_children)
 		return;
@@ -350,6 +351,7 @@ static void reap_child_process(void)
 				linfo("CSYNC: push finished for %s", node->name);
 				node->csync.push.pid = 0;
 				asprintf(&name, "CSYNC: oconf push to %s node %s", node_type(node), node->name);
+				asprintf(&cmd_to_try, "mon oconf push %s", node->name);
 				break;
 			} else if (pid == node->csync.fetch.pid) {
 				linfo("CSYNC: fetch finished from %s", node->name);
@@ -365,6 +367,9 @@ static void reap_child_process(void)
 			linfo("%s finished successfully", name);
 		} else {
 			lwarn("%s exited with return code %d", name, WEXITSTATUS(status));
+			if (cmd_to_try) {
+				lwarn("CSYNC: Try manually running '%s' (without quotes) as the monitor user", cmd_to_try);
+			}
 		}
 	} else {
 		if (WIFSIGNALED(status)) {
@@ -376,6 +381,7 @@ static void reap_child_process(void)
 	}
 
 	free(name);
+	free(cmd_to_try);
 }
 
 /*
