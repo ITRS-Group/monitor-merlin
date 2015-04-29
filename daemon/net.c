@@ -504,12 +504,22 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 			ldebug("Got CTRL_ACTIVE from %s", node->name);
 			int result = handle_ctrl_active(node, pkt);
 
-			if (result < 0) {
-				if (result == -512) {
+			if (result == ESYNC_ECONFTIME && node->type == MODE_PEER) {
+				/*
+				 * We end up here when *node's config has another
+				 * timestamp than ours. csync_node_active() will
+				 * disconnect it if necessary, which it isn't in
+				 * case it's a peer and the hashes match. If it *is*
+				 * necessary, we must get out so we don't try to
+				 * mark it as connected further down.
+				 */
+				csync_node_active(node);
+				if (node->state == STATE_NONE)
+					return 0;
+			}
+			else if (result < 0) {
+				if (result == ESYNC_ENODES) {
 					node_disconnect(node, "Incompatible merlin configuration");
-				} else if (result == -256) {
-					csync_node_active(node);
-					node_disconnect(node, "Out of date object configuration");
 				} else {
 					node_disconnect(node, "Incompatible protocol");
 				}

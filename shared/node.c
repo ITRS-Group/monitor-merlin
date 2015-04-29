@@ -1073,7 +1073,7 @@ int node_ctrl(merlin_node *node, int code, uint selection, void *data,
  * to 'hood', and never from network to 'hood', we know this
  * packet originated from the module at 'node'.
  *
- * Returns 0 if everything is fine and dandy and info is new
+ * Returns 0 if everything is fine and dandy
  * Returns -1 on general muppet errors
  * Returns < -1 if node is incompatible with us.
  * Returns 1 if node is compatible, but info isn't new
@@ -1087,7 +1087,7 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 	int version_delta = 0;
 
 	if (!node || !pkt)
-		return -1;
+		return ESYNC_EUSER;
 
 	info = (merlin_nodeinfo *)&pkt->body;
 	len = pkt->hdr.len;
@@ -1101,7 +1101,7 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 		lerr("FATAL: %s: incompatible nodeinfo body size %d. Ours is %d. Required: %d",
 			 node->name, len, sizeof(node->info), MERLIN_NODEINFO_MINSIZE);
 		lerr("FATAL: Completely incompatible");
-		return -128;
+		ret = ESYNC_EPROTO;
 	}
 
 	/*
@@ -1109,7 +1109,7 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 	 * comparisons below, but if byte_order differs, so may this.
 	 */
 	version_delta = info->version - MERLIN_NODEINFO_VERSION;
-	if (version_delta) {
+	if (!ret && version_delta) {
 		lwarn("%s: incompatible nodeinfo version %d. Ours is %d",
 			  node->name, info->version, MERLIN_NODEINFO_VERSION);
 		lwarn("Further compatibility comparisons may be wrong");
@@ -1128,15 +1128,15 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 	 * (no out_handler() is needed, since the receiving end will
 	 * transform the packet itself).
 	 */
-	if (info->word_size != COMPAT_WORDSIZE) {
+	if (!ret && info->word_size != COMPAT_WORDSIZE) {
 		lerr("FATAL: %s: incompatible wordsize %d. Ours is %d",
 			 node->name, info->word_size, COMPAT_WORDSIZE);
-		ret -= 4;
+		ret = ESYNC_EWORDSIZE;
 	}
-	if (info->byte_order != endianness()) {
+	if (!ret && info->byte_order != endianness()) {
 		lerr("FATAL: %s: incompatible byte order %d. Ours is %d",
 		     node->name, info->byte_order, endianness());
-		ret -= 8;
+		ret = ESYNC_EENDIAN;
 	}
 
 	/*
@@ -1147,10 +1147,10 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 	 * but since CTRL_ACTIVE packets are so uncommon we can
 	 * afford to waste the extra cycles.
 	 */
-	if (info->object_structure_version != CURRENT_OBJECT_STRUCTURE_VERSION) {
+	if (!ret && info->object_structure_version != CURRENT_OBJECT_STRUCTURE_VERSION) {
 		lerr("FATAL: %s: incompatible object structure version %d. Ours is %d",
 			 node->name, info->object_structure_version, CURRENT_OBJECT_STRUCTURE_VERSION);
-		ret -= 16;
+		ret = ESYNC_EOBJECTS;
 	}
 
 	/*
@@ -1177,7 +1177,7 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 			 * anything right now
 			 */
 			lwarn("WARNING: '%s' needs to be updated", node->name);
-			ret -= 2;
+			ret = ESYNC_EVERSION;
 		} else if (version_delta && len != sizeof(node->info)) {
 			/*
 			 * version is greater and struct is smaller, or
@@ -1188,35 +1188,35 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 				 node->name);
 			lerr("FATAL: %s: %d / %d; We: %d / %d",
 				 node->name, len, info->version, sizeof(node->info), MERLIN_NODEINFO_VERSION);
-			ret -= 32;
+			ret = ESYNC_EINFOVERSION;
 		}
 		if (node->type == MODE_PEER) {
 			if (info->configured_peers != ipc.info.configured_peers) {
 				lerr("Node %s has a different number of peers from us", node->name);
-				ret -= 512;
+				ret = ESYNC_ENODES;
 			} else if (info->configured_masters != ipc.info.configured_masters) {
 				lerr("Node %s has a different number of masters from us", node->name);
-				ret -= 512;
+				ret = ESYNC_ENODES;
 			} else if (info->configured_pollers != ipc.info.configured_pollers) {
 				lerr("Node %s has a different number of pollers from us", node->name);
-				ret -= 512;
+				ret = ESYNC_ENODES;
 			}
 		} else if (node->type == MODE_POLLER) {
 			if (info->configured_masters != ipc.info.configured_peers + 1) {
 				lerr("Node %s is a poller, but it has a different number of masters than we have peers", node->name);
-				ret -= 512;
+				ret = ESYNC_ENODES;
 			} else if (info->configured_peers > ipc.info.configured_pollers) {
 				lerr("Node %s is a poller, but it has more peers than we have pollers", node->name);
-				ret -= 512;
+				ret = ESYNC_ENODES;
 			}
 		}
 		if (!ret && info->last_cfg_change != ipc.info.last_cfg_change) {
 			linfo("Node %s's config isn't in sync with ours", node->name);
-			ret -= 256;
+			ret = ESYNC_ECONFTIME;
 		}
 	}
 
-	if (ret < 0 && ret != -256 && ret != -512) {
+	if (ret < 0 && ret != ESYNC_ECONFTIME && ret != ESYNC_ENODES) {
 		lerr("FATAL: %s; incompatibility code %d. Ignoring CTRL_ACTIVE event",
 			 node->name, ret);
 		memset(&node->info, 0, sizeof(node->info));

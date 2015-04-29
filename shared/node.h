@@ -36,6 +36,16 @@
 #define MERLIN_NODE_DEFAULT_MASTER_FLAGS (MERLIN_NODE_CONNECT)
 #define MERLIN_NODE_DEFAULT_IPC_FLAGS (MERLIN_NODE_NOTIFIES)
 
+#define ESYNC_EUSER (-1)
+#define ESYNC_EVERSION (-2)
+#define ESYNC_EWORDSIZE (-3)
+#define ESYNC_EENDIAN (-4)
+#define ESYNC_EOBJECTS (-5)
+#define ESYNC_EINFOVERSION (-6)
+#define ESYNC_EPROTO (-7)
+#define ESYNC_ECONFTIME (-8)
+#define ESYNC_ENODES (-9)
+
 /* various magic options for the "type" field */
 #define CTRL_PACKET   0xffff  /* control packet. "code" described below */
 #define ACK_PACKET    0xfffe  /* ACK ("I understood") (not used) */

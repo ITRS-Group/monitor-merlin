@@ -675,11 +675,12 @@ static int handle_ipc_event(merlin_event *pkt)
 
 		case CTRL_ACTIVE:
 			result = handle_ctrl_active(&ipc, pkt);
-			/* -512 = incorrect number of peers, -256 = incorrect config.
-			 * both are fine from IPC, but means we need to make sure all
-			 * other nodes are disconnected before continuing
+			/*
+			 * both ESYNC_ENODES and ESYNC_ECONFTIME are fine from
+			 * IPC, but means we need to make sure all other nodes
+			 * are disconnected before continuing
 			 */
-			if (result == -512 || result == -256) {
+			if (result == ESYNC_ENODES || result == ESYNC_ECONFTIME) {
 				unsigned int i;
 				result = 0;
 				for (i = 0; i < num_nodes; i++) {
