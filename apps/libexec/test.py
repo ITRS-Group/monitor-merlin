@@ -2399,3 +2399,57 @@ def cmd_check_flap(args):
 
 	print("Got state=%d, so exiting with %d" % (state, estate))
 	sys.exit(0)
+
+def _test_run(command):
+	proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	(out, err) = proc.communicate()
+	result = proc.wait()
+	return (out, err, result)
+
+def cmd_rsync(args):
+	"""
+	This test takes no arguments.
+	It's designed to test the rsync commands used to send ancillary
+	files during a 'mon oconf push'
+	"""
+	tap = pytap.pytap("mon oconf push rsync command tests")
+	tap.verbose = 2
+	path = os.tempnam(None,'rsync')
+	fd = open(path, 'w')
+	fd.write("""peer thepeer {
+	address = localhost
+	hostgroups = oddment, tweak, nitwit
+	sync {
+		/etc/passwd
+		/tmp/foo = /usr/bin/lalala
+	}
+}
+	""")
+	fd.close()
+	cmd = ['mon', '--merlin-conf=%s' % path, 'oconf', 'push', '--dryrun']
+	expect_out_extras = """rsync command: rsync -aotz --delete -b --backup-dir=%s/backups /tmp/foo -e ssh -C -o KbdInteractiveAuthentication=no localhost:/usr/bin/lalala
+rsync command: rsync -aotz --delete -b --backup-dir=%s/backups /etc/passwd -e ssh -C -o KbdInteractiveAuthentication=no localhost:/etc/passwd
+""" % (cache_dir, cache_dir)
+	(out, err, result) = _test_run(cmd + ['--push=extras'])
+	tap.test(err, '', "Error output should be none")
+	tap.test(result, 0, "Result should be 0")
+	tap.test(out, expect_out_extras, "Output should match expectations")
+	(out, err, result) = _test_run(cmd + ['--push=bsm'])
+	tap.test(err, '', "Error output should be none")
+	tap.test(result, 0, "Result should be 0")
+	tap.test(out, '', "No bsm rules should yield no push")
+
+	if os.getuid() != 0:
+		expect_result = 0
+		expect_out_oconf = """rsync command: rsync -aotz --delete -b --backup-dir=%s/backups /opt/monitor/etc -e ssh -C -o KbdInteractiveAuthentication=no localhost:/opt/monitor
+""" % cache_dir
+	else:
+		expect_result = 1
+		expect_out_oconf = """  Using 'mon oconf push' to push object config as root is prohibited
+  Use 'mon oconf push --push=extras' to safely push items as root
+"""
+	(out, err, result) = _test_run(cmd + ['--push=oconf'])
+	tap.test(err, '', "Error output should be none")
+	tap.test(result, expect_result, "Result should be 1")
+	tap.test(out, expect_out_oconf, "object config output should match expectations")
+	sys.exit(tap.done())

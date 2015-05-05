@@ -208,6 +208,7 @@ if [ $1 -eq 0 ]; then
 fi
 
 %post -n monitor-merlin
+chown -Rh monitor:%daemon_group %prefix/etc
 sed --follow-symlinks -i 's#import_program = php /opt/monitor/op5/merlin/import.php#import_program = /opt/monitor/op5/merlin/ocimp#g' %mod_path/merlin.conf
 sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon.cfg
 /etc/init.d/monitor restart || :
@@ -234,7 +235,7 @@ sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon
 %defattr(-,root,root)
 %_libdir/merlin/merlin.*
 %mod_path/merlin.so
-/opt/monitor/etc/mconf/merlin.cfg
+%attr(-, monitor, %daemon_group) /opt/monitor/etc/mconf/merlin.cfg
 %attr(-, monitor, %daemon_group) %dir %_localstatedir/lib/merlin
 %attr(-, monitor, %daemon_group) %dir %_localstatedir/log/op5/merlin
 
