@@ -38,7 +38,7 @@ def module_init(args):
 			continue
 		rem_args.append(arg)
 	if not config_dir:
-		config_dir = '%s/merlin' % cache_dir 
+		config_dir = '%s/merlin' % cache_dir
 	return rem_args
 
 

@@ -2414,7 +2414,7 @@ def cmd_rsync(args):
 	"""
 	tap = pytap.pytap("mon oconf push rsync command tests")
 	tap.verbose = 2
-	path = '/tmp/mon-cmd-rsync-merlin-conf.cfg'
+	path = os.tempnam(None,'rsync')
 	fd = open(path, 'w')
 	fd.write("""peer thepeer {
 	address = localhost
