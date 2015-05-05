@@ -213,6 +213,7 @@ data/merlin data/merlin.cfg data/merlin.conf data/kad.conf apps/libexec/syscheck
 		-e 's,@localstatedir[@],$(localstatedir),g' \
 		-e 's,@libdir[@],$(libdir),g' \
 		-e 's,@logdir[@],$(logdir),g' \
+		-e 's,@naemon_user[@],$(naemon_user),g' \
 		-e 's,@pkgrundir[@],$(pkgrundir),g' \
 		-e 's,@cachedir[@],$(cachedir),g' \
 		-e 's,@merlin_cfgdir[@],$(pkgconfdir),g' \
