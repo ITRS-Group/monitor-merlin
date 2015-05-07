@@ -504,7 +504,7 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 			ldebug("Got CTRL_ACTIVE from %s", node->name);
 			int result = handle_ctrl_active(node, pkt);
 
-			if (result == ESYNC_ECONFTIME && node->type == MODE_PEER) {
+			if (result == ESYNC_ECONFTIME) {
 				/*
 				 * We end up here when *node's config has another
 				 * timestamp than ours. csync_node_active() will
