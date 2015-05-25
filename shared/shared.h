@@ -31,7 +31,7 @@
 
 #define is_flag_set(bfield, flag) (!!((bfield) & (flag)))
 #define safe_str(str) (str == NULL ? "NULL" : str)
-#define safe_free my_free
+#define safe_free(ptr) do { if (ptr) { free(ptr); ptr = NULL; } } while(0)
 
 static inline int max(int a, int b)
 {
