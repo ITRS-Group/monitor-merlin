@@ -7,7 +7,7 @@ def cmd_install_time(args):
 	"""
 	Print the time the system first recorded an event, as a unix timestamp.
 
-	If no event is recoreded, assume an event will happen quite soon, so print
+	If no event is recorded, assume an event will happen quite soon, so print
 	the current tiemstamp instead
 	"""
 	starttime = int(time.time())
