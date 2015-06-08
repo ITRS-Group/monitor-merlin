@@ -126,13 +126,13 @@ class fake_peer_group:
 			'alias': 'Alias for %s' % self.group_name
 		}
 		host = {
-			'use': 'default-host-template',
+			'use': 'mtest-default-host-template',
 			'host_name': '%s.@@host_num@@' % self.group_name,
 			'alias': 'Alias text',
 			'address': '1',
 		}
 		service = {
-			'use': 'default-service',
+			'use': 'mtest-default-service-template',
 			'service_description': 'service.@@service_num@@',
 		}
 
