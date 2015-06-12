@@ -813,7 +813,6 @@ static void polling_loop(void)
 {
 	for (;!merlind_sig;) {
 		uint i;
-		time_t now = time(NULL);
 
 		if (user_sig & (1 << SIGUSR1))
 			dump_daemon_nodes();
