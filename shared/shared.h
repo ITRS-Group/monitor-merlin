@@ -33,15 +33,15 @@
 #define safe_str(str) (str == NULL ? "NULL" : str)
 #define safe_free(ptr) do { if (ptr) { free(ptr); ptr = NULL; } } while(0)
 
-static inline int max(int a, int b)
-{
-	return a > b ? a : b;
-}
+#define max(a,b) \
+	({ __typeof__ (a) _a = (a); \
+	 __typeof__ (b) _b = (b); \
+	 _a > _b ? _a : _b; })
 
-static inline int min(int a, int b)
-{
-	return a < b ? a : b;
-}
+#define min(a,b) \
+	({ __typeof__ (a) _a = (a); \
+	 __typeof__ (b) _b = (b); \
+	 _a < _b ? _a : _b; })
 
 #define safe_strdup(str) str ? strdup(str) : NULL
 #define prefixcmp(a, b) strncmp(a, b, strlen(b))

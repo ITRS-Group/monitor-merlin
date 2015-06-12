@@ -422,7 +422,7 @@ void first_log_time(struct naglog_file *nf)
 	int fd;
 	uint i = 0;
 	char buf[1024];
-	size_t read_len = 0;
+	ssize_t read_len = 0;
 	struct stat st;
 
 	memset(buf, 0, sizeof(buf));
@@ -439,8 +439,8 @@ void first_log_time(struct naglog_file *nf)
 		lp_crash("Failed to stat %s: %s", nf->path, strerror(errno));
 
 	nf->size = st.st_size;
-
-	if ((read_len = read(fd, buf, sizeof(buf))) < min((int)sizeof(buf), st.st_size))
+	read_len = read(fd, buf, sizeof(buf));
+	if (read_len < min(sizeof(buf), st.st_size))
 		lp_crash("Incomplete read of %s", nf->path);
 
 	buf[sizeof(buf) - 1] = 0;

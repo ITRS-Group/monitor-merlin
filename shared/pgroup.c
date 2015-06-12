@@ -17,7 +17,7 @@ bitmap *poller_handled_services = NULL;
 
 static void pgroup_reassign_checks()
 {
-	unsigned int i, x;
+	size_t i, x;
 
 	/* "our" pgroup handles all checks by default */
 	ipc.pgroup->assigned.hosts = num_objects.hosts;
@@ -221,7 +221,7 @@ static void pgroup_alloc_counters(merlin_peer_group *pg)
 
 static void pgroup_destroy(merlin_peer_group *pg)
 {
-	int i;
+	size_t i;
 
 	bitmap_destroy(pg->host_map);
 	bitmap_destroy(pg->service_map);

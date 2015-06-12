@@ -961,7 +961,7 @@ int node_send_binlog(merlin_node *node, merlin_event *pkt)
 
 	ldebug("Emptying backlog for %s (%u entries, %s)", node->name,
 		   binlog_num_entries(node->binlog), human_bytes(binlog_available(node->binlog)));
-	while (io_write_ok(node->sock, 10) && !binlog_read(node->binlog, (void **)&temp_pkt, &len)) {
+	while (io_write_ok(node->sock, 10) && !binlog_read(node->binlog, (void **)&temp_pkt, (unsigned int *)&len)) {
 		int result;
 		if (!temp_pkt || packet_size(temp_pkt) != len ||
 		    !len || !packet_size(temp_pkt) || packet_size(temp_pkt) > MAX_PKT_SIZE)

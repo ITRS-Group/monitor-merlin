@@ -10,8 +10,6 @@ static uint t_depth;
 static const char *indent_str = "  ";
 
 /* can't be used when a or b has side-effects, but we don't care here */
-#define max(a, b) (a > b ? a : b)
-#define min(a, b) (a < b ? a : b)
 #define delta(a, b) ((max(a, b) - (min(a, b))))
 
 
