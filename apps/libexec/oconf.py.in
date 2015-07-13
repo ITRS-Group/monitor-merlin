@@ -292,7 +292,7 @@ def cmd_push(args):
 			if node.ntype == 'poller':
 				# pollers without an oconf_file are ignored
 				if not os.path.exists(oconf_file):
-					print "Can't push to poller, %s, because %s doesn't exist" (name, oconf_file)
+					print "Can't push to poller, %s, because %s doesn't exist" % (name, oconf_file)
 					continue
 				source = oconf_file
 				default_dest = '/opt/monitor/etc/oconf/from-master.cfg'
