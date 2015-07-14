@@ -53,9 +53,10 @@ class merlin_node:
 		oconf_vars = {}
 		f.write("%s %s {\n" % (self.ntype, self.name))
 		valid_vars = ['address', 'port', 'connect']
-		if self.ntype != 'master':
+		if self.ntype == 'poller':
 			valid_vars.append('hostgroup')
 			valid_vars.append('hostgroups')
+			valid_vars.append('takeover')
 
 		for (k, v) in self.options.items():
 			# we handle object_config variables first
