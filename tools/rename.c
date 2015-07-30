@@ -262,7 +262,7 @@ usage(char *name)
 	       "  --rename-log      Rename current log file\n"
 	       "  --rename-db       Rename everything in database\n"
 	       "  --save-renames    Do the same renames on next execution\n");
-	printf("  --log-archive     Use the given directory for parsing archived logs. Default:\n"
+	printf("  --log-dir         Use the given directory for parsing archived logs. Default:\n"
 	       "                    %s\n", DEFAULT_LOG_ARCHIVE_PATH);
 	printf("  --log-file        Parse the given log file. Default:\n"
 	       "                    %s\n", DEFAULT_LOG_FILE);
