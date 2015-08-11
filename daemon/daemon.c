@@ -980,17 +980,19 @@ int merlind_main(int argc, char **argv)
 	ipc.action = ipc_action_handler;
 	result = ipc_init();
 	if (result < 0) {
-		printf("Failed to initalize ipc socket: %s\n", strerror(errno));
-		return 1;
+		lerr("Failed to initalize ipc socket: %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
 	}
 	if (net_init() < 0) {
-		printf("Failed to initialize networking: %s\n", strerror(errno));
-		return 1;
+		lerr("Failed to initialize networking: %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
 	}
 
 	if (!debug) {
-		if (daemonize(merlin_user, NULL, pidfile, 0) < 0)
+		if (daemonize(merlin_user, NULL, pidfile, 0) < 0) {
+			lerr("Failed to daemonize. Exiting\n");
 			exit(EXIT_FAILURE);
+		}
 
 		/*
 		 * we'll leak these file-descriptors, but that
