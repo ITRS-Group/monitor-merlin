@@ -9,20 +9,14 @@ Concrete db_wrap implementation based off of libdbi.
 #include <dbi/dbi.h> /* libdbi */
 #include "db_wrap_dbi.h"
 #include "logging.h" /* lerr() */
-#undef MARKER
-#undef TODO
-#undef FIXME
-#if 1 /* for debuggering only */
-#  include <stdio.h>
-#  include <inttypes.h> /* PRIxxx macros, only for debuggering. */
-#  define MARKER printf("MARKER: %s:%d:%s():\t",__FILE__,__LINE__,__func__); printf
-#  define TODO(X) MARKER("TODO: %s\n",X)
-#  define FIXME(X) MARKER("FIXME: %s\n",X)
-#else
-static void bogo_printf(...) { }
-#  define MARKER bogo_printf
-#  define TODO(X)
-#  define FIXME(X)
+
+/* LIBDBI_VERSION is only defined in 0.9 and onwards */
+#if defined(LIBDBI_VERSION) && LIBDBI_VERSION >= 900
+static dbi_inst dbi_instance;
+# define dbi_initialize(dir) dbi_initialize_r(dir, &dbi_instance)
+# define dbi_driver_open(name) dbi_driver_open_r(name, dbi_instance)
+# define dbi_shutdown() do { dbi_shutdown_r(dbi_instance); dbi_instance = NULL; } while(0)
+# define dbi_conn_new(name) dbi_conn_new_r(name, dbi_instance)
 #endif
 
 /*
@@ -93,42 +87,18 @@ static const db_wrap db_wrap_libdbi = {
 	}
 };
 
-/**
-   USE_DEPRECATED_DBI_API is a temporary workaround. If it is 1
-   then we use the dbi API which is documented on their web site.
-   If it is 0 we use the newer, non-deprecated API which appears to
-   be undocumented.
-*/
-#define USE_DEPRECATED_DBI_API 1
-
-#if !USE_DEPRECATED_DBI_API
-static dbi_inst DBI_INSTANCE = NULL;
-#endif
-
 static void dbiw_atexit(void)
 {
-#if USE_DEPRECATED_DBI_API
 	dbi_shutdown();
-#else
-	if (DBI_INSTANCE) {
-		dbi_inst foo = DBI_INSTANCE;
-		DBI_INSTANCE = NULL;
-		dbi_shutdown_r(foo);
-	}
-#endif
 }
+
 static char dbiw_dbi_init(void)
 {
 	static char doneit = 0;
 	if (doneit) { return 1; }
 	doneit = 1;
-	const int rc =
-#if USE_DEPRECATED_DBI_API
-	    dbi_initialize(NULL)
-#else
-	    dbi_initialize_r(NULL, &DBI_INSTANCE)
-#endif
-	    ;
+	const int rc = dbi_initialize(NULL);
+
 	if (0 >= rc) {
 		lerr("Could not initialize any DBI drivers!");
 		return 0;
@@ -149,7 +119,6 @@ static char dbiw_dbi_init(void)
 #define RES_DECL(ERRVAL) \
 	dbi_result dbires = (self && (self->api==&dbiw_res_api))   \
 		? (dbi_result)self->impl.data : NULL; \
-	/*MARKER("dbi_wrap_result@%p, dbi_result@%p\n",(void const *)self, (void const *)dbires);*/ \
 	if (!dbires) return ERRVAL; \
 	INIT_DBI(ERRVAL)
 
@@ -208,7 +177,6 @@ static int dbiw_query_result(db_wrap *self, char const *sql, size_t len, db_wrap
 		return DB_WRAP_E_ALLOC_ERROR;
 	}
 	wres->impl.data = dbir;
-	/*MARKER("dbi_wrap_result@%p, dbi_result @%p\n", (void const *)wres, (void const *)dbir);*/
 	*tgt = wres;
 	return 0;
 }
@@ -315,7 +283,6 @@ static int dbiw_cleanup(db_wrap *self)
 
 static int dbiw_finalize(db_wrap *self)
 {
-	/*MARKER("Freeing db handle @%p\n",(void const *)self);*/
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	self->api->cleanup(self);
 	free(self);
@@ -376,8 +343,6 @@ static int dbiw_res_get_int32_ndx(db_wrap_result *self, unsigned int ndx, int32_
 	                       /* i can't find one bit of useful docs/examples for this function, so i'm kind of
 	                          guessing here. */
 	                       ;
-	//MARKER("Attribute return=0x%x/%u\n",a, a);
-	/*assert(0);*/
 	/**
 	   See this thread: http://www.mail-archive.com/libdbi-users@lists.sourceforge.net/msg00126.html
 	*/
@@ -398,28 +363,24 @@ static int dbiw_res_get_int32_ndx(db_wrap_result *self, unsigned int ndx, int32_
 	}
 #endif
 	else if (DBI_INTEGER_SIZE1 & a) {
-		/* MARKER("SIZE1\n"); */
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
 		    ? (int32_t) dbi_result_get_uchar_idx(dbires, realIdx)
 		    : (int32_t) dbi_result_get_char_idx(dbires, realIdx)
 		    ;
 	} else if (DBI_INTEGER_SIZE2 & a) {
-		/* MARKER("SIZE2\n"); */
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
 		    ? (int32_t) dbi_result_get_ushort_idx(dbires, realIdx)
 		    : (int32_t) dbi_result_get_short_idx(dbires, realIdx)
 		    ;
 	} else if (DBI_INTEGER_SIZE4 & a) {
-		/* MARKER("SIZE4\n"); */
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
 		    ? (int32_t) dbi_result_get_uint_idx(dbires, realIdx)
 		    : (int32_t) dbi_result_get_int_idx(dbires, realIdx)
 		    ;
 	} else if (DBI_INTEGER_SIZE8 & a) {
-		/* MARKER("SIZE8\n"); */
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
 		    ? (int32_t) dbi_result_get_ulonglong_idx(dbires, realIdx)
@@ -444,8 +405,6 @@ static int dbiw_res_get_int64_ndx(db_wrap_result *self, unsigned int ndx, int64_
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) { return DB_WRAP_E_BAD_ARG; }
 	unsigned int const realIdx = ndx + 1;
-	//FIXME("Consolidate the duplicate code in get_int32_ndx() and here.");
-#if 1
 	/**
 	   See this thread: http://www.mail-archive.com/libdbi-users@lists.sourceforge.net/msg00126.html
 	*/
@@ -455,33 +414,27 @@ static int dbiw_res_get_int64_ndx(db_wrap_result *self, unsigned int ndx, int64_
 	                       /* i can't find one bit of useful docs/examples for this function, so i'm kind of
 	                          guessing here. */
 	                       ;
-	/* MARKER("Attribute return=0x%x/%u\n",a, a); */
-	/*assert(0);*/
 	if (DBI_ATTRIBUTE_ERROR == a) {
 		return DB_WRAP_E_CHECK_DB_ERROR;
 	} else if (DBI_INTEGER_SIZE1 & a) {
-		/* MARKER("SIZE1\n"); */
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
 		    ? (int64_t) dbi_result_get_uchar_idx(dbires, realIdx)
 		    : (int64_t) dbi_result_get_char_idx(dbires, realIdx)
 		    ;
 	} else if (DBI_INTEGER_SIZE2 & a) {
-		/* MARKER("SIZE2\n"); */
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
 		    ? (int64_t) dbi_result_get_ushort_idx(dbires, realIdx)
 		    : (int64_t) dbi_result_get_short_idx(dbires, realIdx)
 		    ;
 	} else if (DBI_INTEGER_SIZE4 & a) {
-		/*MARKER("SIZE4\n");*/
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
 		    ? (int64_t) dbi_result_get_uint_idx(dbires, realIdx)
 		    : (int64_t) dbi_result_get_int_idx(dbires, realIdx)
 		    ;
 	} else if (DBI_INTEGER_SIZE8 & a) {
-		/* MARKER("SIZE8\n"); */
 		*val =
 		    (a & DBI_DECIMAL_UNSIGNED)
 		    ? (int64_t) dbi_result_get_ulonglong_idx(dbires, realIdx)
@@ -495,13 +448,6 @@ static int dbiw_res_get_int64_ndx(db_wrap_result *self, unsigned int ndx, int64_
 		*/
 		return DB_WRAP_E_UNKNOWN_ERROR;
 	}
-#else
-	//*val = dbi_result_get_int_idx(dbires, realIdx);
-	//MARKER("val as int=%"PRIi64"\n",*val);
-	//if (!*val)
-	*val = dbi_result_get_longlong_idx(dbires, realIdx);
-	//MARKER("val as longlong=%"PRIi64"\n",*val);
-#endif
 	return 0;
 }
 
@@ -518,10 +464,8 @@ static int dbiw_res_get_double_ndx(db_wrap_result *self, unsigned int ndx, doubl
 	if (DBI_ATTRIBUTE_ERROR == a) {
 		return DB_WRAP_E_CHECK_DB_ERROR;
 	} else if (DBI_DECIMAL_SIZE4 & a) {
-		/* MARKER("SIZE4\n"); */
 		*val = dbi_result_get_float_idx(dbires, realIdx);
 	} else if (DBI_DECIMAL_SIZE8 & a) {
-		/* MARKER("SIZE8\n"); */
 		*val = dbi_result_get_double_idx(dbires, realIdx);
 	}
 	return 0;
@@ -557,7 +501,6 @@ static int dbiw_res_num_rows(db_wrap_result *self, size_t *num)
 static int dbiw_res_finalize(db_wrap_result *self)
 {
 	RES_DECL(DB_WRAP_E_BAD_ARG);
-	/*MARKER("Freeing result handle @%p/@%p\n",(void const *)self, (void const *)res);*/
 	*self = dbiw_res_empty;
 	free(self);
 	if (dbires) {
@@ -613,13 +556,7 @@ int db_wrap_dbi_init2(char const *driver, db_wrap_conn_params const *param, db_w
 	if (! driver || !*driver || !tgt) {
 		return DB_WRAP_E_BAD_ARG;
 	}
-	dbi_conn conn =
-#if USE_DEPRECATED_DBI_API
-	    dbi_conn_new(driver)
-#else
-	    dbi_conn_new_r(driver, DBI_INSTANCE)
-#endif
-	    ;
+	dbi_conn conn = dbi_conn_new(driver);
 	if (! conn) {
 		return DB_WRAP_E_UNKNOWN_ERROR;
 	}
