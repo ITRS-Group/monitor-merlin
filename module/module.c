@@ -1298,11 +1298,28 @@ static void post_process_nodes(void)
 
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
-		if (!node->csync.configured && global_csync.push.cmd) {
+		if (node->type == MODE_PEER) {
+			memcpy(node->expected.config_hash, ipc.info.config_hash, sizeof(ipc.info.config_hash));
+		}
+		/* set the default push command for everything but masters */
+		if (node->type != MODE_MASTER && !node->csync.configured && global_csync.push.cmd) {
 			if (asprintf(&node->csync.push.cmd, "%s %s", global_csync.push.cmd, node->name) < 0)
-				lerr("CSYNC: Failed to add per-node confsync command for %s", node->name);
+				lerr("CSYNC: Failed to add per-node push command for %s %s: %s",
+					 node_type(node), node->name, strerror(errno));
 			else
-				ldebug("CSYNC: Adding per-node sync to %s as: %s\n", node->name, node->csync.push.cmd);
+				ldebug("CSYNC: Added per-node push command to %s %s as: %s",
+					   node_type(node), node->name, node->csync.push.cmd);
+		}
+		/* set the default fetch command for all masters */
+		if (node->type == MODE_MASTER && !node->csync.configured && global_csync.fetch.cmd) {
+			if (asprintf(&node->csync.fetch.cmd, "%s %s", global_csync.fetch.cmd, node->name) < 0) {
+				lerr("CSYNC: Failed to add per-node fetch command for %s %s: %s",
+					 node_type(node), node->name, strerror(errno));
+			}
+			else {
+				ldebug("CSYNC: Added per-node fetch command to %s %s as: %s",
+					   node_type(node), node->name, node->csync.fetch.cmd);
+			}
 		}
 	}
 }
