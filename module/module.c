@@ -1060,6 +1060,11 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 		struct cfg_comp *c = comp->nest[i];
 		if (!prefixcmp(c->name, "database")) {
 			grok_db_compound(c);
+			continue;
+		}
+		if (!prefixcmp(c->name, "object_config")) {
+			grok_confsync_compound(c, &global_csync);
+			continue;
 		}
 	}
 }
@@ -1287,6 +1292,21 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	return 0;
 }
 
+static void post_process_nodes(void)
+{
+	unsigned int i;
+
+	for (i = 0; i < num_nodes; i++) {
+		merlin_node *node = node_table[i];
+		if (!node->csync.configured && global_csync.push.cmd) {
+			if (asprintf(&node->csync.push.cmd, "%s %s", global_csync.push.cmd, node->name) < 0)
+				lerr("CSYNC: Failed to add per-node confsync command for %s", node->name);
+			else
+				ldebug("CSYNC: Adding per-node sync to %s as: %s\n", node->name, node->csync.push.cmd);
+		}
+	}
+}
+
 /**
  * Initialization routine for the eventbroker module. This
  * function gets called by Nagios when it's done loading us
@@ -1363,6 +1383,8 @@ int nebmodule_init(__attribute__((unused)) int flags, char *arg, nebmodule *hand
 
 	/* only the ipc node has an action handler */
 	ipc.action = ipc_action_handler;
+
+	post_process_nodes();
 
 	linfo("Merlin module " PACKAGE_VERSION " initialized successfully");
 

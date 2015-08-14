@@ -6,6 +6,8 @@
 int db_log_reports = 1;
 int db_log_notifications = 1;
 char *import_program;
+merlin_confsync global_csync;
+
 static const char *config_key_expires(const char *var)
 {
 	if (!strcmp(var, "ipc_debug_write"))
