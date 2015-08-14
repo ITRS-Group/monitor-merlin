@@ -339,6 +339,8 @@ int split_config(void)
 	for (i = 0; i < num_pollers; i++) {
 		char *outfile, *tmpfile;
 		int fd;
+		blk_SHA_CTX ctx;
+
 		node = poller_table[i];
 		if (asprintf(&tmpfile, CACHEDIR "/config/%s.cfg.XXXXXX", node->name) == -1) {
 			lerr("Cannot nodesplit: there was an error generating temporary file name: %s", strerror(errno));
@@ -398,6 +400,10 @@ int split_config(void)
 			lerr("Error in nodesplit: Failed to set mtime of '%s': %s", outfile, strerror(errno));
 			continue;
 		}
+
+		blk_SHA1_Init(&ctx);
+		hash_add_file(outfile, &ctx);
+		blk_SHA1_Final(node->expected.config_hash, &ctx);
 	}
 
 	bitmap_destroy(htrack);

@@ -229,19 +229,21 @@ static int flist_cmp(const void *a_, const void *b_)
 }
 
 /* mmap() the file and hash its contents, adding it to ctx */
-static int flist_hash_add(struct file_list *fl, blk_SHA_CTX *ctx)
+int hash_add_file(const char *path, blk_SHA_CTX *ctx)
 {
 	void *map;
 	int fd;
+	struct stat st;
 
-	fd = open(fl->name, O_RDONLY);
+	fd = open(path, O_RDONLY);
 	if (fd < 0)
 		return -1;
-	map = mmap(NULL, fl->st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	fstat(fd, &st);
+	map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (!map)
 		return -1;
-	blk_SHA1_Update(ctx, map, fl->st.st_size);
-	munmap(map, fl->st.st_size);
+	blk_SHA1_Update(ctx, map, st.st_size);
+	munmap(map, st.st_size);
 	close(fd);
 
 	return 0;
@@ -291,7 +293,7 @@ int get_config_hash(unsigned char *hash)
 	sorted_flist = get_sorted_oconf_files(&num_files);
 
 	for (i = 0; i < num_files; i++) {
-		flist_hash_add(sorted_flist[i], &ctx);
+		hash_add_file(sorted_flist[i]->name, &ctx);
 		sorted_flist[i]->next = NULL;
 		file_list_free(sorted_flist[i]);
 	}

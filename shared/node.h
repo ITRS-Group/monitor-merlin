@@ -231,6 +231,7 @@ struct merlin_node {
 		struct merlin_assigned_objects expired; /* expired checks */
 	} assigned;
 	merlin_nodeinfo info;   /* node info */
+	merlin_nodeinfo expected; /* what we expect from this node (incomplete) */
 	int last_action;        /* LA_CONNECT | LA_DISCONNECT | LA_HANDLED */
 	binlog *binlog;         /* binary backlog for this node */
 	merlin_node_stats stats; /* event/data statistics */
