@@ -2247,8 +2247,8 @@ static int load_ocache_hash(const char *ocache_path)
 		if (fd < 0) {
 			lerr("Failed to open %s for writing ocache hash: %s", path, strerror(errno));
 		} else {
-			write(fd, tohex(ocache_hash, 20), 40);
-			write(fd, "\n", 1);
+			if (write(fd, tohex(ocache_hash, 20), 40) || write(fd, "\n", 1))
+				lerr("Failed to write hash to %s: %s", ocache_path, strerror(errno));
 			close(fd);
 		}
 	}

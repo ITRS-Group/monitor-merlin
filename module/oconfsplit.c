@@ -190,7 +190,7 @@ static gboolean nsplit_cache_host(gpointer _name, gpointer _hst, __attribute__((
 	}
 
 	for (sm = h->services; sm; sm = sm->next) {
-		struct service const *s = sm->service_ptr;
+		struct service *s = sm->service_ptr;
 		struct service *tmpsvc = create_service(tmphst, s->description);
 		setup_service_variables(tmpsvc, s->display_name, s->check_command, s->check_period, s->initial_state, s->max_attempts, s->accept_passive_checks, s->check_interval, s->retry_interval, s->notification_interval, s->first_notification_delay, s->notification_period, s->notification_options, s->notifications_enabled, s->is_volatile, s->event_handler, s->event_handler_enabled, s->checks_enabled, s->flap_detection_enabled, s->low_flap_threshold, s->high_flap_threshold, s->flap_detection_options, s->stalking_options, s->process_performance_data, s->check_freshness, s->freshness_threshold, s->notes, s->notes_url, s->action_url, s->icon_image, s->icon_image_alt, s->retain_status_information, s->retain_nonstatus_information, s->obsess, s->hourly_value);
 		for (cm = s->contacts; cm; cm = cm->next)

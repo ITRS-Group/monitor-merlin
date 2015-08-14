@@ -1147,6 +1147,10 @@ static void send_pulse(struct nm_event_execution_properties *evprop)
 static int post_config_init(int cb, void *ds)
 {
 	int result;
+	char *cache_file = NULL;
+	unsigned int i;
+	FILE *fp = NULL;
+	time_t current_time = 0L;
 
 	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
 		return 0;
@@ -1157,16 +1161,10 @@ static int post_config_init(int cb, void *ds)
 	host_expiry_map = calloc(num_objects.hosts, sizeof(timed_event *));
 	service_expiry_map = calloc(num_objects.services, sizeof(timed_event *));
 
-	char *cache_file = NULL;
-	FILE *fp = NULL;
-	time_t current_time = 0L;
-	unsigned int i;
-
 	time(&current_time);
 
-	asprintf(&cache_file, "/%s/timeperiods.cache", temp_path);
-
 	/* Write and import the timeperiod cache */
+	nm_asprintf(&cache_file, "/%s/timeperiods.cache", temp_path);
 	fp = fopen(cache_file, "w");
 	if(fp != NULL) {
 		fprintf(fp, "########################################\n");

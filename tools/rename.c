@@ -291,10 +291,14 @@ main(int argc, char **argv)
 	if (getuid() == 0) {
 		struct passwd *pwd = getpwnam("monitor");
 		if (pwd) {
-			setgid(pwd->pw_gid);
-			setegid(pwd->pw_gid);
-			seteuid(pwd->pw_uid);
-			setuid(pwd->pw_uid);
+			if (setgid(pwd->pw_gid) < 0 ||
+			    setegid(pwd->pw_gid) < 0 ||
+			    seteuid(pwd->pw_uid) < 0 ||
+			    setuid(pwd->pw_uid) < 0)
+			{
+				/* this should never happen */
+				printf("Failed to drop privileges: %s\n", strerror(errno));
+			}
 		}
 	}
 

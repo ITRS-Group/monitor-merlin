@@ -90,7 +90,7 @@ static void handle_import_finished(wproc_result *wpres, void *arg, int flags)
 int import_objects(char *cfg, char *cache)
 {
 	char *cmd;
-	int result = 0;
+	int ret;
 
 	/* don't bother if we're not using a datbase */
 	if (!use_database)
@@ -107,25 +107,32 @@ int import_objects(char *cfg, char *cache)
 		return 0;
 	}
 
-	asprintf(&cmd, "%s --nagios-cfg='%s' "
+	ret = asprintf(&cmd, "%s --nagios-cfg='%s' "
 			 "--db-type='%s' --db-name='%s' --db-user='%s' --db-pass='%s' --db-host='%s' --db-conn_str='%s'",
 			 import_program, cfg,
 			 sql_db_type(), sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host(), sql_db_conn_str());
-	if (cache && *cache) {
+
+	if (ret > 0 && cache && *cache) {
 		char *cmd2 = cmd;
-		asprintf(&cmd, "%s --cache='%s'", cmd2, cache);
+		ret = asprintf(&cmd, "%s --cache='%s'", cmd2, cache);
 		free(cmd2);
 	}
 
-	if (sql_db_port()) {
+	if (ret > 0 && sql_db_port()) {
 		char *cmd2 = cmd;
-		asprintf(&cmd, "%s --db-port='%u'", cmd2, sql_db_port());
+		ret = asprintf(&cmd, "%s --db-port='%u'", cmd2, sql_db_port());
 		free(cmd2);
+	}
+
+	if (ret < 0) {
+		lerr("Failed to run import program (asprintf failed): %s",
+			 strerror(errno));
+		return -1;
 	}
 
 	wproc_run_callback(cmd, 300, handle_import_finished, NULL, NULL);
 	import_running = 1;
 	free(cmd);
 
-	return result;
+	return 0;
 }

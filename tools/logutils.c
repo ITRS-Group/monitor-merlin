@@ -420,9 +420,9 @@ int strtotimet(const char *str, time_t *val)
 void first_log_time(struct naglog_file *nf)
 {
 	int fd;
-	uint i = 0;
+	int i = 0;
 	char buf[1024];
-	size_t read_len = 0;
+	int read_len = 0;
 	struct stat st;
 
 	memset(buf, 0, sizeof(buf));

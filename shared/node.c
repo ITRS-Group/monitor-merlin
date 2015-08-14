@@ -370,8 +370,10 @@ static void create_node_tree(merlin_node *table, unsigned n)
 			poller_table[xpoll++] = node;
 			break;
 		}
-		if(is_module)
-			asprintf(&node->source_name, "Merlin %s %s", node_type(node), node->name);
+		if(is_module) {
+			if (asprintf(&node->source_name, "Merlin %s %s", node_type(node), node->name) < 0)
+				node->source_name = strdup(node->name);
+		}
 	}
 }
 
@@ -640,7 +642,9 @@ void node_disconnect(merlin_node *node, const char *fmt, ...)
 
 	if (fmt) {
 		va_start(ap, fmt);
-		vasprintf(&reason, fmt, ap);
+		if (vasprintf(&reason, fmt, ap) < 0) {
+			reason = strdup("unknown (vasprintf failed)");
+		}
 		va_end(ap);
 	}
 	node_set_state(node, STATE_NONE, reason);
@@ -678,6 +682,7 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 
 	if (!node->binlog) {
 		char *path = NULL;
+		int ret;
 
 		asprintf(&path, "%s/%s.%s.binlog",
 				 binlog_dir ? binlog_dir : BINLOGDIR,
@@ -924,13 +929,13 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 int node_send_binlog(merlin_node *node, merlin_event *pkt)
 {
 	merlin_event *temp_pkt;
-	int len;
+	unsigned int len;
 
 	ldebug("Emptying backlog for %s (%u entries, %s)", node->name,
 		   binlog_num_entries(node->binlog), human_bytes(binlog_available(node->binlog)));
 	while (io_write_ok(node->sock, 10) && !binlog_read(node->binlog, (void **)&temp_pkt, &len)) {
 		int result;
-		if (!temp_pkt || packet_size(temp_pkt) != len ||
+		if (!temp_pkt || packet_size(temp_pkt) != (int)len ||
 		    !len || !packet_size(temp_pkt) || packet_size(temp_pkt) > MAX_PKT_SIZE)
 		{
 			if (!temp_pkt) {
