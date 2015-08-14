@@ -1,3 +1,5 @@
+#ifndef INCLUDE_sha1_h__
+#define INCLUDE_sha1_h__
 /*
  * SHA1 routine optimized to do word accesses rather than byte accesses,
  * and to avoid unnecessary copies into the context array.
@@ -15,3 +17,4 @@ typedef struct {
 void blk_SHA1_Init(blk_SHA_CTX *ctx);
 void blk_SHA1_Update(blk_SHA_CTX *ctx, const void *dataIn, unsigned long len);
 void blk_SHA1_Final(unsigned char hashout[20], blk_SHA_CTX *ctx);
+#endif
