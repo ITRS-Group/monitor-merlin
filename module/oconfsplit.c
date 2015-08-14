@@ -349,7 +349,7 @@ int split_config(void)
 			continue;
 		}
 		fd = mkstemp(tmpfile);
-		if (!fd) {
+		if (fd < 0) {
 			lerr("Cannot nodesplit: Failed to create temporary file '%s' for writing: %s", tmpfile, strerror(errno));
 			continue;
 		}
