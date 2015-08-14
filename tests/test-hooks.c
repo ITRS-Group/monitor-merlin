@@ -106,7 +106,6 @@ void general_setup()
 	nagios_iobs = iobroker_create();
 	qh_init(queryhandler_socket_path);
 	nebmodule_init(0, "tests/singlenode.conf", NULL);
-	merlin_should_send_paths = 0;
 	ipc.name = "Local";
 	ipc.sock = -1;
 	memset(&last_decoded_event, 0, sizeof(merlin_event));

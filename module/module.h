@@ -54,15 +54,11 @@ extern merlin_node *merlin_sender;
 extern GHashTable *host_hash_table;
 extern node_selection *node_selection_by_hostname(const char *name);
 
-/* global variables in the module only */
-extern time_t merlin_should_send_paths;
-
 /** global variables exported by Nagios **/
 extern int __nagios_object_structure_version;
 
 /** prototypes **/
 extern void schedule_expiration_event(int type, merlin_node *node, void *obj);
-extern int send_paths(void);
 extern int handle_ipc_event(merlin_node *node, merlin_event *pkt);
 
 extern int is_stalling(void);

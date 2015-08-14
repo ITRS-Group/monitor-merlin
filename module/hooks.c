@@ -297,7 +297,10 @@ static int hook_service_result(merlin_event *pkt, void *data)
 			return 0;
 
 		if (ds->check_type == CHECK_TYPE_PASSIVE) {
-			/* never transfer passive checks to other nodes */
+			/*
+			 * Never transfer passive checks to other nodes.
+			 * They get the command transferred instead
+			 */
 			pkt->hdr.code = MAGIC_NONET;
 		}
 
@@ -848,7 +851,7 @@ int merlin_mod_hook(int cb, void *data)
 {
 	merlin_event pkt;
 	int result = 0;
-	static time_t last_pulse = 0;
+	static time_t last_pulse = 0, last_flood_warning = 0;
 	time_t now;
 
 	if (!data) {
@@ -864,12 +867,6 @@ int merlin_mod_hook(int cb, void *data)
 	 * dupes are always sent properly
 	 */
 	check_dupes = 0;
-
-	/* If we've lost sync, we must make sure we send the paths again */
-	if (merlin_should_send_paths && merlin_should_send_paths < time(NULL)) {
-		/* send_paths resets merlin_should_send_paths if successful */
-		send_paths();
-	}
 
 	/* self-heal nodes that have missed out on the fact that we're up */
 	now = time(NULL);
@@ -929,9 +926,10 @@ int merlin_mod_hook(int cb, void *data)
 		lerr("Unhandled callback '%s' in merlin_hook()", callback_name(cb));
 	}
 
-	if (result < 0) {
-		lwarn("Daemon is flooded and backlogging failed. Staying dormant for %d seconds", MERLIN_SENDPATH_INTERVAL);
-		merlin_should_send_paths = time(NULL) + MERLIN_SENDPATH_INTERVAL;
+	if (result < 0 && now - last_flood_warning > 30) {
+		/* log a warning every 30 seconds */
+		last_flood_warning = now;
+		lwarn("Daemon is flooded and backlogging failed");
 	}
 
 	return result;

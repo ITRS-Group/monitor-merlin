@@ -22,7 +22,6 @@ static const char *progname;
 static const char *pidfile, *merlin_user;
 unsigned short default_port = 15551;
 unsigned int default_addr = 0;
-static int importer_pid;
 static merlin_confsync csync;
 static int num_children;
 static int killing;
@@ -281,10 +280,6 @@ static int grok_config(char *path)
 	return 1;
 }
 
-/*
- * if the import isn't done yet waitpid() will return 0
- * and we won't touch importer_pid at all.
- */
 static void reap_child_process(void)
 {
 	int status, pid;
@@ -299,7 +294,7 @@ static void reap_child_process(void)
 	if (pid < 0) {
 		if (errno == ECHILD) {
 			/* no child running. Just reset */
-			num_children = importer_pid = 0;
+			num_children = 0;
 		} else {
 			/* some random error. log it */
 			lerr("waitpid(-1...) failed: %s", strerror(errno));
@@ -320,27 +315,20 @@ static void reap_child_process(void)
 	 * so let's figure out what to call it when we log
 	 */
 	linfo("Child with pid %d successfully reaped", pid);
-	if (pid == importer_pid) {
-		name = strdup("import program");
-		importer_pid = 0;
-		ipc_send_ctrl(CTRL_RESUME, CTRL_GENERIC);
-	} else {
-		/* not the importer program, so it must be an oconf push or fetch */
-		for (i = 0; i < num_nodes; i++) {
-			merlin_node *node = node_table[i];
+	for (i = 0; i < num_nodes; i++) {
+		merlin_node *node = node_table[i];
 
-			if (pid == node->csync.push.pid) {
-				linfo("CSYNC: push finished for %s", node->name);
-				node->csync.push.pid = 0;
-				asprintf(&name, "CSYNC: oconf push to %s node %s", node_type(node), node->name);
-				asprintf(&cmd_to_try, "mon oconf push %s", node->name);
-				break;
-			} else if (pid == node->csync.fetch.pid) {
-				linfo("CSYNC: fetch finished from %s", node->name);
-				node->csync.fetch.pid = 0;
-				asprintf(&name, "CSYNC: oconf fetch from %s node %s", node_type(node), node->name);
-				break;
-			}
+		if (pid == node->csync.push.pid) {
+			linfo("CSYNC: push finished for %s", node->name);
+			node->csync.push.pid = 0;
+			asprintf(&name, "CSYNC: oconf push to %s node %s", node_type(node), node->name);
+			asprintf(&cmd_to_try, "mon oconf push %s", node->name);
+			break;
+		} else if (pid == node->csync.fetch.pid) {
+			linfo("CSYNC: fetch finished from %s", node->name);
+			node->csync.fetch.pid = 0;
+			asprintf(&name, "CSYNC: oconf fetch from %s node %s", node_type(node), node->name);
+			break;
 		}
 	}
 
@@ -401,78 +389,6 @@ static void run_program(char *what, char *cmd, int *prog_id)
 	num_children++;
 }
 
-/*
- * import objects and status from objects.cache and status.log,
- * respecively
- */
-static int import_objects_and_status(char *cfg, char *cache)
-{
-	char *cmd;
-	int result = 0;
-
-	/* don't bother if we're not using a datbase */
-	if (!use_database)
-		return 0;
-
-	/* ... or if an import is already in progress */
-	if (importer_pid) {
-		lwarn("Import already in progress. Ignoring import event");
-		return 0;
-	}
-
-	if (!import_program) {
-		lerr("No import program specified. Ignoring import event");
-		return 0;
-	}
-
-	asprintf(&cmd, "%s --nagios-cfg='%s' "
-			 "--db-type='%s' --db-name='%s' --db-user='%s' --db-pass='%s' --db-host='%s' --db-conn_str='%s'",
-			 import_program, cfg,
-			 sql_db_type(), sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host(), sql_db_conn_str());
-	if (cache && *cache) {
-		char *cmd2 = cmd;
-		asprintf(&cmd, "%s --cache='%s'", cmd2, cache);
-		free(cmd2);
-	}
-
-	if (sql_db_port()) {
-		char *cmd2 = cmd;
-		asprintf(&cmd, "%s --db-port='%u'", cmd2, sql_db_port());
-		free(cmd2);
-	}
-
-	run_program("import", cmd, &importer_pid);
-	free(cmd);
-
-	return result;
-}
-
-/* nagios.cfg, objects.cache (optional) and status.log (optional) */
-static int read_nagios_paths(merlin_event *pkt)
-{
-	char *nagios_paths_arena;
-	char *npath[3] = { NULL, NULL, NULL };
-	uint i;
-	size_t offset = 0;
-
-	if (!use_database)
-		return 0;
-
-	nagios_paths_arena = malloc(pkt->hdr.len);
-	if (!nagios_paths_arena)
-		return -1;
-	memcpy(nagios_paths_arena, pkt->body, pkt->hdr.len);
-
-	for (i = 0; i < ARRAY_SIZE(npath) && offset < pkt->hdr.len; i++) {
-		npath[i] = nagios_paths_arena + offset;
-		offset += strlen(npath[i]) + 1;
-	}
-
-	import_objects_and_status(npath[0], npath[1]);
-	free(nagios_paths_arena);
-
-	return 0;
-}
 
 /*
  * Compares *node's info struct and returns:
@@ -652,7 +568,6 @@ static int handle_ipc_event(merlin_event *pkt)
 	if (pkt->hdr.type == CTRL_PACKET) {
 		switch (pkt->hdr.code) {
 		case CTRL_PATHS:
-			read_nagios_paths(pkt);
 			return 0;
 
 		case CTRL_ACTIVE:

@@ -12,6 +12,7 @@
 #include "config.h"
 #include "queries.h"
 #include "oconfsplit.h"
+#include "script-helpers.h"
 
 merlin_node **host_check_node = NULL;
 merlin_node **service_check_node = NULL;
@@ -31,8 +32,6 @@ extern iobroker_set *nagios_iobs;
 struct host *merlin_recv_host;
 struct service *merlin_recv_service;
 
-time_t merlin_should_send_paths = 1;
-
 /*
  * nagios functions not included in almost-but-not-nearly-public
  * functions. We're probably not meant to call them, but being a
@@ -43,7 +42,6 @@ extern comment *comment_list;
 
 /** code start **/
 extern hostgroup *hostgroup_list;
-static int merlin_sendpath_interval = MERLIN_SENDPATH_INTERVAL;
 
 /*
  * the sending node, in case it triggers more
@@ -1143,86 +1141,6 @@ static void send_pulse(struct nm_event_execution_properties *evprop)
 /* check recent additions to Nagios for why these are nifty */
 #define nagios_object_cache mac->x[MACRO_OBJECTCACHEFILE]
 #define nagios_status_log mac->x[MACRO_STATUSDATAFILE]
-int send_paths(void)
-{
-	size_t config_path_len, cache_path_len;
-	char *cache_file, *status_log;
-	merlin_event pkt;
-	nagios_macros *mac;
-
-
-	/*
-	 * delay sending paths until we're connected, or we'll always
-	 * just hang around until the stall times out and we start
-	 * sending more events later, thereby triggering a new connection
-	 * attempt.
-	 */
-	if (!ipc_is_connected(0)) {
-		merlin_should_send_paths = 1;
-		return 0;
-	}
-
-	if (!merlin_should_send_paths || merlin_should_send_paths > time(NULL))
-		return 0;
-
-	mac = get_global_macros();
-	asprintf(&cache_file, "/%s/timeperiods.cache", temp_path);
-	status_log = nagios_status_log;
-
-	ldebug("config_file: %p; nagios_object_cache: %p; status_log: %p",
-		   config_file, cache_file, status_log);
-
-	if (!config_file) {
-		/* this should never happen. It really shouldn't */
-		merlin_should_send_paths = time(NULL) + merlin_sendpath_interval;
-		return -1;
-	}
-
-	memset(&pkt, 0, sizeof(pkt));
-	pkt.hdr.type = CTRL_PACKET;
-	pkt.hdr.code = CTRL_PATHS;
-	pkt.hdr.protocol = MERLIN_PROTOCOL_VERSION;
-
-	/*
-	 * Add the paths to pkt.body as nul-terminated strings.
-	 * We simply rely on 32K bytes to be enough to hold the
-	 * three paths we're interested in (and they are if we're
-	 * on a unixy system, where PATH_MAX is normally 4096).
-	 * We cheat a little and use pkt.hdr.len as an offset
-	 * to the bytestream.
-	 */
-	config_path_len = strlen(config_file);
-	memcpy(pkt.body, config_file, config_path_len);
-	pkt.hdr.len = config_path_len;
-	if (cache_file && *cache_file) {
-		cache_path_len = strlen(cache_file);
-		memcpy(pkt.body + pkt.hdr.len + 1, cache_file, cache_path_len);
-		pkt.hdr.len += cache_path_len + 1;
-
-		if (status_log && *status_log) {
-			memcpy(pkt.body + pkt.hdr.len + 1, status_log, strlen(status_log));
-			pkt.hdr.len += strlen(status_log) + 1;
-		}
-	}
-
-	/* nul-terminate and include the nul-char */
-	pkt.body[pkt.hdr.len++] = 0;
-	pkt.hdr.selection = 0;
-
-	/*
-	 * if the event was successfully added to the binlog,
-	 * we'll get 0 back, which means we can just let the
-	 * event in the binlog be valid until the binlog gets
-	 * full.
-	 */
-	if (ipc_send_event(&pkt) < 0)
-		return -1;
-
-	merlin_should_send_paths = 0;
-
-	return 0;
-}
-
 /*
  * This function gets called before and after Nagios has read its config
  * and written its objects.cache and status.log files.
@@ -1251,7 +1169,7 @@ static int post_config_init(int cb, void *ds)
 
 	asprintf(&cache_file, "/%s/timeperiods.cache", temp_path);
 
-	/* open the cache file for writing */
+	/* Write and import the timeperiod cache */
 	fp = fopen(cache_file, "w");
 	if(fp != NULL) {
 		fprintf(fp, "########################################\n");
@@ -1265,6 +1183,7 @@ static int post_config_init(int cb, void *ds)
 			fcache_timeperiod(fp, timeperiod_ary[i]);
 		fclose(fp);
 	}
+	import_objects(config_file, cache_file);
 	free(cache_file);
 
 	/* only call this function once */
@@ -1301,8 +1220,6 @@ static int post_config_init(int cb, void *ds)
 	 */
 	merlin_hooks_init(event_mask);
 
-	send_paths();
-
 	/*
 	 * this is the last event related to startup, so the regular mod hook
 	 * must see it to be able to shove startup info into the database.
@@ -1336,7 +1253,6 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	 */
 	if (prev_state == STATE_CONNECTED && is_stalling()) {
 		ctrl_stall_stop();
-		merlin_should_send_paths = 1;
 	}
 
 	if (ipc.state != STATE_CONNECTED) {
