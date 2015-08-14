@@ -8,35 +8,6 @@
 #include <string.h>
 #include <netdb.h>
 
-static time_t stall_start;
-
-/* return number of stalling seconds remaining */
-#define STALL_TIMER 20
-int is_stalling(void)
-{
-	/* stall_start is set to 0 when we stop stalling */
-	if (stall_start && stall_start + STALL_TIMER > time(NULL))
-		return (stall_start + STALL_TIMER) - time(NULL);
-
-	stall_start = 0;
-	return 0;
-}
-
-/*
- * we use setter functions for these, so we can start stalling
- * after having sent the paths without having to implement the
- * way we mark and unmark stalling in multiple places
- */
-void ctrl_stall_start(void)
-{
-	stall_start = time(NULL);
-}
-
-void ctrl_stall_stop(void)
-{
-	stall_start = 0;
-}
-
 merlin_node **noc_table, **poller_table, **peer_table;
 
 static int num_selections;
@@ -919,10 +890,6 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 	 * socket, which should also mean it's connected
 	 */
 	if (msec >= 0 && !io_write_ok(node->sock, msec)) {
-		return node_binlog_add(node, pkt);
-	}
-
-	if (is_module && is_stalling()) {
 		return node_binlog_add(node, pkt);
 	}
 

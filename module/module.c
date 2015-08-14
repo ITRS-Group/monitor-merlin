@@ -376,11 +376,8 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 		}
 		break;
 	case CTRL_STALL:
-		ctrl_stall_start();
-		break;
 	case CTRL_RESUME:
-		ctrl_stall_stop();
-		pgroup_assign_peer_ids(ipc.pgroup);
+		linfo("Received (and ignoring) CTRL_{STALL,RESUME} event.");
 		break;
 	case CTRL_STOP:
 		linfo("Received (and ignoring) CTRL_STOP event. What voodoo is this?");
@@ -1242,17 +1239,6 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	if (node != &ipc || ipc.state == prev_state) {
 		ldebug("  ipc_action_handler(): First exit");
 		return 0;
-	}
-
-	/*
-	 * If we get disconnected while stalling, we immediately
-	 * stop stalling and note that we should send paths again.
-	 * Since we never received a CTRL_RESUME we can't know for
-	 * sure that the module has actually imported anything.
-	 * Better safe than sorry, iow.
-	 */
-	if (prev_state == STATE_CONNECTED && is_stalling()) {
-		ctrl_stall_stop();
 	}
 
 	if (ipc.state != STATE_CONNECTED) {
