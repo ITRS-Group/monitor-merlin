@@ -1063,17 +1063,8 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 
 	for (i = 0; i < comp->nested; i++) {
 		struct cfg_comp *c = comp->nest[i];
-		uint vi;
-		if (!prefixcmp(comp->nest[i]->name, "database")) {
-			use_database = 1;
-			for (vi = 0; vi < c->vars; vi++) {
-				struct cfg_var *v = c->vlist[vi];
-				if (!prefixcmp(v->key, "enabled")) {
-					use_database = strtobool(v->value);
-					continue;
-				}
-			}
-			break;
+		if (!prefixcmp(c->name, "database")) {
+			grok_db_compound(c);
 		}
 	}
 }

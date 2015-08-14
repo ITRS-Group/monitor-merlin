@@ -1,7 +1,11 @@
 #include "logging.h"
 #include "ipc.h"
 #include "shared.h"
+#include "sql.h"
 
+int db_log_reports = 1;
+int db_log_notifications = 1;
+char *import_program;
 static const char *config_key_expires(const char *var)
 {
 	if (!strcmp(var, "ipc_debug_write"))
@@ -10,6 +14,27 @@ static const char *config_key_expires(const char *var)
 		return "2011-05";
 
 	return NULL;
+}
+
+void grok_db_compound(struct cfg_comp *c)
+{
+	unsigned int vi;
+
+	use_database = 1;
+	for (vi = 0; vi < c->vars; vi++) {
+		struct cfg_var *v = c->vlist[vi];
+		if (!strcmp(v->key, "log_report_data")) {
+			db_log_reports = strtobool(v->value);
+		} else if (!prefixcmp(v->key, "log_notification")) {
+			db_log_notifications = strtobool(v->value);
+		} else if (!prefixcmp(v->key, "track_current")) {
+			lwarn("Option '%s' in the database compound is deprecated", v->key);
+		} else if (!strcmp(v->key, "enabled")) {
+			use_database = strtobool(v->value);
+		} else {
+			sql_config(v->key, v->value);
+		}
+	}
 }
 
 /*

@@ -104,11 +104,12 @@ shared_sources = $(common_sources) \
 	shared/node.c shared/node.h \
 	shared/codec.c shared/codec.h \
 	shared/binlog.c shared/binlog.h \
-	shared/configuration.c shared/configuration.h
+	shared/configuration.c shared/configuration.h \
+	$(db_wrap_sources)
 
-db_wrap_sources = daemon/sql.c daemon/sql.h daemon/db_wrap.c daemon/db_wrap.h
+db_wrap_sources = shared/sql.c shared/sql.h shared/db_wrap.c shared/db_wrap.h
 if HAVE_LIBDBI
-db_wrap_sources += daemon/db_wrap_dbi.c daemon/db_wrap_dbi.h
+db_wrap_sources += shared/db_wrap_dbi.c shared/db_wrap_dbi.h
 else
 endif
 
@@ -120,7 +121,7 @@ module_sources = $(shared_sources) \
 	module/queries.c module/queries.h \
 	module/oconfsplit.c module/oconfsplit.h \
 	shared/pgroup.c shared/pgroup.h
-daemon_sources = $(shared_sources) $(db_wrap_sources) \
+daemon_sources = $(shared_sources) \
 	daemon/daemonize.c daemon/daemonize.h \
 	daemon/net.c daemon/net.h \
 	daemon/db_updater.c daemon/db_updater.h \
@@ -148,7 +149,7 @@ import_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 oconf_SOURCES = tools/oconf.c module/sha1.c module/misc.c shared/shared.c shared/shared.h shared/logging.c shared/logging.h
 oconf_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module $(GLIB_CFLAGS)
 oconf_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
-ocimp_SOURCES = $(shared_sources) $(db_wrap_sources) \
+ocimp_SOURCES = $(shared_sources) \
 	tools/ocimp.c tools/ocimp.h \
 	tools/test_utils.c tools/test_utils.h \
 	module/sha1.c module/sha1.h \
@@ -172,7 +173,7 @@ test_lparse_SOURCES = tests/test-lparse.c tools/lparse.c tools/logutils.c tools/
 test_lparse_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools $(GLIB_CFLAGS)
 test_lparse_CPPFLAGS = $(AM_CPPFLAGS)
 test_lparse_LDADD = $(naemon_LIBS)
-hooktest_SOURCES = tests/test-hooks.c shared/cfgfile.c shared/shared.c shared/logging.c shared/dlist.c shared/io.c shared/node.c shared/codec.c shared/binlog.c module/misc.c module/sha1.c tools/test_utils.c module/oconfsplit.c shared/configuration.c module/queries.c
+hooktest_SOURCES = tests/test-hooks.c $(db_wrap_sources) shared/cfgfile.c shared/shared.c shared/logging.c shared/dlist.c shared/io.c shared/node.c shared/codec.c shared/binlog.c module/misc.c module/sha1.c tools/test_utils.c module/oconfsplit.c shared/configuration.c module/queries.c
 hooktest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module -I$(srcdir)/tools $(check_CFLAGS) $(GLIB_CFLAGS)
 hooktest_LDADD = $(naemon_LIBS) $(check_LIBS)
 stringutilstest_SOURCES = tests/test-stringutils.c tools/test_utils.c daemon/string_utils.c
@@ -188,7 +189,7 @@ codectest_LDADD = $(naemon_LIBS) $(check_LIBS)
 
 # So, it turns out that this test isn't actually a test that has ever executed
 # It's just a binary that could be used for writing tests against. I give up :(
-test_dbwrap_SOURCES = tests/test-dbwrap.c $(db_wrap_sources) $(shared_sources)
+test_dbwrap_SOURCES = tests/test-dbwrap.c $(shared_sources)
 test_dbwrap_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
 test_dbwrap_LDADD = $(naemon_LIBS) $(AM_LDADD)
 
