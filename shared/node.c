@@ -792,7 +792,7 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 		ldebug("Sending %s to %s", ctrl_name(pkt->hdr.code), node->name);
 		if (pkt->hdr.code == CTRL_ACTIVE) {
 			merlin_nodeinfo *info = (merlin_nodeinfo *)&pkt->body;
-			ldebug("   start time: %lu.%lu",
+			ldebug("   start time: %lu.%06lu",
 			       info->start.tv_sec, info->start.tv_usec);
 			ldebug("  config hash: %s", tohex(info->config_hash, 20));
 			ldebug(" config mtime: %lu", info->last_cfg_change);
@@ -1036,28 +1036,36 @@ int node_ctrl(merlin_node *node, int code, uint selection, void *data,
 	return node_send(node, &pkt, packet_size(&pkt), MSG_DONTWAIT);
 }
 
+static void node_log_info(const merlin_node *node, const merlin_nodeinfo *info)
+{
+	ldebug("Node info for %s", node->name);
+	ldebug("      version: %u", info->version);
+	ldebug("    word_size: %u", info->word_size);
+	ldebug("   byte_order: %u", info->byte_order);
+	ldebug("object struct: %u", info->object_structure_version);
+	ldebug("   start time: %lu.%06lu",
+	       info->start.tv_sec, info->start.tv_usec);
+	ldebug("  config hash: %s", tohex(info->config_hash, sizeof(info->config_hash)));
+	ldebug("expected hash: %s", tohex(node->expected.config_hash, sizeof(info->config_hash)));
+	ldebug(" config mtime: %lu", info->last_cfg_change);
+	ldebug("      peer id: %u", node->peer_id);
+	ldebug(" self peer id: %u", info->peer_id);
+	ldebug(" active peers: %u", info->active_peers);
+	ldebug(" confed peers: %u", info->configured_peers);
+}
+
 /*
- * Handles all the subtleties regarding CTRL_ACTIVE packets,
- * which also send a sort of compatibility check along with
- * capabilities and attributes about node.
- * node is in this case the source, for which we want to set
- * the proper info structure. Since CTRL_ACTIVE packets are
- * only ever forwarded from daemon to module and from module
- * to 'hood', and never from network to 'hood', we know this
- * packet originated from the module at 'node'.
+ * Checks a node for compatibility once it has sent its
+ * nodeinfo data (a CTRL_ACTIVE packet).
  *
- * Returns 0 if everything is fine and dandy
- * Returns -1 on general muppet errors
- * Returns < -1 if node is incompatible with us.
- * Returns 1 if node is compatible, but info isn't new
- * Returns > 1 if node is compatible but lacks features we have
+ * Returns 0 if everything checks out, or one of the ESYNC_
+ * on any problems.
  */
-int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
+int node_compat_cmp(const merlin_node *node, const merlin_event *pkt)
 {
 	merlin_nodeinfo *info;
 	uint32_t len;
-	int ret = 0; /* assume ok. we'll flip it if needed */
-	int version_delta = 0;
+	int version_delta;
 
 	if (!node || !pkt)
 		return ESYNC_EUSER;
@@ -1074,7 +1082,7 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 		lerr("FATAL: %s: incompatible nodeinfo body size %d. Ours is %d. Required: %d",
 			 node->name, len, sizeof(node->info), MERLIN_NODEINFO_MINSIZE);
 		lerr("FATAL: Completely incompatible");
-		ret = ESYNC_EPROTO;
+		return ESYNC_EPROTO;
 	}
 
 	/*
@@ -1082,151 +1090,129 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 	 * comparisons below, but if byte_order differs, so may this.
 	 */
 	version_delta = info->version - MERLIN_NODEINFO_VERSION;
-	if (!ret && version_delta) {
-		lwarn("%s: incompatible nodeinfo version %d. Ours is %d",
-			  node->name, info->version, MERLIN_NODEINFO_VERSION);
-		lwarn("Further compatibility comparisons may be wrong");
+	if (version_delta) {
+		lwarn("%s: nodeinfo version difference. theirs: %d. ours: %d",
+		      node->name, info->version, MERLIN_NODEINFO_VERSION);
+		if (version_delta < 0) {
+			lwarn("WARNING: '%s' needs to be updated", node->name);
+		} else {
+			lwarn("WARNING: localhost needs to be updated");
+		}
+		if (len < sizeof(node->info)) {
+			lwarn("%s: info-size too small (%d < %d)",
+			      node->name, len, sizeof(node->info));
+			return ESYNC_EVERSION;
+		}
 	}
 
-	/*
-	 * these two checks should never trigger for the daemon
-	 * when node is &ipc unless someone hacks merlin to connect
-	 * to a remote site instead of over the ipc socket.
-	 * It will happen in net-to-net cases where the two systems
-	 * have different wordsize (32-bit vs 64-bit) or byte order
-	 * (big vs little endian, fe)
-	 * If someone wants to jack in conversion functions into
-	 * merlin, the right place to activate them would be here,
-	 * setting them as in_handler(pkt) for the node in question
-	 * (no out_handler() is needed, since the receiving end will
-	 * transform the packet itself).
-	 */
-	if (!ret && info->word_size != COMPAT_WORDSIZE) {
+	if (info->word_size != COMPAT_WORDSIZE) {
 		lerr("FATAL: %s: incompatible wordsize %d. Ours is %d",
 			 node->name, info->word_size, COMPAT_WORDSIZE);
-		ret = ESYNC_EWORDSIZE;
+		return ESYNC_EWORDSIZE;
 	}
-	if (!ret && info->byte_order != endianness()) {
+	if (info->byte_order != endianness()) {
 		lerr("FATAL: %s: incompatible byte order %d. Ours is %d",
 		     node->name, info->byte_order, endianness());
-		ret = ESYNC_EENDIAN;
+		return ESYNC_EENDIAN;
 	}
 
-	/*
-	 * this could potentially happen if someone forgets to
-	 * restart either Nagios or Merlin after upgrading either
-	 * or both to a newer version and the object structure
-	 * version has been bumped. It's quite unlikely though,
-	 * but since CTRL_ACTIVE packets are so uncommon we can
-	 * afford to waste the extra cycles.
-	 */
-	if (!ret && info->object_structure_version != CURRENT_OBJECT_STRUCTURE_VERSION) {
+	if (info->object_structure_version != CURRENT_OBJECT_STRUCTURE_VERSION) {
 		lerr("FATAL: %s: incompatible object structure version %d. Ours is %d",
 			 node->name, info->object_structure_version, CURRENT_OBJECT_STRUCTURE_VERSION);
-		ret = ESYNC_EOBJECTS;
+		return ESYNC_EOBJECTS;
 	}
 
-	/*
-	 * If the remote end has a newer info_version we can be reasonably
-	 * sure that everything we want from it is present
-	 */
-	if (!ret) {
-		if (version_delta > 0 && len > sizeof(node->info)) {
-			/*
-			 * version is greater and struct is bigger. Everything we
-			 * need is almost certainly present in that struct
-			 */
-			lwarn("WARNING: Possible compatibility issues with '%s'", node->name);
-			lwarn("  - '%s' nodeinfo version %d; nodeinfo size %d.",
-				  node->name, info->version, len);
-			lwarn("  - we have nodeinfo version %d; nodeinfo size %d.",
-				  self->version, sizeof(node->info));
-			len = sizeof(node->info);
-		} else if (version_delta < 0 && len < sizeof(node->info)) {
-			/*
-			 * version is less, and struct is smaller. Update this
-			 * place with warnings about what won't work when we
-			 * add new things to the info struct, and ignore copying
-			 * anything right now
-			 */
-			lwarn("WARNING: '%s' needs to be updated", node->name);
-			ret = ESYNC_EVERSION;
-		} else if (version_delta && len != sizeof(node->info)) {
-			/*
-			 * version is greater and struct is smaller, or
-			 * version is lesser and struct is bigger. Either way,
-			 * this should never happen
-			 */
-			lerr("FATAL: %s: impossible info_version / sizeof(nodeinfo_version) combo",
-				 node->name);
-			lerr("FATAL: %s: %d / %d; We: %d / %d",
-				 node->name, len, info->version, sizeof(node->info), MERLIN_NODEINFO_VERSION);
-			ret = ESYNC_EINFOVERSION;
+	node_log_info(node, info);
+
+	return 0;
+}
+
+/*
+ * Compares merlin configuration (node config, basically)
+ * and returns:
+ *   0 if everything checks out
+ *   ESYNC_ENODES if it doesn't
+ */
+int node_mconf_cmp(const merlin_node *node, const merlin_event *pkt)
+{
+	merlin_nodeinfo *info;
+	int err = 0;
+
+	info = (merlin_nodeinfo *)&pkt->body;
+
+	if (node->type == MODE_PEER) {
+		if (info->configured_peers != ipc.info.configured_peers) {
+			lerr("MCONF: Peer %s has %d peers. Expected %d",
+			     node->name, info->configured_peers, ipc.info.configured_peers);
+			err++;
 		}
-		if (node->type == MODE_PEER) {
-			if (info->configured_peers != ipc.info.configured_peers) {
-				lerr("Node %s has a different number of peers from us", node->name);
-				ret = ESYNC_ENODES;
-			} else if (info->configured_masters != ipc.info.configured_masters) {
-				lerr("Node %s has a different number of masters from us", node->name);
-				ret = ESYNC_ENODES;
-			} else if (info->configured_pollers != ipc.info.configured_pollers) {
-				lerr("Node %s has a different number of pollers from us", node->name);
-				ret = ESYNC_ENODES;
-			}
-		} else if (node->type == MODE_POLLER) {
-			if (info->configured_masters != ipc.info.configured_peers + 1) {
-				lerr("Node %s is a poller, but it has a different number of masters than we have peers", node->name);
-				ret = ESYNC_ENODES;
-			} else if (info->configured_peers > ipc.info.configured_pollers) {
-				lerr("Node %s is a poller, but it has more peers than we have pollers", node->name);
-				ret = ESYNC_ENODES;
-			}
+		if (info->configured_masters != ipc.info.configured_masters) {
+			lerr("MCONF: Peer %s has %d masters. Expected %d",
+			     node->name, info->configured_masters, ipc.info.configured_masters);
+			err++;
 		}
-		if (!ret && info->last_cfg_change != ipc.info.last_cfg_change) {
-			linfo("Node %s's config isn't in sync with ours", node->name);
-			ret = ESYNC_ECONFTIME;
+		if (info->configured_pollers != ipc.info.configured_pollers) {
+			lerr("MCONF: Peer %s has %d pollers. Expected %d",
+			     node->name, info->configured_pollers, ipc.info.configured_pollers);
+			err++;
+		}
+	}
+	else if (node->type == MODE_POLLER) {
+		if (info->configured_masters != ipc.info.configured_peers + 1) {
+			lerr("MCONF: Poller %s claims it has %d masters. Should be %d",
+			     node->name, info->configured_masters, ipc.info.configured_masters + 1);
+			err++;
+		}
+		if (info->configured_peers != node->pgroup->total_nodes - 1) {
+			lerr("MCONF: Poller %s has %d peers. Expected %d",
+			     node->name, info->configured_peers, node->pgroup->total_nodes - 1);
+			err++;
+		}
+	}
+	else if (node->type == MODE_MASTER) {
+		if (info->configured_peers != ipc.info.configured_masters - 1) {
+			lerr("MCONF: Master %s has %d peers. Expected %d",
+			     node->name, info->configured_peers, ipc.info.configured_masters - 1);
+			err++;
 		}
 	}
 
-	if (ret < 0 && ret != ESYNC_ECONFTIME && ret != ESYNC_ENODES) {
-		lerr("FATAL: %s; incompatibility code %d. Ignoring CTRL_ACTIVE event",
-			 node->name, ret);
-		memset(&node->info, 0, sizeof(node->info));
+	return err ? ESYNC_ENODES : 0;
+}
+
+/*
+ * Returns:
+ *   0 if object config is as expected, regardless of timestamp
+ *  <0 if oconf doesn't match and their config is older
+ *  >0 if oconf doesn't match and their config is newer
+ * This can only be used if node_compat_cmp() returns 0.
+ */
+int node_oconf_cmp(const merlin_node *node, const merlin_event *pkt)
+{
+	merlin_nodeinfo *info;
+
+	info = (merlin_nodeinfo *)&pkt->body;
+
+	/* if this is a master node, "any config" is as expected */
+	if (node->type == MODE_MASTER)
+		return 0;
+
+	if (!memcmp(info->config_hash, node->expected.config_hash, sizeof(info->config_hash))) {
+		ldebug("%s %s's config is what we expect", node_type(node), node->name);
+		return 0;
+	}
+
+	return info->last_cfg_change - ipc.info.last_cfg_change;
+}
+
+int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
+{
+	int ret;
+
+	if ((ret = node_compat_cmp(node, pkt)))
 		return ret;
-	}
+	if ((ret = node_mconf_cmp(node, pkt)))
+		return ret;
 
-	/* everything seems ok, so handle it properly */
-
-
-	/* if info isn't new, we return 1 */
-	if (!memcmp(&node->info.start, &info->start, sizeof(info->start)) &&
-		node->info.last_cfg_change == info->last_cfg_change &&
-		!strcmp((char *)node->info.config_hash, (char *)info->config_hash))
-	{
-		ret = 1;
-	}
-
-	/*
-	 * otherwise update the node's info and
-	 * print some debug logging.
-	 */
-	memcpy(&node->info, pkt->body, len);
-	if (!ret) {
-		ldebug("Received CTRL_ACTIVE from %s", node->name);
-		ldebug("      version: %u", info->version);
-		ldebug("    word_size: %u", info->word_size);
-		ldebug("   byte_order: %u", info->byte_order);
-		ldebug("object struct: %u", info->object_structure_version);
-		ldebug("   start time: %lu.%lu",
-			   info->start.tv_sec, info->start.tv_usec);
-		ldebug("  config hash: %s", tohex(info->config_hash, 20));
-		ldebug(" config mtime: %lu", info->last_cfg_change);
-		ldebug("      peer id: %u", node->peer_id);
-		ldebug(" self peer id: %u", info->peer_id);
-		ldebug(" active peers: %u", info->active_peers);
-		ldebug(" confed peers: %u", info->configured_peers);
-	}
-
-	return ret;
+	return node_oconf_cmp(node, pkt) ? ESYNC_ECONFTIME : 0;
 }
