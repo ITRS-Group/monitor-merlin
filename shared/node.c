@@ -598,7 +598,7 @@ void node_log_event_count(merlin_node *node, int force)
 		  binlog_entries(node->binlog), human_bytes(binlog_size(node->binlog)));
 }
 
-const char *node_state(merlin_node *node)
+const char *node_state(const merlin_node *node)
 {
 	switch (node->state) {
 	case STATE_NONE:
@@ -614,7 +614,7 @@ const char *node_state(merlin_node *node)
 	return "Unknown state (decidedly odd)";
 }
 
-const char *node_type(merlin_node *node)
+const char *node_type(const merlin_node *node)
 {
 	switch (node->type) {
 	case MODE_LOCAL:
