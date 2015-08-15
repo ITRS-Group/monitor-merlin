@@ -167,8 +167,8 @@ TESTS_ENVIRONMENT = G_DEBUG=fatal-criticals; export G_DEBUG;
 
 sltest_SOURCES = tests/sltest.c tools/test_utils.c tools/slist.c tools/slist.h
 sltest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools
-test_csync_SOURCES = tests/test-csync.c tools/test_utils.c $(daemon_sources)
-test_csync_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon -I$(srcdir)/tools $(GLIB_CFLAGS)
+test_csync_SOURCES = tests/test-csync.c tools/test_utils.c $(module_sources)
+test_csync_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module -I$(srcdir)/tools $(GLIB_CFLAGS)
 test_csync_LDADD = $(naemon_LIBS)
 test_lparse_SOURCES = tests/test-lparse.c tools/lparse.c tools/logutils.c tools/test_utils.c
 test_lparse_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools $(GLIB_CFLAGS)

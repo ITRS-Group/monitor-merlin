@@ -24,7 +24,7 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 		return;
 
 	/*
-	 * Allowed nodestate transitions:
+	 * Allowed nodestate transitions for daemon:
 	 * Any state -> NONE
 	 * NONE -> PENDING/NEGOTIATING.
 	 * PENDING -> Any state
@@ -35,8 +35,9 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 	 * but we keep them for completeness. The compiler optimizes
 	 * them away anyway, so they basically serve as comments.
 	 * We don't do this check for &ipc, as it's special as usual.
+	 * Module can only go between CONNECTED and NONE.
 	 */
-	if (state != STATE_NONE && node != &ipc) {
+	if (!is_module && state != STATE_NONE && node != &ipc) {
 		int transition_error = 1;
 		switch (node->state) {
 		case STATE_NONE:

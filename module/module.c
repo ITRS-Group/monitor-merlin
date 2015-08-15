@@ -329,6 +329,9 @@ void schedule_expiration_event(int type, merlin_node *node, void *obj)
 static void handle_control(merlin_node *node, merlin_event *pkt)
 {
 	const char *ctrl;
+	int prev_state, ret;
+	merlin_nodeinfo *info;
+
 	if (!pkt) {
 		lerr("handle_control() called with NULL packet");
 		return;
@@ -355,24 +358,31 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 		 * or if this node has reconnected after network problems,
 		 * we must re-do the peer assignment thing.
 		 */
-		{
-			int prev_state, ret;
+		prev_state = node->state;
+		if (node_compat_cmp(node, pkt)) {
+			node_disconnect(node, "Incompatible protocol");
+			return;
+		}
+		info = (merlin_nodeinfo *)pkt->body;
 
-			prev_state = node->state;
-			ret = handle_ctrl_active(node, pkt);
+		if ((ret = node_oconf_cmp(node, pkt))) {
+			csync_node_active(node, ret);
+			node_disconnect(node, "Incompatible object config");
+			return;
+		}
+		if (node_mconf_cmp(node, pkt)) {
+			node_disconnect(node, "Invalid cluster configuration");
+			return;
+		}
+
+		/* node sent info we can use, so do that */
+		memcpy(&node->info, pkt->body, sizeof(node->info));
+		if (prev_state != STATE_CONNECTED) {
+
 			node_set_state(node, STATE_CONNECTED, "Received CTRL_ACTIVE");
-			if (!ret || prev_state != STATE_CONNECTED) {
-				pgroup_assign_peer_ids(node->pgroup);
-
-				if (!ret) {
-					ldebug("NODESTATE: Got fresh CTRL_ACTIVE from %s node %s",
-					       node_type(node), node->name);
-				}
-				if (prev_state != STATE_CONNECTED) {
-					ldebug("NODESTATE: %s node %s just marked as connected after CTRL_ACTIVE",
-					       node_type(node), node->name);
-				}
-			}
+			pgroup_assign_peer_ids(node->pgroup);
+			ldebug("NODESTATE: %s node %s just marked as connected after CTRL_ACTIVE",
+				   node_type(node), node->name);
 		}
 		break;
 	case CTRL_STALL:
@@ -751,24 +761,28 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 		return 0;
 	}
 
-	if (node) {
-		if (!node->info.byte_order) {
-			lwarn("STATE: %s is sending event data but hasn't sent %s",
-				  node->name, ctrl_name(CTRL_ACTIVE));
-			/* marker to prevent logspamming */
-			node->info.byte_order = -1;
-		}
+	if (!node)
+		return 0;
 
-		node->stats.events.read++;
-		node->stats.bytes.read += packet_size(pkt);
-		node_log_event_count(node, 0);
+	if (node == &ipc) {
+		linfo("Received packet from &ipc. The hells?");
+		return 0;
 	}
-/*
-	ldebug("Inbound %s event from %s. len %d, type %d",
-	       callback_name(pkt->hdr.type),
-		   node ? node->name : "local Merlin daemon",
-		   pkt->hdr.len, *pkt->body);
-*/
+
+	if (!node->state == STATE_CONNECTED) {
+		lwarn("STATE: Discarding %s event from %s %s",
+			  callback_name(pkt->hdr.type), node_type(node), node->name);
+	}
+	if (!node->info.byte_order) {
+		lwarn("STATE: %s is sending event data but hasn't sent %s",
+			  node->name, ctrl_name(CTRL_ACTIVE));
+		/* marker to prevent logspamming */
+		node->info.byte_order = -1;
+	}
+
+	node->stats.events.read++;
+	node->stats.bytes.read += packet_size(pkt);
+	node_log_event_count(node, 0);
 
 	/* restore the pointers so the various handlers won't have to */
 	if (merlin_decode_event(node, pkt)) {

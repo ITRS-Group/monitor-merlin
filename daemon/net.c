@@ -499,40 +499,17 @@ static int handle_network_event(merlin_node *node, merlin_event *pkt)
 {
 	uint i;
 
-	if (pkt->hdr.type == CTRL_PACKET) {
-		if (pkt->hdr.code == CTRL_ACTIVE) {
-			ldebug("Got CTRL_ACTIVE from %s", node->name);
-			int result = handle_ctrl_active(node, pkt);
-
-			if (result == ESYNC_ECONFTIME) {
-				/*
-				 * We end up here when *node's config has another
-				 * timestamp than ours. csync_node_active() will
-				 * disconnect it if necessary, which it isn't in
-				 * case it's a peer and the hashes match. If it *is*
-				 * necessary, we must get out so we don't try to
-				 * mark it as connected further down.
-				 */
-				csync_node_active(node);
-				if (node->state == STATE_NONE)
-					return 0;
-			}
-			else if (result < 0) {
-				if (result == ESYNC_ENODES) {
-					node_disconnect(node, "Incompatible merlin configuration");
-				} else {
-					node_disconnect(node, "Incompatible protocol");
-				}
-				return 0;
-			}
-
-			node_set_state(node, STATE_CONNECTED, "Version and protocol successfully negotiated");
+	if (pkt->hdr.type == CTRL_PACKET && pkt->hdr.code == CTRL_ACTIVE) {
+		if (node_compat_cmp(node, pkt)) {
+			node_disconnect(node, "Node is incompatible");
+			return 0;
 		}
-		if (pkt->hdr.code == CTRL_INACTIVE) {
-			ldebug("Module @ %s is INACTIVE", node->name);
-		}
-	} else if (node->state != STATE_CONNECTED) {
-		/* yeah, sarry, but if yer nat on the list, yer nat gettin' in */
+		node_set_state(node, STATE_CONNECTED, "Received valid CTRL_ACTIVE");
+	}
+	if (node->state != STATE_CONNECTED) {
+		/* the f*ck did that happen? An unconnected node talking to us */
+		lerr("Received data from not connected node '%s'. State is %s\n",
+			 node->name, node_state(node));
 		return 0;
 	} else if (node->type == MODE_POLLER && num_masters) {
 		ldebug("Passing on event from poller %s to %d masters",

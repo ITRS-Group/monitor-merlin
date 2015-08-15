@@ -101,6 +101,11 @@ struct merlin_event {
 } __attribute__((packed));
 typedef struct merlin_event merlin_event;
 
+/* forward declaration */
+struct merlin_node;
+typedef struct merlin_node merlin_node;
+
+
 /*
  * New entries in this struct *must* be appended LAST for the change
  * to not break backwards compatibility. When the receiving code
@@ -143,7 +148,8 @@ typedef struct merlin_nodeinfo merlin_nodeinfo;
 
 struct merlin_child {
 	char *cmd;
-	int pid;
+	int is_running;
+	merlin_node *node;
 };
 typedef struct merlin_child merlin_child;
 
@@ -242,7 +248,6 @@ struct merlin_node {
 	time_t csync_last_attempt;
 	int (*action)(struct merlin_node *, int); /* (daemon) action handler */
 };
-typedef struct merlin_node merlin_node;
 
 #define node_table noc_table
 extern merlin_node **noc_table, **peer_table, **poller_table;

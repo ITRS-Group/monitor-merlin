@@ -23,7 +23,6 @@ static const char *pidfile, *merlin_user;
 unsigned short default_port = 15551;
 unsigned int default_addr = 0;
 static merlin_confsync csync;
-static int num_children;
 static int killing;
 static int user_sig;
 static merlin_nodeinfo merlind;
@@ -280,286 +279,6 @@ static int grok_config(char *path)
 	return 1;
 }
 
-static void reap_child_process(void)
-{
-	int status, pid;
-	unsigned int i;
-	char *name = NULL;
-	char *cmd_to_try = NULL;
-
-	if (!num_children)
-		return;
-
-	pid = waitpid(-1, &status, WNOHANG);
-	if (pid < 0) {
-		if (errno == ECHILD) {
-			/* no child running. Just reset */
-			num_children = 0;
-		} else {
-			/* some random error. log it */
-			lerr("waitpid(-1...) failed: %s", strerror(errno));
-		}
-
-		return;
-	}
-
-	/* child may not be done yet */
-	if (!pid)
-		return;
-
-	/* we reaped an actual child, so decrement the counter */
-	num_children--;
-
-	/*
-	 * looks like we reaped some helper we spawned,
-	 * so let's figure out what to call it when we log
-	 */
-	linfo("Child with pid %d successfully reaped", pid);
-	for (i = 0; i < num_nodes; i++) {
-		merlin_node *node = node_table[i];
-
-		if (pid == node->csync.push.pid) {
-			linfo("CSYNC: push finished for %s", node->name);
-			node->csync.push.pid = 0;
-			asprintf(&name, "CSYNC: oconf push to %s node %s", node_type(node), node->name);
-			asprintf(&cmd_to_try, "mon oconf push %s", node->name);
-			break;
-		} else if (pid == node->csync.fetch.pid) {
-			linfo("CSYNC: fetch finished from %s", node->name);
-			node->csync.fetch.pid = 0;
-			asprintf(&name, "CSYNC: oconf fetch from %s node %s", node_type(node), node->name);
-			break;
-		}
-	}
-
-	if (WIFEXITED(status)) {
-		if (!WEXITSTATUS(status)) {
-			linfo("%s finished successfully", name);
-		} else {
-			lwarn("%s exited with return code %d", name, WEXITSTATUS(status));
-			if (cmd_to_try) {
-				lwarn("CSYNC: Try manually running '%s' (without quotes) as the monitor user", cmd_to_try);
-			}
-		}
-	} else {
-		if (WIFSIGNALED(status)) {
-			lerr("%s was terminated by signal %d. %s core dump was produced",
-			     name, WTERMSIG(status), WCOREDUMP(status) ? "A" : "No");
-		} else {
-			lerr("%s was shut down by an unknown source", name);
-		}
-	}
-
-	free(name);
-	free(cmd_to_try);
-}
-
-/*
- * Run a program, stashing the child pid in *pid.
- * Since it's not supposed to run all that often, we don't care a
- * whole lot about performance and lazily run all commands through
- * /bin/sh for argument handling
- */
-static void run_program(char *what, char *cmd, int *prog_id)
-{
-	char *args[4] = { "sh", "-c", cmd, NULL };
-	int pid;
-
-	ldebug("Executing %s command '%s'", what, cmd);
-	pid = fork();
-	if (!pid) {
-		/*
-		 * child runs the command. if execvp() returns, that means it
-		 * failed horribly and that we're basically screwed
-		 */
-		execv("/bin/sh", args);
-		lerr("execv() failed: %s", strerror(errno));
-		exit(1);
-	}
-	if (pid < 0) {
-		lerr("Skipping %s due to failed fork(): %s", what, strerror(errno));
-		return;
-	}
-	/*
-	 * everything went ok, so update prog_id if passed
-	 * and increment num_children
-	 */
-	if (prog_id)
-		*prog_id = pid;
-	num_children++;
-}
-
-
-/*
- * Compares *node's info struct and returns:
- * 0 if node's config is same as ours (we should do nothing)
- * > 0 if node's config is newer than ours (we should fetch)
- * < 0 if node's config is older than ours (we should push)
- *
- * If hashes don't match but config is exactly the same
- * age, we instead return:
- * > 0 if node started after us (we should fetch)
- * < 0 if node started before us (we should push)
- *
- * If all of the above are identical, we return the hash delta.
- * This should only happen rarely, but it will ensure that not
- * both sides try to fetch or push at the same time.
- */
-static int csync_config_cmp(merlin_node *node, int *was_error)
-{
-	int mtime_delta;
-	*was_error =0;
-
-	ldebug("CSYNC: %s: Comparing config", node->name);
-	if (!ipc.info.last_cfg_change) {
-		/*
-		 * if our module is inactive, we can't know anything so we
-		 * can't do anything, and we can't fetch the last config
-		 * change time, since it might be being changed as we speak.
-		 */
-		ldebug("CSYNC: %s: Our module is inactive, so can't check", node->name);
-		*was_error = 1;
-		return 0;
-	}
-
-	/*
-	 * All peers must have identical configuration
-	 */
-	if (node->type == MODE_PEER) {
-		int hash_delta;
-		hash_delta = memcmp(node->info.config_hash, ipc.info.config_hash, 20);
-		if (!hash_delta) {
-			ldebug("CSYNC: %s: hashes match. No sync required", node->name);
-			return 0;
-		}
-		*was_error = 1;
-	}
-
-	/* For non-peers, we simply move on from here. */
-	mtime_delta = node->info.last_cfg_change - ipc.info.last_cfg_change;
-	if (mtime_delta) {
-		ldebug("CSYNC: %s: mtime_delta (%lu - %lu): %d", node->name,
-			node->info.last_cfg_change, ipc.info.last_cfg_change, mtime_delta);
-		return mtime_delta;
-	}
-
-	/*
-	 * Error path. This node is a peer, but we have a hash mismatch
-	 * and matching mtimes. Unusual, to say the least. Either way,
-	 * we can't really do anything except warn about it and get
-	 * on with things. This will only happen when someone manages
-	 * to save the config exactly the same second on both nodes.
-	 */
-	lerr("CSYNC: %s: Can't determine confsync action", node->name);
-	lerr("CSYNC: %s: hash mismatch but mtime matches", node->name);
-	lerr("CSYNC: %s: User intervention required.", node->name);
-
-	*was_error = 1;
-	return 0;
-}
-
-/*
- * executed when a node comes online and reports itself as
- * being active. This is where we run the configuration sync
- * if any is configured
- *
- * Note that the 'push' and 'fetch' options in the configuration
- * are simply guidance names. One could configure them in reverse
- * if one wanted, or make them boil noodles for the IT staff or
- * paint a skateboard blue for all Merlin cares. It will just
- * assume that things work out just fine so long as the config
- * is (somewhat) in sync.
- */
-void csync_node_active(merlin_node *node)
-{
-	time_t now;
-	int val = 0, error = 0;
-	merlin_confsync *cs = NULL;
-	merlin_child *child = NULL;
-
-	ldebug("CSYNC: %s: Checking...", node->name);
-	/* bail early if we have no push/fetch configuration */
-	cs = &node->csync;
-	if (!cs->push.cmd && !cs->fetch.cmd) {
-		ldebug("CSYNC: %s: No config sync configured.", node->name);
-		node_disconnect(node, "Disconnecting from %s, as config can't be synced", node->name);
-		return;
-	}
-
-	val = csync_config_cmp(node, &error);
-	if (val || error)
-		node_disconnect(node, "Disconnecting from %s, as config is out of sync", node->name);
-
-	if (!val)
-		return;
-
-	if (cs == &csync && !(node->flags & MERLIN_NODE_CONNECT)) {
-		ldebug("CSYNC: %s node %s configured with 'connect = no'. Avoiding global push",
-			   node_type(node), node->name);
-		return;
-	}
-
-	if (node->type == MODE_MASTER) {
-		if (cs->fetch.cmd && strcmp(cs->fetch.cmd, "no")) {
-			child = &cs->fetch;
-			ldebug("CSYNC: We'll try to fetch");
-		} else {
-			ldebug("CSYNC: Refusing to run global sync to a master node");
-		}
-	} else if (node->type == MODE_POLLER) {
-		if (cs->push.cmd && strcmp(cs->push.cmd, "no")) {
-			child = &cs->push;
-			ldebug("CSYNC: We'll try to push");
-		} else {
-			ldebug("CSYNC: Should have pushed, but push not configured for %s", node->name);
-		}
-	} else {
-		if (val < 0) {
-			if (cs->push.cmd && strcmp(cs->push.cmd, "no")) {
-				child = &cs->push;
-				ldebug("CSYNC: We'll try to push");
-			} else {
-				ldebug("CSYNC: Should have pushed, but push not configured for %s", node->name);
-			}
-		} else if (val > 0) {
-			if (cs->fetch.cmd && strcmp(cs->fetch.cmd, "no")) {
-				child = &cs->fetch;
-				ldebug("CSYNC: We'll try to fetch");
-			} else {
-				ldebug("CSYNC: Should have fetched, but fetch not configured for %s", node->name);
-			}
-		}
-	}
-
-	if (!child) {
-		ldebug("CSYNC: No action required for %s", node->name);
-		return;
-	}
-
-	if (child->pid) {
-		ldebug("CSYNC: '%s' already running for %s, or globally", child->cmd, node->name);
-		return;
-	}
-
-	now = time(NULL);
-	if (node->csync_last_attempt >= now - 30) {
-		ldebug("CSYNC: Config sync attempted %lu seconds ago. Waiting at least %lu seconds",
-		       now - node->csync_last_attempt, 30 - (now - node->csync_last_attempt));
-		return;
-	}
-
-	node->csync_num_attempts++;
-	linfo("CSYNC: triggered against %s node %s; val: %d; command: [%s]",
-	      node_type(node), node->name, val, child->cmd);
-	node->csync_last_attempt = now;
-	run_program("csync", child->cmd, &child->pid);
-	if (child->pid > 0) {
-		ldebug("CSYNC: command has pid %d", child->pid);
-	} else {
-		child->pid = 0;
-	}
-}
-
 
 static int handle_ipc_event(merlin_event *pkt)
 {
@@ -571,23 +290,14 @@ static int handle_ipc_event(merlin_event *pkt)
 			return 0;
 
 		case CTRL_ACTIVE:
-			result = handle_ctrl_active(&ipc, pkt);
-			/*
-			 * both ESYNC_ENODES and ESYNC_ECONFTIME are fine from
-			 * IPC, but means we need to make sure all other nodes
-			 * are disconnected before continuing
-			 */
-			if (result == ESYNC_ENODES || result == ESYNC_ECONFTIME) {
-				unsigned int i;
-				result = 0;
-				for (i = 0; i < num_nodes; i++) {
-					node_disconnect(node_table[i], "Local config changed, node must reconnect with new config.");
-				}
-			} else if (result < 0) {
-				/* ipc is incompatible with us. weird */
+			result = node_compat_cmp(&ipc, pkt);
+			if (result) {
+				lerr("ipc is incompatible with us. Recent update?");
+				node_disconnect(&ipc, "Incompatible node");
 				return 0;
 			}
 			node_set_state(&ipc, STATE_CONNECTED, "Connected");
+			memcpy(&ipc.info, pkt->body, sizeof(ipc.info));
 			break;
 
 		case CTRL_INACTIVE:
@@ -709,7 +419,6 @@ static void polling_loop(void)
 {
 	for (;!merlind_sig;) {
 		uint i;
-		time_t now = time(NULL);
 
 		if (user_sig & (1 << SIGUSR1))
 			dump_daemon_nodes();
@@ -719,9 +428,6 @@ static void polling_loop(void)
 		 * spamming the logs is in log_event_count() in logging.c
 		 */
 		ipc_log_event_count();
-
-		/* reap any children that might have finished */
-		reap_child_process();
 
 		/* When the module is disconnected, we can't validate handshakes,
 		 * so any negotiation would need to be redone after the module
