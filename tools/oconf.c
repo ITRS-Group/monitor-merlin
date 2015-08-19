@@ -17,7 +17,8 @@ char *config_file = NULL;
 int main(int argc, char **argv)
 {
 	unsigned char hash[20];
-	int i, cmd = 0;
+	int cmd = 0;
+	unsigned int i;
 	char *base, *cmd_string = NULL;
 
 	base = strrchr(argv[0], '/');
@@ -35,7 +36,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	for (i = 1; i < argc; i++) {
+	for (i = 1; i < (unsigned int)argc; i++) {
 		char *arg = argv[i];
 		if (!prefixcmp(arg, "--nagios-cfg=")) {
 			config_file = &arg[strlen("--nagios-cfg=")];
@@ -71,7 +72,7 @@ int main(int argc, char **argv)
 	case CMD_FILES:
 		{
 			struct file_list **sorted_flist;
-			unsigned int num_files, i;
+			unsigned int num_files;
 
 			sorted_flist = get_sorted_oconf_files(&num_files);
 			if(!sorted_flist)

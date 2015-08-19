@@ -58,10 +58,7 @@ destroy_event(timed_event *event)
 	ck_assert(last_event == event);
 }
 
-merlin_node ipc;
-struct merlin_notify_stats merlin_notify_stats[9][2][2];
-struct host *merlin_recv_host = NULL;
-struct service *merlin_recv_service = NULL;
+merlin_node ipc = { .name = "ipc" };
 
 int ipc_is_connected(__attribute__((unused)) int msec) { return 0; }
 void ipc_init_struct(void) {}

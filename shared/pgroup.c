@@ -16,7 +16,7 @@ static unsigned int num_peer_groups;
 bitmap *poller_handled_hosts = NULL;
 bitmap *poller_handled_services = NULL;
 
-static void pgroup_reassign_checks()
+static void pgroup_reassign_checks(void)
 {
 	unsigned int i, x;
 
@@ -441,11 +441,11 @@ static int pgroup_map_objects(void)
 			merlin_node *node = pg->nodes[x];
 			char *buf = NULL;
 			if (p) {
-				asprintf(&buf, "%s, %s", node->name, p);
+				nm_asprintf(&buf, "%s, %s", node->name, p);
 				free(p);
 				p = buf;
 			} else {
-				asprintf(&p, "%s", node->name);
+				p = strdup(node->name);
 			}
 		}
 		linfo("  %d nodes          : %s", pg->total_nodes, p);

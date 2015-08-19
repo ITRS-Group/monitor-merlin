@@ -3,6 +3,7 @@
 #include "string_utils.h"
 #include "ipc.h"
 #include "sql.h"
+#include "configuration.h"
 #include <naemon/naemon.h>
 
 

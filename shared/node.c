@@ -156,12 +156,12 @@ linked_item *nodes_by_sel_id(int sel)
 	return selection_table[sel].nodes;
 }
 
-char *get_sel_name(int index)
+char *get_sel_name(int idx)
 {
-	if (index < 0 || index >= num_selections)
+	if (idx < 0 || idx >= num_selections)
 		return NULL;
 
-	return selection_table[index].name;
+	return selection_table[idx].name;
 }
 
 int get_sel_id(const char *name)
@@ -683,12 +683,15 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 
 	if (!node->binlog) {
 		char *path = NULL;
-		int ret;
 
-		asprintf(&path, "%s/%s.%s.binlog",
-				 binlog_dir ? binlog_dir : BINLOGDIR,
-				 is_module ? "module" : "daemon",
-				 node->name);
+		if (asprintf(&path, "%s/%s.%s.binlog",
+		             binlog_dir ? binlog_dir : BINLOGDIR,
+		             is_module ? "module" : "daemon",
+		             node->name) < 15)
+		{
+			lerr("ERROR: Failed to create on-disk binlog: asprintf() failed");
+			return -1;
+		}
 		linfo("Creating binary backlog for %s. On-disk location: %s",
 			  node->name, path);
 

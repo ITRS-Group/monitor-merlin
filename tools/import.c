@@ -956,7 +956,7 @@ int main(int argc, char **argv)
 		}
 		if (!prefixcmp(arg, "--debug") || !prefixcmp(arg, "-d")) {
 			do_progress = 0;
-			debug_level++;
+			logs_debug_level++;
 			continue;
 		}
 		if (!prefixcmp(arg, "--truncate-db")) {
@@ -1203,7 +1203,7 @@ int main(int argc, char **argv)
 		sql_close();
 	}
 
-	if (warnings && debug_level)
+	if (warnings && logs_debug_level)
 		fprintf(stderr, "Total warnings: %d\n", warnings);
 
 	print_unhandled_events();

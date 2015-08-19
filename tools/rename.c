@@ -16,13 +16,13 @@
 #include <malloc.h>
 #endif
 
-typedef struct renames {
+struct renames {
 	int id;
 	char *from_host_name;
 	char *from_service_description;
 	char *to_host_name;
 	char *to_service_description;
-} renames;
+};
 
 static FILE *new_file;
 
@@ -34,7 +34,7 @@ static char **to_name;
 	(!memcmp(str - strlen(val), val, strlen(val)))
 
 static int
-rename_db(renames *renames)
+rename_db(struct renames *renames)
 {
 	int i;
 	for (i = 0; i < rename_len; i++) {
@@ -137,7 +137,7 @@ parse_line(char *str, unsigned int len)
 }
 
 static int
-rename_log(__attribute__((unused)) renames *renames, char *log_dir, char *log_file)
+rename_log(__attribute__((unused)) struct renames *renames, char *log_dir, char *log_file)
 {
 	int i;
 	if (log_dir)
@@ -158,11 +158,11 @@ rename_log(__attribute__((unused)) renames *renames, char *log_dir, char *log_fi
 }
 
 static int
-find_renames(renames **rename_ptr)
+find_renames(struct renames **rename_ptr)
 {
 	int i;
 	db_wrap_result *result;
-	renames *renames;
+	struct renames *renames;
 
 	rename_len = 0;
 
@@ -229,7 +229,7 @@ find_renames(renames **rename_ptr)
 }
 
 static int
-clear_renames(renames *renames)
+clear_renames(struct renames *renames)
 {
 	int i;
 	char *buf, *tmp;
@@ -284,7 +284,7 @@ main(int argc, char **argv)
 	int save_renames = 0;
 	char *log_dir = NULL, *log_file = NULL;
 	char *db_type = NULL, *db_name = NULL, *db_user = NULL, *db_pass = NULL, *db_host = NULL;
-	renames *renames = NULL;
+	struct renames *renames = NULL;
 	struct timeval start, stop;
 
 	/* first drop to a more appropriate user */

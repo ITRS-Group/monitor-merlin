@@ -13,7 +13,7 @@ char **strv = NULL;
 int num_nfile = 0;
 static int nfile_alloc = 0;
 struct naglog_file *nfile;
-int debug_level = 0;
+int logs_debug_level = 0;
 struct naglog_file *cur_file; /* the file we're currently importing */
 uint line_no = 0;
 uint num_unhandled = 0;
@@ -69,7 +69,7 @@ void pdebug(int lvl, const char *fmt, ...)
 {
 	va_list ap;
 
-	if (debug_level < lvl)
+	if (logs_debug_level < lvl)
 		return;
 
 	va_start(ap, fmt);
@@ -85,7 +85,7 @@ void warn(const char *fmt, ...)
 
 	warnings++;
 
-	if (!debug_level)
+	if (!logs_debug_level)
 		return;
 
 	printf("WARNING: ");

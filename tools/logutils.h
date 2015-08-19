@@ -56,7 +56,7 @@ struct string_code {
 	int code;
 };
 
-extern int debug_level;
+extern int logs_debug_level;
 extern int num_nfile;
 extern struct naglog_file *cur_file; /* the file we're currently importing */
 extern uint line_no;

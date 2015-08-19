@@ -27,7 +27,6 @@ static timed_event **host_expiry_map, **service_expiry_map;
 struct dlist_entry *expired_events;
 static struct dlist_entry **expired_hosts;
 static struct dlist_entry **expired_services;
-extern iobroker_set *nagios_iobs;
 
 struct host *merlin_recv_host;
 struct service *merlin_recv_service;
@@ -38,10 +37,8 @@ struct service *merlin_recv_service;
  * member of the Nagios core team has its benefits. Mwhahahahaha
  */
 extern int xodtemplate_grab_config_info(char *main_config_file);
-extern comment *comment_list;
 
 /** code start **/
-extern hostgroup *hostgroup_list;
 
 /*
  * the sending node, in case it triggers more
@@ -330,7 +327,6 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 {
 	const char *ctrl;
 	int prev_state, ret;
-	merlin_nodeinfo *info;
 
 	if (!pkt) {
 		lerr("handle_control() called with NULL packet");
@@ -363,7 +359,6 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 			node_disconnect(node, "Incompatible protocol");
 			return;
 		}
-		info = (merlin_nodeinfo *)pkt->body;
 
 		if ((ret = node_oconf_cmp(node, pkt))) {
 			csync_node_active(node, ret);
@@ -407,7 +402,7 @@ static int handle_checkresult(struct check_result *cr, monitored_object_state *s
 	 * is insane and escapes it directly when it parses it.
 	 */
 	if (st->perf_data) {
-		asprintf(&cr->output, "%s|%s", st->plugin_output, st->perf_data);
+		nm_asprintf(&cr->output, "%s|%s", st->plugin_output, st->perf_data);
 	} else {
 		cr->output = strdup(st->plugin_output);
 	}
@@ -1133,8 +1128,6 @@ static int read_config(char *cfg_file)
 NEB_API_VERSION(CURRENT_NEB_API_VERSION);
 
 void *neb_handle = NULL;
-
-extern char *config_file;
 
 /*
  * we send this every 15 seconds, just in case our nodes forget

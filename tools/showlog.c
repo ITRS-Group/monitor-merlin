@@ -865,7 +865,7 @@ int main(int argc, char **argv)
 			continue;
 		}
 		if (!strcmp(arg, "--debug") || !strcmp(arg, "-d")) {
-			debug_level++;
+			logs_debug_level++;
 			continue;
 		}
 		if (!strcmp(arg, "--help")) {
@@ -1050,7 +1050,7 @@ int main(int argc, char **argv)
 	if (!hosts_are_interesting && services_are_interesting)
 		event_filter &= ~(EVT_HOST);
 
-	if (debug_level)
+	if (logs_debug_level)
 		print_interesting_objects();
 
 	/* fallback for op5 systems */
@@ -1155,7 +1155,7 @@ int main(int argc, char **argv)
 				   ((float)ltime_skews / (float)tot_lines) * 100);
 		}
 
-		if (warnings && debug_level)
+		if (warnings && logs_debug_level)
 			fprintf(stderr, "Total warnings: %d\n", warnings);
 
 		print_unhandled_events();
