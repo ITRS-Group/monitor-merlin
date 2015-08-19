@@ -6,11 +6,15 @@
 	if ((pred)) { t_pass("%s: %s", __FUNCTION__, msg); } else { t_fail("%s: %s", __FUNCTION__, msg); } \
 	} while (0)
 
-void test_unescape_newlines() {
+void test_unescape_newlines(void)
+{
 	char *src = "foo\nbar\\n\\baz\\n";
 	char *expected = "foo\nbar\n\\baz\n";
 	char *dest = (char *)malloc(strlen(src));
+	char in[] = "abc\\n";
+	char out[16] = {0,};
 	size_t len = 0, expected_size = 0;
+
 	len = unescape_newlines(dest, src, strlen(src) + 1);
 	T_ASSERT(0 == strcmp(expected, dest), "newlines unescaped as expected");
 	expected_size = strlen(expected) + 1;
@@ -39,8 +43,6 @@ void test_unescape_newlines() {
 	T_ASSERT(0 == memcmp(expected, dest, len), "length argument is respected");
 	free(dest);
 
-	char in[] = "abc\\n";
-	char out[16] = {0,};
 	memset(out, 0, 16);
 	len = unescape_newlines(out, in, 4);
 	T_ASSERT(4 == len, "returned length is correct");

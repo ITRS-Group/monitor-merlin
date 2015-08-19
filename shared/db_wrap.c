@@ -136,10 +136,10 @@ int db_wrap_result_string_copy_ndx(db_wrap_result *res, unsigned int ndx, char *
 
 int db_wrap_driver_init(char const *driver, db_wrap_conn_params const *param, db_wrap **tgt)
 {
-	if (! driver || ! param || !tgt) { return DB_WRAP_E_BAD_ARG; }
-#ifdef DB_WRAP_CONFIG_ENABLE_LIBDBI
 	char const *prefix = NULL;
 	size_t preLen = 0;
+	if (! driver || ! param || !tgt) { return DB_WRAP_E_BAD_ARG; }
+#ifdef DB_WRAP_CONFIG_ENABLE_LIBDBI
 	prefix = "dbi:";
 	preLen = 4;
 	if (0 == strncmp(prefix, driver, preLen)) {

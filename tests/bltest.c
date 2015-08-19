@@ -742,7 +742,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char **argv)
 		}
 
 		if (!test_binlog(t, bl)) {
-			t_pass(t->name);
+			t_pass("%s", t->name);
 		} else {
 			fail(t->name, t);
 		}

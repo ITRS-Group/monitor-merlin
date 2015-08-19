@@ -19,12 +19,14 @@ int auth_service_ok(const char *host, const char *svc)
 
 int auth_read_input(FILE *input)
 {
+	char *objectstr, *alloced;
+	int tot_read = 0, len = 0;
+	char *hostend, *svcend;
+
 	auth_hosts = g_hash_table_new_full(g_str_hash, g_str_equal, free, NULL);
 	auth_services = g_hash_table_new_full(nm_service_hash, nm_service_equal, (GDestroyNotify) nm_service_key_destroy, NULL);
 	if (!input)
 		return 0;
-	char *objectstr, *alloced;
-	int tot_read = 0, len = 0;
 	alloced = objectstr = malloc(blocksize);
 	while ((len = fread(objectstr, 1, blocksize - tot_read - 1, input)) > 0) {
 		tot_read += len;
@@ -37,7 +39,6 @@ int auth_read_input(FILE *input)
 	}
 	alloced[tot_read] = 0;
 	objectstr = alloced;
-	char *hostend;
 	while (1) {
 		char delim;
 		hostend = strpbrk(objectstr, "\n;");
@@ -55,7 +56,6 @@ int auth_read_input(FILE *input)
 	if (!hostend) {
 		goto error_out;
 	}
-	char *svcend;
 	while (1) {
 		char delim;
 		hostend = strpbrk(objectstr, "\n;");

@@ -43,10 +43,21 @@ static void show_errinfo_impl(db_wrap *wr, int rc, unsigned int line)
 
 static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 {
-	MARKER("Running generic tests: [%s]\n", driver);
-
 	const bool isMysql = (NULL != strstr(driver, "mysql"));
 	const bool isSqlite = (NULL != strstr(driver, "sqlite"));
+	char const *sql = NULL;
+	size_t i;
+	const size_t count = 10;
+	char const *strVal = "hi, world";
+	int rc;
+	db_wrap_result *res = NULL;
+	size_t gotCount = 0;
+	bool doCountTest;
+	int32_t intGet = -1;
+	const int32_t intExpect = count;
+	int64_t int64Get = -1;
+
+	MARKER("Running generic tests: [%s]\n", driver);
 
 	if (isSqlite == isMysql) {
 		// THIS IS ONLY HERE TO AVOID 'UNUSED VARIABLE' WARNINGS!
@@ -54,7 +65,6 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 
 #define TABLE_DEF                                               \
 	"table t(vint integer, vdbl float(12), vstr varchar(32))"
-	char const *sql = NULL;
 	if (ThisApp.useTempTables) {
 		sql = ("create temporary " TABLE_DEF);
 	} else {
@@ -63,28 +73,11 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 	}
 #undef TABLE_DEF
 	assert(NULL != sql);
-	db_wrap_result *res = NULL;
-	int rc;
 
-#if 0
-	rc = wr->api->query_result(wr, sql, strlen(sql), &res);
-	show_errinfo(wr, rc);
-	assert(0 == rc);
-	assert(NULL != res);
-	//MARKER("dbi_wrap_result@%p, dbi_result@%p\n",(void const *)res, res->impl.data);
-	rc = res->api->finalize(res);
-	show_errinfo(wr, rc);
-	assert(0 == rc);
-	res = NULL;
-#else
 	rc = db_wrap_query_exec(wr, sql, strlen(sql));
 	show_errinfo(wr, rc);
 	assert(0 == rc);
-#endif
 
-	size_t i;
-	const size_t count = 10;
-	char const *strVal = "hi, world";
 	for (i = 1; i <= count; ++i) {
 		char *q = NULL;
 		rc = asprintf(&q, "insert into t (vint, vdbl, vstr) values(%lu,%2.1lf,'%s')",
@@ -94,7 +87,6 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 		res = NULL;
 		rc = wr->api->query_result(wr, q, strlen(q), &res);
 		show_errinfo(wr, rc);
-		//MARKER("Query rc=[%d]  [%s]\n",rc, q);
 		free(q);
 		assert(0 == rc);
 		assert(NULL != res);
@@ -114,7 +106,6 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 	//assert(res->impl.data == db_wrap_dbi_result(res));
 
 	/* ensure that stepping acts as expected. */
-	size_t gotCount = 0;
 	while (0 == (rc = res->api->step(res))) {
 		++gotCount;
 		if (1 == gotCount) {
@@ -141,12 +132,12 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 	res->api->finalize(res);
 
 	{
+		size_t rowCount = 0;
 		res = NULL;
 		rc = wr->api->query_result(wr, sql, strlen(sql), &res);
 		assert(0 == rc);
 		assert(NULL != res);
 		while (0 == res->api->step(res)) {}
-		size_t rowCount = 0;
 		res->api->num_rows(res, &rowCount);
 		res->api->finalize(res);
 		MARKER("Row count=%u, expecting %u. sql=[%s]\n", (unsigned int)rowCount, (unsigned int)count, sql);
@@ -160,10 +151,12 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 	*/
 
 
-	const bool doCountTest = (NULL == strstr(driver, "sqlite"));
+	doCountTest = (NULL == strstr(driver, "sqlite"));
 	if (!doCountTest) {
 		MARKER("WARNING: skipping count(*) test because the libdbi sqlite driver apparently doesn't handle the numeric type properly!\n");
 	} else {
+		typedef int64_t CountType;
+		CountType ival = -1;
 		sql = "select count(*) as C from t";
 		res = NULL;
 		rc = wr->api->query_result(wr, sql, strlen(sql), &res);
@@ -171,8 +164,6 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 		assert(NULL != res);
 		rc = res->api->step(res);
 		assert(0 == rc);
-		typedef int64_t CountType;
-		CountType ival = -1;
 		rc =
 		    //res->api->get_int32_ndx(res, 0, &ival)
 		    res->api->get_int64_ndx(res, 0, &ival)
@@ -227,9 +218,6 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 	assert(0 == rc);
 	assert(NULL != res);
 
-	int32_t intGet = -1;
-	const int32_t intExpect = count;
-
 #if 1
 #if 0
 	dbi_result dbires = db_wrap_dbi_result(res);
@@ -256,7 +244,6 @@ static void test_dbwrap_generic(char const *driver, db_wrap *wr)
 	assert(0 == rc);
 	assert(intGet == intExpect);
 
-	int64_t int64Get = -1;
 	rc = db_wrap_query_int64(wr, sql, strlen(sql), &int64Get);
 	assert(0 == rc);
 	assert(intGet == (int)int64Get);
@@ -271,15 +258,16 @@ static void test_mysql_1(void)
 #else
 	db_wrap *wr = NULL;
 	int rc = db_wrap_driver_init("dbi:mysql", &ConnParams.mysql, &wr);
+	char *sqlCP = NULL;
+	char const *sql = "hi, 'world'";
+	size_t const sz = strlen(sql);
+	size_t const sz2 = wr->api->sql_quote(wr, sql, sz, &sqlCP);
+
 	assert(0 == rc);
 	assert(wr);
 	rc = wr->api->connect(wr);
 	assert(0 == rc);
 
-	char *sqlCP = NULL;
-	char const *sql = "hi, 'world'";
-	size_t const sz = strlen(sql);
-	size_t const sz2 = wr->api->sql_quote(wr, sql, sz, &sqlCP);
 	assert(0 != sz2);
 	assert(sz != sz2);
 	/* ACHTUNG: what libdbi does here with the escaping is NOT SQL STANDARD. */
@@ -301,23 +289,24 @@ static void test_sqlite_1(void)
 #else
 	db_wrap *wr = NULL;
 	int rc = db_wrap_driver_init("dbi:sqlite3", &ConnParams.sqlite3, &wr);
-	assert(0 == rc);
-	assert(wr);
 	char const *dbdir = getenv("PWD");
-	rc = wr->api->option_set(wr, "sqlite3_dbdir", dbdir);
-	assert(0 == rc);
-	rc = wr->api->connect(wr);
-	assert(0 == rc);
 	char const *errmsg = NULL;
 	int dbErrno = 0;
-	rc = wr->api->error_info(wr, &errmsg, NULL, &dbErrno);
-	assert(0 == rc);
-	assert(NULL == errmsg);
-
 	char *sqlCP = NULL;
 	char const *sql = "hi, 'world'";
 	size_t const sz = strlen(sql);
 	size_t const sz2 = wr->api->sql_quote(wr, sql, sz, &sqlCP);
+
+	assert(0 == rc);
+	assert(wr);
+	rc = wr->api->option_set(wr, "sqlite3_dbdir", dbdir);
+	assert(0 == rc);
+	rc = wr->api->connect(wr);
+	assert(0 == rc);
+	rc = wr->api->error_info(wr, &errmsg, NULL, &dbErrno);
+	assert(0 == rc);
+	assert(NULL == errmsg);
+
 	assert(0 != sz2);
 	assert(sz != sz2);
 	assert(0 == strcmp("'hi, ''world'''", sqlCP));

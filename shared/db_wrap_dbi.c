@@ -95,14 +95,15 @@ static void dbiw_atexit(void)
 static char dbiw_dbi_init(void)
 {
 	static char doneit = 0;
-	if (doneit) { return 1; }
-	doneit = 1;
-	const int rc = dbi_initialize(NULL);
 
-	if (0 >= rc) {
+	if (doneit)
+		return 1;
+
+	if (dbi_initialize(NULL) <= 0) {
 		lerr("Could not initialize any DBI drivers!");
 		return 0;
 	}
+	doneit = 1;
 	atexit(dbiw_atexit);
 	return 1;
 }
@@ -163,15 +164,17 @@ static db_wrap_result *dbiw_res_alloc(void)
 
 static int dbiw_query_result(db_wrap *self, char const *sql, size_t len, db_wrap_result **tgt)
 {
+	dbi_result dbir;
+	db_wrap_result *wres;
 	/*
 	  This impl does not use the len param, but it's in the interface because i
 	  expect some other wrappers to need it.
 	*/
 	DB_DECL(DB_WRAP_E_BAD_ARG);
 	if (! sql || !*sql || !len || !tgt) { return DB_WRAP_E_BAD_ARG; }
-	dbi_result dbir = dbi_conn_query(conn, sql);
+	dbir = dbi_conn_query(conn, sql);
 	if (! dbir) { return DB_WRAP_E_CHECK_DB_ERROR; }
-	db_wrap_result *wres = dbiw_res_alloc();
+	wres = dbiw_res_alloc();
 	if (! wres) {
 		dbi_result_free(dbir);
 		return DB_WRAP_E_ALLOC_ERROR;
@@ -183,10 +186,11 @@ static int dbiw_query_result(db_wrap *self, char const *sql, size_t len, db_wrap
 
 static int dbiw_error_info(db_wrap *self, char const **dest, size_t *len, int *errCode)
 {
-	if (! self) { return DB_WRAP_E_BAD_ARG; }
-	DB_DECL(DB_WRAP_E_BAD_ARG);
+	int code;
 	char const *msg = NULL;
-	int const code = dbi_conn_error(conn, &msg)
+	DB_DECL(DB_WRAP_E_BAD_ARG);
+	if (! self) { return DB_WRAP_E_BAD_ARG; }
+	code = dbi_conn_error(conn, &msg)
 	                 /* reminder: dbi_conn_error() returns the error code number
 	                    associated with the fetched string. TODO: consider how we
 	                    can represent such a dual-use in this API. The native DB
@@ -207,6 +211,7 @@ static int dbiw_error_info(db_wrap *self, char const **dest, size_t *len, int *e
 
 static int dbiw_option_set(db_wrap *self, char const *key, void const *val)
 {
+	int rc = DB_WRAP_E_UNSUPPORTED;
 	/**
 	   Maintenance note:
 
@@ -214,7 +219,6 @@ static int dbiw_option_set(db_wrap *self, char const *key, void const *val)
 	   passing off the options to the proper set_option() variant.
 	 */
 	DB_DECL(DB_WRAP_E_BAD_ARG);
-	int rc = DB_WRAP_E_UNSUPPORTED;
 #define TRYSTR(K) if (0==strcmp(K,key)) {                \
 		rc = dbi_conn_set_option(conn, key, (char const *)val); }
 #define TRYINT(K) if (0==strcmp(K,key)) {                \
@@ -237,10 +241,10 @@ static int dbiw_option_set(db_wrap *self, char const *key, void const *val)
 
 static int dbiw_option_get(db_wrap *self, char const *key, void *val)
 {
-	/* See maintenance notes in dbiw_option_set(). */
-	DB_DECL(DB_WRAP_E_BAD_ARG);
 	char const *rcC = NULL;
 	int rcI = 0;
+	/* See maintenance notes in dbiw_option_set(). */
+	DB_DECL(DB_WRAP_E_BAD_ARG);
 #define TRYSTR(K) if (0==strcmp(K,key)) {                \
 		rcC = dbi_conn_get_option(conn, key); }
 #define TRYNUM(K) if (0==strcmp(K,key)) {                \
@@ -330,14 +334,15 @@ static int dbiw_res_step(db_wrap_result *self)
 
 static int dbiw_res_get_int32_ndx(db_wrap_result *self, unsigned int ndx, int32_t *val)
 {
+	unsigned int const realIdx = ndx + 1;
+	unsigned int a;
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) { return DB_WRAP_E_BAD_ARG; }
-	unsigned int const realIdx = ndx + 1;
 #if 1
 	/**
 	   See this thread: http://www.mail-archive.com/libdbi-users@lists.sourceforge.net/msg00126.html
 	*/
-	unsigned int const a = dbi_result_get_field_attrib_idx(dbires, realIdx,
+	a = dbi_result_get_field_attrib_idx(dbires, realIdx,
 	                       0/*DBI_INTEGER_UNSIGNED*/,
 	                       0xff/*DBI_INTEGER_SIZE8*/)
 	                       /* i can't find one bit of useful docs/examples for this function, so i'm kind of
@@ -402,13 +407,14 @@ static int dbiw_res_get_int32_ndx(db_wrap_result *self, unsigned int ndx, int32_
 
 static int dbiw_res_get_int64_ndx(db_wrap_result *self, unsigned int ndx, int64_t *val)
 {
+	unsigned int const realIdx = ndx + 1;
+	unsigned int a;
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) { return DB_WRAP_E_BAD_ARG; }
-	unsigned int const realIdx = ndx + 1;
 	/**
 	   See this thread: http://www.mail-archive.com/libdbi-users@lists.sourceforge.net/msg00126.html
 	*/
-	unsigned int const a = dbi_result_get_field_attrib_idx(dbires, realIdx,
+	a = dbi_result_get_field_attrib_idx(dbires, realIdx,
 	                       0,
 	                       0xff)
 	                       /* i can't find one bit of useful docs/examples for this function, so i'm kind of
@@ -453,11 +459,12 @@ static int dbiw_res_get_int64_ndx(db_wrap_result *self, unsigned int ndx, int64_
 
 static int dbiw_res_get_double_ndx(db_wrap_result *self, unsigned int ndx, double *val)
 {
+	unsigned int const realIdx = ndx + 1;
+	unsigned int a;
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) { return DB_WRAP_E_BAD_ARG; }
-	unsigned int const realIdx = ndx + 1;
 	*val = 0.0;
-	unsigned int const a = dbi_result_get_field_attrib_idx(dbires, realIdx, 0, 0xff);
+	a = dbi_result_get_field_attrib_idx(dbires, realIdx, 0, 0xff);
 	/* i can't find one bit of useful docs/examples for this function, so i'm kind of
 	   guessing here. */
 	;
@@ -473,9 +480,10 @@ static int dbiw_res_get_double_ndx(db_wrap_result *self, unsigned int ndx, doubl
 
 static int dbiw_res_get_string_ndx(db_wrap_result *self, unsigned int ndx, char const **val, size_t *len)
 {
+	const char *str;
 	RES_DECL(DB_WRAP_E_BAD_ARG);
 	if (! val) { return DB_WRAP_E_BAD_ARG; }
-	char const *str = dbi_result_get_string_idx(dbires, ndx + 1);
+	str = dbi_result_get_string_idx(dbires, ndx + 1);
 	if (len) {
 		*len = (str && *str) ? strlen(str) : 0;
 	}
@@ -518,9 +526,10 @@ static int dbiw_res_finalize(db_wrap_result *self)
 
 int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const *param, db_wrap **tgt)
 {
+	db_wrap *wr;
 	if (! conn || !param || !tgt) { return DB_WRAP_E_BAD_ARG; }
 	INIT_DBI(-1);
-	db_wrap *wr = (db_wrap *)malloc(sizeof(db_wrap));
+	wr = (db_wrap *)malloc(sizeof(db_wrap));
 	if (! wr) { return DB_WRAP_E_ALLOC_ERROR; }
 	*wr = db_wrap_libdbi;
 	wr->impl.data = conn;
@@ -552,16 +561,20 @@ int db_wrap_dbi_init(dbi_conn conn, db_wrap_conn_params const *param, db_wrap **
 
 int db_wrap_dbi_init2(char const *driver, db_wrap_conn_params const *param, db_wrap **tgt)
 {
+	dbi_conn conn;
+	db_wrap *db = NULL;
+	int rc;
+
 	INIT_DBI(-1);
 	if (! driver || !*driver || !tgt) {
 		return DB_WRAP_E_BAD_ARG;
 	}
-	dbi_conn conn = dbi_conn_new(driver);
+	conn = dbi_conn_new(driver);
 	if (! conn) {
 		return DB_WRAP_E_UNKNOWN_ERROR;
 	}
-	db_wrap *db = NULL;
-	int rc = db_wrap_dbi_init(conn, param, &db);
+
+	rc = db_wrap_dbi_init(conn, param, &db);
 	if (rc) {
 		dbi_conn_close(conn);
 		return rc;

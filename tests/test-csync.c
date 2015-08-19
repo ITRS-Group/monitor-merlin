@@ -4,6 +4,7 @@
 #include "logging.h"
 #include "test_utils.h"
 #include "configuration.h"
+#include "script-helpers.h"
 
 int main(__attribute__((unused)) int argc, __attribute__((unused)) char **argv)
 {

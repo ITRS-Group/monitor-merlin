@@ -22,7 +22,7 @@ static nebstruct_comment_data *block_comment;
 static int check_dupes;
 static merlin_event last_pkt;
 static unsigned long long dupes, dupe_bytes;
-static uint32_t event_mask;
+static uint32_t ev_mask;
 
 struct merlin_check_stats {
 	unsigned long long poller, peer, self, orphaned;
@@ -968,7 +968,7 @@ static struct callback_struct {
 int merlin_hooks_init(uint32_t mask)
 {
 	uint i;
-	event_mask = mask;
+	ev_mask = mask;
 
 	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
 		struct callback_struct *cb = &callback_table[i];
@@ -1004,7 +1004,7 @@ int merlin_hooks_deinit(void)
 		if (!num_nodes && cb->network_only)
 			continue;
 
-		if (event_mask & (1 << cb->type))
+		if (ev_mask & (1 << cb->type))
 			neb_deregister_callback(cb->type, merlin_mod_hook);
 	}
 

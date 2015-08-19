@@ -6,8 +6,9 @@
 START_TEST (hosts_services)
 {
 	int pipes[2];
-	pipe2(pipes, O_NONBLOCK);
 	char *message = "host1;host2;host3\nhost1;service1;host4;service2";
+
+	pipe2(pipes, O_NONBLOCK);
 	write(pipes[1], message, strlen(message));
 	if (_i == 0)
 		write(pipes[1], "\n", 1);
@@ -29,8 +30,9 @@ END_TEST
 START_TEST (hosts_only)
 {
 	int pipes[2];
-	pipe2(pipes, O_NONBLOCK);
 	char *message = "host1;host2;host3";
+
+	pipe2(pipes, O_NONBLOCK);
 	write(pipes[1], message, strlen(message));
 	if (_i == 0)
 		write(pipes[1], "\n", 1);
@@ -46,8 +48,8 @@ END_TEST
 START_TEST (odd_services)
 {
 	int pipes[2];
-	pipe2(pipes, O_NONBLOCK);
 	char *message = "host1\nhost2";
+	pipe2(pipes, O_NONBLOCK);
 	write(pipes[1], message, strlen(message));
 	if (_i == 0)
 		write(pipes[1], "\n", 1);
@@ -61,10 +63,11 @@ END_TEST
 
 START_TEST (multiblock)
 {
-	blocksize = 10; // bytes to read at a time
 	int pipes[2];
-	pipe2(pipes, O_NONBLOCK);
 	char *message = "host1;host2\nhost3;service1;host4;service2";
+
+	blocksize = 10; // bytes to read at a time
+	pipe2(pipes, O_NONBLOCK);
 	write(pipes[1], message, strlen(message));
 	auth_read_input(fdopen(pipes[0], "r"));
 	ck_assert_int_eq(auth_host_ok("host1"), 1);
@@ -79,8 +82,9 @@ END_TEST
 START_TEST (too_many_lines)
 {
 	int pipes[2];
-	pipe2(pipes, O_NONBLOCK);
 	char *message = "host1\nhost2;service1\nlots;of;other;data";
+
+	pipe2(pipes, O_NONBLOCK);
 	write(pipes[1], message, strlen(message));
 	auth_read_input(fdopen(pipes[0], "r"));
 	ck_assert_int_eq(auth_host_ok("host1"), 1);
@@ -93,8 +97,9 @@ END_TEST
 START_TEST (empty_params)
 {
 	int pipes[2];
-	pipe2(pipes, O_NONBLOCK);
 	char *message = "host1;;;;host2\nhost3;service1;;;;;;;host4;service2";
+
+	pipe2(pipes, O_NONBLOCK);
 	write(pipes[1], message, strlen(message));
 	auth_read_input(fdopen(pipes[0], "r"));
 	ck_assert_int_eq(auth_host_ok("host1"), 1);
@@ -107,19 +112,22 @@ END_TEST
 START_TEST (long_parameter)
 {
 	int pipes[2];
+	pid_t pid;
+
 	pipe2(pipes, 0);
-	pid_t pid = fork();
+	pid = fork();
 	if (pid < 0) {
 		ck_abort_msg("Failed to fork");
 	}
 	else if (pid == 0) {
+		char *message = malloc(6 * 10000 + 11 * 1000000);
+		char *ptr = message;
+		int i;
+
 		close(pipes[0]);
 		// hosts are h[0-9]{4}, meaning 6 bytes (incl ;) each meaning 10000 combinations
 		// services are i[0-9]{4};s[0-9]{2}, meaning 10 bytes each meaning 1 000 000 combinations
 		// in total, many megabytes of data, which should overflow any in-kernel buffers nicely.
-		char *message = malloc(6 * 10000 + 11 * 1000000);
-		char *ptr = message;
-		int i;
 		for (i = 0; i < 10000; i++, ptr += 6) {
 			sprintf(ptr, "h%04d;", i);
 		}
@@ -155,34 +163,38 @@ static char *
 run_with(char *args[], char *input_str)
 {
 	int output[2];
-	pipe(output);
 	int input[2];
+	pid_t pid;
+	char *output_str = calloc(1, 6000);
+	size_t len;
+	int status;
+
+	pipe(output);
 	pipe(input);
-	pid_t pid = fork();
+	pid = fork();
 	if (pid < 0) {
 		ck_abort_msg("Couldn't fork to run command");
 	}
 	else if (pid == 0) {
+		char *the_environ[] = { NULL };
+
 		close(output[0]);
 		close(input[1]);
 		dup2(output[1], STDOUT_FILENO);
 		dup2(output[1], STDERR_FILENO);
 		dup2(input[0], STDIN_FILENO);
-		char *the_environ[] = { NULL };
 		args[0] = "./showlog";
 		execve("./showlog", args, the_environ);
 		ck_abort_msg("Execve failed. This is bad.");
 	}
 
-	char *output_str = calloc(1, 6000);
 	close(output[1]);
 	close(input[0]);
 	if (input_str != NULL)
 		write(input[1], input_str, strlen(input_str));
 	close(input[1]);
-	int status;
 	waitpid(pid, &status, 0);
-	size_t len = read(output[0], output_str, 6000);
+	len = read(output[0], output_str, 6000);
 	output_str[len] = '\0';
 	return output_str;
 }
@@ -192,8 +204,8 @@ START_TEST (return_input)
 	int fd = open("tests/showlog_test.log", O_RDONLY);
 	char expected[6000];
 	ssize_t len = read(fd, expected, 6000);
-	expected[len] = 0;
-	close(fd);
+	int diff;
+	char *actual;
 	char *args[] = {
 		NULL,
 		"tests/showlog_test.log",
@@ -204,8 +216,10 @@ START_TEST (return_input)
 		"--time-format=raw",
 		NULL
 	};
-	char *actual = run_with(args, NULL);
-	int diff;
+
+	expected[len] = 0;
+	close(fd);
+	actual = run_with(args, NULL);
 	if ((diff = strcmp(expected, actual))) {
 		ck_abort_msg("showlog didn't return the input. It looked like %s", actual);
 	}
@@ -218,8 +232,8 @@ START_TEST (monitor_only)
 	int fd = open("tests/showlog_test_monitoronly.log", O_RDONLY);
 	char expected[6000];
 	ssize_t len = read(fd, expected, 6000);
-	expected[len] = 0;
-	close(fd);
+	int diff;
+	char *actual;
 	char *args[] = {
 		NULL,
 		"tests/showlog_test.log",
@@ -233,8 +247,10 @@ START_TEST (monitor_only)
 		"--hide-command",
 		NULL
 	};
-	char *actual = run_with(args, "monitor");
-	int diff;
+
+	expected[len] = 0;
+	close(fd);
+	actual = run_with(args, "monitor");
 	if ((diff = strcmp(expected, actual))) {
 		ck_abort_msg("showlog didn't return the input. It looked like %s", actual);
 	}
@@ -247,8 +263,6 @@ START_TEST (monitor_and_not_monitor1_svc)
 	int fd = open("tests/showlog_test_monitor_and_not_monitor1_svc.log", O_RDONLY);
 	char expected[6000];
 	ssize_t len = read(fd, expected, 6000);
-	expected[len] = 0;
-	close(fd);
 	char *args[] = {
 		NULL,
 		"tests/showlog_test.log",
@@ -262,8 +276,12 @@ START_TEST (monitor_and_not_monitor1_svc)
 		"--hide-command",
 		NULL
 	};
-	char *actual = run_with(args, "monitor\nnot-monitor1;Cron process");
+	char *actual;
 	int diff;
+
+	expected[len] = 0;
+	close(fd);
+	actual = run_with(args, "monitor\nnot-monitor1;Cron process");
 	if ((diff = strcmp(expected, actual))) {
 		ck_abort_msg("showlog didn't return the input. It looked like %s", actual);
 	}
@@ -276,8 +294,6 @@ START_TEST (not_monitor1_svc_only)
 	int fd = open("tests/showlog_test_not_monitor1_svc_only.log", O_RDONLY);
 	char expected[6000];
 	ssize_t len = read(fd, expected, 6000);
-	expected[len] = 0;
-	close(fd);
 	char *args[] = {
 		NULL,
 		"tests/showlog_test.log",
@@ -291,8 +307,12 @@ START_TEST (not_monitor1_svc_only)
 		"--hide-command",
 		NULL
 	};
-	char *actual = run_with(args, "\nnot-monitor1;Cron process");
+	char *actual;
 	int diff;
+
+	actual = run_with(args, "\nnot-monitor1;Cron process");
+	expected[len] = 0;
+	close(fd);
 	if ((diff = strcmp(expected, actual))) {
 		ck_abort_msg("showlog didn't return the input. It looked like %s", actual);
 	}
@@ -322,11 +342,6 @@ END_TEST
 
 START_TEST (select_single_host)
 {
-	int fd = open("tests/showlog_test_monitoronly.log", O_RDONLY);
-	char expected[6000];
-	ssize_t len = read(fd, expected, 6000);
-	expected[len] = 0;
-	close(fd);
 	char *args[] = {
 		NULL,
 		"tests/showlog_test.log",
@@ -340,8 +355,15 @@ START_TEST (select_single_host)
 		"--hide-command",
 		NULL
 	};
-	char *actual = run_with(args, NULL);
+	char *actual;
 	int diff;
+	int fd = open("tests/showlog_test_monitoronly.log", O_RDONLY);
+	char expected[6000];
+	ssize_t len = read(fd, expected, 6000);
+
+	expected[len] = 0;
+	actual = run_with(args, NULL);
+	close(fd);
 	if ((diff = strcmp(expected, actual))) {
 		ck_abort_msg("showlog didn't return the input. It looked like %s", actual);
 	}
@@ -351,11 +373,6 @@ END_TEST
 
 START_TEST (select_single_service)
 {
-	int fd = open("tests/showlog_test_not_monitor1_svc_only.log", O_RDONLY);
-	char expected[6000];
-	ssize_t len = read(fd, expected, 6000);
-	expected[len] = 0;
-	close(fd);
 	char *args[] = {
 		NULL,
 		"tests/showlog_test.log",
@@ -369,8 +386,15 @@ START_TEST (select_single_service)
 		"--hide-command",
 		NULL
 	};
-	char *actual = run_with(args, NULL);
+	char *actual;
 	int diff;
+	int fd = open("tests/showlog_test_not_monitor1_svc_only.log", O_RDONLY);
+	char expected[6000];
+	ssize_t len = read(fd, expected, 6000);
+
+	actual = run_with(args, NULL);
+	expected[len] = 0;
+	close(fd);
 	if ((diff = strcmp(expected, actual))) {
 		ck_abort_msg("showlog didn't return the input. It looked like %s", actual);
 	}
@@ -382,6 +406,7 @@ Suite *
 showlog_suite(void)
 {
   Suite *s = suite_create("Showlog");
+  TCase *log_selection;
 
   TCase *auth = tcase_create("Auth");
   tcase_add_loop_test(auth, hosts_services, 0, 2);
@@ -394,15 +419,15 @@ showlog_suite(void)
   tcase_set_timeout(auth, 30);
   suite_add_tcase(s, auth);
 
-  TCase *log = tcase_create("Log selection");
-  tcase_add_test(log, return_input);
-  tcase_add_test(log, monitor_only);
-  tcase_add_test(log, monitor_and_not_monitor1_svc);
-  tcase_add_test(log, not_monitor1_svc_only);
-  tcase_add_test(log, none);
-  tcase_add_test(log, select_single_host);
-  tcase_add_test(log, select_single_service);
-  suite_add_tcase(s, log);
+  log_selection = tcase_create("Log selection");
+  tcase_add_test(log_selection, return_input);
+  tcase_add_test(log_selection, monitor_only);
+  tcase_add_test(log_selection, monitor_and_not_monitor1_svc);
+  tcase_add_test(log_selection, not_monitor1_svc_only);
+  tcase_add_test(log_selection, none);
+  tcase_add_test(log_selection, select_single_host);
+  tcase_add_test(log_selection, select_single_service);
+  suite_add_tcase(s, log_selection);
 
   return s;
 }

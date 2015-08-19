@@ -47,8 +47,8 @@ void *last_user_data;
 timed_event *
 schedule_event(__attribute__((unused)) time_t delay, __attribute__((unused)) event_callback callback, void *user_data)
 {
-	last_user_data = user_data;
 	void *res = calloc(1, 1);
+	last_user_data = user_data;
 	last_event = res;
 	return res;
 }
@@ -77,7 +77,7 @@ int ipc_grok_var(__attribute__((unused)) char *var, __attribute__((unused)) char
 #include "module.c"
 #include "pgroup.c"
 
-void general_setup()
+static void general_setup(void)
 {
 	num_peer_groups = 0;
 	peer_group = NULL;
@@ -89,15 +89,16 @@ void general_setup()
 	memset(&last_decoded_event, 0, sizeof(merlin_event));
 }
 
-void general_teardown()
+static void general_teardown(void)
 {
 	qh_deinit(queryhandler_socket_path);
 	iobroker_destroy(nagios_iobs, IOBROKER_CLOSE_SOCKETS);
 	nebmodule_deinit(0, 0);
 }
 
-void expiration_setup()
+static void expiration_setup(void)
 {
+	int event_type = NEBTYPE_PROCESS_EVENTLOOPSTART;
 	host *hst;
 	num_peer_groups = 0;
 	peer_group = NULL;
@@ -116,7 +117,6 @@ void expiration_setup()
 	register_host(hst);
 	register_service(create_service(hst, "service2"));
 
-	int event_type = NEBTYPE_PROCESS_EVENTLOOPSTART;
 	post_config_init(0, &event_type);
 
 	ipc.action = NULL;
@@ -126,7 +126,7 @@ void expiration_setup()
 	pgroup_assign_peer_ids(node_table[0]->pgroup);
 }
 
-void expiration_teardown()
+static void expiration_teardown(void)
 {
 	destroy_objects_host();
 	destroy_objects_service();
@@ -142,18 +142,19 @@ START_TEST(test_callback_host_check)
 {
 	time_t expected_last_check = time(NULL);
 	time_t not_expected_last_check = 2147123099;
-
-	init_objects_host(1);
-	host *hst = create_host("test-host");
-	register_host(hst);
-	hst->last_check = not_expected_last_check;
-
+	host *hst;
 	int event_type = NEBTYPE_PROCESS_EVENTLOOPSTART;
-	post_config_init(0, &event_type);
-
 	nebstruct_host_check_data ev_data = {0,};
 	merlin_host_status *event_body;
 	struct timeval tv;
+
+	init_objects_host(1);
+	hst = create_host("test-host");
+	register_host(hst);
+	hst->last_check = not_expected_last_check;
+
+	post_config_init(0, &event_type);
+
 	gettimeofday(&tv, NULL);
 	ev_data.type = NEBTYPE_HOSTCHECK_PROCESSED;
 	ev_data.flags = 0;
@@ -176,21 +177,22 @@ START_TEST(test_callback_service_check)
 {
 	time_t expected_last_check = time(NULL);
 	time_t not_expected_last_check = 2147123099;
+	service *svc;
+	int event_type = NEBTYPE_PROCESS_EVENTLOOPSTART;
+	nebstruct_service_check_data ev_data = {0,};
+	merlin_service_status *event_body;
+	struct timeval tv;
 
 	init_objects_host(1);
 	init_objects_service(1);
 
 	register_host(create_host("test-host"));
-	service *svc = create_service(host_ary[0], "test-service");
+	svc = create_service(host_ary[0], "test-service");
 	register_service(svc);
 	svc->last_check = not_expected_last_check;
 
-	int event_type = NEBTYPE_PROCESS_EVENTLOOPSTART;
 	post_config_init(0, &event_type);
 
-	nebstruct_service_check_data ev_data = {0,};
-	merlin_service_status *event_body;
-	struct timeval tv;
 	gettimeofday(&tv, NULL);
 	ev_data.type = NEBTYPE_SERVICECHECK_PROCESSED;
 	ev_data.flags = 0;

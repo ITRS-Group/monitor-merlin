@@ -380,7 +380,7 @@ static void map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 
 static int pgroup_map_objects(void)
 {
-	unsigned int i, x, dupes = 0;
+	unsigned int i, x;
 
 	for (i = 0; i < num_peer_groups; i++) {
 		char *p, *comma;
@@ -403,7 +403,7 @@ static int pgroup_map_objects(void)
 			map_pgroup_hgroup(pg, hg);
 			if (pg->overlapping) {
 				lerr("CONFIG ANOMALY: Hostgroup '%s' has %d hosts overlapping with another hostgroup used for poller assigment",
-					hg->group_name, dupes);
+					hg->group_name, pg->overlapping);
 			}
 			if (pg_create_id_convtables(pg)) {
 				lerr("  Failed to create object id conversion tables for pg %d", pg->id);

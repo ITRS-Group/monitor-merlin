@@ -339,6 +339,7 @@ int split_config(void)
 	for (i = 0; i < num_pollers; i++) {
 		char *outfile, *tmpfile;
 		int fd;
+		struct timeval times[2] = {{0,0}, {0,0}};
 		blk_SHA_CTX ctx;
 
 		node = poller_table[i];
@@ -395,7 +396,7 @@ int split_config(void)
 			lerr("Cannot nodesplit: Failed to create '%s' from temporary file %s: %s", outfile, tmpfile, strerror(errno));
 			continue;
 		}
-		const struct timeval times[2] = {{ipc.info.last_cfg_change, 0}, {ipc.info.last_cfg_change, 0}};
+		times[0].tv_sec = times[1].tv_sec = ipc.info.last_cfg_change;
 		if (utimes(outfile, times) == -1) {
 			lerr("Error in nodesplit: Failed to set mtime of '%s': %s", outfile, strerror(errno));
 			continue;

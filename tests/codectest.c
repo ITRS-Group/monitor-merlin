@@ -2,14 +2,14 @@
 #include "logging.c"
 #include <check.h>
 
-void general_setup()
+void general_setup(void)
 {
 	merlin_log_file = "stdout";
 	log_levels = -1;
 	log_init();
 }
 
-void general_teardown()
+void general_teardown(void)
 {
 }
 
@@ -17,13 +17,13 @@ START_TEST(test_encode_serviceevent)
 {
 	int ret;
 	merlin_event pkt;
+	merlin_service_status ds, *out;
+
 	memset(&pkt, 0, sizeof(pkt));
 	pkt.hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
 	pkt.hdr.selection = DEST_BROADCAST;
 	pkt.hdr.code = MAGIC_NONET;
-	merlin_service_status ds;
 	memset(&ds, 0, sizeof(ds));
-	merlin_service_status *out;
 	/* set some relevant values at the beginning and end of the struct */
 	ds.state.initial_state = 123;
 	ds.state.notified_on = 456;
@@ -46,14 +46,14 @@ START_TEST(test_encode_too_long)
 {
 	int ret;
 	merlin_event pkt;
+	merlin_service_status ds, *out;
+	char *input = calloc((1 << 20) + 1, 1);
+
 	memset(&pkt, 0, sizeof(pkt));
 	pkt.hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
 	pkt.hdr.selection = DEST_BROADCAST;
 	pkt.hdr.code = MAGIC_NONET;
-	merlin_service_status ds;
 	memset(&ds, 0, sizeof(ds));
-	merlin_service_status *out;
-	char *input = calloc((1 << 20) + 1, 1);
 	memset(input, 'a', 1 << 20);
 	input[1<<20] = 0;
 	ds.host_name = strdup(input);
