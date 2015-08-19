@@ -1,5 +1,5 @@
-AM_CFLAGS = $(CFLAGS) -I$(srcdir)/shared $(naemon_CFLAGS) -Wall -Wextra # -Werror
-AM_CPPFLAGS = $(CPPFLAGS) -D_GNU_SOURCE -DBINLOGDIR='"$(binlogdir)"' -DPKGRUNDIR='"$(pkgrundir)"' -DLOGDIR='"$(logdir)"' -DCACHEDIR='"$(cachedir)"'
+AM_CFLAGS += $(CFLAGS) -I$(srcdir)/shared $(naemon_CFLAGS)
+AM_CPPFLAGS += $(CPPFLAGS) -DBINLOGDIR='"$(binlogdir)"' -DPKGRUNDIR='"$(pkgrundir)"' -DLOGDIR='"$(logdir)"' -DCACHEDIR='"$(cachedir)"'
 
 bin_PROGRAMS = merlind
 

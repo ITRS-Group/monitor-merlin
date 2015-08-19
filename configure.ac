@@ -8,8 +8,31 @@ AC_CONFIG_HEADERS([config.h])
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
+AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AM_PATH_PYTHON
+
+
+AM_CFLAGS=$naemon_CFLAGS
+AM_CPPFLAGS=-D_GNU_SOURCE
+# check for compiler flags. Enabling warnings must come before disabling
+AX_CHECK_COMPILE_FLAG([-Wall], AM_CFLAGS+=" -Wall")
+AX_CHECK_COMPILE_FLAG([-fPIC], AM_CFLAGS+=" -fPIC")
+AX_CHECK_COMPILE_FLAG([-pipe], AM_CFLAGS+=" -pipe")
+AX_CHECK_COMPILE_FLAG([-ggdb3], AM_CFLAGS+=" -ggdb3")
+#AX_CHECK_COMPILE_FLAG([-Werror], AM_CFLAGS+=" -Werror")
+AX_CHECK_COMPILE_FLAG([-Wextra], AM_CFLAGS+=" -Wextra")
+AX_CHECK_COMPILE_FLAG([-Wredundant-decls], AM_CFLAGS+=" -Wredundant-decls")
+AX_CHECK_COMPILE_FLAG([-Wtrigraphs], AM_CFLAGS+=" -Wtrigraphs")
+AX_CHECK_COMPILE_FLAG([-Wdeclaration-after-statement], AM_CFLAGS+=" -Wdeclaration-after-statement")
+AX_CHECK_COMPILE_FLAG([-Wshadow], AM_CFLAGS+=" -Wshadow")
+AX_CHECK_COMPILE_FLAG([-Wstrict-prototypes], AM_CFLAGS+=" -Wstrict-prototypes")
+AX_CHECK_COMPILE_FLAG([-Wno-unused-result], AM_CFLAGS+=" -Wno-unused-result")
+AX_CHECK_COMPILE_FLAG([-Wno-unused-parameter], AM_CFLAGS+=" -Wno-unused-parameter")
+#AX_CHECK_COMPILE_FLAG([-Wno-strict-aliasing], AM_CFLAGS+=" -Wno-strict-aliasing")
+
+AC_SUBST([AM_CPPFLAGS])
+AC_SUBST([AM_CFLAGS])
 
 PKG_CHECK_MODULES([naemon], [naemon >= 0.8])
 naemon_cfg=`$PKG_CONFIG --variable=mainconf naemon`
