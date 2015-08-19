@@ -262,15 +262,15 @@ usage(char *name)
 	       "  --rename-log      Rename current log file\n"
 	       "  --rename-db       Rename everything in database\n"
 	       "  --save-renames    Do the same renames on next execution\n");
-	printf("  --log-dir         Use the given directory for parsing archived logs. Default:\n"
+	printf("  --log-dir=<dir>   Use the given directory for parsing archived logs. Default:\n"
 	       "                    %s\n", DEFAULT_LOG_ARCHIVE_PATH);
-	printf("  --log-file        Parse the given log file. Default:\n"
+	printf("  --log-file=<file> Parse the given log file. Default:\n"
 	       "                    %s\n", DEFAULT_LOG_FILE);
-	printf("  --db-type         Database type\n"
-	       "  --db-host         Database host\n"
-	       "  --db-name         Database name\n"
-	       "  --db-user         Database username\n"
-	       "  --db-pass         Database password\n"
+	printf("  --db-type=<type>  Database type\n"
+	       "  --db-host=<host>  Database host\n"
+	       "  --db-name=<name>  Database name\n"
+	       "  --db-user=<user>  Database username\n"
+	       "  --db-pass=<pass>  Database password\n"
 	       "  --help            Show this text and exit\n");
 	exit(0);
 }
