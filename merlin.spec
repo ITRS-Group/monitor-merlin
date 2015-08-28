@@ -128,8 +128,8 @@ echo %{version} > .version_number
 autoreconf -i -s
 %configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=/opt/monitor/etc/mconf --with-naemon-user=monitor --with-naemon-group=%daemon_user --with-logdir=/var/log/op5/merlin
 
-%__make
-%__make check
+%__make V=1
+%__make V=1 check
 
 %install
 rm -rf %buildroot
