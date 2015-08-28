@@ -3,15 +3,19 @@
 #include <sys/wait.h>
 #include "auth.c"
 
+#define pipe2(a, b) ck_assert(0 == pipe2(a, b))
+#define assert_write(a, b, c) ck_assert((int)c == write(a, b, c))
+#define pipe(a) ck_assert(0 == pipe(a))
+
 START_TEST (hosts_services)
 {
 	int pipes[2];
 	char *message = "host1;host2;host3\nhost1;service1;host4;service2";
 
 	pipe2(pipes, O_NONBLOCK);
-	write(pipes[1], message, strlen(message));
+	assert_write(pipes[1], message, strlen(message));
 	if (_i == 0)
-		write(pipes[1], "\n", 1);
+		assert_write(pipes[1], "\n", 1);
 	auth_read_input(fdopen(pipes[0], "r"));
 	ck_assert_int_eq(auth_host_ok("host1"), 1);
 	ck_assert_int_eq(auth_host_ok("host3"), 1);
@@ -33,9 +37,9 @@ START_TEST (hosts_only)
 	char *message = "host1;host2;host3";
 
 	pipe2(pipes, O_NONBLOCK);
-	write(pipes[1], message, strlen(message));
+	assert_write(pipes[1], message, strlen(message));
 	if (_i == 0)
-		write(pipes[1], "\n", 1);
+		assert_write(pipes[1], "\n", 1);
 	auth_read_input(fdopen(pipes[0], "r"));
 	ck_assert_int_eq(auth_host_ok("host1"), 1);
 	ck_assert_int_eq(auth_host_ok("host3"), 1);
@@ -50,9 +54,9 @@ START_TEST (odd_services)
 	int pipes[2];
 	char *message = "host1\nhost2";
 	pipe2(pipes, O_NONBLOCK);
-	write(pipes[1], message, strlen(message));
+	assert_write(pipes[1], message, strlen(message));
 	if (_i == 0)
-		write(pipes[1], "\n", 1);
+		assert_write(pipes[1], "\n", 1);
 	auth_read_input(fdopen(pipes[0], "r"));
 	ck_assert_int_eq(auth_host_ok("host1"), 1);
 	ck_assert_int_eq(g_hash_table_size(auth_hosts), 1);
@@ -68,7 +72,7 @@ START_TEST (multiblock)
 
 	blocksize = 10; // bytes to read at a time
 	pipe2(pipes, O_NONBLOCK);
-	write(pipes[1], message, strlen(message));
+	assert_write(pipes[1], message, strlen(message));
 	auth_read_input(fdopen(pipes[0], "r"));
 	ck_assert_int_eq(auth_host_ok("host1"), 1);
 	ck_assert_int_eq(auth_host_ok("host2"), 1);
@@ -85,7 +89,7 @@ START_TEST (too_many_lines)
 	char *message = "host1\nhost2;service1\nlots;of;other;data";
 
 	pipe2(pipes, O_NONBLOCK);
-	write(pipes[1], message, strlen(message));
+	assert_write(pipes[1], message, strlen(message));
 	auth_read_input(fdopen(pipes[0], "r"));
 	ck_assert_int_eq(auth_host_ok("host1"), 1);
 	ck_assert_int_eq(g_hash_table_size(auth_hosts), 1);
@@ -100,7 +104,7 @@ START_TEST (empty_params)
 	char *message = "host1;;;;host2\nhost3;service1;;;;;;;host4;service2";
 
 	pipe2(pipes, O_NONBLOCK);
-	write(pipes[1], message, strlen(message));
+	assert_write(pipes[1], message, strlen(message));
 	auth_read_input(fdopen(pipes[0], "r"));
 	ck_assert_int_eq(auth_host_ok("host1"), 1);
 	ck_assert_int_eq(g_hash_table_size(auth_hosts), 3);
@@ -191,7 +195,7 @@ run_with(char *args[], char *input_str)
 	close(output[1]);
 	close(input[0]);
 	if (input_str != NULL)
-		write(input[1], input_str, strlen(input_str));
+		assert_write(input[1], input_str, strlen(input_str));
 	close(input[1]);
 	waitpid(pid, &status, 0);
 	len = read(output[0], output_str, 6000);
