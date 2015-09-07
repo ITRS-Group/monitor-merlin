@@ -14,7 +14,6 @@
 #include "sql.h"
 #include "script-helpers.h"
 
-static int import_running;
 
 static void log_child_output(const char *prefix, char *buf)
 {
@@ -74,16 +73,6 @@ static void log_child_result(wproc_result *wpres, const char *fmt, ...)
 	}
 }
 
-static void handle_import_finished(wproc_result *wpres, void *arg, int flags)
-{
-	if (arg && flags) {
-		/* it never is */
-		lwarn("The impossible happened\n");
-	}
-	import_running = 0;
-	log_child_result(wpres, "import");
-}
-
 static void handle_csync_finished(wproc_result *wpres, void *arg, int flags)
 {
 	const char *what = "push";
@@ -96,59 +85,6 @@ static void handle_csync_finished(wproc_result *wpres, void *arg, int flags)
 		what = "fetch";
 	log_child_result(wpres, "CSYNC: oconf %s to %s %s", what,
 					 node_type(child->node), child->node->name);
-}
-
-/*
- * Run the import script
- */
-int import_objects(char *cfg, char *cache)
-{
-	char *cmd;
-	int ret;
-
-	/* don't bother if we're not using a datbase */
-	if (!use_database)
-		return 0;
-
-	/* ... or if an import is already in progress */
-	if (import_running) {
-		lwarn("Import already in progress. Ignoring import event");
-		return 0;
-	}
-
-	if (!import_program) {
-		lerr("No import program specified. Ignoring import event");
-		return 0;
-	}
-
-	ret = asprintf(&cmd, "%s --nagios-cfg='%s' "
-			 "--db-type='%s' --db-name='%s' --db-user='%s' --db-pass='%s' --db-host='%s' --db-conn_str='%s'",
-			 import_program, cfg,
-			 sql_db_type(), sql_db_name(), sql_db_user(), sql_db_pass(), sql_db_host(), sql_db_conn_str());
-
-	if (ret > 0 && cache && *cache) {
-		char *cmd2 = cmd;
-		ret = asprintf(&cmd, "%s --cache='%s'", cmd2, cache);
-		free(cmd2);
-	}
-
-	if (ret > 0 && sql_db_port()) {
-		char *cmd2 = cmd;
-		ret = asprintf(&cmd, "%s --db-port='%u'", cmd2, sql_db_port());
-		free(cmd2);
-	}
-
-	if (ret < 0) {
-		lerr("Failed to run import program (asprintf failed): %s",
-			 strerror(errno));
-		return -1;
-	}
-
-	wproc_run_callback(cmd, 300, handle_import_finished, NULL, NULL);
-	import_running = 1;
-	free(cmd);
-
-	return 0;
 }
 
 /*

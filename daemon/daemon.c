@@ -130,7 +130,8 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 			continue;
 		}
 		if (!strcmp(v->key, "import_program")) {
-			import_program = strdup(v->value);
+			/* ignored */
+			lwarn("daemon config: import_program is deprecated and no longer used");
 			continue;
 		}
 
@@ -571,12 +572,6 @@ int merlind_main(int argc, char **argv)
 
 	if (status)
 		return daemon_status(pidfile);
-
-	if (use_database && !import_program) {
-		lwarn("Using database, but no import program configured. Are you sure about this?");
-		lwarn("If not, make sure you specify the import_program directive in");
-		lwarn("the \"daemon\" section of your merlin configuration file");
-	}
 
 	log_init();
 	ipc.action = ipc_action_handler;

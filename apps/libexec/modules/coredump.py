@@ -4,7 +4,7 @@ from merlin_apps_utils import *
 class coredump:
 	"""
 	Class for crudely examining (most) coredumps and finely examining
-	coredumps from monitor, merlin, ocimp and other core parts of op5
+	coredumps from monitor, merlin, and other core parts of op5
 	Monitor.
 	"""
 	path = ''
@@ -70,8 +70,6 @@ class coredump:
 				self.executable = '/opt/monitor/op5/merlin/merlind'
 			elif basename == 'monitor':
 				self.executable = '/opt/monitor/bin/monitor'
-			elif basename == 'ocimp':
-				self.executable = '/opt/monitor/op5/merlin/ocimp'
 			elif basename == 'check_nt':
 				self.executable = '/opt/plugins/check_nt'
 			else:

@@ -695,20 +695,6 @@ class fake_mesh:
 		return self._test_until_or_fail('connections', self._test_connections, 45)
 
 
-	def test_imports(self):
-		"""make sure ocimp has run properly"""
-		if not self.use_database:
-			return True
-		sub = self.tap.sub_init('ocimp imports')
-		for inst in self.instances:
-			res = inst.dbc.execute('SELECT COUNT(1) FROM timeperiod')
-			row = inst.dbc.fetchone()
-			tps = row[0]
-			sub.test(tps, 2, "%s must import timeperiods" % inst.name)
-			if res == False:
-				status = False
-		return sub.done() == 0
-
 	def test_oconfsplit(self, dir):
 		"""Verifies that configuration split works properly"""
 		sub = self.tap.sub_init("poller configuration split")
@@ -1463,7 +1449,6 @@ class fake_mesh:
 			for inst in pg.nodes:
 				sys.stdout.write("%s " % inst.name)
 				sys.stdout.flush()
-				inst.add_subst('@@OCIMP_PATH@@', self.ocimp_path)
 				inst.add_subst('@@MODULE_PATH@@', self.merlin_mod_path)
 				inst.add_subst('@@LIVESTATUS_O@@', self.livestatus_o)
 				inst.create_directories()
@@ -1702,7 +1687,6 @@ def cmd_dist(args):
 	merlin_path = '/opt/monitor/op5/merlin'
 	merlin_mod_path = '%s/merlin.so' % merlin_path
 	merlin_binary = '%s/merlind' % merlin_path
-	ocimp_path = "%s/ocimp" % merlin_path
 	nagios_binary = '/opt/monitor/bin/monitor'
 	no_confgen = False
 	confgen_only = False
@@ -1878,7 +1862,6 @@ def cmd_dist(args):
 	_verify_path(nagios_binary, os.X_OK)
 	_verify_path(merlin_binary, os.X_OK)
 	_verify_path(livestatus_o, os.R_OK)
-	_verify_path(ocimp_path, os.X_OK, use_database)
 	_verify_path(merlin_mod_path, os.R_OK)
 
 	mesh = fake_mesh(
@@ -1888,7 +1871,6 @@ def cmd_dist(args):
 		num_masters=num_masters,
 		opt_pgroups=opt_pgroups,
 		merlin_mod_path=merlin_mod_path,
-		ocimp_path=ocimp_path,
 		livestatus_o=livestatus_o,
 		db_user=db_admin_user,
 		db_pass=db_admin_password,
@@ -1918,9 +1900,6 @@ def cmd_dist(args):
 	try:
 		if mesh.test_connections() == False:
 			mesh.shutdown('Connection tests failed. Bailing out')
-
-		if mesh.test_imports() == False:
-			mesh.shutdown('Imports failed. This is a known spurious error when running tests often')
 
 		if 'global_commands' in tests:
 			if mesh.test_global_commands() == False:

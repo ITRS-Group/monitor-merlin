@@ -10,7 +10,6 @@
 
 extern int db_log_reports;
 extern int db_log_notifications;
-extern char *import_program;
 extern merlin_confsync global_csync;
 
 int grok_confsync_compound(struct cfg_comp *comp, merlin_confsync *csync);

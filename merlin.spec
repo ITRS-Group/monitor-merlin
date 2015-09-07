@@ -137,7 +137,6 @@ rm -rf %buildroot
 
 ln -s ../../../../usr/bin/merlind %buildroot/%mod_path/merlind
 ln -s ../../../../%_libdir/merlin/import %buildroot/%mod_path/import
-ln -s ../../../../%_libdir/merlin/ocimp %buildroot/%mod_path/ocimp
 ln -s ../../../../%_libdir/merlin/rename %buildroot/%mod_path/rename
 ln -s ../../../../%_libdir/merlin/showlog %buildroot/%mod_path/showlog
 ln -s ../../../../%_libdir/merlin/merlin.so %buildroot/%mod_path/merlin.so
@@ -238,7 +237,6 @@ fi
 %post -n monitor-merlin
 %create_service_control_function
 chown -Rh monitor:%daemon_group %prefix/etc
-sed --follow-symlinks -i 's#import_program = php /opt/monitor/op5/merlin/import.php#import_program = /opt/monitor/op5/merlin/ocimp#g' %mod_path/merlin.conf
 sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon.cfg
 service_control_function restart monitor || :
 service_control_function restart nrpe || :
@@ -272,12 +270,10 @@ service_control_function restart nrpe || :
 %defattr(-,root,root)
 %_libdir/merlin/import
 %_libdir/merlin/showlog
-%_libdir/merlin/ocimp
 %_libdir/merlin/rename
 %_libdir/merlin/oconf
 %mod_path/import
 %mod_path/showlog
-%mod_path/ocimp
 %mod_path/rename
 %_libdir/merlin/mon
 %_bindir/mon

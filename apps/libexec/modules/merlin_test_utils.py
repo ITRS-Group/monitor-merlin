@@ -97,7 +97,6 @@ module {
 daemon {
 	pidfile = @@DIR@@/merlin/merlind.pid;
 	log_file = @@DIR@@/daemon.log;
-	import_program = @@OCIMP_PATH@@ --force
 	port = @@NETWORK_PORT@@;
 	#@@MERLIN_DAEMON_EXTRAS@@
 	database {

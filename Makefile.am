@@ -4,7 +4,7 @@ AM_CPPFLAGS += $(CPPFLAGS) -DBINLOGDIR='"$(binlogdir)"' -DPKGRUNDIR='"$(pkgrundi
 bin_PROGRAMS = merlind
 
 merlinlibdir = $(pkglibdir)
-merlinlib_PROGRAMS = import ocimp showlog rename oconf
+merlinlib_PROGRAMS = import showlog rename oconf
 merlinlib_SCRIPTS = install-merlin.sh
 bin_SCRIPTS = apps/op5
 
@@ -150,13 +150,7 @@ import_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 oconf_SOURCES = tools/oconf.c module/sha1.c module/misc.c shared/shared.c shared/shared.h shared/logging.c shared/logging.h
 oconf_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module $(GLIB_CFLAGS)
 oconf_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
-ocimp_SOURCES = $(shared_sources) \
-	tools/ocimp.c tools/ocimp.h \
-	tools/test_utils.c tools/test_utils.h \
-	module/sha1.c module/sha1.h \
-	tools/slist.c tools/slist.h
-ocimp_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon -I$(srcdir)/module
-ocimp_LDADD = $(naemon_LIBS) $(AM_LDADD)
+
 rename_SOURCES = $(app_sources) tools/rename.c $(db_wrap_sources)
 rename_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon $(GLIB_CFLAGS)
 rename_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)

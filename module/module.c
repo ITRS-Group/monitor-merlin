@@ -1159,10 +1159,8 @@ static void send_pulse(struct nm_event_execution_properties *evprop)
 static int post_config_init(int cb, void *ds)
 {
 	int result;
-	char *cache_file = NULL;
 	unsigned int i;
 	FILE *fp = NULL;
-	time_t current_time = 0L;
 
 	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
 		return 0;
@@ -1172,26 +1170,6 @@ static int post_config_init(int cb, void *ds)
 	service_check_node = calloc(num_objects.services, sizeof(merlin_node *));
 	host_expiry_map = calloc(num_objects.hosts, sizeof(timed_event *));
 	service_expiry_map = calloc(num_objects.services, sizeof(timed_event *));
-
-	time(&current_time);
-
-	/* Write and import the timeperiod cache */
-	nm_asprintf(&cache_file, "/%s/timeperiods.cache", temp_path);
-	fp = fopen(cache_file, "w");
-	if(fp != NULL) {
-		fprintf(fp, "########################################\n");
-		fprintf(fp, "#       MERLIN TIMEPERIOD CACHE FILE\n");
-		fprintf(fp, "#\n");
-		fprintf(fp, "# Created: %s", ctime(&current_time));
-		fprintf(fp, "########################################\n\n");
-
-		/* cache timeperiods */
-		for(i = 0; i < num_objects.timeperiods; i++)
-			fcache_timeperiod(fp, timeperiod_ary[i]);
-		fclose(fp);
-	}
-	import_objects(config_file, cache_file);
-	free(cache_file);
 
 	/* only call this function once */
 	neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);
