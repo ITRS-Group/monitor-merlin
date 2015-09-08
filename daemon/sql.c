@@ -247,7 +247,6 @@ int sql_vquery(const char *fmt, va_list ap)
 			lerr("Failed to run query [%s] due to error-code %d: %s",
 				 query, db_error, error_msg);
 		}
-#ifdef ENABLE_LIBDBI
 		if (db_type == MERLIN_DBT_MYSQL) {
 			/*
 			 * if we failed because the connection has gone away, we try
@@ -277,7 +276,6 @@ int sql_vquery(const char *fmt, va_list ap)
 				break;
 			}
 		}
-#endif
 		if (reconnect) {
 			lwarn("Attempting to reconnect to database and re-run the query");
 			if (!sql_reinit()) {
