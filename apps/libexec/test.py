@@ -499,6 +499,8 @@ class fake_mesh:
 			self.valgrind_multiplier = 5
 		else:
 			self.valgrind_multiplier = 1
+		self._create_nodes()
+
 
 	def signal_daemons(self, signo):
 		"""Sends the designated signal to all attached daemons"""
@@ -686,7 +688,7 @@ class fake_mesh:
 	def test_connections(self):
 		"""Tests connections between nodes in the mesh.
 		This is a mandatory test"""
-		return self.test_until_or_fail('connections', self._test_connections, 45)
+		return self._test_until_or_fail('connections', self._test_connections, 45)
 
 
 	def test_imports(self):
@@ -783,7 +785,7 @@ class fake_mesh:
 				has_pushed = os.path.exists(self.master1.fpath('oconf-push.log'))
 				sub.test(has_pushed, True, "master1 must push config")
 				return sub.get_status() == 0
-			ret += self.test_until_or_fail('pushed config', has_pushed, 15)
+			ret += self._test_until_or_fail('pushed config', has_pushed, 15)
 
 		return ret
 
@@ -818,7 +820,7 @@ class fake_mesh:
 
 		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('START_EXECUTING_SVC_CHECKS')
-		status = self.test_until_or_fail('parents', self._test_parents, 90, predicate = lambda x: not x.name.startswith('pg1'))
+		status = self._test_until_or_fail('parents', self._test_parents, 90, predicate = lambda x: not x.name.startswith('pg1'))
 		master.submit_raw_command('STOP_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('STOP_EXECUTING_SVC_CHECKS')
 		self.intermission('Letting active check disabling spread', 10)
@@ -857,7 +859,7 @@ class fake_mesh:
 		master = self.masters.nodes[0]
 		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('START_EXECUTING_SVC_CHECKS')
-		status = self.test_until_or_fail('active checks', self._test_active_checks, 60)
+		status = self._test_until_or_fail('active checks', self._test_active_checks, 60)
 		master.submit_raw_command('STOP_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('STOP_EXECUTING_SVC_CHECKS')
 		self.intermission('Letting active check disabling spread', 10)
@@ -918,7 +920,7 @@ class fake_mesh:
 			sub.test(ret, True, "Should be able to submit %s" % cmd)
 		if sub.done() != 0:
 			return False
-		return self.test_until_or_fail('global command spreading', self._test_global_command_spread)
+		return self._test_until_or_fail('global command spreading', self._test_global_command_spread)
 
 
 	def _test_notifications(self, sub, inst, **kwargs):
@@ -989,14 +991,14 @@ class fake_mesh:
 
 		# if passive checks don't spread, there's no point checking
 		# for notifications
-		if not self.test_until_or_fail("passive check distribution", self._test_passive_checks, 30):
+		if not self._test_until_or_fail("passive check distribution", self._test_passive_checks, 30):
 			return sub.done() == 0
 
 		# make sure 'master1' has sent notifications
 		self.intermission("Letting notifications trigger", 5)
 		sub = self.tap.sub_init('passive check notifications')
 		# make sure 'master1' has sent notifications
-		self.test_until_or_fail('passive check notifications', self._test_notifications, tap=sub, inst=master, hosts=True, services=True)
+		self._test_until_or_fail('passive check notifications', self._test_notifications, tap=sub, inst=master, hosts=True, services=True)
 		for n in self.instances[1:]:
 			self._test_notifications(sub, n, hosts=False, services=False)
 		return sub.done() == 0
@@ -1050,7 +1052,7 @@ class fake_mesh:
 
 		if sub.done() != 0:
 			return False
-		if not self.test_until_or_fail('ack distribution', self._test_ack_spread, 30):
+		if not self._test_until_or_fail('ack distribution', self._test_ack_spread, 30):
 			return False
 
 		# ack notifications
@@ -1176,9 +1178,9 @@ class fake_mesh:
 		for s in master.group.have_objects['service']:
 			master.submit_raw_command('SCHEDULE_SVC_DOWNTIME;%s;%d;%d;1;0;%d;mon test suite;expire downtime test for %s' %
 				(s, start_time, end_time, duration, s))
-		self.test_until_or_fail('downtime spread', self._test_dt_count, 15, sub)
+		self._test_until_or_fail('downtime spread', self._test_dt_count, 15, sub)
 		expire_start = time.time()
-		self.test_until_or_fail("downtime expiration", self._test_dt_count,
+		self._test_until_or_fail("downtime expiration", self._test_dt_count,
 			20, sub, hosts=0, services=0
 		)
 		sub.done()
@@ -1190,12 +1192,12 @@ class fake_mesh:
 
 		# give all nodes some time before we check to
 		# make sure the downtime has spread
-		self.test_until_or_fail('poller-scheduled downtime: spread', self._test_dt_count, 45, sub)
+		self._test_until_or_fail('poller-scheduled downtime: spread', self._test_dt_count, 45, sub)
 
 		host_downtimes = [x[0] for x in master.live.query('GET downtimes\nColumns: id\nFilter: is_service = 0')]
 		service_downtimes = [x[0] for x in master.live.query('GET downtimes\nColumns: id\nFilter: is_service = 1')]
 		self._unschedule_downtime(sub, master, host_downtimes, service_downtimes)
-		self.test_until_or_fail('poller-scheduled downtime: deletion', self._test_dt_count, 30, sub, hosts=0, services=0)
+		self._test_until_or_fail('poller-scheduled downtime: deletion', self._test_dt_count, 30, sub, hosts=0, services=0)
 		sub.done()
 
 		sub = self.tap.sub_init('propagating triggered downtime')
@@ -1203,7 +1205,7 @@ class fake_mesh:
 		print("Submitting propagating downtime to master %s" % master.name)
 		master.submit_raw_command('SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME;%s;%d;%d;%d;%d;%d;%s;%s' %
 			(poller.group_name + '.0001', time.time(), time.time() + 54321, 1, 0, 0, poller.group_name + '.0001', master.name))
-		self.test_until_or_fail('propagating downtime: spread', self._test_dt_count, 30, sub,
+		self._test_until_or_fail('propagating downtime: spread', self._test_dt_count, 30, sub,
 				hosts=poller.group.num_objects['host'],
 				services=0,
 				nodes=self.masters.nodes + poller.group.nodes
@@ -1213,7 +1215,7 @@ class fake_mesh:
 		    (poller.group_name + '.0001'))
 		sub.test(len(parent_downtime), 1, "There should be exactly one parent downtime")
 		self._unschedule_downtime(sub, master, parent_downtime[0], [])
-		self.test_until_or_fail('propagating downtime: deletion', self._test_dt_count, 30, sub, hosts=0, services=0)
+		self._test_until_or_fail('propagating downtime: deletion', self._test_dt_count, 30, sub, hosts=0, services=0)
 		sub.done()
 
 		return None
@@ -1274,7 +1276,7 @@ class fake_mesh:
 
 		# give all nodes some time before we check to make
 		# sure the ack has spread
-		if ret or self.test_until_or_fail('comment spread', self._test_comment_spread, 30):
+		if ret or self._test_until_or_fail('comment spread', self._test_comment_spread, 30):
 			return False
 		return True
 
@@ -1294,7 +1296,7 @@ class fake_mesh:
 		)
 		sys.stdout.flush()
 
-	def test_until_or_fail(self, sub_name, func, max_time=30, tap=False, **kwargs):
+	def _test_until_or_fail(self, sub_name, func, max_time=30, tap=False, **kwargs):
 		"""progressively run tests and output status
 		sub_name: name of subsuite
 		func: Function to use for testing subsuite
@@ -1382,6 +1384,7 @@ class fake_mesh:
 
 	def destroy(self):
 		"""Removes all traces of the fake mesh"""
+		print("Wiping the slate clean")
 		self.destroy_databases()
 		self.destroy_playground()
 
@@ -1411,14 +1414,11 @@ class fake_mesh:
 		sys.exit(ret)
 
 
-	def create_playground(self, num_hosts=False, num_services_per_host=False):
+	def _create_nodes(self):
 		"""
-		Sets up the directories and configuration required for testing
+		Creates the in-memory nodes required for this mesh. So far we
+		haven't written anything to disk.
 		"""
-		# first we wipe any and all traces from earlier runs
-		print("Wiping the slate clean")
-		self.destroy()
-
 		port = self.baseport
 		self.masters = fake_peer_group(self.basepath, 'master', self.num_masters, port, valgrind = self.valgrind)
 		port += self.num_masters
@@ -1444,6 +1444,14 @@ class fake_mesh:
 				inst.valgrind = self.valgrind
 
 		self.groups = self.pgroups + [self.masters]
+
+	def create_playground(self, num_hosts=False, num_services_per_host=False):
+		"""
+		Writes the on-disk configuration for all nodes in the mesh,
+		as well as databases for them to store their options.
+		"""
+		# first we wipe any and all traces from earlier runs
+		self.destroy()
 
 		for pg in self.groups:
 			sys.stdout.write("Creating core config for peer-group %s with %d nodes\n  " %
@@ -1654,11 +1662,23 @@ def cmd_dist(args):
 	  --hosts=<int>             hosts per peer-group (3)
 	  --services-per-host=<int> services per host (5)
 	  --valgrind                run binaries through valgrind
+	  --list                    list available tests
+	  --test=<list,of,tests>    run only the selected tests
+	  --show=<list,of,tests>    show details about the selected tests
+	  --no-confgen              don't generate a new config
 
-	Tests various aspects of event forwarding with any number of
-	hosts, services, peers and pollers, generating config and
-	creating databases for the various instances and checking
-	event distribution among them.
+	Tests various aspects of event forwarding in clusters with the
+	selected parameters. Config is generated but not destroyed as
+	part of the process.
+
+	To launch a cluster without running the extensive testsuite,
+	use 'mon test dist --test=connections <cluster-options>' and
+	issue your commands/livestatus queries once the connection
+	tests have completed.
+
+	Use '--no-confgen' to launch a pre-generated cluster if you
+	need to hand-modify the configuration. The config for each
+	node has to exist.
 	"""
 	global dist_test_mesh
 
@@ -1680,12 +1700,14 @@ def cmd_dist(args):
 	merlin_binary = '%s/merlind' % merlin_path
 	ocimp_path = "%s/ocimp" % merlin_path
 	nagios_binary = '/opt/monitor/bin/monitor'
+	no_confgen = False
 	confgen_only = False
 	destroy_databases = False
 	sleeptime = False
 	batch = True
 	use_database = False
 	valgrind = False
+	require_pollers = True
 
 	tests = []
 	arg_tests = []
@@ -1748,6 +1770,9 @@ def cmd_dist(args):
 			destroy_databases = True
 		elif arg == '--confgen-only':
 			confgen_only = True
+			require_pollers = False
+		elif arg == '--no-confgen':
+			no_confgen = True
 		elif arg.startswith('--sleeptime='):
 			sleeptime = arg.split('=', 1)[1]
 			sleeptime = int(sleeptime)
@@ -1766,9 +1791,14 @@ def cmd_dist(args):
 		elif arg.startswith('--show='):
 			show_tests = arg.replace('-', '_').split('=', 1)[1].split(',')
 		else:
-			prettyprint_docstring('dist', cmd_dist.__doc__,
-				'Unknown argument: %s' % arg)
-			sys.exit(1)
+			if arg == '--help':
+				text = False
+				ecode = 0
+			else:
+				text = 'Unknown argument: %s' % arg
+				ecode = 1
+			prettyprint_docstring('dist', cmd_dist.__doc__, text)
+			sys.exit(ecode)
 
 	if 'list' in arg_tests:
 		print("Available tests:\n  %s" % "\n  ".join(avail_tests))
@@ -1813,13 +1843,18 @@ def cmd_dist(args):
 		if t not in deselected_tests:
 			tests.append(t)
 
+	if selected_tests == ['connections']:
+		require_pollers = False
+	else:
+		print(selected_tests)
+
 	have_pollers = False
 	for p in opt_pgroups:
 		if p > 0:
 			have_pollers = True
 			break
 
-	if not have_pollers and not confgen_only:
+	if not have_pollers and require_pollers:
 		print("Can't run tests with zero pollers")
 		sys.exit(1)
 
@@ -1860,7 +1895,8 @@ def cmd_dist(args):
 		valgrind=valgrind,
 		batch=batch
 	)
-	mesh.create_playground(num_hosts, num_services_per_host)
+	if not no_confgen:
+		mesh.create_playground(num_hosts, num_services_per_host)
 
 	if confgen_only:
 		sys.exit(0)
