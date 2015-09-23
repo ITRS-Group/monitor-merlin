@@ -1152,8 +1152,6 @@ static void send_pulse(struct nm_event_execution_properties *evprop)
 static int post_config_init(int cb, void *ds)
 {
 	int result;
-	unsigned int i;
-	FILE *fp = NULL;
 
 	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
 		return 0;
