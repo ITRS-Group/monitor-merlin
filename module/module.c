@@ -352,14 +352,13 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 			node_disconnect(node, "Incompatible protocol");
 			return;
 		}
-
-		if ((ret = node_oconf_cmp(node, pkt))) {
-			csync_node_active(node, ret);
-			node_disconnect(node, "Incompatible object config");
+		if (node_mconf_cmp(node, pkt)) {
+			node_disconnect(node, "Incompatible cluster configuration");
 			return;
 		}
-		if (node_mconf_cmp(node, pkt)) {
-			node_disconnect(node, "Invalid cluster configuration");
+		if ((ret = node_oconf_cmp(node, pkt))) {
+			csync_node_active(node, ret);
+			node_disconnect(node, "Incompatible object config (sync triggered)");
 			return;
 		}
 
