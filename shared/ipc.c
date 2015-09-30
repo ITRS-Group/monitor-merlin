@@ -52,7 +52,11 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 "expired_hosts=%u;expired_services=%u;"
 				 "pgroup_active_nodes=%u;pgroup_total_nodes=%u;"
 				 "pgroup_hosts=%u;pgroup_services=%u;"
-				 "pgroup_id=%d;pgroup_hostgroups=%s"
+				 "pgroup_id=%d;pgroup_hostgroups=%s;"
+				 "csync_num_attempts=%d;csync_max_attempts=%d;"
+				 "csync_last_attempt=%lu;"
+				 "csync_push_cmd=%s;csync_push_is_running=%d;"
+				 "csync_fetch_cmd=%s;csync_fetch_is_running=%d"
 				 "\n",
 				 instance_id,
 				 n->name, n->source_name, n->sock, node_type(n),
@@ -80,7 +84,12 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 n->pgroup ? n->pgroup->active_nodes : 0,
 				 n->pgroup ? n->pgroup->total_nodes : 0,
 				 pg ? pg->assigned.hosts : 0, pg ? pg->assigned.services : 0,
-				 pg ? pg->id : -1, pg ? pg->hostgroups : "");
+				 pg ? pg->id : -1, pg ? pg->hostgroups : "",
+				 n->csync_num_attempts, n->csync_max_attempts,
+				 n->csync_last_attempt,
+				 n->csync.push.cmd ? n->csync.push.cmd : "", n->csync.push.is_running,
+				 n->csync.fetch.cmd ? n->csync.fetch.cmd : "", n->csync.fetch.is_running
+				);
 	return 0;
 }
 
