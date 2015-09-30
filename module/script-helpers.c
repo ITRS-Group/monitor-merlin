@@ -78,6 +78,7 @@ static void handle_csync_finished(wproc_result *wpres, void *arg, int flags)
 	const char *what = "push";
 	merlin_child *child = (merlin_child *)arg;
 
+	child->is_running = 0;
 	if (flags) {
 		lwarn("handle_csync_finished() flags: %d", flags);
 	}
@@ -111,7 +112,7 @@ void csync_node_active(merlin_node *node, int tdelta)
 	merlin_confsync *cs = NULL;
 	merlin_child *child = NULL;
 
-	ldebug("CSYNC: %s: Checking...", node->name);
+	ldebug("CSYNC: %s: Checking. Time delta: %d", node->name, tdelta);
 	/* bail early if we have no push/fetch configuration */
 	cs = &node->csync;
 	if (!cs->push.cmd && !cs->fetch.cmd) {
