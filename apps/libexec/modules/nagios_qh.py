@@ -37,7 +37,7 @@ class nagios_qh:
 	def format(self, data, rowsep='\n', pairsep=';', kvsep='='):
 		"""Lazily format a response into a sequence of dicts"""
 		def todict(row):
-			return dict(x.split(kvsep) for x in row.split(pairsep))
+			return dict(x.split(kvsep, 1) for x in row.split(pairsep))
 		rest = ''
 		for block in data:
 			block = rest + block

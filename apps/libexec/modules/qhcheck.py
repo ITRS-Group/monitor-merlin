@@ -200,7 +200,7 @@ class Response(object):
 		self.raw = response_str
 		self._response_dict = {}
 		if not any([x in (None, '') for x in (pairsep, kvsep)]):
-			self._response_dict = dict([y.split(kvsep) for y in response_str.strip().split(pairsep) if len(y) > 0])
+			self._response_dict = dict([y.split(kvsep, 1) for y in response_str.strip().split(pairsep) if len(y) > 0])
 		else:
 			self._response_dict = {'value': response_str}
 
