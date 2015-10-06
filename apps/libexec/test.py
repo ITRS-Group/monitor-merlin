@@ -683,6 +683,11 @@ class fake_mesh:
 				sub.test(i.active_masters, i.configured_masters,
 					"%s thinks %s has %s/%s active masters" %
 					(inst.name, i.name, i.active_masters, i.configured_masters))
+				if i.type != "local" and i.type != "master":
+					result = i.expected_config_hash != ("0" * 40)
+					sub.test(result, True, "expected_config_hash must be set")
+				result = i.config_hash != ("0" * 40)
+				sub.test(result, True, "config_hash must be set")
 
 			sub.test(tot_con, inst.num_nodes, "%s has %d/%d connected systems" %
 				(inst.name, tot_con, inst.num_nodes))
@@ -772,8 +777,9 @@ class fake_mesh:
 		# check to make sure pushing works as expected
 		if self.num_masters > 1 or len(self.pgroups):
 			def has_pushed(sub):
-				has_pushed = os.path.exists(self.master1.fpath('oconf-push.log'))
-				sub.test(has_pushed, True, "master1 must push config")
+				self.master1.get_nodeinfo()
+				for i in self.master1.nodeinfo[1:]:
+					sub.test(int(i.csync_num_attempts) > 0, True, "%s must push to %s" % (self.master1.name, i.name))
 				return sub.get_status() == 0
 			ret += self._test_until_or_fail('pushed config', has_pushed, 15)
 
