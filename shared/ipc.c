@@ -41,6 +41,7 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 "version=%u;word_size=%u;byte_order=%u;"
 				 "object_structure_version=%u;start=%lu.%lu;"
 				 "last_cfg_change=%lu;config_hash=%s;"
+				 "expected_config_hash=%s;"
 				 "self_assigned_peer_id=%u;warn_flags=%u;"
 				 "active_peers=%u;configured_peers=%u;"
 				 "active_pollers=%u;configured_pollers=%u;"
@@ -72,6 +73,7 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 i->version, i->word_size, i->byte_order,
 				 i->object_structure_version, i->start.tv_sec, i->start.tv_usec,
 				 i->last_cfg_change, tohex(i->config_hash, 20),
+				 tohex(n->expected.config_hash, 20),
 				 i->peer_id, n->warn_flags,
 				 i->active_peers, i->configured_peers,
 				 i->active_pollers, i->configured_pollers,
