@@ -182,7 +182,13 @@ void csync_node_active(merlin_node *node, int tdelta)
 	      node_type(node), node->name, val, child->cmd);
 	node->csync_last_attempt = now;
 	child->node = node;
-	/* special case this for testing */
+
+	/*
+	 * Using ":" as a command is a standard trick to make sure it succeeds.
+	 * It's also reasonably standard to avoid running such commands at all
+	 * from programs, and here it's used to make the running of test-csync
+	 * simpler than it otherwise would be.
+	 */
 	if (strcmp(child->cmd, ":")) {
 		child->is_running = 1;
 		wproc_run_callback(child->cmd, 600, handle_csync_finished, child, NULL);
