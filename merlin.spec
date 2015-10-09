@@ -27,6 +27,8 @@ Requires: op5-mysql
 Requires: glib2
 BuildRequires: mysql-devel
 BuildRequires: op5-naemon-devel
+BuildRequires: python
+BuildRequires: gperf
 Obsoletes: monitor-reports-module
 BuildRequires: check-devel
 BuildRequires: autoconf, automake, libtool

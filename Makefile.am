@@ -232,6 +232,22 @@ data/merlin data/merlin.cfg data/merlin.conf data/kad.conf apps/libexec/syscheck
 		-e 's,@db_pass[@],$(db_pass),g' \
 		$< > $@
 
+GENERATED_NEBEV = \
+	tests/nebev2kvvec.c tests/nebev2kvvec.h \
+	tests/kvvec2nebev.c tests/kvvec2nebev.h \
+	tests/nebev-col2key.gperf
+
+$(GENERATED_NEBEV): tests/generate-nebev2kvvec.py
+	$(AM_V_GEN) python tests/generate-nebev2kvvec.py
+
+tests/nebev-col2key.c tests/nebev-col2key.h: tests/nebev-col2key.gperf
+	$(AM_V_GEN) $(GPERF) --switch=1 --struct-type \
+			--multiple-iterations=10 --readonly-tables \
+			--hash-function-name=nebev_col_phash \
+			--lookup-function-name=nebev_col_key \
+			--language=ANSI-C \
+		$< > $@
+
 apps/op5: apps/mon.py
 	cp $< $@
 
@@ -258,3 +274,5 @@ dist-hook:
 	else \
 		echo A git clone is required to generate a ChangeLog and a AUTHORS file >&2; \
 	fi
+
+.PHONY: $(GENERATED_NEBEV)

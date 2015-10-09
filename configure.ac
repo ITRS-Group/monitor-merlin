@@ -22,6 +22,19 @@ PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GIO], [gio-2.0])
 PKG_CHECK_MODULES([check], [check])
 
+# am_missing_prog doesn't seem to fail, so add redundant checks
+AM_MISSING_PROG([PYTHON], [python])
+AC_CHECK_PROG(PYTHON_CHECK,python,yes)
+if test x"$PYTHON_CHECK" != x"yes" ; then
+	AC_MSG_ERROR([You need to install python])
+fi
+
+AM_MISSING_PROG([GPERF], [gperf])
+AC_CHECK_PROG(GPERF_CHECK,gperf,yes)
+if test x"$GPERF_CHECK" != x"yes" ; then
+	AC_MSG_ERROR([You need to install gperf <https://www.gnu.org/software/gperf>])
+fi
+
 AC_ARG_ENABLE(auto_postinstall, AS_HELP_STRING([--disable-auto-postinstall], [Don't try to modify naemon's configuration or setup the SQL database. If you disable this, you must manually run the install-merlin.sh script in the source distribution after installation. You should disable this if you build redistributable packages.]))
 AM_CONDITIONAL(AUTO_POSTINSTALL, [test "x$enable_auto_postinstall" != "xno"])
 
