@@ -19,6 +19,7 @@ AC_SUBST(naemon_cfg)
 AC_SYS_LARGEFILE
 
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
+PKG_CHECK_MODULES([GIO], [gio-2.0])
 PKG_CHECK_MODULES([check], [check])
 
 AC_ARG_ENABLE(auto_postinstall, AS_HELP_STRING([--disable-auto-postinstall], [Don't try to modify naemon's configuration or setup the SQL database. If you disable this, you must manually run the install-merlin.sh script in the source distribution after installation. You should disable this if you build redistributable packages.]))

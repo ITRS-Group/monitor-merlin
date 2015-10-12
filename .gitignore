@@ -63,3 +63,4 @@ config.h
 config.h.in
 config.status
 config.sub
+merlincat

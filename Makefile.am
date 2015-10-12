@@ -160,7 +160,7 @@ rename_SOURCES = $(app_sources) tools/rename.c $(db_wrap_sources)
 rename_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon $(GLIB_CFLAGS)
 rename_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 
-check_PROGRAMS = $(TESTS) test-dbwrap
+check_PROGRAMS = $(TESTS) test-dbwrap merlincat
 TESTS = sltest test-csync test-lparse hooktest stringutilstest showlogtest bltest codectest
 TESTS_ENVIRONMENT = G_DEBUG=fatal-criticals; export G_DEBUG;
 
@@ -192,6 +192,13 @@ codectest_LDADD = $(naemon_LIBS) $(check_LIBS)
 test_dbwrap_SOURCES = tests/test-dbwrap.c $(shared_sources)
 test_dbwrap_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
 test_dbwrap_LDADD = $(naemon_LIBS) $(AM_LDADD)
+
+merlincat_SOURCES = tools/merlincat/merlincat.c \
+	tools/merlincat/client_gsource.c tools/merlincat/client_gsource.h \
+	tools/merlincat/merlinreader.c tools/merlincat/merlinreader.h
+merlincat_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS)
+merlincat_LDADD = $(GLIB_LIBS) $(GIO_LIBS)
+
 
 install-exec-hook:
 if AUTO_POSTINSTALL
