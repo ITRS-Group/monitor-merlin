@@ -195,7 +195,8 @@ test_dbwrap_LDADD = $(naemon_LIBS) $(AM_LDADD)
 
 merlincat_SOURCES = tools/merlincat/merlincat.c \
 	tools/merlincat/client_gsource.c tools/merlincat/client_gsource.h \
-	tools/merlincat/merlinreader.c tools/merlincat/merlinreader.h
+	tools/merlincat/merlinreader.c tools/merlincat/merlinreader.h \
+	tools/merlincat/merlincat_codec.c tools/merlincat/merlincat_codec.h
 merlincat_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS)
 merlincat_LDADD = $(GLIB_LIBS) $(GIO_LIBS)
 

@@ -115,7 +115,6 @@ static void test_conn_data(gpointer conn, gpointer buffer, gsize length, gpointe
 	MerlinReader *mr = (MerlinReader *)conn_user_data;
 	merlin_event *evt;
 	gsize read_size;
-	printf("TEST: Got data\n");
 	while(length) {
 		read_size = merlinreader_add_data(mr, buffer, length);
 		length -= read_size;
