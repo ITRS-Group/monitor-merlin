@@ -112,6 +112,10 @@ void console_print_merlin_event(merlin_event *evt) {
 		name = "ADAPTIVE_CONTACT";
 		adaptive_contact_to_kvvec(kvv, (void*) evt->body);
 		break;
+	case CTRL_PACKET:
+		name = "CTRL_PACKET"; // FIXME
+		merlin_nodeinfo_to_kvvec(kvv, (void*) evt->body);
+		break;
 	default:
 		name = "UNKNOWN";
 	}
