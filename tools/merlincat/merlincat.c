@@ -121,7 +121,7 @@ static void test_conn_data(gpointer conn, gpointer buffer, gsize length, gpointe
 		buffer += read_size;
 
 		while(NULL != (evt = merlinreader_get_event(mr))) {
-			printf("Got merlin event of type %d code %d\n", evt->hdr.type, evt->hdr.code);
+			console_print_merlin_event(evt);
 			g_free(evt);
 		}
 	}

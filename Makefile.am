@@ -193,13 +193,6 @@ test_dbwrap_SOURCES = tests/test-dbwrap.c $(shared_sources)
 test_dbwrap_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
 test_dbwrap_LDADD = $(naemon_LIBS) $(AM_LDADD)
 
-merlincat_SOURCES = tools/merlincat/merlincat.c \
-	tools/merlincat/client_gsource.c tools/merlincat/client_gsource.h \
-	tools/merlincat/merlinreader.c tools/merlincat/merlinreader.h \
-	tools/merlincat/merlincat_codec.c tools/merlincat/merlincat_codec.h
-merlincat_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS)
-merlincat_LDADD = $(GLIB_LIBS) $(GIO_LIBS)
-
 
 install-exec-hook:
 if AUTO_POSTINSTALL
@@ -247,6 +240,24 @@ tests/nebev-col2key.c tests/nebev-col2key.h: tests/nebev-col2key.gperf
 			--lookup-function-name=nebev_col_key \
 			--language=ANSI-C \
 		$< > $@
+
+tests/kvvec2nebev.c: tests/nebev-col2key.c tests/nebev-col2key.h
+
+BUILT_SOURCES = \
+    tests/nebev2kvvec.c tests/nebev2kvvec.h \
+    tests/kvvec2nebev.c tests/kvvec2nebev.h \
+    tests/nebev-col2key.c tests/nebev-col2key.gperf
+
+merlincat_SOURCES = tools/merlincat/merlincat.c \
+	tools/merlincat/client_gsource.c tools/merlincat/client_gsource.h \
+	tools/merlincat/merlinreader.c tools/merlincat/merlinreader.h \
+	tools/merlincat/merlincat_codec.c tools/merlincat/merlincat_codec.h \
+	tools/merlincat/console.c tools/merlincat/console.h \
+	tests/nebev2kvvec.c tests/nebev2kvvec.h \
+	tests/kvvec2nebev.c tests/kvvec2nebev.h
+
+merlincat_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS)
+merlincat_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS)
 
 apps/op5: apps/mon.py
 	cp $< $@
