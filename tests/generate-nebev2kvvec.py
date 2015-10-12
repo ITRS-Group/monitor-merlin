@@ -7,19 +7,21 @@ nebev2kvvec_file = False
 kvvec2nebev_file = False
 
 # event_structs should be parsed from headers eventually
+common_args = ['timeval:timestamp', 'int:attr', 'int:flags', 'int:type']
+
 event_structs = {
-	'process': [],
-	'timed_event': [
+	'process': common_args + [],
+	'timed_event': common_args + [
 		'int:event_type',
 		'int:recurring',
 		'time_t:run_time',
 	],
-	'log': [
+	'log': common_args + [
 		'time_t:entry_time',
 		'int:data_type',
 		'str:data',
 	],
-	'system_command': [
+	'system_command': common_args + [
 		'timeval:start_time',
 		'timeval:end_time',
 		'int:timeout',
@@ -29,7 +31,7 @@ event_structs = {
 		'int:return_code',
 		'str:output',
 	],
-	'event_handler': [
+	'event_handler': common_args + [
 		'int:eventhandler_type',
 		'str:host_name',
 		'str:service_description',
@@ -46,7 +48,7 @@ event_structs = {
 		'int:return_code',
 		'str:output',
 	],
-	'host_check': [
+	'host_check': common_args + [
 		'str:host_name',
 		'int:current_attempt',
 		'int:check_type',
@@ -67,7 +69,7 @@ event_structs = {
 		'str:long_output',
 		'str:perf_data',
 	],
-	'service_check': [
+	'service_check': common_args + [
 		'str:host_name',
 		'str:service_description',
 		'int:check_type',
@@ -89,7 +91,7 @@ event_structs = {
 		'str:long_output',
 		'str:perf_data',
 	],
-	'comment': [
+	'comment': common_args + [
 		'int:comment_type',
 		'str:host_name',
 		'str:service_description',
@@ -103,7 +105,7 @@ event_structs = {
 		'time_t:expire_time',
 		'ulong:comment_id',
 	],
-	'downtime': [
+	'downtime': common_args + [
 		'int:downtime_type',
 		'str:host_name',
 		'str:service_description',
@@ -117,7 +119,7 @@ event_structs = {
 		'ulong:triggered_by',
 		'ulong:downtime_id',
 	],
-	'flapping': [
+	'flapping': common_args + [
 		'int:flapping_type',
 		'str:host_name',
 		'str:service_description',
@@ -126,7 +128,7 @@ event_structs = {
 		'double:low_threshold',
 		'ulong:comment_id',
 	],
-	'program_status': [
+	'program_status': common_args + [
 		'time_t:program_start',
 		'int:pid',
 		'int:daemon_mode',
@@ -144,10 +146,10 @@ event_structs = {
 		'str:global_host_event_handler',
 		'str:global_service_event_handler',
 	],
-	'host_status': [],
-	'service_status': [],
-	'contact_status': [],
-	'notification': [
+	'host_status': common_args + [],
+	'service_status': common_args + [],
+	'contact_status': common_args + [],
+	'notification': common_args + [
 		'int:notification_type',
 		'timeval:start_time',
 		'timeval:end_time',
@@ -160,7 +162,7 @@ event_structs = {
 		'int:escalated',
 		'int:contacts_notified',
 	],
-	'contact_notification': [
+	'contact_notification': common_args + [
 		'int:notification_type',
 		'timeval:start_time',
 		'timeval:end_time',
@@ -174,7 +176,7 @@ event_structs = {
 		'str:ack_data',
 		'int:escalated',
 	],
-	'contact_notification_method': [
+	'contact_notification_method': common_args + [
 		'int:notification_type',
 		'timeval:start_time',
 		'timeval:end_time',
@@ -190,24 +192,24 @@ event_structs = {
 		'str:ack_data',
 		'int:escalated',
 	],
-	'adaptive_program': [
+	'adaptive_program': common_args + [
 		'int:command_type',
 		'ulong:modified_host_attribute',
 		'ulong:modified_host_attributes',
 		'ulong:modified_service_attribute',
 		'ulong:modified_service_attributes',
 	],
-	'adaptive_host': [
+	'adaptive_host': common_args + [
 		'int:command_type',
 		'ulong:modified_attribute',
 		'ulong:modified_attributes',
 	],
-	'adaptive_service': [
+	'adaptive_service': common_args + [
 		'int:command_type',
 		'ulong:modified_attribute',
 		'ulong:modified_attributes',
 	],
-	'adaptive_contact': [
+	'adaptive_contact': common_args + [
 		'int:command_type',
 		'ulong:modified_attribute',
 		'ulong:modified_attributes',
@@ -216,15 +218,15 @@ event_structs = {
 		'ulong:modified_service_attribute',
 		'ulong:modified_service_attributes',
 	],
-	'external_command': [
+	'external_command': common_args + [
 		'int:command_type',
 		'time_t:entry_time',
 		'str:command_string',
 		'str:command_args',
 	],
-	'aggregated_status': [],
-	'retention': [],
-	'acknowledgement': [
+	'aggregated_status': common_args + [],
+	'retention': common_args + [],
+	'acknowledgement': common_args + [
 		'int:acknowledgement_type',
 		'str:host_name',
 		'str:service_description',
@@ -235,7 +237,7 @@ event_structs = {
 		'int:persistent_comment',
 		'int:notify_contacts',
 	],
-	'statechange': [
+	'statechange': common_args + [
 		'int:statechange_type',
 		'str:host_name',
 		'str:service_description',
@@ -244,8 +246,78 @@ event_structs = {
 		'int:current_attempt',
 		'int:max_attempts',
 		'str:output',
-	],
+	]
 }
+
+monitored_object_state = [
+		'int:state.initial_state',
+		'int:state.flap_detection_enabled',
+		'double:state.low_flap_threshold',
+		'double:state.high_flap_threshold',
+		'int:state.check_freshness',
+		'int:state.freshness_threshold',
+		'int:state.process_performance_data',
+		'int:state.checks_enabled',
+		'int:state.accept_passive_checks',
+		'int:state.event_handler_enabled',
+		'int:state.obsess',
+		'int:state.problem_has_been_acknowledged',
+		'int:state.acknowledgement_type',
+		'int:state.check_type',
+		'int:state.current_state',
+		'int:state.last_state',
+		'int:state.last_hard_state',
+		'int:state.state_type',
+		'int:state.current_attempt',
+		'ulong:state.hourly_value',
+		'ulong:state.current_event_id',
+		'ulong:state.last_event_id',
+		'ulong:state.current_problem_id',
+		'ulong:state.last_problem_id',
+		'double:state.latency',
+		'double:state.execution_time',
+		'int:state.notifications_enabled',
+		'time_t:state.last_notification',
+		'time_t:state.next_notification',
+		'time_t:state.next_check',
+		'int:state.should_be_scheduled',
+		'time_t:state.last_check',
+		'time_t:state.last_state_change',
+		'time_t:state.last_hard_state_change',
+		'time_t:state.last_time_up',
+		'time_t:state.last_time_down',
+		'time_t:state.last_time_unreachable',
+		'int:state.has_been_checked',
+		'int:state.current_notification_number',
+		'ulong:state.current_notification_id',
+		'int:state.check_flapping_recovery_notification',
+		'int:state.scheduled_downtime_depth',
+		'int:state.pending_flex_downtime',
+	] + ['int:state.state_history[%d]' % (i,) for i in range(21)] + [
+		'int:state.state_history_index',
+		'int:state.is_flapping',
+		'ulong:state.flapping_comment_id',
+		'double:state.percent_state_change',
+		'ulong:state.modified_attributes',
+		'int:state.notified_on',
+		'str:state.plugin_output',
+		'str:state.long_plugin_output',
+		'str:state.perf_data',
+	]
+
+event_structs['merlin_host_status'] = [
+		'int:nebattr'
+		] + monitored_object_state + [
+		'str:name'
+	]
+
+event_structs['merlin_service_status'] = [
+		'int:nebattr'
+		] + monitored_object_state + [
+		'str:host_name',
+		'str:service_description'
+	]
+
 
 foo = """
 obj_structs = {
@@ -362,17 +434,12 @@ obj_structs = {
 
 outfile = {}
 
-def add_common_elements(structs, elements):
-	for cb_type in structs:
-		entries = structs[cb_type]
-		for elem in elements:
-			entries.insert(0, elem)
-
 def mk_nebev2kvvec(structs):
 	hdr_ent_buf = "/* GENERATED FILE! DO NOT EDIT! */\n"
 	complete_ent_buf = """/* GENERATED FILE! DO NOT EDIT! */
 #include <stdio.h>
 #include <naemon/naemon.h>
+#include <shared/shared.h>
 """
 	hdr_buf = """
 #include <naemon/naemon.h>
@@ -380,17 +447,19 @@ def mk_nebev2kvvec(structs):
 
 	for cb_type in structs:
 		entries = structs[cb_type]
-		struct_type = 'nebstruct_' + cb_type + '_data'
+		struct_type = cb_type
+		if struct_type[0:7] != 'merlin_':
+			struct_type = 'nebstruct_' + struct_type + '_data'
 		decl = "void %s_to_kvvec(struct kvvec *kvv, void *data)" % cb_type
 		hdr_buf += "%s;\n" % decl
 		ent_buf = """
 %s\n{
-	nebstruct_%s_data *ds;
+	%s *ds;
 	char str[32];
 
-	ds = (nebstruct_%s_data *)data;
+	ds = (%s *)data;
 
-""" % (decl, cb_type, cb_type)
+""" % (decl, struct_type, struct_type)
 		indent = 1
 		for ent in entries:
 			(etype, key) = ent.split(':')
@@ -427,6 +496,7 @@ def mk_kvvec2nebev(structs):
 	complete_ent_buf = """/* GENERATED FILE! DO NOT EDIT! */
 #include <stdio.h>
 #include <naemon/naemon.h>
+#include <shared/shared.h>
 #include \"nebev-col2key.c\"
 """
 	hdr_buf = """
@@ -435,15 +505,17 @@ def mk_kvvec2nebev(structs):
 
 	for cb_type in structs:
 		entries = structs[cb_type]
-		struct_type = 'nebstruct_' + cb_type + '_data'
+		struct_type = cb_type
+		if struct_type[0:7] != 'merlin_':
+			struct_type = 'nebstruct_' + struct_type + '_data'
 		decl = "int kvvec_to_%s(struct kvvec *kvv, void *data)" % cb_type
 		hdr_buf += "%s;\n" % decl
 		ent_buf = """
 %s\n{
-	nebstruct_%s_data *ds;
+	%s *ds;
 	int i;
 
-	ds = (nebstruct_%s_data *)data;
+	ds = (%s *)data;
 	for (i = 0; i < kvv->kv_pairs; i++) {
 		struct key_value *kv = &kvv->kv[i];
 		const struct nebev_column_code *keycode;
@@ -456,12 +528,13 @@ def mk_kvvec2nebev(structs):
 		}
 
 		switch (keycode->code) {
-""" % (decl, cb_type, cb_type)
+""" % (decl, struct_type, struct_type)
 		indent = 3
 		for ent in entries:
 			(etype, key) = ent.split(':')
+			esc_key = key.replace('.','_').replace('[','_').replace(']','_')
 			var_code = ""
-			var_code += "%scase NEBEV_COL_%s:\n%s" % ("\t" * (indent - 1), key, "\t" * indent)
+			var_code += "%scase NEBEV_COL_%s:\n%s" % ("\t" * (indent - 1), esc_key, "\t" * indent)
 
 			if etype == 'int':
 				var_code += 'ds->%s = atoi(kv->value);\n' % key
@@ -511,15 +584,16 @@ def mk_gperf_input(prefix, columns, hardcoded={}):
 	for ent in columns:
 		if skip.get(ent, False):
 			continue
+		this_ent = ent
 		i += 1
 		hc_ent = hardcoded.get(i, False)
 		if hc_ent:
-			ent_enum.append("\t%s%s = %d" % (prefix, hc_ent, i))
-			ent_list.append("%s, %s%s" % (hc_ent, prefix, hc_ent))
-			continue
+			this_ent = hc_ent
 
-		ent_enum.append("\t%s%s = %d" % (prefix, ent, i))
-		ent_list.append("%s, %s%s" % (ent, prefix, ent))
+		esc_ent = this_ent.replace('.','_').replace('[','_').replace(']','_')
+
+		ent_enum.append("\t%s%s = %d" % (prefix, esc_ent, i))
+		ent_list.append("%s, %s%s" % (this_ent, prefix, esc_ent))
 
 	buf = """%%{
 /* GENERATED FILE! DO NOT EDIT! */
@@ -573,7 +647,6 @@ if kvvec2nebev_file == False:
 if not gperf_file.endswith('.gperf'):
 	gperf_file = gperf_file + '.gperf'
 
-add_common_elements(event_structs, ['timeval:timestamp', 'int:attr', 'int:flags', 'int:type'])
 columns = get_columns(event_structs)
 mk_gperf_input("NEBEV_COL_", columns)
 mk_nebev2kvvec(event_structs)

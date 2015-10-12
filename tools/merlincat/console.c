@@ -34,11 +34,11 @@ void console_print_merlin_event(merlin_event *evt) {
 		break;
 	case NEBCALLBACK_SERVICE_CHECK_DATA:
 		name = "SERVICE_CHECK";
-		// service_check_to_kvvec(kvv, (void*) evt->body);
+		merlin_service_status_to_kvvec(kvv, (void*) evt->body);
 		break;
 	case NEBCALLBACK_HOST_CHECK_DATA:
 		name = "HOST_CHECK";
-		// host_check_to_kvvec(kvv, (void*) evt->body);
+		merlin_host_status_to_kvvec(kvv, (void*) evt->body);
 		break;
 	case NEBCALLBACK_COMMENT_DATA:
 		name = "COMMENT";
@@ -58,11 +58,11 @@ void console_print_merlin_event(merlin_event *evt) {
 		break;
 	case NEBCALLBACK_HOST_STATUS_DATA:
 		name = "HOST_STATUS";
-		// host_status_to_kvvec(kvv, (void*) evt->body);
+		merlin_host_status_to_kvvec(kvv, (void*) evt->body);
 		break;
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
 		name = "SERVICE_STATUS";
-		// service_status_to_kvvec(kvv, (void*) evt->body);
+		merlin_service_status_to_kvvec(kvv, (void*) evt->body);
 		break;
 	case NEBCALLBACK_ADAPTIVE_PROGRAM_DATA:
 		name = "ADAPTIVE_PROGRAM";
