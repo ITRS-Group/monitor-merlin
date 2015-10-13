@@ -7,6 +7,8 @@
 
 #include "client_gsource.h"
 #include "merlinreader.h"
+#include "console.h"
+#include "event_packer.h"
 #include <shared/shared.h>
 #include <shared/compat.h>
 
@@ -18,9 +20,13 @@ static gpointer test_conn_new(gpointer conn, gpointer user_data);
 static void test_conn_data(gpointer conn, gpointer buffer, gsize length, gpointer conn_user_data);
 static void test_conn_close(gpointer conn_user_data);
 
+static void merlincat_newline(const char *line, gpointer user_data);
+
 int main(int argc, char *argv[]) {
 	ClientSource *cs = NULL;
 	int retcode = 0;
+
+	ConsoleIO *cio;
 
 	g_type_init();
 
@@ -35,6 +41,8 @@ int main(int argc, char *argv[]) {
 	signal(SIGINT, stop_mainloop);
 	signal(SIGTERM, stop_mainloop);
 
+	cio = consoleio_new(merlincat_newline, NULL);
+
 	cs = client_source_new("", test_conn_new, test_conn_data, test_conn_close, NULL);
 	if(cs == NULL) {
 		fprintf(stderr, "Could not connect\n");
@@ -45,6 +53,7 @@ int main(int argc, char *argv[]) {
 	g_main_loop_run(g_mainloop);
 
 cleanup:
+	consoleio_destroy(cio);
 	client_source_destroy(cs);
 	g_main_loop_unref(g_mainloop);
 	return retcode;
@@ -115,13 +124,16 @@ static void test_conn_data(gpointer conn, gpointer buffer, gsize length, gpointe
 	MerlinReader *mr = (MerlinReader *)conn_user_data;
 	merlin_event *evt;
 	gsize read_size;
+	char *buf;
 	while(length) {
 		read_size = merlinreader_add_data(mr, buffer, length);
 		length -= read_size;
 		buffer += read_size;
 
 		while(NULL != (evt = merlinreader_get_event(mr))) {
-			console_print_merlin_event(evt);
+			buf = event_packer_pack(evt);
+			printf("Line: %s\n", buf);
+			free(buf);
 			g_free(evt);
 		}
 	}
@@ -131,4 +143,8 @@ static void test_conn_close(gpointer conn_user_data) {
 	printf("TEST: Closed\n");
 	merlinreader_destroy(mr);
 	g_main_loop_quit(g_mainloop);
+}
+
+static void merlincat_newline(const char *line, gpointer user_data) {
+	printf("===============\n\nYay we got a new line from command line:\n%s\n\n===============\n", line);
 }

@@ -20,6 +20,7 @@ AC_SYS_LARGEFILE
 
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GIO], [gio-2.0])
+PKG_CHECK_MODULES([GIO_UNIX], [gio-unix-2.0])
 PKG_CHECK_MODULES([check], [check])
 
 # am_missing_prog doesn't seem to fail, so add redundant checks

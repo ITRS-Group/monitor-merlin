@@ -33,6 +33,7 @@ Obsoletes: monitor-reports-module
 BuildRequires: check-devel
 BuildRequires: autoconf, automake, libtool
 BuildRequires: glib2-devel
+BuildRequires: pkgconfig(gio-unix-2.0)
 
 %if 0%{?suse_version}
 BuildRequires: libdbi-devel

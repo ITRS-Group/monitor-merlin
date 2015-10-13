@@ -257,8 +257,8 @@ merlincat_SOURCES = tools/merlincat/merlincat.c \
 	tests/nebev2kvvec.c tests/nebev2kvvec.h \
 	tests/kvvec2nebev.c tests/kvvec2nebev.h
 
-merlincat_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS)
-merlincat_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS)
+merlincat_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIO_UNIX_CFLAGS)
+merlincat_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS) $(GIO_UNIX_LIBS)
 
 apps/op5: apps/mon.py
 	cp $< $@

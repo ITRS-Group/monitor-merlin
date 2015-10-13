@@ -3,6 +3,12 @@
 
 #include <shared/node.h>
 
-void console_print_merlin_event(merlin_event *evt);
+struct ConsoleIO_;
+typedef struct ConsoleIO_ ConsoleIO;
+
+ConsoleIO *consoleio_new(void (*session_newline)(const char *, gpointer),
+		gpointer user_data);
+
+void consoleio_destroy(ConsoleIO *cio);
 
 #endif /* TOOLS_MERLINCAT_CONSOLE_H_ */
