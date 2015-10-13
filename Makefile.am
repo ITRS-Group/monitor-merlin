@@ -253,6 +253,7 @@ merlincat_SOURCES = tools/merlincat/merlincat.c \
 	tools/merlincat/merlinreader.c tools/merlincat/merlinreader.h \
 	tools/merlincat/merlincat_codec.c tools/merlincat/merlincat_codec.h \
 	tools/merlincat/console.c tools/merlincat/console.h \
+	tools/merlincat/event_packer.c tools/merlincat/event_packer.h \
 	tests/nebev2kvvec.c tests/nebev2kvvec.h \
 	tests/kvvec2nebev.c tests/kvvec2nebev.h
 
