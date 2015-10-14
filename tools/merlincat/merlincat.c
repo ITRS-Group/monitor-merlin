@@ -28,6 +28,7 @@ static void merlincat_newline(const char *line, gpointer user_data);
 
 int main(int argc, char *argv[]) {
 	ClientSource *cs = NULL;
+	gpointer *current_conn = NULL;
 	int retcode = 0;
 
 	ConsoleIO *cio;
@@ -56,14 +57,14 @@ int main(int argc, char *argv[]) {
 	signal(SIGINT, stop_mainloop);
 	signal(SIGTERM, stop_mainloop);
 
-	cio = consoleio_new(merlincat_newline, NULL);
-
-	cs = client_source_new(&conn_info, test_conn_new, test_conn_data, test_conn_close, NULL);
+	cs = client_source_new(&conn_info, test_conn_new, test_conn_data, test_conn_close, &current_conn);
 	if(cs == NULL) {
 		fprintf(stderr, "Could not connect\n");
 		retcode = 1;
 		goto cleanup;
 	}
+
+	cio = consoleio_new(merlincat_newline, (gpointer)&current_conn);
 
 	g_main_loop_run(g_mainloop);
 
@@ -79,8 +80,12 @@ static void stop_mainloop(int signal) {
 }
 
 static gpointer test_conn_new(gpointer conn, gpointer user_data) {
+	gpointer *current_conn = (gpointer*)user_data;
 	MerlinReader *mr = merlinreader_new();
 	printf("TEST: Connected\n");
+
+	/* Save this socket, so we can send data to it later */
+	*current_conn = conn;
 
 	merlin_event pkt;
 	merlin_nodeinfo node;
@@ -161,7 +166,22 @@ static void test_conn_close(gpointer conn_user_data) {
 }
 
 static void merlincat_newline(const char *line, gpointer user_data) {
-	printf("===============\n\nYay we got a new line from command line:\n%s\n\n===============\n", line);
+	gpointer *current_conn = (gpointer*)user_data;
+	merlin_event *evt = NULL;
+
+	if(*current_conn == NULL) {
+		printf("Not connected\n");
+		return;
+	}
+
+	evt = event_packer_unpack(line);
+	if(evt == NULL) {
+		printf("Couldn't parse packet\n");
+		return;
+	}
+	client_source_send(*current_conn, evt, HDR_SIZE + evt->hdr.len);
+	printf("Sent %d bytes\n", evt->hdr.len + HDR_SIZE);
+	free(evt);
 }
 
 static void usage(char *msg) {

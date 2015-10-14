@@ -12,9 +12,6 @@
 #include <shared/node.h>
 #include "merlinreader.h"
 
-/* /possible/ TODO: make a copy, so we guarantee the correct version of this header */
-#include <shared/codec.h>
-
 struct MerlinReader_ {
 	union {
 		char raw[MAX_PKT_SIZE];
@@ -62,15 +59,6 @@ merlin_event *merlinreader_get_event(MerlinReader *mr) {
 
 	mr->bufsize -= event_size;
 	memmove(mr->buffer.raw, mr->buffer.raw + event_size, mr->bufsize);
-
-	/* CTRL_PACKET isn't decoded through merlin*_decode */
-	if(event_storage->hdr.type != CTRL_PACKET) {
-		if(merlincat_decode(event_storage->body, event_storage->hdr.len,
-				event_storage->hdr.type)) {
-			/* TODO: Error handling... */
-			printf("Error decoding packet\n");
-		}
-	}
 
 	return event_storage;
 }

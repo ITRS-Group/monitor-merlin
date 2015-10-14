@@ -10,6 +10,14 @@
  *
  * The returned string should be freed with free
  */
-char *event_packer_pack(merlin_event *evt);
+char *event_packer_pack(const merlin_event *evt);
+
+/**
+ * Takes a line representing the an merlin_event as a line as outputted from
+ * event_packer_pack, and resturns a newly allocated merlin_event
+ *
+ * The returned merlin_event should be freed with free
+ */
+merlin_event *event_packer_unpack(const char *line);
 
 #endif /* TOOLS_MERLINCAT_EVENT_PACKER_H_ */
