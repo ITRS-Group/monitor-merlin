@@ -1,5 +1,6 @@
 #include <gio/gio.h>
 #include <stdio.h>
+#include <gio/gunixsocketaddress.h>
 #include "client_gsource.h"
 
 struct ClientSource_ {
@@ -35,25 +36,33 @@ ClientSource *client_source_new(const struct ConnectionInfo* conn_info,
 	cs->sock = NULL;
 	cs->source = NULL;
 
-	cs->sock = g_socket_new(G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, NULL);
+	if (conn_info->type == UNIX) {
+		cs->sock = g_socket_new(G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, NULL);
+		inetaddr = NULL;
+		addr = g_unix_socket_address_new(conn_info->dest_addr);
+	} else { /* conn_info->type == TCP */
+		cs->sock = g_socket_new(G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, NULL);
 
-	/* Try to bind with a given source address... FIXME */
-	inetaddr = g_inet_address_new_from_string(conn_info->source_addr);
-	addr = g_inet_socket_address_new(inetaddr, conn_info->source_port);
-	g_socket_bind(cs->sock, addr, TRUE, NULL);
-	g_object_unref((GObject *)addr);
-	g_object_unref((GObject *)inetaddr);
-
-	inetaddr = g_inet_address_new_from_string(conn_info->dest_addr);
-	addr = g_inet_socket_address_new(inetaddr, conn_info->dest_port);
-	if(!g_socket_connect(cs->sock, addr, NULL, NULL)) {
+		/* Try to bind with a given source address... FIXME */
+		inetaddr = g_inet_address_new_from_string(conn_info->source_addr);
+		addr = g_inet_socket_address_new(inetaddr, conn_info->source_port);
+		g_socket_bind(cs->sock, addr, TRUE, NULL);
 		g_object_unref((GObject *)addr);
 		g_object_unref((GObject *)inetaddr);
+
+		/* Create destination address */
+		inetaddr = g_inet_address_new_from_string(conn_info->dest_addr);
+		addr = g_inet_socket_address_new(inetaddr, conn_info->dest_port);
+	}
+
+	if(!g_socket_connect(cs->sock, addr, NULL, NULL)) {
+		g_object_unref((GObject *)addr);
+		if (inetaddr) g_object_unref((GObject *)inetaddr);
 		client_source_destroy(cs);
 		return NULL;
 	}
 	g_object_unref((GObject *)addr);
-	g_object_unref((GObject *)inetaddr);
+	if (inetaddr) g_object_unref((GObject *)inetaddr);
 
 	cs->conn_user_data = (*cs->conn_new)((gpointer)cs, cs->user_data);
 

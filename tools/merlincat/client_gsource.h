@@ -7,7 +7,7 @@ struct ClientSource_;
 typedef struct ClientSource_ ClientSource;
 
 struct ConnectionInfo {
-	 int type; /* AF_INET or AF_UNIX */
+	 enum { TCP, UNIX } type;
 	 char *dest_addr;
 	 int dest_port;
 	 char *source_addr;

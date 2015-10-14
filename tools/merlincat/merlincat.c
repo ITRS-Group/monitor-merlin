@@ -61,6 +61,9 @@ int main(int argc, char *argv[]) {
 		retcode = 1;
 		goto cleanup;
 	}
+	/* Clean up strings in conn_info */
+	free(conn_info.dest_addr);
+	free(conn_info.source_addr);
 
 	cio = consoleio_new(console_newline, (gpointer)&current_conn);
 
@@ -167,7 +170,7 @@ static void usage(char *msg) {
 		printf("%s\n\n", msg);
 
 	printf("Usage: %s -t <conntype> -d <address> [-l] [-s <address>]\n", program_name);
-	printf("  -t <conntype>   Specify connection type ('unix' or 'inet')\n");
+	printf("  -t <conntype>   Specify connection type ('tcp' or 'unix')\n");
 	printf("  -d <address>    Address parameters\n");
 	printf("  -s <address>    Source address parameters (optional)\n");
 	printf("  -l              Listen instead of connect (default: no)\n");
@@ -189,10 +192,10 @@ static void parse_args(struct ConnectionInfo *conn_info, int argc, char *argv[])
 		switch(c) {
 			case 't':
 				/* Connection type. Could be tcp, unix, etc... */
-				if (0 == strcasecmp("inet", optarg))
-					conn_info->type = AF_INET;
+				if (0 == strcasecmp("tcp", optarg))
+					conn_info->type = TCP;
 				else if (0 == strcasecmp("unix", optarg))
-					conn_info->type = AF_UNIX;
+					conn_info->type = UNIX;
 				else
 					usage("Invalid argument for option -t");
 				break;
@@ -233,11 +236,15 @@ static void parse_args(struct ConnectionInfo *conn_info, int argc, char *argv[])
 	}
 
 	switch (conn_info->type) {
-		case AF_UNIX:
+		case UNIX:
 			/* TODO: Check that destination seems to be correct. Ignore source. */
+			conn_info->dest_addr = strdup(dest);
+
+			if (source)
+				printf("Source will be ignored using UNIX socket\n");
 
 			break;
-		case AF_INET:
+		case TCP:
 			/* Parse address and port from dest string. */
 			conn_info->dest_addr = strsep(&dest, ":"); /* Moves pointer in dest to dest_addr. */
 			if (dest)
@@ -249,16 +256,20 @@ static void parse_args(struct ConnectionInfo *conn_info, int argc, char *argv[])
 			/* Parse address and port from source string. */
 			if (source) {
 				conn_info->source_addr = strsep(&source, ":"); /* Moves pointer in source to source_addr. */
-				if (source)
+				if (source) {
 					conn_info->source_port = atoi(source);
-				source = NULL;
+					source = NULL;
+				}
+			} else {
+				conn_info->source_addr = strdup("0.0.0.0");
 			}
 			break;
 		default:
 			/* We can never end up here */
-			break;
+			printf("Logical error\n");
+			exit(EXIT_FAILURE);
 	}
 
-	if (dest)   free(dest);
-	if (source) free(source);
+	free(dest);
+	free(source);
 }
