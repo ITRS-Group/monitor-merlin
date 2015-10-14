@@ -6,7 +6,16 @@
 struct ClientSource_;
 typedef struct ClientSource_ ClientSource;
 
-ClientSource *client_source_new(const char *conn_str,
+struct ConnectionInfo {
+	 int type; /* AF_INET or AF_UNIX */
+	 char *dest_addr;
+	 int dest_port;
+	 char *source_addr;
+	 int source_port;
+	 gboolean listen;
+};
+
+ClientSource *client_source_new(const struct ConnectionInfo*,
 	/*
 	 * arg 1: connection reference, for sending data
 	 * arg 2: user_data passed to this method

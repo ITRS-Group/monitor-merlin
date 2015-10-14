@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "client_gsource.h"
 #include "merlinreader.h"
@@ -13,12 +14,15 @@
 #include <shared/compat.h>
 
 GMainLoop *g_mainloop = NULL;
+char *program_name;
 
 static void stop_mainloop(int signal);
 
 static gpointer test_conn_new(gpointer conn, gpointer user_data);
 static void test_conn_data(gpointer conn, gpointer buffer, gsize length, gpointer conn_user_data);
 static void test_conn_close(gpointer conn_user_data);
+static void parse_args(struct ConnectionInfo *conn, int argc, char *argv[]);
+static void usage(char *msg) __attribute__((noreturn));
 
 static void merlincat_newline(const char *line, gpointer user_data);
 
@@ -27,6 +31,17 @@ int main(int argc, char *argv[]) {
 	int retcode = 0;
 
 	ConsoleIO *cio;
+	program_name = argv[0];
+
+	struct ConnectionInfo conn_info;
+	parse_args(&conn_info, argc, argv);
+
+	printf("type: %d\n", conn_info.type);
+	printf("dest: %s\n", conn_info.dest_addr);
+	printf("dest: %d\n", conn_info.dest_port);
+	printf("source: %s\n", conn_info.source_addr);
+	printf("source: %d\n", conn_info.source_port);
+	printf("listen: %d\n", conn_info.listen);
 
 	g_type_init();
 
@@ -43,7 +58,7 @@ int main(int argc, char *argv[]) {
 
 	cio = consoleio_new(merlincat_newline, NULL);
 
-	cs = client_source_new("", test_conn_new, test_conn_data, test_conn_close, NULL);
+	cs = client_source_new(&conn_info, test_conn_new, test_conn_data, test_conn_close, NULL);
 	if(cs == NULL) {
 		fprintf(stderr, "Could not connect\n");
 		retcode = 1;
@@ -147,4 +162,105 @@ static void test_conn_close(gpointer conn_user_data) {
 
 static void merlincat_newline(const char *line, gpointer user_data) {
 	printf("===============\n\nYay we got a new line from command line:\n%s\n\n===============\n", line);
+}
+
+static void usage(char *msg) {
+	if (msg)
+		printf("%s\n\n", msg);
+
+	printf("Usage: %s -t <conntype> -d <address> [-l] [-s <address>]\n", program_name);
+	printf("  -t <conntype>   Specify connection type ('unix' or 'inet')\n");
+	printf("  -d <address>    Address parameters\n");
+	printf("  -s <address>    Source address parameters (optional)\n");
+	printf("  -l              Listen instead of connect (default: no)\n");
+	printf("\n  An \"address\" consists of <address>:<ip>\n");
+	exit(EXIT_FAILURE);
+}
+
+static void parse_args(struct ConnectionInfo *conn_info, int argc, char *argv[]) {
+	int c;
+	char *dest   = NULL;
+	char *source = NULL;
+	opterr = 0;
+
+	/* Initial values for conn_info */
+	memset(conn_info, 0, sizeof(*conn_info));
+	conn_info->type = -1;
+
+	while((c = getopt(argc, argv, "t:d:s:l:")) != -1) {
+		switch(c) {
+			case 't':
+				/* Connection type. Could be tcp, unix, etc... */
+				if (0 == strcasecmp("inet", optarg))
+					conn_info->type = AF_INET;
+				else if (0 == strcasecmp("unix", optarg))
+					conn_info->type = AF_UNIX;
+				else
+					usage("Invalid argument for option -t");
+				break;
+			case 'd':
+				/*
+				 * Connection destination. Format depending on type.
+				 * Save destination and parse later when we know the type.
+				 */
+				dest = strdup(optarg);
+				break;
+			case 's':
+				/*
+				 * Connection source. Only applicable on some types.
+				 * Save source and parse later when we know the type.
+				 */
+				source = strdup(optarg);
+				break;
+			case 'l':
+				/* TODO: Implement this when it is needed for testing. */
+				break;
+			case '?':
+			default:
+				usage("Option not found or missing argument for option");
+		}
+	}
+
+	if (conn_info->type == -1 || dest == NULL) {
+		usage("Required option(s) missing");
+	}
+
+	if (optind != argc) {
+		int i;
+		printf("Unhandled arguments present: ");
+		for (i = optind; i < argc; i++) {
+			printf("%s%s", argv[i], i == argc - 1 ? "\n" : ", ");
+		}
+		usage(NULL);
+	}
+
+	switch (conn_info->type) {
+		case AF_UNIX:
+			/* TODO: Check that destination seems to be correct. Ignore source. */
+
+			break;
+		case AF_INET:
+			/* Parse address and port from dest string. */
+			conn_info->dest_addr = strsep(&dest, ":"); /* Moves pointer in dest to dest_addr. */
+			if (dest)
+				conn_info->dest_port = atoi(dest);
+			else
+				usage("Destination port required");
+			dest = NULL;
+
+			/* Parse address and port from source string. */
+			if (source) {
+				conn_info->source_addr = strsep(&source, ":"); /* Moves pointer in source to source_addr. */
+				if (source)
+					conn_info->source_port = atoi(source);
+				source = NULL;
+			}
+			break;
+		default:
+			/* We can never end up here */
+			break;
+	}
+
+	if (dest)   free(dest);
+	if (source) free(source);
 }

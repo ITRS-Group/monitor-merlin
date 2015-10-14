@@ -17,11 +17,12 @@ struct ClientSource_ {
 static gboolean client_source_data_callback(GSocket *socket,
 		GIOCondition condition, gpointer user_data);
 
-ClientSource *client_source_new(const char *conn_str,
+ClientSource *client_source_new(const struct ConnectionInfo* conn_info,
 	gpointer (*conn_new)(gpointer, gpointer),
 	void (*conn_data)(gpointer, gpointer, gsize, gpointer),
 	void (*conn_close)(gpointer),
-	gpointer user_data) {
+	gpointer user_data)
+{
 
 	GSocketAddress *addr;
 	GInetAddress *inetaddr;
@@ -37,14 +38,14 @@ ClientSource *client_source_new(const char *conn_str,
 	cs->sock = g_socket_new(G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, NULL);
 
 	/* Try to bind with a given source address... FIXME */
-	inetaddr = g_inet_address_new_from_string("127.0.0.1");
-	addr = g_inet_socket_address_new(inetaddr, 31337);
+	inetaddr = g_inet_address_new_from_string(conn_info->source_addr);
+	addr = g_inet_socket_address_new(inetaddr, conn_info->source_port);
 	g_socket_bind(cs->sock, addr, TRUE, NULL);
 	g_object_unref((GObject *)addr);
 	g_object_unref((GObject *)inetaddr);
 
-	inetaddr = g_inet_address_new_from_string("127.0.0.1");
-	addr = g_inet_socket_address_new(inetaddr, 15551);
+	inetaddr = g_inet_address_new_from_string(conn_info->dest_addr);
+	addr = g_inet_socket_address_new(inetaddr, conn_info->dest_port);
 	if(!g_socket_connect(cs->sock, addr, NULL, NULL)) {
 		g_object_unref((GObject *)addr);
 		g_object_unref((GObject *)inetaddr);
