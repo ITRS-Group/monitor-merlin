@@ -89,7 +89,7 @@ static gboolean consoleio_recv(GInputStream *stream, gpointer user_data) {
 		return FALSE; // remove source
 	}
 
-	printf("Some error: %s\n", error->message);
+	fprintf(stderr, "Error when reading data from console: %s\n", error->message);
 	g_error_free(error);
 
 	g_object_unref(stream);

@@ -39,14 +39,15 @@ gsize merlinreader_add_data(MerlinReader *mr, gpointer data, gsize size) {
 }
 merlin_event *merlinreader_get_event(MerlinReader *mr) {
 	gsize event_size;
-	merlin_event *event_storage;
+	merlin_event *event_storage = NULL;
 	/* We need at least a header to be able to read anything at all */
 	if (mr->bufsize < sizeof(merlin_header))
 		return NULL;
 
 	if (mr->buffer.evt.hdr.sig.id != MERLIN_SIGNATURE) {
 		/* TODO: Error handling... look for a correct header to resync? */
-		printf("INVALID MERLIN HEADER\n");
+		goto error;
+
 	}
 	event_size = mr->buffer.evt.hdr.len + sizeof(merlin_header);
 
@@ -61,4 +62,8 @@ merlin_event *merlinreader_get_event(MerlinReader *mr) {
 	memmove(mr->buffer.raw, mr->buffer.raw + event_size, mr->bufsize);
 
 	return event_storage;
+
+error:
+	g_free(event_storage);
+	return NULL;
 }

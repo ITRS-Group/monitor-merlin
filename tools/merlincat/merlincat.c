@@ -18,17 +18,22 @@ char *program_name;
 
 static void stop_mainloop(int signal);
 
-static gpointer test_conn_new(gpointer conn, gpointer user_data);
-static void test_conn_data(gpointer conn, gpointer buffer, gsize length, gpointer conn_user_data);
-static void test_conn_close(gpointer conn_user_data);
-static void parse_args(struct ConnectionInfo *conn, int argc, char *argv[]);
-static void usage(char *msg) __attribute__((noreturn));
+static gpointer net_send_ctrl_active(gpointer conn);
+static gpointer net_conn_new(gpointer conn, gpointer user_data);
+static void net_conn_data(gpointer conn, gpointer buffer, gsize length, gpointer conn_user_data);
+static void net_conn_close(gpointer conn_user_data);
+static void console_newline(const char *line, gpointer user_data);
 
-static void merlincat_newline(const char *line, gpointer user_data);
+static void usage(char *msg) __attribute__((noreturn));
+static void parse_args(struct ConnectionInfo *conn, int argc, char *argv[]);
+
 
 int main(int argc, char *argv[]) {
 	ClientSource *cs = NULL;
+
+	/* Reference to the current connection, to send data asynchronously */
 	gpointer *current_conn = NULL;
+
 	int retcode = 0;
 
 	ConsoleIO *cio;
@@ -36,13 +41,6 @@ int main(int argc, char *argv[]) {
 
 	struct ConnectionInfo conn_info;
 	parse_args(&conn_info, argc, argv);
-
-	printf("type: %d\n", conn_info.type);
-	printf("dest: %s\n", conn_info.dest_addr);
-	printf("dest: %d\n", conn_info.dest_port);
-	printf("source: %s\n", conn_info.source_addr);
-	printf("source: %d\n", conn_info.source_port);
-	printf("listen: %d\n", conn_info.listen);
 
 	g_type_init();
 
@@ -57,14 +55,14 @@ int main(int argc, char *argv[]) {
 	signal(SIGINT, stop_mainloop);
 	signal(SIGTERM, stop_mainloop);
 
-	cs = client_source_new(&conn_info, test_conn_new, test_conn_data, test_conn_close, &current_conn);
+	cs = client_source_new(&conn_info, net_conn_new, net_conn_data, net_conn_close, &current_conn);
 	if(cs == NULL) {
 		fprintf(stderr, "Could not connect\n");
 		retcode = 1;
 		goto cleanup;
 	}
 
-	cio = consoleio_new(merlincat_newline, (gpointer)&current_conn);
+	cio = consoleio_new(console_newline, (gpointer)&current_conn);
 
 	g_main_loop_run(g_mainloop);
 
@@ -79,40 +77,12 @@ static void stop_mainloop(int signal) {
 	g_main_loop_quit(g_mainloop);
 }
 
-static gpointer test_conn_new(gpointer conn, gpointer user_data) {
-	gpointer *current_conn = (gpointer*)user_data;
-	MerlinReader *mr = merlinreader_new();
-	printf("TEST: Connected\n");
-
-	/* Save this socket, so we can send data to it later */
-	*current_conn = conn;
-
+static gpointer net_send_ctrl_active(gpointer conn) {
 	merlin_event pkt;
 	merlin_nodeinfo node;
 
 	memset(&pkt.hdr, 0, HDR_SIZE);
 	memset(&node, 0, sizeof(merlin_nodeinfo));
-
-/*
-	119         ("L", "version", 1),
-	120         ("L", "word_size", 64), # bits per register (sizeof(void *) * 8)
-	121         ("L", "byte_order", 1234), # 1234 = little, 4321 = big, ...
-	122         ("L", "object_structure_version", 402),
-	123         #struct timeval start; # module (or daemon) start time
-	124         ("16s", None, ""),
-	125         ("Q", "last_cfg_change", 0), # when config was last changed
-	126         ("20s", "config_hash", "a cool config hash"), # SHA1 hash of object config hash
-	127         ("L", "peer_id", 0), # self-assigned peer-id
-	128         ("L", "active_peers", 0),
-	129         ("L", "configured_peers", 0),
-	130         ("L", "active_pollers", 0),
-	131         ("L", "configured_pollers", 0),
-	132         ("L", "active_masters", 0),
-	133         ("L", "configured_masters", 0),
-	134         ("L", "host_checks_handled", 0),
-	135         ("L", "service_checks_handled", 0),
-	136         ("L", "monitored_object_state_size", 0)
-*/
 
 	pkt.hdr.sig.id = MERLIN_SIGNATURE;
 	pkt.hdr.protocol = MERLIN_PROTOCOL_VERSION;
@@ -137,10 +107,20 @@ static gpointer test_conn_new(gpointer conn, gpointer user_data) {
 	memcpy(&pkt.body, &node, sizeof(merlin_nodeinfo));
 
 	client_source_send(conn, &pkt, HDR_SIZE + pkt.hdr.len);
+}
+
+static gpointer net_conn_new(gpointer conn, gpointer user_data) {
+	gpointer *current_conn = (gpointer*)user_data;
+	MerlinReader *mr = merlinreader_new();
+
+	/* Save this socket, so we can send data to it later */
+	*current_conn = conn;
+
+	net_send_ctrl_active(*current_conn);
 
 	return mr;
 }
-static void test_conn_data(gpointer conn, gpointer buffer, gsize length, gpointer conn_user_data) {
+static void net_conn_data(gpointer conn, gpointer buffer, gsize length, gpointer conn_user_data) {
 	MerlinReader *mr = (MerlinReader *)conn_user_data;
 	merlin_event *evt;
 	gsize read_size;
@@ -152,35 +132,33 @@ static void test_conn_data(gpointer conn, gpointer buffer, gsize length, gpointe
 
 		while(NULL != (evt = merlinreader_get_event(mr))) {
 			buf = event_packer_pack(evt);
-			printf("Line: %s\n", buf);
+			printf("%s\n", buf);
 			free(buf);
 			g_free(evt);
 		}
 	}
 }
-static void test_conn_close(gpointer conn_user_data) {
+static void net_conn_close(gpointer conn_user_data) {
 	MerlinReader *mr = (MerlinReader *)conn_user_data;
-	printf("TEST: Closed\n");
 	merlinreader_destroy(mr);
 	g_main_loop_quit(g_mainloop);
 }
 
-static void merlincat_newline(const char *line, gpointer user_data) {
+static void console_newline(const char *line, gpointer user_data) {
 	gpointer *current_conn = (gpointer*)user_data;
 	merlin_event *evt = NULL;
 
 	if(*current_conn == NULL) {
-		printf("Not connected\n");
+		fprintf(stderr, "Trying to send while not connected\n");
 		return;
 	}
 
 	evt = event_packer_unpack(line);
 	if(evt == NULL) {
-		printf("Couldn't parse packet\n");
+		fprintf(stderr, "Malformed packet from console\n");
 		return;
 	}
 	client_source_send(*current_conn, evt, HDR_SIZE + evt->hdr.len);
-	printf("Sent %d bytes\n", evt->hdr.len + HDR_SIZE);
 	free(evt);
 }
 
