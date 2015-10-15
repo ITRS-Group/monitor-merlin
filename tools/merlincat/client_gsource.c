@@ -47,7 +47,6 @@ ClientSource *client_source_new(const ConnectionInfo* conn_info,
 
 	if (conn_info->type == UNIX) {
 		cs->sock = g_socket_new(G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, NULL);
-		inetaddr = NULL;
 		addr = g_unix_socket_address_new(conn_info->dest_addr);
 	} else { /* conn_info->type == TCP */
 		cs->sock = g_socket_new(G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, NULL);
@@ -62,6 +61,7 @@ ClientSource *client_source_new(const ConnectionInfo* conn_info,
 		/* Create destination address */
 		inetaddr = g_inet_address_new_from_string(conn_info->dest_addr);
 		addr = g_inet_socket_address_new(inetaddr, conn_info->dest_port);
+		g_object_unref((GObject *)inetaddr);
 	}
 
 	if(!g_socket_connect(cs->sock, addr, NULL, NULL)) {
@@ -71,7 +71,6 @@ ClientSource *client_source_new(const ConnectionInfo* conn_info,
 		return NULL;
 	}
 	g_object_unref((GObject *)addr);
-	if (inetaddr) g_object_unref((GObject *)inetaddr);
 
 	cs->conn_user_data = (*cs->conn_new)(cs->conn_store, cs->user_data);
 

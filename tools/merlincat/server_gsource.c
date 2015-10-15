@@ -13,6 +13,9 @@ struct ServerSource_ {
 	void (*session_newline)(ConnectionStorage *, gpointer, gsize, gpointer);
 	void (*session_destroy)(gpointer);
 	gpointer user_data;
+
+	// if using a unix socket, save the path so we can clean up
+	gchar *socket_path;
 };
 
 typedef struct ServerSourceStorage_ {
@@ -38,12 +41,14 @@ ServerSource *server_source_new(const ConnectionInfo *conn_info,
 	GSocketAddress *addr;
 	ServerSource *csock;
 	GInetAddress *inetaddr;
+	GError *error;
 
 	csock = g_malloc(sizeof(ServerSource));
 	csock->session_new = session_new;
 	csock->session_newline = session_newline;
 	csock->session_destroy = session_destroy;
 	csock->user_data = user_data;
+	csock->socket_path = NULL;
 
 	csock->sockserv = g_socket_service_new();
 	if (!csock->sockserv) {
@@ -51,7 +56,8 @@ ServerSource *server_source_new(const ConnectionInfo *conn_info,
 	}
 
 	if (conn_info->type == UNIX) {
-		addr = g_unix_socket_address_new(conn_info->dest_addr);
+		csock->socket_path = g_strdup(conn_info->dest_addr);
+		addr = g_unix_socket_address_new(csock->socket_path);
 	} else { /* conn_info->type == TCP */
 		/* Create destination address */
 		inetaddr = g_inet_address_new_from_string(conn_info->dest_addr);
@@ -63,9 +69,11 @@ ServerSource *server_source_new(const ConnectionInfo *conn_info,
 			G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT,
 			NULL,
 			NULL,
-			NULL /* (GError **) */
+			&error
 			)) {
 		/* Some error */
+		fprintf(stderr, "%s\n", error->message);
+		g_error_free(error);
 	}
 	g_object_unref(addr);
 
@@ -78,6 +86,10 @@ ServerSource *server_source_new(const ConnectionInfo *conn_info,
 void server_source_destroy(ServerSource *csock) {
 	if (csock == NULL)
 		return;
+	if(csock->socket_path) {
+		unlink(csock->socket_path);
+		g_free(csock->socket_path);
+	}
 	g_socket_listener_close((GSocketListener*) csock->sockserv);
 	g_free(csock);
 }
@@ -138,7 +150,7 @@ static gboolean server_source_recv(GSocket *sock, GIOCondition condition,
 		return FALSE; // FALSE = remove source
 	}
 
-	printf("Some error: %s\n", error->message);
+	fprintf(stderr, "Some error: %s\n", error->message);
 	g_error_free(error);
 
 	g_object_unref(sock);
