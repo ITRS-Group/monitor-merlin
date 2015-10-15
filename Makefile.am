@@ -250,6 +250,7 @@ BUILT_SOURCES = \
 
 merlincat_SOURCES = tools/merlincat/merlincat.c \
 	tools/merlincat/client_gsource.c tools/merlincat/client_gsource.h \
+	tools/merlincat/server_gsource.c tools/merlincat/server_gsource.h \
 	tools/merlincat/merlinreader.c tools/merlincat/merlinreader.h \
 	tools/merlincat/merlincat_codec.c tools/merlincat/merlincat_codec.h \
 	tools/merlincat/console.c tools/merlincat/console.h \

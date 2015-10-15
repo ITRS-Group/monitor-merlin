@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include "client_gsource.h"
+#include "server_gsource.h"
 #include "merlinreader.h"
 #include "console.h"
 #include "event_packer.h"
@@ -30,6 +31,7 @@ static void parse_args(ConnectionInfo *conn, int argc, char *argv[]);
 
 int main(int argc, char *argv[]) {
 	ClientSource *cs = NULL;
+	ServerSource *ss = NULL;
 
 	/* Reference to the current connection, to send data asynchronously */
 	ConnectionStorage *current_conn = NULL;
@@ -55,11 +57,20 @@ int main(int argc, char *argv[]) {
 	signal(SIGINT, stop_mainloop);
 	signal(SIGTERM, stop_mainloop);
 
-	cs = client_source_new(&conn_info, net_conn_new, net_conn_data, net_conn_close, &current_conn);
-	if(cs == NULL) {
-		fprintf(stderr, "Could not connect\n");
-		retcode = 1;
-		goto cleanup;
+	if(conn_info.listen) {
+		ss = server_source_new(&conn_info, net_conn_new, net_conn_data, net_conn_close, &current_conn);
+		if(ss == NULL) {
+			fprintf(stderr, "Could not create listening socket\n");
+			retcode = 1;
+			goto cleanup;
+		}
+	} else {
+		cs = client_source_new(&conn_info, net_conn_new, net_conn_data, net_conn_close, &current_conn);
+		if(cs == NULL) {
+			fprintf(stderr, "Could not connect\n");
+			retcode = 1;
+			goto cleanup;
+		}
 	}
 	/* Clean up strings in conn_info */
 	free(conn_info.dest_addr);
@@ -72,6 +83,7 @@ int main(int argc, char *argv[]) {
 cleanup:
 	consoleio_destroy(cio);
 	client_source_destroy(cs);
+	server_source_destroy(ss);
 	g_main_loop_unref(g_mainloop);
 	return retcode;
 }
@@ -171,7 +183,7 @@ static void usage(char *msg) {
 
 	printf("Usage: %s -t <conntype> -d <address> [-l] [-s <address>]\n", program_name);
 	printf("  -t <conntype>   Specify connection type ('tcp' or 'unix')\n");
-	printf("  -d <address>    Address parameters\n");
+	printf("  -d <address>    Address parameters (if listening, only port is required)\n");
 	printf("  -s <address>    Source address parameters (optional)\n");
 	printf("  -l              Listen instead of connect (default: no)\n");
 	printf("\n  An \"address\" consists of <address>:<ip>\n");
@@ -188,7 +200,7 @@ static void parse_args(ConnectionInfo *conn_info, int argc, char *argv[]) {
 	memset(conn_info, 0, sizeof(*conn_info));
 	conn_info->type = -1;
 
-	while((c = getopt(argc, argv, "t:d:s:l:")) != -1) {
+	while((c = getopt(argc, argv, "t:d:s:l")) != -1) {
 		switch(c) {
 			case 't':
 				/* Connection type. Could be tcp, unix, etc... */
@@ -214,7 +226,10 @@ static void parse_args(ConnectionInfo *conn_info, int argc, char *argv[]) {
 				source = strdup(optarg);
 				break;
 			case 'l':
-				/* TODO: Implement this when it is needed for testing. */
+				/*
+				 * Set socket to listening instead of conneti
+				 */
+				conn_info->listen = TRUE;
 				break;
 			case '?':
 			default:
@@ -247,10 +262,21 @@ static void parse_args(ConnectionInfo *conn_info, int argc, char *argv[]) {
 		case TCP:
 			/* Parse address and port from dest string. */
 			conn_info->dest_addr = strsep(&dest, ":"); /* Moves pointer in dest to dest_addr. */
-			if (dest)
+			if (dest) {
 				conn_info->dest_port = atoi(dest);
-			else
+			} else if(conn_info->listen) {
+				/*
+				 * If listening, but missing source address, it's valid just to
+				 * have port specified.
+				 *
+				 * Thus the first field, which is normally address is actually
+				 * a port.
+				 */
+				conn_info->dest_port = atoi(conn_info->dest_addr);
+				conn_info->dest_addr = strdup("0.0.0.0");
+			} else {
 				usage("Destination port required");
+			}
 			dest = NULL;
 
 			/* Parse address and port from source string. */
