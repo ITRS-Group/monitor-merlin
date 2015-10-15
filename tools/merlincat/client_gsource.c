@@ -4,23 +4,26 @@
 #include "client_gsource.h"
 
 struct ClientSource_ {
-	gpointer (*conn_new)(gpointer, gpointer);
-	void (*conn_data)(gpointer, gpointer, gsize, gpointer);
+	gpointer (*conn_new)(ConnectionStorage *, gpointer);
+	void (*conn_data)(ConnectionStorage *, gpointer, gsize, gpointer);
 	void (*conn_close)(gpointer);
 	gpointer user_data;
 
 	GSocket *sock;
 	gpointer conn_user_data;
 
+	ConnectionStorage *conn_store;
+
 	GSource *source;
 };
 
 static gboolean client_source_data_callback(GSocket *socket,
 		GIOCondition condition, gpointer user_data);
+static void client_source_send(gpointer conn, gconstpointer data, gsize size);
 
-ClientSource *client_source_new(const struct ConnectionInfo* conn_info,
-	gpointer (*conn_new)(gpointer, gpointer),
-	void (*conn_data)(gpointer, gpointer, gsize, gpointer),
+ClientSource *client_source_new(const ConnectionInfo* conn_info,
+	gpointer (*conn_new)(ConnectionStorage *, gpointer),
+	void (*conn_data)(ConnectionStorage *, gpointer, gsize, gpointer),
 	void (*conn_close)(gpointer),
 	gpointer user_data)
 {
@@ -35,6 +38,12 @@ ClientSource *client_source_new(const struct ConnectionInfo* conn_info,
 	cs->user_data = user_data;
 	cs->sock = NULL;
 	cs->source = NULL;
+
+	/*
+	 * the ConnectionStorage doesn't own its user_data, but is just a reference
+	 * to parent struct, thus no destroy method
+	 */
+	cs->conn_store = connection_new(client_source_send, NULL, cs);
 
 	if (conn_info->type == UNIX) {
 		cs->sock = g_socket_new(G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, NULL);
@@ -64,7 +73,7 @@ ClientSource *client_source_new(const struct ConnectionInfo* conn_info,
 	g_object_unref((GObject *)addr);
 	if (inetaddr) g_object_unref((GObject *)inetaddr);
 
-	cs->conn_user_data = (*cs->conn_new)((gpointer)cs, cs->user_data);
+	cs->conn_user_data = (*cs->conn_new)(cs->conn_store, cs->user_data);
 
 	cs->source = g_socket_create_source(cs->sock, G_IO_IN, NULL);
 	g_source_set_callback(cs->source, (GSourceFunc)client_source_data_callback, (gpointer)cs, NULL);
@@ -82,7 +91,7 @@ static gboolean client_source_data_callback(GSocket *socket,
 	size = g_socket_receive(socket, buffer, 8192, NULL, NULL);
 	if(size > 0) {
 		// Got data
-		(*cs->conn_data)((gpointer)cs, buffer, size, cs->conn_user_data);
+		(*cs->conn_data)(cs->conn_store, buffer, size, cs->conn_user_data);
 		return TRUE;
 	}
 
@@ -113,10 +122,13 @@ void client_source_destroy(ClientSource *cs) {
 	if(cs->source) {
 		g_source_destroy(cs->source);
 	}
+	if(cs->conn_store) {
+		connection_destroy(cs->conn_store);
+	}
 	g_free(cs);
 }
 
-void client_source_send(gpointer conn, gpointer data, glong size) {
+static void client_source_send(gpointer conn, gconstpointer data, gsize size) {
 	ClientSource *cs = (ClientSource *)conn;
 	g_socket_send(cs->sock, data, size, NULL, NULL);
 }

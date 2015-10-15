@@ -2,26 +2,18 @@
 #define TOOLS_MERLINCAT_CLIENT_GSOURCE_H_
 
 #include <glib.h>
+#include "conn_info.h"
 
 struct ClientSource_;
 typedef struct ClientSource_ ClientSource;
 
-struct ConnectionInfo {
-	 enum { TCP, UNIX } type;
-	 char *dest_addr;
-	 int dest_port;
-	 char *source_addr;
-	 int source_port;
-	 gboolean listen;
-};
-
-ClientSource *client_source_new(const struct ConnectionInfo*,
+ClientSource *client_source_new(const ConnectionInfo*,
 	/*
 	 * arg 1: connection reference, for sending data
 	 * arg 2: user_data passed to this method
 	 * Returns connection specific user data storage
 	 */
-	gpointer (*conn_new)(gpointer, gpointer),
+	gpointer (*conn_new)(ConnectionStorage *, gpointer),
 
 	/*
 	 * arg 1: connection reference, for sending data
@@ -29,7 +21,7 @@ ClientSource *client_source_new(const struct ConnectionInfo*,
 	 * arg 3: length of recieved data
 	 * arg 4: connection user storage
 	 */
-	void (*conn_data)(gpointer, gpointer, gsize, gpointer),
+	void (*conn_data)(ConnectionStorage *, gpointer, gsize, gpointer),
 
 	/*
 	 * arg 1: connection user storage
@@ -41,7 +33,5 @@ ClientSource *client_source_new(const struct ConnectionInfo*,
 	 */
 	gpointer user_data);
 void client_source_destroy(ClientSource *cs);
-
-void client_source_send(gpointer conn, gpointer data, glong size);
 
 #endif /* TOOLS_MERLINCAT_CLIENT_GSOURCE_H_ */

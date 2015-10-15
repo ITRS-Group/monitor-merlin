@@ -18,28 +18,28 @@ char *program_name;
 
 static void stop_mainloop(int signal);
 
-static gpointer net_send_ctrl_active(gpointer conn);
-static gpointer net_conn_new(gpointer conn, gpointer user_data);
-static void net_conn_data(gpointer conn, gpointer buffer, gsize length, gpointer conn_user_data);
+static void net_send_ctrl_active(ConnectionStorage *conn);
+static gpointer net_conn_new(ConnectionStorage *conn, gpointer user_data);
+static void net_conn_data(ConnectionStorage *conn, gpointer buffer, gsize length, gpointer conn_user_data);
 static void net_conn_close(gpointer conn_user_data);
 static void console_newline(const char *line, gpointer user_data);
 
 static void usage(char *msg) __attribute__((noreturn));
-static void parse_args(struct ConnectionInfo *conn, int argc, char *argv[]);
+static void parse_args(ConnectionInfo *conn, int argc, char *argv[]);
 
 
 int main(int argc, char *argv[]) {
 	ClientSource *cs = NULL;
 
 	/* Reference to the current connection, to send data asynchronously */
-	gpointer *current_conn = NULL;
+	ConnectionStorage *current_conn = NULL;
 
 	int retcode = 0;
 
 	ConsoleIO *cio;
 	program_name = argv[0];
 
-	struct ConnectionInfo conn_info;
+	ConnectionInfo conn_info;
 	parse_args(&conn_info, argc, argv);
 
 	g_type_init();
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
 	free(conn_info.dest_addr);
 	free(conn_info.source_addr);
 
-	cio = consoleio_new(console_newline, (gpointer)&current_conn);
+	cio = consoleio_new(console_newline, &current_conn);
 
 	g_main_loop_run(g_mainloop);
 
@@ -80,7 +80,7 @@ static void stop_mainloop(int signal) {
 	g_main_loop_quit(g_mainloop);
 }
 
-static gpointer net_send_ctrl_active(gpointer conn) {
+static void net_send_ctrl_active(ConnectionStorage *conn) {
 	merlin_event pkt;
 	merlin_nodeinfo node;
 
@@ -109,10 +109,10 @@ static gpointer net_send_ctrl_active(gpointer conn) {
 	pkt.hdr.len = sizeof(merlin_nodeinfo);
 	memcpy(&pkt.body, &node, sizeof(merlin_nodeinfo));
 
-	client_source_send(conn, &pkt, HDR_SIZE + pkt.hdr.len);
+	connection_send(conn, &pkt, HDR_SIZE + pkt.hdr.len);
 }
 
-static gpointer net_conn_new(gpointer conn, gpointer user_data) {
+static gpointer net_conn_new(ConnectionStorage *conn, gpointer user_data) {
 	gpointer *current_conn = (gpointer*)user_data;
 	MerlinReader *mr = merlinreader_new();
 
@@ -123,7 +123,7 @@ static gpointer net_conn_new(gpointer conn, gpointer user_data) {
 
 	return mr;
 }
-static void net_conn_data(gpointer conn, gpointer buffer, gsize length, gpointer conn_user_data) {
+static void net_conn_data(ConnectionStorage *conn, gpointer buffer, gsize length, gpointer conn_user_data) {
 	MerlinReader *mr = (MerlinReader *)conn_user_data;
 	merlin_event *evt;
 	gsize read_size;
@@ -161,7 +161,7 @@ static void console_newline(const char *line, gpointer user_data) {
 		fprintf(stderr, "Malformed packet from console\n");
 		return;
 	}
-	client_source_send(*current_conn, evt, HDR_SIZE + evt->hdr.len);
+	connection_send(*current_conn, evt, HDR_SIZE + evt->hdr.len);
 	free(evt);
 }
 
@@ -178,7 +178,7 @@ static void usage(char *msg) {
 	exit(EXIT_FAILURE);
 }
 
-static void parse_args(struct ConnectionInfo *conn_info, int argc, char *argv[]) {
+static void parse_args(ConnectionInfo *conn_info, int argc, char *argv[]) {
 	int c;
 	char *dest   = NULL;
 	char *source = NULL;
