@@ -226,14 +226,14 @@ data/merlin data/merlin.cfg data/merlin.conf data/kad.conf apps/libexec/syscheck
 		$< > $@
 
 GENERATED_NEBEV = \
-	tests/nebev2kvvec.c tests/nebev2kvvec.h \
-	tests/kvvec2nebev.c tests/kvvec2nebev.h \
-	tests/nebev-col2key.gperf
+	tests/merlincat/nebev2kvvec.c tests/merlincat/nebev2kvvec.h \
+	tests/merlincat/kvvec2nebev.c tests/merlincat/kvvec2nebev.h \
+	tests/merlincat/nebev-col2key.gperf
 
-$(GENERATED_NEBEV): tests/generate-nebev2kvvec.py
-	$(AM_V_GEN) python tests/generate-nebev2kvvec.py
+$(GENERATED_NEBEV): tests/merlincat/generate-nebev2kvvec.py
+	$(AM_V_GEN) python tests/merlincat/generate-nebev2kvvec.py
 
-tests/nebev-col2key.c tests/nebev-col2key.h: tests/nebev-col2key.gperf
+tests/merlincat/nebev-col2key.c tests/merlincat/nebev-col2key.h: tests/merlincat/nebev-col2key.gperf
 	$(AM_V_GEN) $(GPERF) --switch=1 --struct-type \
 			--multiple-iterations=10 --readonly-tables \
 			--hash-function-name=nebev_col_phash \
@@ -241,23 +241,23 @@ tests/nebev-col2key.c tests/nebev-col2key.h: tests/nebev-col2key.gperf
 			--language=ANSI-C \
 		$< > $@
 
-tests/kvvec2nebev.c: tests/nebev-col2key.c tests/nebev-col2key.h
+tests/merlincat/kvvec2nebev.c: tests/merlincat/nebev-col2key.c tests/merlincat/nebev-col2key.h
 
 BUILT_SOURCES = \
-    tests/nebev2kvvec.c tests/nebev2kvvec.h \
-    tests/kvvec2nebev.c tests/kvvec2nebev.h \
-    tests/nebev-col2key.c tests/nebev-col2key.gperf
+    tests/merlincat/nebev2kvvec.c tests/merlincat/nebev2kvvec.h \
+    tests/merlincat/kvvec2nebev.c tests/merlincat/kvvec2nebev.h \
+    tests/merlincat/nebev-col2key.c tests/merlincat/nebev-col2key.gperf
 
-merlincat_SOURCES = tools/merlincat/merlincat.c \
-	tools/merlincat/client_gsource.c tools/merlincat/client_gsource.h \
-	tools/merlincat/server_gsource.c tools/merlincat/server_gsource.h \
-	tools/merlincat/merlinreader.c tools/merlincat/merlinreader.h \
-	tools/merlincat/merlincat_codec.c tools/merlincat/merlincat_codec.h \
-	tools/merlincat/console.c tools/merlincat/console.h \
-	tools/merlincat/event_packer.c tools/merlincat/event_packer.h \
-	tools/merlincat/conn_info.c tools/merlincat/conn_info.h \
-	tests/nebev2kvvec.c tests/nebev2kvvec.h \
-	tests/kvvec2nebev.c tests/kvvec2nebev.h
+merlincat_SOURCES = tests/merlincat/merlincat.c \
+	tests/merlincat/client_gsource.c tests/merlincat/client_gsource.h \
+	tests/merlincat/server_gsource.c tests/merlincat/server_gsource.h \
+	tests/merlincat/merlinreader.c tests/merlincat/merlinreader.h \
+	tests/merlincat/merlincat_codec.c tests/merlincat/merlincat_codec.h \
+	tests/merlincat/console.c tests/merlincat/console.h \
+	tests/merlincat/event_packer.c tests/merlincat/event_packer.h \
+	tests/merlincat/conn_info.c tests/merlincat/conn_info.h \
+	tests/merlincat/nebev2kvvec.c tests/merlincat/nebev2kvvec.h \
+	tests/merlincat/kvvec2nebev.c tests/merlincat/kvvec2nebev.h
 
 merlincat_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIO_UNIX_CFLAGS)
 merlincat_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS) $(GIO_UNIX_LIBS)

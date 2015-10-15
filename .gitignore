@@ -64,8 +64,8 @@ config.h.in
 config.status
 config.sub
 merlincat$
-/tests/nebev-col2key.gperf
-/tests/nebev-col2key.[ch]
-/tests/nebev2kvvec.[ch]
-/tests/kvvec2nebev.[ch]
+/tests/merlincat/nebev-col2key.gperf
+/tests/merlincat/nebev-col2key.[ch]
+/tests/merlincat/nebev2kvvec.[ch]
+/tests/merlincat/kvvec2nebev.[ch]
 /*.trs
