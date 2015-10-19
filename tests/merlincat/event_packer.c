@@ -1,7 +1,7 @@
 #include "event_packer.h"
 #include "merlincat_codec.h"
+#include "nebev2kvvec.h"
 #include <shared/shared.h>
-#include <tests/nebev2kvvec.h>
 #include <naemon/naemon.h>
 #include <glib.h>
 
