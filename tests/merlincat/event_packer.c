@@ -1,6 +1,7 @@
 #include "event_packer.h"
 #include "merlincat_codec.h"
 #include "nebev2kvvec.h"
+#include "kvvec2nebev.h"
 #include <shared/shared.h>
 #include <naemon/naemon.h>
 #include <glib.h>
@@ -39,9 +40,9 @@
 
 char *event_packer_pack(const merlin_event *evt) {
 	struct kvvec *kvv = NULL;
-	const char *name = NULL;
+	const gchar *name = NULL;
 	char *result_line = NULL;
-	gpointer packed_data = NULL;
+	gchar *packed_data = NULL;
 	gpointer *unpacked_data = NULL;
 
 	/* CTRL_PACKET isn't decoded through merlin*_decode */
@@ -237,9 +238,9 @@ merlin_event *event_packer_unpack(const char *line) {
 	evt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
 	evt->hdr.type = 0; /* updated below */
 	evt->hdr.code = 0; /* event code (used for control packets) */
-	evt->hdr.selection; /* used when noc Nagios communicates with mrd */
-	evt->hdr.len; /* size of body */
-	evt->hdr.sent; /* when this message was sent */
+	evt->hdr.selection = 0; /* used when noc Nagios communicates with mrd */
+	evt->hdr.len = 0; /* size of body */
+	gettimeofday(&evt->hdr.sent, NULL); /* when this message was sent */
 
 	/* Create a storage for unpacked data */
 	unpacked_data = malloc(128 << 10); // size is hardcoded in merlin...

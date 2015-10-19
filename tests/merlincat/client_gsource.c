@@ -28,8 +28,8 @@ ClientSource *client_source_new(const ConnectionInfo* conn_info,
 	gpointer user_data)
 {
 
-	GSocketAddress *addr;
-	GInetAddress *inetaddr;
+	GSocketAddress *addr = NULL;
+	GInetAddress *inetaddr = NULL;
 
 	ClientSource *cs = g_malloc(sizeof(ClientSource));
 	cs->conn_new = conn_new;

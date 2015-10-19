@@ -248,23 +248,23 @@ event_structs = {
 		'str:output',
 	],
 	'merlin_nodeinfo': [
-		'ulong:version',
-		'ulong:word_size',
-		'ulong:byte_order',
-		'ulong:object_structure_version',
+		'uint:version',
+		'uint:word_size',
+		'uint:byte_order',
+		'uint:object_structure_version',
 		'timeval:start',
 		'time_t:last_cfg_change',
 		'byte[20]:config_hash',
-		'ulong:peer_id',
-		'ulong:active_peers',
-		'ulong:configured_peers',
-		'ulong:active_pollers',
-		'ulong:configured_pollers',
-		'ulong:active_masters',
-		'ulong:configured_masters',
-		'ulong:host_checks_handled',
-		'ulong:service_checks_handled',
-		'ulong:monitored_object_state_size',
+		'uint:peer_id',
+		'uint:active_peers',
+		'uint:configured_peers',
+		'uint:active_pollers',
+		'uint:configured_pollers',
+		'uint:active_masters',
+		'uint:configured_masters',
+		'uint:host_checks_handled',
+		'uint:service_checks_handled',
+		'uint:monitored_object_state_size',
 	]
 }
 
@@ -504,6 +504,9 @@ def mk_nebev2kvvec(structs):
 			elif etype == 'time_t' or etype == 'ulong':
 				var_code += '%ssnprintf(str, sizeof(str), "%%lu", ds->%s);\n' % ("\t" * indent, key)
 				var_code += '%skvvec_addkv_str(kvv, strdup("%s"), strdup(str));\n' % ("\t" * indent, key)
+			elif etype == 'uint':
+				var_code += '%ssnprintf(str, sizeof(str), "%%u", ds->%s);\n' % ("\t" * indent, key)
+				var_code += '%skvvec_addkv_str(kvv, strdup("%s"), strdup(str));\n' % ("\t" * indent, key)
 			elif etype == 'double':
 				var_code += '%ssnprintf(str, sizeof(str), "%%f", ds->%s);\n' % ("\t" * indent, key)
 				var_code += '%skvvec_addkv_str(kvv, strdup("%s"), strdup(str));\n' % ("\t" * indent, key)
@@ -574,7 +577,7 @@ def mk_kvvec2nebev(structs):
 			elif etype.startswith("byte[") and etype.endswith("]"):
 				arrlen = int(etype[5:-1])
 				var_code += 'memcpy(ds->%s, kv->value, %d);\n' % (key, arrlen)
-			elif etype == 'time_t' or etype == 'ulong':
+			elif etype == 'time_t' or etype == 'ulong' or etype == 'uint':
 				var_code += 'ds->%s = strtoul(kv->value, &endptr, 10);\n' % key
 			elif etype == 'double':
 				var_code += 'ds->%s = strtod(kv->value, &endptr);\n' % key

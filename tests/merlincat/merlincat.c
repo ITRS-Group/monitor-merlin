@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <glib.h>
+#include <glib-object.h>
 
 #include <signal.h>
 #include <string.h>
@@ -38,7 +39,7 @@ int main(int argc, char *argv[]) {
 
 	int retcode = 0;
 
-	ConsoleIO *cio;
+	ConsoleIO *cio = NULL;
 	program_name = argv[0];
 
 	ConnectionInfo conn_info;
@@ -114,7 +115,7 @@ static void net_send_ctrl_active(ConnectionStorage *conn) {
 	gettimeofday(&node.start, NULL);
 
 	node.last_cfg_change = 1444405566;
-	strcpy(node.config_hash, "");//"a77d59a6578c71d7e17f4793a08bcf15d4c6fa06");
+	/* node.config_hash = null, since memset above */
 
 	node.configured_peers = 1;
 

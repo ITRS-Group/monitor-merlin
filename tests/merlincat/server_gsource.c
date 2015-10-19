@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <unistd.h>
 
 struct ServerSource_ {
 	GSocketService *sockserv;
@@ -131,9 +132,6 @@ static gboolean server_source_recv(GSocket *sock, GIOCondition condition,
 	ServerSourceStorage *stor = (ServerSourceStorage *) user_data;
 	GError *error = NULL;
 	gssize sz;
-	int i;
-	gboolean found_line;
-	gboolean running;
 	gchar buffer[8192];
 
 	sz = g_socket_receive(sock, buffer, 8192,
