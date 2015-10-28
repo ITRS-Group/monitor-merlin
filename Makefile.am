@@ -264,6 +264,7 @@ merlincat_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS) $(GIO_UNIX_LIBS)
 
 cukemerlin_SOURCES = tests/cukemerlin/cukemerlin.c \
 	tests/cukemerlin/json.c tests/merlincat/json.h \
+	tests/cukemerlin/cukesocket.c tests/merlincat/cukesocket.h \
 	tests/cukemerlin/jsonsocket.c tests/merlincat/jsonsocket.h
 
 cukemerlin_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIO_UNIX_CFLAGS) -I$(top_builddir)/tests
