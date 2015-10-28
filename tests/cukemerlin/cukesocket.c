@@ -3,6 +3,7 @@
 
 #include "cukesocket.h"
 #include "jsonsocket.h"
+#include "jsonx.h"
 
 struct CukeSocket_ {
 	JSONSocket *js;
@@ -44,19 +45,20 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 		goto do_send;
 	}
 	if (0 == strcmp(cmdnode->string_, "step_matches")) {
-		JsonNode *argarray;
-		JsonNode *argobject;
 		/* We need to send some id and args */
 		json_append_element(response, json_mkstring("success"));
 
-		argobject = json_mkobject();
-		json_append_member(argobject, "id", json_mkstring("1"));
-		json_append_member(argobject, "args", json_mkarray());
+		json_append_element(response,
+			jsonx_packarray(
+				jsonx_packobject(
+					"id", json_mkstring("1"),
+					"args", json_mkarray(),
+					NULL, NULL
+					),
+				NULL
+			)
+		);
 
-		argarray = json_mkarray();
-		json_append_element(argarray, argobject);
-
-		json_append_element(response, argarray);
 	} else {
 		json_append_element(response, json_mkstring("success"));
 	}
