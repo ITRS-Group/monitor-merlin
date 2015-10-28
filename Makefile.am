@@ -160,7 +160,7 @@ rename_SOURCES = $(app_sources) tools/rename.c $(db_wrap_sources)
 rename_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon $(GLIB_CFLAGS)
 rename_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 
-check_PROGRAMS = $(TESTS) test-dbwrap merlincat
+check_PROGRAMS = $(TESTS) test-dbwrap merlincat cukemerlin
 TESTS = sltest test-csync test-lparse hooktest stringutilstest showlogtest bltest codectest
 TESTS_ENVIRONMENT = G_DEBUG=fatal-criticals; export G_DEBUG;
 
@@ -261,6 +261,14 @@ merlincat_SOURCES = tests/merlincat/merlincat.c \
 
 merlincat_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIO_UNIX_CFLAGS)
 merlincat_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS) $(GIO_UNIX_LIBS)
+
+cukemerlin_SOURCES = tests/cukemerlin/cukemerlin.c \
+	tests/cukemerlin/json.c tests/merlincat/json.h \
+	tests/cukemerlin/jsonsocket.c tests/merlincat/jsonsocket.h
+
+cukemerlin_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIO_UNIX_CFLAGS) -I$(top_builddir)/tests
+cukemerlin_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS) $(GIO_UNIX_LIBS)
+
 
 apps/op5: apps/mon.py
 	cp $< $@

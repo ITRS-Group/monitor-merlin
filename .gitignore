@@ -69,3 +69,5 @@ merlincat$
 /tests/merlincat/nebev2kvvec.[ch]
 /tests/merlincat/kvvec2nebev.[ch]
 /*.trs
+
+/cukemerlin
