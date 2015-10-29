@@ -31,6 +31,8 @@ char    *service_perfdata_command = NULL;
 char    *host_perfdata_file_processing_command = NULL;
 char    *service_perfdata_file_processing_command = NULL;
 
+static const char *queryhandler_socket_path = "/tmp/nagios.qh";
+
 int process_check_result(__attribute__((unused)) check_result *cr){ return 0; }
 struct comment *get_first_comment_by_host(__attribute__((unused)) char *host) { return NULL; }
 int delete_comment(__attribute__((unused)) int type, __attribute__((unused)) unsigned long comment_id) { return 0; }
@@ -101,6 +103,8 @@ void general_setup()
 {
 	num_peer_groups = 0;
 	peer_group = NULL;
+	nagios_iobs = iobroker_create();
+	qh_init(queryhandler_socket_path);
 	nebmodule_init(0, "tests/singlenode.conf", NULL);
 	merlin_should_send_paths = 0;
 	ipc.name = "Local";
@@ -110,6 +114,8 @@ void general_setup()
 
 void general_teardown()
 {
+	qh_deinit(queryhandler_socket_path);
+	iobroker_destroy(nagios_iobs, IOBROKER_CLOSE_SOCKETS);
 	nebmodule_deinit(0, 0);
 }
 
@@ -118,6 +124,8 @@ void expiration_setup()
 	host *hst;
 	num_peer_groups = 0;
 	peer_group = NULL;
+	nagios_iobs = iobroker_create();
+	qh_init(queryhandler_socket_path);
 	nebmodule_init(0, "tests/twopeers.conf", NULL);
 	init_objects_host(3);
 	init_objects_service(3);
@@ -145,6 +153,8 @@ void expiration_teardown()
 {
 	destroy_objects_host();
 	destroy_objects_service();
+	qh_deinit(queryhandler_socket_path);
+	iobroker_destroy(nagios_iobs, IOBROKER_CLOSE_SOCKETS);
 	nebmodule_deinit(0, 0);
 }
 
