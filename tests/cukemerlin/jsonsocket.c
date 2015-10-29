@@ -20,6 +20,8 @@
 
 struct JSONSocket_ {
 	GSocketService *sockserv;
+	gulong sockserv_handler_id;
+
 	gpointer (*session_new)(GSocket *, gpointer);
 	gboolean (*session_newline)(GSocket *, JsonNode *, gpointer);
 	void (*session_destroy)(gpointer);
@@ -73,10 +75,10 @@ JSONSocket *jsonsocket_new(const gchar *bind_addr, const gint bind_port,
 			)) {
 		/* Some error */
 	}
-	g_object_unref(addr);
+	g_object_unref(G_OBJECT(addr));
 
-	g_signal_connect((GObject * )csock->sockserv, "incoming",
-			G_CALLBACK (jsonsocket_new_request), csock);
+	csock->sockserv_handler_id = g_signal_connect(G_OBJECT(csock->sockserv),
+			"incoming", G_CALLBACK (jsonsocket_new_request), csock);
 
 	return csock;
 }
@@ -84,6 +86,8 @@ JSONSocket *jsonsocket_new(const gchar *bind_addr, const gint bind_port,
 void jsonsocket_destroy(JSONSocket *csock) {
 	if (csock == NULL)
 		return;
+	g_signal_handler_disconnect(G_OBJECT(csock->sockserv),
+			csock->sockserv_handler_id);
 	g_socket_listener_close((GSocketListener*) csock->sockserv);
 	g_free(csock);
 }
@@ -125,7 +129,6 @@ static gboolean jsonsocket_recv(GSocket *sock, GIOCondition condition,
 
 	JsonNode *node = NULL;
 
-
 	sz = g_socket_receive(sock, stor->buffer + stor->bufptr,
 	LINEBUF_SOCKET_BUFSIZE - stor->bufptr,
 	NULL, &error);
@@ -142,8 +145,8 @@ static gboolean jsonsocket_recv(GSocket *sock, GIOCondition condition,
 					stor->buffer[i] = '\0';
 
 					node = json_decode(stor->buffer);
-					running = (*stor->csock->session_newline)(sock,
-							node, stor->user_data);
+					running = (*stor->csock->session_newline)(sock, node,
+							stor->user_data);
 					json_delete(node);
 
 					stor->bufptr -= (i + 1);

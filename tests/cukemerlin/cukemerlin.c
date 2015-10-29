@@ -64,6 +64,8 @@ int main(int argc, char *argv[]) {
 	cukesock_destroy(cs);
 	g_main_loop_unref(mainloop);
 
+	g_option_context_free(optctx);
+
 	return 0;
 }
 
