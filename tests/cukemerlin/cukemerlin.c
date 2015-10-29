@@ -3,14 +3,27 @@
 #include <string.h>
 
 #include "cukesocket.h"
+#include "json.h"
 
 static gchar *opt_bind_address = "0.0.0.0";
 static gint opt_bind_port = 98989;
 
 static GMainLoop *mainloop = NULL;
 
-static void stop_mainloop(int signal);
 
+static gint step_fail(JsonNode *args);
+static gint step_success(JsonNode *args);
+
+static CukeStepEnvironment testenv = {
+		.tag = "test",
+		.num_defs = 2,
+		.definitions = {
+				{"I fail", step_fail},
+				{"I success", step_success}
+		}
+};
+
+static void stop_mainloop(int signal);
 
 static GOptionEntry opt_entries[] = {
 		{ "bind-address", 'a', 0, G_OPTION_ARG_STRING, &opt_bind_address,
@@ -42,6 +55,8 @@ int main(int argc, char *argv[]) {
 	cs = cukesock_new(opt_bind_address, opt_bind_port);
 	g_return_val_if_fail(cs != NULL, 1);
 
+	cukesock_register_stepenv(cs, &testenv);
+
 	g_message("Main Loop: Enter");
 	g_main_loop_run(mainloop);
 	g_message("Main Loop: Exit");
@@ -54,4 +69,11 @@ int main(int argc, char *argv[]) {
 
 static void stop_mainloop(int signal) {
 	g_main_loop_quit(mainloop);
+}
+
+static gint step_fail(JsonNode *args) {
+	return 0;
+}
+static gint step_success(JsonNode *args) {
+	return 1;
 }

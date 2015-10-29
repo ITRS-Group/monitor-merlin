@@ -44,3 +44,69 @@ JsonNode *jsonx_packobject(const char *name, JsonNode *node, ...) {
 
 	return result;
 }
+
+int jsonx_locate(JsonNode *node, ...) {
+	JsonNode *cur_node = node;
+	va_list ap;
+	int found = 0;
+	char cmd;
+
+	va_start(ap, node);
+	for(;;) {
+		cmd = va_arg(ap, int);
+		switch(cmd) {
+		case 'o':
+			{
+				const char *member;
+				member = va_arg(ap, const char*);
+				cur_node = json_find_member(cur_node, member);
+				if(cur_node == NULL)
+					goto end_traverse;
+			}
+			break;
+		case 'a':
+			{
+				int idx;
+				idx = va_arg(ap, int);
+				cur_node = json_find_element(cur_node, idx);
+				if(cur_node == NULL)
+					goto end_traverse;
+			}
+			break;
+		case 's':
+			{
+				const char **outstring;
+				outstring = va_arg(ap, const char **);
+				if(cur_node->tag == JSON_STRING) {
+					*outstring = cur_node->string_;
+					found = 1;
+				}
+				goto end_traverse;
+			}
+			break;
+		case 'l':
+			{
+				long *outlong;
+				outlong = va_arg(ap, long *);
+				if(cur_node->tag == JSON_NUMBER) {
+					*outlong = (long)(cur_node->number_+0.5);
+					found = 1;
+				}
+				goto end_traverse;
+			}
+			break;
+		case 'j':
+			{
+				JsonNode **outnode;
+				outnode = va_arg(ap, JsonNode **);
+				*outnode = cur_node;
+				found = 1;
+				goto end_traverse;
+			}
+			break;
+		}
+	}
+	end_traverse:
+	va_end(ap);
+	return found;
+}
