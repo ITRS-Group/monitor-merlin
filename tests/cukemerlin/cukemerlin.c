@@ -20,10 +20,13 @@ static CukeStepEnvironment testenv = {
 		.tag = "test",
 		.begin_scenario = step_begin_scenario,
 		.end_scenario = step_end_scenario,
-		.num_defs = 2,
+
+		.num_defs = 4,
 		.definitions = {
-				{"I fail", step_fail},
-				{"I success", step_success}
+				{"^I fail$", step_fail},
+				{"^I succeed$", step_success},
+				{"^I do (.*) stuff$", step_success},
+				{"^I do (.*) stuff (.*)$", step_success},
 		}
 };
 

@@ -12,13 +12,21 @@ typedef struct CukeScenarioHandler_ {
 
 typedef struct CukeConnection_ {
 	CukeSocket *cs;
-	GTree *cur_stepenvs;
+	GTree *cur_stepenvs; /* char * => CukeStepEnvironment * */
 } CukeConnection;
 
 struct CukeSocket_ {
 	JSONSocket *js;
-	GPtrArray *stepenvs;
+	GPtrArray *stepenvs; /* CukeStepEnvironment[] */
+	GPtrArray *stepregexps; /* CukeStepREDef[] */
 };
+
+/* Storage for compiled regexp matches, to match steps against */
+typedef struct CukeStepRegexDef_ {
+	GRegex *re;
+	const char *tag;
+	long idx;
+} CukeStepRegexDef;
 
 static gpointer cukesock_cb_new(GSocket *conn, gpointer userdata);
 static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
@@ -29,26 +37,38 @@ static CukeScenarioHandler *cukesock_scenario_handler_new(
 		CukeStepEnvironment *stepenv);
 static void cukesock_scenario_handler_destroy(gpointer userdata);
 
+static CukeStepRegexDef *cukesock_regex_new(CukeStepEnvironment *stepenv,
+		int idx);
+static void cukesock_regex_destroy(gpointer data);
+
 CukeSocket *cukesock_new(const gchar *bind_addr, const gint bind_port) {
 	CukeSocket *cs = g_malloc(sizeof(CukeSocket));
 	cs->js = jsonsocket_new(bind_addr, bind_port, cukesock_cb_new,
 			cukesock_cb_data, cukesock_cb_close, cs);
 
 	cs->stepenvs = g_ptr_array_new();
+	cs->stepregexps = g_ptr_array_new_with_free_func(cukesock_regex_destroy);
 	return cs;
 }
 void cukesock_destroy(CukeSocket *cs) {
 	if (cs == NULL)
 		return;
+	g_ptr_array_unref(cs->stepregexps);
 	g_ptr_array_unref(cs->stepenvs);
 	jsonsocket_destroy(cs->js);
 	g_free(cs);
 }
 
 void cukesock_register_stepenv(CukeSocket *cs, CukeStepEnvironment *stepenv) {
+	int i;
+
 	g_return_if_fail(cs != NULL);
 	g_return_if_fail(stepenv != NULL);
 	g_ptr_array_add(cs->stepenvs, stepenv);
+
+	for (i = 0; i < stepenv->num_defs; i++) {
+		g_ptr_array_add(cs->stepregexps, cukesock_regex_new(stepenv, i));
+	}
 }
 
 static gpointer cukesock_cb_new(GSocket *conn, gpointer userdata) {
@@ -76,9 +96,8 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 	 * generated out of which module, and which step id, that matches
 	 */
 	if (0 == strcmp(cmd, "step_matches")) {
-		int cur_stepenv;
-		int cur_stepdef;
-		CukeStepEnvironment *curenv;
+		int cur_re;
+		CukeStepRegexDef *curre;
 		CukeStepDefinition *curdef;
 
 		const char *name_to_match;
@@ -89,31 +108,47 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 		}
 
 		/* Traverse step environments */
-		for (cur_stepenv = 0; cur_stepenv < cs->stepenvs->len; cur_stepenv++) {
-			curenv = cs->stepenvs->pdata[cur_stepenv];
+		for (cur_re = 0; cur_re < cs->stepregexps->len; cur_re++) {
+			GMatchInfo *mi = NULL;
+			curre = cs->stepregexps->pdata[cur_re];
 
-			/* Traverse step definitions within the step enviornments */
-			for (cur_stepdef = 0; cur_stepdef < curenv->num_defs;
-					cur_stepdef++) {
-				curdef = &curenv->definitions[cur_stepdef];
+			/* See if a the step definition matches */
+			if (g_regex_match(curre->re, name_to_match, 0, &mi)) {
+				JsonNode *args = json_mkarray();
 
-				/* If we match, send a matching id tag */
-				if (0 == strcmp(name_to_match, curdef->match)) {
-					json_append_element(response, json_mkstring("success"));
-					json_append_element(response,
-							jsonx_packarray(
-									jsonx_packobject("id",
-											jsonx_packarray(
-													json_mkstring(curenv->tag),
-													json_mknumber(cur_stepdef),
-													NULL), "args",
-											json_mkarray(), "source",
-											json_mkstring(curenv->tag),
-											NULL, NULL),
-									NULL));
-					goto do_send;
+				/* If it has wildcards, put those out as arguments */
+				while (g_match_info_matches(mi)) {
+					int i;
+					int subpatterns = g_regex_get_capture_count(curre->re);
+					for(i=0;i<subpatterns;i++) {
+						gint pos;
+						gchar *word = g_match_info_fetch(mi, i+1);
+						g_match_info_fetch_pos(mi, i+1, &pos, NULL);
+						json_append_element(args, jsonx_packobject(
+								"val", json_mkstring(word),
+								"pos", json_mknumber(pos)
+						));
+						g_free(word);
+					}
+					g_match_info_next(mi, NULL);
 				}
+
+				/* Pack a success-message */
+				json_append_element(response, json_mkstring("success"));
+				json_append_element(response,
+						jsonx_packarray(
+								jsonx_packobject("id",
+										jsonx_packarray(
+												json_mkstring(curre->tag),
+												json_mknumber(curre->idx),
+												NULL),
+										"args", args,
+										"source", json_mkstring(curre->tag),
+										NULL, NULL),
+								NULL));
+				goto do_send;
 			}
+			g_match_info_free(mi);
 		}
 
 		/* No step found, should be success, but without id tag */
@@ -281,4 +316,20 @@ static void cukesock_scenario_handler_destroy(gpointer userdata) {
 		(*scenario->stepenv->end_scenario)(scenario->userdata);
 	}
 	g_free(scenario);
+}
+
+static CukeStepRegexDef *cukesock_regex_new(CukeStepEnvironment *stepenv,
+		int idx) {
+	CukeStepRegexDef *csre = g_malloc(sizeof(CukeStepRegexDef));
+	csre->tag = stepenv->tag;
+	csre->idx = idx;
+	csre->re = g_regex_new(stepenv->definitions[idx].match, 0, 0, NULL);
+	return csre;
+}
+static void cukesock_regex_destroy(gpointer data) {
+	CukeStepRegexDef *csre = (CukeStepRegexDef*) data;
+	if (csre == NULL)
+		return;
+	g_regex_unref(csre->re);
+	g_free(csre);
 }
