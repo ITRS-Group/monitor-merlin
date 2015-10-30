@@ -7,7 +7,9 @@
 struct CukeSocket_;
 typedef struct CukeSocket_ CukeSocket;
 
-typedef gint (*CukeStepHandler)(JsonNode *args);
+typedef gpointer (*CukeStepBeginScenario)(void);
+typedef void (*CukeStepEndScenario)(gpointer *scenario);
+typedef gint (*CukeStepHandler)(gpointer *scenario, JsonNode *args);
 
 typedef struct CukeStepDefinition_ {
 	const gchar *match;
@@ -16,6 +18,8 @@ typedef struct CukeStepDefinition_ {
 
 typedef struct CukeStepEnvironment_ {
 	const gchar *tag;
+	CukeStepBeginScenario begin_scenario;
+	CukeStepEndScenario end_scenario;
 	int num_defs;
 	CukeStepDefinition definitions[];
 } CukeStepEnvironment;
