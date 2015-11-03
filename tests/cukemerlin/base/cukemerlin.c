@@ -5,30 +5,12 @@
 #include "cukesocket.h"
 #include "json.h"
 
+#include <steps/steps.h>
+
 static gchar *opt_bind_address = "0.0.0.0";
 static gint opt_bind_port = 98989;
 
 static GMainLoop *mainloop = NULL;
-
-
-static gpointer step_begin_scenario(void);
-static void step_end_scenario(gpointer *scenario);
-static gint step_fail(gpointer *scenario, JsonNode *args);
-static gint step_success(gpointer *scenario, JsonNode *args);
-
-static CukeStepEnvironment testenv = {
-		.tag = "test",
-		.begin_scenario = step_begin_scenario,
-		.end_scenario = step_end_scenario,
-
-		.num_defs = 4,
-		.definitions = {
-				{"^I fail$", step_fail},
-				{"^I succeed$", step_success},
-				{"^I do (.*) stuff$", step_success},
-				{"^I do (.*) stuff (.*)$", step_success},
-		}
-};
 
 static void stop_mainloop(int signal);
 
@@ -62,7 +44,7 @@ int main(int argc, char *argv[]) {
 	cs = cukesock_new(opt_bind_address, opt_bind_port);
 	g_return_val_if_fail(cs != NULL, 1);
 
-	cukesock_register_stepenv(cs, &testenv);
+	steps_load(cs);
 
 	g_message("Main Loop: Enter");
 	g_main_loop_run(mainloop);
@@ -78,37 +60,4 @@ int main(int argc, char *argv[]) {
 
 static void stop_mainloop(int signal) {
 	g_main_loop_quit(mainloop);
-}
-
-static gpointer step_begin_scenario(void) {
-	glong *buf = g_malloc(sizeof(glong));
-	*buf = 0;
-	g_message("Scenario started");
-	return buf;
-}
-static void step_end_scenario(gpointer *scenario) {
-	glong *buf = (glong*)scenario;
-	g_message("Scenario ended, %d steps", *buf);
-	g_free(buf);
-}
-
-static gint step_fail(gpointer *scenario, JsonNode *args) {
-	glong *buf = (glong*)scenario;
-	if(args) {
-		char *jsonbuf = json_encode(args);
-		g_message("Got some data: %s", jsonbuf);
-		free(jsonbuf);
-	}
-	(*buf)++;
-	return 0;
-}
-static gint step_success(gpointer *scenario, JsonNode *args) {
-	glong *buf = (glong*)scenario;
-	if(args) {
-		char *jsonbuf = json_encode(args);
-		g_message("Got some data: %s", jsonbuf);
-		free(jsonbuf);
-	}
-	(*buf)++;
-	return 1;
 }

@@ -1,10 +1,3 @@
-/*
- * conn_info.h
- *
- *  Created on: Oct 14, 2015
- *      Author: msikstrom
- */
-
 #ifndef TOOLS_MERLINCAT_CONN_INFO_H_
 #define TOOLS_MERLINCAT_CONN_INFO_H_
 

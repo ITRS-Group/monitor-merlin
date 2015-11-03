@@ -1,10 +1,3 @@
-/*
- * server_gsource.h
- *
- *  Created on: Oct 14, 2015
- *      Author: msikstrom
- */
-
 #ifndef TOOLS_MERLINCAT_SERVER_GSOURCE_H_
 #define TOOLS_MERLINCAT_SERVER_GSOURCE_H_
 
