@@ -11,6 +11,14 @@ typedef gpointer (*CukeStepBeginScenario)(void);
 typedef void (*CukeStepEndScenario)(gpointer *scenario);
 typedef gint (*CukeStepHandler)(gpointer *scenario, JsonNode *args);
 
+#define STEP_BEGIN(_NAME) \
+		static gpointer _NAME(void)
+#define STEP_END(_NAME) \
+		static void _NAME(gpointer *scenario)
+
+#define STEP_DEF(_NAME) \
+		static gint _NAME(gpointer *scenario, JsonNode *args)
+
 typedef struct CukeStepDefinition_ {
 	const gchar *match;
 	CukeStepHandler handler;
@@ -20,7 +28,7 @@ typedef struct CukeStepEnvironment_ {
 	const gchar *tag;
 	CukeStepBeginScenario begin_scenario;
 	CukeStepEndScenario end_scenario;
-	int num_defs;
+	int num_defs; /*< Updated by cukesock_register_stepenv */
 	CukeStepDefinition definitions[];
 } CukeStepEnvironment;
 

@@ -2,39 +2,40 @@
 #include <glib.h>
 #include <stdlib.h>
 
-static gpointer step_begin_scenario(void);
-static void step_end_scenario(gpointer *scenario);
-static gint step_fail(gpointer *scenario, JsonNode *args);
-static gint step_success(gpointer *scenario, JsonNode *args);
+STEP_BEGIN(step_begin_scenario);
+STEP_END(step_end_scenario);
+STEP_DEF(step_fail);
+STEP_DEF(step_success);
 
 CukeStepEnvironment steps_test = {
 		.tag = "test",
 		.begin_scenario = step_begin_scenario,
 		.end_scenario = step_end_scenario,
 
-		.num_defs = 4,
 		.definitions = {
 				{"^I fail$", step_fail},
 				{"^I succeed$", step_success},
 				{"^I do (.*) stuff$", step_success},
 				{"^I do (.*) stuff (.*)$", step_success},
+				{NULL, NULL}
 		}
 };
 
 
-static gpointer step_begin_scenario(void) {
+STEP_BEGIN(step_begin_scenario) {
 	glong *buf = g_malloc(sizeof(glong));
 	*buf = 0;
 	g_message("Scenario started");
 	return buf;
 }
-static void step_end_scenario(gpointer *scenario) {
+
+STEP_END(step_end_scenario) {
 	glong *buf = (glong*)scenario;
 	g_message("Scenario ended, %d steps", *buf);
 	g_free(buf);
 }
 
-static gint step_fail(gpointer *scenario, JsonNode *args) {
+STEP_DEF(step_fail) {
 	glong *buf = (glong*)scenario;
 	if(args) {
 		char *jsonbuf = json_encode(args);
@@ -44,7 +45,7 @@ static gint step_fail(gpointer *scenario, JsonNode *args) {
 	(*buf)++;
 	return 0;
 }
-static gint step_success(gpointer *scenario, JsonNode *args) {
+STEP_DEF(step_success) {
 	glong *buf = (glong*)scenario;
 	if(args) {
 		char *jsonbuf = json_encode(args);

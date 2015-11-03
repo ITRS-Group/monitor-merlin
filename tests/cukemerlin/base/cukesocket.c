@@ -66,9 +66,11 @@ void cukesock_register_stepenv(CukeSocket *cs, CukeStepEnvironment *stepenv) {
 	g_return_if_fail(stepenv != NULL);
 	g_ptr_array_add(cs->stepenvs, stepenv);
 
-	for (i = 0; i < stepenv->num_defs; i++) {
+	/* definitions is NULL-terminated, so also update definition count */
+	for (i = 0; stepenv->definitions[i].match; i++) {
 		g_ptr_array_add(cs->stepregexps, cukesock_regex_new(stepenv, i));
 	}
+	stepenv->num_defs = i;
 }
 
 static gpointer cukesock_cb_new(GSocket *conn, gpointer userdata) {
