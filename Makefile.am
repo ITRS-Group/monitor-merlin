@@ -268,9 +268,20 @@ cukemerlin_SOURCES = tests/cukemerlin/base/cukemerlin.c \
 	tests/cukemerlin/base/cukesocket.c tests/cukemerlin/base/cukesocket.h \
 	tests/cukemerlin/base/jsonsocket.c tests/cukemerlin/base/jsonsocket.h \
 	tests/cukemerlin/steps/steps.c tests/cukemerlin/steps/steps.h \
-	tests/cukemerlin/steps/steps_test.c tests/cukemerlin/steps/steps_test.h
+	tests/cukemerlin/steps/steps_test.c tests/cukemerlin/steps/steps_test.h \
+	tests/cukemerlin/steps/steps_merlin.c tests/cukemerlin/steps/steps_merlin.h \
+	\
+	tests/merlincat/client_gsource.c tests/merlincat/client_gsource.h \
+	tests/merlincat/server_gsource.c tests/merlincat/server_gsource.h \
+	tests/merlincat/merlinreader.c tests/merlincat/merlinreader.h \
+	tests/merlincat/merlincat_codec.c tests/merlincat/merlincat_codec.h \
+	tests/merlincat/console.c tests/merlincat/console.h \
+	tests/merlincat/event_packer.c tests/merlincat/event_packer.h \
+	tests/merlincat/conn_info.c tests/merlincat/conn_info.h \
+	tests/merlincat/nebev2kvvec.c tests/merlincat/nebev2kvvec.h \
+	tests/merlincat/kvvec2nebev.c tests/merlincat/kvvec2nebev.h
 
-cukemerlin_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIO_UNIX_CFLAGS) -I$(top_builddir)/tests/cukemerlin
+cukemerlin_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIO_UNIX_CFLAGS) -I$(top_builddir)/tests/cukemerlin -I$(top_builddir)/tests
 cukemerlin_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS) $(GIO_UNIX_LIBS)
 
 

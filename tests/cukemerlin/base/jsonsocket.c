@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define LINEBUF_SOCKET_BUFSIZE 1024
+#define LINEBUF_SOCKET_BUFSIZE 102400
 
 /* Some backward compatible stuff for glib */
 #ifndef G_SOURCE_CONTINUE

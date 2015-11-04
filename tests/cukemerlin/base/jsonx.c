@@ -92,6 +92,11 @@ int jsonx_locate(JsonNode *node, ...) {
 					*outlong = (long)(cur_node->number_+0.5);
 					found = 1;
 				}
+				if(cur_node->tag == JSON_STRING) {
+					// TODO: only if string is numeric
+					*outlong = atol(cur_node->string_);
+					found = 1;
+				}
 				goto end_traverse;
 			}
 			break;

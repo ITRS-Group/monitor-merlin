@@ -220,14 +220,48 @@ merlin_event *event_packer_unpack(const char *line) {
 	const char *data;
 	char cmd[256];
 	int res = -1;
-	merlin_event *evt = NULL;
 	struct kvvec *kvv = NULL;
+	merlin_event *evt = NULL;
+
+	/* Parse first command */
+	data = get_tail(cmd, line);
+	if (0 == strcmp("EVT", cmd)) {
+
+		/* Parse second sub command, and for all EVT, the tail is a ekvstr */
+		data = get_tail(cmd, data);
+		kvv = ekvstr_to_kvvec(data);
+		if (kvv == NULL)
+			goto unpack_error;
+		/* UNPACK HERE */
+		evt = event_packer_unpack_kvv(cmd, kvv);
+		if(evt == NULL)
+			goto unpack_error;
+	} else {
+		goto unpack_error;
+	}
+
+	kvvec_destroy(kvv, KVVEC_FREE_ALL);
+	return evt;
+
+	/*
+	 * Error handling, this is only reached by goto-bailout, and clears the
+	 * state
+	 */
+	unpack_error: /**/
+	kvvec_destroy(kvv, KVVEC_FREE_ALL);
+	free(evt);
+	return NULL;
+}
+
+merlin_event *event_packer_unpack_kvv(const char *cmd, struct kvvec *kvv) {
+	merlin_event *evt = NULL;
 	gpointer unpacked_data = NULL;
+	int res = -1;
 
 	/* Create an empty merlin_event */
 	evt = malloc(sizeof(merlin_event));
 	if (evt == NULL)
-		goto unpack_error;
+		return NULL;
 	memset(evt, 0, sizeof(merlin_event));
 
 	/*
@@ -244,107 +278,100 @@ merlin_event *event_packer_unpack(const char *line) {
 
 	/* Create a storage for unpacked data */
 	unpacked_data = malloc(128 << 10); // size is hardcoded in merlin...
-	if (unpacked_data == NULL)
-		goto unpack_error;
+	if (unpacked_data == NULL) {
+		free(evt);
+		return NULL;
+	}
 	memset(unpacked_data, 0, 128 << 10);
 
-	/* Parse first command */
-	data = get_tail(cmd, line);
-	if (0 == strcmp("EVT", cmd)) {
-
-		/* Parse second sub command, and for all EVT, the tail is a ekvstr */
-		data = get_tail(cmd, data);
-		kvv = ekvstr_to_kvvec(data);
-		if (kvv == NULL)
-			goto unpack_error;
-		if (0 == strcmp("PROCESS", cmd)) {
-			evt->hdr.type = NEBCALLBACK_PROCESS_DATA;
-			res = kvvec_to_process(kvv, unpacked_data);
-		} else if (0 == strcmp("TIMED_EVENT", cmd)) {
-			evt->hdr.type = NEBCALLBACK_TIMED_EVENT_DATA;
-			res = kvvec_to_timed_event(kvv, unpacked_data);
-		} else if (0 == strcmp("LOG", cmd)) {
-			evt->hdr.type = NEBCALLBACK_LOG_DATA;
-			res = kvvec_to_log(kvv, unpacked_data);
-		} else if (0 == strcmp("SYSTEM_COMMAND", cmd)) {
-			evt->hdr.type = NEBCALLBACK_SYSTEM_COMMAND_DATA;
-			res = kvvec_to_system_command(kvv, unpacked_data);
-		} else if (0 == strcmp("EVENT_HANDLER", cmd)) {
-			evt->hdr.type = NEBCALLBACK_EVENT_HANDLER_DATA;
-			res = kvvec_to_event_handler(kvv, unpacked_data);
-		} else if (0 == strcmp("NOTIFICATION", cmd)) {
-			evt->hdr.type = NEBCALLBACK_NOTIFICATION_DATA;
-			res = kvvec_to_notification(kvv, unpacked_data);
-		} else if (0 == strcmp("SERVICE_CHECK", cmd)) {
-			evt->hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
-			res = kvvec_to_merlin_service_status(kvv, unpacked_data);
-		} else if (0 == strcmp("HOST_CHECK", cmd)) {
-			evt->hdr.type = NEBCALLBACK_HOST_CHECK_DATA;
-			res = kvvec_to_merlin_host_status(kvv, unpacked_data);
-		} else if (0 == strcmp("COMMENT", cmd)) {
-			evt->hdr.type = NEBCALLBACK_COMMENT_DATA;
-			res = kvvec_to_comment(kvv, unpacked_data);
-		} else if (0 == strcmp("DOWNTIME", cmd)) {
-			evt->hdr.type = NEBCALLBACK_DOWNTIME_DATA;
-			res = kvvec_to_downtime(kvv, unpacked_data);
-		} else if (0 == strcmp("FLAPPING", cmd)) {
-			evt->hdr.type = NEBCALLBACK_FLAPPING_DATA;
-			res = kvvec_to_flapping(kvv, unpacked_data);
-		} else if (0 == strcmp("PROGRAM_STATUS", cmd)) {
-			evt->hdr.type = NEBCALLBACK_PROGRAM_STATUS_DATA;
-			res = kvvec_to_program_status(kvv, unpacked_data);
-		} else if (0 == strcmp("HOST_STATUS", cmd)) {
-			evt->hdr.type = NEBCALLBACK_HOST_STATUS_DATA;
-			res = kvvec_to_merlin_host_status(kvv, unpacked_data);
-		} else if (0 == strcmp("SERVICE_STATUS", cmd)) {
-			evt->hdr.type = NEBCALLBACK_SERVICE_STATUS_DATA;
-			res = kvvec_to_merlin_service_status(kvv, unpacked_data);
-		} else if (0 == strcmp("ADAPTIVE_PROGRAM", cmd)) {
-			evt->hdr.type = NEBCALLBACK_ADAPTIVE_PROGRAM_DATA;
-			res = kvvec_to_adaptive_program(kvv, unpacked_data);
-		} else if (0 == strcmp("ADAPTIVE_HOST", cmd)) {
-			evt->hdr.type = NEBCALLBACK_ADAPTIVE_HOST_DATA;
-			res = kvvec_to_adaptive_host(kvv, unpacked_data);
-		} else if (0 == strcmp("ADAPTIVE_SERVICE", cmd)) {
-			evt->hdr.type = NEBCALLBACK_ADAPTIVE_SERVICE_DATA;
-			res = kvvec_to_adaptive_service(kvv, unpacked_data);
-		} else if (0 == strcmp("EXTERNAL_COMMAND", cmd)) {
-			evt->hdr.type = NEBCALLBACK_EXTERNAL_COMMAND_DATA;
-			res = kvvec_to_external_command(kvv, unpacked_data);
-		} else if (0 == strcmp("AGGREGATED_STATUS", cmd)) {
-			evt->hdr.type = NEBCALLBACK_AGGREGATED_STATUS_DATA;
-			res = kvvec_to_aggregated_status(kvv, unpacked_data);
-		} else if (0 == strcmp("RETENTION", cmd)) {
-			evt->hdr.type = NEBCALLBACK_RETENTION_DATA;
-			res = kvvec_to_retention(kvv, unpacked_data);
-		} else if (0 == strcmp("CONTACT_NOTIFICATION", cmd)) {
-			evt->hdr.type = NEBCALLBACK_CONTACT_NOTIFICATION_DATA;
-			res = kvvec_to_contact_notification(kvv, unpacked_data);
-		} else if (0 == strcmp("CONTACT_NOTIFICATION_METHOD", cmd)) {
-			evt->hdr.type = NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA;
-			res = kvvec_to_contact_notification_method(kvv, unpacked_data);
-		} else if (0 == strcmp("ACKNOWLEDGEMENT", cmd)) {
-			evt->hdr.type = NEBCALLBACK_ACKNOWLEDGEMENT_DATA;
-			res = kvvec_to_acknowledgement(kvv, unpacked_data);
-		} else if (0 == strcmp("STATE_CHANGE", cmd)) {
-			evt->hdr.type = NEBCALLBACK_STATE_CHANGE_DATA;
-			res = kvvec_to_statechange(kvv, unpacked_data);
-		} else if (0 == strcmp("CONTACT_STATUS", cmd)) {
-			evt->hdr.type = NEBCALLBACK_CONTACT_STATUS_DATA;
-			res = kvvec_to_contact_status(kvv, unpacked_data);
-		} else if (0 == strcmp("ADAPTIVE_CONTACT", cmd)) {
-			evt->hdr.type = NEBCALLBACK_ADAPTIVE_CONTACT_DATA;
-			res = kvvec_to_adaptive_contact(kvv, unpacked_data);
-		} else if (0 == strcmp("CTRL_ACTIVE", cmd)) {
-			evt->hdr.type = CTRL_PACKET;
-			evt->hdr.code = CTRL_ACTIVE;
-			res = kvvec_to_merlin_nodeinfo(kvv, unpacked_data);
-		} else {
-			// TODO: Error handling
-			goto unpack_error;
-		}
-	} else {
-		goto unpack_error;
+	if (0 == strcmp("PROCESS", cmd)) {
+		evt->hdr.type = NEBCALLBACK_PROCESS_DATA;
+		res = kvvec_to_process(kvv, unpacked_data);
+	} else if (0 == strcmp("TIMED_EVENT", cmd)) {
+		evt->hdr.type = NEBCALLBACK_TIMED_EVENT_DATA;
+		res = kvvec_to_timed_event(kvv, unpacked_data);
+	} else if (0 == strcmp("LOG", cmd)) {
+		evt->hdr.type = NEBCALLBACK_LOG_DATA;
+		res = kvvec_to_log(kvv, unpacked_data);
+	} else if (0 == strcmp("SYSTEM_COMMAND", cmd)) {
+		evt->hdr.type = NEBCALLBACK_SYSTEM_COMMAND_DATA;
+		res = kvvec_to_system_command(kvv, unpacked_data);
+	} else if (0 == strcmp("EVENT_HANDLER", cmd)) {
+		evt->hdr.type = NEBCALLBACK_EVENT_HANDLER_DATA;
+		res = kvvec_to_event_handler(kvv, unpacked_data);
+	} else if (0 == strcmp("NOTIFICATION", cmd)) {
+		evt->hdr.type = NEBCALLBACK_NOTIFICATION_DATA;
+		res = kvvec_to_notification(kvv, unpacked_data);
+	} else if (0 == strcmp("SERVICE_CHECK", cmd)) {
+		evt->hdr.type = NEBCALLBACK_SERVICE_CHECK_DATA;
+		res = kvvec_to_merlin_service_status(kvv, unpacked_data);
+	} else if (0 == strcmp("HOST_CHECK", cmd)) {
+		evt->hdr.type = NEBCALLBACK_HOST_CHECK_DATA;
+		res = kvvec_to_merlin_host_status(kvv, unpacked_data);
+	} else if (0 == strcmp("COMMENT", cmd)) {
+		evt->hdr.type = NEBCALLBACK_COMMENT_DATA;
+		res = kvvec_to_comment(kvv, unpacked_data);
+	} else if (0 == strcmp("DOWNTIME", cmd)) {
+		evt->hdr.type = NEBCALLBACK_DOWNTIME_DATA;
+		res = kvvec_to_downtime(kvv, unpacked_data);
+	} else if (0 == strcmp("FLAPPING", cmd)) {
+		evt->hdr.type = NEBCALLBACK_FLAPPING_DATA;
+		res = kvvec_to_flapping(kvv, unpacked_data);
+	} else if (0 == strcmp("PROGRAM_STATUS", cmd)) {
+		evt->hdr.type = NEBCALLBACK_PROGRAM_STATUS_DATA;
+		res = kvvec_to_program_status(kvv, unpacked_data);
+	} else if (0 == strcmp("HOST_STATUS", cmd)) {
+		evt->hdr.type = NEBCALLBACK_HOST_STATUS_DATA;
+		res = kvvec_to_merlin_host_status(kvv, unpacked_data);
+	} else if (0 == strcmp("SERVICE_STATUS", cmd)) {
+		evt->hdr.type = NEBCALLBACK_SERVICE_STATUS_DATA;
+		res = kvvec_to_merlin_service_status(kvv, unpacked_data);
+	} else if (0 == strcmp("ADAPTIVE_PROGRAM", cmd)) {
+		evt->hdr.type = NEBCALLBACK_ADAPTIVE_PROGRAM_DATA;
+		res = kvvec_to_adaptive_program(kvv, unpacked_data);
+	} else if (0 == strcmp("ADAPTIVE_HOST", cmd)) {
+		evt->hdr.type = NEBCALLBACK_ADAPTIVE_HOST_DATA;
+		res = kvvec_to_adaptive_host(kvv, unpacked_data);
+	} else if (0 == strcmp("ADAPTIVE_SERVICE", cmd)) {
+		evt->hdr.type = NEBCALLBACK_ADAPTIVE_SERVICE_DATA;
+		res = kvvec_to_adaptive_service(kvv, unpacked_data);
+	} else if (0 == strcmp("EXTERNAL_COMMAND", cmd)) {
+		evt->hdr.type = NEBCALLBACK_EXTERNAL_COMMAND_DATA;
+		res = kvvec_to_external_command(kvv, unpacked_data);
+	} else if (0 == strcmp("AGGREGATED_STATUS", cmd)) {
+		evt->hdr.type = NEBCALLBACK_AGGREGATED_STATUS_DATA;
+		res = kvvec_to_aggregated_status(kvv, unpacked_data);
+	} else if (0 == strcmp("RETENTION", cmd)) {
+		evt->hdr.type = NEBCALLBACK_RETENTION_DATA;
+		res = kvvec_to_retention(kvv, unpacked_data);
+	} else if (0 == strcmp("CONTACT_NOTIFICATION", cmd)) {
+		evt->hdr.type = NEBCALLBACK_CONTACT_NOTIFICATION_DATA;
+		res = kvvec_to_contact_notification(kvv, unpacked_data);
+	} else if (0 == strcmp("CONTACT_NOTIFICATION_METHOD", cmd)) {
+		evt->hdr.type = NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA;
+		res = kvvec_to_contact_notification_method(kvv, unpacked_data);
+	} else if (0 == strcmp("ACKNOWLEDGEMENT", cmd)) {
+		evt->hdr.type = NEBCALLBACK_ACKNOWLEDGEMENT_DATA;
+		res = kvvec_to_acknowledgement(kvv, unpacked_data);
+	} else if (0 == strcmp("STATE_CHANGE", cmd)) {
+		evt->hdr.type = NEBCALLBACK_STATE_CHANGE_DATA;
+		res = kvvec_to_statechange(kvv, unpacked_data);
+	} else if (0 == strcmp("CONTACT_STATUS", cmd)) {
+		evt->hdr.type = NEBCALLBACK_CONTACT_STATUS_DATA;
+		res = kvvec_to_contact_status(kvv, unpacked_data);
+	} else if (0 == strcmp("ADAPTIVE_CONTACT", cmd)) {
+		evt->hdr.type = NEBCALLBACK_ADAPTIVE_CONTACT_DATA;
+		res = kvvec_to_adaptive_contact(kvv, unpacked_data);
+	} else if (0 == strcmp("CTRL_ACTIVE", cmd)) {
+		evt->hdr.type = CTRL_PACKET;
+		evt->hdr.code = CTRL_ACTIVE;
+		res = kvvec_to_merlin_nodeinfo(kvv, unpacked_data);
+	}
+	if (res != 0) {
+		/* Error */
+		free(evt);
+		free(unpacked_data);
+		return NULL;
 	}
 
 	if (evt->hdr.type == CTRL_PACKET) {
@@ -353,21 +380,14 @@ merlin_event *event_packer_unpack(const char *line) {
 	} else {
 		gsize size = merlincat_encode(unpacked_data, evt->hdr.type, evt->body,
 				128 << 10);
-		if (size == 0)
-			goto unpack_error;
+		if (size == 0) {
+			/* Error */
+			free(evt);
+			free(unpacked_data);
+			return NULL;
+		}
 		evt->hdr.len = size;
 	}
 
-	free(unpacked_data);
-	kvvec_destroy(kvv, KVVEC_FREE_ALL);
 	return evt;
-
-	/*
-	 * Error handling, this is only reached by goto-bailout, and clears the
-	 * state
-	 */
-	unpack_error: free(unpacked_data);
-	kvvec_destroy(kvv, KVVEC_FREE_ALL);
-	free(evt);
-	return NULL;
 }

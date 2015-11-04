@@ -20,4 +20,12 @@ char *event_packer_pack(const merlin_event *evt);
  */
 merlin_event *event_packer_unpack(const char *line);
 
+/**
+ * Takes an event type, as string, and a kvvec of parameters, and returns a
+ * newly allocated merlin_event, that should be freed with free()
+ *
+ * If any failure, return NULL
+ */
+merlin_event *event_packer_unpack_kvv(const char *cmd, struct kvvec *kvv);
+
 #endif /* TOOLS_MERLINCAT_EVENT_PACKER_H_ */
