@@ -128,7 +128,8 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 						g_match_info_fetch_pos(mi, i+1, &pos, NULL);
 						json_append_element(args, jsonx_packobject(
 								"val", json_mkstring(word),
-								"pos", json_mknumber(pos)
+								"pos", json_mknumber(pos),
+								NULL, NULL
 						));
 						g_free(word);
 					}
@@ -148,6 +149,7 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 										"source", json_mkstring(curre->tag),
 										NULL, NULL),
 								NULL));
+				g_match_info_free(mi);
 				goto do_send;
 			}
 			g_match_info_free(mi);

@@ -96,7 +96,12 @@ static gboolean client_source_data_callback(GSocket *socket,
 
 	if(size == 0) {
 		// Connection closed
-		(*cs->conn_close)(cs->conn_user_data);
+		if(cs->conn_close) {
+			(*cs->conn_close)(cs->conn_user_data);
+			/* We called the close method for this connection, mark it as we shouldn't call it again */
+			cs->conn_close = NULL;
+		}
+
 		g_socket_close(cs->sock, NULL);
 		g_object_unref(cs->sock);
 		cs->sock = NULL;
@@ -114,12 +119,19 @@ void client_source_destroy(ClientSource *cs) {
 	if(cs == NULL)
 		return;
 
+
 	if(cs->sock) {
 		g_socket_close(cs->sock, NULL);
 		g_object_unref(cs->sock);
 	}
 	if(cs->source) {
 		g_source_destroy(cs->source);
+	}
+	// Make sure destructor is called exactly once
+	if(cs->conn_close) {
+		(*cs->conn_close)(cs->conn_user_data);
+		/* We called the close method for this connection, mark it as we shouldn't call it again */
+		cs->conn_close = NULL;
 	}
 	if(cs->conn_store) {
 		connection_destroy(cs->conn_store);
