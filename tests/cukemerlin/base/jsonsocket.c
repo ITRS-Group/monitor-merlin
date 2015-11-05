@@ -31,6 +31,7 @@ struct JSONSocket_ {
 typedef struct JSONSocketStorage_ {
 	gchar buffer[LINEBUF_SOCKET_BUFSIZE];
 	gssize bufptr;
+	GSocketConnection *conn;
 	JSONSocket *csock;
 	gpointer user_data;
 } JSONSocketStorage;
@@ -50,6 +51,7 @@ JSONSocket *jsonsocket_new(const gchar *bind_addr, const gint bind_port,
 	GInetAddress *inetaddr = NULL;
 	GSocketAddress *addr = NULL;
 	JSONSocket *csock;
+	GError *error = NULL;
 
 	csock = g_malloc(sizeof(JSONSocket));
 	csock->session_new = session_new;
@@ -71,9 +73,10 @@ JSONSocket *jsonsocket_new(const gchar *bind_addr, const gint bind_port,
 			G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT,
 			NULL,
 			NULL,
-			NULL /* (GError **) */
+			&error /* (GError **) */
 			)) {
-		/* Some error */
+		g_critical("Error adding socket address: %s", error->message);
+		g_error_free(error);
 	}
 	g_object_unref(G_OBJECT(addr));
 
@@ -100,12 +103,15 @@ static gboolean jsonsocket_new_request(GSocketService *service,
 	GSource *source;
 	JSONSocketStorage *stor;
 
-	sock = g_socket_connection_get_socket(connection);
-	g_socket_set_blocking(sock, FALSE);
 
 	stor = g_malloc(sizeof(JSONSocketStorage));
 	stor->bufptr = 0;
 	stor->csock = csock;
+
+	stor->conn = g_object_ref(connection);
+	sock = g_socket_connection_get_socket(stor->conn);
+	g_socket_set_blocking(sock, FALSE);
+
 
 	source = g_socket_create_source(sock, G_IO_IN, NULL);
 
@@ -164,7 +170,7 @@ static gboolean jsonsocket_recv(GSocket *sock, GIOCondition condition,
 		return G_SOURCE_REMOVE;
 	}
 
-	printf("Some error: %s\n", error->message);
+	g_warning("Error receiving data: %s\n", error->message);
 	g_error_free(error);
 
 	g_object_unref(sock);
@@ -174,6 +180,7 @@ static gboolean jsonsocket_recv(GSocket *sock, GIOCondition condition,
 static void jsonsocket_disconnect(gpointer user_data) {
 	JSONSocketStorage *stor = (JSONSocketStorage *) user_data;
 	(*stor->csock->session_destroy)(stor->user_data);
+	g_object_unref(stor->conn);
 	g_free(stor);
 }
 

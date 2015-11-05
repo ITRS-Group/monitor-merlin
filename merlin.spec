@@ -105,6 +105,7 @@ Group: op5/Monitor
 Requires: monitor-livestatus
 Requires: op5-naemon
 Requires: merlin merlin-apps monitor-merlin
+Requires: rubygem20-op5cucumber
 
 %description test
 Some additional test files for merlin
@@ -131,6 +132,8 @@ ln -s ../../../../%_libdir/merlin/rename %buildroot/%mod_path/rename
 ln -s ../../../../%_libdir/merlin/showlog %buildroot/%mod_path/showlog
 ln -s ../../../../%_libdir/merlin/merlin.so %buildroot/%mod_path/merlin.so
 ln -s op5 %buildroot/%_bindir/mon
+
+cp cukemerlin %buildroot/%_bindir/cukemerlin
 
 # install crontabs
 mkdir -p %buildroot%_sysconfdir/cron.d
@@ -269,6 +272,7 @@ sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon
 %files test
 %defattr(-,root,root)
 %_libdir/merlin/mon/test.py*
+%_bindir/cukemerlin
 
 %clean
 rm -rf %buildroot

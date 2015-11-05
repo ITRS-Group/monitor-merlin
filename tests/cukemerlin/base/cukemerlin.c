@@ -1,4 +1,5 @@
 #include <glib.h>
+#include <glib-object.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -8,7 +9,7 @@
 #include <steps/steps.h>
 
 static gchar *opt_bind_address = "0.0.0.0";
-static gint opt_bind_port = 98989;
+static gint opt_bind_port = 31221;
 
 static GMainLoop *mainloop = NULL;
 

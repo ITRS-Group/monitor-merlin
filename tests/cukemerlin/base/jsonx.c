@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include "json.h"
 #include "jsonx.h"
+#include <stdlib.h>
 
 /* Helper to pack an array. NULL-terminate a list of JsonNodes */
 JsonNode *jsonx_packarray(JsonNode *node, ...) {

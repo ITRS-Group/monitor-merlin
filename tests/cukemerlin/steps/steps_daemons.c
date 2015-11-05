@@ -2,10 +2,14 @@
 #include <glib.h>
 #include <stdlib.h>
 #include <string.h>
+#include <base/jsonx.h>
 
 /* TODO: For kill() call, which should be converted to glib-style */
 #include <sys/types.h>
 #include <signal.h>
+
+/* TODO: For write and close, use something more glib */
+#include <unistd.h>
 
 typedef struct StepsDaemons_ {
 	GPtrArray *processes;

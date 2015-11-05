@@ -1,6 +1,7 @@
 #include "steps_merlin.h"
 #include <glib.h>
 #include <stdlib.h>
+#include <base/jsonx.h>
 
 /* merlincat headers */
 #include <merlincat/client_gsource.h>
@@ -398,7 +399,6 @@ static void net_conn_data(ConnectionStorage *conn, gpointer buffer,
 	MerlinScenarioConnection *msc = (MerlinScenarioConnection *) conn_user_data;
 	merlin_event *evt;
 	gsize read_size;
-	char *buf;
 	while (length) {
 		read_size = merlinreader_add_data(msc->mr, buffer, length);
 		length -= read_size;

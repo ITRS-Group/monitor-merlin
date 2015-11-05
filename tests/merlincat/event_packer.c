@@ -254,7 +254,6 @@ static const char *get_tail(char *prefix, const char *str) {
 merlin_event *event_packer_unpack(const char *line) {
 	const char *data;
 	char cmd[256];
-	int res = -1;
 	struct kvvec *kvv = NULL;
 	merlin_event *evt = NULL;
 

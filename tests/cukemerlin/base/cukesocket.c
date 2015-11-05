@@ -5,6 +5,8 @@
 #include "jsonsocket.h"
 #include "jsonx.h"
 
+#include <string.h>
+
 typedef struct CukeScenarioHandler_ {
 	CukeStepEnvironment *stepenv;
 	gpointer userdata;
@@ -100,7 +102,6 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 	if (0 == strcmp(cmd, "step_matches")) {
 		int cur_re;
 		CukeStepRegexDef *curre;
-		CukeStepDefinition *curdef;
 
 		const char *name_to_match;
 		if (!jsonx_locate(node, 'a', 1, 'o', "name_to_match", 's',

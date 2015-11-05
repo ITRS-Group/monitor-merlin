@@ -31,7 +31,7 @@ STEP_BEGIN(step_begin_scenario) {
 
 STEP_END(step_end_scenario) {
 	glong *buf = (glong*)scenario;
-	g_message("Scenario ended, %d steps", *buf);
+	g_message("Scenario ended, %ld steps", *buf);
 	g_free(buf);
 }
 
