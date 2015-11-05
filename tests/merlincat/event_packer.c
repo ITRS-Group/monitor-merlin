@@ -61,7 +61,7 @@ struct kvvec *event_packer_pack_kvv(const merlin_event *evt, const char **name) 
 	struct kvvec *kvv = NULL;
 	gpointer *unpacked_data = NULL;
 
-	unpacked_data = g_malloc(evt->hdr.len);
+	unpacked_data = g_malloc0(evt->hdr.len);
 	memcpy(unpacked_data, evt->body, evt->hdr.len);
 
 	/* CTRL_PACKET isn't decoded through merlin*_decode */

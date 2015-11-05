@@ -31,10 +31,7 @@ ClientSource *client_source_new(const ConnectionInfo* conn_info,
 	GSocketAddress *addr = NULL;
 	GInetAddress *inetaddr = NULL;
 
-	ClientSource *cs = g_malloc(sizeof(ClientSource));
-	cs->conn_new = conn_new;
-	cs->conn_data = conn_data;
-	cs->conn_close = conn_close;
+	ClientSource *cs = g_malloc0(sizeof(ClientSource));
 	cs->user_data = user_data;
 	cs->sock = NULL;
 	cs->source = NULL;
@@ -72,6 +69,13 @@ ClientSource *client_source_new(const ConnectionInfo* conn_info,
 	}
 	g_object_unref((GObject *)addr);
 
+	/*
+	 * These must be set just before conn_new is called, otherwise cleanup might
+	 * call conn_close without conn_new called, if cs is destroyed prematurely
+	 */
+	cs->conn_new = conn_new;
+	cs->conn_data = conn_data;
+	cs->conn_close = conn_close;
 	cs->conn_user_data = (*cs->conn_new)(cs->conn_store, cs->user_data);
 
 	cs->source = g_socket_create_source(cs->sock, G_IO_IN, NULL);

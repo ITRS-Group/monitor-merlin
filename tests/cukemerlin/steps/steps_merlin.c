@@ -84,7 +84,7 @@ CukeStepEnvironment steps_merlin =
 	};
 
 STEP_BEGIN(step_begin_scenario) {
-	MerlinScenario *ms = g_malloc(sizeof(MerlinScenario));
+	MerlinScenario *ms = g_malloc0(sizeof(MerlinScenario));
 	/* Create a storage for all connections */
 	ms->connections = g_tree_new_full((GCompareDataFunc) g_strcmp0, NULL,
 		g_free, (GDestroyNotify) mrlscenconn_destroy);
@@ -322,10 +322,8 @@ STEP_DEF(step_record_check) {
  * runtime, as long as everything is freed during mrlscenconn_destroy
  */
 static MerlinScenarioConnection *mrlscenconn_new(ConnectionInfo *conn_info) {
-	MerlinScenarioConnection *msc = g_malloc(sizeof(MerlinScenarioConnection));
+	MerlinScenarioConnection *msc = g_malloc0(sizeof(MerlinScenarioConnection));
 
-	msc->conn = NULL;
-	msc->mr = NULL;
 	msc->event_buffer = g_ptr_array_new_with_free_func(g_free);
 
 	msc->cs = client_source_new(conn_info, net_conn_new, net_conn_data,
@@ -417,6 +415,8 @@ static void net_conn_data(ConnectionStorage *conn, gpointer buffer,
 }
 static void net_conn_close(gpointer conn_user_data) {
 	MerlinScenarioConnection *msc = (MerlinScenarioConnection *) conn_user_data;
+	if(msc == NULL)
+		return;
 	merlinreader_destroy(msc->mr);
 	msc->mr = NULL;
 	msc->conn = NULL;
