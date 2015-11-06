@@ -756,7 +756,6 @@ static int io_poll_sockets(void)
 	nfound = select(sel_val + 1, &rd, &wr, NULL, &tv);
 	if (nfound < 0) {
 		lerr("select() returned %d (errno = %d): %s", nfound, errno, strerror(errno));
-		sleep(1);
 		return -1;
 	}
 
