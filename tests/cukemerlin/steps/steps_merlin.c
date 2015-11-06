@@ -31,11 +31,16 @@ typedef struct MerlinScenarioConnection_ {
 	GPtrArray *event_buffer;
 } MerlinScenarioConnection;
 
+static struct kvvec *jsontbl_to_kvvec(JsonNode *tbl);
+
 static MerlinScenarioConnection *mrlscenconn_new(ConnectionInfo *conn_info);
 static void mrlscenconn_destroy(MerlinScenarioConnection *msc);
 static void mrlscenconn_clear_buffer(MerlinScenarioConnection *msc);
 static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
 	const char *typestr, struct kvvec *matchkv);
+
+static MerlinScenarioConnection *mrlscen_get_conn(MerlinScenario *ms,
+	const gchar *tag);
 
 static gpointer net_conn_new(ConnectionStorage *conn, gpointer user_data);
 static void net_conn_data(ConnectionStorage *conn, gpointer buffer,
@@ -53,6 +58,7 @@ STEP_DEF(step_send_event);
 
 STEP_DEF(step_clear_buffer);
 STEP_DEF(step_record_check);
+STEP_DEF(step_no_record_check);
 
 CukeStepEnvironment steps_merlin =
 	{
@@ -79,6 +85,9 @@ CukeStepEnvironment steps_merlin =
 				/* Receive events */
 				{ "^([a-z0-9-_]+) clears buffer$", step_clear_buffer },
 				{ "^([a-z0-9-_]+) received event ([A-Z_]+)$", step_record_check },
+				{
+					"^([a-z0-9-_]+) should not receive ([A-Z_]+)$",
+					step_no_record_check },
 
 				{ NULL, NULL }
 			}
@@ -264,7 +273,6 @@ STEP_DEF(step_record_check) {
 	const char *conntag = NULL;
 	const char *typetag = NULL;
 	JsonNode *tbl = NULL;
-	JsonNode *row = NULL;
 	gint res = 0;
 	struct kvvec *kvv = NULL;
 
@@ -277,43 +285,92 @@ STEP_DEF(step_record_check) {
 	if (!jsonx_locate(args, 'a', 2, 'j', &tbl)) {
 		tbl = NULL;
 	}
-	if (tbl != NULL && tbl->tag != JSON_ARRAY) {
+
+	msc = mrlscen_get_conn(ms, conntag);
+	if(msc == NULL) {
 		return 0;
 	}
 
-	msc = g_tree_lookup(ms->connections, conntag);
-	if (msc == NULL) {
-		/* If conntag isn't found, fail */
+	kvv = jsontbl_to_kvvec(tbl);
+	res = mrlscenconn_record_match(msc, typetag, kvv) ? 1 : 0;
+	kvvec_destroy(kvv, KVVEC_FREE_ALL);
+	return res;
+}
+
+STEP_DEF(step_no_record_check) {
+	MerlinScenario *ms = (MerlinScenario*) scenario;
+	MerlinScenarioConnection *msc;
+	const char *conntag = NULL;
+	const char *typetag = NULL;
+	JsonNode *tbl = NULL;
+	gint res = 0;
+	struct kvvec *kvv = NULL;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &conntag)
+		|| !jsonx_locate(args, 'a', 1, 's', &typetag)) {
 		return 0;
 	}
-	if (msc->conn == NULL) {
-		/* If disconnected, fail */
+
+	/* It's ok not to have a table, just keep it to NULL */
+	if (!jsonx_locate(args, 'a', 2, 'j', &tbl)) {
+		tbl = NULL;
+	}
+
+	msc = mrlscen_get_conn(ms, conntag);
+	if(msc == NULL) {
 		return 0;
 	}
+
+	kvv = jsontbl_to_kvvec(tbl);
+	res = mrlscenconn_record_match(msc, typetag, kvv) ? 1 : 0;
+	kvvec_destroy(kvv, KVVEC_FREE_ALL);
+
+	return !res;
+}
+
+/**
+ * Build a kvvec out of a json table, if possible. Return empty kvvec otherwise
+ */
+static struct kvvec *jsontbl_to_kvvec(JsonNode *tbl) {
+	struct kvvec *kvv;
+	JsonNode *row = NULL;
 
 	kvv = kvvec_create(30);
 	if (kvv == NULL) {
 		/* If disconnected, fail */
-		return 0;
+		return NULL;
 	}
 
-	/* If no table, we shouldn't match anything more than type. Thus empty kvv */
-	if (tbl != NULL) {
-		json_foreach(row, tbl)
-		{
-			const char *key = NULL;
-			const char *value = NULL;
-			if (jsonx_locate(row, 'a', 0, 's', &key)
-				&& jsonx_locate(row, 'a', 1, 's', &value)) {
-				kvvec_addkv_str(kvv, strdup(key), strdup(value));
-			}
+	if (tbl == NULL || tbl->tag != JSON_ARRAY) {
+		return kvv;
+	}
+
+	json_foreach(row, tbl)
+	{
+		const char *key = NULL;
+		const char *value = NULL;
+		if (jsonx_locate(row, 'a', 0, 's', &key)
+			&& jsonx_locate(row, 'a', 1, 's', &value)) {
+			kvvec_addkv_str(kvv, strdup(key), strdup(value));
 		}
 	}
 
-	res = mrlscenconn_record_match(msc, typetag, kvv) ? 1 : 0;
+	return kvv;
+}
 
-	kvvec_destroy(kvv, KVVEC_FREE_ALL);
-	return res;
+static MerlinScenarioConnection *mrlscen_get_conn(MerlinScenario *ms,
+	const gchar *tag) {
+	MerlinScenarioConnection *msc;
+	msc = g_tree_lookup(ms->connections, tag);
+	if (msc == NULL) {
+		/* If conntag isn't found, fail */
+		return NULL;
+	}
+	if (msc->conn == NULL) {
+		/* If disconnected, fail */
+		return NULL;
+	}
+	return msc;
 }
 
 /**
@@ -375,12 +432,12 @@ static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
 						}
 					}
 				}
-				if(!found) {
+				if (!found) {
 					/* If we search for a non-existing key, it's a miss */
 					misses++;
 				}
 			}
-			if(misses == 0) {
+			if (misses == 0) {
 				count++;
 			}
 		}
@@ -415,7 +472,7 @@ static void net_conn_data(ConnectionStorage *conn, gpointer buffer,
 }
 static void net_conn_close(gpointer conn_user_data) {
 	MerlinScenarioConnection *msc = (MerlinScenarioConnection *) conn_user_data;
-	if(msc == NULL)
+	if (msc == NULL)
 		return;
 	merlinreader_destroy(msc->mr);
 	msc->mr = NULL;
