@@ -54,6 +54,9 @@ STEP_DEF(step_connect_tcp);
 STEP_DEF(step_connect_unix);
 STEP_DEF(step_disconnect);
 
+STEP_DEF(step_is_connected);
+STEP_DEF(step_is_disconnected);
+
 STEP_DEF(step_send_event);
 
 STEP_DEF(step_clear_buffer);
@@ -78,6 +81,9 @@ CukeStepEnvironment steps_merlin =
 					"^([a-z0-9-_]+) connect to merlin at socket (.*)$",
 					step_connect_unix },
 				{ "^([a-z0-9-_]+) disconnects from merlin$", step_disconnect },
+
+				{ "^([a-z0-9-_]+) is connected to merlin$", step_is_connected },
+				{ "^([a-z0-9-_]+) is disconnected from merlin$", step_is_disconnected },
 
 				/* Send events */
 				{ "^([a-z0-9-_]+) sends event ([A-Z_]+)$", step_send_event },
@@ -184,6 +190,48 @@ STEP_DEF(step_disconnect) {
 		return 1;
 	}
 	return 0;
+}
+
+STEP_DEF(step_is_connected) {
+	MerlinScenario *ms = (MerlinScenario*) scenario;
+	const char *conntag = NULL;
+	MerlinScenarioConnection *msc;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &conntag)) {
+		return 0;
+	}
+
+	msc = g_tree_lookup(ms->connections, conntag);
+	if (msc == NULL) {
+		/* If conntag isn't found, it's not connected */
+		return 0;
+	}
+	if (msc->conn == NULL) {
+		/* If connection isn't found, it's not connected */
+		return 0;
+	}
+	return connection_is_connected(msc->conn);
+}
+
+STEP_DEF(step_is_disconnected) {
+	MerlinScenario *ms = (MerlinScenario*) scenario;
+	const char *conntag = NULL;
+	MerlinScenarioConnection *msc;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &conntag)) {
+		return 0;
+	}
+
+	msc = g_tree_lookup(ms->connections, conntag);
+	if (msc == NULL) {
+		/* If conntag isn't found, it's not connected */
+		return 1;
+	}
+	if (msc->conn == NULL) {
+		/* If connection isn't found, it's not connected */
+		return 1;
+	}
+	return !connection_is_connected(msc->conn);
 }
 
 STEP_DEF(step_send_event) {

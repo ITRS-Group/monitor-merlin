@@ -58,8 +58,9 @@ Feature: Simple packet forwarding
 
 			# Make sure it knows about the config hash
 		And I wait for 1 second
+		Then ipc is connected to merlin
 
-		And peer01 connect to merlin at port 7000 from port 11001
+		Given peer01 connect to merlin at port 7000 from port 11001
 		And peer01 sends event CTRL_ACTIVE
 			| version                     | 1                 |
 			| word_size                   | 64                |
@@ -79,6 +80,7 @@ Feature: Simple packet forwarding
 			| service_checks_handled      | 92                |
 			| monitored_object_state_size | 408               |
 		And I wait for 1 second
+		Then peer01 is connected to merlin
 
 	Scenario: Service check result propagation from ipc to peer
 		Given peer01 clears buffer

@@ -20,6 +20,7 @@ struct ClientSource_ {
 static gboolean client_source_data_callback(GSocket *socket,
 		GIOCondition condition, gpointer user_data);
 static void client_source_send(gpointer conn, gconstpointer data, gsize size);
+static gboolean client_source_is_connected(gpointer conn);
 
 ClientSource *client_source_new(const ConnectionInfo* conn_info,
 	gpointer (*conn_new)(ConnectionStorage *, gpointer),
@@ -40,7 +41,7 @@ ClientSource *client_source_new(const ConnectionInfo* conn_info,
 	 * the ConnectionStorage doesn't own its user_data, but is just a reference
 	 * to parent struct, thus no destroy method
 	 */
-	cs->conn_store = connection_new(client_source_send, NULL, cs);
+	cs->conn_store = connection_new(client_source_send, NULL, client_source_is_connected, cs);
 
 	if (conn_info->type == UNIX) {
 		cs->sock = g_socket_new(G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, NULL);
@@ -146,4 +147,10 @@ void client_source_destroy(ClientSource *cs) {
 static void client_source_send(gpointer conn, gconstpointer data, gsize size) {
 	ClientSource *cs = (ClientSource *)conn;
 	g_socket_send(cs->sock, data, size, NULL, NULL);
+}
+
+
+static gboolean client_source_is_connected(gpointer conn) {
+	ClientSource *cs = (ClientSource *)conn;
+	return g_socket_is_connected(cs->sock);
 }

@@ -34,6 +34,7 @@ static gboolean server_source_recv(GSocket *sock, GIOCondition condition,
 		gpointer user_data);
 static void server_source_disconnect(gpointer user_data);
 static void server_source_send(gpointer conn, gconstpointer data, gsize size);
+static gboolean server_source_is_connected(gpointer conn);
 
 ServerSource *server_source_new(const ConnectionInfo *conn_info,
 		gpointer (*session_new)(ConnectionStorage *, gpointer),
@@ -120,7 +121,8 @@ static gboolean server_source_new_request(GSocketService *service,
 	 * the ConnectionStorage doesn't own its user_data, but is just a reference
 	 * to parent struct, thus no destroy method
 	 */
-	stor->conn_store = connection_new(server_source_send, NULL, stor);
+	stor->conn_store = connection_new(server_source_send, NULL,
+		server_source_is_connected, stor);
 
 	stor->user_data = (*csock->session_new)(stor->conn_store, csock->user_data);
 
@@ -165,4 +167,10 @@ static void server_source_disconnect(gpointer user_data) {
 static void server_source_send(gpointer conn, gconstpointer data, gsize size) {
 	ServerSourceStorage *stor = (ServerSourceStorage *) conn;
 	g_socket_send(stor->sock, data, size, NULL, NULL);
+}
+
+
+static gboolean server_source_is_connected(gpointer conn) {
+	ServerSourceStorage *stor = (ServerSourceStorage *)conn;
+	return g_socket_is_connected(stor->sock);
 }
