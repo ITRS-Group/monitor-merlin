@@ -67,14 +67,14 @@ struct kvvec *event_packer_pack_kvv(const merlin_event *evt, const char **name) 
 	/* CTRL_PACKET isn't decoded through merlin*_decode */
 	if (evt->hdr.type != CTRL_PACKET) {
 		if (merlincat_decode(unpacked_data, evt->hdr.len, evt->hdr.type)) {
-			free(unpacked_data);
+			g_free(unpacked_data);
 			return NULL;
 		}
 	}
 
 	kvv = kvvec_create(30);
 	if (kvv == NULL) {
-		free(unpacked_data);
+		g_free(unpacked_data);
 		return NULL;
 	}
 
@@ -225,7 +225,7 @@ struct kvvec *event_packer_pack_kvv(const merlin_event *evt, const char **name) 
 		if (name)
 			*name = "UNKNOWN";
 	}
-
+	g_free(unpacked_data);
 	return kvv;
 }
 
