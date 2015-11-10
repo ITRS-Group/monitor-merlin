@@ -5,6 +5,7 @@
 
 /* merlincat headers */
 #include <merlincat/client_gsource.h>
+#include <merlincat/server_gsource.h>
 #include <merlincat/event_packer.h>
 #include <merlincat/merlinreader.h>
 
@@ -21,6 +22,8 @@ typedef struct MerlinScenario_ {
 
 typedef struct MerlinScenarioConnection_ {
 	ClientSource *cs;
+	ServerSource *ss;
+
 	MerlinReader *mr;
 	ConnectionStorage *conn;
 
@@ -52,6 +55,8 @@ STEP_END(step_end_scenario);
 
 STEP_DEF(step_connect_tcp);
 STEP_DEF(step_connect_unix);
+STEP_DEF(step_listen_tcp);
+STEP_DEF(step_listen_unix);
 STEP_DEF(step_disconnect);
 
 STEP_DEF(step_is_connected);
@@ -78,12 +83,21 @@ CukeStepEnvironment steps_merlin =
 					"^([a-z0-9-_]+) connect to merlin at port ([0-9]+) from port ([0-9]+)$",
 					step_connect_tcp },
 				{
-					"^([a-z0-9-_]+) connect to merlin at socket (.*)$",
+					"^([a-z0-9-_]+) connect to merlin at socket (.+)$",
 					step_connect_unix },
+				{
+					"^([a-z0-9-_]+) listens for merlin at port ([0-9]+)$",
+					step_listen_tcp },
+				{
+					"^([a-z0-9-_]+) listens for merlin at socket (.+)$",
+					step_listen_unix },
 				{ "^([a-z0-9-_]+) disconnects from merlin$", step_disconnect },
 
+				/* Connection verification */
 				{ "^([a-z0-9-_]+) is connected to merlin$", step_is_connected },
-				{ "^([a-z0-9-_]+) is disconnected from merlin$", step_is_disconnected },
+				{
+					"^([a-z0-9-_]+) is not connected to merlin$",
+					step_is_disconnected },
 
 				/* Send events */
 				{ "^([a-z0-9-_]+) sends event ([A-Z_]+)$", step_send_event },
@@ -173,6 +187,61 @@ STEP_DEF(step_connect_unix) {
 
 	g_tree_insert(ms->connections, g_strdup(conntag), msc);
 
+	return 1;
+}
+
+STEP_DEF(step_listen_tcp) {
+	MerlinScenario *ms = (MerlinScenario*) scenario;
+	const char *conntag = NULL;
+	long dport = 0;
+	MerlinScenarioConnection *msc;
+	ConnectionInfo conn_info;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &conntag)
+		|| !jsonx_locate(args, 'a', 1, 'l', &dport)) {
+		return 0;
+	}
+
+	conn_info.listen = 1;
+	conn_info.type = TCP;
+	conn_info.dest_addr = "127.0.0.1";
+	conn_info.dest_port = dport;
+	conn_info.source_addr = "0.0.0.0";
+	conn_info.source_port = 0;
+	msc = mrlscenconn_new(&conn_info);
+	if (msc == NULL)
+		return 0;
+
+	g_tree_insert(ms->connections, g_strdup(conntag), msc);
+	return 1;
+}
+
+STEP_DEF(step_listen_unix) {
+	MerlinScenario *ms = (MerlinScenario*) scenario;
+	const char *conntag = NULL;
+	const char *sockpath = NULL;
+	MerlinScenarioConnection *msc;
+	ConnectionInfo conn_info;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &conntag)
+		|| !jsonx_locate(args, 'a', 1, 's', &sockpath)) {
+		return 0;
+	}
+
+	conn_info.listen = 1;
+	conn_info.type = UNIX;
+	conn_info.dest_addr = g_strdup(sockpath);
+	conn_info.dest_port = 0;
+	conn_info.source_addr = "";
+	conn_info.source_port = 0;
+
+	msc = mrlscenconn_new(&conn_info);
+
+	g_free(conn_info.dest_addr);
+	if (msc == NULL)
+		return 0;
+
+	g_tree_insert(ms->connections, g_strdup(conntag), msc);
 	return 1;
 }
 
@@ -432,18 +501,24 @@ static MerlinScenarioConnection *mrlscenconn_new(ConnectionInfo *conn_info) {
 
 	msc->event_buffer = g_ptr_array_new_with_free_func(g_free);
 
-	msc->cs = client_source_new(conn_info, net_conn_new, net_conn_data,
-		net_conn_close, msc);
+	if(conn_info->listen) {
+		msc->ss = server_source_new(conn_info, net_conn_new, net_conn_data,
+			net_conn_close, msc);
+	} else {
+		msc->cs = client_source_new(conn_info, net_conn_new, net_conn_data,
+			net_conn_close, msc);
+	}
 
 	return msc;
 }
 static void mrlscenconn_destroy(MerlinScenarioConnection *msc) {
 	if (msc == NULL)
 		return;
-	client_source_destroy(msc->cs);
 	if (msc->event_buffer != NULL) {
 		g_ptr_array_unref(msc->event_buffer);
 	}
+	client_source_destroy(msc->cs);
+	server_source_destroy(msc->ss);
 	g_free(msc);
 }
 static void mrlscenconn_clear_buffer(MerlinScenarioConnection *msc) {
@@ -488,6 +563,7 @@ static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
 			if (misses == 0) {
 				count++;
 			}
+			kvvec_destroy(evtkv, KVVEC_FREE_ALL);
 		}
 	}
 	return count > 0;
@@ -495,6 +571,11 @@ static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
 
 static gpointer net_conn_new(ConnectionStorage *conn, gpointer user_data) {
 	MerlinScenarioConnection *msc = (MerlinScenarioConnection *) user_data;
+	if(msc->conn != NULL) {
+		/* If we already have a connection, we can't take a new one */
+		/* TODO: make it possible to disconnect/reject connection */
+		return NULL;
+	}
 	msc->mr = merlinreader_new();
 	msc->conn = conn;
 	return msc;
@@ -504,6 +585,12 @@ static void net_conn_data(ConnectionStorage *conn, gpointer buffer,
 	MerlinScenarioConnection *msc = (MerlinScenarioConnection *) conn_user_data;
 	merlin_event *evt;
 	gsize read_size;
+
+	if(msc == NULL) {
+		/* It's a connection we can't handle, just ignore */
+		return;
+	}
+
 	while (length) {
 		read_size = merlinreader_add_data(msc->mr, buffer, length);
 		length -= read_size;
