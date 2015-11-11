@@ -1,4 +1,4 @@
-@merlin @daemons
+@merlin @daemons @config
 Feature: Merlind connects to peer
 	Verify that merlind connects to a peer
 
@@ -8,7 +8,7 @@ Feature: Merlind connects to peer
 	Background: Set up merlind connecting to peer01, mock ipc
 		Given I have config file merlin.conf
 			"""
-			ipc_socket = /tmp/test_ipc.sock;
+			ipc_socket = test_ipc.sock;
 
 			log_level = info;
 			use_syslog = 1;
@@ -17,7 +17,7 @@ Feature: Merlind connects to peer
 				log_file = /dev/null
 			}
 			daemon {
-				pidfile = /var/run/merlin/merlin.pid;
+				pidfile = merlin.pid;
 				log_file = /dev/stdout
 				import_program = /bin/false
 				port = 7000;
@@ -35,7 +35,7 @@ Feature: Merlind connects to peer
 		And I start daemon merlind -d merlin.conf
 		And I wait for 1 second
 
-		And ipc connect to merlin at socket /tmp/test_ipc.sock
+		And ipc connect to merlin at socket test_ipc.sock
 		And ipc sends event CTRL_ACTIVE
 			| version                     | 1                 |
 			| word_size                   | 64                |

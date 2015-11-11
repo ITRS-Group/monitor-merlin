@@ -1,4 +1,4 @@
-@merlin @daemons
+@merlin @daemons @config
 Feature: Simple packet forwarding
 	Verify the behaviour of having one peer, and one IPC, that packets sent
 	between connections should be forwarded to other connections
@@ -8,7 +8,7 @@ Feature: Simple packet forwarding
 	Background: Set up merlind with peer01 and ipc
 		Given I have config file merlin.conf
 			"""
-			ipc_socket = /tmp/test_ipc.sock;
+			ipc_socket = test_ipc.sock;
 
 			log_level = info;
 			use_syslog = 1;
@@ -17,7 +17,7 @@ Feature: Simple packet forwarding
 				log_file = /dev/null
 			}
 			daemon {
-				pidfile = /var/run/merlin/merlin.pid;
+				pidfile = merlin.pid;
 				log_file = /dev/stdout
 				import_program = /bin/false
 				port = 7000;
@@ -36,7 +36,7 @@ Feature: Simple packet forwarding
 		And I start daemon merlind -d merlin.conf
 		And I wait for 1 second
 
-		And ipc connect to merlin at socket /tmp/test_ipc.sock
+		And ipc connect to merlin at socket test_ipc.sock
 		And ipc sends event CTRL_ACTIVE
 			| version                     | 1                 |
 			| word_size                   | 64                |
