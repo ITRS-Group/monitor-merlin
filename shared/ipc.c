@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <string.h>
+#include <libgen.h>
 
 #include "shared.h"
 #include "logging.h"
@@ -142,18 +143,21 @@ static int ipc_set_sock_path(const char *path)
 {
 	int result;
 	struct stat st;
-
-	/* the sock-path will be set both from module and daemon,
-	 * so path must be absolute */
-	if (*path != '/')
-		return -1;
+	char *tmp;
+	const char *merlin_config_dir;
 
 	if (strlen(path) > UNIX_PATH_MAX)
 		return -1;
 
 	safe_free(ipc_sock_path);
 
-	ipc_sock_path = strdup(path);
+	tmp = strdup(merlin_config_file);
+	merlin_config_dir = dirname(tmp); /* < Shouldn't be freed */
+
+	ipc_sock_path = nspath_absolute(path, merlin_config_dir);
+
+	free(tmp);
+
 	if (!ipc_sock_path)
 		return -1;
 
