@@ -14,16 +14,30 @@ Background: Set up naemon configuration
 		| default-service | something | PONG        |
 		| default-service | gurka     | PING        |
 		| default-service | gurka     | PONG        |
-	And I have naemon objects stored in oconf.cfg
-	And I have config dir checkresults
-	And I have config file naemon.cfg
-		"""
-		cfg_file=oconf.cfg
-		query_socket=naemon.qh
-		check_result_path=checkresults
-		"""
-	And I start daemon naemon -v naemon.cfg
 
 Scenario: The module initiates the connetion
-	Given I wait for 1 second
-	# TODO: when merlin module location can be updated, add connection tests
+	Given I have config file merlin.conf
+		"""
+		ipc_socket = test_ipc.sock;
+
+		log_level = info;
+		use_syslog = 1;
+
+		module {
+			log_file = /dev/stdout
+		}
+		daemon {
+			pidfile = merlin.pid;
+			log_file = /dev/stdout
+			import_program = /bin/false
+			port = 7000;
+			object_config {
+				dump = /bin/false
+			}
+		}
+		"""
+	And merlind listens for merlin at socket test_ipc.sock
+	And I start naemon
+	Then I wait for 10 seconds
+	And merlind is connected to merlin
+	And merlind received event CTRL_ACTIVE

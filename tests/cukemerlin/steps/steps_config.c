@@ -3,10 +3,21 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
+
+/* For umask */
+#include <sys/types.h>
+#include <sys/stat.h>
 
 typedef struct StepsConfig_ {
 	gchar *last_dir;
 	gchar *current_dir;
+
+	/*
+	 * Since naemon can not not drop privileges, we need to temporary change
+	 * umask, so naemon have permission to connect.
+	 */
+	mode_t umask_store;
 } StepsConfig;
 
 STEP_BEGIN(step_begin_scenario);
@@ -31,7 +42,18 @@ STEP_BEGIN(step_begin_scenario) {
 	GError *error = NULL;
 	// TODO: Make this not use tmpnam, and more glib
 	sc->current_dir = g_strdup(tmpnam(NULL));
-	g_mkdir_with_parents(sc->current_dir, 0755);
+
+	/*
+	 * We need to increase permission to 777 (umask=0), since naemon doesn't
+	 * know how not to drop privileges, and thus doesn't have permission to
+	 * access our configuration directories in the test environment otherwise.
+	 */
+	sc->umask_store = umask(0);
+
+	/* let umask handle the permissions, thus 0777 is always correct here */
+	if(g_mkdir_with_parents(sc->current_dir, 0777)) {
+		g_warning("Error creating directory %s; %s", sc->current_dir, strerror(errno));
+	}
 	if (sc->current_dir == NULL) {
 		g_warning("Can't create temporary directory: %s", error->message);
 		g_error_free(error);
@@ -50,6 +72,8 @@ STEP_END(step_end_scenario) {
 		chdir(sc->last_dir);
 		g_message("Switched back to: %s", sc->last_dir);
 	}
+	umask(sc->umask_store);
+	g_free(sc->current_dir);
 	g_free(sc);
 }
 
@@ -87,7 +111,8 @@ STEP_DEF(step_dir) {
 		return 0;
 	}
 
-	if (0 != g_mkdir(dirname, 0755)) {
+	/* let umask handle the permissions, thus 0777 is always correct here */
+	if (0 != g_mkdir(dirname, 0777)) {
 		g_warning("Can't create config dir: %s", dirname);
 		return 0;
 	}

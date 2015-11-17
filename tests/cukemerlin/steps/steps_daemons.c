@@ -85,6 +85,9 @@ static StepsDaemonProcess *dproc_new(const gchar *cmdline) {
 		return NULL;
 	}
 	g_strfreev(argv);
+
+	g_message("Started %s (pid: %d)", cmdline, dproc->pid);
+
 	return dproc;
 }
 static void dproc_destroy(StepsDaemonProcess *dproc) {

@@ -9,8 +9,8 @@ class NaemonObjectConfig
         "service_notification_period" => "24x7",
         "host_notification_options" => "d,u,r,f,s,n",
         "service_notification_options" => "w,u,c,r,f,s,n",
-        "host_notification_commands" => "command_name",
-        "service_notification_commands" => "command_name",
+        "host_notification_commands" => "check-dummy",
+        "service_notification_commands" => "check-dummy",
       }],
       "timeperiod" => [{
         "timeperiod_name" => "24x7",
