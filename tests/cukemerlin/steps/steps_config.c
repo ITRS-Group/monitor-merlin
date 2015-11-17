@@ -12,6 +12,7 @@ typedef struct StepsConfig_ {
 STEP_BEGIN(step_begin_scenario);
 STEP_END(step_end_scenario);
 STEP_DEF(step_file);
+STEP_DEF(step_dir);
 
 CukeStepEnvironment steps_config = {
 	.tag = "config",
@@ -20,6 +21,7 @@ CukeStepEnvironment steps_config = {
 
 	.definitions = {
 		{ "^I have config file (.*)$", step_file },
+		{ "^I have config dir (.*)$", step_dir },
 		{ NULL, NULL }
 	}
 };
@@ -71,5 +73,25 @@ STEP_DEF(step_file) {
 	}
 
 	g_message("Created file %s", filename);
+	return 1;
+}
+
+STEP_DEF(step_dir) {
+	StepsConfig *sc = (StepsConfig *) scenario;
+
+	gchar *dirname = NULL;
+	GError *error = NULL;
+	gint fd = 0;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &dirname)) {
+		return 0;
+	}
+
+	if (0 != g_mkdir(dirname, 0755)) {
+		g_warning("Can't create config dir: %s", dirname);
+		return 0;
+	}
+
+	g_message("Created dir %s", dirname);
 	return 1;
 }
