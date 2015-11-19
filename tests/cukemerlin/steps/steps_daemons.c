@@ -54,12 +54,13 @@ STEP_DEF(step_start_daemon) {
 
 	gchar *cmdline = NULL;
 	if (!jsonx_locate(args, 'a', 0, 's', &cmdline)) {
-		return 0;
+		STEP_FAIL("Invalid arguments");
+		return;
 	}
 	dproc = dproc_new(cmdline);
 	g_ptr_array_add(stps->processes, dproc);
 
-	return 1;
+	STEP_OK;
 }
 
 static StepsDaemonProcess *dproc_new(const gchar *cmdline) {

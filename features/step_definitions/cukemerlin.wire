@@ -1,2 +1,4 @@
 host: localhost
 port: 31221
+timeout:
+  invoke: 30

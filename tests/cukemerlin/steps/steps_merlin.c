@@ -138,7 +138,8 @@ STEP_DEF(step_connect_tcp) {
 
 	if (!jsonx_locate(args, 'a', 0, 's', &conntag)
 		|| !jsonx_locate(args, 'a', 1, 'l', &dport)) {
-		return 0;
+		STEP_FAIL("Invalid arguments");
+		return;
 	}
 	if (!jsonx_locate(args, 'a', 2, 'l', &sport)) {
 		/* This is valid, just not specified, take default  value */
@@ -152,12 +153,14 @@ STEP_DEF(step_connect_tcp) {
 	conn_info.source_addr = "0.0.0.0";
 	conn_info.source_port = sport;
 	msc = mrlscenconn_new(&conn_info);
-	if (msc == NULL)
-		return 0;
+	if (msc == NULL) {
+		STEP_FAIL("Can not connect to merlin socket");
+		return;
+	}
 
 	g_tree_insert(ms->connections, g_strdup(conntag), msc);
 
-	return 1;
+	STEP_OK;
 }
 
 STEP_DEF(step_connect_unix) {
@@ -169,7 +172,8 @@ STEP_DEF(step_connect_unix) {
 
 	if (!jsonx_locate(args, 'a', 0, 's', &conntag)
 		|| !jsonx_locate(args, 'a', 1, 's', &sockpath)) {
-		return 0;
+		STEP_FAIL("Invalid arguments");
+		return;
 	}
 
 	conn_info.listen = 0;
@@ -182,12 +186,14 @@ STEP_DEF(step_connect_unix) {
 	msc = mrlscenconn_new(&conn_info);
 
 	g_free(conn_info.dest_addr);
-	if (msc == NULL)
-		return 0;
+	if (msc == NULL) {
+		STEP_FAIL("Can not connect to merlin socket");
+		return;
+	}
 
 	g_tree_insert(ms->connections, g_strdup(conntag), msc);
 
-	return 1;
+	STEP_OK;
 }
 
 STEP_DEF(step_listen_tcp) {
@@ -199,7 +205,8 @@ STEP_DEF(step_listen_tcp) {
 
 	if (!jsonx_locate(args, 'a', 0, 's', &conntag)
 		|| !jsonx_locate(args, 'a', 1, 'l', &dport)) {
-		return 0;
+		STEP_FAIL("Invalid arguments");
+		return;
 	}
 
 	conn_info.listen = 1;
@@ -209,11 +216,14 @@ STEP_DEF(step_listen_tcp) {
 	conn_info.source_addr = "0.0.0.0";
 	conn_info.source_port = 0;
 	msc = mrlscenconn_new(&conn_info);
-	if (msc == NULL)
-		return 0;
+	if (msc == NULL) {
+		STEP_FAIL("Can not start listen to merlin socket");
+		return;
+	}
 
 	g_tree_insert(ms->connections, g_strdup(conntag), msc);
-	return 1;
+
+	STEP_OK;
 }
 
 STEP_DEF(step_listen_unix) {
@@ -225,7 +235,8 @@ STEP_DEF(step_listen_unix) {
 
 	if (!jsonx_locate(args, 'a', 0, 's', &conntag)
 		|| !jsonx_locate(args, 'a', 1, 's', &sockpath)) {
-		return 0;
+		STEP_FAIL("Invalid arguments");
+		return;
 	}
 
 	conn_info.listen = 1;
@@ -238,11 +249,14 @@ STEP_DEF(step_listen_unix) {
 	msc = mrlscenconn_new(&conn_info);
 
 	g_free(conn_info.dest_addr);
-	if (msc == NULL)
-		return 0;
+	if (msc == NULL) {
+		STEP_FAIL("Can not start listen to merlin socket");
+		return;
+	}
 
 	g_tree_insert(ms->connections, g_strdup(conntag), msc);
-	return 1;
+
+	STEP_OK;
 }
 
 STEP_DEF(step_disconnect) {
@@ -250,15 +264,18 @@ STEP_DEF(step_disconnect) {
 	const char *conntag = NULL;
 
 	if (!jsonx_locate(args, 'a', 0, 's', &conntag)) {
-		return 0;
+		STEP_FAIL("Invalid arguments");
+		return;
 	}
 
 	/* This frees up the connection and everything */
-	if (g_tree_remove(ms->connections, conntag)) {
-		/* Succeed only if the connection was found */
-		return 1;
+	if (!g_tree_remove(ms->connections, conntag)) {
+		/* Fail if the connection was not found */
+		STEP_FAIL("No active connection");
+		return;
 	}
-	return 0;
+
+	STEP_OK;
 }
 
 STEP_DEF(step_is_connected) {
@@ -267,19 +284,26 @@ STEP_DEF(step_is_connected) {
 	MerlinScenarioConnection *msc;
 
 	if (!jsonx_locate(args, 'a', 0, 's', &conntag)) {
-		return 0;
+		STEP_FAIL("Invalid arguments");
+		return;
 	}
 
 	msc = g_tree_lookup(ms->connections, conntag);
 	if (msc == NULL) {
 		/* If conntag isn't found, it's not connected */
-		return 0;
+		STEP_FAIL("Unknown connection reference");
+		return;
 	}
 	if (msc->conn == NULL) {
 		/* If connection isn't found, it's not connected */
-		return 0;
+		STEP_FAIL("Connection isn't found");
+		return;
 	}
-	return connection_is_connected(msc->conn);
+	if(!connection_is_connected(msc->conn)) {
+		STEP_FAIL("Not connected");
+		return;
+	}
+	STEP_OK;
 }
 
 STEP_DEF(step_is_disconnected) {
@@ -288,19 +312,27 @@ STEP_DEF(step_is_disconnected) {
 	MerlinScenarioConnection *msc;
 
 	if (!jsonx_locate(args, 'a', 0, 's', &conntag)) {
-		return 0;
+		STEP_FAIL("Invalid arguments");
+		return;
 	}
 
 	msc = g_tree_lookup(ms->connections, conntag);
 	if (msc == NULL) {
 		/* If conntag isn't found, it's not connected */
-		return 1;
+		STEP_OK;
+		return;
 	}
 	if (msc->conn == NULL) {
 		/* If connection isn't found, it's not connected */
-		return 1;
+		STEP_OK;
+		return;
 	}
-	return !connection_is_connected(msc->conn);
+	if(connection_is_connected(msc->conn)) {
+		/* Fail if connected */
+		STEP_FAIL("Connected");
+		return;
+	}
+	STEP_OK;
 }
 
 STEP_DEF(step_send_event) {
@@ -317,26 +349,30 @@ STEP_DEF(step_send_event) {
 	if (!jsonx_locate(args, 'a', 0, 's', &conntag)
 		|| !jsonx_locate(args, 'a', 1, 's', &typetag)
 		|| !jsonx_locate(args, 'a', 2, 'j', &tbl)) {
-		return 0;
+		STEP_FAIL("Invalid arguments");
+		return;
 	}
 	if (tbl->tag != JSON_ARRAY) {
-		return 0;
+		STEP_FAIL("Not a table argument");
+		return;
 	}
 
 	msc = g_tree_lookup(ms->connections, conntag);
 	if (msc == NULL) {
 		/* If conntag isn't found, fail */
-		return 0;
+		STEP_FAIL("Unknown connection reference");
+		return;
 	}
 	if (msc->conn == NULL) {
 		/* If disconnected, fail */
-		return 0;
+		STEP_FAIL("Connection isn't found");
+		return;
 	}
 
 	kvv = kvvec_create(30);
 	if (kvv == NULL) {
-		/* If disconnected, fail */
-		return 0;
+		STEP_FAIL("Memory error, can't create kvvec");
+		return;
 	}
 
 	json_foreach(row, tbl)
@@ -351,9 +387,9 @@ STEP_DEF(step_send_event) {
 
 	evt = event_packer_unpack_kvv(typetag, kvv);
 	if (!evt) {
-		g_message("Failed to pack message");
+		STEP_FAIL("Failed to pack message");
 		kvvec_destroy(kvv, KVVEC_FREE_ALL);
-		return 0;
+		return;
 	}
 
 	g_message("Sending packet of type %s", typetag);
@@ -361,7 +397,8 @@ STEP_DEF(step_send_event) {
 
 	free(evt);
 	kvvec_destroy(kvv, KVVEC_FREE_ALL);
-	return 1;
+
+	STEP_OK;
 }
 
 STEP_DEF(step_clear_buffer) {
@@ -370,18 +407,20 @@ STEP_DEF(step_clear_buffer) {
 	const char *conntag = NULL;
 
 	if (!jsonx_locate(args, 'a', 0, 's', &conntag)) {
-		return 0;
+		STEP_FAIL("Invalid arguments");
+		return;
 	}
 
 	msc = g_tree_lookup(ms->connections, conntag);
 	if (msc == NULL) {
 		/* If conntag isn't found, fail */
-		return 0;
+		STEP_FAIL("Unknown connection reference");
+		return;
 	}
 
 	mrlscenconn_clear_buffer(msc);
 
-	return 1;
+	STEP_OK;
 }
 
 STEP_DEF(step_record_check) {
@@ -395,7 +434,8 @@ STEP_DEF(step_record_check) {
 
 	if (!jsonx_locate(args, 'a', 0, 's', &conntag)
 		|| !jsonx_locate(args, 'a', 1, 's', &typetag)) {
-		return 0;
+		STEP_FAIL("Invalid arguments");
+		return;
 	}
 
 	/* It's ok not to have a table, just keep it to NULL */
@@ -405,13 +445,19 @@ STEP_DEF(step_record_check) {
 
 	msc = mrlscen_get_conn(ms, conntag);
 	if(msc == NULL) {
-		return 0;
+		STEP_FAIL("Unknown connection reference");
+		return;
 	}
 
 	kvv = jsontbl_to_kvvec(tbl);
 	res = mrlscenconn_record_match(msc, typetag, kvv) ? 1 : 0;
 	kvvec_destroy(kvv, KVVEC_FREE_ALL);
-	return res;
+
+	if(res) {
+		STEP_OK;
+	} else {
+		STEP_FAIL("No matching entries");
+	}
 }
 
 STEP_DEF(step_no_record_check) {
@@ -425,7 +471,8 @@ STEP_DEF(step_no_record_check) {
 
 	if (!jsonx_locate(args, 'a', 0, 's', &conntag)
 		|| !jsonx_locate(args, 'a', 1, 's', &typetag)) {
-		return 0;
+		STEP_FAIL("Invalid arguments");
+		return;
 	}
 
 	/* It's ok not to have a table, just keep it to NULL */
@@ -435,14 +482,19 @@ STEP_DEF(step_no_record_check) {
 
 	msc = mrlscen_get_conn(ms, conntag);
 	if(msc == NULL) {
-		return 0;
+		STEP_FAIL("Unknown connection reference");
+		return;
 	}
 
 	kvv = jsontbl_to_kvvec(tbl);
 	res = mrlscenconn_record_match(msc, typetag, kvv) ? 1 : 0;
 	kvvec_destroy(kvv, KVVEC_FREE_ALL);
 
-	return !res;
+	if(res) {
+		STEP_FAIL("Entries matched");
+	} else {
+		STEP_OK;
+	}
 }
 
 /**
@@ -504,12 +556,20 @@ static MerlinScenarioConnection *mrlscenconn_new(ConnectionInfo *conn_info) {
 	if(conn_info->listen) {
 		msc->ss = server_source_new(conn_info, net_conn_new, net_conn_data,
 			net_conn_close, msc);
+		if(msc->ss == NULL)
+			goto fail_out;
 	} else {
 		msc->cs = client_source_new(conn_info, net_conn_new, net_conn_data,
 			net_conn_close, msc);
+		if(msc->cs == NULL)
+			goto fail_out;
 	}
 
 	return msc;
+
+	fail_out: /**/
+	mrlscenconn_destroy(msc);
+	return NULL;
 }
 static void mrlscenconn_destroy(MerlinScenarioConnection *msc) {
 	if (msc == NULL)

@@ -87,17 +87,17 @@ STEP_DEF(step_file) {
 
 	if (!jsonx_locate(args, 'a', 0, 's', &filename)
 		|| !jsonx_locate(args, 'a', 1, 's', &content)) {
-		return 0;
+		STEP_FAIL("Invalid arguments");
+		return;
 	}
 
 	if (!g_file_set_contents(filename, content, strlen(content), &error)) {
-		g_warning("Can't write to config file: %s", filename);
+		STEP_FAIL("Can't write to config file");
 		g_error_free(error);
-		return 0;
+		return;
 	}
 
-	g_message("Created file %s", filename);
-	return 1;
+	STEP_OK;
 }
 
 STEP_DEF(step_dir) {
@@ -108,15 +108,15 @@ STEP_DEF(step_dir) {
 	gint fd = 0;
 
 	if (!jsonx_locate(args, 'a', 0, 's', &dirname)) {
-		return 0;
+		STEP_FAIL("Invalid arguments");
+		return;
 	}
 
 	/* let umask handle the permissions, thus 0777 is always correct here */
 	if (0 != g_mkdir(dirname, 0777)) {
-		g_warning("Can't create config dir: %s", dirname);
-		return 0;
+		STEP_FAIL("Can't create to config dir");
+		return;
 	}
 
-	g_message("Created dir %s", dirname);
-	return 1;
+	STEP_OK;
 }

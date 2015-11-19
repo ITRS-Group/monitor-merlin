@@ -43,7 +43,8 @@ STEP_DEF(step_fail) {
 		free(jsonbuf);
 	}
 	(*buf)++;
-	return 0;
+
+	STEP_FAIL("This should fail");
 }
 STEP_DEF(step_success) {
 	glong *buf = (glong*)scenario;
@@ -53,5 +54,6 @@ STEP_DEF(step_success) {
 		free(jsonbuf);
 	}
 	(*buf)++;
-	return 1;
+
+	STEP_OK;
 }

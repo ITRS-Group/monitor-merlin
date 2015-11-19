@@ -61,6 +61,24 @@ void cukesock_destroy(CukeSocket *cs) {
 	g_free(cs);
 }
 
+void cukesock_respond(int status, CukeResponseRef respref, const gchar *msg) {
+	GSocket *conn = (GSocket *)respref;
+	JsonNode *response = json_mkarray();
+	if (status) {
+		/* Step succeeds */
+		json_append_element(response, json_mkstring("success"));
+	} else {
+		/* Step fails */
+		json_append_element(response, json_mkstring("fail"));
+		json_append_element(response,
+				jsonx_packobject("message", json_mkstring(msg),
+						"exception", json_mkstring("CukeMerlin-execution"),
+						NULL, NULL));
+	}
+	jsonsocket_send(conn, response);
+	json_delete(response);
+}
+
 void cukesock_register_stepenv(CukeSocket *cs, CukeStepEnvironment *stepenv) {
 	int i;
 
@@ -88,11 +106,14 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 	CukeConnection *cconn = (CukeConnection*) userdata;
 	CukeSocket *cs = cconn->cs;
 	const char *cmd = NULL;
-	JsonNode *response = json_mkarray();
+	JsonNode *response = NULL;
 
 	if (!jsonx_locate(node, 'a', 0, 's', &cmd)) {
+		response = json_mkarray();
 		json_append_element(response, json_mkstring("fail"));
-		goto do_send;
+		jsonsocket_send(conn, response);
+		json_delete(response);
+		return TRUE;
 	}
 
 	/*
@@ -106,8 +127,11 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 		const char *name_to_match;
 		if (!jsonx_locate(node, 'a', 1, 'o', "name_to_match", 's',
 				&name_to_match)) {
+			response = json_mkarray();
 			json_append_element(response, json_mkstring("fail"));
-			goto do_send;
+			jsonsocket_send(conn, response);
+			json_delete(response);
+			return TRUE;
 		}
 
 		/* Traverse step environments */
@@ -138,6 +162,7 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 				}
 
 				/* Pack a success-message */
+				response = json_mkarray();
 				json_append_element(response, json_mkstring("success"));
 				json_append_element(response,
 						jsonx_packarray(
@@ -151,15 +176,20 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 										NULL, NULL),
 								NULL));
 				g_match_info_free(mi);
-				goto do_send;
+				jsonsocket_send(conn, response);
+				json_delete(response);
+				return TRUE;
 			}
 			g_match_info_free(mi);
 		}
 
 		/* No step found, should be success, but without id tag */
+		response = json_mkarray();
 		json_append_element(response, json_mkstring("success"));
 		json_append_element(response, json_mkarray());
-		goto do_send;
+		jsonsocket_send(conn, response);
+		json_delete(response);
+		return TRUE;
 	}
 
 	/*
@@ -176,13 +206,16 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 
 		if (!jsonx_locate(node, 'a', 1, 'o', "id", 'a', 0, 's', &tag)
 				|| !jsonx_locate(node, 'a', 1, 'o', "id", 'a', 1, 'l', &idx)) {
+			response = json_mkarray();
 			json_append_element(response, json_mkstring("fail"));
 			json_append_element(response,
 					jsonx_packobject("message",
 							json_mkstring("Malformed id tag"), "exception",
 							json_mkstring("CukeMerlin-internal"),
 							NULL, NULL));
-			goto do_send;
+			jsonsocket_send(conn, response);
+			json_delete(response);
+			return TRUE;
 		}
 
 		/* We need a current active scenario */
@@ -192,13 +225,16 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 		scenhandler = g_tree_lookup(cconn->cur_stepenvs, tag);
 		if (scenhandler == NULL || idx < 0
 				|| idx >= scenhandler->stepenv->num_defs) {
+			response = json_mkarray();
 			json_append_element(response, json_mkstring("fail"));
 			json_append_element(response,
 					jsonx_packobject("message",
 							json_mkstring("Unknown step definition id"),
 							"exception", json_mkstring("CukeMerlin-internal"),
 							NULL, NULL));
-			goto do_send;
+			jsonsocket_send(conn, response);
+			json_delete(response);
+			return TRUE;
 		}
 
 		/* Locate correct step definition within the stepenv */
@@ -210,19 +246,9 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 		}
 
 		/* Call the handler */
-		if ((*stepdef->handler)(scenhandler->userdata, stepargs)) {
-			/* Step succeeds */
-			json_append_element(response, json_mkstring("success"));
-			goto do_send;
-		} else {
-			/* Step fails */
-			json_append_element(response, json_mkstring("fail"));
-			json_append_element(response,
-					jsonx_packobject("message", json_mkstring("Step error"),
-							"exception", json_mkstring("CukeMerlin-execution"),
-							NULL, NULL));
-			goto do_send;
-		}
+		(*stepdef->handler)(scenhandler->userdata, stepargs, (CukeResponseRef)conn);
+		/* Don't send anything, that's up to handler */
+		return TRUE;
 	}
 
 	/*
@@ -260,8 +286,11 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 			}
 		}
 
+		response = json_mkarray();
 		json_append_element(response, json_mkstring("success"));
-		goto do_send;
+		jsonsocket_send(conn, response);
+		json_delete(response);
+		return TRUE;
 	}
 
 	/*
@@ -275,8 +304,11 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 		g_tree_destroy(cconn->cur_stepenvs);
 		cconn->cur_stepenvs = NULL;
 
+		response = json_mkarray();
 		json_append_element(response, json_mkstring("success"));
-		goto do_send;
+		jsonsocket_send(conn, response);
+		json_delete(response);
+		return TRUE;
 	}
 
 	/*
@@ -284,12 +316,9 @@ static gboolean cukesock_cb_data(GSocket *conn, JsonNode *node,
 	 * havn't implemented a handler on the method, so we accept the default
 	 * cucumber behavior
 	 */
+	response = json_mkarray();
 	json_append_element(response, json_mkstring("success"));
-
-	do_send: /**/
-	jsonsocket_send(conn, response);
 	json_delete(response);
-
 	return TRUE;
 }
 static void cukesock_cb_close(gpointer userdata) {

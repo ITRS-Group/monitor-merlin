@@ -7,17 +7,23 @@
 struct CukeSocket_;
 typedef struct CukeSocket_ CukeSocket;
 
+typedef gpointer CukeResponseRef;
+
 typedef gpointer (*CukeStepBeginScenario)(void);
 typedef void (*CukeStepEndScenario)(gpointer *scenario);
-typedef gint (*CukeStepHandler)(gpointer *scenario, JsonNode *args);
+typedef void (*CukeStepHandler)(gpointer *scenario, JsonNode *args, CukeResponseRef respref);
 
 #define STEP_BEGIN(_NAME) \
 		static gpointer _NAME(void)
 #define STEP_END(_NAME) \
 		static void _NAME(gpointer *scenario)
-
 #define STEP_DEF(_NAME) \
-		static gint _NAME(gpointer *scenario, JsonNode *args)
+		static void _NAME(gpointer *scenario, JsonNode *args, CukeResponseRef respref)
+
+#define STEP_OK \
+		cukesock_respond(1, respref, "")
+#define STEP_FAIL(_MSG) \
+		cukesock_respond(0, respref, (_MSG))
 
 typedef struct CukeStepDefinition_ {
 	const gchar *match;
@@ -34,6 +40,8 @@ typedef struct CukeStepEnvironment_ {
 
 CukeSocket *cukesock_new(const gchar *bind_addr, const gint bind_port);
 void cukesock_destroy(CukeSocket *cs);
+
+void cukesock_respond(int status, CukeResponseRef respref, const gchar *msg);
 
 void cukesock_register_stepenv(CukeSocket *cs, CukeStepEnvironment *stepenv);
 
