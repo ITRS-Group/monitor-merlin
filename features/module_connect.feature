@@ -16,28 +16,10 @@ Background: Set up naemon configuration
 		| default-service | gurka     | PONG        |
 
 Scenario: The module initiates the connetion
-	Given I have config file merlin.conf
-		"""
-		ipc_socket = test_ipc.sock;
-
-		log_level = info;
-		use_syslog = 1;
-
-		module {
-			log_file = /dev/stdout
-		}
-		daemon {
-			pidfile = merlin.pid;
-			log_file = /dev/stdout
-			import_program = /bin/false
-			port = 7000;
-			object_config {
-				dump = /bin/false
-			}
-		}
-		"""
+	Given I have merlin configured for port 7000
+		| type | name | port |
 	And merlind listens for merlin at socket test_ipc.sock
 	And I start naemon
-	Then I wait for 10 seconds
+	Then I wait for 3 seconds
 	And merlind is connected to merlin
 	And merlind received event CTRL_ACTIVE

@@ -6,34 +6,11 @@ Feature: Simple packet forwarding
 	Also verify that packets doesn't bounce back to the source
 
 	Background: Set up merlind with peer01 and ipc
-		Given I have config file merlin.conf
-			"""
-			ipc_socket = test_ipc.sock;
+		Given I have merlin configured for port 7000
+			| type | name   | port | connect |
+			| peer | peer01 | 4001 | no      |
 
-			log_level = info;
-			use_syslog = 1;
-
-			module {
-				log_file = /dev/null
-			}
-			daemon {
-				pidfile = merlin.pid;
-				log_file = /dev/stdout
-				import_program = /bin/false
-				port = 7000;
-				object_config {
-					dump = /bin/false
-				}
-			}
-
-			peer peer01 {
-				port = 4001 # 4001+7000 = 11001
-				address = 127.0.0.1
-				connect = no
-			}
-			"""
-
-		And I start daemon merlind -d merlin.conf
+		And I start merlin
 		And I wait for 1 second
 
 		And ipc connect to merlin at socket test_ipc.sock

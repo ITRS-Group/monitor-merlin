@@ -21,3 +21,40 @@ Given(/^I start naemon$/) do
     And I start daemon naemon naemon.cfg
   }
 end
+
+Given(/^I start merlin$/) do
+  step "I start daemon merlind -d merlin.conf"
+end
+
+Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
+  configfile = "
+    ipc_socket = test_ipc.sock;
+
+    log_level = info;
+    use_syslog = 1;
+
+    module {
+      log_file = /dev/stdout
+    }
+    daemon {
+      pidfile = merlin.pid;
+      log_file = /dev/stdout
+      import_program = /bin/false
+      port = #{port};
+      object_config {
+        dump = /bin/false
+      }
+    }
+    "
+  nodes.hashes.each do |obj|
+    configfile += sprintf "\n%s %s {\n", obj["type"], obj["name"]
+    configfile += "\taddress = 127.0.0.1\n" # There is no other way in tests
+    obj.each do |key, value|
+      if key != "type" and key != "name" then
+        configfile += "\t#{key} = #{value}\n"
+      end
+    end
+    configfile += "}\n"
+  end
+  step "I have config file merlin.conf", configfile
+end
