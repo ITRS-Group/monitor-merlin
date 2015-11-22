@@ -19,6 +19,7 @@ Given(/^I start naemon$/) do
       command_file=naemon.cmd
       """
     And I start daemon naemon naemon.cfg
+    And I have query handler path naemon.qh
   }
 end
 

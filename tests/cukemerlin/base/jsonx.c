@@ -46,6 +46,73 @@ JsonNode *jsonx_packobject(const char *name, JsonNode *node, ...) {
 	return result;
 }
 
+JsonNode *jsonx_clone(const JsonNode *node) {
+	/* Not the most elegant implementation, but really simple */
+	char *buf = json_encode(node);
+	JsonNode *result = json_decode(buf);
+	free(buf);
+	return result;
+}
+
+JsonNode *jsonx_table_hashes(const JsonNode *node) {
+	JsonNode *result = NULL;
+	JsonNode *var_names;
+	JsonNode *cur_row;
+
+	/* If not a table, fail out */
+	if(node->tag != JSON_ARRAY)
+		goto fail_out;
+
+	/* We need a row for var names */
+	var_names = json_first_child(node);
+	if(var_names == NULL)
+		goto fail_out;
+
+	/* Only allow var names list to be an array */
+	if(var_names->tag != JSON_ARRAY)
+		goto fail_out;
+
+	/* Create the result array to store objects in */
+	result = json_mkarray();
+
+	/* We start on the row after var_names, and iterate */
+	for( cur_row = var_names->next; cur_row != NULL; cur_row = cur_row->next ) {
+		JsonNode *new_obj;
+		JsonNode *cur_name;
+		JsonNode *cur_val;
+
+		/* Create object, and attach it directly, so we can fail_out any time */
+		new_obj = json_mkobject();
+		json_append_element(result, new_obj);
+
+		/* Only allow array rows */
+		if(cur_row->tag != JSON_ARRAY)
+			goto fail_out;
+
+		/* Start traverse in both at the same time */
+		cur_name = json_first_child(var_names);
+		cur_val = json_first_child(cur_row);
+		while(cur_name != NULL && cur_val != NULL) {
+			/* names can only be strings */
+			if(cur_name->tag != JSON_STRING)
+				goto fail_out;
+
+			json_append_member(new_obj, cur_name->string_, jsonx_clone(cur_val));
+
+			/* Jump to next */
+			cur_name = cur_name->next;
+			cur_val = cur_val->next;
+		}
+
+	}
+
+	return result;
+
+	fail_out: /* Cleanup and return NULL */
+	json_delete(result);
+	return NULL;
+}
+
 int jsonx_locate(JsonNode *node, ...) {
 	JsonNode *cur_node = node;
 	va_list ap;
@@ -114,5 +181,5 @@ int jsonx_locate(JsonNode *node, ...) {
 	}
 	end_traverse:
 	va_end(ap);
-	return found;
+return found;
 }

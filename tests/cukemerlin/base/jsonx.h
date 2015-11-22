@@ -9,6 +9,32 @@ JsonNode *jsonx_packarray(JsonNode *node, ...);
 /* Helper to pack an object. NULL-terminate the last name and node */
 JsonNode *jsonx_packobject(const char *name, JsonNode *node, ...);
 
+/* Helper to clone an object. */
+JsonNode *jsonx_clone(const JsonNode *node);
+
+/**
+ * Convert a table to hashes objects
+ *
+ * Having a table:
+ * [
+ *   ["f_a",     "f_b"],
+ *   ["value_1", "value_2"],
+ *   ["value_3", "value_4"]
+ * ]
+ *
+ * Is cloned and converted to:
+ * [
+ *   {"f_a": "value_1", "f_b": "value_2"},
+ *   {"f_a": "value_3", "f_b": "value_4"}
+ * ]
+ *
+ * represented as JsonNode
+ *
+ * Return NULL if table isn't two dimensional, where every row has equal number
+ * of fields, and first row don't only contain string values.
+ */
+JsonNode *jsonx_table_hashes(const JsonNode *node);
+
 /**
  * Locate a value within a JsonNode
  *
