@@ -100,7 +100,7 @@ CukeStepEnvironment steps_merlin =
 					step_is_disconnected },
 
 				/* Send events */
-				{ "^([a-z0-9-_]+) sends event ([A-Z_]+)$", step_send_event },
+				{ "^([a-z0-9-_]+) sends raw event ([A-Z_]+)$", step_send_event },
 
 				/* Receive events */
 				{ "^([a-z0-9-_]+) clears buffer$", step_clear_buffer },

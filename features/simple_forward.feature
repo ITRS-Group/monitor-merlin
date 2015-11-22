@@ -15,23 +15,8 @@ Feature: Simple packet forwarding
 
 		And ipc connect to merlin at socket test_ipc.sock
 		And ipc sends event CTRL_ACTIVE
-			| version                     | 1                 |
-			| word_size                   | 64                |
-			| byte_order                  | 1234              |
-			| object_structure_version    | 402               |
-			| start                       | 1446586100.291601 |
-			| last_cfg_change             | 17                |
-			| config_hash                 | my_hash           |
-			| peer_id                     | 1                 |
-			| active_peers                | 0                 |
-			| configured_peers            | 1                 |
-			| active_pollers              | 0                 |
-			| configured_pollers          | 0                 |
-			| active_masters              | 0                 |
-			| configured_masters          | 0                 |
-			| host_checks_handled         | 4                 |
-			| service_checks_handled      | 92                |
-			| monitored_object_state_size | 408               |
+			| configured_peers   | 1 |
+			| configured_pollers | 0 |
 
 			# Make sure it knows about the config hash
 		And I wait for 1 second
@@ -39,23 +24,9 @@ Feature: Simple packet forwarding
 
 		Given peer01 connect to merlin at port 7000 from port 11001
 		And peer01 sends event CTRL_ACTIVE
-			| version                     | 1                 |
-			| word_size                   | 64                |
-			| byte_order                  | 1234              |
-			| object_structure_version    | 402               |
-			| start                       | 1446586100.291601 |
-			| last_cfg_change             | 17                |
-			| config_hash                 | my_hash           |
-			| peer_id                     | 0                 |
-			| active_peers                | 0                 |
-			| configured_peers            | 1                 |
-			| active_pollers              | 0                 |
-			| configured_pollers          | 0                 |
-			| active_masters              | 0                 |
-			| configured_masters          | 0                 |
-			| host_checks_handled         | 4                 |
-			| service_checks_handled      | 92                |
-			| monitored_object_state_size | 408               |
+			| configured_peers   | 1 |
+			| configured_pollers | 0 |
+		#this is the default during test
 		And I wait for 1 second
 		Then peer01 is connected to merlin
 
