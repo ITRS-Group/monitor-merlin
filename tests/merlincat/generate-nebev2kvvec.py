@@ -576,7 +576,7 @@ def mk_kvvec2nebev(structs):
 				var_code += 'ds->%s = kv->value;\n' % key
 			elif etype.startswith("byte[") and etype.endswith("]"):
 				arrlen = int(etype[5:-1])
-				var_code += 'memcpy(ds->%s, kv->value, (%d > kv->value_len) ? %d : kv->value_len);\n' % (key, arrlen, arrlen)
+				var_code += 'memcpy(ds->%s, kv->value, (%d > kv->value_len) ? kv->value_len : %d);\n' % (key, arrlen, arrlen)
 			elif etype == 'time_t' or etype == 'ulong' or etype == 'uint':
 				var_code += 'ds->%s = strtoul(kv->value, &endptr, 10);\n' % key
 			elif etype == 'double':
