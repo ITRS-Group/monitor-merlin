@@ -2,11 +2,14 @@
 
 %if 0%{?suse_version}
 %define mysqld mysql
-%define mysql_rpm mysql
 %define daemon_group www
-%else
+%endif
+%if 0%{?rhel} == 6
 %define mysqld mysqld
-%define mysql_rpm mysql-server
+%define daemon_group apache
+%endif
+%if 0%{?rhel} >= 7
+%define mysqld mariadb
 %define daemon_group apache
 %endif
 
@@ -25,7 +28,11 @@ Requires: merlin-apps >= %version
 Requires: monitor-config
 Requires: op5-mysql
 Requires: glib2
+%if 0%{?rhel} >= 7
+BuildRequires: mariadb-devel
+%else
 BuildRequires: mysql-devel
+%endif
 BuildRequires: op5-naemon-devel
 BuildRequires: python
 BuildRequires: gperf
@@ -77,12 +84,7 @@ Requires: op5-monitor-supported-database
 Requires: libdbi1
 Requires: python-mysql
 %else
-%if 0%{?rhel} <= 5
-Requires: python26
-Requires: python26-mysqldb
-%else
 Requires: MySQL-python
-%endif
 Requires: libdbi
 %endif
 Obsoletes: monitor-distributed
@@ -105,7 +107,10 @@ Group: op5/Monitor
 Requires: monitor-livestatus
 Requires: op5-naemon
 Requires: merlin merlin-apps monitor-merlin
+%if 0%{?rhel} >= 7
+%else
 Requires: rubygem20-op5cucumber
+%endif
 
 %description test
 Some additional test files for merlin
