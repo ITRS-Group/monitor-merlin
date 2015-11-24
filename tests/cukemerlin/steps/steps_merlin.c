@@ -16,6 +16,8 @@
 /* naemon / libnaemon headers */
 #include <naemon/naemon.h>
 
+#define STEP_MERLIN_DEFAULT_TIMEOUT 10000
+
 typedef struct MerlinScenario_ {
 	GTree *connections;
 } MerlinScenario;
@@ -32,6 +34,35 @@ typedef struct MerlinScenarioConnection_ {
 	 * "X starts recording"
 	 */
 	GPtrArray *event_buffer;
+
+	/*
+	 * Identify which step is currently active. A step is only active is the
+	 * step timer is active. If step timer isn't active, this variable content
+	 * is undefined.
+	 */
+	enum {
+		STEP_MERLIN_NONE = 0,
+		STEP_MERLIN_IS_CONNECTED,
+		STEP_MERLIN_IS_DISCONNECTED,
+		STEP_MERLIN_EVENT_RECEIVED,
+		STEP_MERLIN_EVENT_NOT_RECEIVED
+	} current_step;
+
+	/*
+	 * The current matching filter, for event matching steps
+	 */
+	gint match_eventtype;
+	struct kvvec *match_kv;
+
+	/*
+	 * Storage for step timer
+	 */
+	struct {
+		CukeResponseRef respref;
+		guint timer;
+		gboolean success;
+		const gchar *message;
+	} steptimer;
 } MerlinScenarioConnection;
 
 static struct kvvec *jsontbl_to_kvvec(JsonNode *tbl);
@@ -39,8 +70,11 @@ static struct kvvec *jsontbl_to_kvvec(JsonNode *tbl);
 static MerlinScenarioConnection *mrlscenconn_new(ConnectionInfo *conn_info);
 static void mrlscenconn_destroy(MerlinScenarioConnection *msc);
 static void mrlscenconn_clear_buffer(MerlinScenarioConnection *msc);
-static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
+
+static void mrlscenconn_record_match_set(MerlinScenarioConnection *msc,
 	const char *typestr, struct kvvec *matchkv);
+static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
+	merlin_event *evt);
 
 static MerlinScenarioConnection *mrlscen_get_conn(MerlinScenario *ms,
 	const gchar *tag);
@@ -67,6 +101,10 @@ STEP_DEF(step_send_event);
 STEP_DEF(step_clear_buffer);
 STEP_DEF(step_record_check);
 STEP_DEF(step_no_record_check);
+
+static void steptimer_start(MerlinScenarioConnection *msc, CukeResponseRef respref, guint timeout, gboolean success, const gchar *message);
+static void steptimer_stop(MerlinScenarioConnection *msc, gboolean success, const gchar *message);
+static gboolean steptimer_timeout(gpointer userdata);
 
 CukeStepEnvironment steps_merlin =
 	{
@@ -294,13 +332,9 @@ STEP_DEF(step_is_connected) {
 		STEP_FAIL("Unknown connection reference");
 		return;
 	}
-	if (msc->conn == NULL) {
-		/* If connection isn't found, it's not connected */
-		STEP_FAIL("Connection isn't found");
-		return;
-	}
-	if(!connection_is_connected(msc->conn)) {
-		STEP_FAIL("Not connected");
+	if (msc->conn == NULL || !connection_is_connected(msc->conn)) {
+		msc->current_step = STEP_MERLIN_IS_CONNECTED;
+		steptimer_start(msc, respref, STEP_MERLIN_DEFAULT_TIMEOUT, FALSE, "Not connected");
 		return;
 	}
 	STEP_OK;
@@ -322,17 +356,13 @@ STEP_DEF(step_is_disconnected) {
 		STEP_OK;
 		return;
 	}
-	if (msc->conn == NULL) {
+	if (msc->conn == NULL || !connection_is_connected(msc->conn)) {
 		/* If connection isn't found, it's not connected */
 		STEP_OK;
 		return;
 	}
-	if(connection_is_connected(msc->conn)) {
-		/* Fail if connected */
-		STEP_FAIL("Connected");
-		return;
-	}
-	STEP_OK;
+	msc->current_step = STEP_MERLIN_IS_DISCONNECTED;
+	steptimer_start(msc, respref, STEP_MERLIN_DEFAULT_TIMEOUT, FALSE, "Connected");
 }
 
 STEP_DEF(step_send_event) {
@@ -429,8 +459,7 @@ STEP_DEF(step_record_check) {
 	const char *conntag = NULL;
 	const char *typetag = NULL;
 	JsonNode *tbl = NULL;
-	gint res = 0;
-	struct kvvec *kvv = NULL;
+	gint i;
 
 	if (!jsonx_locate(args, 'a', 0, 's', &conntag)
 		|| !jsonx_locate(args, 'a', 1, 's', &typetag)) {
@@ -449,15 +478,15 @@ STEP_DEF(step_record_check) {
 		return;
 	}
 
-	kvv = jsontbl_to_kvvec(tbl);
-	res = mrlscenconn_record_match(msc, typetag, kvv) ? 1 : 0;
-	kvvec_destroy(kvv, KVVEC_FREE_ALL);
-
-	if(res) {
-		STEP_OK;
-	} else {
-		STEP_FAIL("No matching entries");
+	mrlscenconn_record_match_set(msc, typetag, jsontbl_to_kvvec(tbl));
+	for(i=0;i<msc->event_buffer->len;i++) {
+		if(mrlscenconn_record_match(msc, msc->event_buffer->pdata[i])) {
+			STEP_OK;
+			return;
+		}
 	}
+	msc->current_step = STEP_MERLIN_EVENT_RECEIVED;
+	steptimer_start(msc, respref, STEP_MERLIN_DEFAULT_TIMEOUT, FALSE, "No matching entries");
 }
 
 STEP_DEF(step_no_record_check) {
@@ -466,8 +495,7 @@ STEP_DEF(step_no_record_check) {
 	const char *conntag = NULL;
 	const char *typetag = NULL;
 	JsonNode *tbl = NULL;
-	gint res = 0;
-	struct kvvec *kvv = NULL;
+	gint i;
 
 	if (!jsonx_locate(args, 'a', 0, 's', &conntag)
 		|| !jsonx_locate(args, 'a', 1, 's', &typetag)) {
@@ -486,15 +514,15 @@ STEP_DEF(step_no_record_check) {
 		return;
 	}
 
-	kvv = jsontbl_to_kvvec(tbl);
-	res = mrlscenconn_record_match(msc, typetag, kvv) ? 1 : 0;
-	kvvec_destroy(kvv, KVVEC_FREE_ALL);
-
-	if(res) {
-		STEP_FAIL("Entries matched");
-	} else {
-		STEP_OK;
+	mrlscenconn_record_match_set(msc, typetag, jsontbl_to_kvvec(tbl));
+	for(i=0;i<msc->event_buffer->len;i++) {
+		if(mrlscenconn_record_match(msc, msc->event_buffer->pdata[i])) {
+			STEP_FAIL("Message received");
+			return;
+		}
 	}
+	msc->current_step = STEP_MERLIN_EVENT_NOT_RECEIVED;
+	steptimer_start(msc, respref, STEP_MERLIN_DEFAULT_TIMEOUT, TRUE, NULL);
 }
 
 /**
@@ -574,6 +602,10 @@ static MerlinScenarioConnection *mrlscenconn_new(ConnectionInfo *conn_info) {
 static void mrlscenconn_destroy(MerlinScenarioConnection *msc) {
 	if (msc == NULL)
 		return;
+	steptimer_stop(msc, FALSE, "Scenario stopped");
+
+	kvvec_destroy(msc->match_kv, KVVEC_FREE_ALL);
+
 	if (msc->event_buffer != NULL) {
 		g_ptr_array_unref(msc->event_buffer);
 	}
@@ -584,49 +616,46 @@ static void mrlscenconn_destroy(MerlinScenarioConnection *msc) {
 static void mrlscenconn_clear_buffer(MerlinScenarioConnection *msc) {
 	g_ptr_array_set_size(msc->event_buffer, 0);
 }
-static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
+static void mrlscenconn_record_match_set(MerlinScenarioConnection *msc,
 	const char *typestr, struct kvvec *matchkv) {
-	gint type, i, count;
-	merlin_event *evt;
 
-	if (msc->event_buffer == NULL) {
-		g_message("No recording active");
+	msc->match_eventtype = event_packer_str_to_type(typestr);
+	kvvec_destroy(msc->match_kv, KVVEC_FREE_ALL);
+	msc->match_kv = matchkv;
+}
+static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
+	merlin_event *evt) {
+
+	struct kvvec *evtkv;
+	int evt_i, match_i, misses;
+
+	if (evt->hdr.type != msc->match_eventtype) {
 		return FALSE;
 	}
 
-	type = event_packer_str_to_type(typestr);
-	count = 0;
-	for (i = 0; i < msc->event_buffer->len; i++) {
-		evt = msc->event_buffer->pdata[i];
-		if (evt->hdr.type == type) {
-			struct kvvec *evtkv = event_packer_pack_kvv(evt, NULL);
-			int evt_i, match_i, misses;
-			misses = 0;
-			for (match_i = 0; match_i < matchkv->kv_pairs; match_i++) {
-				int found = 0;
-				for (evt_i = 0; evt_i < evtkv->kv_pairs; evt_i++) {
-					if (0 == strcmp(evtkv->kv[evt_i].key,
-						matchkv->kv[match_i].key)) {
-						found = 1;
-						if (0 != strcmp(evtkv->kv[evt_i].value,
-							matchkv->kv[match_i].value)) {
-							/* Key matches, but not value = miss */
-							misses++;
-						}
-					}
-				}
-				if (!found) {
-					/* If we search for a non-existing key, it's a miss */
+	evtkv = event_packer_pack_kvv(evt, NULL);
+	misses = 0;
+	for (match_i = 0; match_i < msc->match_kv->kv_pairs; match_i++) {
+		int found = 0;
+		for (evt_i = 0; evt_i < evtkv->kv_pairs; evt_i++) {
+			if (0 == strcmp(evtkv->kv[evt_i].key,
+				msc->match_kv->kv[match_i].key)) {
+				found = 1;
+				if (0 != strcmp(evtkv->kv[evt_i].value,
+					msc->match_kv->kv[match_i].value)) {
+					/* Key matches, but not value = miss */
 					misses++;
 				}
 			}
-			if (misses == 0) {
-				count++;
-			}
-			kvvec_destroy(evtkv, KVVEC_FREE_ALL);
+		}
+		if (!found) {
+			/* If we search for a non-existing key, it's a miss */
+			misses++;
 		}
 	}
-	return count > 0;
+	kvvec_destroy(evtkv, KVVEC_FREE_ALL);
+
+	return misses == 0;
 }
 
 static gpointer net_conn_new(ConnectionStorage *conn, gpointer user_data) {
@@ -638,6 +667,11 @@ static gpointer net_conn_new(ConnectionStorage *conn, gpointer user_data) {
 	}
 	msc->mr = merlinreader_new();
 	msc->conn = conn;
+
+	if(msc->current_step == STEP_MERLIN_IS_CONNECTED) {
+		steptimer_stop(msc, TRUE, "Connected");
+	}
+
 	return msc;
 }
 static void net_conn_data(ConnectionStorage *conn, gpointer buffer,
@@ -660,6 +694,16 @@ static void net_conn_data(ConnectionStorage *conn, gpointer buffer,
 			if (msc->event_buffer == NULL) {
 				g_free(evt);
 			} else {
+				if (msc->current_step == STEP_MERLIN_EVENT_RECEIVED) {
+					if(mrlscenconn_record_match(msc, evt)) {
+						steptimer_stop(msc, TRUE, NULL);
+					}
+				}
+				if (msc->current_step == STEP_MERLIN_EVENT_NOT_RECEIVED) {
+					if(mrlscenconn_record_match(msc, evt)) {
+						steptimer_stop(msc, FALSE, "Message received");
+					}
+				}
 				g_ptr_array_add(msc->event_buffer, evt);
 			}
 		}
@@ -672,4 +716,53 @@ static void net_conn_close(gpointer conn_user_data) {
 	merlinreader_destroy(msc->mr);
 	msc->mr = NULL;
 	msc->conn = NULL;
+
+	if(msc->current_step == STEP_MERLIN_IS_DISCONNECTED) {
+		steptimer_stop(msc, TRUE, "Disconnected");
+	}
+}
+
+static void steptimer_start(MerlinScenarioConnection *msc, CukeResponseRef respref, guint timeout, gboolean success, const gchar *message) {
+	msc->steptimer.respref = respref;
+	msc->steptimer.success = success;
+	msc->steptimer.message = message;
+	msc->steptimer.timer = g_timeout_add(timeout, steptimer_timeout, msc);
+}
+
+static void steptimer_stop(MerlinScenarioConnection *msc, gboolean success, const gchar *message) {
+	if(msc->steptimer.respref) {
+		CukeResponseRef respref = msc->steptimer.respref;
+		GSource *timersource;
+
+		msc->steptimer.respref = NULL;
+
+		timersource = g_main_context_find_source_by_id(NULL, msc->steptimer.timer);
+		msc->steptimer.timer = 0;
+		g_source_destroy(timersource);
+
+		/* If stopped explicitly, we need to send a status message */
+		if(success) {
+			STEP_OK;
+		} else {
+			STEP_FAIL(message);
+		}
+	}
+}
+
+static gboolean steptimer_timeout(gpointer userdata) {
+	MerlinScenarioConnection *msc = (MerlinScenarioConnection*) userdata;
+	if(msc->steptimer.respref) {
+		CukeResponseRef respref = msc->steptimer.respref;
+		msc->steptimer.respref = NULL;
+		msc->steptimer.timer = 0;
+
+
+		/* If stopped by timeout, we need to send the timeout message */
+		if(msc->steptimer.success) {
+			STEP_OK;
+		} else {
+			STEP_FAIL(msc->steptimer.message);
+		}
+	}
+	return FALSE; /* G_SOURCE_REMOVE */
 }

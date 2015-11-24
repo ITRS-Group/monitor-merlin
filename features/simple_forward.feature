@@ -19,7 +19,6 @@ Feature: Simple packet forwarding
 			| configured_pollers | 0 |
 
 			# Make sure it knows about the config hash
-		And I wait for 1 second
 		Then ipc is connected to merlin
 
 		Given peer01 connect to merlin at port 7000 from port 11001
@@ -27,7 +26,6 @@ Feature: Simple packet forwarding
 			| configured_peers   | 1 |
 			| configured_pollers | 0 |
 		#this is the default during test
-		And I wait for 1 second
 		Then peer01 is connected to merlin
 
 	Scenario: Service check result propagation from ipc to peer
@@ -36,7 +34,6 @@ Feature: Simple packet forwarding
 			| state.plugin_output | Some output from a cucumber test |
 			| host_name           | monitor                          |
 			| service_description | Cron process                     |
-		And I wait for 1 second
 		Then peer01 received event SERVICE_CHECK
 			| state.plugin_output | Some output from a cucumber test |
 			| host_name           | monitor                          |
@@ -50,7 +47,6 @@ Feature: Simple packet forwarding
 		And ipc sends event HOST_CHECK
 			| state.plugin_output | Some output from a cucumber test |
 			| name                | monitor                          |
-		And I wait for 1 second
 		Then peer01 received event HOST_CHECK
 			| state.plugin_output | Some output from a cucumber test |
 			| name                | monitor                          |
@@ -63,7 +59,6 @@ Feature: Simple packet forwarding
 			| state.plugin_output | Some output from a cucumber test |
 			| host_name           | monitor                          |
 			| service_description | Cron process                     |
-		And I wait for 1 second
 		Then ipc received event SERVICE_CHECK
 			| state.plugin_output | Some output from a cucumber test |
 			| host_name           | monitor                          |
@@ -77,7 +72,6 @@ Feature: Simple packet forwarding
 		And peer01 sends event HOST_CHECK
 			| state.plugin_output | Some output from a cucumber test |
 			| name                | monitor                          |
-		And I wait for 1 second
 		Then ipc received event HOST_CHECK
 			| state.plugin_output | Some output from a cucumber test |
 			| name                | monitor                          |

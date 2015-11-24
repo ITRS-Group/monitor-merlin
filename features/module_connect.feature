@@ -21,7 +21,6 @@ Scenario: The module initiates the connetion
 		| peer | peer01 | 3455 |
 	And merlind listens for merlin at socket test_ipc.sock
 	And I start naemon
-	Then I wait for 3 seconds
 	And merlind is connected to merlin
 	And merlind received event CTRL_ACTIVE
 	And I ask query handler merlin nodeinfo
