@@ -233,7 +233,7 @@ GENERATED_NEBEV = \
 $(GENERATED_NEBEV): tests/merlincat/generate-nebev2kvvec.py
 	$(AM_V_GEN) python tests/merlincat/generate-nebev2kvvec.py
 
-tests/merlincat/nebev-col2key.c tests/merlincat/nebev-col2key.h: tests/merlincat/nebev-col2key.gperf
+tests/merlincat/nebev-col2key.c: tests/merlincat/nebev-col2key.gperf
 	$(AM_V_GEN) $(GPERF) --switch=1 --struct-type \
 			--multiple-iterations=10 --readonly-tables \
 			--hash-function-name=nebev_col_phash \
@@ -241,7 +241,7 @@ tests/merlincat/nebev-col2key.c tests/merlincat/nebev-col2key.h: tests/merlincat
 			--language=ANSI-C \
 		$< > $@
 
-tests/merlincat/kvvec2nebev.c: tests/merlincat/nebev-col2key.c tests/merlincat/nebev-col2key.h
+tests/merlincat/kvvec2nebev.c: tests/merlincat/nebev-col2key.c
 
 BUILT_SOURCES = \
     tests/merlincat/nebev2kvvec.c tests/merlincat/nebev2kvvec.h \
