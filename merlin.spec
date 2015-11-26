@@ -159,9 +159,24 @@ cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
 %post
 # we must stop the merlin deamon so it doesn't interfere with any
 # database upgrades, logfile imports and whatnot
+%if 0%{?rhel} >= 7
+systemctl stop merlind > /dev/null || :
+%else
 /etc/init.d/merlind stop >/dev/null || :
+%endif
 
 # Verify that mysql-server is installed and running before executing sql scripts
+%if 0%{?rhel} >= 7
+systemctl is-active %mysqld 2&>1 >/dev/null
+if [ $? -gt 0 ]; then
+  echo "Attempting to start %mysqld..."
+  systemctl start %mysqld
+  if [ $? -gt 0 ]; then
+    echo "Abort: Failed to start %mysqld."
+    exit 1
+  fi
+fi
+%else
 service %mysqld status 2&>1 >/dev/null
 if [ $? -gt 0 ]; then
   echo "Attempting to start %mysqld..."
@@ -171,6 +186,7 @@ if [ $? -gt 0 ]; then
     exit 1
   fi
 fi
+%endif
 
 if ! mysql -umerlin -pmerlin merlin -e 'show tables' > /dev/null 2>&1; then
     mysql -uroot -e "CREATE DATABASE IF NOT EXISTS merlin"
@@ -203,26 +219,44 @@ sed --follow-symlinks -r -i \
 chown -R monitor:%daemon_group %_localstatedir/cache/merlin
 
 # restart all daemons
+%if 0%{?rhel} >= 7
+for daemon in merlind op5kad nrpe; do
+	test -f /etc/init.d/$daemon && systemctl start $daemon || :
+done
+%else
 for daemon in merlind op5kad nrpe; do
 	test -f /etc/init.d/$daemon && /etc/init.d/$daemon restart || :
 done
+%endif
 
 %preun -n monitor-merlin
 if [ $1 -eq 0 ]; then
+%if 0%{?rhel} >= 7
+	systemctl stop merlind || :
+%else
 	/etc/init.d/merlind stop || :
+%endif
 fi
 
 %postun -n monitor-merlin
 if [ $1 -eq 0 ]; then
 	# remove the merlin module
+%if 0%{?rhel} >= 7
+	systemctl restart monitor || :
+%else
 	/etc/init.d/monitor restart || :
+%endif
 fi
 
 %post -n monitor-merlin
 chown -Rh monitor:%daemon_group %prefix/etc
 sed --follow-symlinks -i 's#import_program = php /opt/monitor/op5/merlin/import.php#import_program = /opt/monitor/op5/merlin/ocimp#g' %mod_path/merlin.conf
 sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon.cfg
+%if 0%{?rhel} >= 7
+systemctl restart monitor || :
+%else
 /etc/init.d/monitor restart || :
+%endif
 
 
 %files
