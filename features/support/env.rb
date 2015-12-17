@@ -8,13 +8,15 @@
 testdir_path = Dir.pwd
 ENV['PATH'] = "#{testdir_path}:#{ENV['PATH']}"
 
-# Spawn cukemerlin (cucumber wire daemon)
-cukemerlin = Process.spawn("cukemerlin --bind-port=31221")
+if ENV['CUKEMERLIN_AUTOSTART'] != "no" then
+  # Spawn cukemerlin (cucumber wire daemon)
+  cukemerlin = Process.spawn("cukemerlin --bind-port=31221")
 
-# Give cukemerlin time to start listen to the socket
-sleep(2)
+  # Give cukemerlin time to start listen to the socket
+  sleep(2)
 
-at_exit do
-	Process.kill("TERM", cukemerlin)
-	Process.wait
+  at_exit do
+    Process.kill("TERM", cukemerlin)
+    Process.wait
+  end
 end
