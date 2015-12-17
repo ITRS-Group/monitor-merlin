@@ -26,7 +26,9 @@ Feature: Simple packet forwarding
 			| configured_peers   | 1 |
 			| configured_pollers | 0 |
 		#this is the default during test
+		And I wait for 3 second
 		Then peer01 is connected to merlin
+		And file merlin.log matches peer01: STATE_NEGOTIATING \-\> STATE_CONNECTED
 
 	Scenario: Service check result propagation from ipc to peer
 		Given peer01 clears buffer

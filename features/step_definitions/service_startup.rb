@@ -35,11 +35,11 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
     use_syslog = 1;
 
     module {
-      log_file = /dev/stdout
+      log_file = merlin.log
     }
     daemon {
       pidfile = merlin.pid;
-      log_file = /dev/stdout
+      log_file = merlin.log
       import_program = /bin/false
       port = #{port};
       object_config {
