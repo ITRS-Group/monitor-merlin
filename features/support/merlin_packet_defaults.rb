@@ -11,7 +11,7 @@ Before do
       "config_hash" => "my_hash",
       "peer_id" => "0",
       "active_peers" => "0",
-      "configured_peers" => "1",
+      "configured_peers" => "0",
       "active_pollers" => "0",
       "configured_pollers" => "0",
       "active_masters" => "0",

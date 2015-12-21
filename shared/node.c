@@ -1104,8 +1104,8 @@ int node_compat_cmp(const merlin_node *node, const merlin_event *pkt)
 		if (len < sizeof(node->info)) {
 			lwarn("%s: info-size too small (%d < %d)",
 			      node->name, len, sizeof(node->info));
-			return ESYNC_EVERSION;
 		}
+		return ESYNC_EVERSION;
 	}
 
 	if (info->word_size != COMPAT_WORDSIZE) {
