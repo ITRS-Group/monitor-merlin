@@ -1093,18 +1093,16 @@ int node_compat_cmp(const merlin_node *node, const merlin_event *pkt)
 	 * comparisons below, but if byte_order differs, so may this.
 	 */
 	version_delta = info->version - MERLIN_NODEINFO_VERSION;
-	if (version_delta) {
-		lwarn("%s: nodeinfo version difference. theirs: %d. ours: %d",
+	if (version_delta < 0) {
+		lwarn("%s: nodeinfo has older version. theirs: %d. ours: %d",
 		      node->name, info->version, MERLIN_NODEINFO_VERSION);
-		if (version_delta < 0) {
-			lwarn("WARNING: '%s' needs to be updated", node->name);
-		} else {
-			lwarn("WARNING: localhost needs to be updated");
-		}
-		if (len < sizeof(node->info)) {
-			lwarn("%s: info-size too small (%d < %d)",
-			      node->name, len, sizeof(node->info));
-		}
+		lwarn("WARNING: '%s' needs to be updated", node->name);
+		return ESYNC_EVERSION;
+	}
+
+	if (len < sizeof(node->info)) {
+		lwarn("%s: info-size too small (%d < %d), incompatible version?",
+		      node->name, len, sizeof(node->info));
 		return ESYNC_EVERSION;
 	}
 
