@@ -1929,7 +1929,7 @@ def cmd_dist(args):
 				mesh.test_acks()
 
 		if 'oconfsplit' in tests:
-			mesh.test_oconfsplit("/var/cache/merlin/config")
+			mesh.test_oconfsplit(cache_dir + "/config")
 		if 'active_checks' in tests:
 			mesh.test_active_checks()
 		if 'parents' in tests:
