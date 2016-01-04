@@ -109,7 +109,6 @@ void csync_node_active(merlin_node *node, int tdelta)
 {
 	time_t now;
 	const char *what;
-	int val = 0;
 	merlin_confsync *cs = NULL;
 	merlin_child *child = NULL;
 
@@ -149,7 +148,7 @@ void csync_node_active(merlin_node *node, int tdelta)
 			       node_type(node), node->name);
 		}
 	} else {
-		if (val < 0) {
+		if (tdelta < 0) {
 			if (cs->push.cmd && strcmp(cs->push.cmd, "no")) {
 				what = "push";
 				child = &cs->push;
@@ -157,7 +156,7 @@ void csync_node_active(merlin_node *node, int tdelta)
 			} else {
 				ldebug("CSYNC: %s: Should have pushed, but push not configured", node->name);
 			}
-		} else if (val > 0) {
+		} else if (tdelta > 0) {
 			if (cs->fetch.cmd && strcmp(cs->fetch.cmd, "no")) {
 				what = "fetch";
 				child = &cs->fetch;
