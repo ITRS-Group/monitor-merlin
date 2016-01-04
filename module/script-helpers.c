@@ -108,22 +108,23 @@ static void handle_csync_finished(wproc_result *wpres, void *arg, int flags)
 void csync_node_active(merlin_node *node, int tdelta)
 {
 	time_t now;
+	const char *what;
 	int val = 0;
 	merlin_confsync *cs = NULL;
 	merlin_child *child = NULL;
 
-	ldebug("CSYNC: %s: Checking. Time delta: %d", node->name, tdelta);
+	ldebug("CSYNC: %s %s: Checking. Time delta: %d", node_type(node), node->name, tdelta);
 	/* bail early if we have no push/fetch configuration */
 	cs = &node->csync;
 	if (!cs->push.cmd && !cs->fetch.cmd) {
-		ldebug("CSYNC: %s: No config sync configured.", node->name);
+		ldebug("CSYNC: %s %s: No config sync configured.", node_type(node), node->name);
 		node_disconnect(node, "Disconnecting from %s, as config can't be synced", node->name);
 		return;
 	}
 
 	if (!(node->flags & MERLIN_NODE_CONNECT) && !node->csync.configured) {
 		if (node->type == MODE_POLLER || (node->type == MODE_PEER && tdelta < 0)) {
-			ldebug("CSYNC: %s node %s configured with 'connect = no'.",
+			ldebug("CSYNC: %s %s configured with 'connect = no'.",
 				   node_type(node), node->name);
 		}
 		return;
@@ -132,42 +133,50 @@ void csync_node_active(merlin_node *node, int tdelta)
 	if (node->type == MODE_MASTER) {
 		if (cs->fetch.cmd && strcmp(cs->fetch.cmd, "no")) {
 			child = &cs->fetch;
-			ldebug("CSYNC: We'll try to fetch");
+			what = "fetch";
+			ldebug("CSYNC: %s %s: We'll try to fetch", node_type(node), node->name);
 		} else {
-			ldebug("CSYNC: Refusing to push to a master node");
+			ldebug("CSYNC: %s %s: Refusing to push to a master node",
+			       node_type(node), node->name);
 		}
 	} else if (node->type == MODE_POLLER) {
 		if (cs->push.cmd && strcmp(cs->push.cmd, "no")) {
 			child = &cs->push;
-			ldebug("CSYNC: We'll try to push");
+			what = "push";
+			ldebug("CSYNC: %s %s: We'll try to push", node_type(node), node->name);
 		} else {
-			ldebug("CSYNC: Should have pushed, but push not configured for %s", node->name);
+			ldebug("CSYNC: %s %s: Should have pushed, but push not configured",
+			       node_type(node), node->name);
 		}
 	} else {
 		if (val < 0) {
 			if (cs->push.cmd && strcmp(cs->push.cmd, "no")) {
+				what = "push";
 				child = &cs->push;
-				ldebug("CSYNC: We'll try to push");
+				ldebug("CSYNC: %s %s: We'll try to push", node_type(node), node->name);
 			} else {
-				ldebug("CSYNC: Should have pushed, but push not configured for %s", node->name);
+				ldebug("CSYNC: %s: Should have pushed, but push not configured", node->name);
 			}
 		} else if (val > 0) {
 			if (cs->fetch.cmd && strcmp(cs->fetch.cmd, "no")) {
+				what = "fetch";
 				child = &cs->fetch;
-				ldebug("CSYNC: We'll try to fetch");
+				ldebug("CSYNC: %s %s: We'll try to fetch", node_type(node), node->name);
 			} else {
-				ldebug("CSYNC: Should have fetched, but fetch not configured for %s", node->name);
+				ldebug("CSYNC: %s %s: Should have fetched, but fetch not configured",
+				       node_type(node), node->name);
 			}
 		}
 	}
 
 	if (!child) {
-		ldebug("CSYNC: No action required for %s", node->name);
+		ldebug("CSYNC: %s %s: No action required", node_type(node), node->name);
 		return;
 	}
 
 	if (child->is_running) {
-		ldebug("CSYNC: '%s' already running for %s", child->cmd, node->name);
+		ldebug("CSYNC: %s %s: %s already running as: %s",
+		       node_type(node), node->name, what, child->cmd);
 		return;
 	}
 
@@ -179,8 +188,8 @@ void csync_node_active(merlin_node *node, int tdelta)
 	}
 
 	node->csync_num_attempts++;
-	linfo("CSYNC: triggered against %s node %s; val: %d; command: [%s]",
-	      node_type(node), node->name, val, child->cmd);
+	linfo("CSYNC: %s %s: %s triggered; tdelta: %d; command: [%s]",
+	      node_type(node), node->name, what, tdelta, child->cmd);
 	node->csync_last_attempt = now;
 	child->node = node;
 
