@@ -528,6 +528,7 @@ static int handle_notification_data(__attribute__((unused)) merlin_node *node, v
 		h->last_notification = ds->start_time.tv_sec;
 		h->next_notification = ds->end_time.tv_sec;
 		h->no_more_notifications = ds->start_time.tv_usec;
+		add_notified_on(h, ds->state);
 	} else {
 		struct service *s = find_service(ds->host_name, ds->service_description);
 		if (!s)
@@ -536,6 +537,7 @@ static int handle_notification_data(__attribute__((unused)) merlin_node *node, v
 		s->last_notification = ds->start_time.tv_sec;
 		s->next_notification = ds->end_time.tv_sec;
 		s->no_more_notifications = ds->start_time.tv_usec;
+		add_notified_on(s, ds->state);
 	}
 	return 0;
 }
