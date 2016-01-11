@@ -121,7 +121,8 @@ module_sources = $(shared_sources) \
 	module/script-helpers.c module/script-helpers.h \
 	module/oconfsplit.c module/oconfsplit.h \
 	module/net.c module/net.h \
-	shared/pgroup.c shared/pgroup.h
+	shared/pgroup.c shared/pgroup.h \
+	module/testif_qh.c module/testif_qh.h
 daemon_sources = $(shared_sources) $(db_wrap_sources) \
 	daemon/daemonize.c daemon/daemonize.h \
 	daemon/db_updater.c daemon/db_updater.h \

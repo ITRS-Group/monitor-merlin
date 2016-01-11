@@ -67,3 +67,11 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
   step "I have config file fetch_cmd with permission 777", fetch_cmd
   step "I have config file merlin.conf", configfile
 end
+
+Given(/^node (.*) have ([a-z]*) hash (.*) at ([\d]+)$/) do |node, type, hash, time|
+  hexhash = hash.bytes.map { |b| sprintf("%02x",b) }.join
+  steps %Q{
+    Given I ask query handler merlin testif set #{type} hash #{node} #{hexhash} #{time}
+      | filter_var | filter_val | match_var | match_val |
+  }
+end

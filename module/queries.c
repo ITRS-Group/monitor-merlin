@@ -3,6 +3,7 @@
 #include "dlist.h"
 #include "logging.h"
 #include "ipc.h"
+#include "testif_qh.h"
 #include <naemon/naemon.h>
 #include <string.h>
 
@@ -81,39 +82,46 @@ int merlin_qh(int sd, char *buf, unsigned int len)
 {
 	unsigned int i;
 
-	if (len == 0)
+	if (0 == strcmp(buf, ""))
 		return help(sd);
 
-	/* last byte is always nul */
-	while (buf[len - 1] == 0 || buf[len - 1] == '\n')
-		buf[--len] = 0;
-
 	ldebug("qh request: '%s' (%u)", buf, len);
-	if(len == 8 && !memcmp(buf, "nodeinfo", len)) {
+	if(0 == strcmp(buf, "nodeinfo")) {
 		dump_nodeinfo(&ipc, sd, 0);
 		for(i = 0; i < num_nodes; i++) {
 			dump_nodeinfo(node_table[i], sd, i + 1);
 		}
 		return 0;
 	}
-	if (len == 4 && !memcmp(buf, "help", len))
+	if (0 == strcmp(buf, "help"))
 		return help(sd);
-	if (!prefixcmp(buf, "help"))
+
+	if (0 == prefixcmp(buf, "help"))
 		return help(sd);
-	if (len == 7 && !memcmp(buf, "cbstats", len)) {
+
+	if (0 == strcmp(buf, "cbstats")) {
 		dump_cbstats(&ipc, sd);
 		for(i = 0; i < num_nodes; i++) {
 			dump_cbstats(node_table[i], sd);
 		}
 		return 0;
 	}
-	if (len == strlen("expired") && !memcmp(buf, "expired", len)) {
+	if (0 == strcmp(buf, "expired")) {
 		dump_expired(sd);
 		return 0;
 	}
-	if (!strcmp(buf, "notify-stats")) {
+	if (0 == strcmp(buf, "notify-stats")) {
 		dump_notify_stats(sd);
 		return 0;
 	}
+
+	/*
+	 * This is used for test case integration, shouldn't be documented and used
+	 * in production, since the system will misbehave if used
+	 */
+	if (0 == prefixcmp(buf, "testif ")) {
+		return merlin_testif_qh(sd, buf+7);
+	}
+
 	return 400;
 }
