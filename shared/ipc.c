@@ -359,8 +359,6 @@ int ipc_send_event(merlin_event *pkt)
 {
 	ipc_is_connected(0);
 
-	pkt->hdr.sig.id = MERLIN_SIGNATURE;
-	pkt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
 	/* Only modules get to say when packets are sent */
 	if (is_module)
 		gettimeofday(&pkt->hdr.sent, NULL);

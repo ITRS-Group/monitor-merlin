@@ -179,7 +179,6 @@ static int send_generic(merlin_event *pkt, void *data)
 	 * but only if we successfully sent it
 	 */
 	result = ipc_send_event(pkt);
-	ipc.stats.cb_count[pkt->hdr.type].out++;
 	if (result < 0)
 		memset(&last_pkt, 0, sizeof(last_pkt));
 	else

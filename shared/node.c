@@ -883,6 +883,9 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 {
 	int result;
 
+	pkt->hdr.sig.id = MERLIN_SIGNATURE;
+	pkt->hdr.protocol = MERLIN_PROTOCOL_VERSION;
+
 	node_log_event_count(node, 0);
 
 	if (packet_size(pkt) > MAX_PKT_SIZE) {
@@ -916,6 +919,7 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 	/* successfully sent, so add it to the counter and return 0 */
 	if (result == packet_size(pkt)) {
 		node->stats.events.sent++;
+		node->stats.cb_count[pkt->hdr.type].out++;
 		return 0;
 	}
 
