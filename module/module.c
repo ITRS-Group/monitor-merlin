@@ -53,6 +53,17 @@ struct merlin_notify_stats merlin_notify_stats[9][2][2];
  */
 static uint32_t event_mask;
 
+
+/*
+ * this removes the necessity for linking the
+ * module against database libraries while sharing
+ * configuration parsing routines.
+ */
+int sql_config(const char *key, const char *value)
+{
+	return 0;
+}
+
 void set_host_check_node(merlin_node *node, host *h, int flags)
 {
 	merlin_node *old, *responsible;

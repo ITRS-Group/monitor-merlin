@@ -11,7 +11,6 @@
 #include "ipc.h"
 #include "configuration.h"
 #include "shared.h"
-#include "sql.h"
 #include "script-helpers.h"
 
 

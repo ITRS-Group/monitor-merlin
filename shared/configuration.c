@@ -1,11 +1,13 @@
 #include "logging.h"
 #include "ipc.h"
 #include "shared.h"
-#include "sql.h"
 
 int db_log_reports = 1;
 int db_log_notifications = 1;
 merlin_confsync global_csync;
+
+/* This lets the module build without database stuff linked in */
+extern int sql_config(const char *key, const char *value);
 
 static const char *config_key_expires(const char *var)
 {
