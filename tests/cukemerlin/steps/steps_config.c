@@ -1,5 +1,6 @@
 #include "steps_test.h"
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -23,9 +24,14 @@ typedef struct StepsConfig_ {
 STEP_BEGIN(step_begin_scenario);
 STEP_END(step_end_scenario);
 STEP_DEF(step_file);
+STEP_DEF(step_file_perm);
 STEP_DEF(step_dir);
 STEP_DEF(step_file_empty);
+
+/* matches and not matches is similar, create a wrapper for those */
+static void file_match_step(gpointer *scenario, JsonNode *args, CukeResponseRef respref, gboolean negate);
 STEP_DEF(step_file_matches);
+STEP_DEF(step_file_not_matches);
 
 CukeStepEnvironment steps_config = {
 	.tag = "config",
@@ -33,10 +39,12 @@ CukeStepEnvironment steps_config = {
 	.end_scenario = step_end_scenario,
 
 	.definitions = {
-		{ "^I have config file (.*)$", step_file },
+		{ "^I have config file ([^ ]*) with permission ([0-7]+)$", step_file_perm },
+		{ "^I have config file ([^ ]*)$", step_file },
 		{ "^I have config dir (.*)$", step_dir },
 		{ "^I have an empty file (.*)", step_file_empty },
 		{ "^file (.*) matches (.*)$", step_file_matches },
+		{ "^file (.*) does not match (.*)$", step_file_not_matches },
 		{ NULL, NULL }
 	}
 };
@@ -105,6 +113,39 @@ STEP_DEF(step_file) {
 	STEP_OK;
 }
 
+STEP_DEF(step_file_perm) {
+	StepsConfig *sc = (StepsConfig *) scenario;
+
+	gchar *filename = NULL;
+	gchar *content = NULL;
+	gchar *perm_str = NULL;
+	GError *error = NULL;
+	gint fd = 0;
+	int perm = 0;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &filename)
+		|| !jsonx_locate(args, 'a', 1, 's', &perm_str)
+		|| !jsonx_locate(args, 'a', 2, 's', &content)) {
+		STEP_FAIL("Invalid arguments");
+		return;
+	}
+
+	perm = (int)g_ascii_strtoull(perm_str, NULL, 8);
+
+	if (!g_file_set_contents(filename, content, strlen(content), &error)) {
+		STEP_FAIL("Can't write to config file");
+		g_error_free(error);
+		return;
+	}
+
+	if (g_chmod(filename, perm) != 0) {
+		STEP_FAIL("Can't set file permission");
+		return;
+	}
+
+	STEP_OK;
+}
+
 STEP_DEF(step_dir) {
 	StepsConfig *sc = (StepsConfig *) scenario;
 
@@ -147,7 +188,8 @@ STEP_DEF(step_file_empty) {
 	STEP_OK;
 }
 
-STEP_DEF(step_file_matches) {
+
+static void file_match_step(gpointer *scenario, JsonNode *args, CukeResponseRef respref, gboolean negate) {
 	StepsConfig *sc = (StepsConfig *) scenario;
 
 	gchar *filename = NULL;
@@ -192,10 +234,18 @@ STEP_DEF(step_file_matches) {
 		goto cleanup;
 	}
 
-	if(match) {
-		STEP_OK;
-	} else {
-		STEP_FAIL("No matching line");
+	if(!negate) { /* Matches */
+		if(match) {
+			STEP_OK;
+		} else {
+			STEP_FAIL("No matching line");
+		}
+	} else { /* Not matches */
+		if(match) {
+			STEP_FAIL("Line matches");
+		} else {
+			STEP_OK;
+		}
 	}
 
 	cleanup: /**/
@@ -207,4 +257,11 @@ STEP_DEF(step_file_matches) {
 		g_regex_unref(re);
 	if(error)
 		g_error_free(error);
+}
+
+STEP_DEF(step_file_matches) {
+	file_match_step(scenario, args, respref, FALSE);
+}
+STEP_DEF(step_file_not_matches) {
+	file_match_step(scenario, args, respref, TRUE);
 }

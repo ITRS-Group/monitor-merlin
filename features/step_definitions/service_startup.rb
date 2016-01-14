@@ -17,6 +17,8 @@ Given(/^I start naemon$/) do
       broker_module=#{merlin_module_path} merlin.conf
       event_broker_options=-1
       command_file=naemon.cmd
+      object_cache_file=objects.cache
+      status_file=/dev/null
       """
     And I start daemon naemon naemon.cfg
     And I have query handler path naemon.qh
@@ -28,11 +30,13 @@ Given(/^I start merlin$/) do
 end
 
 Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
+  push_cmd = "#!/bin/sh\necho \"push $@\" >> config_sync.log"
+  fetch_cmd = "#!/bin/sh\necho \"fetch $@\" >> config_sync.log"
   configfile = "
     ipc_socket = test_ipc.sock;
 
-    log_level = info;
-    use_syslog = 1;
+    log_level = debug;
+    use_syslog = 0;
 
     module {
       log_file = merlin.log
@@ -43,7 +47,8 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
       import_program = /bin/false
       port = #{port};
       object_config {
-        dump = /bin/false
+        push = ./push_cmd
+        fetch = ./fetch_cmd
       }
     }
     "
@@ -57,5 +62,8 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
     end
     configfile += "}\n"
   end
+  step "I have config file config_sync.log", "" # To make sure push steps work
+  step "I have config file push_cmd with permission 777", push_cmd
+  step "I have config file fetch_cmd with permission 777", fetch_cmd
   step "I have config file merlin.conf", configfile
 end
