@@ -120,10 +120,10 @@ module_sources = $(shared_sources) \
 	module/queries.c module/queries.h \
 	module/script-helpers.c module/script-helpers.h \
 	module/oconfsplit.c module/oconfsplit.h \
+	module/net.c module/net.h \
 	shared/pgroup.c shared/pgroup.h
 daemon_sources = $(shared_sources) $(db_wrap_sources) \
 	daemon/daemonize.c daemon/daemonize.h \
-	daemon/net.c daemon/net.h \
 	daemon/db_updater.c daemon/db_updater.h \
 	daemon/state.c daemon/state.h \
 	daemon/string_utils.c daemon/string_utils.h

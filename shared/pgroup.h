@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 struct merlin_node;
+struct merlin_event;
 
 /* nodeflags that must be shared between all nodes in a peer group */
 #define PGROUP_NODE_FLAGS (MERLIN_NODE_TAKEOVER)
@@ -48,6 +49,9 @@ typedef struct merlin_peer_group merlin_peer_group;
 void pgroup_assign_peer_ids(merlin_peer_group *pg);
 int pgroup_init(void);
 void pgroup_deinit(void);
+int pgroup_send_event(merlin_peer_group *pg, struct merlin_event *pkt);
+merlin_peer_group *pgroup_by_host_id(unsigned int id);
+merlin_peer_group *pgroup_by_service_id(unsigned int id);
 struct merlin_node *pgroup_host_node(unsigned int id);
 struct merlin_node *pgroup_service_node(unsigned int id);
 #endif

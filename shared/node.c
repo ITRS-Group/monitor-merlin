@@ -13,6 +13,24 @@ merlin_node **noc_table, **poller_table, **peer_table;
 static int num_selections;
 static node_selection *selection_table;
 
+static void node_log_info(const merlin_node *node, const merlin_nodeinfo *info)
+{
+	ldebug("Node info for %s", node->name);
+	ldebug("      version: %u", info->version);
+	ldebug("    word_size: %u", info->word_size);
+	ldebug("   byte_order: %u", info->byte_order);
+	ldebug("object struct: %u", info->object_structure_version);
+	ldebug("   start time: %lu.%06lu",
+	       info->start.tv_sec, info->start.tv_usec);
+	ldebug("  config hash: %s", tohex(info->config_hash, sizeof(info->config_hash)));
+	ldebug("expected hash: %s", tohex(node->expected.config_hash, sizeof(info->config_hash)));
+	ldebug(" config mtime: %lu", info->last_cfg_change);
+	ldebug("      peer id: %u", node->peer_id);
+	ldebug(" self peer id: %u", info->peer_id);
+	ldebug(" active peers: %u", info->active_peers);
+	ldebug(" confed peers: %u", info->configured_peers);
+}
+
 void node_set_state(merlin_node *node, int state, const char *reason)
 {
 	int prev_state, add;
@@ -24,7 +42,7 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 		return;
 
 	/*
-	 * Allowed nodestate transitions for daemon:
+	 * Allowed nodestate transitions:
 	 * Any state -> NONE
 	 * NONE -> PENDING/NEGOTIATING.
 	 * PENDING -> Any state
@@ -37,7 +55,7 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 	 * We don't do this check for &ipc, as it's special as usual.
 	 * Module can only go between CONNECTED and NONE.
 	 */
-	if (!is_module && state != STATE_NONE && node != &ipc) {
+	if (state != STATE_NONE && node != &ipc) {
 		int transition_error = 1;
 		switch (node->state) {
 		case STATE_NONE:
@@ -98,7 +116,6 @@ void node_set_state(merlin_node *node, int state, const char *reason)
 	node->state = state;
 
 	if (node->state == STATE_NEGOTIATING && node != &ipc) {
-		ldebug("Sending CTRL_ACTIVE to %s", node->name);
 		node_send_ctrl_active(node, CTRL_GENERIC, &ipc.info);
 	}
 
@@ -477,7 +494,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 	if (!address)
 		address = node->name;
 
-	if (!is_module && resolve(address, &node->sain.sin_addr) < 0)
+	if (is_module && resolve(address, &node->sain.sin_addr) < 0)
 		cfg_error(c, address_var, "Unable to resolve '%s'\n", address);
 
 	for (i = 0; i < c->nested; i++) {
@@ -871,6 +888,13 @@ merlin_event *node_get_event(merlin_node *node)
 		node_disconnect(node, "IOC error");
 		return NULL;
 	}
+
+	/* debug log these transitions */
+	if (pkt->hdr.type == CTRL_PACKET && pkt->hdr.code == CTRL_ACTIVE) {
+		ldebug("CTRLEVENT: Received CTRL_ACTIVE from %s node %s", node_type(node), node->name);
+		node_log_info(node, (merlin_nodeinfo *)pkt->body);
+	}
+
 	return pkt;
 }
 
@@ -919,7 +943,9 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 	/* successfully sent, so add it to the counter and return 0 */
 	if (result == packet_size(pkt)) {
 		node->stats.events.sent++;
-		node->stats.cb_count[pkt->hdr.type].out++;
+		if (pkt->hdr.type < ARRAY_SIZE(node->stats.cb_count)) {
+			node->stats.cb_count[pkt->hdr.type].out++;
+		}
 		return 0;
 	}
 
@@ -1041,24 +1067,6 @@ int node_ctrl(merlin_node *node, int code, uint selection, void *data,
 		memcpy(&pkt.body, data, len);
 
 	return node_send(node, &pkt, packet_size(&pkt), MSG_DONTWAIT);
-}
-
-static void node_log_info(const merlin_node *node, const merlin_nodeinfo *info)
-{
-	ldebug("Node info for %s", node->name);
-	ldebug("      version: %u", info->version);
-	ldebug("    word_size: %u", info->word_size);
-	ldebug("   byte_order: %u", info->byte_order);
-	ldebug("object struct: %u", info->object_structure_version);
-	ldebug("   start time: %lu.%06lu",
-	       info->start.tv_sec, info->start.tv_usec);
-	ldebug("  config hash: %s", tohex(info->config_hash, sizeof(info->config_hash)));
-	ldebug("expected hash: %s", tohex(node->expected.config_hash, sizeof(info->config_hash)));
-	ldebug(" config mtime: %lu", info->last_cfg_change);
-	ldebug("      peer id: %u", node->peer_id);
-	ldebug(" self peer id: %u", info->peer_id);
-	ldebug(" active peers: %u", info->active_peers);
-	ldebug(" confed peers: %u", info->configured_peers);
 }
 
 /*
@@ -1195,19 +1203,32 @@ int node_mconf_cmp(const merlin_node *node, const merlin_event *pkt)
 int node_oconf_cmp(const merlin_node *node, const merlin_event *pkt)
 {
 	merlin_nodeinfo *info;
+	int tdelta;
 
 	info = (merlin_nodeinfo *)&pkt->body;
 
-	/* if this is a master node, "any config" is as expected */
-	if (node->type == MODE_MASTER)
-		return 0;
+	tdelta = info->last_cfg_change - ipc.info.last_cfg_change;
+	ldebug("CSYNC: %s node_oconf_cmp() (theirs: %lu; ours: %lu, delta: %d)",
+	       node->name, info->last_cfg_change, ipc.info.last_cfg_change, tdelta);
+	ldebug("CSYNC: %s hash: %s, expected: %s", node->name,
+	       tohex(info->config_hash, 20), tohex(node->expected.config_hash, 20));
 
-	if (!memcmp(info->config_hash, node->expected.config_hash, sizeof(info->config_hash))) {
-		ldebug("%s %s's config is what we expect", node_type(node), node->name);
+	/* if this is a master node, "any config" is as expected */
+	if (node->type == MODE_MASTER) {
+		ldebug("CSYNC: %s is a master in node_oconf_cmp", node->name);
 		return 0;
 	}
 
-	return info->last_cfg_change - ipc.info.last_cfg_change;
+	if (!memcmp(info->config_hash, node->expected.config_hash, sizeof(info->config_hash))) {
+		ldebug("CSYNC: %s %s's config is what we expect", node_type(node), node->name);
+		return 0;
+	} else {
+		ldebug("CSYNC: %s config doesn't match the expected. tdelta=%d", node->name, tdelta);
+		if (node->type == MODE_POLLER)
+			return 1;
+	}
+
+	return tdelta;
 }
 
 int handle_ctrl_active(merlin_node *node, merlin_event *pkt)

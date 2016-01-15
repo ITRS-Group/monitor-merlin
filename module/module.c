@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <naemon/naemon.h>
+#include <arpa/inet.h>
 #include "ipc.h"
 #include "configuration.h"
 #include "compat.h"
@@ -13,6 +14,7 @@
 #include "queries.h"
 #include "oconfsplit.h"
 #include "script-helpers.h"
+#include "net.h"
 
 merlin_node **host_check_node = NULL;
 merlin_node **service_check_node = NULL;
@@ -22,6 +24,11 @@ static merlin_node untracked_checks_node = {
 	.host_checks = 0,
 	.service_checks = 0,
 };
+
+merlin_event *recv_event;
+
+unsigned short default_port = 15551;
+unsigned int default_addr = 0;
 
 static timed_event **host_expiry_map, **service_expiry_map;
 struct dlist_entry *expired_events;
@@ -327,7 +334,7 @@ void schedule_expiration_event(int type, merlin_node *node, void *obj)
  * Handles merlin control events inside the module. Control events
  * that relate to cross-host communication only never reaches this.
  */
-static void handle_control(merlin_node *node, merlin_event *pkt)
+void handle_control(merlin_node *node, merlin_event *pkt)
 {
 	const char *ctrl;
 	int prev_state, ret;
@@ -349,7 +356,6 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 	switch (pkt->hdr.code) {
 	case CTRL_INACTIVE:
 		node_set_state(node, STATE_NONE, "Received CTRL_INACTIVE");
-		pgroup_assign_peer_ids(node->pgroup);
 		break;
 	case CTRL_ACTIVE:
 		/*
@@ -371,6 +377,8 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 			csync_node_active(node, ret);
 			node_disconnect(node, "Incompatible object config (sync triggered)");
 			return;
+		} else {
+			ldebug("CSYNC: %s has object config already up to date", node->name);
 		}
 
 		/* node sent info we can use, so do that */
@@ -378,7 +386,6 @@ static void handle_control(merlin_node *node, merlin_event *pkt)
 		if (prev_state != STATE_CONNECTED) {
 
 			node_set_state(node, STATE_CONNECTED, "Received CTRL_ACTIVE");
-			pgroup_assign_peer_ids(node->pgroup);
 			ldebug("NODESTATE: %s node %s just marked as connected after CTRL_ACTIVE",
 				   node_type(node), node->name);
 		}
@@ -668,6 +675,19 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 			}
 		}
 		return 0;
+	} else {
+		/*
+		 * supposed to add. Block downtime and ACK comments to avoid
+		 * duplicates
+		 */
+		if (ds->entry_type == ACKNOWLEDGEMENT_COMMENT) {
+			ldebug("COMMENTS: Received non-delete ack comment event");
+			return 0;
+		}
+		if (ds->entry_type == DOWNTIME_COMMENT) {
+			ldebug("COMMENTS: Received non-delete downtime comment event");
+			return 0;
+		}
 	}
 
 	/* we're adding a comment */
@@ -747,17 +767,19 @@ static int handle_flapping_data(merlin_node *node, void *buf)
 	return 1;
 }
 
-/* events that require status updates return 1, others return 0 */
-int handle_ipc_event(merlin_node *node, merlin_event *pkt)
+
+/* Handles an event received from another node */
+int handle_event(merlin_node *node, merlin_event *pkt)
 {
+	uint i;
 	int ret = 0;
 
 	if (!pkt) {
-		lerr("MM: pkt is NULL in handle_ipc_event()");
+		lerr("MM: pkt is NULL in handle_event()");
 		return 0;
 	}
 	if (!pkt->body) {
-		lerr("MM: pkt->body is NULL in handle_ipc_event()");
+		lerr("MM: pkt->body is NULL in handle_event()");
 		return 0;
 	}
 
@@ -769,9 +791,42 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 		return 0;
 	}
 
+	if (pkt->hdr.type == CTRL_PACKET) {
+		handle_control(node, pkt);
+		return 0;
+	}
+
+	if (node->state != STATE_CONNECTED) {
+		/* the f*ck did that happen? An unconnected node talking to us */
+		lerr("Received data from not connected node '%s'. State is %s\n",
+			 node->name, node_state(node));
+		return 0;
+	} else if (node->type == MODE_POLLER && num_masters) {
+		ldebug("Passing on event from poller %s to %d masters",
+		       node->name, num_masters);
+		net_sendto_many(noc_table, num_masters, pkt);
+	} else if (node->type == MODE_MASTER && num_pollers) {
+		/*
+		 * @todo maybe we should also check if self.peer_id == 0
+		 * before we forward events to our pollers. Hmm...
+		 */
+		if (pkt->hdr.type != NEBCALLBACK_PROGRAM_STATUS_DATA &&
+		    pkt->hdr.type != NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA)
+		{
+			for (i = 0; i < num_pollers; i++) {
+				merlin_node *n = poller_table[i];
+				net_sendto(n, pkt);
+			}
+		}
+	}
+
+	/* let the various handler know which node sent the packet */
+	pkt->hdr.selection = node->id;
+
 	if (!node->state == STATE_CONNECTED) {
 		lwarn("STATE: Discarding %s event from %s %s",
 			  callback_name(pkt->hdr.type), node_type(node), node->name);
+		return 0;
 	}
 	if (!node->info.byte_order) {
 		lwarn("STATE: %s is sending event data but hasn't sent %s",
@@ -789,13 +844,32 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 		return 0;
 	}
 
+	merlin_sender = node;
+	recv_event = pkt;
+
 	/*
 	 * check results and status updates are handled the same,
 	 * with the exception that checkresults also cause performance
 	 * data to be handled.
 	 */
-	merlin_sender = node;
 	switch (pkt->hdr.type) {
+	case NEBCALLBACK_PROGRAM_STATUS_DATA:
+	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
+	case NEBCALLBACK_PROCESS_DATA:
+		/* events we ignore: Warn if they get transferred */
+		/*
+		 * PROGRAM_STATUS_DATA can't sanely be transferred
+		 * CONTACT_NOTIFICATION_METHOD is left as-is, since we by
+		 * default want pollers to send notifications for their
+		 * respective contacts. This is by customer request, since
+		 * sending text-messages across country borders is a lot
+		 * more expensive than just buying a GSM device extra for
+		 * where one wants to place the poller
+		 */
+		lwarn("EVTERR: %s %s transferred %s event", node_type(node), node->name, callback_name(pkt->hdr.type));
+		return 0;
+
+
 	case NEBCALLBACK_HOST_CHECK_DATA:
 	case NEBCALLBACK_HOST_STATUS_DATA:
 		ret = handle_host_result(node, &pkt->hdr, pkt->body);
@@ -819,16 +893,48 @@ int handle_ipc_event(merlin_node *node, merlin_event *pkt)
 	case NEBCALLBACK_FLAPPING_DATA:
 		ret = handle_flapping_data(node, pkt->body);
 		break;
-	case NEBCALLBACK_PROCESS_DATA:
-		break; /* we knowingly ignore this so just shut up about it */
 	default:
 		lwarn("Ignoring unrecognized/unhandled callback type: %d (%s)",
 		      pkt->hdr.type, callback_name(pkt->hdr.type));
 	}
 	merlin_sender = NULL;
+	recv_event = NULL;
+
+	/* not all packets get delivered to the merlin module */
+	switch (pkt->hdr.type) {
+
+	/* and not all packets get sent to the database */
+	case CTRL_PACKET:
+		/* handled above by "handle_control()" */
+		break;
+	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
+		return ipc_send_event(pkt);
+
+	case NEBCALLBACK_DOWNTIME_DATA:
+	case NEBCALLBACK_COMMENT_DATA:
+		/*
+		 * These two used to be handled specially here, but
+		 * we've moved it to the database update layer instead,
+		 * which will discard queries it can't run properly
+		 * without bouncing the data against the module.
+		 */
+	default:
+		/*
+		 * IMPORTANT NOTE:
+		 * It's absolutely vital that we send the event to the
+		 * ipc socket *before* we ship it off to the db_update
+		 * function, since the db_update function merlin_decode()'s
+		 * the event, which makes unusable for sending to the
+		 * ipc (or, indeed, anywhere else) afterwards.
+		 */
+		ipc_send_event(pkt);
+		//mrm_db_update(node, pkt);
+		return 0;
+	}
 
 	return ret;
 }
+
 
 static int ipc_reaper(__attribute__((unused)) int sd, __attribute__((unused)) int events, void *arg)
 {
@@ -877,7 +983,7 @@ static int ipc_reaper(__attribute__((unused)) int sd, __attribute__((unused)) in
 		if (pkt->hdr.type == CTRL_PACKET) {
 			handle_control(node, pkt);
 		} else {
-			handle_ipc_event(node, pkt);
+			lerr("EVTERR: IPC sent an %s packet", callback_name(pkt->hdr.type));
 		}
 		free(pkt);
 	}
@@ -1070,6 +1176,25 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 {
 	uint i;
 
+	for (i = 0; i < comp->vars; i++) {
+		struct cfg_var *v = comp->vlist[i];
+		if (!strcmp(v->key, "port")) {
+			char *endp;
+
+			default_port = (unsigned short)strtoul(v->value, &endp, 0);
+			if (default_port < 1 || *endp)
+				cfg_error(comp, v, "Illegal value for port: %s", v->value);
+			continue;
+		}
+		if (!strcmp(v->key, "address")) {
+			unsigned int addr;
+			if (inet_pton(AF_INET, v->value, &addr) == 1)
+				default_addr = addr;
+			else
+				cfg_error(comp, v, "Illegal value for address: %s", v->value);
+			continue;
+		}
+	}
 	for (i = 0; i < comp->nested; i++) {
 		struct cfg_comp *c = comp->nest[i];
 		if (!prefixcmp(c->name, "database")) {
@@ -1141,9 +1266,16 @@ void *neb_handle = NULL;
  */
 static void send_pulse(struct nm_event_execution_properties *evprop)
 {
-	if (evprop->execution_type == EVENT_EXEC_NORMAL) {
-		schedule_event(pulse_interval, send_pulse, NULL);
-		node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info);
+	unsigned int i;
+
+	if (evprop->execution_type != EVENT_EXEC_NORMAL)
+		return;
+
+	schedule_event(pulse_interval, send_pulse, NULL);
+	node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info);
+	for (i = 0; i < num_nodes; i++) {
+		merlin_node *node = noc_table[i];
+		node_send_ctrl_active(node, CTRL_GENERIC, &ipc.info);
 	}
 }
 
@@ -1164,6 +1296,7 @@ static void send_pulse(struct nm_event_execution_properties *evprop)
 static int post_config_init(int cb, void *ds)
 {
 	int result;
+	unsigned int i;
 
 	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
 		return 0;
@@ -1208,11 +1341,21 @@ static int post_config_init(int cb, void *ds)
 	 */
 	merlin_hooks_init(event_mask);
 
+	if (net_init() < 0) {
+		lerr("Failed to initialize networking: %s\n", strerror(errno));
+		return -1;
+	}
+
 	/*
 	 * this is the last event related to startup, so the regular mod hook
 	 * must see it to be able to shove startup info into the database.
 	 */
 	merlin_mod_hook(cb, ds);
+
+	for (i = 0; i < num_nodes; i++) {
+		merlin_node *node = node_table[i];
+		net_try_connect(node);
+	}
 
 	return 0;
 }
@@ -1233,7 +1376,6 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	}
 
 	if (ipc.state != STATE_CONNECTED) {
-		unsigned int i;
 		ret = iobroker_close(nagios_iobs, ipc.sock);
 		if (ret) {
 			/*
@@ -1245,17 +1387,6 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 		}
 		ipc.sock = -1;
 
-		/*
-		 * if we went from connected to anything else, we must
-		 * mark all other nodes as disconnected so that checks
-		 * fail over properly
-		 */
-		for (i = 0; i < num_nodes; i++) {
-			merlin_node *n = node_table[i];
-			/* this handles peer-count and peer-id as well */
-			node_set_state(n, STATE_NONE, "Daemon disconnected");
-			memset(&n->info, 0, sizeof(node->info));
-		}
 		return 0;
 	}
 
@@ -1280,12 +1411,38 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	return 0;
 }
 
+
+static int node_action_handler(merlin_node *node, int prev_state)
+{
+	switch (node->state) {
+	case STATE_CONNECTED:
+		pgroup_assign_peer_ids(node->pgroup);
+		break;
+	case STATE_NEGOTIATING:
+		node_send_ctrl_active(node, 0, &ipc.info);
+		break;
+	case STATE_NONE:
+		memset(&node->info, 0, sizeof(node->info));
+		pgroup_assign_peer_ids(node->pgroup);
+		iobroker_close(nagios_iobs, node->sock);
+		break;
+	}
+
+	return 0;
+}
+
 static void post_process_nodes(void)
 {
-	unsigned int i;
+	unsigned int i, x;
+
+	ldebug("post processing %d masters, %d pollers, %d peers",
+	       num_masters, num_pollers, num_peers);
 
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
+
+		node->action = node_action_handler;
+
 		if (node->type == MODE_PEER) {
 			memcpy(node->expected.config_hash, ipc.info.config_hash, sizeof(ipc.info.config_hash));
 		}
@@ -1307,6 +1464,48 @@ static void post_process_nodes(void)
 			else {
 				ldebug("CSYNC: Added per-node fetch command to %s %s as: %s",
 					   node_type(node), node->name, node->csync.fetch.cmd);
+			}
+		}
+
+		if (!node->sain.sin_port)
+			node->sain.sin_port = htons(default_port);
+
+		node->bq = nm_bufferqueue_create();
+		if (node->bq == NULL) {
+			lerr("Failed to create buffer queue for node %s. Aborting", node->name);
+		}
+
+		/*
+		 * this lets us support multiple merlin instances on
+		 * a single system, but all instances on the same
+		 * system will be marked at the same time, so we skip
+		 * them on the second pass here.
+		 */
+		if (node->flags & MERLIN_NODE_FIXED_SRCPORT) {
+			continue;
+		}
+
+		if (node->sain.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+			node->flags |= MERLIN_NODE_FIXED_SRCPORT;
+			ldebug("Using fixed source-port for local %s node %s",
+				   node_type(node), node->name);
+			continue;
+		}
+
+		for (x = i + 1; x < num_nodes; x++) {
+			merlin_node *nx = node_table[x];
+			if (node->sain.sin_addr.s_addr == nx->sain.sin_addr.s_addr) {
+				ldebug("Using fixed source-port for %s node %s",
+				       node_type(node), node->name);
+				ldebug("Using fixed source-port for %s node %s",
+				       node_type(nx), nx->name);
+				node->flags |= MERLIN_NODE_FIXED_SRCPORT;
+				nx->flags |= MERLIN_NODE_FIXED_SRCPORT;
+
+				if (node->sain.sin_port == nx->sain.sin_port) {
+					lwarn("Nodes %s and %s have same ip *and* same port. Voodoo?",
+					      node->name, nx->name);
+				}
 			}
 		}
 	}
@@ -1411,6 +1610,7 @@ int nebmodule_deinit(__attribute__((unused)) int flags, __attribute__((unused)) 
 
 	ipc_deinit();
 	log_deinit();
+	net_deinit();
 
 	merlin_hooks_deinit();
 

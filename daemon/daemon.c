@@ -1,7 +1,6 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <string.h>
-#include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -13,15 +12,12 @@
 #include "logging.h"
 #include "ipc.h"
 #include "configuration.h"
-#include "net.h"
 #include "sql.h"
 #include "state.h"
 #include "shared.h"
 
 static const char *progname;
 static const char *pidfile, *merlin_user;
-unsigned short default_port = 15551;
-unsigned int default_addr = 0;
 static merlin_confsync csync;
 static int killing;
 static int user_sig;
@@ -52,25 +48,6 @@ static void usage(char *fmt, ...)
 		, progname);
 
 	exit(1);
-}
-
-/* node connect/disconnect handlers */
-static int node_action_handler(merlin_node *node, int prev_state)
-{
-	switch (node->state) {
-	case STATE_PENDING:
-	case STATE_NEGOTIATING:
-	case STATE_NONE:
-		node_disconnect(node, "%s disconnected", node->name);
-
-		/* only send INACTIVE if we haven't already */
-		if (prev_state == STATE_CONNECTED) {
-			ldebug("Sending IPC control INACTIVE for '%s'", node->name);
-			return ipc_send_ctrl(CTRL_INACTIVE, node->id);
-		}
-	}
-
-	return 1;
 }
 
 static int ipc_action_handler(merlin_node *node, int prev_state)
@@ -105,22 +82,6 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 	for (i = 0; i < comp->vars; i++) {
 		struct cfg_var *v = comp->vlist[i];
 
-		if (!strcmp(v->key, "port")) {
-			char *endp;
-
-			default_port = (unsigned short)strtoul(v->value, &endp, 0);
-			if (default_port < 1 || *endp)
-				cfg_error(comp, v, "Illegal value for port: %s", v->value);
-			continue;
-		}
-		if (!strcmp(v->key, "address")) {
-			unsigned int addr;
-			if (inet_pton(AF_INET, v->value, &addr) == 1)
-				default_addr = addr;
-			else
-				cfg_error(comp, v, "Illegal value for address: %s", v->value);
-			continue;
-		}
 		if (!strcmp(v->key, "pidfile")) {
 			pidfile = strdup(v->value);
 			continue;
@@ -140,6 +101,10 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 		if (log_grok_var(v->key, v->value))
 			continue;
 
+		/* handled by the module now adays */
+		if (!strcmp(v->key, "port") || !strcmp(v->key, "address"))
+			continue;
+
 		cfg_error(comp, v, "Unknown variable");
 	}
 
@@ -153,74 +118,6 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 		if (!strcmp(c->name, "object_config")) {
 			grok_confsync_compound(c, &csync);
 			continue;
-		}
-	}
-}
-
-/* daemon-specific node manipulation */
-static void post_process_nodes(void)
-{
-	uint i, x;
-
-	ldebug("post processing %d masters, %d pollers, %d peers",
-	       num_masters, num_pollers, num_peers);
-
-	for (i = 0; i < num_nodes; i++) {
-		merlin_node *node = node_table[i];
-
-		if (!node) {
-			lerr("node is null. i is %d. num_nodes is %d. wtf?", i, num_nodes);
-			continue;
-		}
-
-		if (!node->csync.configured && csync.push.cmd) {
-			if (asprintf(&node->csync.push.cmd, "%s %s", csync.push.cmd, node->name) < 0)
-				lerr("CSYNC: Failed to add per-node confsync command for %s", node->name);
-			else
-				ldebug("CSYNC: Adding per-node sync to %s as: %s\n", node->name, node->csync.push.cmd);
-		}
-
-		if (!node->sain.sin_port)
-			node->sain.sin_port = htons(default_port);
-
-		node->action = node_action_handler;
-
-		node->bq = nm_bufferqueue_create();
-		if (node->bq == NULL) {
-			lerr("Failed to create io cache for node %s. Aborting", node->name);
-		}
-
-		/*
-		 * this lets us support multiple merlin instances on
-		 * a single system, but all instances on the same
-		 * system will be marked at the same time, so we skip
-		 * them on the second pass here.
-		 */
-		if (node->flags & MERLIN_NODE_FIXED_SRCPORT) {
-			continue;
-		}
-
-		if (node->sain.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
-			node->flags |= MERLIN_NODE_FIXED_SRCPORT;
-			ldebug("Using fixed source-port for local %s node %s",
-				   node_type(node), node->name);
-			continue;
-		}
-		for (x = i + 1; x < num_nodes; x++) {
-			merlin_node *nx = node_table[x];
-			if (node->sain.sin_addr.s_addr == nx->sain.sin_addr.s_addr) {
-				ldebug("Using fixed source-port for %s node %s",
-				       node_type(node), node->name);
-				ldebug("Using fixed source-port for %s node %s",
-				       node_type(nx), nx->name);
-				node->flags |= MERLIN_NODE_FIXED_SRCPORT;
-				nx->flags |= MERLIN_NODE_FIXED_SRCPORT;
-
-				if (node->sain.sin_port == nx->sain.sin_port) {
-					lwarn("Nodes %s and %s have same ip *and* same port. Voodoo?",
-					      node->name, nx->name);
-				}
-			}
 		}
 	}
 }
@@ -246,10 +143,8 @@ static int grok_config(char *path)
 		if (grok_common_var(config, v))
 			continue;
 
-		if (!strcmp(v->key, "port")) {
-			default_port = (unsigned short)strtoul(v->value, NULL, 0);
+		if (!strcmp(v->key, "port") || !strcmp(v->key, "address"))
 			continue;
-		}
 
 		cfg_warn(config, v, "Unrecognized variable\n");
 	}
@@ -273,9 +168,6 @@ static int grok_config(char *path)
 		node_grok_config(config);
 	}
 	cfg_destroy_compound(config);
-	if (!killing) {
-		post_process_nodes();
-	}
 
 	return 1;
 }
@@ -302,24 +194,13 @@ static int handle_ipc_event(merlin_event *pkt)
 			break;
 
 		case CTRL_INACTIVE:
-			/* this should really never happen, but forward it if it does */
+			/* our naemon instance might be restarting */
 			memset(&ipc.info, 0, sizeof(ipc.info));
 			break;
 		default:
-			lwarn("forwarding control packet %d to the network",
-				  pkt->hdr.code);
 			break;
 		}
 	}
-
-	/*
-	 * we must send to the network before we run mrm_db_update(),
-	 * since the latter deblockifies the packet and makes it
-	 * unusable in network transfers without repacking, but only
-	 * if this isn't magically marked as a NONET event
-	 */
-	if (pkt->hdr.code != MAGIC_NONET)
-		result = net_send_ipc_data(pkt);
 
 	/* skip sending control packets to database */
 	if (use_database && pkt->hdr.type != CTRL_PACKET)
@@ -375,7 +256,6 @@ static int io_poll_sockets(void)
 	if (ipc_listen_sock >= 0)
 		FD_SET(ipc_listen_sock, &rd);
 
-	sel_val = net_polling_helper(&rd, &wr, sel_val);
 	if (sel_val < 0)
 		return 0;
 
@@ -392,8 +272,6 @@ static int io_poll_sockets(void)
 		sockets++;
 		ipc_reap_events();
 	}
-
-	sockets += net_handle_polling_results(&rd, &wr);
 
 	return 0;
 }
@@ -419,8 +297,6 @@ static void dump_daemon_nodes(void)
 static void polling_loop(void)
 {
 	for (;!merlind_sig;) {
-		uint i;
-
 		if (user_sig & (1 << SIGUSR1))
 			dump_daemon_nodes();
 
@@ -429,23 +305,6 @@ static void polling_loop(void)
 		 * spamming the logs is in log_event_count() in logging.c
 		 */
 		ipc_log_event_count();
-
-		/* When the module is disconnected, we can't validate handshakes,
-		 * so any negotiation would need to be redone after the module
-		 * has started. Don't even bother.
-		 */
-		if (ipc.state == STATE_CONNECTED) {
-			while (!merlind_sig && net_accept_one() >= 0)
-				; /* nothing */
-
-			for (i = 0; !merlind_sig && i < num_nodes; i++) {
-				merlin_node *node = node_table[i];
-				/* try connecting if we're not already */
-				if (!net_is_connected(node) && node->state == STATE_NONE) {
-					net_try_connect(node);
-				}
-			}
-		}
 
 		if (merlind_sig)
 			return;
@@ -476,7 +335,6 @@ static void clean_exit(int sig)
 
 	ipc_deinit();
 	sql_close();
-	net_deinit();
 	log_deinit();
 	daemon_shutdown();
 
@@ -578,10 +436,6 @@ int merlind_main(int argc, char **argv)
 	result = ipc_init();
 	if (result < 0) {
 		lerr("Failed to initalize ipc socket: %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	if (net_init() < 0) {
-		lerr("Failed to initialize networking: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 

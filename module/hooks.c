@@ -15,8 +15,12 @@
 #include "module.h"
 #include "codec.h"
 #include "ipc.h"
+#include "pgroup.h"
+#include "net.h"
 #include <string.h>
 #include <naemon/naemon.h>
+
+extern merlin_event *recv_event;
 
 static nebstruct_comment_data *block_comment;
 static int check_dupes;
@@ -158,11 +162,8 @@ static int is_dupe(merlin_event *pkt)
 static int send_generic(merlin_event *pkt, void *data)
 {
 	int result;
-
-	/* avoid sending events that won't cause action in the daemon */
-	if (!use_database && pkt->hdr.code == MAGIC_NONET && pkt->hdr.type != CTRL_PACKET) {
-		return 0;
-	}
+	uint i, ntable_stop = num_masters + num_peers;
+	linked_item *li;
 
 	pkt->hdr.len = merlin_encode_event(pkt, data);
 	if (!pkt->hdr.len) {
@@ -183,6 +184,68 @@ static int send_generic(merlin_event *pkt, void *data)
 		memset(&last_pkt, 0, sizeof(last_pkt));
 	else
 		memcpy(&last_pkt, pkt, packet_size(pkt));
+
+	if (!num_nodes)
+		return 0;
+
+	if (pkt->hdr.selection == MAGIC_NONET) {
+		ldebug("MAGIC_NONET event of type %s. Not sending to neighbours", callback_name(pkt->hdr.type));
+		return result;
+	}
+
+	/*
+	 * The module can mark certain packets with a magic destination.
+	 * Such packets avoid all other inspection and get sent to where
+	 * the module wants us to.
+	 */
+	if (magic_destination(pkt)) {
+		if ((pkt->hdr.selection & DEST_MASTERS) == DEST_MASTERS) {
+			for (i = 0; i < num_masters; i++) {
+				net_sendto(node_table[i], pkt);
+			}
+		}
+		if ((pkt->hdr.selection & DEST_PEERS) == DEST_PEERS) {
+			for (i = 0; i < num_peers; i++) {
+				net_sendto(peer_table[i], pkt);
+			}
+		}
+		if ((pkt->hdr.selection & DEST_POLLERS) == DEST_POLLERS) {
+			for (i = 0; i < num_pollers; i++) {
+				net_sendto(poller_table[i], pkt);
+			}
+		}
+
+		return 0;
+	}
+
+	/*
+	 * "normal" packets get sent to all peers and masters, and possibly
+	 * a group of, or all, pollers as well
+	 */
+
+	/* general control packets are for everyone */
+	if (pkt->hdr.selection == CTRL_GENERIC && pkt->hdr.type == CTRL_PACKET) {
+		ntable_stop = num_nodes;
+	}
+
+	/* Send this to all who should have it */
+	for (i = 0; i < ntable_stop; i++) {
+		net_sendto(node_table[i], pkt);
+	}
+
+	/* if we've already sent to everyone we return early */
+	if (ntable_stop == num_nodes || !num_pollers)
+		return 0;
+
+	li = nodes_by_sel_id(pkt->hdr.selection);
+	if (!li) {
+		lerr("No matching selection for id %d", pkt->hdr.selection);
+		return -1;
+	}
+
+	for (; li; li = li->next_item) {
+		net_sendto((merlin_node *)li->item, pkt);
+	}
 
 	return result;
 }
@@ -224,6 +287,7 @@ static int send_host_status(merlin_event *pkt, int nebattr, host *obj)
 	st_obj.nebattr = nebattr;
 	st_obj.name = obj->name;
 	MOD2NET_STATE_VARS(st_obj.state, obj);
+	merlin_encode_event(pkt, &st_obj);
 	if (!pkt->hdr.code)
 		pkt->hdr.selection = get_selection(obj->name);
 
@@ -631,7 +695,8 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		 * which node(s) to send the command to (could very well
 		 * be 'nowhere')
 		 */
-		pkt->hdr.selection = get_cmd_selection(ds->command_args, 0);
+		if (!merlin_sender)
+			pkt->hdr.selection = get_cmd_selection(ds->command_args, 0);
 		break;
 
 	/* XXX downtime stuff on top */
@@ -655,7 +720,8 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_DISABLE_HOSTGROUP_PASSIVE_SVC_CHECKS:
 	case CMD_ENABLE_HOSTGROUP_PASSIVE_HOST_CHECKS:
 	case CMD_DISABLE_HOSTGROUP_PASSIVE_HOST_CHECKS:
-		pkt->hdr.selection = get_cmd_selection(ds->command_args, 1);
+		if (!merlin_sender)
+			pkt->hdr.selection = get_cmd_selection(ds->command_args, 1);
 		break;
 	case CMD_SCHEDULE_SERVICEGROUP_HOST_DOWNTIME:
 	case CMD_SCHEDULE_SERVICEGROUP_SVC_DOWNTIME:
@@ -674,7 +740,8 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		if (num_masters) {
 			linfo("Submitting servicegroup commands on pollers isn't necessarily a good idea");
 		}
-		pkt->hdr.selection = DEST_PEERS_POLLERS;
+		if (!merlin_sender)
+			pkt->hdr.selection = DEST_PEERS_POLLERS;
 		break;
 
 	default:
@@ -689,9 +756,13 @@ static int hook_external_command(merlin_event *pkt, void *data)
 			return 0;
 		}
 
-		pkt->hdr.selection = DEST_PEERS_POLLERS;
+		if (!merlin_sender)
+			pkt->hdr.selection = DEST_PEERS_POLLERS;
 		break;
 	}
+
+	if (merlin_sender)
+		pkt->hdr.selection = MAGIC_NONET;
 
 	return send_generic(pkt, data);
 }
@@ -781,6 +852,7 @@ static int hook_notification(merlin_event *pkt, void *data)
 	 */
 	if (merlin_sender) {
 		ldebug("notif: merlin_sender is %s %s", node_type(merlin_sender), merlin_sender->name);
+		ldebug("notif: merlin_sender->flags: %d", merlin_sender->flags);
 		if (merlin_sender->type != MODE_POLLER) {
 			mns->net++;
 			ldebug("notif: Sender is not a poller. Cancelling notification");
@@ -790,11 +862,12 @@ static int hook_notification(merlin_event *pkt, void *data)
 			ldebug("notif: Poller can notify. Cancelling notification");
 			return NEBERROR_CALLBACKCANCEL;
 		}
+
 		/*
 		 * seems the sender is a poller that can't notify, so check if
 		 * we should do it and, if so, allow it
 		 */
-		if (!num_peers || should_run_check(id)) {
+		if (merlin_sender->type == MODE_POLLER && (!num_peers || should_run_check(id))) {
 			mns->sent++;
 			ldebug("notif: Poller can't notify and we're responsible, so notifying");
 			return 0;
@@ -934,10 +1007,12 @@ int merlin_mod_hook(int cb, void *data)
 	return result;
 }
 
-#define CB_ENTRY(pollers_only, type, hook) \
-	{ pollers_only, type, #type, #hook }
+#define DEST_DB 1
+#define DEST_NETWORK 2
+#define CB_ENTRY(dest, type, hook) \
+	{ dest, type, #type, #hook }
 static struct callback_struct {
-	int network_only;
+	int dest;
 	int type;
 	const char *name;
 	const char *hook_name;
@@ -948,7 +1023,7 @@ static struct callback_struct {
 	CB_ENTRY(0, NEBCALLBACK_SYSTEM_COMMAND_DATA, hook_generic),
 	CB_ENTRY(0, NEBCALLBACK_EVENT_HANDLER_DATA, hook_generic),
 */
-	CB_ENTRY(1, NEBCALLBACK_NOTIFICATION_DATA, hook_notification),
+	CB_ENTRY(DEST_NETWORK, NEBCALLBACK_NOTIFICATION_DATA, hook_notification),
 /*	CB_ENTRY(0, NEBCALLBACK_CONTACT_NOTIFICATION_DATA, hook_contact_notification),
  */
 	CB_ENTRY(0, NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, hook_contact_notification_method),
@@ -961,7 +1036,7 @@ static struct callback_struct {
 	CB_ENTRY(0, NEBCALLBACK_PROGRAM_STATUS_DATA, hook_generic),
 	CB_ENTRY(0, NEBCALLBACK_HOST_STATUS_DATA, hook_host_status),
 	CB_ENTRY(0, NEBCALLBACK_SERVICE_STATUS_DATA, hook_service_status),
-	CB_ENTRY(1, NEBCALLBACK_EXTERNAL_COMMAND_DATA, hook_generic),
+	CB_ENTRY(DEST_NETWORK, NEBCALLBACK_EXTERNAL_COMMAND_DATA, hook_generic),
 };
 
 int merlin_hooks_init(uint32_t mask)
@@ -969,17 +1044,26 @@ int merlin_hooks_init(uint32_t mask)
 	uint i;
 	ev_mask = mask;
 
+	if (!use_database && !num_nodes) {
+		ldebug("Not using database and no nodes configured. Ignoring all events");
+		return 0;
+	}
+
 	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
 		struct callback_struct *cb = &callback_table[i];
 
-		if (cb->network_only && !num_nodes) {
-			ldebug("No pollers, peers or masters. Ignoring %s events", callback_name(cb->type));
+		if (cb->dest == DEST_DB && !use_database) {
+			ldebug("Not using database. Ignoring %s events", callback_name(cb->type));
+			continue;
+		}
+		if (cb->dest == DEST_NETWORK && !num_nodes) {
+			ldebug("No nodes configured. Ignoring %s events", callback_name(cb->type));
 			continue;
 		}
 
-		/* ignored filtered-out eventtypes */
+		/* ignore filtered-out eventtypes */
 		if (!(mask & (1 << cb->type))) {
-			ldebug("EVENTFILTER: Ignoring %s events from Nagios", callback_name(cb->type));
+			ldebug("EVENTFILTER: Ignoring %s events", callback_name(cb->type));
 			continue;
 		}
 
@@ -999,12 +1083,7 @@ int merlin_hooks_deinit(void)
 
 	for (i = 0; i < ARRAY_SIZE(callback_table); i++) {
 		struct callback_struct *cb = &callback_table[i];
-
-		if (!num_nodes && cb->network_only)
-			continue;
-
-		if (ev_mask & (1 << cb->type))
-			neb_deregister_callback(cb->type, merlin_mod_hook);
+		neb_deregister_callback(cb->type, merlin_mod_hook);
 	}
 
 	return 0;

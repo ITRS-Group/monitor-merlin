@@ -60,6 +60,7 @@ extern int __nagios_object_structure_version;
 /** prototypes **/
 extern void schedule_expiration_event(int type, merlin_node *node, void *obj);
 extern int handle_ipc_event(merlin_node *node, merlin_event *pkt);
+extern int handle_event(merlin_node *node, merlin_event *pkt);
 
 int unexpire_service(struct service *s);
 int unexpire_host(struct host *h);
