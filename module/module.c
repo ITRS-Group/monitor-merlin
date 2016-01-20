@@ -1442,6 +1442,7 @@ static void post_process_nodes(void)
 		merlin_node *node = node_table[i];
 
 		node->action = node_action_handler;
+		node->expected.last_cfg_change = ipc.info.last_cfg_change;
 
 		if (node->type == MODE_PEER) {
 			memcpy(node->expected.config_hash, ipc.info.config_hash, sizeof(ipc.info.config_hash));
