@@ -1224,8 +1224,20 @@ int node_oconf_cmp(const merlin_node *node, const merlin_event *pkt)
 		return 0;
 	} else {
 		ldebug("CSYNC: %s config doesn't match the expected. tdelta=%d", node->name, tdelta);
-		if (node->type == MODE_POLLER)
-			return 1;
+
+		/* break any potential timedelta deadlocks */
+		if (!tdelta) {
+			/* we prefer pushing to pollers */
+			if (node->type == MODE_POLLER)
+				return -1;
+
+			/* ... fetching from masters */
+			if (node->type == MODE_MASTER)
+				return 1;
+
+			/* ... and letting the lowest peer id "win" with peers */
+			return ipc.peer_id - node->peer_id;
+		}
 	}
 
 	return tdelta;
