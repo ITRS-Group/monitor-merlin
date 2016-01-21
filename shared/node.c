@@ -1207,9 +1207,9 @@ int node_oconf_cmp(const merlin_node *node, const merlin_event *pkt)
 
 	info = (merlin_nodeinfo *)&pkt->body;
 
-	tdelta = info->last_cfg_change - ipc.info.last_cfg_change;
+	tdelta = info->last_cfg_change - node->expected.last_cfg_change;
 	ldebug("CSYNC: %s node_oconf_cmp() (theirs: %lu; ours: %lu, delta: %d)",
-	       node->name, info->last_cfg_change, ipc.info.last_cfg_change, tdelta);
+	       node->name, info->last_cfg_change, node->expected.last_cfg_change, tdelta);
 	ldebug("CSYNC: %s hash: %s, expected: %s", node->name,
 	       tohex(info->config_hash, 20), tohex(node->expected.config_hash, 20));
 
@@ -1227,16 +1227,28 @@ int node_oconf_cmp(const merlin_node *node, const merlin_event *pkt)
 
 		/* break any potential timedelta deadlocks */
 		if (!tdelta) {
-			/* we prefer pushing to pollers */
 			if (node->type == MODE_POLLER)
 				return -1;
 
-			/* ... fetching from masters */
 			if (node->type == MODE_MASTER)
 				return 1;
 
-			/* ... and letting the lowest peer id "win" with peers */
-			return ipc.peer_id - node->peer_id;
+			/*
+			 * the earliest started "wins" with peers. In the
+			 * extremely unlikely event of a tiebreak, we log
+			 * it and return -1, thus indicating a push
+			 */
+			if (ipc.info.start.tv_sec < info->start.tv_sec)
+				return -1;
+			if (ipc.info.start.tv_sec > info->start.tv_sec)
+				return 1;
+			if (ipc.info.start.tv_usec < info->start.tv_usec)
+				return -1;
+			if (ipc.info.start.tv_usec == info->start.tv_usec) {
+				lwarn("CSYNC: %s %s has different config but same timestamp and start time.", node_type(node), node->name);
+				return -1;
+			}
+			return 1;
 		}
 	}
 
