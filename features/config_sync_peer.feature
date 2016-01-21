@@ -50,7 +50,7 @@ Feature: Module should handle conf sync with peer
 		And file config_sync.log matches ^push peer$
 		And file config_sync.log does not match ^fetch peer$
 
-	Scenario: Different config and higher timestamp should be denied, but not synced
+	Scenario: Different config and higher timestamp should be denied and fetched
 		Given peer connect to merlin at port 7000 from port 11001
 		And peer sends event CTRL_ACTIVE
 			| configured_peers   |                   1 |
@@ -60,23 +60,25 @@ Feature: Module should handle conf sync with peer
 		Then peer is not connected to merlin
 		And file merlin.log matches CSYNC: peer peer: Checking. Time delta: 100$
 		And file config_sync.log does not match ^push peer$
-		And file config_sync.log does not match ^fetch peer$
+		And file config_sync.log matches ^fetch peer$
 
-	Scenario: Different config and same timestamp should be denied, lower config hash, treat as earlier
+	Scenario: Different config and same timestamp should be denied, higher peer id, so push
 		Given peer connect to merlin at port 7000 from port 11001
 		And peer sends event CTRL_ACTIVE
+#			| start              |        2208985200.0 |
 			| configured_peers   |                   1 |
 			| configured_pollers |                   0 |
 			| config_hash        |             a_error |
 			| last_cfg_change    |                4000 |
 		Then peer is not connected to merlin
-		And file merlin.log matches CSYNC: peer peer: Checking. Time delta: -1$
-		And file config_sync.log matches ^push peer$
-		And file config_sync.log does not match ^fetch peer$
+		And file merlin.log matches CSYNC: peer peer: Checking. Time delta: 1$
+		And file config_sync.log does not match ^push peer$
+		And file config_sync.log matches ^fetch peer$
 
-	Scenario: Different config and same timestamp should be denied, higher config hash, treat as later
+	Scenario: Different config and same timestamp should be denied, lower peer id so fetch
 		Given peer connect to merlin at port 7000 from port 11001
 		And peer sends event CTRL_ACTIVE
+#			| start              |                 0.0 |
 			| configured_peers   |                   1 |
 			| configured_pollers |                   0 |
 			| config_hash        |             z_error |
@@ -84,7 +86,7 @@ Feature: Module should handle conf sync with peer
 		Then peer is not connected to merlin
 		And file merlin.log matches CSYNC: peer peer: Checking. Time delta: 1$
 		And file config_sync.log does not match ^push peer$
-		And file config_sync.log does not match ^fetch peer$
+		And file config_sync.log matches ^fetch peer$
 
 # TODO:
 # - verify no connection if "connect=no"

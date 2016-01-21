@@ -80,7 +80,7 @@ Feature: Module should handle conf sync with poller
 			| config_hash        |              z_error |
 			| last_cfg_change    |                 4000 |
 		Then poller is not connected to merlin
-		And file merlin.log matches CSYNC: poller poller: Checking. Time delta: 1$
+		And file merlin.log matches CSYNC: poller poller: Checking. Time delta: -1$
 		And file config_sync.log matches ^push poller$
 		And file config_sync.log does not match ^fetch
 
