@@ -6,7 +6,6 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include "daemonize.h"
-#include "daemon.h"
 #include "db_updater.h"
 #include "config.h"
 #include "logging.h"
@@ -15,6 +14,7 @@
 #include "sql.h"
 #include "state.h"
 #include "shared.h"
+#include "db_updater.h"
 
 static const char *progname;
 static const char *pidfile, *merlin_user;

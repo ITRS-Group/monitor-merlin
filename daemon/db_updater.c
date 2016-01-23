@@ -1,5 +1,4 @@
 #include "codec.h"
-#include "daemon.h"
 #include "string_utils.h"
 #include "ipc.h"
 #include "sql.h"
