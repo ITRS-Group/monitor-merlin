@@ -376,8 +376,8 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 		}
 		if ((ret = node_oconf_cmp(node, pkt))) {
 			csync_node_active(node, ret);
-			node_disconnect(node, "Incompatible object config (sync triggered)");
-			return;
+			//node_disconnect(node, "Incompatible object config (sync triggered)");
+			//return;
 		} else {
 			ldebug("CSYNC: %s has object config already up to date", node->name);
 		}
@@ -1415,6 +1415,11 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 
 static int node_action_handler(merlin_node *node, int prev_state)
 {
+	/* Clean up if we're no longer connected */
+	if (prev_state == STATE_CONNECTED) {
+		iobroker_unregister(nagios_iobs, node->sock);
+	}
+
 	switch (node->state) {
 	case STATE_CONNECTED:
 		pgroup_assign_peer_ids(node->pgroup);
