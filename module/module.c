@@ -353,9 +353,10 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 		lerr("Received %s with unknown node id %d", ctrl, pkt->hdr.selection);
 		return;
 	}
+
 	switch (pkt->hdr.code) {
 	case CTRL_INACTIVE:
-		node_set_state(node, STATE_NONE, "Received CTRL_INACTIVE");
+		node_disconnect(node, "Received CTRL_INACTIVE");
 		break;
 	case CTRL_ACTIVE:
 		/*
