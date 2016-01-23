@@ -779,7 +779,14 @@ class fake_mesh:
 			def has_pushed(sub):
 				self.master1.get_nodeinfo()
 				for i in self.master1.nodeinfo[1:]:
-					sub.test(int(i.csync_num_attempts) > 0, True, "%s must push to %s" % (self.master1.name, i.name))
+					msg = "%s must push to %s (hash: %s; expected: %s; we-changed: %s; they-changed: %s, num_attempts=%s, last_attempt=%s)" % (
+						self.master1.name, i.name, i.config_hash,
+						i.expected_config_hash,
+						self.master1.nodeinfo[0].last_cfg_change,
+						i.last_cfg_change,
+						i.csync_num_attempts, i.csync_last_attempt
+					)
+					sub.test(int(i.csync_last_attempt) > 0, True, msg)
 				return sub.get_status() == 0
 			ret += self._test_until_or_fail('pushed config', has_pushed, 15)
 
