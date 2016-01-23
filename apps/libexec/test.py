@@ -624,6 +624,10 @@ class fake_mesh:
 			else:
 				sub = self.tap.sub_init("daemon %s" % (what))
 
+		# let daemons start properly before we check them,
+		# or tests will sporadically fail on multi-core
+		# systems
+		time.sleep(0.5)
 		for inst in self.instances:
 			for dname, proc in inst.proc.items():
 				if daemon and dname != daemon:
@@ -1344,7 +1348,7 @@ class fake_mesh:
 			sys.stdout.flush()
 			inst.start_daemons(self.progs, dname)
 			if stagger and i < len(self.instances):
-				time.sleep(1 * self.valgrind_multiplier)
+				time.sleep(0.5 * self.valgrind_multiplier)
 
 		sys.stdout.write("\n")
 		return
