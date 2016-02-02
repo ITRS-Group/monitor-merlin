@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include <getopt.h>
 #include <libgen.h>
+#include <glib.h>
 
 static struct {
 	bitmap *hosts;
@@ -32,10 +33,10 @@ static inline void nsplit_cache_command(struct command *cmd)
 	bitmap_set(map.commands, cmd->id);
 }
 
-static int set_hostgroup_host(void *_hst, __attribute__((unused)) void *user_data)
+static gboolean set_hostgroup_host(gpointer _name, gpointer _hst, __attribute__((unused)) gpointer user_data)
 {
 	bitmap_set(map.hosts, ((host *)_hst)->id);
-	return 0;
+	return FALSE;
 }
 
 static int map_hostgroup_hosts(const char *hg_name)
@@ -46,7 +47,7 @@ static int map_hostgroup_hosts(const char *hg_name)
 		printf("Failed to locate hostgroup '%s'\n", hg_name);
 		return -1;
 	}
-	rbtree_traverse(hg->members, set_hostgroup_host, NULL, rbinorder);
+	g_tree_foreach(hg->members, set_hostgroup_host, NULL);
 	return 0;
 }
 
@@ -138,16 +139,16 @@ static void nsplit_cache_contactgroups(contactgroupsmember *cm)
 	} while (0)
 
 
-static int copy_relevant_parents(void *_parent, void *_duplicate)
+static gboolean copy_relevant_parents(gpointer _name, gpointer _parent, gpointer _duplicate)
 {
 	host *parent = (host *)_parent;
 	host *duplicate = (host *)_duplicate;
 	if (bitmap_isset(map.hosts, parent->id))
 		add_parent_to_host(duplicate, parent);
-	return 0;
+	return FALSE;
 }
 
-static int nsplit_cache_host(void *_hst, __attribute__((unused)) void *user_data)
+static gboolean nsplit_cache_host(gpointer _name, gpointer _hst, __attribute__((unused)) gpointer user_data)
 {
 	struct host const *h = (struct host *)_hst;
 	struct host *tmphst;
@@ -158,7 +159,7 @@ static int nsplit_cache_host(void *_hst, __attribute__((unused)) void *user_data
 	objectlist *olist;
 
 	if (bitmap_isset(htrack, h->id)) {
-		return 0;
+		return FALSE;
 	}
 	bitmap_set(htrack, h->id);
 	nsplit_cache_slaves(h);
@@ -166,7 +167,7 @@ static int nsplit_cache_host(void *_hst, __attribute__((unused)) void *user_data
 	tmphst = create_host(h->name);
 	setup_host_variables(tmphst, h->display_name, h->alias, h->address, h->check_period, h-> initial_state, h->check_interval, h->retry_interval, h->max_attempts, h->notification_options, h->notification_interval, h->first_notification_delay, h->notification_period, h->notifications_enabled, h->check_command, h->checks_enabled, h->accept_passive_checks, h->event_handler, h->event_handler_enabled, h->flap_detection_enabled, h->low_flap_threshold, h->high_flap_threshold, h->flap_detection_options, h->stalking_options, h->process_performance_data, h->check_freshness, h->freshness_threshold, h->notes, h->notes_url, h->action_url, h->icon_image, h->icon_image_alt, h->vrml_image, h->statusmap_image, h->x_2d, h->y_2d, h->have_2d_coords, h->x_3d, h->y_3d, h->z_3d, h->have_3d_coords, h->retain_status_information, h->retain_nonstatus_information, h->obsess, h->hourly_value);
 
-	rbtree_traverse(h->parent_hosts, copy_relevant_parents, tmphst, rbinorder);
+	g_tree_foreach(h->parent_hosts, copy_relevant_parents, tmphst);
 	for (cm = h->contacts; cm; cm = cm->next)
 		add_contact_to_host(tmphst, cm->contact_name);
 	for (cgm = h->contact_groups; cgm; cgm = cgm->next)
@@ -215,22 +216,26 @@ static int nsplit_cache_host(void *_hst, __attribute__((unused)) void *user_data
 		}
 		destroy_service(tmpsvc);
 	}
-	rbtree_destroy(tmphst->parent_hosts, NULL);
-	tmphst->parent_hosts = NULL;
-	rbtree_destroy(tmphst->child_hosts, NULL);
-	tmphst->child_hosts = NULL;
+	if (tmphst->parent_hosts != NULL) {
+		g_tree_unref(tmphst->parent_hosts);
+		tmphst->parent_hosts = NULL;
+	}
+	if (tmphst->child_hosts != NULL) {
+		g_tree_unref(tmphst->child_hosts);
+		tmphst->child_hosts = NULL;
+	}
 	free_objectlist(&tmphst->hostgroups_ptr);
 	destroy_host(tmphst);
-	return 0;
+	return FALSE;
 }
 
-static int partial_hostgroup(void *_hst, void *user_data)
+static gboolean partial_hostgroup(gpointer _name, gpointer _hst, gpointer user_data)
 {
 	hostgroup *tmphg = (hostgroup *)user_data;
 	host *hst = (host *)_hst;
 	if (bitmap_isset(map.hosts, hst->id))
 		add_host_to_hostgroup(tmphg, hst);
-	return 0;
+	return FALSE;
 }
 
 static int nsplit_partial_groups(void)
@@ -245,7 +250,7 @@ static int nsplit_partial_groups(void)
 			continue;
 		}
 		tmphg = create_hostgroup(hg->group_name, hg->alias, hg->notes, hg->notes_url, hg->action_url);
-		rbtree_traverse(hg->members, partial_hostgroup, tmphg, rbinorder);
+		g_tree_foreach(hg->members, partial_hostgroup, tmphg);
 		if (tmphg->members) {
 			fcache_hostgroup(fp, tmphg);
 		}
@@ -298,7 +303,7 @@ static int nsplit_cache_stuff(const char *orig_groups)
 		hg = find_hostgroup(grp);
 		fcache_hostgroup(fp, hg);
 		bitmap_set(map.hostgroups, hg->id);
-		rbtree_traverse(hg->members, nsplit_cache_host, NULL, rbinorder);
+		g_tree_foreach(hg->members, nsplit_cache_host, NULL);
 	} while (grp);
 
 	return 0;

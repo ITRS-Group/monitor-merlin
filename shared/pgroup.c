@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <glib.h>
 
 #include "logging.h"
 #include "pgroup.h"
@@ -329,7 +330,7 @@ static int pg_create_id_convtables(merlin_peer_group *pg)
 	return 0;
 }
 
-static int pgroup_hgroup_mapper(void *_hst, void *user_data)
+static gboolean pgroup_hgroup_mapper(gpointer _name, gpointer _hst, gpointer user_data)
 {
 	servicesmember *sm;
 	host *h = (host *)_hst;
@@ -343,7 +344,7 @@ static int pgroup_hgroup_mapper(void *_hst, void *user_data)
 	 */
 	if (bitmap_isset(pg->host_map, h->id)) {
 		ldebug("  Host %d (%s) is already in this group", h->id, h->name);
-		return 0;
+		return FALSE;
 	}
 	bitmap_set(pg->host_map, h->id);
 
@@ -368,13 +369,13 @@ static int pgroup_hgroup_mapper(void *_hst, void *user_data)
 		pg->assigned.services++;
 	}
 
-	return 0;
+	return FALSE;
 }
 
 static void map_pgroup_hgroup(merlin_peer_group *pg, hostgroup *hg)
 {
 	ldebug("Mapping hostgroup '%s' to peer group %d", hg->group_name, pg->id);
-	rbtree_traverse(hg->members, pgroup_hgroup_mapper, pg, rbinorder);
+	g_tree_foreach(hg->members, pgroup_hgroup_mapper, pg);
 }
 
 static int pgroup_map_objects(void)

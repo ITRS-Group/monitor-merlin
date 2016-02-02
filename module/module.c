@@ -888,7 +888,7 @@ struct host_hash_table_add_parameters
 	int *num_ents;
 };
 
-static int host_hash_table_add_host(void *_hst, void *user_data)
+static gboolean host_hash_table_add_host(gpointer _name, gpointer _hst, gpointer user_data)
 {
 	struct host_hash_table_add_parameters *params = (struct host_hash_table_add_parameters *)user_data;
 	host *hst = (host *)_hst;
@@ -899,17 +899,17 @@ static int host_hash_table_add_host(void *_hst, void *user_data)
 	 * we just ignore it and move on
 	 */
 	if (cur == params->sel)
-		return 0;
+		return FALSE;
 
 	if (cur) {
 		lwarn("'%s' is checked by selection '%s', so can't add to selection '%s'",
 			  hst->name, cur->name, params->sel->name);
-		return 0;
+		return FALSE;
 	}
 	params->num_ents[params->sel->id]++;
 
 	g_hash_table_insert(host_hash_table, hst->name, params->sel);
-	return 0;
+	return FALSE;
 }
 
 static void setup_host_hash_tables(void)
@@ -944,7 +944,7 @@ static void setup_host_hash_tables(void)
 		if (!params.sel)
 			continue;
 
-		rbtree_traverse(hg->members, host_hash_table_add_host, &params, rbinorder);
+		g_tree_foreach(hg->members, host_hash_table_add_host, &params);
 	}
 
 	for (i = 0; i < nsel; i++) {
