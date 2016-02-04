@@ -143,8 +143,10 @@ static gboolean copy_relevant_parents(gpointer _name, gpointer _parent, gpointer
 {
 	host *parent = (host *)_parent;
 	host *duplicate = (host *)_duplicate;
-	if (bitmap_isset(map.hosts, parent->id))
-		add_parent_to_host(duplicate, parent);
+	if (bitmap_isset(map.hosts, parent->id)) {
+		/* We only want single direction reference while exporting. We remove manually later */
+		g_tree_insert(duplicate->parent_hosts, g_strdup(parent->name), parent);
+	}
 	return FALSE;
 }
 
@@ -216,6 +218,7 @@ static gboolean nsplit_cache_host(gpointer _name, gpointer _hst, __attribute__((
 		}
 		destroy_service(tmpsvc);
 	}
+	/* This is a temporary host, which doesn't have back references... ugh */
 	if (tmphst->parent_hosts != NULL) {
 		g_tree_unref(tmphst->parent_hosts);
 		tmphst->parent_hosts = NULL;
@@ -233,8 +236,10 @@ static gboolean partial_hostgroup(gpointer _name, gpointer _hst, gpointer user_d
 {
 	hostgroup *tmphg = (hostgroup *)user_data;
 	host *hst = (host *)_hst;
-	if (bitmap_isset(map.hosts, hst->id))
-		add_host_to_hostgroup(tmphg, hst);
+	if (bitmap_isset(map.hosts, hst->id)) {
+		/* We only want single direction reference while exporting. We remove manually later */
+		g_tree_insert(tmphg->members, g_strdup(hst->name), hst);
+	}
 	return FALSE;
 }
 
@@ -251,9 +256,15 @@ static int nsplit_partial_groups(void)
 		}
 		tmphg = create_hostgroup(hg->group_name, hg->alias, hg->notes, hg->notes_url, hg->action_url);
 		g_tree_foreach(hg->members, partial_hostgroup, tmphg);
-		if (tmphg->members) {
+		if (g_tree_nnodes(tmphg->members) > 0) {
 			fcache_hostgroup(fp, tmphg);
 		}
+
+		/* Since we only have single direction memberships in the temporary groups, remove without removing back refs */
+		g_tree_unref(tmphg->members);
+		tmphg->members = NULL;
+
+		/* Destroy host group */
 		destroy_hostgroup(tmphg);
 	}
 
