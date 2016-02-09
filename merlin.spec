@@ -2,11 +2,13 @@
 
 %if 0%{?suse_version}
 %define mysqld mysql
-%define mysql_rpm mysql
 %define daemon_group www
 %else
+%if 0%{?rhel} >= 7
+%define mysqld mariadb
+%else
 %define mysqld mysqld
-%define mysql_rpm mysql-server
+%endif
 %define daemon_group apache
 %endif
 
