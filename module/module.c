@@ -376,8 +376,8 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 		}
 		if ((ret = node_oconf_cmp(node, pkt))) {
 			csync_node_active(node, ret);
-			//node_disconnect(node, "Incompatible object config (sync triggered)");
-			//return;
+			node_disconnect(node, "Incompatible object config (sync triggered)");
+			return;
 		} else {
 			ldebug("CSYNC: %s has object config already up to date", node->name);
 		}
