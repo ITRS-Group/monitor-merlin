@@ -35,8 +35,8 @@ Feature: Module should handle conf sync with poller
 		And I wait for 1 second
 		Then poller is connected to merlin
 		And poller received event CTRL_ACTIVE
-			| config_hash        | poller_expected_hash |
-			| last_cfg_change    |                 4000 |
+			| config_hash        |        ipc_info_hash |
+			| last_cfg_change    |                 1000 |
 		And file config_sync.log does not match ^push
 		And file config_sync.log does not match ^fetch
 
@@ -62,9 +62,10 @@ Feature: Module should handle conf sync with poller
 		And file config_sync.log matches ^push poller$
 		And file config_sync.log does not match ^fetch
 
-	Scenario: Different config and same timestamp should be denied, lower config hash, treat as earlier
+	Scenario: Different config and same timestamp should be denied, poller started later, so push
 		Given poller connect to merlin at port 7000 from port 11001
 		And poller sends event CTRL_ACTIVE
+			| start              |         2203553100.0 |
 			| configured_masters |                    1 |
 			| config_hash        |              a_error |
 			| last_cfg_change    |                 4000 |
@@ -73,9 +74,10 @@ Feature: Module should handle conf sync with poller
 		And file config_sync.log matches ^push poller$
 		And file config_sync.log does not match ^fetch
 
-	Scenario: Different config and same timestamp should be denied, higher config hash, treat as later
+	Scenario: Different config and same timestamp should be denied, poller started earlier, but push since it's a poller
 		Given poller connect to merlin at port 7000 from port 11001
 		And poller sends event CTRL_ACTIVE
+			| start              |                  0.0 |
 			| configured_masters |                    1 |
 			| config_hash        |              z_error |
 			| last_cfg_change    |                 4000 |
