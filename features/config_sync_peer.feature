@@ -15,26 +15,30 @@ Feature: Module should handle conf sync with peer
 			| type | name | port |
 			| peer | peer | 4001 |
 
+		# This sets up the normal case, where two peers have the
+		# same configuration hash. Tests will alter the hash they
+		# send as they see fit to test what they're designed to
+		# test.
 		And I start naemon
-		And node ipc have info hash ipc_info_hash at 1000
-		And node ipc have expected hash ipc_expected_hash at 2000
-		And node peer have info hash peer_info_hash at 3000
-		And node peer have expected hash peer_expected_hash at 4000
+		And node ipc have info hash config_hash at 1000
+		And node ipc have expected hash config_hash at 2000
+		And node peer have info hash config_hash at 3000
+		And node peer have expected hash config_hash at 4000
 
-	Scenario: Same config and same timestamp should be accepted
+	Scenario: Same config should be accepted, regardless of timestamp
 		Given peer connect to merlin at port 7000 from port 11001
 		And peer sends event CTRL_ACTIVE
-			| configured_peers   |                  1 |
-			| configured_pollers |                  0 |
-			| config_hash        | peer_expected_hash |
-			| last_cfg_change    |               4000 |
+			| configured_peers   |           1 |
+			| configured_pollers |           0 |
+			| config_hash        | config_hash |
+			| last_cfg_change    |        4000 |
 		And I wait for 1 second
 		Then peer is connected to merlin
 		And peer received event CTRL_ACTIVE
-			| configured_peers   |             1 |
-			| configured_pollers |             0 |
-			| config_hash        | ipc_info_hash |
-			| last_cfg_change    |          1000 |
+			| configured_peers   |           1 |
+			| configured_pollers |           0 |
+			| config_hash        | config_hash |
+			| last_cfg_change    |        1000 |
 		And file config_sync.log does not match ^push peer$
 		And file config_sync.log does not match ^fetch peer$
 
@@ -50,7 +54,7 @@ Feature: Module should handle conf sync with peer
 		And file config_sync.log matches ^push peer$
 		And file config_sync.log does not match ^fetch peer$
 
-	Scenario: Different config and higher timestamp should be denied and fetched
+	Scenario: Different config and higher timestamp should be denied, but not synced
 		Given peer connect to merlin at port 7000 from port 11001
 		And peer sends event CTRL_ACTIVE
 			| configured_peers   |                   1 |
@@ -60,25 +64,25 @@ Feature: Module should handle conf sync with peer
 		Then peer is not connected to merlin
 		And file merlin.log matches CSYNC: peer peer: Checking. Time delta: 100$
 		And file config_sync.log does not match ^push peer$
-		And file config_sync.log matches ^fetch peer$
+		And file config_sync.log does not match ^fetch peer$
 
-	Scenario: Different config and same timestamp should be denied, higher peer id, so push
+	Scenario: Different config and same timestamp should be denied, peer started later, so push
 		Given peer connect to merlin at port 7000 from port 11001
 		And peer sends event CTRL_ACTIVE
-#			| start              |        2208985200.0 |
+			| start              |        2203553100.0 |
 			| configured_peers   |                   1 |
 			| configured_pollers |                   0 |
 			| config_hash        |             a_error |
 			| last_cfg_change    |                4000 |
 		Then peer is not connected to merlin
-		And file merlin.log matches CSYNC: peer peer: Checking. Time delta: 1$
-		And file config_sync.log does not match ^push peer$
-		And file config_sync.log matches ^fetch peer$
+		And file merlin.log matches CSYNC: peer peer: Checking. Time delta: -1$
+		And file config_sync.log matches ^push peer$
+		And file config_sync.log does not match ^fetch peer$
 
-	Scenario: Different config and same timestamp should be denied, lower peer id so fetch
+	Scenario: Different config and same timestamp should be denied, peer started earlier, so don't push
 		Given peer connect to merlin at port 7000 from port 11001
 		And peer sends event CTRL_ACTIVE
-#			| start              |                 0.0 |
+			| start              |                 0.0 |
 			| configured_peers   |                   1 |
 			| configured_pollers |                   0 |
 			| config_hash        |             z_error |
@@ -86,7 +90,7 @@ Feature: Module should handle conf sync with peer
 		Then peer is not connected to merlin
 		And file merlin.log matches CSYNC: peer peer: Checking. Time delta: 1$
 		And file config_sync.log does not match ^push peer$
-		And file config_sync.log matches ^fetch peer$
+		And file config_sync.log does not match ^fetch peer$
 
 # TODO:
 # - verify no connection if "connect=no"
