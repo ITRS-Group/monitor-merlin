@@ -760,11 +760,6 @@ class fake_mesh:
 		for inst in self.instances:
 			lsize = inst.fsize('nagios.log')
 			self.tap.test(lsize > inst.nslog_size, True, "%s must keep nagios.log" % inst.name)
-		# this updates both timestamp and hash, so master1 should push
-		if self.num_masters > 1 or len(self.pgroups):
-			f = open(self.master1.fpath('etc/oconf/generated.cfg'), 'a')
-			f.write("\n")
-			f.close()
 
 		for inst in self.instances:
 			inst.nslog_size = inst.fsize('nagios.log')
@@ -773,22 +768,6 @@ class fake_mesh:
 		for inst in self.instances:
 			lsize = inst.fsize('nagios.log')
 			self.tap.test(lsize > inst.nslog_size, True, "%s must keep nagios.log" % inst.name)
-
-		# check to make sure pushing works as expected
-		if self.num_masters > 1 or len(self.pgroups):
-			def has_pushed(sub):
-				self.master1.get_nodeinfo()
-				for i in self.master1.nodeinfo[1:]:
-					msg = "%s must push to %s (hash: %s; expected: %s; we-changed: %s; they-changed: %s, num_attempts=%s, last_attempt=%s)" % (
-						self.master1.name, i.name, i.config_hash,
-						i.expected_config_hash,
-						self.master1.nodeinfo[0].last_cfg_change,
-						i.last_cfg_change,
-						i.csync_num_attempts, i.csync_last_attempt
-					)
-					sub.test(int(i.csync_last_attempt) > 0, True, msg)
-				return sub.get_status() == 0
-			ret += self._test_until_or_fail('pushed config', has_pushed, 15)
 
 		return ret
 
