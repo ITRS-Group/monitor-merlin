@@ -561,7 +561,7 @@ merlin_peer_group *pgroup_by_service_id(unsigned int id)
 int pgroup_send_event(merlin_peer_group *pg, merlin_event *pkt)
 {
 	unsigned int i;
-	int ret;
+	int ret = 0;
 
 	for (i = 0; i < pg->total_nodes; i++) {
 		merlin_node *node = pg->nodes[i];
