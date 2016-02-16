@@ -345,8 +345,8 @@ obj_structs = {
 	char    *display_name;
 	char	*alias;
 	char    *address;
-	struct rbtree *parent_hosts;
-	struct rbtree *child_hosts;
+	g_tree *parent_hosts;
+	g_tree *child_hosts;
 	struct servicesmember *services;
 	char    *check_command;
 	int     initial_state;
