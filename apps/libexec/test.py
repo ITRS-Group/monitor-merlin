@@ -104,19 +104,28 @@ class fake_peer_group:
 		if self.oconf_file:
 			return True
 
+		if len(self.master_groups):
+			self.group_type = 'poller'
+		else:
+			self.group_type = 'master'
+		print("Generating object config for %s group %s" % (self.group_type, self.group_name))
+		if len(self.master_groups):
+			print("  Poller group. Symlinking config for master to generate")
+			for node in self.nodes:
+				src = "%s/config/%s.cfg" % (self.mesh.oconf_cache_dir, node.name)
+				dst = node.get_path("etc/oconf/from-master.cfg")
+				print("  Symlinking %s to %s" % (src, dst))
+				os.symlink(src, dst)
+
+
 		if not num_hosts:
 			num_hosts = 1 + (len(self.nodes) * 2)
 		if not num_services_per_host:
 			num_services_per_host = len(self.nodes)
 		self.oconf_file = self.nodes[0].get_path("etc/oconf/generated.cfg")
-		f = self.nodes[0].create_file(self.oconf_file)
+		if not len(self.master_groups):
+			f = self.nodes[0].create_file(self.oconf_file)
 
-		if len(self.master_groups):
-			self.group_type = 'poller'
-		else:
-			self.group_type = 'master'
-
-		print("Generating object config for %s group %s" % (self.group_type, self.group_name))
 		ocbuf = []
 
 		self.add_object('hostgroup', self.group_name)
@@ -217,8 +226,9 @@ class fake_peer_group:
 			self.have_objects[otype].sort()
 
 		self.oconf_buf = "%s\n%s" % (self.oconf_buf, poller_oconf_buf)
-		for node in self.nodes:
-			node.write_file('etc/oconf/generated.cfg', self.oconf_buf)
+		if not len(self.master_groups):
+			for node in self.nodes:
+				node.write_file('etc/oconf/generated.cfg', self.oconf_buf)
 
 		print("Peer group %s objects:" % self.group_name)
 		print("  hosts=%d; services=%d; hostgroups=%d; servicegroups=%d" %
@@ -263,8 +273,10 @@ class fake_instance:
 		}
 		self.merlin_config = test_config_in.merlin_config_in
 		self.nagios_config = test_config_in.nagios_config_in
+		self.macro_config = test_config_in.macro_config_in
 		self.nagios_cfg_path = "%s/etc/nagios.cfg" % self.home
 		self.merlin_conf_path = "%s/merlin/merlin.conf" % self.home
+		self.macro_cfg_path = "%s/etc/macros.cfg" % self.home
 		self.group_id = 0
 		self.db = False
 		self.proc = {}
@@ -419,7 +431,9 @@ class fake_instance:
 
 		configs[self.nagios_cfg_path] = self.nagios_config
 		configs[self.merlin_conf_path] = self.merlin_config
-		configs["%s/etc/oconf/shared.cfg" % (self.home)] = test_config_in.shared_object_config
+		configs[self.macro_cfg_path] = self.macro_config
+		if not len(self.group.master_groups):
+			configs["%s/etc/oconf/shared.cfg" % (self.home)] = test_config_in.shared_object_config
 		for (path, buf) in configs.items():
 			for (key, value) in self.substitutions.items():
 				buf = buf.replace(key, value)
@@ -485,6 +499,7 @@ class fake_mesh:
 		self.sleeptime = False
 		self.use_database = False
 		self.progs = {}
+		self.oconf_cache_dir = False
 
 		for (k, v) in kwargs.items():
 			if k.startswith('prog_'):
@@ -1315,6 +1330,7 @@ class fake_mesh:
 
 
 	def start_daemons(self, dname=False, stagger=True):
+		first = True
 		i = 0
 		if dname:
 			sys.stdout.write("Launching %s daemons " % (dname))
@@ -1327,6 +1343,9 @@ class fake_mesh:
 			inst.start_daemons(self.progs, dname)
 			if stagger and i < len(self.instances):
 				time.sleep(0.5 * self.valgrind_multiplier)
+				if first:
+					first = False
+					time.sleep(3 * self.valgrind_multiplier)
 
 		sys.stdout.write("\n")
 		return
@@ -1403,6 +1422,7 @@ class fake_mesh:
 		"""
 		port = self.baseport
 		self.masters = fake_peer_group(self.basepath, 'master', self.num_masters, port, valgrind = self.valgrind)
+		self.masters.mesh = self
 		port += self.num_masters
 		self.master1 = self.masters.nodes[0]
 		i = 0
@@ -1412,7 +1432,9 @@ class fake_mesh:
 				continue
 			i += 1
 			group_name = "pg%d" % i
-			self.pgroups.append(fake_peer_group(self.basepath, group_name, p, port, valgrind=self.valgrind))
+			fpg = fake_peer_group(self.basepath, group_name, p, port, valgrind=self.valgrind)
+			fpg.mesh = self
+			self.pgroups.append(fpg)
 			port += p
 
 		for inst in self.masters.nodes:
@@ -1871,6 +1893,7 @@ def cmd_dist(args):
 		use_database=use_database,
 		sleeptime=sleeptime,
 		valgrind=valgrind,
+		oconf_cache_dir=cache_dir,
 		batch=batch
 	)
 	if not no_confgen:
