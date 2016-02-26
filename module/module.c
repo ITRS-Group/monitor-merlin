@@ -1427,6 +1427,7 @@ static int node_action_handler(merlin_node *node, int prev_state)
 		memset(&node->info, 0, sizeof(node->info));
 		pgroup_assign_peer_ids(node->pgroup);
 		iobroker_close(nagios_iobs, node->sock);
+		node->sock = -1;
 		break;
 	}
 
