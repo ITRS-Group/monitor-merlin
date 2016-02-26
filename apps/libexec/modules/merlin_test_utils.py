@@ -218,8 +218,8 @@ define contact{
     service_notifications_enabled  1
     host_notification_period       mtest-24x7
     service_notification_period    mtest-24x7
-    host_notification_options      a
-    service_notification_options   a
+    host_notification_options      d,u,r,f
+    service_notification_options   c,w,r,f
     host_notification_commands     mtest-host-notify
     service_notification_commands  mtest-service-notify
     can_submit_commands            1
