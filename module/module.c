@@ -1277,6 +1277,8 @@ static void send_pulse(struct nm_event_execution_properties *evprop)
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = noc_table[i];
 		node_send_ctrl_active(node, CTRL_GENERIC, &ipc.info);
+		if (node->state != STATE_CONNECTED)
+			net_try_connect(node);
 	}
 }
 
@@ -1297,7 +1299,6 @@ static void send_pulse(struct nm_event_execution_properties *evprop)
 static int post_config_init(int cb, void *ds)
 {
 	int result;
-	unsigned int i;
 
 	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
 		return 0;
@@ -1352,11 +1353,6 @@ static int post_config_init(int cb, void *ds)
 	 * must see it to be able to shove startup info into the database.
 	 */
 	merlin_mod_hook(cb, ds);
-
-	for (i = 0; i < num_nodes; i++) {
-		merlin_node *node = node_table[i];
-		net_try_connect(node);
-	}
 
 	return 0;
 }

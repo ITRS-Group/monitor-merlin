@@ -167,6 +167,9 @@ static int conn_writable(int sd, int events, void *node_)
 	merlin_node *node = (merlin_node *)node_;
 	int result;
 
+	if (node->state == STATE_CONNECTED)
+		return 0;
+
 	/*
 	 * unregister first, or we'll keep polling this socket for
 	 * writability and peg one cpu at 100%.
@@ -175,7 +178,6 @@ static int conn_writable(int sd, int events, void *node_)
 	iobroker_unregister(nagios_iobs, node->sock);
 	ldebug("IOB: unregistered %s(%d) for output events", node->name, node->sock);
 	if (!net_is_connected(node)) {
-		net_try_connect(node);
 		return 0;
 	}
 
@@ -206,6 +208,9 @@ int net_try_connect(merlin_node *node)
 	struct sockaddr_in sain;
 	time_t interval = MERLIN_CONNECT_INTERVAL;
 	int result;
+
+	if (net_is_connected(node))
+		return 0;
 
 	/* don't log obsessively */
 	if (node->last_conn_attempt_logged + 30 <= time(NULL)) {
