@@ -1,5 +1,8 @@
 %define mod_path /opt/monitor/op5/merlin
 
+# function service_control_function ("action", "service")
+# start/stop/restart a service
+%define create_service_control_function function service_control_function () { service $2 $1; };
 %if 0%{?suse_version}
 %define mysqld mysql
 %define daemon_group www
@@ -11,6 +14,8 @@
 %if 0%{?rhel} >= 7
 %define mysqld mariadb
 %define daemon_group apache
+# re-define service_control_function to use el7 commands
+%define create_service_control_function function service_control_function () { systemctl $1 $2; };
 %endif
 
 Summary: The merlin daemon is a multiplexing event-transport program
@@ -157,36 +162,26 @@ cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
 
 
 %post
+%create_service_control_function
 # we must stop the merlin deamon so it doesn't interfere with any
 # database upgrades, logfile imports and whatnot
-%if 0%{?rhel} >= 7
-systemctl stop merlind > /dev/null || :
-%else
-/etc/init.d/merlind stop >/dev/null || :
-%endif
+service_control_function stop merlind > /dev/null || :
 
 # Verify that mysql-server is installed and running before executing sql scripts
 %if 0%{?rhel} >= 7
 systemctl is-active %mysqld 2&>1 >/dev/null
-if [ $? -gt 0 ]; then
-  echo "Attempting to start %mysqld..."
-  systemctl start %mysqld
-  if [ $? -gt 0 ]; then
-    echo "Abort: Failed to start %mysqld."
-    exit 1
-  fi
-fi
 %else
 service %mysqld status 2&>1 >/dev/null
+%endif
+
 if [ $? -gt 0 ]; then
   echo "Attempting to start %mysqld..."
-  service %mysqld start
+  service_control_function start %mysqld
   if [ $? -gt 0 ]; then
     echo "Abort: Failed to start %mysqld."
     exit 1
   fi
 fi
-%endif
 
 if ! mysql -umerlin -pmerlin merlin -e 'show tables' > /dev/null 2>&1; then
     mysql -uroot -e "CREATE DATABASE IF NOT EXISTS merlin"
@@ -194,7 +189,11 @@ if ! mysql -umerlin -pmerlin merlin -e 'show tables' > /dev/null 2>&1; then
 fi
 %_libdir/merlin/install-merlin.sh
 
+%if 0%{?rhel} >= 7
+systemctl enable merlind.service
+%else
 /sbin/chkconfig --add merlind || :
+%endif
 
 # If mysql-server is running _or_ this is an upgrade
 # we import logs
@@ -219,45 +218,30 @@ sed --follow-symlinks -r -i \
 chown -R monitor:%daemon_group %_localstatedir/cache/merlin
 
 # restart all daemons
-%if 0%{?rhel} >= 7
 for daemon in merlind op5kad nrpe; do
-	test -f /etc/init.d/$daemon && systemctl start $daemon || :
+    test -f /etc/init.d/$daemon && service_control_function restart $daemon|| :
 done
-%else
-for daemon in merlind op5kad nrpe; do
-	test -f /etc/init.d/$daemon && /etc/init.d/$daemon restart || :
-done
-%endif
 
 %preun -n monitor-merlin
+%create_service_control_function
 if [ $1 -eq 0 ]; then
-%if 0%{?rhel} >= 7
-	systemctl stop merlind || :
-%else
-	/etc/init.d/merlind stop || :
-%endif
+    service_control_function stop merlind || :
 fi
 
 %postun -n monitor-merlin
+%create_service_control_function
 if [ $1 -eq 0 ]; then
-	# remove the merlin module
-%if 0%{?rhel} >= 7
-	systemctl restart monitor || :
-%else
-	/etc/init.d/monitor restart || :
-%endif
+    service_control_function restart monitor || :
+    service_control_function restart nrpe || :
 fi
 
 %post -n monitor-merlin
+%create_service_control_function
 chown -Rh monitor:%daemon_group %prefix/etc
 sed --follow-symlinks -i 's#import_program = php /opt/monitor/op5/merlin/import.php#import_program = /opt/monitor/op5/merlin/ocimp#g' %mod_path/merlin.conf
 sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon.cfg
-%if 0%{?rhel} >= 7
-systemctl restart monitor || :
-%else
-/etc/init.d/monitor restart || :
-%endif
-
+service_control_function restart monitor || :
+service_control_function restart nrpe || :
 
 %files
 %defattr(-,root,root)
