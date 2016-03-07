@@ -214,6 +214,7 @@ struct merlin_node {
 	uint id;                /* internal index lookup number */
 	int latency;            /* module to module latency of this node */
 	int sock;               /* the socket */
+	int conn_sock;          /* socket used for connecting */
 	int type;               /* server type (master, slave, peer) */
 	int state;              /* state of this node (down, pending, active) */
 	uint32_t peer_id;       /* peer id, used to distribute checks */

@@ -548,7 +548,7 @@ void node_grok_config(struct cfg_comp *config)
 
 		node = &table[node_i++];
 		memset(node, 0, sizeof(*node));
-		node->sock = -1;
+		node->conn_sock = node->sock = -1;
 		node->name = next_word((char *)c->name);
 
 		if (!prefixcmp(c->name, "poller") || !prefixcmp(c->name, "slave")) {
@@ -658,6 +658,9 @@ void node_disconnect(merlin_node *node, const char *fmt, ...)
 	if (node->state == STATE_CONNECTED)
 		node_log_event_count(node, 1);
 
+	iobroker_close(nagios_iobs, node->sock);
+	node->sock = -1;
+
 	if (fmt) {
 		va_start(ap, fmt);
 		if (vasprintf(&reason, fmt, ap) < 0) {
@@ -669,11 +672,6 @@ void node_disconnect(merlin_node *node, const char *fmt, ...)
 	if (reason)
 		free(reason);
 	node->last_recv = 0;
-
-	/* avoid spurious close() errors while strace/valgrind debugging */
-	if (node->sock >= 0)
-		close(node->sock);
-	node->sock = -1;
 
 	/* csync checks only run on reconnect if node->info isn't "identical", so reset it */
 	if (node != &ipc)

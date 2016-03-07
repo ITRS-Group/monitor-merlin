@@ -1261,6 +1261,28 @@ NEB_API_VERSION(CURRENT_NEB_API_VERSION);
 void *neb_handle = NULL;
 
 /*
+ * Attempt to connect to as-yet unconnected nodes. We run this
+ * every second
+ */
+static time_t connect_interval = 1;
+static void connect_to_all(struct nm_event_execution_properties *evprop)
+{
+	unsigned int i;
+
+	if (evprop->execution_type != EVENT_EXEC_NORMAL)
+		return;
+
+	schedule_event(connect_interval, connect_to_all, NULL);
+
+	for (i = 0; i < num_nodes; i++) {
+		merlin_node *node = node_table[i];
+		if (node->state == STATE_CONNECTED || node->state == STATE_PENDING)
+			continue;
+		net_try_connect(node);
+	}
+}
+
+/*
  * we send this every 15 seconds, just in case our nodes forget
  * about us. It shouldn't happen, but there are stranger things
  * than random bugs in computer programs.
@@ -1276,9 +1298,9 @@ static void send_pulse(struct nm_event_execution_properties *evprop)
 	node_send_ctrl_active(&ipc, CTRL_GENERIC, &ipc.info);
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = noc_table[i];
-		node_send_ctrl_active(node, CTRL_GENERIC, &ipc.info);
-		if (node->state != STATE_CONNECTED)
-			net_try_connect(node);
+		if (node->state == STATE_CONNECTED) {
+			node_send_ctrl_active(node, CTRL_GENERIC, &ipc.info);
+		}
 	}
 }
 
@@ -1333,6 +1355,7 @@ static int post_config_init(int cb, void *ds)
 	 * we know the local host could parse it properly.
 	 * Note that this also sets up the repeating pulse-timer.
 	 */
+	schedule_event(0, connect_to_all, NULL);
 	schedule_event(0, send_pulse, NULL);
 
 	/*
@@ -1411,11 +1434,6 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 
 static int node_action_handler(merlin_node *node, int prev_state)
 {
-	/* Clean up if we're no longer connected */
-	if (prev_state == STATE_CONNECTED) {
-		iobroker_unregister(nagios_iobs, node->sock);
-	}
-
 	switch (node->state) {
 	case STATE_CONNECTED:
 		pgroup_assign_peer_ids(node->pgroup);
@@ -1426,7 +1444,6 @@ static int node_action_handler(merlin_node *node, int prev_state)
 	case STATE_NONE:
 		memset(&node->info, 0, sizeof(node->info));
 		pgroup_assign_peer_ids(node->pgroup);
-		iobroker_close(nagios_iobs, node->sock);
 		node->sock = -1;
 		break;
 	}
