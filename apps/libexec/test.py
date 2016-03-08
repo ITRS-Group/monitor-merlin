@@ -44,12 +44,14 @@ config = {}
 verbose = False
 send_host_checks = True
 
+baseport = 16000
+
 class fake_peer_group:
 	"""
 	Represents one fake group of peered nodes, sharing the same
 	object configuration
 	"""
-	def __init__(self, basepath, group_name, num_nodes=3, port=16000, **kwargs):
+	def __init__(self, basepath, group_name, num_nodes=3, port=0, **kwargs):
 		self.nodes = []
 		self.num_nodes = num_nodes
 		self.group_name = group_name
@@ -253,20 +255,28 @@ class fake_instance:
 	and is responsible for creating directories and configurations for
 	all of the above.
 	"""
-	def __init__(self, basepath, group_name, group_id, port=15551, **kwargs):
+	def __init__(self, basepath, group_name, group_id, port=0, **kwargs):
 		self.valgrind_log = {}
 		self.valgrind = False
 		self.group = False
 		self.group_name = group_name
 		self.group_id = group_id
 		self.name = "%s-%02d" % (group_name, group_id)
-		self.port = port
+		# Use powers of 2 as port number increment. By the laws
+		# of exponential numbers, that ensures that A+D!=B+C for
+		# any distinct positive integers A, B, C and D that are
+		# either 1 or a power of our base.
+		# This is nifty since merlin uses ip+port to distinguish
+		# one node from another, but tests run on the same system,
+		# so there a fixed source port is used which is calculated
+		# thus: connecting_node->port + listening_node->port
+		self.port = baseport + (2**port)
 		self.home = "%s/%s" % (basepath, self.name)
 		self.nodes = {}
 		self.db_name = 'mdtest_%s' % self.name.replace('-', '_')
 		self.substitutions = {
 			'@@DIR@@': self.home,
-			'@@NETWORK_PORT@@': "%d" % port,
+			'@@NETWORK_PORT@@': "%d" % self.port,
 			'@@DB_NAME@@': self.db_name,
 			'@@BASEPATH@@': basepath,
 			'@@NODENAME@@': self.name,
@@ -487,7 +497,6 @@ class fake_mesh:
 		self.shutting_down = False
 		self.valgrind = False
 		self.basepath = basepath
-		self.baseport = 16000
 		self.num_masters = 3
 		self.opt_pgroups = [5,3,1]
 		self.instances = []
@@ -1420,7 +1429,7 @@ class fake_mesh:
 		Creates the in-memory nodes required for this mesh. So far we
 		haven't written anything to disk.
 		"""
-		port = self.baseport
+		port = 0
 		self.masters = fake_peer_group(self.basepath, 'master', self.num_masters, port, valgrind = self.valgrind)
 		self.masters.mesh = self
 		port += self.num_masters
