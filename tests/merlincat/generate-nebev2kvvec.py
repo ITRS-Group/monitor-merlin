@@ -158,6 +158,7 @@ event_structs = {
 		'int:reason_type',
 		'int:state',
 		'str:output',
+		'str:ack_data',
 		'str:ack_author',
 		'int:escalated',
 		'int:contacts_notified',

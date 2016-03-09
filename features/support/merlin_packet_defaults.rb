@@ -19,6 +19,17 @@ Before do
       "host_checks_handled" => "4",
       "service_checks_handled" => "92",
       "monitored_object_state_size" => "408"
+    },
+    "NOTIFICATION" => {
+      "start_time" => sprintf("%d.%d", Time.now.to_i, 0),
+      "end_time" => sprintf("%d.%d", Time.now.to_i, 0),
+      "reason_type" => "0",
+      "state" => "2",
+      "output" => "Cukey check output",
+      "ack_author" => "",
+      "ack_data" => "",
+      "escalated" => "0",
+      "contacts_notified" => "1"
     }
   }
 end
