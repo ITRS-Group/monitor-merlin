@@ -589,9 +589,8 @@ int net_sendto_many(merlin_node **ntable, uint num, merlin_event *pkt)
 
 /*
  * If a node hasn't been heard from in too long, we mark it as no
- * longer connected and send a CTRL_INACTIVE event to the module,
- * signalling that our Nagios should, potentially, take over checks
- * for the awol node
+ * longer connected, signalling that we should, potentially, take
+ * over checks for the AWOL node
  */
 static void check_node_activity(merlin_node *node)
 {
@@ -606,52 +605,4 @@ static void check_node_activity(merlin_node *node)
 
 	if (node->last_recv < now - node->data_timeout)
 		node_disconnect(node, "Too long since last action");
-}
-
-
-/*
- * Populates the fd_set's *rd and *wr with all the connected nodes'
- * sockets.
- * Returns the highest socket descriptor found, so the fd_set's can
- * be passed to select(2)
- */
-int net_polling_helper(fd_set *rd, fd_set *wr, int sel_val)
-{
-	uint i;
-
-	for (i = 0; i < num_nodes; i++) {
-		merlin_node *node = node_table[i];
-
-		check_node_activity(node);
-
-		/*
-		 * safeguard against bugs in net_is_connected() or any of
-		 * the system and library calls it makes. node->sock has to
-		 * be >= 0 for FD_SET() not to cause segfaults
-		 */
-		if (node->sock < 0)
-			continue;
-
-		if (node->sock > sel_val)
-			sel_val = node->sock;
-
-		/* the node is not fully connected - poll for writability to detect when
-		   it's fully (TCP-layer) connected */
-		if (node->state == STATE_PENDING) {
-			FD_SET(node->sock, wr);
-			continue;
-		}
-
-		/* the node is connected, so we can poll it for readability */
-		FD_SET(node->sock, rd);
-
-		/*
-		 * if this node's binlog has entries we check for writability
-		 * as well, so we can send it from the outer polling loop.
-		 */
-		if (net_is_connected(node) == STATE_CONNECTED && binlog_has_entries(node->binlog))
-			FD_SET(node->sock, wr);
-	}
-
-	return sel_val;
 }

@@ -50,31 +50,6 @@ static void usage(char *fmt, ...)
 	exit(1);
 }
 
-static int ipc_action_handler(merlin_node *node, int prev_state)
-{
-	uint i;
-
-	switch (node->state) {
-	case STATE_CONNECTED:
-		break;
-
-	case STATE_PENDING:
-	case STATE_NEGOTIATING:
-	case STATE_NONE:
-		/* if ipc wasn't connected before, we return early */
-		if (prev_state != STATE_CONNECTED)
-			return 0;
-
-		/* also tell our peers and masters */
-		for (i = 0; i < num_masters + num_peers; i++) {
-			merlin_node *n = node_table[i];
-			node_send_ctrl_inactive(n, CTRL_GENERIC);
-		}
-	}
-
-	return 0;
-}
-
 static void grok_daemon_compound(struct cfg_comp *comp)
 {
 	uint i;
@@ -432,7 +407,7 @@ int merlind_main(int argc, char **argv)
 		return daemon_status(pidfile);
 
 	log_init();
-	ipc.action = ipc_action_handler;
+	ipc.action = NULL;
 	result = ipc_init();
 	if (result < 0) {
 		lerr("Failed to initalize ipc socket: %s\n", strerror(errno));

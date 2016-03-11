@@ -937,57 +937,29 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 }
 
 
-static int ipc_reaper(__attribute__((unused)) int sd, __attribute__((unused)) int events, void *arg)
+static int ipc_reaper(int sd, __attribute__((unused)) int events, __attribute__((unused)) void *arg)
 {
-	merlin_node *source = (merlin_node *)arg;
-	int recv_result;
-	merlin_event *pkt;
-	struct timeval tv;
+	/*
+	 * this function doesn't really do anything anymore,
+	 * but in case we want to handle pingbacks from the daemon,
+	 * this is where they'll end up.
+	 * For now we just empty the socket
+	 */
+	char buf[4096];
+	int ret;
 
-	if ((recv_result = node_recv(source)) <= 0) {
-		return 1;
-	}
-
-	/* needed for latency and action time setting */
-	gettimeofday(&tv, NULL);
-
-	/* and then just loop over the received packets */
-	while ((pkt = node_get_event(source))) {
-		merlin_node *node = node_by_id(pkt->hdr.selection);
-
-		if (node) {
-			int type = pkt->hdr.type == CTRL_PACKET ? NEBCALLBACK_NUMITEMS : pkt->hdr.type;
-			node->latency = tv_delta_msec(&pkt->hdr.sent, &tv);
-			if (node->latency < 0) {
-				if (!(node->warn_flags & NODE_WARN_CLOCK))
-					lwarn("Warning: Clock skew of %.3f seconds detected to %s",
-						  (float)node->latency / (float)1000, node->name);
-				node->warn_flags |= NODE_WARN_CLOCK;
-			}
-			node->last_action = node->last_recv = tv.tv_sec;
-			node->stats.cb_count[type].in++;
-
-			/*
-			 * if this node hasn't sent data before, we set it to
-			 * NEGOTIATING to be able to differentiate it from
-			 * those that aren't sending anything at all. It won't
-			 * be considered fully connected until we receive a
-			 * CTRL_ACTIVE though, as the packages we receive now
-			 * could be backlogged ones from the daemon in case
-			 * we've had local connection issues.
-			 */
-			if (node->state == STATE_NONE)
-				node_set_state(node, STATE_NEGOTIATING, "Data received");
-		}
-
-		/* control packets are handled separately */
-		if (pkt->hdr.type == CTRL_PACKET) {
-			handle_control(node, pkt);
+	do {
+		ret = read(sd, buf, sizeof(buf));
+		if (!ret) {
+			node_disconnect(&ipc, "read() returned zero");
+		} else if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+			/* ignored. if this happens, the iobroker is busted */
+			return 0;
 		} else {
-			lerr("EVTERR: IPC sent an %s packet", callback_name(pkt->hdr.type));
+			node_disconnect(&ipc, "read() failed with error %d: %s", errno, strerror(errno));
+			return 0;
 		}
-		free(pkt);
-	}
+	} while (ret > 0);
 
 	return 0;
 }
@@ -1396,17 +1368,7 @@ static int ipc_action_handler(merlin_node *node, int prev_state)
 	}
 
 	if (ipc.state != STATE_CONNECTED) {
-		ret = iobroker_close(nagios_iobs, ipc.sock);
-		if (ret) {
-			/*
-			 * This is likely to happen on core shutdown, since by then all
-			 * iobrokers will already have been unregistered and closed.
-			 */
-			ldebug("  ipc_action_handler(): iobroker_close(%p, %d) returned %d: %s",
-					nagios_iobs, ipc.sock, ret, iobroker_strerror(ret));
-		}
-		ipc.sock = -1;
-
+		/* everything is handled in node_disconnect() */
 		return 0;
 	}
 
