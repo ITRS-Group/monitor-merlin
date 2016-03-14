@@ -5,6 +5,7 @@ Given(/^I start naemon$/) do
     # This path is hardcoded for monitor systems. TODO: make more generic
     merlin_module_path = "/opt/monitor/op5/merlin/merlin.so"
   end
+  livestatus_module_path = "/usr/lib64/naemon-livestatus/livestatus.so"
   puts "Using module #{merlin_module_path}"
   steps %Q{
     And I have naemon objects stored in oconf.cfg
@@ -15,6 +16,7 @@ Given(/^I start naemon$/) do
       query_socket=naemon.qh
       check_result_path=checkresults
       broker_module=#{merlin_module_path} merlin.conf
+      broker_module=#{livestatus_module_path} log_file=livestatus.log live
       event_broker_options=-1
       command_file=naemon.cmd
       object_cache_file=objects.cache
@@ -74,4 +76,10 @@ Given(/^node (.*) have ([a-z]*) hash (.*) at ([\d]+)$/) do |node, type, hash, ti
     Given I ask query handler merlin testif set #{type} hash #{node} #{hexhash} #{time}
       | filter_var | filter_val | match_var | match_val |
   }
+end
+
+# Wrapper, since we specified the path in the naemon start step, we should abstract it out
+When(/^I submit the following livestatus query$/) do |query|
+	livestatus_socket_path = "live"
+	step "I submit the following livestatus query to #{livestatus_socket_path}", query
 end

@@ -79,6 +79,21 @@ void cukesock_respond(int status, CukeResponseRef respref, const gchar *msg) {
 	json_delete(response);
 }
 
+void cukesock_respond_diff(CukeResponseRef respref, const JsonNode *a, const JsonNode *b) {
+	GSocket *conn = (GSocket *)respref;
+	JsonNode *response = json_mkarray();
+	JsonNode *tables;
+	json_append_element(response, json_mkstring("diff!"));
+
+	tables = json_mkarray();
+	json_append_element(tables, jsonx_clone(a));
+	json_append_element(tables, jsonx_clone(b));
+	json_append_element(response, tables);
+
+	jsonsocket_send(conn, response);
+	json_delete(response);
+}
+
 void cukesock_register_stepenv(CukeSocket *cs, CukeStepEnvironment *stepenv) {
 	int i;
 

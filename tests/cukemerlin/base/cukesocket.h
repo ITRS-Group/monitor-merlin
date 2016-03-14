@@ -24,6 +24,8 @@ typedef void (*CukeStepHandler)(gpointer *scenario, JsonNode *args, CukeResponse
 		cukesock_respond(1, respref, "")
 #define STEP_FAIL(_MSG) \
 		cukesock_respond(0, respref, (_MSG))
+#define STEP_DIFF(_A, _B) \
+		cukesock_respond_diff(respref, (_A), (_B))
 
 typedef struct CukeStepDefinition_ {
 	const gchar *match;
@@ -42,6 +44,7 @@ CukeSocket *cukesock_new(const gchar *bind_addr, const gint bind_port);
 void cukesock_destroy(CukeSocket *cs);
 
 void cukesock_respond(int status, CukeResponseRef respref, const gchar *msg);
+void cukesock_respond_diff(CukeResponseRef respref, const JsonNode *a, const JsonNode *b);
 
 void cukesock_register_stepenv(CukeSocket *cs, CukeStepEnvironment *stepenv);
 

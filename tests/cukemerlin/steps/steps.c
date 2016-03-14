@@ -6,6 +6,8 @@
 #include "steps_daemons.h"
 #include "steps_config.h"
 #include "steps_queryhandler.h"
+#include "steps_livestatus.h"
+
 
 void steps_load(CukeSocket *cs) {
 	cukesock_register_stepenv(cs, &steps_test);
@@ -13,4 +15,5 @@ void steps_load(CukeSocket *cs) {
 	cukesock_register_stepenv(cs, &steps_daemons);
 	cukesock_register_stepenv(cs, &steps_config);
 	cukesock_register_stepenv(cs, &steps_queryhandler);
+	cukesock_register_stepenv(cs, &steps_livestatus);
 }

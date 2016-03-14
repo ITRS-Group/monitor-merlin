@@ -268,6 +268,7 @@ cukemerlin_SOURCES = tests/cukemerlin/base/cukemerlin.c \
 	tests/cukemerlin/steps/steps_daemons.c tests/cukemerlin/steps/steps_daemons.h \
 	tests/cukemerlin/steps/steps_config.c tests/cukemerlin/steps/steps_config.h \
 	tests/cukemerlin/steps/steps_queryhandler.c tests/cukemerlin/steps/steps_queryhandler.h \
+	tests/cukemerlin/steps/steps_livestatus.c tests/cukemerlin/steps/steps_livestatus.h \
 	\
 	tests/merlincat/client_gsource.c tests/merlincat/client_gsource.h \
 	tests/merlincat/server_gsource.c tests/merlincat/server_gsource.h \
