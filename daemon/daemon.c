@@ -150,38 +150,17 @@ static int grok_config(char *path)
 
 static int handle_ipc_event(merlin_event *pkt)
 {
-	int result = 0;
+	/* get out asap if we're not using a database */
+	if (!use_database)
+		return 0;
 
-	if (pkt->hdr.type == CTRL_PACKET) {
-		switch (pkt->hdr.code) {
-		case CTRL_PATHS:
-			return 0;
-
-		case CTRL_ACTIVE:
-			result = node_compat_cmp(&ipc, pkt);
-			if (result) {
-				lerr("ipc is incompatible with us. Recent update?");
-				node_disconnect(&ipc, "Incompatible node");
-				return 0;
-			}
-			node_set_state(&ipc, STATE_CONNECTED, "Connected");
-			memcpy(&ipc.info, pkt->body, sizeof(ipc.info));
-			break;
-
-		case CTRL_INACTIVE:
-			/* our naemon instance might be restarting */
-			memset(&ipc.info, 0, sizeof(ipc.info));
-			break;
-		default:
-			break;
-		}
+	/* Skip uninteresting events, but warn coders about them */
+	if (!daemon_wants(pkt->hdr.type)) {
+		ldebug("Received %s packet, which I don't want", callback_name(pkt->hdr.type));
+		return 0;
 	}
 
-	/* skip sending control packets to database */
-	if (use_database && pkt->hdr.type != CTRL_PACKET)
-		result |= mrm_db_update(&ipc, pkt);
-
-	return result;
+	return mrm_db_update(&ipc, pkt);
 }
 
 static int ipc_reap_events(void)
@@ -197,7 +176,32 @@ static int ipc_reap_events(void)
 
 	while ((pkt = node_get_event(&ipc))) {
 		events++;
-		handle_ipc_event(pkt);
+		if (pkt->hdr.type != CTRL_PACKET) {
+			handle_ipc_event(pkt);
+		} else {
+			switch (pkt->hdr.code) {
+			case CTRL_PATHS:
+				break;
+
+			case CTRL_ACTIVE:
+				if (node_compat_cmp(&ipc, pkt)) {
+					lerr("ipc is incompatible with us. Recent update?");
+					node_disconnect(&ipc, "Incompatible node");
+					break;
+				}
+				node_set_state(&ipc, STATE_CONNECTED, "Connected");
+				memcpy(&ipc.info, pkt->body, sizeof(ipc.info));
+				break;
+
+			case CTRL_INACTIVE:
+				/* our naemon instance might be restarting */
+				memset(&ipc.info, 0, sizeof(ipc.info));
+				break;
+			default:
+				break;
+			}
+		}
+
 		free(pkt);
 	}
 

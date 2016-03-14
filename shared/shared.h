@@ -137,6 +137,22 @@ struct merlin_service_status {
 typedef struct merlin_service_status merlin_service_status;
 
 
+/* Let's avoid having to track this in 3 different places */
+static inline int daemon_wants(int type)
+{
+	switch (type) {
+	case NEBCALLBACK_NOTIFICATION_DATA:
+	case NEBCALLBACK_CONTACT_NOTIFICATION_DATA:
+	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
+	case NEBCALLBACK_PROGRAM_STATUS_DATA:
+	case NEBCALLBACK_COMMENT_DATA:
+		return 0;
+	default:
+		return 1;
+	}
+	return 0;
+}
+
 /** prototypes **/
 extern strvec *str_explode(char *str, int delim);
 extern int strtobool(const char *str);

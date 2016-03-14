@@ -331,8 +331,6 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 	}
 
 	switch (pkt->hdr.type) {
-	case NEBCALLBACK_PROGRAM_STATUS_DATA:
-		break;
 	case NEBCALLBACK_PROCESS_DATA:
 		errors = rpt_process_data(pkt->body);
 		break;
@@ -355,12 +353,6 @@ int mrm_db_update(merlin_node *node, merlin_event *pkt)
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
 		errors = handle_service_status((int)pkt->hdr.type, (void *)pkt->body);
 		break;
-
-	/* some callbacks are unhandled by design */
-	case NEBCALLBACK_NOTIFICATION_DATA:
-	case NEBCALLBACK_CONTACT_NOTIFICATION_DATA:
-	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
-		return 0;
 
 	default:
 		lerr("Unknown callback type %d. Weird, to say the least...",

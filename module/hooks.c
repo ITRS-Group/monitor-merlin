@@ -161,9 +161,21 @@ static int is_dupe(merlin_event *pkt)
 
 static int send_generic(merlin_event *pkt, void *data)
 {
-	int result;
+	int result = 0;
 	uint i, ntable_stop = num_masters + num_peers;
 	linked_item *li;
+
+	if ((!num_nodes || pkt->hdr.code == MAGIC_NONET) && !daemon_wants(pkt->hdr.type)) {
+		ldebug("ipcfilter: Not sending %s event. %s, and daemon doesn't want it",
+			   callback_name(pkt->hdr.type),
+			   pkt->hdr.code == MAGIC_NONET ? "No-net magic" : "No nodes");
+		return 0;
+	}
+	if (!pkt->hdr.code == MAGIC_NONET && !daemon_wants(pkt->hdr.type)) {
+		ldebug("ipcfilter: Not sending %s event. No-net magic and daemon doesn't want it",
+			   callback_name(pkt->hdr.type));
+		return 0;
+	}
 
 	pkt->hdr.len = merlin_encode_event(pkt, data);
 	if (!pkt->hdr.len) {
@@ -172,18 +184,22 @@ static int send_generic(merlin_event *pkt, void *data)
 	}
 
 	if (is_dupe(pkt)) {
+		ldebug("ipcfilter: Not sending %s event: Duplicate packet",
+		       callback_name(pkt->hdr.type));
 		return 0;
 	}
 
-	/*
-	 * preserve the event so we can check for dupes,
-	 * but only if we successfully sent it
-	 */
-	result = ipc_send_event(pkt);
-	if (result < 0)
-		memset(&last_pkt, 0, sizeof(last_pkt));
-	else
-		memcpy(&last_pkt, pkt, packet_size(pkt));
+	if (daemon_wants(pkt->hdr.type)) {
+		result = ipc_send_event(pkt);
+		/*
+		 * preserve the event so we can check for dupes,
+		 * but only if we successfully sent it
+		 */
+		if (result < 0)
+			memset(&last_pkt, 0, sizeof(last_pkt));
+		else
+			memcpy(&last_pkt, pkt, packet_size(pkt));
+	}
 
 	if (!num_nodes)
 		return 0;
@@ -979,14 +995,14 @@ int merlin_mod_hook(int cb, void *data)
 		break;
 
 	case NEBCALLBACK_FLAPPING_DATA:
-		result = send_generic(&pkt, data);
-		break;
-
+		/*
+		 * flapping doesn't go to the network. check processing
+		 * will generate flapping alerts on all nodes anyway,
+		 */
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
-		result = send_generic(&pkt, data);
-		break;
-
 	case NEBCALLBACK_PROCESS_DATA:
+		/* these make no sense to ship across the wire */
+		pkt.hdr.selection = MAGIC_NONET;
 		result = send_generic(&pkt, data);
 		break;
 

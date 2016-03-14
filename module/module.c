@@ -840,6 +840,27 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 	node->stats.bytes.read += packet_size(pkt);
 	node_log_event_count(node, 0);
 
+	/* send to daemon before we decode */
+	if (daemon_wants(pkt->hdr.type)) {
+		ipc_send_event(pkt);
+	}
+
+	/* skip decoding packets we don't use */
+	switch (pkt->hdr.type) {
+	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
+		/*
+		 * We only need to forward this to our daemon.
+		 * Notifications are blocked on non-sending nodes as
+		 * they're spawned by incoming check results
+		 */
+		return 0;
+	case NEBCALLBACK_PROGRAM_STATUS_DATA:
+	case NEBCALLBACK_PROCESS_DATA:
+		/* These make no sense to transfer, so warn about them */
+		lwarn("EVTERR: %s %s transferred %s event", node_type(node), node->name, callback_name(pkt->hdr.type));
+		return 0;
+	}
+
 	/* restore the pointers so the various handlers won't have to */
 	if (merlin_decode_event(node, pkt)) {
 		return 0;
@@ -854,22 +875,6 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 	 * data to be handled.
 	 */
 	switch (pkt->hdr.type) {
-	case NEBCALLBACK_PROGRAM_STATUS_DATA:
-	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
-	case NEBCALLBACK_PROCESS_DATA:
-		/* events we ignore: Warn if they get transferred */
-		/*
-		 * PROGRAM_STATUS_DATA can't sanely be transferred
-		 * CONTACT_NOTIFICATION_METHOD is left as-is, since we by
-		 * default want pollers to send notifications for their
-		 * respective contacts. This is by customer request, since
-		 * sending text-messages across country borders is a lot
-		 * more expensive than just buying a GSM device extra for
-		 * where one wants to place the poller
-		 */
-		lwarn("EVTERR: %s %s transferred %s event", node_type(node), node->name, callback_name(pkt->hdr.type));
-		return 0;
-
 
 	case NEBCALLBACK_HOST_CHECK_DATA:
 	case NEBCALLBACK_HOST_STATUS_DATA:
@@ -900,38 +905,6 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 	}
 	merlin_sender = NULL;
 	recv_event = NULL;
-
-	/* not all packets get delivered to the merlin module */
-	switch (pkt->hdr.type) {
-
-	/* and not all packets get sent to the database */
-	case CTRL_PACKET:
-		/* handled above by "handle_control()" */
-		break;
-	case NEBCALLBACK_EXTERNAL_COMMAND_DATA:
-		return ipc_send_event(pkt);
-
-	case NEBCALLBACK_DOWNTIME_DATA:
-	case NEBCALLBACK_COMMENT_DATA:
-		/*
-		 * These two used to be handled specially here, but
-		 * we've moved it to the database update layer instead,
-		 * which will discard queries it can't run properly
-		 * without bouncing the data against the module.
-		 */
-	default:
-		/*
-		 * IMPORTANT NOTE:
-		 * It's absolutely vital that we send the event to the
-		 * ipc socket *before* we ship it off to the db_update
-		 * function, since the db_update function merlin_decode()'s
-		 * the event, which makes unusable for sending to the
-		 * ipc (or, indeed, anywhere else) afterwards.
-		 */
-		ipc_send_event(pkt);
-		//mrm_db_update(node, pkt);
-		return 0;
-	}
 
 	return ret;
 }
@@ -1245,6 +1218,10 @@ static void connect_to_all(struct nm_event_execution_properties *evprop)
 		return;
 
 	schedule_event(connect_interval, connect_to_all, NULL);
+
+	if (!ipc_is_connected(0)) {
+		ipc_init();
+	}
 
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];

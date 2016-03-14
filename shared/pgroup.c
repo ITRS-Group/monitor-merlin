@@ -94,12 +94,17 @@ static int cmp_peer(const void *a_, const void *b_)
 {
 	const merlin_node *a = *(const merlin_node **)a_;
 	const merlin_node *b = *(const merlin_node **)b_;
+	int a_state, b_state;
+
+	/* we're obviously alive, so we count ourselves as connected */
+	a_state = a == &ipc ? STATE_CONNECTED : a->state;
+	b_state = b == &ipc ? STATE_CONNECTED : b->state;
 
 	/* make sure disconnected nodes are sorted last */
-	if (a->state != b->state) {
-		if (a->state == STATE_CONNECTED)
+	if (a_state != b_state) {
+		if (a_state == STATE_CONNECTED)
 			return -1;
-		if (b->state == STATE_CONNECTED)
+		if (b_state == STATE_CONNECTED)
 			return 1;
 	}
 

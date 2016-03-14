@@ -44,6 +44,8 @@ int add_new_comment(__attribute__((unused)) int type, __attribute__((unused)) in
 void *last_event;
 void *last_user_data;
 
+
+int ipc_init(void) { return 0; };
 timed_event *
 schedule_event(__attribute__((unused)) time_t delay, __attribute__((unused)) event_callback callback, void *user_data)
 {
