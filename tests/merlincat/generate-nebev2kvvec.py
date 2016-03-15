@@ -605,7 +605,7 @@ def mk_gperf_input(prefix, columns, hardcoded={}):
 	backwards compatibility when things change.
 	"""
 	global gperf_file
-	columns.sort()
+	columns = sorted(columns)
 	buf = ""
 	ent_list = []
 	ent_enum = []
@@ -688,5 +688,5 @@ mk_nebev2kvvec(event_structs)
 mk_kvvec2nebev(event_structs)
 
 for (f, data) in outfile.items():
-	fd = os.open(f, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0644)
-	os.write(fd, data)
+	fd = os.open(f, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+	os.write(fd, data.encode())
