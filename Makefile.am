@@ -237,10 +237,8 @@ tests/merlincat/nebev-col2key.c: tests/merlincat/nebev-col2key.gperf
 
 tests/merlincat/kvvec2nebev.c: tests/merlincat/nebev-col2key.c
 
-BUILT_SOURCES = \
-    tests/merlincat/nebev2kvvec.c tests/merlincat/nebev2kvvec.h \
-    tests/merlincat/kvvec2nebev.c tests/merlincat/kvvec2nebev.h \
-    tests/merlincat/nebev-col2key.c tests/merlincat/nebev-col2key.gperf
+BUILT_SOURCES = $(GENERATED_NEBEV) tests/merlincat/nebev-col2key.c
+CLEANFILES = $(BUILT_SOURCES)
 
 merlincat_SOURCES = tests/merlincat/merlincat.c \
 	tests/merlincat/client_gsource.c tests/merlincat/client_gsource.h \
