@@ -4,7 +4,7 @@
 #include <inttypes.h>
 #include <naemon/naemon.h>
 
-int merlin_mod_hook(int cb, void *data);
+neb_cb_result * merlin_mod_hook(int cb, void *data);
 extern void *neb_handle;
 extern int merlin_hooks_init(uint32_t mask);
 extern int merlin_hooks_deinit(void);

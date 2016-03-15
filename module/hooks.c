@@ -799,15 +799,17 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
  * avoid sending notifications from a node that isn't supposed
  * to send it
  */
-static int hook_notification(merlin_event *pkt, void *data)
+static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 {
 	nebstruct_notification_data *ds = (nebstruct_notification_data *)data;
 	unsigned int id, check_type = 0, rtype;
 	struct merlin_notify_stats *mns = NULL;
 	struct service *s = NULL;
 	struct host *h = NULL;
+	const char *owning_node_name = NULL;
 
 	if (ds->type == NEBTYPE_NOTIFICATION_END){
+		int ret = 0;
 		if (ds->notification_type == HOST_NOTIFICATION) {
 			host *hst = ds->object_ptr;
 			ds->object_ptr = (void *)(uintptr_t)(hst->current_notification_number);
@@ -825,7 +827,17 @@ static int hook_notification(merlin_event *pkt, void *data)
 		} else {
 			lerr("Unknown notification type %i", ds->notification_type);
 		}
-		return send_generic(pkt, data);
+		ret = send_generic(pkt, data);
+		if (ret == NEBERROR_CALLBACKCANCEL || ret == NEBERROR_CALLBACKOVERRIDE) {
+			const char *err_type = ret == NEBERROR_CALLBACKCANCEL ? "cancel" : "override";
+			lerr("Possible bug! Return from send_generic() triggered %s for notification end", err_type);
+			return neb_cb_result_create_full(ret,
+					"This might be a bug! Return from send_generic() triggered %s for notification end",
+					err_type);
+		}
+		else {
+			return neb_cb_result_create(ret);
+		}
 	}
 
 	/* don't count or (try to) block notifications after they're sent */
@@ -845,6 +857,14 @@ static int hook_notification(merlin_event *pkt, void *data)
 		ldebug("notif: Checking host notification for %s", h->name);
 	}
 
+	if (node_by_id(assigned_peer(id, ipc.info.active_peers + 1)) != NULL) {
+		owning_node_name = node_by_id(assigned_peer(id,
+				ipc.info.active_peers + 1 /* number of active peers plus self */
+				))->name;
+	} else {
+		owning_node_name = "<unknown>";
+	}
+
 	/* handle NOTIFICATION_CUSTOM being 99 in some releases */
 	rtype = ds->reason_type;
 	if (rtype > 8)
@@ -855,7 +875,8 @@ static int hook_notification(merlin_event *pkt, void *data)
 	if (online_masters && !(ipc.flags & MERLIN_NODE_NOTIFIES)) {
 		ldebug("notif: poller blocking notification in favour of master");
 		mns->master++;
-		return NEBERROR_CALLBACKCANCEL;
+		return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
+				"Notification will be handled by master(s)");
 	}
 
 	/*
@@ -872,40 +893,48 @@ static int hook_notification(merlin_event *pkt, void *data)
 		if (merlin_sender->type != MODE_POLLER) {
 			mns->net++;
 			ldebug("notif: Sender is not a poller. Cancelling notification");
-			return NEBERROR_CALLBACKCANCEL;
+
+			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
+					"Notification will be handled by another peer (%s)", merlin_sender->name);
 		}
 		if (merlin_sender->flags & MERLIN_NODE_NOTIFIES) {
 			ldebug("notif: Poller can notify. Cancelling notification");
-			return NEBERROR_CALLBACKCANCEL;
+
+			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
+					"Notification will be handled by a poller (%s)", merlin_sender->name);
 		}
 
 		/*
 		 * seems the sender is a poller that can't notify, so check if
 		 * we should do it and, if so, allow it
 		 */
-		if (merlin_sender->type == MODE_POLLER && (!num_peers || should_run_check(id))) {
+		if ((num_peers == 0 || should_run_check(id))) {
 			mns->sent++;
 			ldebug("notif: Poller can't notify and we're responsible, so notifying");
-			return 0;
+			return neb_cb_result_create(0);
 		}
 
 		ldebug("notif: A peer handles poller-sent check. Blocking notifications");
 		mns->peer++;
-		return NEBERROR_CALLBACKCANCEL;
+
+		return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
+				"Notification originating on poller (%s) will be handled by another peer (%s)",
+				merlin_sender->name,
+				owning_node_name);
 	}
 
 	/* never block normal, local notificatons from passive checks */
 	if (check_type == CHECK_TYPE_PASSIVE && ds->reason_type == NOTIFICATION_NORMAL) {
 		ldebug("notif: passive check delivered to us, so we notify");
 		mns->sent++;
-		return 0;
+		return neb_cb_result_create(0);
 	}
 
 	/* if we have no peers we won't block the notification at this point */
 	if (!num_peers) {
 		ldebug("notif: We have no peers, so won't block notification");
 		mns->sent++;
-		return 0;
+		return neb_cb_result_create(0);
 	}
 
 	/*
@@ -918,36 +947,39 @@ static int hook_notification(merlin_event *pkt, void *data)
 	case NOTIFICATION_CUSTOM:
 		ldebug("notif: command-triggered and delivered to us, so allowing");
 		mns->sent++;
-		return 0;
+		return neb_cb_result_create(0);
 	}
 
 	if (!num_peers || should_run_check(id)) {
 		ldebug("notif: We're responsible for this notification, so allowing it");
-		return 0;
+		return neb_cb_result_create(0);
 	} else {
 		ldebug("notif: Blocking notification. A peer is supposed to send it");
 		mns->peer++;
-		return NEBERROR_CALLBACKCANCEL;
+
+		return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
+				"A peer (%s) is supposed to send this notification", owning_node_name);
 	}
 
 	mns->sent++;
 	ldebug("notif: Fell through to the end");
-	return 0;
+	return neb_cb_result_create(0);
 }
 
-int merlin_mod_hook(int cb, void *data)
+neb_cb_result * merlin_mod_hook(int cb, void *data)
 {
 	merlin_event pkt;
 	int result = 0;
+	neb_cb_result *neb_result = NULL;
 	static time_t last_pulse = 0, last_flood_warning = 0;
 	time_t now;
 
 	if (!data) {
 		lerr("eventbroker module called with NULL data");
-		return -1;
+		return neb_cb_result_create(-1);
 	} else if (cb < 0 || cb > NEBCALLBACK_NUMITEMS) {
 		lerr("merlin_mod_hook() called with invalid callback id");
-		return -1;
+		return neb_cb_result_create(-1);
 	}
 
 	/*
@@ -967,7 +999,7 @@ int merlin_mod_hook(int cb, void *data)
 	pkt.hdr.selection = DEST_BROADCAST;
 	switch (cb) {
 	case NEBCALLBACK_NOTIFICATION_DATA:
-		result = hook_notification(&pkt, data);
+		neb_result = hook_notification(&pkt, data);
 		break;
 
 	case NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA:
@@ -1014,13 +1046,28 @@ int merlin_mod_hook(int cb, void *data)
 		lerr("Unhandled callback '%s' in merlin_hook()", callback_name(cb));
 	}
 
+	if (neb_result != NULL) {
+		/*
+		 * We have a rich callback result, propagate return code
+		 * to preserve flood warnings
+		 */
+		result = neb_cb_result_returncode(neb_result);
+	}
+	else {
+		/*
+		 * No rich callback result, create one
+		 */
+		neb_result = neb_cb_result_create_full(result, "No callback result description available");
+	}
+
 	if (result < 0 && now - last_flood_warning > 30) {
 		/* log a warning every 30 seconds */
 		last_flood_warning = now;
 		lwarn("Daemon is flooded and backlogging failed");
 	}
 
-	return result;
+
+	return neb_result;
 }
 
 #define DEST_DB 1
@@ -1083,7 +1130,7 @@ int merlin_hooks_init(uint32_t mask)
 			continue;
 		}
 
-		neb_register_callback(cb->type, neb_handle, 0, merlin_mod_hook);
+		neb_register_callback_full(cb->type, neb_handle, 0, NEB_API_VERSION_2, merlin_mod_hook);
 	}
 
 	return 0;
