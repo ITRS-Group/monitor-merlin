@@ -39,31 +39,5 @@ def cmd_fixindexes(args):
 		for msg in log:
 			print '  %s' % msg
 
-def cmd_cahash(args):
-	"""
-	Calculates a hash of all entries in the contact_access table.
-	This is really only useful for debugging purposes, but doesn't
-	block execution of anything, so run it if you feel like it.
-	"""
-	conn = merlin_db.connect(mconf)
-	dbc = conn.cursor()
-	hash = sha1()
-	dbc.execute("SELECT contact, host FROM contact_access "
-		"WHERE service IS NULL "
-		"ORDER BY contact, host")
-	rows = 0
-	for row in dbc.fetchall():
-		rows += 1
-		hash.update("%d %d" % (row[0], row[1]))
-
-	dbc.execute("SELECT contact, service FROM contact_access "
-		"WHERE host IS NULL "
-		"ORDER BY contact, service")
-	for row in dbc.fetchall():
-		rows += 1
-		hash.update("%d %d" % (row[0], row[1]))
-
-	print("rows: %d; hash: %s" % (rows, hash.hexdigest()))
-
 def module_init(args):
 	return args
