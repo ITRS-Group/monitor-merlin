@@ -1,5 +1,6 @@
 AM_CFLAGS += $(CFLAGS) -I$(srcdir)/shared $(naemon_CFLAGS)
 AM_CPPFLAGS += $(CPPFLAGS) -DBINLOGDIR='"$(binlogdir)"' -DPKGRUNDIR='"$(pkgrundir)"' -DLOGDIR='"$(logdir)"' -DCACHEDIR='"$(cachedir)"'
+AM_CPPFLAGS += -D_FILE_OFFSET_BITS=64
 
 bin_PROGRAMS = merlind
 
