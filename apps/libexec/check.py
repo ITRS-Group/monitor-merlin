@@ -175,7 +175,7 @@ def check_min_avg_max(args, col, defaults=False, filter=False):
 
 
 def cmd_exectime(args=False):
-	"""<host|service> --warning=<min,max,avg> --critical=<min,max,avg>
+	"""<host|service> --warning=<min,avg,max> --critical=<min,avg,max>
 	Checks execution time of active checks.
 	"""
 	thresh = {
@@ -185,7 +185,7 @@ def cmd_exectime(args=False):
 	check_min_avg_max(args, 'execution_time', thresh)
 
 def cmd_latency(args=False):
-	"""<host|service> --warning=<min,max,avg> --critical=<min,max,avg>
+	"""<host|service> --warning=<min,avg,max> --critical=<min,avg,max>
 	Checks latency of active checks.
 	"""
 	thresh = {
