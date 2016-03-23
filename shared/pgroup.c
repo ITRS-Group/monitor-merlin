@@ -232,8 +232,14 @@ static void pgroup_destroy(merlin_peer_group *pg)
 	bitmap_destroy(pg->host_map);
 	bitmap_destroy(pg->service_map);
 	for (i = 0; i < max(pg->total_nodes, num_peers); i++) {
-		free(pg->assign[i]);
-		free(pg->inherit[i]);
+		/*
+		 * we must check for NULL here, or we'll segfault
+		 * in case we failed to initialize properly
+		 */
+		if (pg->assign)
+			free(pg->assign[i]);
+		if (pg->inherit)
+			free(pg->inherit[i]);
 	}
 	free(pg->assign);
 	free(pg->inherit);
