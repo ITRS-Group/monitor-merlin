@@ -1,17 +1,77 @@
-Requirements
+## Welcome to Merlin ## 
+
+ ... . ...   . .   .  .   ..        .=M7        .   ..   .
+...  . .      . . .     .           ?MMM. .     .    .
+. .       . .. . .   .  ... . .   =MMMM=...     ... ...  .
+    . . . ..       .          . ,MMMMM? .   .    .   .   .
+  . .. .       .  .            $MMMMMD      ..   .   .   ..
+ . . . . .      .    ..      .MMMMMMM      .   ..      ...
+          .   .   .   .     .MMMMMMMI   .     .  ..  .. ...
+  .     .                   MMMMMMMM     ..   . .     .
+  ..                   .. .MMMMMMMMM. . . . .         .   .
+                 .        DNNNNNNMMM
+       . . .       .    .DNNNNNNNNNN .           .   .   .
+                 .   . .MNNNNNNNNNNN.            .
+      . . .         MMMMMMMMMI ?NNNN
+    .                .MNNNNNNMDN.7NN
+     .  ..      .   .MNNONNNNNNNN.N,    ..           ..
+.  .     .         ,M+   . .NNNNN          .. .         .. .
+    ..... ..    MNDDD . .   .ZDDNDNM.   ..  .         .
+ . .       .,MNDDDDDD     .  ZDDDDDDDDD.. .   . . . ... . .
+ .        DNDDDDDDDDO        NDD. $DDDDDM,       .    .   .
+   .    NDDDDDDDDO  I~       DDD~OMIDDDDDDDI     .  .. . .
+ DM     888888DD.  .MD   .   ODDDDD. +DDDDDDD,       .   . .
+. OM8MMMD888888     D8  .   .7DDD?     DDDDDDDDMD
+     $MM888888~.    88$8     =88       .DDDDDDDDDD
+ 7$$MMMMMMN8888  . .8888O.   :88..   ..  8888DDDDDDD      .
+ .$I . M.MM 888..   88888$   =888        M888888MMMM
+     ..MMM.    .    888888: .8888Z  .   .888,NMOMMMM     .
+      DM:+    .   . 8888888 Z88888$      I    =8ZMZ   ..  .
+..  .,M....    .    ?OOOOOO,8888888D    . ..  .MMM   . ..
+         .           OOOOOOOOOOOOOOO88:  .    .MMMM,  .
+    .       .   .    ?OOOOOOOOOOOOOOOOO~   .   . 8..   . . .
+ .   . . .    .  ..  .OOOOOOOOOOOOOOOOOZ.   . .  .O~ .   .
+.    ..           .. .ZOOOOOOOOOOOOOOZ ,8.      ...,8 . ..
+. .    .   .  .  .   .=OOOOOO: .$OOO,.  ,OD.. .   . .O, .. .
+    .      .  . ZMMMMMN8$ZOOZ . . . . . .$OO7.        +D  .
+  .       ..  $OOOOOOOOOOOOOI       .      ,OON$,...,.  Z?
+     .       .   . ..:~+=.   .   .   .   .   ZOOOOOOOOON
+               ..       .   .   .   .   .   .  ~7ZZZZZZO+
+   .              .   .    . . .   .    .            .   
+
+The Merlin project, or Module for Effortless Redundancy and Loadbalancing In Nagios, was initially started to create an easy way to set up distributed Nagios installations, allowing Nagios processes to exchange information directly as an alternative to the standard nagios way using NSCA. 
+Now, the nagios support is deprecated in favour of Naemon ( www.naemon.org ) which is a fork of the Nagios project.
+When starting the Ninja project we realised that we could continue the work on Merlin and adopt the project to function as backend for Ninja by adding support for storing the status information in a database, fault tolearance and some other cool things. 
+This means that Merlin now are responsible for providing status data, acting as a backend, for the Ninja GUI.
+
+## Brief description of the Merlin project ##
+
+Merlin consists of:
+
+merlin-mod: Responsible for jacking into the NEBCALLBAC_* calls and send them to a socket. If the socket is not available the events are written to a backlog and sent when the socket is available again.
+
+merlind: The Merlin deamon listens to the socket that merlin-mod writes to and sends all events received either to a database of your choise (using libdbi) or to another merlin daemon. If the daemon is unsuccessful in this it writes to a backlog and sends the data later.
+
+merlin database: This is a database that includes Naemon object status and status changes. It also contains comments, scheduled downtime etc.
+
+More information about the Merlin project and can be found at https://op5.org
+
+## Requirements ## 
 ------------
 Merlin requires Naemon, including its development headers for building.
-Currently, it requires the very latest development version for auto-detecting
+Currently, it requires the very latest development version (> 1.0.3) for auto-detecting
 paths to Naemon.
 
-For running merlin with its default configuration, you'll need
+Other general build requirements:  gcc, autoconf, automake glib-2-devel, check-devel, libdbi-devel libtool
+
+For running Merlin with its default configuration, you'll need
 to have libdbi-dbd-mysql and all of its dependencies (generally
 libdbi-drivers, libdbi and mysql-libs) installed.
 
-You will ofcourse also need an sql database supported by libdbi
+You will of course also need an sql database supported by libdbi
 (refer to the libdbi documentation for further information about
-supported databases), as well as a Nagios installation that the
-merlin module can plug in to. The import script is currently
+supported databases), as well as a Naemon installation that the
+Merlin module can plug in to. The import script is currently
 limited to MySQL only, so that's currently the only database
 supported.
 
@@ -19,11 +79,12 @@ The install script requires sql administration privileges in order to create
 the database that merlin will populate for you.
 
 GNU sed 4.0.9 or better is required for the install script to
-be able to modify your nagios configuration files.
+be able to modify your naemon configuration files.
 
 
-Building and installation
+## Building and installation ##
 -----------
+
 Building is a standard autotools fair: released tarballs does what you need
 with
  ./configure
@@ -46,7 +107,7 @@ configuration lies. You can include it in your main naemon config file with
 or by putting the config file in an already included directory with the
 --with-naemon-config-dir argument to the configure script.
 
-Configuration
+## Configuration ##
 -------------
 Configuring merlin is pretty straight-forward. Merlin's default config - by
 default installed into /usr/local/etc/merlin/merlin.conf - contains most of the
@@ -67,39 +128,39 @@ Leading and trailing whitespace is ignored.
 The thing it doesn't really cover very well is how to configure masters,
 peers and pollers, which is described more in-depth here.
 
-In order to set up a loadbalanced system (ie, 2 or more peers), all
+In order to set up a load balanced system (ie, 2 or more peers), all
 you need to do is add a section similar to the following to your
-merlin configuration files on your merlin-empowered Nagios systems.
-Let's pretend we have "nagios1" and "nagios2" in the network and
-you wish for them to be set up in loadbalanced/redundancy mode.
-nagios1 has 192.168.1.1 as IP. nagios2 has 192.168.1.2. Both use
+merlin configuration files on your merlin-empowered Naemon systems.
+Let's pretend we have "naemon1" and "naemon2" in the network and
+you wish for them to be set up in load balanced/redundancy mode.
+naemon1 has 192.168.1.1 as IP. naemon2 has 192.168.1.2. Both use
 port 15551 (the default).
 
-On nagios1, add the following section to your merlin.conf file:
+On naemon1, add the following section to your merlin.conf file:
   --------------
-  peer nagios2 {
+  peer naemon2 {
     address = 192.168.1.2;
     port = 15551; # optional, since 15551 is the default
   }
   --------------
 
-On nagios2, add the following section to your merlin.conf file:
+On naemon2, add the following section to your merlin.conf file:
   --------------
-  peer nagios1 {
+  peer naemon1 {
     address = 192.168.1.1;
     port = 15551; # optional, since 15551 is the default
   }
   --------------
 
-Assuming nagios2 is a poller-node instead, responsible for checking
-hosts in germany, you need to create a hostgroup in Nagios containing
-all the hosts in germany that you want nagios2 to check for you. Let's
+Assuming naemon2 is a poller-node instead, responsible for checking
+hosts in germany, you need to create a hostgroup in Naemon containing
+all the hosts in germany that you want naemon2 to check for you. Let's
 assume you call that hostgroup "germany-hosts". Then you need to add
 following sections to your merlin.conf files.
 
-On nagios1 (the "master" server), add the following section:
+On naemon1 (the "master" server), add the following section:
   --------------
-  poller nagios2 {
+  poller naemon2 {
     address = 192.168.1.2;
 	port = 15551;
 	hostgroup = germany-hosts; # name of the hostgroup containing all
@@ -107,9 +168,9 @@ On nagios1 (the "master" server), add the following section:
   }
   --------------
 
-On nagios2 (the slave server), add the following section:
+On naemon2 (the slave server), add the following section:
   --------------
-  master nagios1 {
+  master naemon1 {
     address = 192.168.1.1;
 	port = 15551;
   }
