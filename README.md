@@ -1,5 +1,7 @@
-## Welcome to Merlin ##
+# Welcome to Merlin # 
 
+
+```
  ... . ...   . .   .  .   ..        .=M7        .   ..   .
 ...  . .      . . .     .           ?MMM. .     .    .
 . .       . .. . .   .  ... . .   =MMMM=...     ... ...  .
@@ -38,6 +40,7 @@
      .       .   . ..:~+=.   .   .   .   .   ZOOOOOOOOON
                ..       .   .   .   .   .   .  ~7ZZZZZZO+
    .              .   .    . . .   .    .            .   
+```
 
 The Merlin project, or Module for Effortless Redundancy and Loadbalancing In Nagios, was initially started to create an easy way to set up distributed Nagios installations, allowing Nagios processes to exchange information directly as an alternative to the standard nagios way using NSCA.
 Now, the nagios support is deprecated in favour of Naemon ( www.naemon.org ) which is a fork of the Nagios project.
@@ -57,7 +60,7 @@ merlin database: This is a database that includes Naemon object status and statu
 More information about the Merlin project and can be found at https://op5.org
 
 ## Requirements ##
-------------
+
 Merlin requires Naemon, including its development headers for building.
 Currently, it requires the very latest development version (> 1.0.3) for auto-detecting
 paths to Naemon.
@@ -83,19 +86,20 @@ be able to modify your naemon configuration files.
 
 
 ## Building and installation ##
------------
 
 Building is a standard autotools fair: released tarballs does what you need
 with
- ./configure
+```
+./configure
  make
  sudo make install
-
+```
 For git checkouts, do
+```
  ./autogen.sh
  make
  sudo make install
-
+```
 The install will by default try to install merlin's database. The configure
 script provides a way to configure database name and users, as well as a way to
 prevent merlin from doing this automatically, in which case you need to run the
@@ -108,10 +112,12 @@ or by putting the config file in an already included directory with the
 --with-naemon-config-dir argument to the configure script.
 
 ## Configuration ##
--------------
+
 Configuring merlin is pretty straight-forward. Merlin's default config - by
 default installed into /usr/local/etc/merlin/merlin.conf - contains most of the
 common examples available.
+
+More information and examples can be found in the HOWTO document that resides in the same repo.
 
 The syntax is fairly standard, being made up of a key without
 spaces and a value containing arbitrary characters (although no
@@ -137,20 +143,21 @@ naemon1 has 192.168.1.1 as IP. naemon2 has 192.168.1.2. Both use
 port 15551 (the default).
 
 On naemon1, add the following section to your merlin.conf file:
-  --------------
+```
   peer naemon2 {
     address = 192.168.1.2;
     port = 15551; # optional, since 15551 is the default
   }
-  --------------
-
+```
+ 
 On naemon2, add the following section to your merlin.conf file:
-  --------------
+
+```
   peer naemon1 {
     address = 192.168.1.1;
     port = 15551; # optional, since 15551 is the default
   }
-  --------------
+```
 
 Assuming naemon2 is a poller-node instead, responsible for checking
 hosts in germany, you need to create a hostgroup in Naemon containing
@@ -159,22 +166,22 @@ assume you call that hostgroup "germany-hosts". Then you need to add
 following sections to your merlin.conf files.
 
 On naemon1 (the "master" server), add the following section:
-  --------------
+```  
   poller naemon2 {
     address = 192.168.1.2;
 	port = 15551;
 	hostgroup = germany-hosts; # name of the hostgroup containing all
 	                           # the hosts you want this poller to check
   }
-  --------------
+```
 
 On naemon2 (the slave server), add the following section:
-  --------------
+```
   master naemon1 {
     address = 192.168.1.1;
 	port = 15551;
   }
-  --------------
+```
 
 Note that these configuration sections need to be in the base section
 of the configuration file. They must *not* be inside the daemon section.
