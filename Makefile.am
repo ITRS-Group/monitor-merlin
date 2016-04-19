@@ -188,6 +188,11 @@ test_dbwrap_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon
 test_dbwrap_LDADD = $(naemon_LIBS) $(AM_LDADD)
 
 
+test-apps: apps/libexec/oconf.py
+	@for t in apps/tests/*; do sh $$t/test.sh; done
+
+check: test-apps
+
 install-exec-hook:
 if AUTO_POSTINSTALL
 	bash install-merlin.sh

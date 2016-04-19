@@ -112,6 +112,7 @@ Group: op5/Monitor
 Requires: monitor-livestatus
 Requires: op5-naemon
 Requires: merlin merlin-apps monitor-merlin
+BuildRequires: diffutils
 %if 0%{?rhel} >= 7
 %else
 Requires: rubygem20-op5cucumber
@@ -143,6 +144,8 @@ ln -s ../../../../%_libdir/merlin/merlin.so %buildroot/%mod_path/merlin.so
 ln -s op5 %buildroot/%_bindir/mon
 
 cp cukemerlin %buildroot/%_bindir/cukemerlin
+cp -r apps/tests %buildroot/usr/share/merlin/app-tests
+
 
 # install crontabs
 mkdir -p %buildroot%_sysconfdir/cron.d
@@ -292,6 +295,7 @@ service_control_function restart nrpe || :
 %defattr(-,root,root)
 %_libdir/merlin/mon/test.py*
 %_bindir/cukemerlin
+/usr/share/merlin/app-tests/
 
 %clean
 rm -rf %buildroot

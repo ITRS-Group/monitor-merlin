@@ -18,7 +18,8 @@ def idx_get(otype):
 
 
 last_changed = 0
-nagios_cfg = '/opt/monitor/etc/nagios.cfg'
+nagios_cfg = '@naemon_cfg@'
+naemon_cfg = nagios_cfg
 object_cfg_files = {}
 object_prefix = ''
 object_cache = '/opt/monitor/var/objects.cache'
@@ -118,6 +119,9 @@ def cmd_reload(args):
 			bin = arg
 
 	color = ansi_color()
+
+	# if we're a poller, fix up the configuration
+	cmd_poller_fix([nagios_cfg])
 
 	if safe:
 		cmd_args = [bin, '-v', nagios_cfg]
@@ -359,3 +363,59 @@ def get_last_changed(files=False):
 	map(update_last_changed, files)
 
 	return last_changed
+
+def cmd_poller_fix(args=[]):
+	"""
+	Fixes object configuration setup to be suitable for a poller.
+	If this node is not a poller, no changes will be made.
+	"""
+	global naemon_cfg
+	have_master = False
+	for name, node in mconf.configured_nodes.items():
+		if node.ntype == 'master':
+			have_master = True
+			break
+	if not have_master:
+		if os.isatty(sys.stdout.fileno()):
+			print(" poller-fix: We're not a poller, so not fixing object config")
+		return 0
+
+	for arg in args:
+		if os.path.isfile(arg):
+			naemon_cfg = arg
+		else:
+			prettyprint_docstring('push', cmd_poller_fix.__doc__,
+				'Unknown argument: %s' % arg)
+			sys.exit(1)
+
+	have_from_master_cfg = False
+	try:
+		f = open(naemon_cfg, 'r')
+		if not f:
+			print(" poller_fix: Could not open %s for reading." % naemon_cfg)
+			sys.exit(1)
+		lines = f.readlines()
+		f.close()
+		i = 0
+		for line in lines:
+			#print("   line: %s\nlines[%3d]: %s\n" % (line, i, lines[i]))
+			if lines[i] == 'cfg_dir=oconf/from-master.cfg\n':
+				have_from_master_cfg = True
+			elif lines[i].startswith("cfg_file=") or lines[i].startswith("cfg_dir="):
+				line = '#' + lines[i]
+				lines[i] = line
+			i += 1
+
+		# make sure we read the from-master.cfg file
+		if not have_from_master_cfg:
+			lines.append("cfg_file=oconf/from-master.cfg\n")
+		f = open(naemon_cfg, 'w')
+		if not f:
+			print(" poller_fix: Could not open %s for writing." % naemon_cfg)
+			sys.exit(1)
+		f.writelines(lines)
+		f.close()
+
+	except Exception as e:
+		print(" poller_fix: Error while modifying %s: %s" % (naemon_cfg, e))
+		sys.exit(1)

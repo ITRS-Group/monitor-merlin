@@ -329,4 +329,7 @@ else:
 		if type(rem_args) == type([]):
 			args = rem_args
 
-	commands[cmd](args)
+	ret = commands[cmd](args)
+	if isinstance(ret, int):
+		sys.exit(ret)
+	sys.exit(0)
