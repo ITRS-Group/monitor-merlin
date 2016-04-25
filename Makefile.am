@@ -30,7 +30,6 @@ mon_SCRIPTS = \
 	apps/libexec/stop.sh \
 	apps/libexec/sysconf.check.sh \
 	apps/libexec/sysconf.ramdisk.sh \
-	apps/libexec/sysconf.rrdmultiple.sh \
 	apps/libexec/test.py
 
 monmoduledir = $(mondir)/modules
