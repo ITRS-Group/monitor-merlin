@@ -78,8 +78,8 @@ Merlin requires Naemon, including its development headers for building.
 Currently, it requires the very latest development version (> 1.0.3) for
 auto-detecting paths to Naemon.
 
-Other general build requirements:  gcc, autoconf, automake glib-2-devel,
-check-devel, libdbi-devel libtool
+Other general build requirements: gcc, autoconf, automake, glib-2-devel,
+check-devel, libdbi-devel, libtool, naemon-devel, gperf
 
 For running Merlin with its default configuration, you'll need to have
 libdbi-dbd-mysql and all of its dependencies (generally libdbi-drivers, libdbi
