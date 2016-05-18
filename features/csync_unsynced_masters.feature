@@ -1,8 +1,11 @@
 @config @daemons @merlin @queryhandler
-Feature: Module should handle conf sync with poller
-	When a module realizes that another node has a config out of sync, the
-	module should start configuration sync, according to the config sync
-	directive in the merlin.conf
+Feature: Handle config sync to pollers from unsynced masters gracefully
+	If a master disagrees with the poller's configuration, it
+	should only push its own generated config to the poller if
+	the poller's configuration is older than what we have in
+	order to prevent ping-pong pushing from several masters
+	when the reload-cascade starts, or when master nodes get
+	their object config out of sync.
 
 	Background: I some default configuration in naemon
 		Given I have naemon host objects
@@ -18,6 +21,7 @@ Feature: Module should handle conf sync with poller
 			| default-service | pollerthing | PING        |
 		And I have merlin configured for port 7000
 			| type   | name   | port | hostgroup    |
+			| peer   | peer1  | 4002 | unused       |
 			| poller | poller | 4001 | poller-group |
 
 		And I start naemon
@@ -29,7 +33,7 @@ Feature: Module should handle conf sync with poller
 	Scenario: Same config and same timestamp should be accepted
 		Given poller connect to merlin at port 7000 from port 11001
 		And poller sends event CTRL_ACTIVE
-			| configured_masters |                    1 |
+			| configured_masters |                    2 |
 			| config_hash        | poller_expected_hash |
 			| last_cfg_change    |                 4000 |
 		And I wait for 1 second
@@ -43,43 +47,32 @@ Feature: Module should handle conf sync with poller
 	Scenario: Different config and lower timestamp should be denied, master pushes
 		Given poller connect to merlin at port 7000 from port 11001
 		And poller sends event CTRL_ACTIVE
-			| configured_masters |                    1 |
+			| configured_masters |                    2 |
 			| config_hash        |              a_error |
 			| last_cfg_change    |                 3900 |
 		Then poller is not connected to merlin
 		And file config_sync.log matches ^push poller$
 		And file config_sync.log does not match ^fetch
 
-	Scenario: Different config and higher timestamp should be denied, master pushes
+	Scenario: Different config and higher timestamp should be denied, no push
 		Given poller connect to merlin at port 7000 from port 11001
 		And poller sends event CTRL_ACTIVE
-			| configured_masters |                    1 |
+			| configured_masters |                    2 |
 			| config_hash        |              a_error |
 			| last_cfg_change    |                 4100 |
 		Then poller is not connected to merlin
-		And file config_sync.log matches ^push poller$
+		And file config_sync.log does not match ^push poller$
 		And file config_sync.log does not match ^fetch
 
-	Scenario: Different config and same timestamp should be denied, poller started later, so push
-		Given poller connect to merlin at port 7000 from port 11001
-		And poller sends event CTRL_ACTIVE
-			| start              |         2203553100.0 |
-			| configured_masters |                    1 |
-			| config_hash        |              a_error |
-			| last_cfg_change    |                 4000 |
-		Then poller is not connected to merlin
-		And file config_sync.log matches ^push poller$
-		And file config_sync.log does not match ^fetch
-
-	Scenario: Different config and same timestamp should be denied, poller started earlier, but push since it's a poller
+	Scenario: Different config and same timestamp should be denied, no push
 		Given poller connect to merlin at port 7000 from port 11001
 		And poller sends event CTRL_ACTIVE
 			| start              |                  0.0 |
-			| configured_masters |                    1 |
+			| configured_masters |                    2 |
 			| config_hash        |              z_error |
 			| last_cfg_change    |                 4000 |
 		Then poller is not connected to merlin
-		And file config_sync.log matches ^push poller$
+		And file config_sync.log does not match ^push poller$
 		And file config_sync.log does not match ^fetch
 
 # TODO:

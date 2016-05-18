@@ -285,8 +285,8 @@ extern merlin_node *node_by_id(uint id);
 int handle_ctrl_active(merlin_node *node, merlin_event *pkt);
 int dump_nodeinfo(merlin_node *n, int sd, int instance_id);
 extern int node_compat_cmp(const merlin_node *node, const merlin_event *pkt);
-extern int node_oconf_cmp(const merlin_node *node, const merlin_event *pkt);
-extern int node_mconf_cmp(const merlin_node *node, const merlin_event *pkt);
+extern int node_oconf_cmp(const merlin_node *node, const merlin_nodeinfo *info);
+extern int node_mconf_cmp(const merlin_node *node, const merlin_nodeinfo *info);
 
 /*
  * we make these inlined rather than macros so the compiler

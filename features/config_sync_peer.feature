@@ -50,7 +50,6 @@ Feature: Module should handle conf sync with peer
 			| config_hash        |             a_error |
 			| last_cfg_change    |                3900 |
 		Then peer is not connected to merlin
-		And file merlin.log matches CSYNC: peer peer: Checking. Time delta: -100$
 		And file config_sync.log matches ^push peer$
 		And file config_sync.log does not match ^fetch peer$
 
@@ -62,7 +61,6 @@ Feature: Module should handle conf sync with peer
 			| config_hash        |             a_error |
 			| last_cfg_change    |                4100 |
 		Then peer is not connected to merlin
-		And file merlin.log matches CSYNC: peer peer: Checking. Time delta: 100$
 		And file config_sync.log does not match ^push peer$
 		And file config_sync.log does not match ^fetch peer$
 
@@ -75,7 +73,6 @@ Feature: Module should handle conf sync with peer
 			| config_hash        |             a_error |
 			| last_cfg_change    |                4000 |
 		Then peer is not connected to merlin
-		And file merlin.log matches CSYNC: peer peer: Checking. Time delta: -1$
 		And file config_sync.log matches ^push peer$
 		And file config_sync.log does not match ^fetch peer$
 
@@ -88,7 +85,6 @@ Feature: Module should handle conf sync with peer
 			| config_hash        |             z_error |
 			| last_cfg_change    |                4000 |
 		Then peer is not connected to merlin
-		And file merlin.log matches CSYNC: peer peer: Checking. Time delta: 1$
 		And file config_sync.log does not match ^push peer$
 		And file config_sync.log does not match ^fetch peer$
 

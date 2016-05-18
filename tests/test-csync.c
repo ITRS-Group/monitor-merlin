@@ -9,13 +9,17 @@
 int main(__attribute__((unused)) int argc, __attribute__((unused)) char **argv)
 {
 	merlin_node node;
+	merlin_nodeinfo info;
 
 	t_set_colors(0);
 	t_verbose = 1;
 
 	memset(&node, 0, sizeof(node));
+	memset(&info, 0, sizeof(info));
 	ipc.info.last_cfg_change = 10;
+	self = &ipc.info;
 	node.info.last_cfg_change = 5;
+	info.last_cfg_change = 1;
 	node.type = MODE_POLLER;
 	node.name = "testelitest";
 
@@ -33,7 +37,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char **argv)
 
 	/* test that we avoid pushing when "connect = no" */
 	node.flags = MERLIN_NODE_DEFAULT_POLLER_FLAGS & ~MERLIN_NODE_CONNECT;
-	csync_node_active(&node, -1);
+	csync_node_active(&node, &info, -1);
 	ok_int(node.csync_last_attempt, 0, "Should avoid config pushing when 'connect = no'");
 
 	/*
@@ -43,15 +47,15 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char **argv)
 	node.csync_num_attempts = 0;
 	node.csync.push.cmd = ":";
 	node.csync.configured = 1;
-	csync_node_active(&node, -1);
+	csync_node_active(&node, &info, -1);
 	ok_int(node.csync_num_attempts, 1, "Should push config when 'connect = no' and node has local push config");
 	node.csync.push.is_running = 0;
-	csync_node_active(&node, -1);
+	csync_node_active(&node, &info, -1);
 
 	/* test that we avoid pushing when max attempts is reached */
 	node.flags = MERLIN_NODE_DEFAULT_POLLER_FLAGS;
 	node.csync_num_attempts = node.csync_max_attempts = 3;
-	csync_node_active(&node, -1);
+	csync_node_active(&node, &info, -1);
 	ok_int(node.csync_last_attempt > 0, 1, "Should keep pushing config when max attempts reached");
 
 	return t_end();

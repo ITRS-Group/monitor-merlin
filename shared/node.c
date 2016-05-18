@@ -1144,12 +1144,9 @@ int node_compat_cmp(const merlin_node *node, const merlin_event *pkt)
  *   0 if everything checks out
  *   ESYNC_ENODES if it doesn't
  */
-int node_mconf_cmp(const merlin_node *node, const merlin_event *pkt)
+int node_mconf_cmp(const merlin_node *node, const merlin_nodeinfo *info)
 {
-	merlin_nodeinfo *info;
 	int err = 0;
-
-	info = (merlin_nodeinfo *)&pkt->body;
 
 	if (node->type == MODE_PEER) {
 		if (info->configured_peers != ipc.info.configured_peers) {
@@ -1198,12 +1195,9 @@ int node_mconf_cmp(const merlin_node *node, const merlin_event *pkt)
  *  >0 if oconf doesn't match and their config is newer
  * This can only be used if node_compat_cmp() returns 0.
  */
-int node_oconf_cmp(const merlin_node *node, const merlin_event *pkt)
+int node_oconf_cmp(const merlin_node *node, const merlin_nodeinfo *info)
 {
-	merlin_nodeinfo *info;
 	int tdelta;
-
-	info = (merlin_nodeinfo *)&pkt->body;
 
 	tdelta = info->last_cfg_change - node->expected.last_cfg_change;
 	ldebug("CSYNC: %s node_oconf_cmp() (theirs: %lu; ours: %lu, delta: %d)",
@@ -1259,8 +1253,8 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 
 	if ((ret = node_compat_cmp(node, pkt)))
 		return ret;
-	if ((ret = node_mconf_cmp(node, pkt)))
+	if ((ret = node_mconf_cmp(node, (merlin_nodeinfo *)pkt->body)))
 		return ret;
 
-	return node_oconf_cmp(node, pkt) ? ESYNC_ECONFTIME : 0;
+	return node_oconf_cmp(node, (merlin_nodeinfo *)pkt->body) ? ESYNC_ECONFTIME : 0;
 }

@@ -338,6 +338,7 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 {
 	const char *ctrl;
 	int prev_state, ret;
+	merlin_nodeinfo *info;
 
 	if (!pkt) {
 		lerr("handle_control() called with NULL packet");
@@ -365,17 +366,18 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 		 * or if this node has reconnected after network problems,
 		 * we must re-do the peer assignment thing.
 		 */
+		info = (merlin_nodeinfo *)&pkt->body;
 		prev_state = node->state;
 		if (node_compat_cmp(node, pkt)) {
 			node_disconnect(node, "Incompatible protocol");
 			return;
 		}
-		if (node_mconf_cmp(node, pkt)) {
+		if (node_mconf_cmp(node, info)) {
 			node_disconnect(node, "Incompatible cluster configuration");
 			return;
 		}
-		if ((ret = node_oconf_cmp(node, pkt))) {
-			csync_node_active(node, ret);
+		if ((ret = node_oconf_cmp(node, info))) {
+			csync_node_active(node, info, ret);
 			node_disconnect(node, "Incompatible object config (sync triggered)");
 			return;
 		} else {

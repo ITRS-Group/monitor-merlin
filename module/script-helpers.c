@@ -104,19 +104,35 @@ static void handle_csync_finished(wproc_result *wpres, void *arg, int flags)
  *   < 0 indicates we should prefer pushing.
  *   > 0 indicates we should prefer fetching.
  */
-void csync_node_active(merlin_node *node, int tdelta)
+void csync_node_active(merlin_node *node, const merlin_nodeinfo *info, int tdelta)
 {
 	time_t now;
+	int real_tdelta;
 	const char *what;
 	merlin_confsync *cs = NULL;
 	merlin_child *child = NULL;
 
-	ldebug("CSYNC: %s %s: Checking. Time delta: %d", node_type(node), node->name, tdelta);
+	real_tdelta = info->last_cfg_change - node->expected.last_cfg_change;
+
+	ldebug("CSYNC: %s %s: Checking. Time delta: %d, real time delta: %d",
+	       node_type(node), node->name, tdelta, real_tdelta);
 	/* bail early if we have no push/fetch configuration */
 	cs = &node->csync;
 	if (!cs->push.cmd && !cs->fetch.cmd) {
 		ldebug("CSYNC: %s %s: No config sync configured.", node_type(node), node->name);
 		node_disconnect(node, "Disconnecting from %s, as config can't be synced", node->name);
+		return;
+	}
+
+	/*
+	 * if our config isn't newer than the poller's, avoid pushing
+	 * unless all our peers are connected.
+	 */
+	if (node->type == MODE_POLLER && real_tdelta >= 0 &&
+	    self->configured_peers != self->active_peers)
+	{
+		linfo("CSYNC: %s %s: This is a poller, but not all peers are connected. Not pushing",
+		      node_type(node), node->name);
 		return;
 	}
 
