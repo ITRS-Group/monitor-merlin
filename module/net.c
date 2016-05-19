@@ -585,24 +585,3 @@ int net_sendto_many(merlin_node **ntable, uint num, merlin_event *pkt)
 
 	return 0;
 }
-
-
-/*
- * If a node hasn't been heard from in too long, we mark it as no
- * longer connected, signalling that we should, potentially, take
- * over checks for the AWOL node
- */
-static void check_node_activity(merlin_node *node)
-{
-	time_t now = time(NULL);
-
-	if (node->sock == -1 || node->state != STATE_CONNECTED)
-		return;
-
-	/* this one's on a reaaaally slow link */
-	if (!node->data_timeout)
-		return;
-
-	if (node->last_recv < now - node->data_timeout)
-		node_disconnect(node, "Too long since last action");
-}

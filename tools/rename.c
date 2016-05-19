@@ -282,7 +282,7 @@ main(int argc, char **argv)
 	int i;
 	int do_rename_log = 0, do_rename_db = 0, do_rename_archived = 0;
 	int save_renames = 0;
-	char *log_dir = NULL, *logfile = NULL;
+	char *log_dir = NULL, *log_file = NULL;
 	char *db_type = NULL, *db_name = NULL, *db_user = NULL, *db_pass = NULL, *db_host = NULL;
 	struct renames *renames = NULL;
 	struct timeval start, stop;
@@ -348,7 +348,7 @@ main(int argc, char **argv)
 			log_dir = strdup(argv[i] + strlen("--log-dir="));
 		}
 		else if (!prefixcmp(argv[i], "--log-file=")) {
-			logfile = strdup(argv[i] + strlen("--log-file="));
+			log_file = strdup(argv[i] + strlen("--log-file="));
 		}
 		else {
 			printf("Unknown argument: %s\n", argv[i]);
@@ -360,8 +360,8 @@ main(int argc, char **argv)
 
 	if (log_dir == NULL)
 		log_dir = strdup(DEFAULT_LOG_ARCHIVE_PATH);
-	if (logfile == NULL)
-		logfile = strdup(DEFAULT_LOG_FILE);
+	if (log_file == NULL)
+		log_file = strdup(DEFAULT_LOG_FILE);
 
 	use_database = 1;
 	if (db_user)
@@ -401,7 +401,7 @@ main(int argc, char **argv)
 	}
 	if (!errs && (do_rename_log || do_rename_archived)) {
 		linfo("Renaming logs...");
-		errs += rename_log(renames, (do_rename_archived ? log_dir : NULL), (do_rename_log ? logfile : NULL));
+		errs += rename_log(renames, (do_rename_archived ? log_dir : NULL), (do_rename_log ? log_file : NULL));
 	}
 
 	if (!errs && !save_renames) {
@@ -418,7 +418,7 @@ main(int argc, char **argv)
 	malloc_stats();
 #endif
 	safe_free(log_dir);
-	safe_free(logfile);
+	safe_free(log_file);
 	safe_free(renames);
 	return errs;
 }
