@@ -36,7 +36,9 @@ static char *read_strip_split(char *fname, int *size)
 	char *buf, *p;
 	int fd, foo;
 	int i;
-	struct stat st = {0,};
+	struct stat st;
+
+	memset(&st, 0, sizeof(st));
 
 	if (!fname)
 		return NULL;
@@ -92,17 +94,28 @@ static struct file_list *recurse_cfg_dir(char *path, struct file_list *list,
 
 	memset(cwd, 0, sizeof(cwd));
 	memset(wd, 0, sizeof(wd));
-	getcwd(cwd, sizeof(cwd));
+	if (!getcwd(cwd, sizeof(cwd))) {
+		fprintf(stderr, "getcwd() failed: %s\n", strerror(errno));
+		abort();
+	}
 
 	dp = opendir(path);
 	if (!dp || chdir(path) < 0) {
-		chdir(cwd);
+		/* shut up about ignored return values, gcc */
+		if (chdir(cwd) < 0) {
+			fprintf(stderr, "chdir(%s) failed: %s\n", cwd, strerror(errno));
+			abort();
+		}
 		return NULL;
 	}
 
 	depth++;
 
-	getcwd(wd, sizeof(wd));
+	if (!getcwd(wd, sizeof(wd))) {
+		fprintf(stderr, "getcwd() failed: %s\n", strerror(errno));
+		return NULL;
+	}
+
 	wdl = strlen(wd);
 
 	while ((df = readdir(dp))) {
@@ -141,7 +154,12 @@ static struct file_list *recurse_cfg_dir(char *path, struct file_list *list,
 	}
 
 	closedir(dp);
-	chdir(cwd);
+
+	/* make gcc shut up about ignored return value */
+	if (chdir(cwd) < 0) {
+		fprintf(stderr, "failed to chdir(%s): %s\n", cwd, strerror(errno));
+		abort();
+	}
 
 	return list;
 }

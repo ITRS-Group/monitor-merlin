@@ -267,9 +267,17 @@ static void print_time_break(struct tm *t)
 	puts("</h2>");
 }
 
+
+static inline void fwrite_or_die(void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+	if (fwrite(ptr, size, nmemb, stream) != (size_t)(size * nmemb)) {
+		fprintf(stderr, "fwrite() failed. Aborting\n");
+		exit(EXIT_FAILURE);
+	}
+}
 #define write_and_quote(a) do{ \
-	fwrite(line, 1, i, stdout); \
-	fwrite(a, 1, strlen(a), stdout); \
+	fwrite_or_die(line, 1, i, stdout); \
+	fwrite_or_die(a, 1, strlen(a), stdout); \
 	line = ++tmp; \
 	i = 0; \
 }while(0);
@@ -340,7 +348,7 @@ static void print_line_html(int type, struct tm *t, char *line, __attribute__((u
 			break;
 		}
 	}
-	fwrite(line, 1, i, stdout);
+	fwrite_or_die(line, 1, i, stdout);
 	puts("<br />");
 }
 

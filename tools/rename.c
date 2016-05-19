@@ -83,14 +83,25 @@ rename_db(struct renames *renames)
  * alerts/event handlers/initial state:
  *   (STATE|HANDLER|ALERT): host_name(;service_description)?
  */
+static inline void fwrite_or_die(void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+	ssize_t fwrite_retval;
+	fwrite_retval = fwrite(ptr, size, nmemb, stream);
+	if (fwrite_retval == (ssize_t)(size * nmemb))
+		return;
+
+	fprintf(stderr, "fwrite() failed to write all data. Aborting");
+	exit(EXIT_FAILURE);
+}
 static int
 parse_line(char *str, unsigned int len)
 {
 	char *res_str = NULL;
 	char *where_to_look;
+
 	if (len <= 13) {
-		fwrite(str, len, 1, new_file);
-		fwrite("\n", 1, 1, new_file);
+		fwrite_or_die(str, len, 1, new_file);
+		fwrite_or_die("\n", 1, 1, new_file);
 		return 0;
 	}
 	// we can skip the first 13 characters, as that is just timestamps.
@@ -99,8 +110,8 @@ parse_line(char *str, unsigned int len)
 	where_to_look = str + 13;
 	where_to_look = strchr(where_to_look, ':');
 	if (!where_to_look) {
-		fwrite(str, len, 1, new_file);
-		fwrite("\n", 1, 1, new_file);
+		fwrite_or_die(str, len, 1, new_file);
+		fwrite_or_die("\n", 1, 1, new_file);
 		return 0;
 	}
 
@@ -126,11 +137,11 @@ parse_line(char *str, unsigned int len)
 		}
 	}
 	if (res_str != NULL) {
-		fwrite(res_str, strlen(res_str), 1, new_file);
+		fwrite_or_die(res_str, strlen(res_str), 1, new_file);
 		safe_free(res_str);
 	} else {
-		fwrite(str, len, 1, new_file);
-		fwrite("\n", 1, 1, new_file);
+		fwrite_or_die(str, len, 1, new_file);
+		fwrite_or_die("\n", 1, 1, new_file);
 	}
 
 	return 0;
@@ -145,8 +156,9 @@ rename_log(__attribute__((unused)) struct renames *renames, char *log_dir, char 
 	if (logfile)
 		add_naglog_path(logfile);
 	for(i = 0; i < num_nfile; i++) {
-		char new_path[512];
+		char new_path[PATH_MAX];
 		struct naglog_file *nf = &nfile[i];
+
 		sprintf(new_path, "%s.new", nf->path);
 		linfo("Renaming in %s", nf->path);
 		new_file = fopen(new_path, "wb");
@@ -282,7 +294,7 @@ main(int argc, char **argv)
 	int i;
 	int do_rename_log = 0, do_rename_db = 0, do_rename_archived = 0;
 	int save_renames = 0;
-	char *log_dir = NULL, *log_file = NULL;
+	char *log_dir = NULL, *logfile = NULL;
 	char *db_type = NULL, *db_name = NULL, *db_user = NULL, *db_pass = NULL, *db_host = NULL;
 	struct renames *renames = NULL;
 	struct timeval start, stop;
@@ -348,7 +360,7 @@ main(int argc, char **argv)
 			log_dir = strdup(argv[i] + strlen("--log-dir="));
 		}
 		else if (!prefixcmp(argv[i], "--log-file=")) {
-			log_file = strdup(argv[i] + strlen("--log-file="));
+			logfile = strdup(argv[i] + strlen("--log-file="));
 		}
 		else {
 			printf("Unknown argument: %s\n", argv[i]);
@@ -360,8 +372,8 @@ main(int argc, char **argv)
 
 	if (log_dir == NULL)
 		log_dir = strdup(DEFAULT_LOG_ARCHIVE_PATH);
-	if (log_file == NULL)
-		log_file = strdup(DEFAULT_LOG_FILE);
+	if (logfile == NULL)
+		logfile = strdup(DEFAULT_LOG_FILE);
 
 	use_database = 1;
 	if (db_user)
@@ -401,7 +413,7 @@ main(int argc, char **argv)
 	}
 	if (!errs && (do_rename_log || do_rename_archived)) {
 		linfo("Renaming logs...");
-		errs += rename_log(renames, (do_rename_archived ? log_dir : NULL), (do_rename_log ? log_file : NULL));
+		errs += rename_log(renames, (do_rename_archived ? log_dir : NULL), (do_rename_log ? logfile : NULL));
 	}
 
 	if (!errs && !save_renames) {
@@ -418,7 +430,7 @@ main(int argc, char **argv)
 	malloc_stats();
 #endif
 	safe_free(log_dir);
-	safe_free(log_file);
+	safe_free(logfile);
 	safe_free(renames);
 	return errs;
 }
