@@ -280,8 +280,8 @@ static int conn_writable(int sd, int events, void *node_)
 	ldebug("IOB: registering %s(%d) for input events", node->name, node->sock);
 	result = iobroker_register(nagios_iobs, node->sock, node, net_input);
 	if (result < 0) {
-		lerr("IOB: Failed to register %s(%d) for input events: %s",
-		     node->name, node->sock, iobroker_strerror(result));
+		node_disconnect(node, "IOB: Failed to register %d for input events: %s",
+		                node->sock, iobroker_strerror(result));
 	}
 
 	return 0;
@@ -429,8 +429,8 @@ int net_try_connect(merlin_node *node)
 
 	result = iobroker_register_out(nagios_iobs, node->conn_sock, node, conn_writable);
 	if (result < 0) {
-		node_disconnect(node, "IOB: Failed to register %s connect socket %d with iobroker: %s",
-		                node->name, node->conn_sock, iobroker_strerror(result));
+		node_disconnect(node, "IOB: Failed to register connect socket(%d) for output: %s",
+		                node->conn_sock, iobroker_strerror(result));
 		close(node->conn_sock);
 		node->conn_sock = -1;
 		return -1;
@@ -496,8 +496,8 @@ static int net_accept_one(int sd, int events, void *discard)
 	node_set_state(node, STATE_NEGOTIATING, "Inbound connection accepted. Negotiating protocol version");
 	result = iobroker_register(nagios_iobs, node->sock, node, net_input);
 	if (result < 0) {
-		lerr("IOB: Failed to register %d for %s node %s for input events: %s",
-		     node->sock, node_type(node), node->name, iobroker_strerror(result));
+		node_disconnect(node, "Failed to register socket(%d) for input: %s",
+		                node->sock, iobroker_strerror(result));
 	}
 
 	return sock;
@@ -553,7 +553,8 @@ int net_init(void)
 
 	result = iobroker_register(nagios_iobs, net_sock, NULL, net_accept_one);
 	if (result < 0) {
-		lerr("IOB: Failed to register network socket with I/O broker: %s", iobroker_strerror(result));
+		lerr("IOB: Failed to register network socket(%d) for input: %s",
+		     net_sock, iobroker_strerror(result));
 		return -1;
 	}
 
