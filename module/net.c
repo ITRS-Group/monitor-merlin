@@ -321,11 +321,9 @@ int net_try_connect(merlin_node *node)
 	/* don't bother trying to connect if it's pending or done */
 	switch (node->state) {
 	case STATE_NEGOTIATING:
-		if (node->conn_sock < 0)
-			break;
 	case STATE_CONNECTED:
 	case STATE_PENDING:
-		ldebug("CONN: node %s state is %s, so bailing",
+		ldebug("CONN: node %s state is %s. Discarding connect attempt",
 		       node->name, node_state_name(node->state));
 		return 0;
 	}
