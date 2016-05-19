@@ -212,22 +212,22 @@ int add_interesting_object(const char *str)
 	return 0;
 }
 
-int is_interesting_host(const char *host)
+int is_interesting_host(const char *h)
 {
 	if (interesting_hosts)
-		return g_hash_table_lookup(interesting_hosts, host) == NULL ? 0 : 1;
+		return g_hash_table_lookup(interesting_hosts, h) == NULL ? 0 : 1;
 
 	return 1;
 }
 
-int is_interesting_service(const char *host, const char *service)
+int is_interesting_service(const char *h, const char *s)
 {
 	/* fall back to checking if host is interesting */
-	if (!service || !interesting_services)
-		return is_interesting_host(host);
+	if (!s || !interesting_services)
+		return is_interesting_host(h);
 
-	return g_hash_table_lookup(interesting_services, &((nm_service_key) {(char *) host,
-				(char *)service})) == NULL ? 0 : 1;
+	return g_hash_table_lookup(interesting_services, &((nm_service_key) {(char *) h,
+				(char *)s})) == NULL ? 0 : 1;
 }
 
 struct unhandled_event {

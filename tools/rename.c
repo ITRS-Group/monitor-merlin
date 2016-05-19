@@ -137,13 +137,13 @@ parse_line(char *str, unsigned int len)
 }
 
 static int
-rename_log(__attribute__((unused)) struct renames *renames, char *log_dir, char *log_file)
+rename_log(__attribute__((unused)) struct renames *renames, char *log_dir, char *logfile)
 {
 	int i;
 	if (log_dir)
 		add_naglog_path(log_dir);
-	if (log_file)
-		add_naglog_path(log_file);
+	if (logfile)
+		add_naglog_path(logfile);
 	for(i = 0; i < num_nfile; i++) {
 		char new_path[512];
 		struct naglog_file *nf = &nfile[i];
@@ -282,7 +282,7 @@ main(int argc, char **argv)
 	int i;
 	int do_rename_log = 0, do_rename_db = 0, do_rename_archived = 0;
 	int save_renames = 0;
-	char *log_dir = NULL, *log_file = NULL;
+	char *log_dir = NULL, *logfile = NULL;
 	char *db_type = NULL, *db_name = NULL, *db_user = NULL, *db_pass = NULL, *db_host = NULL;
 	struct renames *renames = NULL;
 	struct timeval start, stop;
@@ -348,7 +348,7 @@ main(int argc, char **argv)
 			log_dir = strdup(argv[i] + strlen("--log-dir="));
 		}
 		else if (!prefixcmp(argv[i], "--log-file=")) {
-			log_file = strdup(argv[i] + strlen("--log-file="));
+			logfile = strdup(argv[i] + strlen("--log-file="));
 		}
 		else {
 			printf("Unknown argument: %s\n", argv[i]);
@@ -360,8 +360,8 @@ main(int argc, char **argv)
 
 	if (log_dir == NULL)
 		log_dir = strdup(DEFAULT_LOG_ARCHIVE_PATH);
-	if (log_file == NULL)
-		log_file = strdup(DEFAULT_LOG_FILE);
+	if (logfile == NULL)
+		logfile = strdup(DEFAULT_LOG_FILE);
 
 	use_database = 1;
 	if (db_user)
@@ -401,7 +401,7 @@ main(int argc, char **argv)
 	}
 	if (!errs && (do_rename_log || do_rename_archived)) {
 		linfo("Renaming logs...");
-		errs += rename_log(renames, (do_rename_archived ? log_dir : NULL), (do_rename_log ? log_file : NULL));
+		errs += rename_log(renames, (do_rename_archived ? log_dir : NULL), (do_rename_log ? logfile : NULL));
 	}
 
 	if (!errs && !save_renames) {
@@ -418,7 +418,7 @@ main(int argc, char **argv)
 	malloc_stats();
 #endif
 	safe_free(log_dir);
-	safe_free(log_file);
+	safe_free(logfile);
 	safe_free(renames);
 	return errs;
 }

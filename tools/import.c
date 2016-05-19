@@ -351,12 +351,12 @@ static void enable_indexes(void)
 		   entries, time(NULL) - start);
 }
 
-static int insert_downtime_event(int type, char *host, char *service)
+static int insert_downtime_event(int type, char *h, char *s)
 {
 	nebstruct_downtime_data ds;
 	int result;
 
-	if (!is_interesting_service(host, service))
+	if (!is_interesting_service(h, s))
 		return 0;
 
 	if (!use_database || only_notifications)
@@ -366,15 +366,15 @@ static int insert_downtime_event(int type, char *host, char *service)
 
 	ds.type = type;
 	ds.timestamp.tv_sec = ltime;
-	ds.host_name = host;
-	ds.service_description = service;
+	ds.host_name = h;
+	ds.service_description = s;
 	ds.downtime_id = 0;
 
 	disable_indexes();
 	result = sql_insert_downtime(&ds);
 	if (result < 0)
 		lp_crash("Failed to insert downtime:\n  type=%d, host=%s, service=%s",
-				 type, host, service);
+				 type, h, s);
 
 	return result;
 }
@@ -416,7 +416,7 @@ static int insert_notification(struct string_code *sc)
 {
 	int base_idx, result;
 	char *contact_name, *host_name, *service_description;
-	char *command_name, *output;
+	char *cmd_name, *output;
 	struct import_notification n;
 
 	if (!only_notifications)
@@ -443,7 +443,7 @@ static int insert_notification(struct string_code *sc)
 	} else {
 		service_description = NULL;
 	}
-	sql_quote(strv[base_idx + 3], &command_name);
+	sql_quote(strv[base_idx + 3], &cmd_name);
 	sql_quote(strv[base_idx + 4], &output);
 	result = sql_query
 		("INSERT INTO %s("
@@ -459,12 +459,12 @@ static int insert_notification(struct string_code *sc)
 		 db_table,
 		 n.type, ltime, ltime, contact_name,
 		 host_name, safe_str(service_description),
-		 command_name, output,
+		 cmd_name, output,
 		 n.state, n.reason);
 	free(contact_name);
 	free(host_name);
 	safe_free(service_description);
-	free(command_name);
+	free(cmd_name);
 	free(output);
 	return result;
 }
@@ -566,11 +566,11 @@ static int insert_acknowledgement(struct string_code *sc)
 static int insert_downtime(struct string_code *sc)
 {
 	int type;
-	char *host, *service = NULL;
+	char *h, *s = NULL;
 
-	host = strv[0];
+	h = strv[0];
 	if (sc->nvecs == 4) {
-		service = strv[1];
+		s = strv[1];
 	}
 	/*
 	 * to stop a downtime we can either get STOPPED or
@@ -586,11 +586,11 @@ static int insert_downtime(struct string_code *sc)
 
 	switch (type) {
 	case NEBTYPE_DOWNTIME_START:
-		insert_downtime_event(NEBTYPE_DOWNTIME_START, host, service);
+		insert_downtime_event(NEBTYPE_DOWNTIME_START, h, s);
 		break;
 
 	case NEBTYPE_DOWNTIME_STOP:
-		insert_downtime_event(NEBTYPE_DOWNTIME_STOP, host, service);
+		insert_downtime_event(NEBTYPE_DOWNTIME_STOP, h, s);
 		break;
 
 	default:

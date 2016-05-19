@@ -7,14 +7,14 @@
 static GHashTable *auth_hosts, *auth_services;
 static int blocksize = 1 << 20;
 
-int auth_host_ok(const char *host)
+int auth_host_ok(const char *h)
 {
-	return !!g_hash_table_lookup(auth_hosts, host);
+	return !!g_hash_table_lookup(auth_hosts, h);
 }
 
-int auth_service_ok(const char *host, const char *svc)
+int auth_service_ok(const char *h, const char *svc)
 {
-	return !!(g_hash_table_lookup(auth_services, &((nm_service_key){ (char *) host, (char *) svc })) || auth_host_ok(host));
+	return !!(g_hash_table_lookup(auth_services, &((nm_service_key){ (char *)h, (char *) svc })) || auth_host_ok(h));
 }
 
 int auth_read_input(FILE *input)

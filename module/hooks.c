@@ -541,7 +541,7 @@ static int hook_downtime(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
-static int get_cmd_selection(char *cmd, int hostgroup)
+static int get_cmd_selection(char *cmd, int hg)
 {
 	char *semi_colon;
 	int ret;
@@ -559,7 +559,7 @@ static int get_cmd_selection(char *cmd, int hostgroup)
 	semi_colon = strchr(cmd, ';');
 	if (semi_colon)
 		*semi_colon = '\0';
-	if (!hostgroup) {
+	if (!hg) {
 		ret = get_selection(cmd);
 	} else {
 		ret = get_hostgroup_selection(cmd);

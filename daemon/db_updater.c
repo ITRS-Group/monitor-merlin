@@ -271,7 +271,7 @@ static int handle_contact_notification_method(const nebstruct_contact_notificati
 {
 	int result;
 	char *contact_name, *host_name, *service_description;
-	char *output, *ack_author, *ack_data, *command_name;
+	char *output, *ack_author, *ack_data, *cmd_name;
 
 	if (!db_log_notifications)
 		return 0;
@@ -282,7 +282,7 @@ static int handle_contact_notification_method(const nebstruct_contact_notificati
 	sql_quote(p->output, &output);
 	sql_quote(p->ack_author, &ack_author);
 	sql_quote(p->ack_data, &ack_data);
-	sql_quote(p->command_name, &command_name);
+	sql_quote(p->command_name, &cmd_name);
 
 	result = sql_query
 		("INSERT INTO notification "
@@ -296,7 +296,7 @@ static int handle_contact_notification_method(const nebstruct_contact_notificati
 		 "%s, %s, %d)",
 		 p->notification_type, p->start_time.tv_sec, p->end_time.tv_sec,
 		 contact_name, host_name,  safe_str(service_description),
-		 command_name, p->reason_type, p->state, safe_str(output),
+		 cmd_name, p->reason_type, p->state, safe_str(output),
 		 safe_str(ack_author), safe_str(ack_data), p->escalated);
 
 	free(host_name);
@@ -305,7 +305,7 @@ static int handle_contact_notification_method(const nebstruct_contact_notificati
 	safe_free(output);
 	safe_free(ack_author);
 	safe_free(ack_data);
-	free(command_name);
+	free(cmd_name);
 
 	return result;
 }

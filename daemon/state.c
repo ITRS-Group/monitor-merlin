@@ -45,32 +45,32 @@ static inline int has_state_change(int *old, int state, int type)
 	return 1;
 }
 
-int host_has_new_state(char *host, int state, int type)
+int host_has_new_state(char *h, int state, int type)
 {
 	int *old_state;
 
-	if (!host) {
+	if (!h) {
 		lerr("host_has_new_state() called with NULL host");
 		return 0;
 	}
-	old_state = g_hash_table_lookup(host_states, host);
+	old_state = g_hash_table_lookup(host_states, h);
 	if (!old_state) {
 		int *cur_state;
 
 		cur_state = malloc(sizeof(*cur_state));
 		*cur_state = CAT_STATE(state, type);
-		g_hash_table_insert(host_states, strdup(host), cur_state);
+		g_hash_table_insert(host_states, strdup(h), cur_state);
 		return 1;
 	}
 
 	return has_state_change(old_state, state, type);
 }
 
-int service_has_new_state(char *host, char *desc, int state, int type)
+int service_has_new_state(char *h, char *desc, int state, int type)
 {
 	int *old_state;
 
-	if (!host) {
+	if (!h) {
 		lerr("service_has_new_state() called with NULL host");
 		return 0;
 	}
@@ -78,13 +78,13 @@ int service_has_new_state(char *host, char *desc, int state, int type)
 		lerr("service_has_new_state() called with NULL desc");
 		return 0;
 	}
-	old_state = g_hash_table_lookup(svc_states, &((nm_service_key){host, desc}));
+	old_state = g_hash_table_lookup(svc_states, &((nm_service_key){h, desc}));
 	if (!old_state) {
 		int *cur_state;
 
 		cur_state = malloc(sizeof(*cur_state));
 		*cur_state = CAT_STATE(state, type);
-		g_hash_table_insert(svc_states, nm_service_key_create(host, desc), cur_state);
+		g_hash_table_insert(svc_states, nm_service_key_create(h, desc), cur_state);
 		return 1;
 	}
 
