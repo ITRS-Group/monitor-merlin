@@ -298,11 +298,11 @@ static void print_line_html(int type, struct tm *t, char *line, __attribute__((u
 		else			    image = "notify-send.png";
 	}
 	else if (type & EVT_EHANDLER) {
-		if      (type & EVT_HOST)    image = "hostevent.gif";
-		else if (type & EVT_SERVICE) image = "serviceevent.gif";
+		if      (type & EVT_HOST)    image = "hostevent.png";
+		else if (type & EVT_SERVICE) image = "serviceevent.png";
 	}
 	else if (type & EVT_DOWNTIME) image = "scheduled-downtime.png";
-	else if (type & EVT_FLAPPING) image = "flapping.gif";
+	else if (type & EVT_FLAPPING) image = "flapping.png";
 	else if (type & EVT_COMMAND)  image = "command.png";
 	else if (type & EVT_LROTATE)      image = "logrotate.png";
 	else if (type & EVT_START)    image = "start.png";
