@@ -1,3 +1,0 @@
-[submodule "apps/libexec/modules/pytap"]
-	path = apps/libexec/modules/pytap
-	url = http://git.op5.org/lib/python/pytap
