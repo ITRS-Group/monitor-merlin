@@ -254,7 +254,7 @@ def cmd_push(args):
 		wanted_nodes = mconf.configured_nodes.items()
 
 	# Copy recursively in 'archive' mode
-	base_rsync_args = ['rsync', '-aotz', '--delete']
+	base_rsync_args = ['rsync', '-aotzc', '--delete']
 	base_rsync_args += ['-b', '--backup-dir=%s/backups' % cache_dir]
 
 	for name, node in wanted_nodes:
