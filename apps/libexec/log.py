@@ -221,7 +221,14 @@ def cmd_purge(args):
 	dbc = conn.cursor()
 	dbc.execute('DELETE FROM notification WHERE end_time < %s', int(oldest))
 	dbc.execute('DELETE FROM report_data WHERE timestamp < %s', int(oldest))
-	for log in glob.glob(archive_dir + '/nagios-*.log'):
-		if time.mktime(time.strptime(log, archive_dir + '/nagios-%m-%d-%Y-%H.log')) < oldest:
-			os.remove(log)
+
+	return purge_naemon_log_files(oldest)
+
+def purge_naemon_log_files(oldest):
+	import time, glob
+	logformat = {"naemon": "naemon.log-%Y%m%d", "nagios": "nagios-%m-%d-%Y-%H.log"}
+	for key in logformat:
+		for log in glob.glob("%s/%s*" % (archive_dir, key)):
+			if time.mktime(time.strptime(log, "%s/%s" % (archive_dir, logformat[key]))) < oldest:
+				os.remove(log)
 	return True
