@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys, os
-sys.path.append(os.path.abspath('../../apps/libexec'))
+sys.path.append(os.path.abspath('apps/libexec'))
 import unittest
 #from log import purge_naemon_log_files, archive_dir
 import log

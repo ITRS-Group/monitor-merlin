@@ -163,6 +163,10 @@ mkdir -p %buildroot%_sysconfdir/nrpe.d
 cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
 
 
+%check
+python tests/pyunit/test.py
+
+
 %post
 %create_service_control_function
 # we must stop the merlin deamon so it doesn't interfere with any
