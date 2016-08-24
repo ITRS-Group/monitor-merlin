@@ -229,6 +229,10 @@ def purge_naemon_log_files(oldest):
 	logformat = {"naemon": "naemon.log-%Y%m%d", "nagios": "nagios-%m-%d-%Y-%H.log"}
 	for key in logformat:
 		for log in glob.glob("%s/%s*" % (archive_dir, key)):
-			if time.mktime(time.strptime(log, "%s/%s" % (archive_dir, logformat[key]))) < oldest:
-				os.remove(log)
+			try:
+				if time.mktime(time.strptime(log, "%s/%s" % (archive_dir, logformat[key]))) < oldest:
+					os.remove(log)
+			except (ValueError):
+				# File doesn't match our desired pattern, so just leave it
+				pass
 	return True
