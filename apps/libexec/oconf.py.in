@@ -399,7 +399,7 @@ def cmd_poller_fix(args=[]):
 		i = 0
 		for line in lines:
 			#print("   line: %s\nlines[%3d]: %s\n" % (line, i, lines[i]))
-			if lines[i] == 'cfg_dir=oconf/from-master.cfg\n':
+			if lines[i] == 'cfg_file=oconf/from-master.cfg\n':
 				have_from_master_cfg = True
 			elif lines[i].startswith("cfg_file=") or lines[i].startswith("cfg_dir="):
 				line = '#' + lines[i]
