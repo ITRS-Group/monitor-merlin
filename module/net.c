@@ -568,7 +568,11 @@ int net_sendto(merlin_node *node, merlin_event *pkt)
 		return -1;
 	}
 
-	return node_send_event(node, pkt, 100);
+    /*
+     * Reduce the possibility of blocking the Naemon event loop.  Should
+     * we block for poll() at all?
+     */
+	return node_send_event(node, pkt, 10);
 }
 
 int net_sendto_many(merlin_node **ntable, uint num, merlin_event *pkt)
