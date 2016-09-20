@@ -79,11 +79,11 @@ naemonconf_DATA = data/merlin.cfg
 
 merlin_la_LDFLAGS = -module -shared -fPIC
 merlin_la_LIBADD = $(GLIB_LIBS)
-merlin_la_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS)
+merlin_la_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS) -DMERLIN_MODULE_BUILD
 merlin_la_CPPFLAGS = $(AM_CPPFLAGS)
 merlind_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 merlind_CPPFLAGS = $(AM_CPPFLAGS)
-merlind_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS)
+merlind_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS) -DMERLIN_DAEMON_BUILD
 
 initdir = $(sysconfdir)/init.d
 init_SCRIPTS = data/merlind

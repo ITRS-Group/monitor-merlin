@@ -21,6 +21,9 @@ Given(/^I start naemon$/) do
       command_file=naemon.cmd
       object_cache_file=objects.cache
       status_file=/dev/null
+  
+      retain_state_information=1
+      state_retention_file=status.sav
       """
     And I start daemon naemon naemon.cfg
     And I have query handler path naemon.qh
@@ -39,6 +42,8 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
 
     log_level = debug;
     use_syslog = 0;
+
+    oconfsplit_dir = .;
 
     module {
       log_file = merlin.log

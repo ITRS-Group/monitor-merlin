@@ -1505,11 +1505,17 @@ int nebmodule_init(__attribute__((unused)) int flags, char *arg, nebmodule *hand
 	 */
 	ipc_init_struct();
 
+	/*
+	 * Make sure oconfsplit is initialized. Must be before reading config
+	 */
+	split_init();
+
 	if (read_config(arg) < 0) {
 		nm_bufferqueue_destroy(ipc.bq);
 		return -1;
 	}
 	log_init();
+
 
 	/*
 	 * Must come after reading configuration or we won't know
@@ -1600,6 +1606,11 @@ int nebmodule_deinit(__attribute__((unused)) int flags, __attribute__((unused)) 
 
 	pgroup_deinit();
 	free(merlin_config_file);
+
+	/*
+	 * Make sure oconfsplit is uninitialized
+	 */
+	split_deinit();
 
 	/*
 	 * deinit logfiles last, so nothing reopens them while
