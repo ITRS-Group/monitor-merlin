@@ -2,6 +2,7 @@ class NaemonObjectConfig
   def initialize
     @current_config = {
       "contact" => [{
+        "name" => "default-contact",
         "contact_name" => "default-contact",
         "host_notifications_enabled" => "0",
         "service_notifications_enabled" => "0",
@@ -9,8 +10,8 @@ class NaemonObjectConfig
         "service_notification_period" => "24x7",
         "host_notification_options" => "d,u,r,f,s,n",
         "service_notification_options" => "w,u,c,r,f,s,n",
-        "host_notification_commands" => "check-dummy",
-        "service_notification_commands" => "check-dummy",
+        "host_notification_commands" => "log_notif_host",
+        "service_notification_commands" => "log_notif_service",
       }],
       "timeperiod" => [{
         "timeperiod_name" => "24x7",
@@ -24,11 +25,20 @@ class NaemonObjectConfig
         "saturday" => "00:00-24:00"
       }],
       "command" => [{
-        "command_name" => "check-dummy",
-        "command_line" => "/bin/true"
+        "command_name" => "log_check_host",
+        "command_line" => "./check_cmd check host $HOSTNAME$"
+      },{
+        "command_name" => "log_check_service",
+        "command_line" => "./check_cmd check service $HOSTNAME$ $SERVICEDESC$"
+      },{
+        "command_name" => "log_notif_host",
+        "command_line" => "./check_cmd notif host $HOSTNAME$ $NOTIFICATIONCOMMENT$"
+      },{
+        "command_name" => "log_notif_service",
+        "command_line" => "./check_cmd notif host $HOSTNAME$ $SERVICEDESC$ $NOTIFICATIONCOMMENT$"
       }],
       "host" => [{
-        "check_command" => "check-dummy",
+        "check_command" => "log_check_host",
         "max_check_attempts" => 3,
         "check_interval" => 5,
         "retry_interval" => 0,
@@ -51,7 +61,7 @@ class NaemonObjectConfig
         "is_volatile" => 0,
         "max_check_attempts" => 3,
         "check_interval" => 5,
-        "check_command" => "check-dummy",
+        "check_command" => "log_check_service",
         "retry_interval" => 1,
         "active_checks_enabled" => 1,
         "passive_checks_enabled" => 1,

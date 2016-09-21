@@ -7,6 +7,10 @@ Given(/^I start naemon$/) do
   end
   livestatus_module_path = "/usr/lib64/naemon-livestatus/livestatus.so"
   puts "Using module #{merlin_module_path}"
+
+  check_cmd = "#!/bin/sh\necho $@ >> checks.log"
+  step "I have config file check_cmd with permission 777", check_cmd
+
   steps %Q{
     And I have naemon objects stored in oconf.cfg
     And I have config dir checkresults
@@ -24,6 +28,12 @@ Given(/^I start naemon$/) do
   
       retain_state_information=1
       state_retention_file=status.sav
+
+      debug_level=-1
+      debug_file=naemon.debug
+      """
+    And I have config file checks.log
+      """
       """
     And I start daemon naemon naemon.cfg
     And I have query handler path naemon.qh
@@ -56,6 +66,8 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
       object_config {
         push = ./push_cmd
         fetch = ./fetch_cmd
+      }
+      database {
       }
     }
     "

@@ -629,11 +629,23 @@ static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
 	struct kvvec *evtkv;
 	int evt_i, match_i, misses;
 
+	int i;
+	const char *evtname;
+
+	evtkv = event_packer_pack_kvv(evt, &evtname);
+
+	g_message("Merlin event: %s", evtname);
+	for(i=0; i<evtkv->kv_pairs; i++) {
+		char *valstr = strndup(evtkv->kv[i].value, evtkv->kv[i].value_len);
+		g_message("  %30s = %s", evtkv->kv[i].key, valstr);
+		free(valstr);
+	}
+
 	if (evt->hdr.type != msc->match_eventtype) {
+		kvvec_destroy(evtkv, KVVEC_FREE_ALL);
 		return FALSE;
 	}
 
-	evtkv = event_packer_pack_kvv(evt, NULL);
 	misses = 0;
 	for (match_i = 0; match_i < msc->match_kv->kv_pairs; match_i++) {
 		int found = 0;
