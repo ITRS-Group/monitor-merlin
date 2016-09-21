@@ -2,6 +2,10 @@
 #include "ipc.h"
 #include "shared.h"
 
+#ifdef MERLIN_MODULE_BUILD
+#include <module/oconfsplit.h>
+#endif
+
 int db_log_reports = 1;
 int db_log_notifications = 1;
 merlin_confsync global_csync;
@@ -129,6 +133,15 @@ int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 	if (!prefixcmp(v->key, "binlog_")) {
 		if (!grok_binlog_var(v->key, v->value))
 			cfg_error(config, v, "Failed to grok binlog option");
+
+		return 1;
+	}
+
+	if (!prefixcmp(v->key, "oconfsplit_")) {
+#ifdef MERLIN_MODULE_BUILD
+		if (!split_grok_var(v->key, v->value))
+			cfg_error(config, v, "Failed to grok oconfsplit option");
+#endif
 
 		return 1;
 	}

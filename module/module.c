@@ -1273,61 +1273,63 @@ static int post_config_init(int cb, void *ds)
 {
 	int result;
 
-	if (*(int *)ds != NEBTYPE_PROCESS_EVENTLOOPSTART)
+	if (*(int *)ds == NEBTYPE_PROCESS_START) {
+		split_config();
 		return 0;
-
-	/* required for the 'nodeinfo' query through the query handler */
-	host_check_node = calloc(num_objects.hosts, sizeof(merlin_node *));
-	service_check_node = calloc(num_objects.services, sizeof(merlin_node *));
-	host_expiry_map = calloc(num_objects.hosts, sizeof(timed_event *));
-	service_expiry_map = calloc(num_objects.services, sizeof(timed_event *));
-
-	/* only call this function once */
-	neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);
-
-	split_config();
-
-	linfo("Object configuration parsed.");
-	if (pgroup_init() < 0)
-		return -1;
-	setup_host_hash_tables();
-	pgroup_assign_peer_ids(ipc.pgroup);
-
-	expired_hosts = calloc(num_objects.hosts, sizeof(void *));
-	expired_services = calloc(num_objects.services, sizeof(void *));
-
-	if((result = qh_register_handler("merlin", "Merlin information", 0, merlin_qh)) < 0)
-		lerr("Failed to register query handler: %s", strerror(-result));
-	else
-		linfo("merlin_qh registered with query handler");
-
-	/*
-	 * it's safe to send the hash of the config we're using now that
-	 * we know the local host could parse it properly.
-	 * Note that this also sets up the repeating pulse-timer.
-	 */
-	schedule_event(0, connect_to_all, NULL);
-	schedule_event(0, send_pulse, NULL);
-
-	/*
-	 * now we register the hooks we're interested in, avoiding
-	 * the huge initial burst of events Nagios otherwise spews
-	 * at us when it's reading its status back in from the
-	 * status.sav file (assuming state retention is enabled)
-	 */
-	merlin_hooks_init(event_mask);
-
-	if (net_init() < 0) {
-		lerr("Failed to initialize networking: %s\n", strerror(errno));
-		return -1;
 	}
+	if (*(int *)ds == NEBTYPE_PROCESS_EVENTLOOPSTART) {
+		/* required for the 'nodeinfo' query through the query handler */
+		host_check_node = calloc(num_objects.hosts, sizeof(merlin_node *));
+		service_check_node = calloc(num_objects.services, sizeof(merlin_node *));
+		host_expiry_map = calloc(num_objects.hosts, sizeof(timed_event *));
+		service_expiry_map = calloc(num_objects.services, sizeof(timed_event *));
 
-	/*
-	 * this is the last event related to startup, so the regular mod hook
-	 * must see it to be able to shove startup info into the database.
-	 */
-	merlin_mod_hook(cb, ds);
+		/* only call this function once */
+		neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);
 
+		// split_config();
+
+		linfo("Object configuration parsed.");
+		if (pgroup_init() < 0)
+			return -1;
+		setup_host_hash_tables();
+		pgroup_assign_peer_ids(ipc.pgroup);
+
+		expired_hosts = calloc(num_objects.hosts, sizeof(void *));
+		expired_services = calloc(num_objects.services, sizeof(void *));
+
+		if((result = qh_register_handler("merlin", "Merlin information", 0, merlin_qh)) < 0)
+			lerr("Failed to register query handler: %s", strerror(-result));
+		else
+			linfo("merlin_qh registered with query handler");
+
+		/*
+		 * it's safe to send the hash of the config we're using now that
+		 * we know the local host could parse it properly.
+		 * Note that this also sets up the repeating pulse-timer.
+		 */
+		schedule_event(0, connect_to_all, NULL);
+		schedule_event(0, send_pulse, NULL);
+
+		/*
+	 	* now we register the hooks we're interested in, avoiding
+	 	* the huge initial burst of events Nagios otherwise spews
+	 	* at us when it's reading its status back in from the
+	 	* status.sav file (assuming state retention is enabled)
+	 	*/
+		merlin_hooks_init(event_mask);
+
+		if (net_init() < 0) {
+			lerr("Failed to initialize networking: %s\n", strerror(errno));
+			return -1;
+		}
+
+		/*
+		 * this is the last event related to startup, so the regular mod hook
+	 	* must see it to be able to shove startup info into the database.
+	 	*/
+		merlin_mod_hook(cb, ds);
+	}
 	return 0;
 }
 
@@ -1503,11 +1505,17 @@ int nebmodule_init(__attribute__((unused)) int flags, char *arg, nebmodule *hand
 	 */
 	ipc_init_struct();
 
+	/*
+	 * Make sure oconfsplit is initialized. Must be before reading config
+	 */
+	split_init();
+
 	if (read_config(arg) < 0) {
 		nm_bufferqueue_destroy(ipc.bq);
 		return -1;
 	}
 	log_init();
+
 
 	/*
 	 * Must come after reading configuration or we won't know
@@ -1598,6 +1606,11 @@ int nebmodule_deinit(__attribute__((unused)) int flags, __attribute__((unused)) 
 
 	pgroup_deinit();
 	free(merlin_config_file);
+
+	/*
+	 * Make sure oconfsplit is uninitialized
+	 */
+	split_deinit();
 
 	/*
 	 * deinit logfiles last, so nothing reopens them while

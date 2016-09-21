@@ -24,6 +24,30 @@ bitmap *htrack; /* tracks hosts passed to fcache_host() */
 
 static FILE *fp;
 
+static char *poller_config_dir = NULL;
+
+void split_init(void) {
+	nm_asprintf(&poller_config_dir, "%s/config/", CACHEDIR);
+}
+
+void split_deinit(void) {
+	nm_free(poller_config_dir);
+	poller_config_dir=NULL;
+}
+
+int split_grok_var(const char *var, const char *value) {
+	if(0 == strcmp("oconfsplit_dir", var)) {
+		char *cfgdir;
+
+		nm_free(poller_config_dir);
+
+		cfgdir = nspath_absolute(merlin_config_file, NULL);
+		dirname(cfgdir);
+		poller_config_dir = nspath_absolute(value, cfgdir);
+		nm_free(cfgdir);
+	}
+}
+
 static inline void nsplit_cache_command(struct command *cmd)
 {
 	if (!cmd || bitmap_isset(map.commands, cmd->id))
@@ -343,11 +367,11 @@ int split_config(void)
 		blk_SHA_CTX ctx;
 
 		node = poller_table[i];
-		if (asprintf(&temp_file, CACHEDIR "/config/%s.cfg.XXXXXX", node->name) == -1) {
+		if (asprintf(&temp_file, "%s%s.cfg.XXXXXX", poller_config_dir, node->name) == -1) {
 			lerr("Cannot nodesplit: there was an error generating temporary file name: %s", strerror(errno));
 			continue;
 		}
-		if (asprintf(&outfile, CACHEDIR "/config/%s.cfg", node->name) == -1) {
+		if (asprintf(&outfile, "%s%s.cfg", poller_config_dir, node->name) == -1) {
 			lerr("Cannot nodesplit: there was an error generating file name: %s", strerror(errno));
 			continue;
 		}
