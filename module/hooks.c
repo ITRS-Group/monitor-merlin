@@ -204,11 +204,6 @@ static int send_generic(merlin_event *pkt, void *data)
 	if (!num_nodes)
 		return 0;
 
-	if (pkt->hdr.selection == MAGIC_NONET) {
-		ldebug("MAGIC_NONET event of type %s. Not sending to neighbours", callback_name(pkt->hdr.type));
-		return result;
-	}
-
 	/*
 	 * The module can mark certain packets with a magic destination.
 	 * Such packets avoid all other inspection and get sent to where
@@ -865,7 +860,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	}
 
 	if (merlin_sender)
-		pkt->hdr.selection = MAGIC_NONET;
+		pkt->hdr.code = MAGIC_NONET;
 
 	if(0 != send_generic(pkt, data)) {
 		ldebug("Can't send merlin packet for command %d",
@@ -1126,7 +1121,7 @@ neb_cb_result * merlin_mod_hook(int cb, void *data)
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 	case NEBCALLBACK_PROCESS_DATA:
 		/* these make no sense to ship across the wire */
-		pkt.hdr.selection = MAGIC_NONET;
+		pkt.hdr.code = MAGIC_NONET;
 		result = send_generic(&pkt, data);
 		break;
 
