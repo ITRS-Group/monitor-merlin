@@ -30,8 +30,6 @@ BuildRoot: %{_tmppath}/%{name}-%{version}
 Prefix: /opt/monitor
 Requires: libaio
 Requires: merlin-apps >= %version
-Requires: monitor-config
-Requires: op5-mysql
 Requires: glib2
 %if 0%{?rhel} >= 7
 BuildRequires: mariadb-devel
@@ -71,7 +69,6 @@ data into a variety of databases, using libdbi.
 Summary: A Nagios module designed to communicate with the Merlin daemon
 Group: op5/Monitor
 Requires: op5-naemon, merlin = %version-%release
-Requires: monitor-config
 Requires: op5-monitor-supported-database
 
 %description -n monitor-merlin
