@@ -68,8 +68,7 @@ data into a variety of databases, using libdbi.
 %package -n monitor-merlin
 Summary: A Nagios module designed to communicate with the Merlin daemon
 Group: op5/Monitor
-Requires: op5-naemon, merlin = %version-%release
-Requires: op5-monitor-supported-database
+Requires: naemon-core, merlin = %version-%release
 
 %description -n monitor-merlin
 monitor-merlin is an event broker module running inside Nagios. Its
@@ -81,7 +80,6 @@ merlin daemon, which then takes appropriate action.
 Summary: Applications used to set up and aid a merlin/ninja installation
 Group: op5/Monitor
 Requires: rsync
-Requires: op5-monitor-supported-database
 %if 0%{?suse_version}
 Requires: libdbi1
 Requires: python-mysql
