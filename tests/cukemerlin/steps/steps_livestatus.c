@@ -168,6 +168,7 @@ static void ls_conn_close(gpointer conn_user_data) {
 STEP_DEF(step_ls_result) {
 	LivestatusScenario *lss = (LivestatusScenario*) scenario;
 	JsonNode *resultnode;
+	JsonNode *str_result, *str_expect;
 	int diff;
 
 	/* Only one argument: a match table */
@@ -183,5 +184,11 @@ STEP_DEF(step_ls_result) {
 		STEP_FAIL("No result recorded, have you sent a query?");
 	}
 
-	STEP_DIFF(resultnode, lss->result);
+	str_expect = jsonx_stringobj(resultnode);
+	str_result = jsonx_stringobj(lss->result);
+
+	STEP_DIFF(str_expect, str_result);
+
+	json_delete(str_expect);
+	json_delete(str_result);
 }

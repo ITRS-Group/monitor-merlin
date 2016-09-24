@@ -59,4 +59,13 @@ JsonNode *jsonx_table_hashes(const JsonNode *node);
  */
 int jsonx_locate(JsonNode *node, ...);
 
+
+/**
+ * Convert all non-object/array fields to string
+ *
+ * This makes comparisons easier when interacting with loosely typed languages
+ *
+ * It creates a clone of the object, which needs to be freed
+ */
+JsonNode *jsonx_stringobj(const JsonNode *node);
 #endif
