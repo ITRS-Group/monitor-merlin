@@ -36,41 +36,22 @@ Feature: Notification propagation
 			| default-contact | myContact    | 1                          |
 
 	Scenario: Notifications from local system propagates to daemon
-		Given I have merlin configured for port 7000
+		Given I start naemon with merlin nodes connected
 			| type | name     | port |
-		And the_daemon listens for merlin at socket test_ipc.sock
-
-		Given I start naemon
-		And I wait for 1 second
-
-		Then the_daemon is connected to merlin
-		And the_daemon received event CTRL_ACTIVE
 
 		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;gurka;4;testCase;A little comment
 		And I wait for 1 second
 		Then file checks.log matches ^notif host gurka A little comment$
-		And the_daemon received event CONTACT_NOTIFICATION_METHOD
+		And ipc received event CONTACT_NOTIFICATION_METHOD
 			| ack_author   | testCase         |
 			| ack_data     | A little comment |
 			| contact_name | myContact        |
 
 
 	Scenario: Notifications from local system propagates to peer
-		Given I have merlin configured for port 7000
+		Given I start naemon with merlin nodes connected
 			| type | name     | port |
 			| peer | the_peer | 4001 |
-
-		Given I start naemon
-		And I wait for 1 second
-		And node the_peer have info hash config_hash at 3000
-		And node the_peer have expected hash config_hash at 4000
-
-		Given the_peer connect to merlin at port 7000 from port 11001
-		And the_peer sends event CTRL_ACTIVE
-			| configured_peers   |           1 |
-			| config_hash        | config_hash |
-		Then the_peer received event CTRL_ACTIVE
-
 
 		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;gurka;4;testCase;A little comment
 		And I wait for 1 second
@@ -82,31 +63,16 @@ Feature: Notification propagation
 
 
 	Scenario: Notifications from peer propagates to daemon
-		Given I have merlin configured for port 7000
+		Given I start naemon with merlin nodes connected
 			| type | name     | port |
 			| peer | the_peer | 4001 |
-		And the_daemon listens for merlin at socket test_ipc.sock
-
-		Given I start naemon
-		And I wait for 1 second
-		And node the_peer have info hash config_hash at 3000
-		And node the_peer have expected hash config_hash at 4000
-
-		Given the_peer connect to merlin at port 7000 from port 11001
-		And the_peer sends event CTRL_ACTIVE
-			| configured_peers   |           1 |
-			| config_hash        | config_hash |
-		Then the_peer received event CTRL_ACTIVE
-
-		Then the_daemon is connected to merlin
-		And the_daemon received event CTRL_ACTIVE
 
 		When the_peer sends event CONTACT_NOTIFICATION_METHOD
 			| host_name    | gurka     |
 			| contact_name | myContact |
 			| ack_author   | someUser  |
 			| ack_data     | MyMessage |
-		Then the_daemon received event CONTACT_NOTIFICATION_METHOD
+		Then ipc received event CONTACT_NOTIFICATION_METHOD
 			| host_name    | gurka     |
 			| contact_name | myContact |
 			| ack_author   | someUser  |
@@ -115,19 +81,10 @@ Feature: Notification propagation
 		When I wait for 1 second
 		Then file checks.log does not match ^notif host gurka
 
-
 	Scenario: Notifications from local system propagates to master
-		Given I have merlin configured for port 7000
+		Given I start naemon with merlin nodes connected
 			| type   | name       | port |
 			| master | my_master  | 4001 |
-		And the_daemon listens for merlin at socket test_ipc.sock
-		Given my_master listens for merlin at port 4001
-
-		Given I start naemon
-		And I wait for 1 second
-
-		And my_master received event CTRL_ACTIVE
-		And the_daemon received event CTRL_ACTIVE
 
 		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;gurka;4;testCase;A little comment
 		And I wait for 1 second
@@ -140,30 +97,16 @@ Feature: Notification propagation
 
 
 	Scenario: Notifications from poller propagates to daemon, poller notifies
-		Given I have merlin configured for port 7000
+		Given I start naemon with merlin nodes connected
 			| type   | name       | port | hostgroup   | notifies |
 			| poller | the_poller | 4001 | pollergroup | yes      |
-		And the_daemon listens for merlin at socket test_ipc.sock
-
-		Given I start naemon
-		And I wait for 1 second
-		And node the_poller have info hash config_hash at 3000
-		And node the_poller have expected hash config_hash at 4000
-
-		Given the_poller connect to merlin at port 7000 from port 11001
-		And the_poller sends event CTRL_ACTIVE
-			| configured_masters |           1 |
-			| config_hash        | config_hash |
-		And the_poller is connected to merlin
-		Then the_daemon is connected to merlin
-		And the_daemon received event CTRL_ACTIVE
 
 		When the_poller sends event CONTACT_NOTIFICATION_METHOD
 			| host_name    | gurka     |
 			| contact_name | myContact |
 			| ack_author   | someUser  |
 			| ack_data     | MyMessage |
-		Then the_daemon received event CONTACT_NOTIFICATION_METHOD
+		Then ipc received event CONTACT_NOTIFICATION_METHOD
 			| host_name    | gurka     |
 			| contact_name | myContact |
 			| ack_author   | someUser  |
@@ -174,30 +117,16 @@ Feature: Notification propagation
 
 
 	Scenario: Notifications from poller propagates to daemon, master notifies
-		Given I have merlin configured for port 7000
+		Given I start naemon with merlin nodes connected
 			| type   | name       | port | hostgroup   | notifies |
 			| poller | the_poller | 4001 | pollergroup | no       |
-		And the_daemon listens for merlin at socket test_ipc.sock
-
-		Given I start naemon
-		And I wait for 1 second
-		And node the_poller have info hash config_hash at 3000
-		And node the_poller have expected hash config_hash at 4000
-
-		Given the_poller connect to merlin at port 7000 from port 11001
-		And the_poller sends event CTRL_ACTIVE
-			| configured_masters |           1 |
-			| config_hash        | config_hash |
-		And the_poller is connected to merlin
-		Then the_daemon is connected to merlin
-		And the_daemon received event CTRL_ACTIVE
 
 		When the_poller sends event CONTACT_NOTIFICATION_METHOD
 			| host_name    | gurka     |
 			| contact_name | myContact |
 			| ack_author   | someUser  |
 			| ack_data     | MyMessage |
-		Then the_daemon received event CONTACT_NOTIFICATION_METHOD
+		Then ipc received event CONTACT_NOTIFICATION_METHOD
 			| host_name    | gurka     |
 			| contact_name | myContact |
 			| ack_author   | someUser  |
