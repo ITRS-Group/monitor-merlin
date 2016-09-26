@@ -8,7 +8,7 @@ Given(/^I start naemon$/) do
   livestatus_module_path = "/usr/lib64/naemon-livestatus/livestatus.so"
   puts "Using module #{merlin_module_path}"
 
-  check_cmd = "#!/bin/sh\necho $@ >> checks.log"
+  check_cmd = "#!/bin/sh\necho $@ >> checks.log\n"
   step "I have config file check_cmd with permission 777", check_cmd
 
   steps %Q{
@@ -75,7 +75,7 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
     configfile += sprintf "\n%s %s {\n", obj["type"], obj["name"]
     configfile += "\taddress = 127.0.0.1\n" # There is no other way in tests
     obj.each do |key, value|
-      if key != "type" and key != "name" then
+      if key != "type" and key != "name" and value != "ignore" then
         configfile += "\t#{key} = #{value}\n"
       end
     end

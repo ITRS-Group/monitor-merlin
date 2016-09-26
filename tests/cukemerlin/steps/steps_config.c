@@ -29,9 +29,10 @@ STEP_DEF(step_dir);
 STEP_DEF(step_file_empty);
 
 /* matches and not matches is similar, create a wrapper for those */
-static void file_match_step(gpointer *scenario, JsonNode *args, CukeResponseRef respref, gboolean negate);
+static glong file_match_step(gpointer *scenario, const gchar *filename, const gchar *pattern, CukeResponseRef respref);
 STEP_DEF(step_file_matches);
 STEP_DEF(step_file_not_matches);
+STEP_DEF(step_file_matches_count);
 
 CukeStepEnvironment steps_config = {
 	.tag = "config",
@@ -45,6 +46,7 @@ CukeStepEnvironment steps_config = {
 		{ "^I have an empty file (.*)", step_file_empty },
 		{ "^file (.*) matches (.*)$", step_file_matches },
 		{ "^file (.*) does not match (.*)$", step_file_not_matches },
+		{ "^file (.*) has ([0-9]+) lines? matching (.*)$", step_file_matches_count },
 		{ NULL, NULL }
 	}
 };
@@ -189,11 +191,8 @@ STEP_DEF(step_file_empty) {
 }
 
 
-static void file_match_step(gpointer *scenario, JsonNode *args, CukeResponseRef respref, gboolean negate) {
+static glong file_match_step(gpointer *scenario, const gchar *filename, const gchar *pattern, CukeResponseRef respref) {
 	StepsConfig *sc = (StepsConfig *) scenario;
-
-	gchar *filename = NULL;
-	gchar *pattern = NULL;
 
 	GIOChannel *fp = NULL;
 	GError *error = NULL;
@@ -201,14 +200,9 @@ static void file_match_step(gpointer *scenario, JsonNode *args, CukeResponseRef 
 	gchar *line = NULL;
 	gsize terminator = 0;
 
-	gboolean match = FALSE;
+	glong matching_count = 0;
 	GRegex *re = NULL;
 
-	if (!jsonx_locate(args, 'a', 0, 's', &filename)
-		|| !jsonx_locate(args, 'a', 1, 's', &pattern)) {
-		STEP_FAIL("Invalid arguments");
-		return;
-	}
 
 	re = g_regex_new(pattern, 0, 0, &error);
 	if(error != NULL) {
@@ -221,31 +215,17 @@ static void file_match_step(gpointer *scenario, JsonNode *args, CukeResponseRef 
 		STEP_FAIL("Can't open file");
 		goto cleanup;
 	}
-	while(!match && (status = g_io_channel_read_line(fp, &line, NULL, &terminator, &error)) == G_IO_STATUS_NORMAL) {
+	while((status = g_io_channel_read_line(fp, &line, NULL, &terminator, &error)) == G_IO_STATUS_NORMAL) {
 		g_assert(error == NULL); /* Shouldn't be an error if status is normal */
 		g_assert(line != NULL); /* Line should be set if no error */
 		line[terminator] = '\0'; /* We don't need no linebreak */
 		if(g_regex_match(re, line, 0, NULL))
-			match = TRUE;
+			matching_count++;
 		g_free(line);
 	}
 	if(error) {
 		STEP_FAIL("Error reading file");
 		goto cleanup;
-	}
-
-	if(!negate) { /* Matches */
-		if(match) {
-			STEP_OK;
-		} else {
-			STEP_FAIL("No matching line");
-		}
-	} else { /* Not matches */
-		if(match) {
-			STEP_FAIL("Line matches");
-		} else {
-			STEP_OK;
-		}
 	}
 
 	cleanup: /**/
@@ -257,11 +237,65 @@ static void file_match_step(gpointer *scenario, JsonNode *args, CukeResponseRef 
 		g_regex_unref(re);
 	if(error)
 		g_error_free(error);
+
+	return matching_count;
 }
 
 STEP_DEF(step_file_matches) {
-	file_match_step(scenario, args, respref, FALSE);
+	gchar *filename = NULL;
+	gchar *pattern = NULL;
+	glong matching_lines;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &filename)
+		|| !jsonx_locate(args, 'a', 1, 's', &pattern)) {
+		STEP_FAIL("Invalid arguments");
+		return;
+	}
+
+	matching_lines = file_match_step(scenario, filename, pattern, respref);
+	if(matching_lines > 0) {
+		STEP_OK;
+	} else {
+		STEP_FAIL("No matching line");
+	}
 }
 STEP_DEF(step_file_not_matches) {
-	file_match_step(scenario, args, respref, TRUE);
+	gchar *filename = NULL;
+	gchar *pattern = NULL;
+	glong matching_lines;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &filename)
+		|| !jsonx_locate(args, 'a', 1, 's', &pattern)) {
+		STEP_FAIL("Invalid arguments");
+		return;
+	}
+
+	matching_lines = file_match_step(scenario, filename, pattern, respref);
+	if(matching_lines > 0) {
+		STEP_FAIL("Line matches");
+	} else {
+		STEP_OK;
+	}
+}
+STEP_DEF(step_file_matches_count) {
+	gchar *filename = NULL;
+	gchar *pattern = NULL;
+	glong expected_count = -1;
+	glong matching_lines;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &filename)
+		|| !jsonx_locate(args, 'a', 1, 'l', &expected_count)
+		|| !jsonx_locate(args, 'a', 2, 's', &pattern)) {
+		STEP_FAIL("Invalid arguments");
+		return;
+	}
+
+	matching_lines = file_match_step(scenario, filename, pattern, respref);
+	if(matching_lines != expected_count) {
+		gchar *error_line = g_strdup_printf("Matched %d lines, expected %d", matching_lines, expected_count);
+		STEP_FAIL(error_line);
+		g_free(error_line);
+	} else {
+		STEP_OK;
+	}
 }
