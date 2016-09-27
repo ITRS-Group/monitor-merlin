@@ -55,18 +55,16 @@ Feature: Notification execution
 			| name                  | hostA |
 			| state.state_type      | 1     |
 			| state.current_state   | 1     |
-			| state.current_attempt | 1     |
+			| state.current_attempt | 2     |
 
 		And the_poller sends event HOST_CHECK
 			| name                  | hostB |
 			| state.state_type      | 1     |
 			| state.current_state   | 1     |
-			| state.current_attempt | 1     |
+			| state.current_attempt | 2     |
 
 		And I wait for 1 second
 
-		# Only one, but not the other, should notify. The other should be
-		# notified by the other peer
 		Then file checks.log has 1 line matching ^notif host (hostA|hostB)$
 
 	Scenario: No masters notifies if poller notifies
@@ -91,18 +89,16 @@ Feature: Notification execution
 			| name                  | hostA |
 			| state.state_type      | 1     |
 			| state.current_state   | 1     |
-			| state.current_attempt | 1     |
+			| state.current_attempt | 2     |
 
 		And the_poller sends event HOST_CHECK
 			| name                  | hostB |
 			| state.state_type      | 1     |
 			| state.current_state   | 1     |
-			| state.current_attempt | 1     |
+			| state.current_attempt | 2     |
 
 		And I wait for 1 second
 
-		# Only one, but not the other, should notify. The other should be
-		# notified by the other peer
 		Then file checks.log has 0 line matching ^notif host (hostA|hostB)$
 
 	Scenario: Poller should notify if poller is configured to notify
@@ -119,3 +115,63 @@ Feature: Notification execution
 		And my_master received event CONTACT_NOTIFICATION_METHOD
 			| host_name    | gurka     |
 			| contact_name | myContact |
+
+	Scenario: Passive check result should only be executed on machine handling the check, when getting from QH/command pipe
+		Given I start naemon with merlin nodes connected
+			| type   | name       | port |
+			| peer   | the_peer   | 4001 |
+
+		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;0;First OK
+		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;0;First OK
+		# Passive checks goes hard directly
+		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
+		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;1;Not OK
+
+		And I wait for 1 second
+
+		When the_peer received event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostA;0;First OK          |
+		And the_peer received event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostB;0;First OK          |
+		And the_peer received event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostA;1;Not OK            |
+		And the_peer received event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostB;1;Not OK            |
+
+		Then file checks.log has 1 line matching ^notif host (hostA|hostB)$
+
+
+	Scenario: Passive check result should only be executed on machine handling the check, when getting from merlin
+		Given I start naemon with merlin nodes connected
+			| type | name          | port |
+			| peer | the_peer      | 4001 |
+
+		When the_peer sends event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostA;0;First OK          |
+		And the_peer sends event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostB;0;First OK          |
+		And the_peer sends event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostA;1;Not OK            |
+		And the_peer sends event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostB;1;Not OK            |
+
+		# Next line waits
+		Then the_peer should not receive EXTERNAL_COMMAND
+
+		And file checks.log has 1 line matching ^notif host (hostA|hostB)$
