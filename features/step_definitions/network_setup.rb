@@ -28,10 +28,10 @@ Given(/^I start naemon with merlin nodes connected$/) do |nodes|
   step "ipc received event CTRL_ACTIVE"
 
   nodes.hashes.each do |obj|
+    step "node #{obj["name"]} have info hash my_hash at 3000"
+    step "node #{obj["name"]} have expected hash my_hash at 4000"
+    step "#{obj["name"]} connect to merlin at port #{sut_portnum} from port #{obj["port"].to_i+sut_portnum}"
     if obj["type"] == "peer" then
-      step "node #{obj["name"]} have info hash my_hash at 3000"
-      step "node #{obj["name"]} have expected hash my_hash at 4000"
-      step "#{obj["name"]} connect to merlin at port #{sut_portnum} from port #{obj["port"].to_i+sut_portnum}"
       step "#{obj["name"]} sends event CTRL_ACTIVE", Cucumber::Ast::Table.new([
         ["configured_peers", configured_peers.to_s],
         ["configured_pollers", configured_pollers.to_s],
@@ -39,9 +39,6 @@ Given(/^I start naemon with merlin nodes connected$/) do |nodes|
       ])
     end
     if obj["type"] == "poller" then
-      step "node #{obj["name"]} have info hash my_hash at 3000"
-      step "node #{obj["name"]} have expected hash my_hash at 4000"
-      step "#{obj["name"]} connect to merlin at port #{sut_portnum} from port #{obj["port"].to_i+sut_portnum}"
       # TODO: multiple poller groups, this assumes a single poller group
       step "#{obj["name"]} sends event CTRL_ACTIVE", Cucumber::Ast::Table.new([
         ["configured_peers", (configured_pollers-1).to_s],
@@ -50,9 +47,14 @@ Given(/^I start naemon with merlin nodes connected$/) do |nodes|
       ])
     end
     if obj["type"] == "master" then
-      step "#{obj["name"]} connect to merlin at port #{sut_portnum} from port #{obj["port"].to_i+sut_portnum}"
-      step "#{obj["name"]} received event CTRL_ACTIVE"
+      # TODO: This makes no sense. The master should send the shape as the poller sees it.
+      step "#{obj["name"]} sends event CTRL_ACTIVE", Cucumber::Ast::Table.new([
+        ["configured_peers", 0],
+        ["configured_pollers", 0],
+        ["configured_masters", 0]
+      ])
     end
+    step "#{obj["name"]} received event CTRL_ACTIVE"
     step "#{obj["name"]} is connected to merlin"
   end
 end

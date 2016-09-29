@@ -19,12 +19,13 @@ Feature: Notification execution
 
 	Background: Set up naemon configuration
 		Given I have naemon hostgroup objects
-			| hostgroup_name | alias | members     |
-			| pollergroup    | PG    | hostA,hostB |
+			| hostgroup_name | alias |
+			| pollergroup    | PG    |
+			| emptygroup     | EG    |
 		And I have naemon host objects
-			| use          | host_name | address   | contacts  | max_check_attempts |
-			| default-host | hostA     | 127.0.0.1 | myContact | 2                  |
-			| default-host | hostB     | 127.0.0.2 | myContact | 2                  |
+			| use          | host_name | address   | contacts  | max_check_attempts | hostgroups  |
+			| default-host | hostA     | 127.0.0.1 | myContact | 2                  | pollergroup |
+			| default-host | hostB     | 127.0.0.2 | myContact | 2                  | pollergroup |
 		And I have naemon service objects
 			| use             | host_name | description |
 			| default-service | hostA     | PONG        |
@@ -118,16 +119,15 @@ Feature: Notification execution
 
 	Scenario: Passive check result should only be executed on machine handling the check, when getting from QH/command pipe
 		Given I start naemon with merlin nodes connected
-			| type   | name       | port |
-			| peer   | the_peer   | 4001 |
+			| type   | name        | port | hostgroup  |
+			| peer   | the_peer    | 4001 | ignore     |
+			| poller | the_poller  | 4002 | emptygroup |
 
 		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;0;First OK
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;0;First OK
 		# Passive checks goes hard directly
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;1;Not OK
-
-		And I wait for 1 second
 
 		When the_peer received event EXTERNAL_COMMAND
 			| command_type   | 87                        |
@@ -146,13 +146,16 @@ Feature: Notification execution
 			| command_string | PROCESS_HOST_CHECK_RESULT |
 			| command_args   | hostB;1;Not OK            |
 
+		And the_poller should not receive EXTERNAL_COMMAND
+
 		Then file checks.log has 1 line matching ^notif host (hostA|hostB)$
 
 
 	Scenario: Passive check result should only be executed on machine handling the check, when getting from merlin
 		Given I start naemon with merlin nodes connected
-			| type | name          | port |
-			| peer | the_peer      | 4001 |
+			| type   | name        | port | hostgroup  |
+			| peer   | the_peer    | 4001 | ignore     |
+			| poller | the_poller  | 4002 | emptygroup |
 
 		When the_peer sends event EXTERNAL_COMMAND
 			| command_type   | 87                        |
@@ -173,5 +176,57 @@ Feature: Notification execution
 
 		# Next line waits
 		Then the_peer should not receive EXTERNAL_COMMAND
+		And the_poller should not receive EXTERNAL_COMMAND
+
+		And file checks.log has 1 line matching ^notif host (hostA|hostB)$
+		
+	Scenario: Passive checks should be executed on poller if poller handling the check
+		Given I start naemon with merlin nodes connected
+			| type   | name       | port | hostgroup   |
+			| poller | the_poller | 4001 | pollergroup |
+			
+		
+		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;0;First OK
+		# Passive checks goes hard directly
+		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
+
+		And I wait for 1 second
+
+		When the_poller received event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostA;0;First OK          |
+		And the_poller received event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostA;1;Not OK            |
+
+		And file checks.log does not match ^notif host (hostA|hostB)$
+		
+	Scenario: Passive checks sent from master handled by correct node in pollergroup
+		Given I start naemon with merlin nodes connected
+			| type   | name         | port |
+			| master | the_master   | 4001 |
+			| peer   | other_poller | 4002 |
+
+		When the_master sends event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostA;0;First OK          |
+		And the_master sends event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostB;0;First OK          |
+		And the_master sends event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostA;1;Not OK            |
+		And the_master sends event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostB;1;Not OK            |
+
+		Then the_master should not receive EXTERNAL_COMMAND
+		And other_poller should not receive EXTERNAL_COMMAND
 
 		And file checks.log has 1 line matching ^notif host (hostA|hostB)$
