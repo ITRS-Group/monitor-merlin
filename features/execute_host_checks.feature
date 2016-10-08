@@ -4,25 +4,15 @@ Feature: Module should handle execute_host_checks sync with peer
 	the module should notify its peers with the new value
 
 	Scenario: Disabling active checks should propagate to peer
-		Given I start naemon with merlin nodes connected
+		Given I have naemon config execute_host_checks set to 1
+		And I start naemon with merlin nodes connected
 			| type | name      | port |
 			| peer | the_peer  | 4001 |
 			| peer | the_peer2 | 4002 |
-		When I submit the following livestatus query
-			| GET status                   |
-			| Columns: execute_host_checks |
-		Then I should see the following livestatus response
-			| execute_host_checks |
-			|                   1 |
-
+		And naemon status execute_host_checks should be set to 1
 		When I send naemon command STOP_EXECUTING_HOST_CHECKS
+		Then naemon status execute_host_checks should be set to 0
 
-		When I submit the following livestatus query
-			| GET status                   |
-			| Columns: execute_host_checks |
-		Then I should see the following livestatus response
-			| execute_host_checks |
-			|                   0 |
 		And the_peer received event EXTERNAL_COMMAND
 			| command_type   | 89                         |
 			| command_string | STOP_EXECUTING_HOST_CHECKS |
@@ -30,18 +20,19 @@ Feature: Module should handle execute_host_checks sync with peer
 			| command_type   | 89                         |
 			| command_string | STOP_EXECUTING_HOST_CHECKS |
 
-	Scenario: Active checks disabling from peer propagates to naemon
-		Given I start naemon with merlin nodes connected
+	Scenario: Receiving an external command through merlin
+		If a command is received through merlin, it shouldn't
+		propagate to other nodes, so loops doesn't occur, where
+		node A sends to B, sends to C and back to A.
+
+		However, the command should be executed by the node.
+
+		Given I have naemon config execute_host_checks set to 1
+		And I start naemon with merlin nodes connected
 			| type | name      | port |
 			| peer | the_peer  | 4001 |
 			| peer | the_peer2 | 4002 |
-		When I submit the following livestatus query
-			| GET status                   |
-			| Columns: execute_host_checks |
-		Then I should see the following livestatus response
-			| execute_host_checks |
-			|                   1 |
-
+		And naemon status execute_host_checks should be set to 1
 		When the_peer sends event EXTERNAL_COMMAND
 			| command_type   | 89                         |
 			| command_string | STOP_EXECUTING_HOST_CHECKS |
@@ -51,10 +42,4 @@ Feature: Module should handle execute_host_checks sync with peer
 		And the_peer2 should not receive EXTERNAL_COMMAND
 			| command_type   | 89                         |
 			| command_string | STOP_EXECUTING_HOST_CHECKS |
-
-		When I submit the following livestatus query
-			| GET status                   |
-			| Columns: execute_host_checks |
-		Then I should see the following livestatus response
-			| execute_host_checks |
-			|                   0 |
+		And naemon status execute_host_checks should be set to 0
