@@ -573,15 +573,16 @@ static int get_cmd_selection(char *cmd, int hostgroup)
 static int hook_external_command(merlin_event *pkt, void *data)
 {
 	nebstruct_external_command_data *ds = (nebstruct_external_command_data *)data;
+	int cb_result = NEB_OK;
 
 	/*
 	 * all comments generate two events, but we only want to
-	 * send one of them, so focus on NEBTYPE_EXTERNALCOMMAND_END,
-	 * since that one's only generated if the command is valid in
-	 * the Nagios instance that generates it.
+	 * send one of them, so focus on NEBTYPE_EXTERNALCOMMAND_START,
+	 * since we need to be able to block the execution of the command
+	 * in some cases where the command affects a single host or service.
 	 */
-	if (ds->type != NEBTYPE_EXTERNALCOMMAND_END)
-		return 0;
+	if (ds->type != NEBTYPE_EXTERNALCOMMAND_START)
+		return NEB_OK;
 
 	switch (ds->command_type) {
 		/*
@@ -592,7 +593,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_DEL_SVC_COMMENT:
 	case CMD_ADD_HOST_COMMENT:
 	case CMD_ADD_SVC_COMMENT:
-		return 0;
+		return NEB_OK;
 
 		/*
 		 * Custom notifications are always sent from the node where
@@ -601,7 +602,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		 */
 	case CMD_SEND_CUSTOM_HOST_NOTIFICATION:
 	case CMD_SEND_CUSTOM_SVC_NOTIFICATION:
-		return 0;
+		return NEB_OK;
 
 		/*
 		 * These only contain the downtime id, so they're mostly useless,
@@ -610,7 +611,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		 */
 	case CMD_DEL_HOST_DOWNTIME:
 	case CMD_DEL_SVC_DOWNTIME:
-		return 0;
+		return NEB_OK;
 
 		/*
 		 * these are forwarded and handled specially on the
@@ -703,8 +704,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_CHANGE_CONTACT_SVC_NOTIFICATION_TIMEPERIOD:
 	case CMD_CHANGE_HOST_MODATTR:
 	case CMD_CHANGE_SVC_MODATTR:
-	case CMD_PROCESS_HOST_CHECK_RESULT:
-	case CMD_PROCESS_SERVICE_CHECK_RESULT:
 		/*
 		 * looks like we have everything we need, so get the
 		 * selection based on the hostname so the daemon knows
@@ -714,6 +713,94 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		if (!merlin_sender)
 			pkt->hdr.selection = get_cmd_selection(ds->command_args, 0);
 		break;
+
+	case CMD_PROCESS_HOST_CHECK_RESULT:
+		if (!merlin_sender)
+			pkt->hdr.selection = get_cmd_selection(ds->command_args, 0);
+		/*
+		 * Processing check results should only be done by the node owning the
+		 * object. Thus, forward to all nodes, but execute it only on the node
+		 * owning the object.
+		 */
+		{
+			merlin_node *node;
+			char *delim;
+			host *this_host;
+			cb_result = NEB_OK;
+
+			delim = strchr(ds->command_args, ';');
+			if(delim == NULL) {
+				/*
+				 * invalid arguments, we shouldn't do anything, but naemon can
+				 * result in error later
+				 */
+				break;
+			}
+
+			this_host = find_host(strndupa(ds->command_args, delim - ds->command_args));
+			if(this_host == NULL) {
+				/*
+				 * Unknown host. Thus, nothing we know that we should handle.
+				 * Thus block it.
+				 */
+				cb_result = NEBERROR_CALLBACKCANCEL;
+				break;
+			}
+
+			node = pgroup_host_node(this_host->id);
+			if (node != &ipc) {
+				/* We're not responsible, so block this command here */
+				cb_result = NEBERROR_CALLBACKCANCEL;
+			}
+			break;
+		}
+
+	case CMD_PROCESS_SERVICE_CHECK_RESULT:
+		if (!merlin_sender)
+			pkt->hdr.selection = get_cmd_selection(ds->command_args, 0);
+		/*
+		 * Processing check results should only be done by the node owning the
+		 * object. Thus, forward to all nodes, but execute it only on the node
+		 * owning the object.
+		 */
+		{
+			merlin_node *node;
+			char *delim_host;
+			char *delim_service;
+			char *host_name;
+			char *service_description;
+			service *this_service;
+			cb_result = NEB_OK;
+
+			delim_host = strchr(ds->command_args, ';');
+			if(delim_host == NULL) {
+				break;
+			}
+			host_name = strndupa(ds->command_args, delim_host - ds->command_args);
+
+			delim_service = strchr(delim_host, ';');
+			if(delim_service == NULL) {
+				break;
+			}
+			service_description = strndupa(ds->command_args, delim_service - delim_host);
+
+			this_service = find_service(host_name, service_description);
+			if(this_service == NULL) {
+				/*
+				 * Unknown service. Thus, nothing we know that we should handle.
+				 * Thus block it.
+				 */
+				cb_result = NEBERROR_CALLBACKCANCEL;
+				break;
+			}
+
+			node = pgroup_service_node(this_service->id);
+			if (node != &ipc) {
+				/* We're not responsible, so block this command here */
+				cb_result = NEBERROR_CALLBACKCANCEL;
+			}
+			break;
+		}
 
 	/* XXX downtime stuff on top */
 	/*
@@ -780,7 +867,12 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	if (merlin_sender)
 		pkt->hdr.selection = MAGIC_NONET;
 
-	return send_generic(pkt, data);
+	if(0 != send_generic(pkt, data)) {
+		ldebug("Can't send merlin packet for command %d",
+		       ds->command_type);
+	}
+
+	return cb_result;
 }
 
 static int hook_contact_notification_method(merlin_event *pkt, void *data)
