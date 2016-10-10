@@ -551,15 +551,11 @@ static char *get_sorted_csstr(const char *orig_str)
 
 merlin_peer_group *pgroup_by_host_id(unsigned int id)
 {
-	if (!num_pollers)
-		return ipc.pgroup;
 	return host_id2pg[id];
 }
 
 merlin_peer_group *pgroup_by_service_id(unsigned int id)
 {
-	if (!num_pollers)
-		return ipc.pgroup;
 	return service_id2pg[id];
 }
 
@@ -576,21 +572,11 @@ int pgroup_send_event(merlin_peer_group *pg, merlin_event *pkt)
 	return ret;
 }
 
-static merlin_node *pgroup_node(int type, unsigned int id)
+static merlin_node *pgroup_node(merlin_peer_group *pg, uint32_t *id_table, unsigned int id)
 {
-	merlin_peer_group *pg = ipc.pgroup;
 	unsigned int real_id = id;
-	uint32_t *id_table = NULL;
 
-	if (type == HOST_CHECK && host_id2pg && host_id2pg[id]) {
-		pg = host_id2pg[id];
-		id_table = pg ? pg->host_id_table : NULL;
-	} else if (type == SERVICE_CHECK && service_id2pg && service_id2pg[id]) {
-		pg = service_id2pg[id];
-		id_table = pg ? pg->service_id_table : NULL;
-	}
-
-	if (num_pollers && id_table) {
+	if (id_table) {
 		ldebug("pg: Selected peer-group %d for check id %u", pg->id, id);
 		if (pg->active_nodes || !(pg->flags & MERLIN_NODE_TAKEOVER)) {
 			real_id = id_table[id];
@@ -606,12 +592,24 @@ static merlin_node *pgroup_node(int type, unsigned int id)
 
 merlin_node *pgroup_host_node(unsigned int id)
 {
-	return pgroup_node(HOST_CHECK, id);
+	merlin_peer_group *pg;
+
+	pg = host_id2pg[id];
+	if(pg == NULL)
+		pg = ipc.pgroup;
+
+	return pgroup_node(pg, pg->host_id_table, id);
 }
 
 merlin_node *pgroup_service_node(unsigned int id)
 {
-	return pgroup_node(SERVICE_CHECK, id);
+	merlin_peer_group *pg;
+
+	pg = service_id2pg[id];
+	if(pg == NULL)
+		pg = ipc.pgroup;
+
+	return pgroup_node(pg, pg->service_id_table, id);
 }
 
 int pgroup_init(void)
@@ -619,18 +617,14 @@ int pgroup_init(void)
 	unsigned int i;
 
 	linfo("Initializing peer-groups");
-	if (num_pollers) {
-		poller_handled_hosts = bitmap_create(num_objects.hosts);
-		poller_handled_services = bitmap_create(num_objects.services);
-	}
+	poller_handled_hosts = bitmap_create(num_objects.hosts);
+	poller_handled_services = bitmap_create(num_objects.services);
 
-	if (num_pollers) {
-		host_id2pg = calloc(sizeof(host_id2pg[0]), num_objects.hosts);
-		service_id2pg = calloc(sizeof(service_id2pg[0]), num_objects.services);
-		if (!host_id2pg || !service_id2pg) {
-			lerr("  Failed to allocate object id2pgroup tables: %m");
-			return -1;
-		}
+	host_id2pg = calloc(sizeof(host_id2pg[0]), num_objects.hosts);
+	service_id2pg = calloc(sizeof(service_id2pg[0]), num_objects.services);
+	if (!host_id2pg || !service_id2pg) {
+		lerr("  Failed to allocate object id2pgroup tables: %m");
+		return -1;
 	}
 
 	ipc.pgroup = pgroup_create(NULL);
