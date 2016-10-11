@@ -26,7 +26,11 @@ prog=merlind
 BINDIR=@bindir@
 CONFIG_FILE=@pkgconfdir@/merlin.conf
 user=@naemon_user@
-pidfile=@pkgrundir@/merlin.pid
+piddir=@pkgrundir@
+pidfile=$piddir/merlin.pid
+
+mkdir -p $piddir
+chown $user $piddir
 
 start ()
 {
