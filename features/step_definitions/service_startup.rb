@@ -25,6 +25,7 @@ Given(/^I start naemon$/) do
       command_file=naemon.cmd
       object_cache_file=objects.cache
       status_file=/dev/null
+      log_file=naemon.log
   
       retain_state_information=1
       state_retention_file=status.sav
