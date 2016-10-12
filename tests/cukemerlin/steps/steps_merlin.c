@@ -63,11 +63,16 @@ typedef struct MerlinScenarioConnection_ {
 		gboolean success;
 		const gchar *message;
 	} steptimer;
+
+	/*
+	 * Tag for the connection, as named in the cucumber steps
+	 */
+	const char *tag;
 } MerlinScenarioConnection;
 
 static struct kvvec *jsontbl_to_kvvec(JsonNode *tbl);
 
-static MerlinScenarioConnection *mrlscenconn_new(ConnectionInfo *conn_info);
+static MerlinScenarioConnection *mrlscenconn_new(ConnectionInfo *conn_info, const char *tag);
 static void mrlscenconn_destroy(MerlinScenarioConnection *msc);
 static void mrlscenconn_clear_buffer(MerlinScenarioConnection *msc);
 
@@ -190,7 +195,7 @@ STEP_DEF(step_connect_tcp) {
 	conn_info.dest_port = dport;
 	conn_info.source_addr = "0.0.0.0";
 	conn_info.source_port = sport;
-	msc = mrlscenconn_new(&conn_info);
+	msc = mrlscenconn_new(&conn_info, conntag);
 	if (msc == NULL) {
 		STEP_FAIL("Can not connect to merlin socket");
 		return;
@@ -221,7 +226,7 @@ STEP_DEF(step_connect_unix) {
 	conn_info.source_addr = "";
 	conn_info.source_port = 0;
 
-	msc = mrlscenconn_new(&conn_info);
+	msc = mrlscenconn_new(&conn_info, conntag);
 
 	g_free(conn_info.dest_addr);
 	if (msc == NULL) {
@@ -253,7 +258,7 @@ STEP_DEF(step_listen_tcp) {
 	conn_info.dest_port = dport;
 	conn_info.source_addr = "0.0.0.0";
 	conn_info.source_port = 0;
-	msc = mrlscenconn_new(&conn_info);
+	msc = mrlscenconn_new(&conn_info, conntag);
 	if (msc == NULL) {
 		STEP_FAIL("Can not start listen to merlin socket");
 		return;
@@ -284,7 +289,7 @@ STEP_DEF(step_listen_unix) {
 	conn_info.source_addr = "";
 	conn_info.source_port = 0;
 
-	msc = mrlscenconn_new(&conn_info);
+	msc = mrlscenconn_new(&conn_info, conntag);
 
 	g_free(conn_info.dest_addr);
 	if (msc == NULL) {
@@ -576,10 +581,11 @@ static MerlinScenarioConnection *mrlscen_get_conn(MerlinScenario *ms,
  * It's ok to add handlers to the main context, to update the state during
  * runtime, as long as everything is freed during mrlscenconn_destroy
  */
-static MerlinScenarioConnection *mrlscenconn_new(ConnectionInfo *conn_info) {
+static MerlinScenarioConnection *mrlscenconn_new(ConnectionInfo *conn_info, const char *tag) {
 	MerlinScenarioConnection *msc = g_malloc0(sizeof(MerlinScenarioConnection));
 
 	msc->event_buffer = g_ptr_array_new_with_free_func(g_free);
+	msc->tag = g_strdup(tag);
 
 	if(conn_info->listen) {
 		msc->ss = server_source_new(conn_info, net_conn_new, net_conn_data,
@@ -611,6 +617,7 @@ static void mrlscenconn_destroy(MerlinScenarioConnection *msc) {
 	}
 	client_source_destroy(msc->cs);
 	server_source_destroy(msc->ss);
+	g_free(msc->tag);
 	g_free(msc);
 }
 static void mrlscenconn_clear_buffer(MerlinScenarioConnection *msc) {
@@ -623,23 +630,31 @@ static void mrlscenconn_record_match_set(MerlinScenarioConnection *msc,
 	kvvec_destroy(msc->match_kv, KVVEC_FREE_ALL);
 	msc->match_kv = matchkv;
 }
+
+static void mrlscenconn_print_event(merlin_event *evt, const char *conn_tag) {
+	struct kvvec *evtkv;
+	const char *evtname;
+	int i;
+
+	evtkv = event_packer_pack_kvv(evt, &evtname);
+	g_print("%-15s Merlin event: %s\n", conn_tag, evtname);
+	for(i=0; i<evtkv->kv_pairs; i++) {
+		char *valstr = strndup(evtkv->kv[i].value, evtkv->kv[i].value_len);
+		g_print("%-15s  %30s = %s\n", conn_tag, evtkv->kv[i].key, valstr);
+		free(valstr);
+	}
+	kvvec_destroy(evtkv, KVVEC_FREE_ALL);
+}
+
 static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
 	merlin_event *evt) {
 
 	struct kvvec *evtkv;
 	int evt_i, match_i, misses;
 
-	int i;
 	const char *evtname;
 
 	evtkv = event_packer_pack_kvv(evt, &evtname);
-
-	g_message("Merlin event: %s", evtname);
-	for(i=0; i<evtkv->kv_pairs; i++) {
-		char *valstr = strndup(evtkv->kv[i].value, evtkv->kv[i].value_len);
-		g_message("  %30s = %s", evtkv->kv[i].key, valstr);
-		free(valstr);
-	}
 
 	if (evt->hdr.type != msc->match_eventtype) {
 		kvvec_destroy(evtkv, KVVEC_FREE_ALL);
@@ -703,6 +718,7 @@ static void net_conn_data(ConnectionStorage *conn, gpointer buffer,
 		buffer += read_size;
 
 		while (NULL != (evt = merlinreader_get_event(msc->mr))) {
+			mrlscenconn_print_event(evt, msc->tag);
 			if (msc->event_buffer == NULL) {
 				g_free(evt);
 			} else {
