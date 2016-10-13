@@ -568,7 +568,8 @@ int net_sendto(merlin_node *node, merlin_event *pkt)
 		return -1;
 	}
 
-	return node_send_event(node, pkt, 100);
+    /* Do not block in the Naemon event loop, retry on the next iteration. */
+	return node_send_event(node, pkt, 0);
 }
 
 int net_sendto_many(merlin_node **ntable, uint num, merlin_event *pkt)
