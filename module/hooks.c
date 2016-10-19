@@ -710,8 +710,10 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		break;
 
 	case CMD_PROCESS_HOST_CHECK_RESULT:
-		if (!merlin_sender)
+		if (!merlin_sender) {
+			/* Send to correct node */
 			pkt->hdr.selection = get_cmd_selection(ds->command_args, 0);
+		}
 		/*
 		 * Processing check results should only be done by the node owning the
 		 * object. Thus, forward to all nodes, but execute it only on the node
@@ -751,8 +753,10 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		}
 
 	case CMD_PROCESS_SERVICE_CHECK_RESULT:
-		if (!merlin_sender)
+		if (!merlin_sender) {
+			/* Send to correct node */
 			pkt->hdr.selection = get_cmd_selection(ds->command_args, 0);
+		}
 		/*
 		 * Processing check results should only be done by the node owning the
 		 * object. Thus, forward to all nodes, but execute it only on the node
@@ -773,11 +777,11 @@ static int hook_external_command(merlin_event *pkt, void *data)
 			}
 			host_name = strndupa(ds->command_args, delim_host - ds->command_args);
 
-			delim_service = strchr(delim_host, ';');
+			delim_service = strchr(delim_host+1, ';');
 			if(delim_service == NULL) {
 				break;
 			}
-			service_description = strndupa(ds->command_args, delim_service - delim_host);
+			service_description = strndupa(delim_host+1, delim_service - (delim_host+1));
 
 			this_service = find_service(host_name, service_description);
 			if(this_service == NULL) {
