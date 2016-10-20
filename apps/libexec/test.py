@@ -569,6 +569,17 @@ class fake_mesh:
 				time.sleep(0.07)
 			print("   Slept for %.2f seconds: %s      " % (sleeptime, msg))
 
+
+	def _clear_notification_log(self):
+		for inst in self.instances:
+			for path in [inst.fpath('hnotify.log'), inst.fpath('snotify.log')]:
+				try:
+					os.remove(path)
+				except OSError:
+					# Most often file doesn't exist, thus pass. Other cases,
+					# we catch the problem in next test case
+					pass
+
 	##############################################################
 	#
 	# Actual tests start here
@@ -814,7 +825,9 @@ class fake_mesh:
 		master = self.masters.nodes[0]
 		vlist = {'state': 'CRITICAL', 'output': 'Down for parent tests'}
 		now = time.time()
-		self._test_parents(self.tap.sub_init('prep parents'), lambda x: x.name == 'master-01') # So, apparently, master-01 has already notified? Why?
+		# Clear notification log, so we know previous tests doesn't affect
+		self._clear_notification_log()
+		self._test_parents(self.tap.sub_init('prep parents'), lambda x: False)
 		for i in xrange(1, 4):
 			fname = "%s/tier%d-host-ok" % (self.basepath, i)
 			fd = os.open(fname, os.O_WRONLY | os.O_TRUNC | os.O_CREAT, 0644)
@@ -947,11 +960,24 @@ class fake_mesh:
 		UNREACHABLE.
 		"""
 		queries = {
-			'DOWN hosts': 'GET hosts\nColumns: host_name\nFilter: state = 1',
-			'UNREACHABLE hosts': 'GET hosts\nColumns: host_name\nFilter: state = 2',
-			'CRITICAL services': 'GET services\nColumns: host_name service_description\nFilter: state = 2',
+			'DOWN hosts': 'GET hosts\nColumns: host_name\nFilter: state = 1', # host state=1: down
+			'UNREACHABLE hosts': 'GET hosts\nColumns: host_name\nFilter: state = 2', # host state=2: unreachable
+			'CRITICAL services': 'GET services\nColumns: host_name service_description\nFilter: state = 2', # service state=2: critical
 		}
 		for inst in self.instances:
+			# There are hosts master.0001 master.0002... that is checked from
+			# master nodes. Those nodes have master.0001 as parent to
+			# master.0002...master.000n
+			#
+			# There are similar hosts for poller groups, where pg1.0001 is
+			# parent to pg1.0002...pg1.000n
+			# Thus, as seen from master, it has DOWN hosts master.0001,
+			# pg1.0001, pg2.0001, but master1.0002, pg1.0002 is UNREACHABLE
+			#
+			# Thus, there are 1 master.0001 host and one host per poller group
+			# that is down when seen from a master, but only the poller group
+			# host 0001 that is down (which is 1) when seen from the poller
+			# node
 			expect_down = 1
 			if inst.name.startswith('master'):
 				expect_down += len(self.pgroups)
@@ -978,6 +1004,9 @@ class fake_mesh:
 		"""Verify that passive checks are working properly"""
 		master = self.masters.nodes[0]
 
+		# Clear notification log, so we know previous tests doesn't affect
+		self._clear_notification_log()
+
 		# services first, or the host state will block service
 		# notifications
 		sub = self.tap.sub_init("passive check submission")
@@ -987,6 +1016,14 @@ class fake_mesh:
 				ret = master.submit_raw_command('PROCESS_SERVICE_CHECK_RESULT;%s;2;Service plugin output' % (srv))
 				sub.test(ret, True, "Setting status of service %s" % srv)
 
+		for host in self.masters.have_objects['host']:
+			ret = master.submit_raw_command('PROCESS_HOST_CHECK_RESULT;%s;1;Plugin output for host %s' % (host, host))
+			sub.test(ret, True, "Setting status of host %s" % host)
+		
+		# make sure all hosts are in some down state, so parents will be masked
+		self.intermission("Letting down states propagate", 5)
+		
+		# resubmit to mask hosts, according to previously down states
 		for host in self.masters.have_objects['host']:
 			ret = master.submit_raw_command('PROCESS_HOST_CHECK_RESULT;%s;1;Plugin output for host %s' % (host, host))
 			sub.test(ret, True, "Setting status of host %s" % host)
@@ -1003,10 +1040,13 @@ class fake_mesh:
 		# make sure 'master1' has sent notifications
 		self.intermission("Letting notifications trigger", 5)
 		sub = self.tap.sub_init('passive check notifications')
-		# make sure 'master1' has sent notifications
-		self._test_until_or_fail('passive check notifications', self._test_notifications, tap=sub, inst=master, hosts=True, services=True)
-		for n in self.instances[1:]:
-			self._test_notifications(sub, n, hosts=False, services=False)
+		# All masters should have at least one object, thus one notification. No pollers should notify
+		for n in self.instances:
+			should_have_notified = True
+			# Due to create_core_config() says that pg1 doesn't notify...
+			if n.name.startswith('pg1'):
+				should_have_notified = False
+			self._test_until_or_fail('passive check notifications for '+n.name, self._test_notifications, tap=sub, inst=n, hosts=should_have_notified, services=should_have_notified)
 		return sub.done() == 0
 
 	def _test_ack_spread(self, sub):
@@ -1063,9 +1103,12 @@ class fake_mesh:
 
 		# ack notifications
 		sub = self.tap.sub_init('ack notifications')
-		self._test_notifications(sub, master, hosts=True, services=True)
-		for inst in self.instances[1:]:
-			self._test_notifications(sub, inst, hosts=False, services=False)
+		for inst in self.instances:
+			should_have_notified = True
+			# Due to create_core_config() says that pg1 doesn't notify...
+			if inst.name.startswith('pg1'):
+				should_have_notified = False
+			self._test_notifications(sub, inst, hosts=should_have_notified, services=should_have_notified)
 		return sub.done() == 0
 
 	def _schedule_downtime(self, sub, node, ignore={'host': {}, 'service': {}}):
