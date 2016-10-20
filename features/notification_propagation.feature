@@ -90,10 +90,10 @@ Feature: Notification propagation
 		And I wait for 1 second
 		Then file checks.log matches ^notif host gurka A little comment$
 		And my_master received event CONTACT_NOTIFICATION_METHOD
-			| host_name    | gurka     |
-			| contact_name | myContact |
-			| ack_author   | someUser  |
-			| ack_data     | MyMessage |
+			| host_name    | gurka            |
+			| contact_name | myContact        |
+			| ack_author   | testCase         |
+			| ack_data     | A little comment |
 
 
 	Scenario: Notifications from poller propagates to daemon, poller notifies

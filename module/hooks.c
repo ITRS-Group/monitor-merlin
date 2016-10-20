@@ -975,20 +975,13 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	 * If the sender is a poller that can't notify on its own, we may
 	 * have to send the notification, unless one of our peers is
 	 * supposed to do it.
-	 * If the sender is not a poller, or the poller can notify, we
-	 * must never notify on this state.
+	 * If the sender is not a poller, we should handle the notification if we
+	 * are responsible for the check of that object, as usual
 	 */
 	if (merlin_sender) {
 		ldebug("notif: merlin_sender is %s %s", node_type(merlin_sender), merlin_sender->name);
 		ldebug("notif: merlin_sender->flags: %d", merlin_sender->flags);
-		if (merlin_sender->type != MODE_POLLER) {
-			mns->net++;
-			ldebug("notif: Sender is not a poller. Cancelling notification");
-
-			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
-					"Notification will be handled by another peer (%s)", merlin_sender->name);
-		}
-		if (merlin_sender->flags & MERLIN_NODE_NOTIFIES) {
+		if (merlin_sender->type == MODE_POLLER && merlin_sender->flags & MERLIN_NODE_NOTIFIES) {
 			ldebug("notif: Poller can notify. Cancelling notification");
 
 			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
@@ -996,12 +989,15 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		}
 
 		/*
-		 * seems the sender is a poller that can't notify, so check if
-		 * we should do it and, if so, allow it
+		 * Check if we should do it and, if so, allow it
 		 */
 		if ((num_peers == 0 || should_run_check(id))) {
 			mns->sent++;
-			ldebug("notif: Poller can't notify and we're responsible, so notifying");
+			if(merlin_sender->type == MODE_POLLER) {
+				ldebug("notif: Poller can't notify and we're responsible, so notifying");
+			} else {
+				ldebug("notif: We're responsible, so notifying");
+			}
 			return neb_cb_result_create(0);
 		}
 
