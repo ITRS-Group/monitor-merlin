@@ -14,23 +14,13 @@ Given(/^I start naemon$/) do
   steps %Q{
     And I have naemon objects stored in oconf.cfg
     And I have config dir checkresults
+    And I have naemon system config file naemon_extra.cfg
     And I have config file naemon.cfg
       """
       cfg_file=oconf.cfg
-      query_socket=naemon.qh
-      check_result_path=checkresults
       broker_module=#{merlin_module_path} merlin.conf
       broker_module=#{livestatus_module_path} log_file=livestatus.log live
-      event_broker_options=-1
-      command_file=naemon.cmd
-      object_cache_file=objects.cache
-      status_file=/dev/null
-  
-      retain_state_information=1
-      state_retention_file=status.sav
-
-      debug_level=-1
-      debug_file=naemon.debug
+      include_file=naemon_extra.cfg
       """
     And I have config file checks.log
       """
