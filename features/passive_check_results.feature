@@ -39,25 +39,12 @@ Feature: Passive check result
 			| type   | name       | port |
 			| peer   | the_peer   | 4001 |
 
-		And I submit the following livestatus query
-			| GET hosts                        |
-			| Columns: address                 |
-			| Filter: plugin_output = Fromtest |
-		# This shouldn't match any lines
-		Then I should see the following livestatus response
-			| address   |
+		And I have 0 hosts objects matching plugin_output = Fromtest
 
 		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Fromtest
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;1;Fromtest
 
-		And I submit the following livestatus query
-			| GET hosts                        |
-			| Columns: address                 |
-			| Filter: plugin_output = Fromtest |
-		# This should only have one matching row. The exact content isn't what's important
-		Then I should see the following livestatus response
-			| address   |
-			| 127.0.0.1 |
+		Then I have 1 hosts object matching plugin_output = Fromtest
 
 		And the_peer received event EXTERNAL_COMMAND
 			| command_type   | 87                        |
@@ -77,15 +64,9 @@ Feature: Passive check result
 			| type   | name       | port |
 			| peer   | the_peer   | 4001 |
 
-		And I submit the following livestatus query
-			| GET hosts                        |
-			| Columns: address                 |
-			| Filter: plugin_output = Fromtest |
-		# This shouldn't match any lines
-		Then I should see the following livestatus response
-			| address   |
+		And I have 0 hosts objects matching plugin_output = Fromtest
 
-		And the_peer sends event EXTERNAL_COMMAND
+		When the_peer sends event EXTERNAL_COMMAND
 			| command_type   | 87                        |
 			| command_string | PROCESS_HOST_CHECK_RESULT |
 			| command_args   | hostA;1;Fromtest          |
@@ -96,15 +77,7 @@ Feature: Passive check result
 
 		And I wait for 1 second
 
-		And I submit the following livestatus query
-			| GET hosts                        |
-			| Columns: address                 |
-			| Filter: plugin_output = Fromtest |
-
-		# This should only have one matching row. The exact content isn't what's important
-		Then I should see the following livestatus response
-			| address   |
-			| 127.0.0.1 |
+		Then I have 1 hosts object matching plugin_output = Fromtest
 
 		And the_peer received event HOST_CHECK
 			| state.plugin_output | Fromtest |
@@ -117,25 +90,12 @@ Feature: Passive check result
 			| type   | name       | port |
 			| peer   | the_peer   | 4001 |
 
-		And I submit the following livestatus query
-			| GET services                     |
-			| Columns: host_address            |
-			| Filter: plugin_output = Fromtest |
-		# This shouldn't match any lines
-		Then I should see the following livestatus response
-			| host_address   |
+		And I have 0 services objects matching plugin_output = Fromtest
 
 		When I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Fromtest
 		And I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;1;Fromtest
 
-		And I submit the following livestatus query
-			| GET services                     |
-			| Columns: host_address            |
-			| Filter: plugin_output = Fromtest |
-		# This should only have one matching row. The exact content isn't what's important
-		Then I should see the following livestatus response
-			| host_address   |
-			| 127.0.0.1      |
+		Then I have 1 services object matching plugin_output = Fromtest
 
 		And the_peer received event EXTERNAL_COMMAND
 			| command_type   | 30                           |
@@ -155,15 +115,9 @@ Feature: Passive check result
 			| type   | name       | port |
 			| peer   | the_peer   | 4001 |
 
-		And I submit the following livestatus query
-			| GET services                     |
-			| Columns: host_address            |
-			| Filter: plugin_output = Fromtest |
-		# This shouldn't match any lines
-		Then I should see the following livestatus response
-			| host_address   |
+		And I have 0 services objects matching plugin_output = Fromtest
 
-		And the_peer sends event EXTERNAL_COMMAND
+		When the_peer sends event EXTERNAL_COMMAND
 			| command_type   | 30                           |
 			| command_string | PROCESS_SERVICE_CHECK_RESULT |
 			| command_args   | hostA;PONG;1;Fromtest        |
@@ -174,14 +128,7 @@ Feature: Passive check result
 
 		And I wait for 1 second
 
-		And I submit the following livestatus query
-			| GET services                     |
-			| Columns: host_address            |
-			| Filter: plugin_output = Fromtest |
-		# This should only have one matching row. The exact content isn't what's important
-		Then I should see the following livestatus response
-			| host_address   |
-			| 127.0.0.1      |
+		Then I have 1 services object matching plugin_output = Fromtest
 
 		And the_peer received event SERVICE_CHECK
 			| state.plugin_output | Fromtest |
