@@ -1,5 +1,5 @@
 @config @daemons @merlin @queryhandler
-Feature: Notification execution
+Feature: Notification execution for host notificaitons
 	Notification scripts should only be executed on one node; the node that
 	identifies the notification.
 
