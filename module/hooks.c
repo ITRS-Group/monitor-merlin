@@ -299,8 +299,7 @@ static int send_host_status(merlin_event *pkt, int nebattr, host *obj)
 	st_obj.name = obj->name;
 	MOD2NET_STATE_VARS(st_obj.state, obj);
 	merlin_encode_event(pkt, &st_obj);
-	if (!pkt->hdr.code)
-		pkt->hdr.selection = get_selection(obj->name);
+	pkt->hdr.selection = DEST_PEERS_MASTERS;
 
 	return send_generic(pkt, &st_obj);
 }
@@ -325,8 +324,7 @@ static int send_service_status(merlin_event *pkt, int nebattr, service *obj)
 	st_obj.host_name = obj->host_name;
 	st_obj.service_description = obj->description;
 	MOD2NET_STATE_VARS(st_obj.state, obj);
-	if (!pkt->hdr.code)
-		pkt->hdr.selection = get_selection(obj->host_name);
+	pkt->hdr.selection = DEST_PEERS_MASTERS;
 
 	return send_generic(pkt, &st_obj);
 }
@@ -369,14 +367,6 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		/* any check via check result transfer */
 		if (merlin_recv_service == s)
 			return 0;
-
-		if (ds->check_type == CHECK_TYPE_PASSIVE) {
-			/*
-			 * Never transfer passive checks to other nodes.
-			 * They get the command transferred instead
-			 */
-			pkt->hdr.code = MAGIC_NONET;
-		}
 
 		/*
 		 * We fiddle with the last_check time here so that the time
@@ -422,11 +412,6 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		/* any check via check result transfer */
 		if (merlin_recv_host == h)
 			return 0;
-
-		if (ds->check_type == CHECK_TYPE_PASSIVE) {
-			/* never transfer passive checks to other nodes */
-			pkt->hdr.code = MAGIC_NONET;
-		}
 
 		/*
 		 * We fiddle with the last_check time here so that the time
