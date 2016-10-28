@@ -25,7 +25,6 @@ static merlin_node untracked_checks_node = {
 	.service_checks = 0,
 };
 
-merlin_event *recv_event;
 
 unsigned short default_port = 15551;
 unsigned int default_addr = 0;
@@ -45,6 +44,7 @@ struct service *merlin_recv_service;
  * events while processing its packet
  */
 merlin_node *merlin_sender = NULL;
+merlin_event *recv_event;
 
 /* 9 = "reason_type", 2 = host/service, 2 = last check active/passive */
 struct merlin_notify_stats merlin_notify_stats[9][2][2];

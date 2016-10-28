@@ -1,5 +1,5 @@
 @config @daemons @merlin @queryhandler
-Feature: Notification execution
+Feature: Notification execution for host notificaitons
 	Notification scripts should only be executed on one node; the node that
 	identifies the notification.
 
@@ -34,7 +34,7 @@ Feature: Notification execution
 			| use             | contact_name |
 			| default-contact | myContact    |
 
-	Scenario: One master notifies if poller doesn't notify
+	Scenario: One master notifies if poller doesn't notify, given merlin HOST_CHECK events is received
 		Given I start naemon with merlin nodes connected
 			| type   | name       | port | hostgroup   | notifies |
 			| poller | the_poller | 4001 | pollergroup | no       |
@@ -68,7 +68,7 @@ Feature: Notification execution
 
 		Then file checks.log has 1 line matching ^notif host (hostA|hostB)$
 
-	Scenario: No masters notifies if poller notifies
+	Scenario: No masters notifies if poller notifies, given merlin HOST_CHECK events is received
 		Given I start naemon with merlin nodes connected
 			| type   | name       | port | hostgroup   | notifies |
 			| poller | the_poller | 4001 | pollergroup | yes      |
@@ -114,7 +114,7 @@ Feature: Notification execution
 		And I wait for 1 second
 		Then file checks.log matches ^notif host hostA$
 		And my_master received event CONTACT_NOTIFICATION_METHOD
-			| host_name    | gurka     |
+			| host_name    | hostA     |
 			| contact_name | myContact |
 
 	Scenario: Passive check result should only be executed on machine handling the check, when getting from QH/command pipe

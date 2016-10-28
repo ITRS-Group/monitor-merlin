@@ -27,6 +27,10 @@ Given(/^I start naemon with merlin nodes connected$/) do |nodes|
   step "I wait for 1 second"
   step "ipc received event CTRL_ACTIVE"
 
+  # Just to clean up output, except from initial CTRL_ACTIVE
+  step "node ipc have info hash my_hash at 5000"
+  step "node ipc have expected hash my_hash at 5000"
+
   nodes.hashes.each do |obj|
     step "node #{obj["name"]} have info hash my_hash at 3000"
     step "node #{obj["name"]} have expected hash my_hash at 4000"
