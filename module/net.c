@@ -514,6 +514,10 @@ int net_deinit(void)
 		node_disconnect(node_table[i], "Deinitializing networking");
 	}
 
+	iobroker_close(nagios_iobs, net_sock);
+	close(net_sock);
+	net_sock = -1;
+
 	return 0;
 }
 
