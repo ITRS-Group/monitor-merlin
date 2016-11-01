@@ -882,6 +882,9 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
 	if (ds->type != NEBTYPE_CONTACTNOTIFICATIONMETHOD_END)
 		return 0;
 
+	/* Notifications should be broadcasted for logging, but only to peers and masters. */
+	pkt->hdr.selection = DEST_PEERS_MASTERS;
+
 	return send_generic(pkt, data);
 }
 
