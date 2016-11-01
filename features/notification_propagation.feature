@@ -19,17 +19,16 @@ Feature: Notification propagation
 
 	Background: Set up naemon configuration
 		And I have naemon hostgroup objects
-			| hostgroup_name | alias | members |
-			| pollergroup    | PG    | gurka   |
+			| hostgroup_name | alias |
+			| pollergroup    | PG    |
+			| emptygroup     | EG    |
 		Given I have naemon host objects
-			| use          | host_name | address   | contacts  |
-			| default-host | something | 127.0.0.1 | myContact |
-			| default-host | gurka     | 127.0.0.2 | myContact |
+			| use          | host_name | address   | contacts  | hostgroups  |
+			| default-host | something | 127.0.0.1 | myContact | pollergroup |
+			| default-host | gurka     | 127.0.0.2 | myContact | pollergroup |
 		And I have naemon service objects
 			| use             | host_name | description |
-			| default-service | something | PING        |
 			| default-service | something | PONG        |
-			| default-service | gurka     | PING        |
 			| default-service | gurka     | PONG        |
 		And I have naemon contact objects
 			| use             | contact_name | host_notifications_enabled |
@@ -137,3 +136,25 @@ Feature: Notification propagation
 		# The master should identeify it by the check result messages
 		When I wait for 1 second
 		Then file checks.log does not match ^notif host gurka
+	
+	Scenario: Host notification from master should not be sent to poller not handling the object.
+		Given I start naemon with merlin nodes connected
+			| type   | name       | port | hostgroup  | notifies |
+			| poller | the_poller | 4001 | emptygroup | no       |
+		And file checks.log does not match ^notif host gurka
+		
+		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;gurka;4;testCase;A little comment
+		
+		Then the_poller should not receive CONTACT_NOTIFICATION_METHOD
+		And file checks.log matches ^notif host gurka
+	
+	Scenario: Service notification from master should not be sent to poller not handling the object.
+		Given I start naemon with merlin nodes connected
+			| type   | name       | port | hostgroup  | notifies |
+			| poller | the_poller | 4001 | emptygroup | no       |
+		And file checks.log does not match ^notif service gurka
+			
+		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;gurka;PONG;4;testCase;A little comment
+		
+		Then the_poller should not receive CONTACT_NOTIFICATION_METHOD
+		And file checks.log matches ^notif service gurka
