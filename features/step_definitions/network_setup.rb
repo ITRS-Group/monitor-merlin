@@ -10,13 +10,12 @@ Given(/^I start naemon with merlin nodes connected$/) do |nodes|
   configured_masters = 0
 
   nodes.hashes.each do |obj|
-    if obj["type"] == "peer" then
+    case obj["type"]
+    when "peer"
       configured_peers += 1
-    end
-    if obj["type"] == "poller" then
+    when "poller"
       configured_pollers += 1
-    end
-    if obj["type"] == "master" then
+    when "master"
       configured_masters += 1
     end
   end
@@ -35,22 +34,21 @@ Given(/^I start naemon with merlin nodes connected$/) do |nodes|
     step "node #{obj["name"]} have info hash my_hash at 3000"
     step "node #{obj["name"]} have expected hash my_hash at 4000"
     step "#{obj["name"]} connect to merlin at port #{sut_portnum} from port #{obj["port"].to_i+sut_portnum}"
-    if obj["type"] == "peer" then
+    case obj["type"]
+    when "peer"
       step "#{obj["name"]} sends event CTRL_ACTIVE", Cucumber::Ast::Table.new([
         ["configured_peers", configured_peers.to_s],
         ["configured_pollers", configured_pollers.to_s],
         ["configured_masters", configured_masters.to_s]
       ])
-    end
-    if obj["type"] == "poller" then
+    when "poller"
       # TODO: multiple poller groups, this assumes a single poller group
       step "#{obj["name"]} sends event CTRL_ACTIVE", Cucumber::Ast::Table.new([
         ["configured_peers", (configured_pollers-1).to_s],
         ["configured_pollers", "0"],
         ["configured_masters", (configured_peers+1).to_s]
       ])
-    end
-    if obj["type"] == "master" then
+    when "master"
       # TODO: This makes no sense. The master should send the shape as the poller sees it.
       step "#{obj["name"]} sends event CTRL_ACTIVE", Cucumber::Ast::Table.new([
         ["configured_peers", 0],

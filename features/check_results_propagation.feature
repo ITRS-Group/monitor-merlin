@@ -45,10 +45,10 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| type   | name      | port | hostgroup   |
 			| peer   | my_peer   | 4001 | ignore      |
 			| poller | my_poller | 4002 | emptygroup  |
-		And I have 0 hosts objects matching state = 1
+		And I should have 0 hosts objects matching state = 1
 		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;1;Not OK
-		Then I have 1 hosts objects matching state = 1
+		Then I should have 1 hosts objects matching state = 1
 		And my_peer received event HOST_CHECK
 		And my_poller should not receive HOST_CHECK
 
@@ -59,13 +59,13 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| type   | name      | port | hostgroup   |
 			| peer   | my_peer   | 4001 | ignore      |
 			| poller | my_poller | 4002 | emptygroup  |
-		And I have 0 hosts objects matching state = 1
+		And I should have 0 hosts objects matching state = 1
 		When my_poller sends event HOST_CHECK
 			| name                  | hostA |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
-		Then I have 1 hosts objects matching state = 1
+		Then I should have 1 hosts objects matching state = 1
 		And my_peer should not receive HOST_CHECK
 		And my_poller should not receive HOST_CHECK
 
@@ -76,13 +76,13 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| type   | name      | port | hostgroup   |
 			| peer   | my_peer   | 4001 | ignore      |
 			| poller | my_poller | 4002 | emptygroup  |
-		And I have 0 hosts objects matching state = 1
+		And I should have 0 hosts objects matching state = 1
 		When my_peer sends event HOST_CHECK
 			| name                  | hostA |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
-		Then I have 1 hosts objects matching state = 1
+		Then I should have 1 hosts objects matching state = 1
 		And my_peer should not receive HOST_CHECK
 		And my_poller should not receive HOST_CHECK
 
@@ -93,10 +93,10 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| type   | name      | port |
 			| peer   | my_peer   | 4001 |
 			| master | my_master | 4002 |
-		And I have 0 hosts objects matching state = 1
+		And I should have 0 hosts objects matching state = 1
 		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;1;Not OK
-		Then I have 1 hosts objects matching state = 1
+		Then I should have 1 hosts objects matching state = 1
 		And my_peer received event HOST_CHECK
 		And my_master received event HOST_CHECK
 
@@ -107,13 +107,13 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| type   | name      | port |
 			| peer   | my_peer   | 4001 |
 			| master | my_master | 4002 |
-		And I have 0 hosts objects matching state = 1
+		And I should have 0 hosts objects matching state = 1
 		When my_peer sends event HOST_CHECK
 			| name                  | hostA |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
-		Then I have 1 hosts objects matching state = 1
+		Then I should have 1 hosts objects matching state = 1
 		And my_peer should not receive HOST_CHECK
 		And my_master should not receive HOST_CHECK
 
@@ -126,10 +126,10 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| type   | name      | port | hostgroup   |
 			| peer   | my_peer   | 4001 | ignore      |
 			| poller | my_poller | 4002 | emptygroup  |
-		And I have 0 services objects matching state = 1
+		And I should have 0 services objects matching state = 1
 		When I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Not OK
 		And I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;1;Not OK
-		Then I have 1 services objects matching state = 1
+		Then I should have 1 services objects matching state = 1
 		And my_peer received event SERVICE_CHECK
 		And my_poller should not receive SERVICE_CHECK
 
@@ -140,14 +140,14 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| type   | name      | port | hostgroup   |
 			| peer   | my_peer   | 4001 | ignore      |
 			| poller | my_poller | 4002 | emptygroup  |
-		And I have 0 services objects matching state = 1
+		And I should have 0 services objects matching state = 1
 		When my_poller sends event SERVICE_CHECK
 			| host_name             | hostA |
 			| service_description   | PONG  |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
-		Then I have 1 services objects matching state = 1
+		Then I should have 1 services objects matching state = 1
 		And my_peer should not receive SERVICE_CHECK
 		And my_poller should not receive SERVICE_CHECK
 
@@ -158,14 +158,14 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| type   | name      | port | hostgroup   |
 			| peer   | my_peer   | 4001 | ignore      |
 			| poller | my_poller | 4002 | emptygroup  |
-		And I have 0 services objects matching state = 1
+		And I should have 0 services objects matching state = 1
 		When my_peer sends event SERVICE_CHECK
 			| host_name             | hostA |
 			| service_description   | PONG  |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
-		Then I have 1 services objects matching state = 1
+		Then I should have 1 services objects matching state = 1
 		And my_peer should not receive SERVICE_CHECK
 		And my_poller should not receive SERVICE_CHECK
 
@@ -176,10 +176,10 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| type   | name      | port |
 			| peer   | my_peer   | 4001 |
 			| master | my_master | 4002 |
-		And I have 0 services objects matching state = 1
+		And I should have 0 services objects matching state = 1
 		When I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Not OK
 		And I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;1;Not OK
-		Then I have 1 services objects matching state = 1
+		Then I should have 1 services objects matching state = 1
 		And my_peer received event SERVICE_CHECK
 		And my_master received event SERVICE_CHECK
 
@@ -190,13 +190,13 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| type   | name      | port |
 			| peer   | my_peer   | 4001 |
 			| master | my_master | 4002 |
-		And I have 0 services objects matching state = 1
+		And I should have 0 services objects matching state = 1
 		When my_peer sends event SERVICE_CHECK
 			| host_name             | hostA |
 			| service_description   | PONG  |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
-		Then I have 1 services objects matching state = 1
+		Then I should have 1 services objects matching state = 1
 		And my_peer should not receive SERVICE_CHECK
 		And my_master should not receive SERVICE_CHECK

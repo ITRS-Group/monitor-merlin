@@ -825,7 +825,7 @@ class fake_mesh:
 		master = self.masters.nodes[0]
 		vlist = {'state': 'CRITICAL', 'output': 'Down for parent tests'}
 		now = time.time()
-		# Clear notification log, so we know previous tests doesn't affect
+		# Clear notification log, so we know previous tests doesn't affect the behaviour of the test
 		self._clear_notification_log()
 		self._test_parents(self.tap.sub_init('prep parents'), lambda x: False)
 		for i in xrange(1, 4):

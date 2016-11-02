@@ -190,29 +190,32 @@ JsonNode *jsonx_stringobj(const JsonNode *node) {
 		return json_mkstring(node->bool_ ? "true" : "false");
 	case JSON_NULL:
 		return json_mkstring("");
-	case JSON_NUMBER: {
-		char tmpstr[256];
-		sprintf(tmpstr, "%d", (int)node->number_);
-		return json_mkstring(tmpstr);
-	}
+	case JSON_NUMBER:
+		{
+			char tmpstr[256];
+			sprintf(tmpstr, "%d", (int)node->number_);
+			return json_mkstring(tmpstr);
+		}
 	case JSON_STRING:
 		return json_mkstring(node->string_);
-	case JSON_ARRAY: {
-		JsonNode *result, *cur;
-		result = json_mkarray();
-		json_foreach(cur, node) {
-			json_append_element(result, jsonx_stringobj(cur));
+	case JSON_ARRAY:
+		{
+			JsonNode *result, *cur;
+			result = json_mkarray();
+			json_foreach(cur, node) {
+				json_append_element(result, jsonx_stringobj(cur));
+			}
+			return result;
 		}
-		return result;
-	}
-	case JSON_OBJECT: {
-		JsonNode *result, *cur;
-		result = json_mkobject();
-		json_foreach(cur, node) {
-			json_append_member(result, cur->key, jsonx_stringobj(cur));
+	case JSON_OBJECT:
+		{
+			JsonNode *result, *cur;
+			result = json_mkobject();
+			json_foreach(cur, node) {
+				json_append_member(result, cur->key, jsonx_stringobj(cur));
+			}
+			return result;
 		}
-		return result;
-	}
 	}
 	return NULL; /* Shouldn't be possible to happen */
 }

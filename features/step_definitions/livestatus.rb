@@ -1,4 +1,4 @@
-Then /^I have ([0-9]+) ([^ ]+) objects? matching (.+)$/ do |count, type, filter|
+Then /^I should have ([0-9]+) ([^ ]+) objects? matching (.+)$/ do |count, type, filter|
   steps %Q{
     Given I submit the following livestatus query
       | GET #{type}       |

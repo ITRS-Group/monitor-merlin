@@ -708,7 +708,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 			merlin_node *node;
 			char *delim;
 			host *this_host;
-			cb_result = NEB_OK;
 
 			delim = strchr(ds->command_args, ';');
 			if(delim == NULL) {
@@ -754,7 +753,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 			char *host_name;
 			char *service_description;
 			service *this_service;
-			cb_result = NEB_OK;
 
 			delim_host = strchr(ds->command_args, ';');
 			if(delim_host == NULL) {
