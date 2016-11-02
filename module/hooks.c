@@ -204,11 +204,6 @@ static int send_generic(merlin_event *pkt, void *data)
 	if (!num_nodes)
 		return 0;
 
-	if (pkt->hdr.selection == MAGIC_NONET) {
-		ldebug("MAGIC_NONET event of type %s. Not sending to neighbours", callback_name(pkt->hdr.type));
-		return result;
-	}
-
 	/*
 	 * The module can mark certain packets with a magic destination.
 	 * Such packets avoid all other inspection and get sent to where
@@ -304,8 +299,7 @@ static int send_host_status(merlin_event *pkt, int nebattr, host *obj)
 	st_obj.name = obj->name;
 	MOD2NET_STATE_VARS(st_obj.state, obj);
 	merlin_encode_event(pkt, &st_obj);
-	if (!pkt->hdr.code)
-		pkt->hdr.selection = get_selection(obj->name);
+	pkt->hdr.selection = DEST_PEERS_MASTERS;
 
 	return send_generic(pkt, &st_obj);
 }
@@ -330,8 +324,7 @@ static int send_service_status(merlin_event *pkt, int nebattr, service *obj)
 	st_obj.host_name = obj->host_name;
 	st_obj.service_description = obj->description;
 	MOD2NET_STATE_VARS(st_obj.state, obj);
-	if (!pkt->hdr.code)
-		pkt->hdr.selection = get_selection(obj->host_name);
+	pkt->hdr.selection = DEST_PEERS_MASTERS;
 
 	return send_generic(pkt, &st_obj);
 }
@@ -374,14 +367,6 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		/* any check via check result transfer */
 		if (merlin_recv_service == s)
 			return 0;
-
-		if (ds->check_type == CHECK_TYPE_PASSIVE) {
-			/*
-			 * Never transfer passive checks to other nodes.
-			 * They get the command transferred instead
-			 */
-			pkt->hdr.code = MAGIC_NONET;
-		}
 
 		/*
 		 * We fiddle with the last_check time here so that the time
@@ -427,11 +412,6 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		/* any check via check result transfer */
 		if (merlin_recv_host == h)
 			return 0;
-
-		if (ds->check_type == CHECK_TYPE_PASSIVE) {
-			/* never transfer passive checks to other nodes */
-			pkt->hdr.code = MAGIC_NONET;
-		}
 
 		/*
 		 * We fiddle with the last_check time here so that the time
@@ -573,15 +553,16 @@ static int get_cmd_selection(char *cmd, int hostgroup)
 static int hook_external_command(merlin_event *pkt, void *data)
 {
 	nebstruct_external_command_data *ds = (nebstruct_external_command_data *)data;
+	int cb_result = NEB_OK;
 
 	/*
 	 * all comments generate two events, but we only want to
-	 * send one of them, so focus on NEBTYPE_EXTERNALCOMMAND_END,
-	 * since that one's only generated if the command is valid in
-	 * the Nagios instance that generates it.
+	 * send one of them, so focus on NEBTYPE_EXTERNALCOMMAND_START,
+	 * since we need to be able to block the execution of the command
+	 * in some cases where the command affects a single host or service.
 	 */
-	if (ds->type != NEBTYPE_EXTERNALCOMMAND_END)
-		return 0;
+	if (ds->type != NEBTYPE_EXTERNALCOMMAND_START)
+		return NEB_OK;
 
 	switch (ds->command_type) {
 		/*
@@ -592,7 +573,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_DEL_SVC_COMMENT:
 	case CMD_ADD_HOST_COMMENT:
 	case CMD_ADD_SVC_COMMENT:
-		return 0;
+		return NEB_OK;
 
 		/*
 		 * Custom notifications are always sent from the node where
@@ -601,7 +582,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		 */
 	case CMD_SEND_CUSTOM_HOST_NOTIFICATION:
 	case CMD_SEND_CUSTOM_SVC_NOTIFICATION:
-		return 0;
+		return NEB_OK;
 
 		/*
 		 * These only contain the downtime id, so they're mostly useless,
@@ -610,7 +591,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		 */
 	case CMD_DEL_HOST_DOWNTIME:
 	case CMD_DEL_SVC_DOWNTIME:
-		return 0;
+		return NEB_OK;
 
 		/*
 		 * these are forwarded and handled specially on the
@@ -703,8 +684,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_CHANGE_CONTACT_SVC_NOTIFICATION_TIMEPERIOD:
 	case CMD_CHANGE_HOST_MODATTR:
 	case CMD_CHANGE_SVC_MODATTR:
-	case CMD_PROCESS_HOST_CHECK_RESULT:
-	case CMD_PROCESS_SERVICE_CHECK_RESULT:
 		/*
 		 * looks like we have everything we need, so get the
 		 * selection based on the hostname so the daemon knows
@@ -714,6 +693,96 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		if (!merlin_sender)
 			pkt->hdr.selection = get_cmd_selection(ds->command_args, 0);
 		break;
+
+	case CMD_PROCESS_HOST_CHECK_RESULT:
+		if (!merlin_sender) {
+			/* Send to correct node */
+			pkt->hdr.selection = get_cmd_selection(ds->command_args, 0);
+		}
+		/*
+		 * Processing check results should only be done by the node owning the
+		 * object. Thus, forward to all nodes, but execute it only on the node
+		 * owning the object.
+		 */
+		{
+			merlin_node *node;
+			char *delim;
+			host *this_host;
+
+			delim = strchr(ds->command_args, ';');
+			if(delim == NULL) {
+				/*
+				 * invalid arguments, we shouldn't do anything, but naemon can
+				 * result in error later
+				 */
+				break;
+			}
+
+			this_host = find_host(strndupa(ds->command_args, delim - ds->command_args));
+			if(this_host == NULL) {
+				/*
+				 * Unknown host. Thus, nothing we know that we should handle.
+				 * Thus block it.
+				 */
+				cb_result = NEBERROR_CALLBACKCANCEL;
+				break;
+			}
+
+			node = pgroup_host_node(this_host->id);
+			if (node != &ipc) {
+				/* We're not responsible, so block this command here */
+				cb_result = NEBERROR_CALLBACKCANCEL;
+			}
+			break;
+		}
+
+	case CMD_PROCESS_SERVICE_CHECK_RESULT:
+		if (!merlin_sender) {
+			/* Send to correct node */
+			pkt->hdr.selection = get_cmd_selection(ds->command_args, 0);
+		}
+		/*
+		 * Processing check results should only be done by the node owning the
+		 * object. Thus, forward to all nodes, but execute it only on the node
+		 * owning the object.
+		 */
+		{
+			merlin_node *node;
+			char *delim_host;
+			char *delim_service;
+			char *host_name;
+			char *service_description;
+			service *this_service;
+
+			delim_host = strchr(ds->command_args, ';');
+			if(delim_host == NULL) {
+				break;
+			}
+			host_name = strndupa(ds->command_args, delim_host - ds->command_args);
+
+			delim_service = strchr(delim_host+1, ';');
+			if(delim_service == NULL) {
+				break;
+			}
+			service_description = strndupa(delim_host+1, delim_service - (delim_host+1));
+
+			this_service = find_service(host_name, service_description);
+			if(this_service == NULL) {
+				/*
+				 * Unknown service. Thus, nothing we know that we should handle.
+				 * Thus block it.
+				 */
+				cb_result = NEBERROR_CALLBACKCANCEL;
+				break;
+			}
+
+			node = pgroup_service_node(this_service->id);
+			if (node != &ipc) {
+				/* We're not responsible, so block this command here */
+				cb_result = NEBERROR_CALLBACKCANCEL;
+			}
+			break;
+		}
 
 	/* XXX downtime stuff on top */
 	/*
@@ -778,9 +847,14 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	}
 
 	if (merlin_sender)
-		pkt->hdr.selection = MAGIC_NONET;
+		pkt->hdr.code = MAGIC_NONET;
 
-	return send_generic(pkt, data);
+	if(0 != send_generic(pkt, data)) {
+		ldebug("Can't send merlin packet for command %d",
+		       ds->command_type);
+	}
+
+	return cb_result;
 }
 
 static int hook_contact_notification_method(merlin_event *pkt, void *data)
@@ -790,6 +864,9 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
 
 	if (ds->type != NEBTYPE_CONTACTNOTIFICATIONMETHOD_END)
 		return 0;
+
+	/* Notifications should be broadcasted for logging, but only to peers and masters. */
+	pkt->hdr.selection = DEST_PEERS_MASTERS;
 
 	return send_generic(pkt, data);
 }
@@ -884,20 +961,13 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	 * If the sender is a poller that can't notify on its own, we may
 	 * have to send the notification, unless one of our peers is
 	 * supposed to do it.
-	 * If the sender is not a poller, or the poller can notify, we
-	 * must never notify on this state.
+	 * If the sender is not a poller, we should handle the notification if we
+	 * are responsible for the check of that object, as usual
 	 */
 	if (merlin_sender) {
 		ldebug("notif: merlin_sender is %s %s", node_type(merlin_sender), merlin_sender->name);
 		ldebug("notif: merlin_sender->flags: %d", merlin_sender->flags);
-		if (merlin_sender->type != MODE_POLLER) {
-			mns->net++;
-			ldebug("notif: Sender is not a poller. Cancelling notification");
-
-			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
-					"Notification will be handled by another peer (%s)", merlin_sender->name);
-		}
-		if (merlin_sender->flags & MERLIN_NODE_NOTIFIES) {
+		if (merlin_sender->type == MODE_POLLER && merlin_sender->flags & MERLIN_NODE_NOTIFIES) {
 			ldebug("notif: Poller can notify. Cancelling notification");
 
 			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
@@ -905,12 +975,15 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		}
 
 		/*
-		 * seems the sender is a poller that can't notify, so check if
-		 * we should do it and, if so, allow it
+		 * Check if we should do it and, if so, allow it
 		 */
 		if ((num_peers == 0 || should_run_check(id))) {
 			mns->sent++;
-			ldebug("notif: Poller can't notify and we're responsible, so notifying");
+			if(merlin_sender->type == MODE_POLLER) {
+				ldebug("notif: Poller can't notify and we're responsible, so notifying");
+			} else {
+				ldebug("notif: We're responsible, so notifying");
+			}
 			return neb_cb_result_create(0);
 		}
 
@@ -1034,7 +1107,7 @@ neb_cb_result * merlin_mod_hook(int cb, void *data)
 	case NEBCALLBACK_PROGRAM_STATUS_DATA:
 	case NEBCALLBACK_PROCESS_DATA:
 		/* these make no sense to ship across the wire */
-		pkt.hdr.selection = MAGIC_NONET;
+		pkt.hdr.code = MAGIC_NONET;
 		result = send_generic(&pkt, data);
 		break;
 

@@ -7,23 +7,23 @@ Given(/^I start naemon$/) do
   end
   livestatus_module_path = "/usr/lib64/naemon-livestatus/livestatus.so"
   puts "Using module #{merlin_module_path}"
+
+  check_cmd = "#!/bin/sh\necho $@ >> checks.log\n"
+  step "I have config file check_cmd with permission 777", check_cmd
+
   steps %Q{
     And I have naemon objects stored in oconf.cfg
     And I have config dir checkresults
+    And I have naemon system config file naemon_extra.cfg
     And I have config file naemon.cfg
       """
       cfg_file=oconf.cfg
-      query_socket=naemon.qh
-      check_result_path=checkresults
       broker_module=#{merlin_module_path} merlin.conf
       broker_module=#{livestatus_module_path} log_file=livestatus.log live
-      event_broker_options=-1
-      command_file=naemon.cmd
-      object_cache_file=objects.cache
-      status_file=/dev/null
-  
-      retain_state_information=1
-      state_retention_file=status.sav
+      include_file=naemon_extra.cfg
+      """
+    And I have config file checks.log
+      """
       """
     And I start daemon naemon naemon.cfg
     And I have query handler path naemon.qh
@@ -57,13 +57,15 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
         push = ./push_cmd
         fetch = ./fetch_cmd
       }
+      database {
+      }
     }
     "
   nodes.hashes.each do |obj|
     configfile += sprintf "\n%s %s {\n", obj["type"], obj["name"]
     configfile += "\taddress = 127.0.0.1\n" # There is no other way in tests
     obj.each do |key, value|
-      if key != "type" and key != "name" then
+      if key != "type" and key != "name" and value != "ignore" then
         configfile += "\t#{key} = #{value}\n"
       end
     end

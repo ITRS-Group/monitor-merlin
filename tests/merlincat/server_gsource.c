@@ -1,6 +1,7 @@
 #include <glib.h>
 #include <gio/gio.h>
 #include <gio/gunixsocketaddress.h>
+#include <sys/socket.h>
 #include "server_gsource.h"
 
 #include <string.h>
@@ -93,6 +94,8 @@ ServerSource *server_source_new(const ConnectionInfo *conn_info,
 		return NULL;
 	}
 	g_socket_set_blocking(csock->listening_socket, FALSE);
+
+	setsockopt(csock->listening_socket, SOL_SOCKET, SO_REUSEADDR, NULL, 0);
 
 	/* Bind socket to address */
 	if (!g_socket_bind(csock->listening_socket, addr, FALSE, &error)) {

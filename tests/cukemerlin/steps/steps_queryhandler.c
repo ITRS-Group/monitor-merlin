@@ -120,6 +120,7 @@ STEP_DEF(step_qh_match) {
 
 	formatted_command = g_strdup_printf("#%s", command);
 	/* Include null-byte */
+	g_message("Sending command: %s", formatted_command);
 	connection_send(qhs->cur_conn, formatted_command,
 		strlen(formatted_command) + 1);
 	g_free(formatted_command);
