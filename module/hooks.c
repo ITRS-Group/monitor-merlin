@@ -457,15 +457,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		return NEB_OK;
 
 		/*
-		 * Custom notifications are always sent from the node where
-		 * the user input the command, so we we must block them here
-		 * in order to not generate multiple notifications.
-		 */
-	case CMD_SEND_CUSTOM_HOST_NOTIFICATION:
-	case CMD_SEND_CUSTOM_SVC_NOTIFICATION:
-		return NEB_OK;
-
-		/*
 		 * These only contain the downtime id, so they're mostly useless,
 		 * but potentially dangerous.
 		 * We'll forward the downtime_delete event instead.
@@ -575,6 +566,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 			pkt->hdr.selection = get_cmd_selection(ds->command_args, 0);
 		break;
 
+	case CMD_SEND_CUSTOM_HOST_NOTIFICATION:
 	case CMD_PROCESS_HOST_CHECK_RESULT:
 		if (!merlin_sender) {
 			/* Send to correct node */
@@ -617,6 +609,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 			break;
 		}
 
+	case CMD_SEND_CUSTOM_SVC_NOTIFICATION:
 	case CMD_PROCESS_SERVICE_CHECK_RESULT:
 		if (!merlin_sender) {
 			/* Send to correct node */
@@ -796,7 +789,11 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	const char *owning_node_name = NULL;
 
 	if (ds->type == NEBTYPE_NOTIFICATION_END){
+
+		/* Always propagate results to peers and masters */
+		pkt->hdr.selection = DEST_PEERS_MASTERS;
 		int ret = 0;
+
 		if (ds->notification_type == HOST_NOTIFICATION) {
 			host *hst = ds->object_ptr;
 			ds->object_ptr = (void *)(uintptr_t)(hst->current_notification_number);
@@ -814,7 +811,9 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		} else {
 			lerr("Unknown notification type %i", ds->notification_type);
 		}
+
 		ret = send_generic(pkt, data);
+
 		if (ret == NEBERROR_CALLBACKCANCEL || ret == NEBERROR_CALLBACKOVERRIDE) {
 			const char *err_type = ret == NEBERROR_CALLBACKCANCEL ? "cancel" : "override";
 			lerr("Possible bug! Return from send_generic() triggered %s for notification end", err_type);

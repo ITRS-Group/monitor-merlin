@@ -1,160 +1,422 @@
-@config @daemons @merlin @queryhandler
-Feature: Notification propagation
-	Notifications is normally executed on the node triggering its notifications.
-	Notifications should be logged on all other peers too, and possible
-	masters. Thus all notifications must be forwarded from the local node to the
-	all peers and masters.
+@config @daemons @merlin @queryhandler @livestatus
+Feature: A notification should always be handled by the owning node.
+	The "results" of the notification should always propagate to peers
+	and masters but never downwards (to pollers).
 
-	It is also possible to disable that notifications is executed on the local
-	node (a poller), and thus, it should be executed on the master instead,
-	given that the "notifies" parameter in the merlin.conf is correctly set up
-
-	What should be regulated though is where the notification script is
-	executed. For pollers (without masters), it should always be executed on the
-	local node. For pollers, it should be posslble to execute the notifiaction
-	script on the master instead, given notification configuration. However,
-	that should be identified by the notification logic of the master due to
-	check results sent from pollers to masters, not the actual notifiaction
-	message.
+	The notification data should propagate to Naemon, to local node, peers
+	and masters. Upon restart of Naemon the data should be persistent.
 
 	Background: Set up naemon configuration
-		And I have naemon hostgroup objects
+
+		Given I have naemon hostgroup objects
 			| hostgroup_name | alias |
 			| pollergroup    | PG    |
 			| emptygroup     | EG    |
-		Given I have naemon host objects
-			| use          | host_name | address   | contacts  | hostgroups  |
-			| default-host | something | 127.0.0.1 | myContact | pollergroup |
-			| default-host | gurka     | 127.0.0.2 | myContact | pollergroup |
+		And I have naemon host objects
+			| use          | host_name | address   | contacts  | max_check_attempts | hostgroups  |
+			| default-host | hostA     | 127.0.0.1 | myContact | 2                  | pollergroup |
+			| default-host | hostB     | 127.0.0.2 | myContact | 2                  | pollergroup |
 		And I have naemon service objects
 			| use             | host_name | description |
-			| default-service | something | PONG        |
-			| default-service | gurka     | PONG        |
+			| default-service | hostA     | PONG        |
+			| default-service | hostB     | PONG        |
 		And I have naemon contact objects
-			| use             | contact_name | host_notifications_enabled |
-			| default-contact | myContact    | 1                          |
+			| use             | contact_name |
+			| default-contact | myContact    |
 
-	Scenario: Notifications from local system propagates to daemon
+
+	Scenario: Custom service notifications sent to Naemon should be executed
+		on the master if the poller does not own the service. Information about
+		the notification should be sent to peer but NOT to poller.
+
 		Given I start naemon with merlin nodes connected
-			| type | name     | port |
+			| type   | name        | port | hostgroup  |
+			| peer   | the_peer    | 4001 | ignore     |
+			| poller | the_poller  | 4002 | emptygroup |
 
-		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;gurka;4;testCase;A little comment
-		And I wait for 1 second
-		Then file checks.log matches ^notif host gurka A little comment$
-		And ipc received event CONTACT_NOTIFICATION_METHOD
-			| ack_author   | testCase         |
-			| ack_data     | A little comment |
-			| contact_name | myContact        |
+		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostA;PONG;4;testCase;A little comment
+		And I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostB;PONG;4;testCase;A little comment
+
+		Then the_peer received event NOTIFICATION
+			| notification_type   | 1                |
+			| service_description | PONG             |
+			| ack_data            | A little comment |
+			| ack_author          | testCase         |
+		And the_poller should not receive NOTIFICATION
 
 
-	Scenario: Notifications from local system propagates to peer
+	Scenario: Custom host notifications sent to Naemon should be executed
+		on the master if the poller does not own the service. Information about
+		the notification should be sent to peer but NOT to poller.
+
 		Given I start naemon with merlin nodes connected
-			| type | name     | port |
-			| peer | the_peer | 4001 |
+			| type   | name        | port | hostgroup  |
+			| peer   | the_peer    | 4001 | ignore     |
+			| poller | the_poller  | 4002 | emptygroup |
 
-		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;gurka;4;testCase;A little comment
-		And I wait for 1 second
-		Then file checks.log matches ^notif host gurka A little comment$
-		And the_peer received event CONTACT_NOTIFICATION_METHOD
-			| ack_author   | testCase         |
-			| ack_data     | A little comment |
-			| contact_name | myContact        |
+		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;hostA;4;testCase;A little comment
+		And I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;hostB;4;testCase;A little comment
+
+		Then the_peer received event NOTIFICATION
+			| notification_type   | 0                |
+			| ack_data            | A little comment |
+			| ack_author          | testCase         |
+		And the_poller should not receive NOTIFICATION
 
 
-	Scenario: Notifications from peer propagates to daemon
+	Scenario: Custom service notifications sent to Naemon should be blocked and
+		sent to the poller instead if the poller is the owner of the service.
+
 		Given I start naemon with merlin nodes connected
-			| type | name     | port |
-			| peer | the_peer | 4001 |
+			| type   | name        | port | hostgroup   |
+			| peer   | the_peer    | 4001 | ignore      |
+			| poller | the_poller  | 4002 | pollergroup |
 
-		When the_peer sends event CONTACT_NOTIFICATION_METHOD
-			| host_name    | gurka     |
-			| contact_name | myContact |
-			| ack_author   | someUser  |
-			| ack_data     | MyMessage |
-		Then ipc received event CONTACT_NOTIFICATION_METHOD
-			| host_name    | gurka     |
-			| contact_name | myContact |
-			| ack_author   | someUser  |
-			| ack_data     | MyMessage |
+		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostA;PONG;4;testCase;A little comment
 
-		When I wait for 1 second
-		Then file checks.log does not match ^notif host gurka
+		Then the_poller received event EXTERNAL_COMMAND
 
-	Scenario: Notifications from local system propagates to master
+
+	Scenario: Custom host notifications sent to Naemon should be blocked and
+		sent to the poller instead if the poller is the owner of the host.
+
 		Given I start naemon with merlin nodes connected
-			| type   | name       | port |
-			| master | my_master  | 4001 |
+			| type   | name        | port | hostgroup   |
+			| peer   | the_peer    | 4001 | ignore      |
+			| poller | the_poller  | 4002 | pollergroup |
+		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;hostA;4;testCase;A little comment
 
-		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;gurka;4;testCase;A little comment
-		And I wait for 1 second
-		Then file checks.log matches ^notif host gurka A little comment$
-		And my_master received event CONTACT_NOTIFICATION_METHOD
-			| host_name    | gurka            |
-			| contact_name | myContact        |
-			| ack_author   | testCase         |
-			| ack_data     | A little comment |
+		Then the_poller received event EXTERNAL_COMMAND
 
 
-	Scenario: Notifications from poller propagates to daemon, poller notifies
+	Scenario: Service notifications have been generated and a peer has handled
+		them. We should receive information about them being handled, it should
+		register in Naemon and persist through restart and also not propagate
+		any further.
+
 		Given I start naemon with merlin nodes connected
-			| type   | name       | port | hostgroup   | notifies |
-			| poller | the_poller | 4001 | pollergroup | yes      |
+			| type   | name        | port | hostgroup  |
+			| peer   | the_peer    | 4001 | ignore     |
+			| poller | the_poller  | 4002 | emptygroup |
+		And I should have 0 services objects matching last_notification > 0
 
-		When the_poller sends event CONTACT_NOTIFICATION_METHOD
-			| host_name    | gurka     |
-			| contact_name | myContact |
-			| ack_author   | someUser  |
-			| ack_data     | MyMessage |
-		Then ipc received event CONTACT_NOTIFICATION_METHOD
-			| host_name    | gurka     |
-			| contact_name | myContact |
-			| ack_author   | someUser  |
-			| ack_data     | MyMessage |
+		When the_peer sends event NOTIFICATION
+			| notification_type   | 1      |
+			| host_name           | hostA  |
+			| service_description | PONG   |
+			| state               | 1      |
+			| output              | Not OK |
+		And the_peer sends event NOTIFICATION
+			| notification_type   | 1      |
+			| host_name           | hostB  |
+			| service_description | PONG   |
+			| state               | 1      |
+			| output              | Not OK |
 
-		When I wait for 1 second
-		Then file checks.log does not match ^notif host gurka
+		Then I should have 2 services objects matching last_notification > 0
+		And the_poller should not receive NOTIFICATION
+		And the_peer should not receive NOTIFICATION
+
+		When I send naemon command RESTART_PROGRAM
+		And I wait for 3 seconds
+
+		Then I should have 2 services object matching last_notification > 0
 
 
-	Scenario: Notifications from poller propagates to daemon, master notifies
+	Scenario: Host notifications have been generated and a peer has handled
+		them. We should receive information about them being handled, it should
+		register in Naemon and persist through restart and also not propagate
+		any further.
+
 		Given I start naemon with merlin nodes connected
-			| type   | name       | port | hostgroup   | notifies |
-			| poller | the_poller | 4001 | pollergroup | no       |
+			| type   | name        | port | hostgroup  |
+			| peer   | the_peer    | 4001 | ignore     |
+			| poller | the_poller  | 4002 | emptygroup |
+		And I should have 0 hosts objects matching last_notification > 0
 
-		When the_poller sends event CONTACT_NOTIFICATION_METHOD
-			| host_name    | gurka     |
-			| contact_name | myContact |
-			| ack_author   | someUser  |
-			| ack_data     | MyMessage |
-		Then ipc received event CONTACT_NOTIFICATION_METHOD
-			| host_name    | gurka     |
-			| contact_name | myContact |
-			| ack_author   | someUser  |
-			| ack_data     | MyMessage |
+		When the_peer sends event NOTIFICATION
+			| notification_type   | 0      |
+			| host_name           | hostA  |
+			| state               | 1      |
+			| output              | Not OK |
+		And the_peer sends event NOTIFICATION
+			| notification_type   | 0      |
+			| host_name           | hostB  |
+			| state               | 1      |
+			| output              | Not OK |
 
-		# The notification should not be logged, since it's only the node
-		# identifying the notifaciton that actually runs the script.
-		# The master should identeify it by the check result messages
-		When I wait for 1 second
-		Then file checks.log does not match ^notif host gurka
+		Then I should have 2 hosts objects matching last_notification > 0
+		And the_poller should not receive NOTIFICATION
+		And the_peer should not receive NOTIFICATION
+
+		When I send naemon command RESTART_PROGRAM
+		And I wait for 3 seconds
+
+		Then I should have 2 hosts object matching last_notification > 0
+
+
+	Scenario: Service notifications have been generated and a poller has handled
+		them. We should receive information about them being handled, it should
+		register in Naemon and persist through restart and also not propagate
+		any further.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup   |
+			| peer   | the_peer    | 4001 | ignore      |
+			| poller | the_poller  | 4002 | pollergroup |
+		And I should have 0 services objects matching last_notification > 0
+
+		When the_poller sends event NOTIFICATION
+			| notification_type   | 1      |
+			| host_name           | hostA  |
+			| service_description | PONG   |
+			| state               | 1      |
+			| output              | Not OK |
+		And the_poller sends event NOTIFICATION
+			| notification_type   | 1      |
+			| host_name           | hostB  |
+			| service_description | PONG   |
+			| state               | 1      |
+			| output              | Not OK |
+
+		Then I should have 2 services objects matching last_notification > 0
+		And the_poller should not receive NOTIFICATION
+		And the_peer should not receive NOTIFICATION
+
+		When I send naemon command RESTART_PROGRAM
+		And I wait for 3 seconds
+
+		Then I should have 2 services object matching last_notification > 0
+
+
+	Scenario: Host notifications have been generated and a poller has handled
+		them. We should receive information about them being handled, it should
+		register in Naemon and persist through restart and also not propagate
+		any further.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup   |
+			| peer   | the_peer    | 4001 | ignore      |
+			| poller | the_poller  | 4002 | pollergroup |
+		And I should have 0 hosts objects matching last_notification > 0
+
+		When the_poller sends event NOTIFICATION
+			| notification_type   | 0      |
+			| host_name           | hostA  |
+			| state               | 1      |
+			| output              | Not OK |
+		And the_poller sends event NOTIFICATION
+			| notification_type   | 0      |
+			| host_name           | hostB  |
+			| state               | 1      |
+			| output              | Not OK |
+
+		Then I should have 2 hosts objects matching last_notification > 0
+		And the_poller should not receive NOTIFICATION
+		And the_peer should not receive NOTIFICATION
+
+		When I send naemon command RESTART_PROGRAM
+		And I wait for 3 seconds
+
+		Then I should have 2 hosts object matching last_notification > 0
+
+	Scenario: As a poller, when generating a service notification result it
+		should propagate to peer and master. Also the results should persist
+		in Naemon through a restart.
 	
-	Scenario: Host notification from master should not be sent to poller not handling the object.
 		Given I start naemon with merlin nodes connected
-			| type   | name       | port | hostgroup  | notifies |
-			| poller | the_poller | 4001 | emptygroup | no       |
-		And file checks.log does not match ^notif host gurka
+			| type   | name       | port | hostgroup   |
+			| master | the_master | 4001 | ignore      |
+			| peer   | the_peer   | 4002 | pollergroup |
+		And I should have 0 services objects matching last_notification > 0
+
+		# Notifications are sent when a state goes from 0 to 1, so make sure
+		# we're on 0 to start with.
+		When I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;0;OK
+		And I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;0;OK
+
+		# Take them down. We must send the check result three times for services
+		# for them to generate notifications.
+		And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Not OK
+		And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;1;Not OK
+
+		Then the_peer received event NOTIFICATION
+			| notification_type   | 1      |
+			| service_description | PONG   |
+			| state               | 1      |
+			| output              | Not OK |
+		And the_master received event NOTIFICATION
+			| notification_type   | 1      |
+			| service_description | PONG   |
+			| state               | 1      |
+			| output              | Not OK |
+		And I should have 1 services object matching last_notification > 0
+
+		When I send naemon command RESTART_PROGRAM
+		And I wait for 3 seconds
 		
-		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;gurka;4;testCase;A little comment
+		Then I should have 1 services object matching last_notification > 0
 		
-		Then the_poller should not receive CONTACT_NOTIFICATION_METHOD
-		And file checks.log matches ^notif host gurka
+		When I send naemon command RESTART_PROGRAM
+		And I wait for 3 seconds
+
+		Then I should have 1 services object matching last_notification > 0
+
+	Scenario: As a poller, when generating a host notification result it
+		should propagate to peer and master. Also the results should persist
+		in Naemon through a restart.
 	
-	Scenario: Service notification from master should not be sent to poller not handling the object.
 		Given I start naemon with merlin nodes connected
-			| type   | name       | port | hostgroup  | notifies |
-			| poller | the_poller | 4001 | emptygroup | no       |
-		And file checks.log does not match ^notif service gurka
+			| type   | name       | port | hostgroup   |
+			| master | the_master | 4001 | ignore      |
+			| peer   | the_peer   | 4002 | pollergroup |
+		And I should have 0 hosts objects matching last_notification > 0
+
+		# Notifications are sent when a state goes from 0 to 1, so make sure
+		# we're on 0 to start with.
+		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;0;OK
+		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;0;OK
+
+		# Take them down, host check results needs only 1 execution to go hard.
+		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
+		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;1;Not OK
+
+		Then the_peer received event NOTIFICATION
+			| notification_type   | 0      |
+			| state               | 1      |
+			| output              | Not OK |
+		And the_master received event NOTIFICATION
+			| notification_type   | 0      |
+			| state               | 1      |
+			| output              | Not OK |
+		And I should have 1 hosts object matching last_notification > 0
+
+		When I send naemon command RESTART_PROGRAM
+		And I wait for 3 seconds
+
+		Then I should have 1 hosts object matching last_notification > 0
+
+		When I send naemon command RESTART_PROGRAM
+		And I wait for 3 seconds
+
+		Then I should have 1 hosts object matching last_notification > 0
+
+	Scenario: As a poller, when a peer sends service notification info it
+		should not propagate any further.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name       | port | hostgroup   |
+			| master | the_master | 4001 | ignore      |
+			| peer   | the_peer   | 4002 | pollergroup |
+		And I should have 0 services objects matching last_notification > 0
+
+		When the_peer sends event NOTIFICATION
+			| notification_type   | 1      |
+			| host_name           | hostA  |
+			| service_description | PONG   |
+			| state               | 1      |
+			| output              | Not OK |
+		And the_peer sends event NOTIFICATION
+			| notification_type   | 1      |
+			| host_name           | hostB  |
+			| service_description | PONG   |
+			| state               | 1      |
+			| output              | Not OK |
+
+		Then I should have 2 services objects matching last_notification > 0
+		And the_master should not receive NOTIFICATION
+		And the_peer should not receive NOTIFICATION
+
+	Scenario: As a poller, when a peer sends host notification info it
+		should not propagate any further.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name       | port | hostgroup   |
+			| master | the_master | 4001 | ignore      |
+			| peer   | the_peer   | 4002 | pollergroup |
+		And I should have 0 hosts objects matching last_notification > 0
+
+		When the_peer sends event NOTIFICATION
+			| notification_type   | 0      |
+			| host_name           | hostA  |
+			| state               | 1      |
+			| output              | Not OK |
+		And the_peer sends event NOTIFICATION
+			| notification_type   | 0      |
+			| host_name           | hostB  |
+			| state               | 1      |
+			| output              | Not OK |
 			
-		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;gurka;PONG;4;testCase;A little comment
+		Then I should have 2 hosts objects matching last_notification > 0
+		And the_master should not receive NOTIFICATION
+		And the_peer should not receive NOTIFICATION
+
+	Scenario: In a peered system, when sending passive check results for
+		a service it should cause the owning node to notify and also
+		let the peer know that it has notified but not to pollers.
+		Information about last notification should persist through
+		a Naemon restart.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup  |
+			| peer   | the_peer    | 4001 | ignore     |
+			| poller | the_poller  | 4002 | emptygroup |
+		And I should have 0 services objects matching last_notification > 0
+
+		# Notifications are sent when a state goes from 0 to 1, so make sure
+		# we're on 0 to start with.
+		When I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;0;OK
+		And I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;0;OK
+
+		# Take them down. We must send the check result three times for services
+		# for them to generate notifications.
+		And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Not OK
+		And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;1;Not OK
+
+		Then the_peer received event NOTIFICATION
+			| notification_type   | 1      |
+			| service_description | PONG   |
+			| state               | 1      |
+			| output              | Not OK |
+		And the_poller should not receive NOTIFICATION
+		And I should have 1 services object matching last_notification > 0
+
+		When I send naemon command RESTART_PROGRAM
+		And I wait for 3 seconds
+
+		Then I should have 1 services object matching last_notification > 0
+
+
+	Scenario: In a peered system, when sending passive check results for
+		a host it should cause the owning node to notify and also
+		let the peer know that it has notified but not to pollers.
+		Information about last notification should persist through
+		a Naemon restart.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup  |
+			| peer   | the_peer    | 4001 | ignore     |
+			| poller | the_poller  | 4002 | emptygroup |
+		And I should have 0 hosts objects matching last_notification > 0
+
+		# Notifications are sent when a state goes from 0 to 1, so make sure
+		# we're on 0 to start with.
+		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;0;OK
+		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;0;OK
+
+		# Take them down, host check results needs only 1 execution to go hard.
+		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
+		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;1;Not OK
+
+		Then the_peer received event NOTIFICATION
+			| notification_type   | 0      |
+			| state               | 1      |
+			| output              | Not OK |
+		And the_poller should not receive NOTIFICATION
+		And I should have 1 hosts object matching last_notification > 0
+
+		When I send naemon command RESTART_PROGRAM
+		And I wait for 3 seconds
+
+		Then I should have 1 hosts object matching last_notification > 0
 		
-		Then the_poller should not receive CONTACT_NOTIFICATION_METHOD
-		And file checks.log matches ^notif service gurka
