@@ -37,7 +37,15 @@ Given(/^I start naemon$/) do
 end
 
 Given(/^I start merlin$/) do
-  step "I start daemon merlind -d merlin.conf"
+  steps %Q{
+    And I have a database running configured with
+      | host | #{@databaseconfig.host} |
+      | port | #{@databaseconfig.port} |
+      | user | #{@databaseconfig.user} |
+      | pass | #{@databaseconfig.pass} |
+      | name | #{@databaseconfig.name} |
+    And I start daemon merlind -d merlin.conf
+  }
 end
 
 Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
@@ -64,6 +72,11 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
         fetch = ./fetch_cmd
       }
       database {
+        name = #{@databaseconfig.name}
+        host = #{@databaseconfig.host}
+        port = #{@databaseconfig.port}
+        user = #{@databaseconfig.user}
+        pass = #{@databaseconfig.pass}
       }
     }
     "
