@@ -1,0 +1,11 @@
+[Unit]
+Description=Merlin
+After=syslog.target network.target mariadb.service
+
+[Service]
+#Starting the merlind with --debug option won't daemonize it.
+#By doing this we leverage the rhel7 systemd unit file structure.
+ExecStart=/usr/bin/merlind --config /opt/monitor/op5/merlin/merlin.conf --debug
+
+[Install]
+WantedBy=multi-user.target

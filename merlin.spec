@@ -3,6 +3,7 @@
 # function service_control_function ("action", "service")
 # start/stop/restart a service
 %define create_service_control_function function service_control_function () { service $2 $1; };
+%define init_scripts --with-initdirectory=%_sysconfdir/init.d --with-initscripts=data/merlind
 %if 0%{?suse_version}
 %define mysqld mysql
 %define daemon_group www
@@ -14,6 +15,7 @@
 %if 0%{?rhel} >= 7
 %define mysqld mariadb
 %define daemon_group apache
+%define init_scripts %{nil}
 # re-define service_control_function to use el7 commands
 %define create_service_control_function function service_control_function () { systemctl $1 $2; };
 %endif
@@ -34,6 +36,7 @@ Requires: monitor-config
 Requires: op5-mysql
 Requires: glib2
 %if 0%{?rhel} >= 7
+BuildRequires: systemd
 BuildRequires: mariadb-devel
 %else
 BuildRequires: mysql-devel
@@ -127,7 +130,7 @@ Some additional test files for merlin
 %build
 echo %{version} > .version_number
 autoreconf -i -s
-%configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=/opt/monitor/etc/mconf --with-naemon-user=monitor --with-naemon-group=%daemon_user --with-logdir=/var/log/op5/merlin
+%configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=/opt/monitor/etc/mconf --with-naemon-user=monitor --with-naemon-group=%daemon_user --with-logdir=/var/log/op5/merlin %init_scripts
 
 %__make V=1
 %__make V=1 check
@@ -162,6 +165,10 @@ cp data/kad.conf %buildroot%_sysconfdir/op5kad/conf.d/merlin.kad
 mkdir -p %buildroot%_sysconfdir/nrpe.d
 cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
 
+%if 0%{?rhel} >= 7
+mkdir --parents %{buildroot}%{_unitdir}
+cp merlind.service %{buildroot}%{_unitdir}/merlind.service
+%endif
 
 %check
 python tests/pyunit/test.py --verbose
@@ -196,6 +203,8 @@ fi
 %_libdir/merlin/install-merlin.sh
 
 %if 0%{?rhel} >= 7
+cp %{buildroot}%{_unitdir}/merlind.service %{_unitdir}/merlind.service
+systemctl daemon-reload
 systemctl enable merlind.service
 %else
 /sbin/chkconfig --add merlind || :
@@ -225,7 +234,7 @@ chown -R monitor:%daemon_group %_localstatedir/cache/merlin
 
 # restart all daemons
 for daemon in merlind op5kad nrpe; do
-    test -f /etc/init.d/$daemon && service_control_function restart $daemon|| :
+    service_control_function restart $daemon
 done
 
 %preun -n monitor-merlin
@@ -258,7 +267,11 @@ service_control_function restart nrpe || :
 %_sysconfdir/logrotate.d/merlin
 %_sysconfdir/op5kad/conf.d/merlin.kad
 %_sysconfdir/nrpe.d/nrpe-merlin.cfg
+%if 0%{?rhel} >= 7
+%attr(664, root, root) %{_unitdir}/merlind.service
+%else
 %_sysconfdir/init.d/merlind
+%endif
 %attr(-, monitor, %daemon_group) %dir %_localstatedir/lib/merlin
 %attr(-, monitor, %daemon_group) %dir %_localstatedir/log/op5/merlin
 %attr(-, monitor, %daemon_group) %dir %_localstatedir/run/merlin

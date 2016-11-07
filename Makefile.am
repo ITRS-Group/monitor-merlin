@@ -85,8 +85,9 @@ merlind_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 merlind_CPPFLAGS = $(AM_CPPFLAGS)
 merlind_CFLAGS = $(AM_CFLAGS) $(GLIB_CFLAGS) -DMERLIN_DAEMON_BUILD
 
-initdir = $(sysconfdir)/init.d
-init_SCRIPTS = data/merlind
+initdir = $(initdirectory)
+init_SCRIPTS = $(initscripts)
+EXTRA_SCRIPTS = data/merlind
 
 logrotatedir = $(sysconfdir)/logrotate.d
 logrotate_DATA = data/merlin
