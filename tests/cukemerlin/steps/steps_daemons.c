@@ -23,10 +23,12 @@ typedef struct StepsDaemonProcess_ {
 static StepsDaemonProcess *dproc_new(const gchar *cmdline);
 static void dproc_destroy(StepsDaemonProcess *dproc);
 static gboolean waitpid_timeout(int pid, unsigned int timeout_sec);
+static gboolean proc_run(const gchar *cmdline);
 
 STEP_BEGIN(step_begin_scenario);
 STEP_END(step_end_scenario);
 STEP_DEF(step_start_daemon);
+STEP_DEF(step_start_command);
 
 CukeStepEnvironment steps_daemons = {
 	.tag = "daemons",
@@ -35,6 +37,7 @@ CukeStepEnvironment steps_daemons = {
 
 	.definitions = {
 		{ "^I start daemon (.*)$", step_start_daemon },
+		{ "^I start command (.*)$", step_start_command },
 		{ NULL, NULL }
 	}
 };
@@ -60,7 +63,29 @@ STEP_DEF(step_start_daemon) {
 		return;
 	}
 	dproc = dproc_new(cmdline);
-	g_ptr_array_add(stps->processes, dproc);
+	if (dproc == NULL) {
+		STEP_FAIL("Failed while starting daemon");
+		return;
+	} else {
+		g_ptr_array_add(stps->processes, dproc);
+	}
+
+	STEP_OK;
+}
+STEP_DEF(step_start_command) {
+	StepsDaemons *stps = (StepsDaemons *) scenario;
+	StepsDaemonProcess *dproc;
+
+	gchar *cmdline = NULL;
+	if (!jsonx_locate(args, 'a', 0, 's', &cmdline)) {
+		STEP_FAIL("Invalid arguments");
+		return;
+	}
+
+	if (proc_run(cmdline) != 0) {
+		STEP_FAIL("Failed while running command");
+		return;
+	}
 
 	STEP_OK;
 }
@@ -70,7 +95,6 @@ static StepsDaemonProcess *dproc_new(const gchar *cmdline) {
 	GSpawnFlags flags = G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH;
 	gchar **argv = NULL;
 	GError *error = NULL;
-	gint i;
 
 	if (!g_shell_parse_argv(cmdline, NULL, &argv, &error)) {
 		g_warning("Parsing command line %s: %s", cmdline, error->message);
@@ -138,4 +162,32 @@ static gboolean waitpid_timeout(int pid, unsigned int timeout_sec) {
 	}
 
 	return FALSE;
+}
+static gint proc_run(const gchar *cmdline) {
+	gchar **argv = NULL;
+	GError *error = NULL;
+	GSpawnFlags flags = G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL
+		| G_SPAWN_STDERR_TO_DEV_NULL;
+	gint rc = 1;
+
+	if (!g_shell_parse_argv(cmdline, NULL, &argv, &error)) {
+		g_warning("Parsing command line %s: %s", cmdline, error->message);
+		g_error_free(error);
+		g_strfreev(argv);
+		return 1;
+	}
+
+	if (!g_spawn_sync(NULL, argv, NULL, flags, NULL, NULL,
+		NULL, NULL, &rc, &error)) {
+		g_warning("Error running %s: %s", cmdline, error->message);
+		g_error_free(error);
+		g_strfreev(argv);
+		return rc;
+	}
+	g_strfreev(argv);
+
+	g_message("Ran %s with exit status %d", cmdline, rc);
+
+
+	return rc;
 }
