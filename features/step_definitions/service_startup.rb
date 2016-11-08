@@ -39,11 +39,6 @@ end
 Given(/^I start merlin$/) do
   steps %Q{
     And I have a database running configured with
-      | host | #{@databaseconfig.host} |
-      | port | #{@databaseconfig.port} |
-      | user | #{@databaseconfig.user} |
-      | pass | #{@databaseconfig.pass} |
-      | name | #{@databaseconfig.name} |
     And I start daemon merlind -d merlin.conf
   }
 end
