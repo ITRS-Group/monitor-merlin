@@ -28,6 +28,12 @@ Given(/^I start naemon$/) do
     And I start daemon naemon naemon.cfg
     And I have query handler path naemon.qh
   }
+
+  # Otherwise, it's not deterministic. Make it match default values for CTRL_ACTIVE
+  steps %Q{
+    And node ipc have info hash my_hash at 5000
+    And node ipc have expected hash my_hash at 5000
+  }
 end
 
 Given(/^I start merlin$/) do
