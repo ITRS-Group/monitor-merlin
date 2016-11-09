@@ -95,10 +95,8 @@ ServerSource *server_source_new(const ConnectionInfo *conn_info,
 	}
 	g_socket_set_blocking(csock->listening_socket, FALSE);
 
-	setsockopt(csock->listening_socket, SOL_SOCKET, SO_REUSEADDR, NULL, 0);
-
 	/* Bind socket to address */
-	if (!g_socket_bind(csock->listening_socket, addr, FALSE, &error)) {
+	if (!g_socket_bind(csock->listening_socket, addr, TRUE, &error)) {
 		g_printerr("Can't bind socket: %s\n", error->message);
 		g_error_free(error);
 		g_object_unref(addr);
@@ -144,6 +142,7 @@ void server_source_destroy(ServerSource *csock) {
 	g_ptr_array_unref(csock->active_connections);
 
 	/* Close and destroy listening socket */
+	g_message("Closing listening socket");
 	if (!g_socket_close(csock->listening_socket, &error)) {
 		g_printerr("Can not close listening socket: %s\n", error->message);
 		g_error_free(error);
