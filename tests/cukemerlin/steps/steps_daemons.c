@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <base/jsonx.h>
+#include <errno.h>
 
 /* TODO: For kill() call, which should be converted to glib-style */
 #include <sys/types.h>
@@ -21,6 +22,7 @@ typedef struct StepsDaemonProcess_ {
 
 static StepsDaemonProcess *dproc_new(const gchar *cmdline);
 static void dproc_destroy(StepsDaemonProcess *dproc);
+static gboolean waitpid_timeout(int pid, unsigned int timeout_sec);
 
 STEP_BEGIN(step_begin_scenario);
 STEP_END(step_end_scenario);
@@ -65,6 +67,7 @@ STEP_DEF(step_start_daemon) {
 
 static StepsDaemonProcess *dproc_new(const gchar *cmdline) {
 	StepsDaemonProcess *dproc = g_malloc0(sizeof(StepsDaemonProcess));
+	GSpawnFlags flags = G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH;
 	gchar **argv = NULL;
 	GError *error = NULL;
 	gint i;
@@ -77,7 +80,7 @@ static StepsDaemonProcess *dproc_new(const gchar *cmdline) {
 		return NULL;
 	}
 
-	if (!g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
+	if (!g_spawn_async(NULL, argv, NULL, flags, NULL, NULL,
 		&dproc->pid, &error)) {
 		g_warning("Error starting daemon %s: %s", cmdline, error->message);
 		g_strfreev(argv);
@@ -100,6 +103,39 @@ static void dproc_destroy(StepsDaemonProcess *dproc) {
 		g_message("Killing %d", dproc->pid);
 		kill(dproc->pid, SIGTERM);
 		g_spawn_close_pid(dproc->pid);
+
+		g_message("Waiting for %d to stop", dproc->pid);
+		if (!waitpid_timeout(dproc->pid, 60)) {
+			g_message("%d didn't stop. Trying SIGKILL", dproc->pid);
+			kill(dproc->pid, SIGKILL);
+			if (!waitpid_timeout(dproc->pid, 60)) {
+				g_message("%d didn't stop now either, exit(1)", dproc->pid);
+				/* We have really waited for the process to exit
+				 * but it doesn't want to. So, to not have
+				 * daemons live between scenarios, we'll exit
+				 * here instead.
+				 */
+				exit(1);
+			}
+		}
 	}
 	g_free(dproc);
+}
+static gboolean waitpid_timeout(int pid, unsigned int timeout_sec) {
+	int rc = 0, status = 0, i = 0, err = 0;
+
+	for (i = 0; i < timeout_sec; i++) {
+		rc = waitpid(pid, &status, WNOHANG);
+		if (rc == -1) {
+			err = errno;
+			g_error("waitpid returned error %s (%d)", strerror(err), err);
+			return FALSE;
+		} else if (rc > 0 && (WIFEXITED(status) || WIFSIGNALED(status))) {
+			return TRUE;
+		} else {
+			sleep(1);
+		}
+	}
+
+	return FALSE;
 }
