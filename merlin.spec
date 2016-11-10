@@ -35,34 +35,26 @@ Requires: merlin-apps >= %version
 Requires: monitor-config
 Requires: op5-mysql
 Requires: glib2
+Requires: nrpe
+Requires: libdbi
+Requires: libdbi-dbd-mysql
 %if 0%{?rhel} >= 7
 BuildRequires: systemd
 BuildRequires: mariadb-devel
 %else
+Requires: op5kad
 BuildRequires: mysql-devel
 %endif
 BuildRequires: op5-naemon-devel
 BuildRequires: python
 BuildRequires: gperf
-Obsoletes: monitor-reports-module
 BuildRequires: check-devel
 BuildRequires: autoconf, automake, libtool
 BuildRequires: glib2-devel
-
-%if 0%{?suse_version}
-BuildRequires: libdbi-devel
-BuildRequires: pkg-config
-Requires: libdbi1
-Requires: libdbi-drivers-dbd-mysql
-Requires(post): mysql-client
-%else
 BuildRequires: libdbi-devel
 BuildRequires: pkgconfig
 BuildRequires: pkgconfig(gio-unix-2.0)
-Requires: libdbi
-Requires: libdbi-dbd-mysql
-%endif
-
+Obsoletes: monitor-reports-module
 
 %description
 The merlin daemon is a multiplexing event-transport program designed to
@@ -158,16 +150,16 @@ mkdir -p %buildroot/opt/monitor/op5/nacoma/hooks/save/
 sed -i 's#@@LIBEXECDIR@@#%_libdir/merlin#' op5build/nacoma_hook.py
 install -m 0755 op5build/nacoma_hook.py %buildroot/opt/monitor/op5/nacoma/hooks/save/merlin_hook.py
 
-mkdir -p %buildroot%_sysconfdir/op5kad/conf.d
-make data/kad.conf
-cp data/kad.conf %buildroot%_sysconfdir/op5kad/conf.d/merlin.kad
-
 mkdir -p %buildroot%_sysconfdir/nrpe.d
 cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
 
 %if 0%{?rhel} >= 7
 mkdir --parents %{buildroot}%{_unitdir}
 cp merlind.service %{buildroot}%{_unitdir}/merlind.service
+%else
+mkdir -p %buildroot%_sysconfdir/op5kad/conf.d
+make data/kad.conf
+cp data/kad.conf %buildroot%_sysconfdir/op5kad/conf.d/merlin.kad
 %endif
 
 %check
@@ -203,7 +195,6 @@ fi
 %_libdir/merlin/install-merlin.sh
 
 %if 0%{?rhel} >= 7
-cp %{buildroot}%{_unitdir}/merlind.service %{_unitdir}/merlind.service
 systemctl daemon-reload
 systemctl enable merlind.service
 %else
@@ -233,7 +224,10 @@ sed --follow-symlinks -r -i \
 chown -R monitor:%daemon_group %_localstatedir/cache/merlin
 
 # restart all daemons
-for daemon in merlind op5kad nrpe; do
+%if 0%{?rhel} <= 6
+    service_control_function restart op5kad
+%endif
+for daemon in merlind nrpe; do
     service_control_function restart $daemon
 done
 
@@ -265,11 +259,11 @@ service_control_function restart nrpe || :
 %_bindir/merlind
 %_libdir/merlin/install-merlin.sh
 %_sysconfdir/logrotate.d/merlin
-%_sysconfdir/op5kad/conf.d/merlin.kad
 %_sysconfdir/nrpe.d/nrpe-merlin.cfg
 %if 0%{?rhel} >= 7
 %attr(664, root, root) %{_unitdir}/merlind.service
 %else
+%_sysconfdir/op5kad/conf.d/merlin.kad
 %_sysconfdir/init.d/merlind
 %endif
 %attr(-, monitor, %daemon_group) %dir %_localstatedir/lib/merlin
