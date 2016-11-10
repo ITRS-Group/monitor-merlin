@@ -101,6 +101,10 @@ AC_ARG_WITH(logdir, AS_HELP_STRING([--with-logdir], [The directory where merlin 
 AC_SUBST(logdir)
 cachedir=${localstatedir}/cache/merlin
 AC_SUBST(cachedir)
+AC_ARG_WITH(initdirectory, AS_HELP_STRING([--with-initdirectory], [The directory where merlin installs its initd scripts (default is no directory)]), [initdirectory=$withval], [initdirectory=])
+AC_SUBST(initdirectory)
+AC_ARG_WITH(initscripts, AS_HELP_STRING([--with-initscripts], [The  merlin init script (default is no script)]), [initscripts=$withval], [initscripts=])
+AC_SUBST(initscripts)
 
 AC_CONFIG_FILES([Makefile data/merlind install-merlin.sh])
 AC_OUTPUT
