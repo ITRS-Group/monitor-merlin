@@ -16,7 +16,8 @@
 /* naemon / libnaemon headers */
 #include <naemon/naemon.h>
 
-#define STEP_MERLIN_DEFAULT_TIMEOUT 10000
+#define STEP_MERLIN_CONNECTION_TIMEOUT 10000
+#define STEP_MERLIN_MESSAGE_TIMEOUT 3000
 
 typedef struct MerlinScenario_ {
 	GTree *connections;
@@ -339,7 +340,7 @@ STEP_DEF(step_is_connected) {
 	}
 	if (msc->conn == NULL || !connection_is_connected(msc->conn)) {
 		msc->current_step = STEP_MERLIN_IS_CONNECTED;
-		steptimer_start(msc, respref, STEP_MERLIN_DEFAULT_TIMEOUT, FALSE, "Not connected");
+		steptimer_start(msc, respref, STEP_MERLIN_CONNECTION_TIMEOUT, FALSE, "Not connected");
 		return;
 	}
 	STEP_OK;
@@ -367,7 +368,7 @@ STEP_DEF(step_is_disconnected) {
 		return;
 	}
 	msc->current_step = STEP_MERLIN_IS_DISCONNECTED;
-	steptimer_start(msc, respref, STEP_MERLIN_DEFAULT_TIMEOUT, FALSE, "Connected");
+	steptimer_start(msc, respref, STEP_MERLIN_CONNECTION_TIMEOUT, FALSE, "Connected");
 }
 
 STEP_DEF(step_send_event) {
@@ -491,7 +492,7 @@ STEP_DEF(step_record_check) {
 		}
 	}
 	msc->current_step = STEP_MERLIN_EVENT_RECEIVED;
-	steptimer_start(msc, respref, STEP_MERLIN_DEFAULT_TIMEOUT, FALSE, "No matching entries");
+	steptimer_start(msc, respref, STEP_MERLIN_MESSAGE_TIMEOUT, FALSE, "No matching entries");
 }
 
 STEP_DEF(step_no_record_check) {
@@ -527,7 +528,7 @@ STEP_DEF(step_no_record_check) {
 		}
 	}
 	msc->current_step = STEP_MERLIN_EVENT_NOT_RECEIVED;
-	steptimer_start(msc, respref, STEP_MERLIN_DEFAULT_TIMEOUT, TRUE, NULL);
+	steptimer_start(msc, respref, STEP_MERLIN_MESSAGE_TIMEOUT, TRUE, NULL);
 }
 
 /**

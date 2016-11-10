@@ -1071,7 +1071,7 @@ static int parse_event_filter(const char *orig_str, uint32_t *evt_mask)
 static void grok_module_compound(struct cfg_comp *comp)
 {
 	uint i;
-	uint32_t handle_events = ~((1 << NEBCALLBACK_HOST_STATUS_DATA) | (1 << NEBCALLBACK_SERVICE_STATUS_DATA)); /* events to filter in */
+	uint32_t handle_events = ~0; /* events to filter in */
 	uint32_t ignore_events = 0;  /* events to filter out */
 
 	for (i = 0; i < comp->vars; i++) {

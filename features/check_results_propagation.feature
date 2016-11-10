@@ -49,8 +49,8 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;1;Not OK
 		Then I should have 1 hosts objects matching state = 1
-		And my_peer received event HOST_CHECK
-		And my_poller should not receive HOST_CHECK
+		And my_peer received event HOST_STATUS
+		And my_poller should not receive HOST_STATUS
 
 	Scenario: As master, when receiving a host check result from poller it
 		should be registered to the object in Naemon. Additionally the result
@@ -60,14 +60,14 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| peer   | my_peer   | 4001 | ignore      |
 			| poller | my_poller | 4002 | emptygroup  |
 		And I should have 0 hosts objects matching state = 1
-		When my_poller sends event HOST_CHECK
+		When my_poller sends event HOST_STATUS
 			| name                  | hostA |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
 		Then I should have 1 hosts objects matching state = 1
-		And my_peer should not receive HOST_CHECK
-		And my_poller should not receive HOST_CHECK
+		And my_peer should not receive HOST_STATUS
+		And my_poller should not receive HOST_STATUS
 
 	Scenario: As master, when receiving a host check result from peer is should
 		be registered to the object in Naemon. Additionally it should NOT
@@ -77,14 +77,14 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| peer   | my_peer   | 4001 | ignore      |
 			| poller | my_poller | 4002 | emptygroup  |
 		And I should have 0 hosts objects matching state = 1
-		When my_peer sends event HOST_CHECK
+		When my_peer sends event HOST_STATUS
 			| name                  | hostA |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
 		Then I should have 1 hosts objects matching state = 1
-		And my_peer should not receive HOST_CHECK
-		And my_poller should not receive HOST_CHECK
+		And my_peer should not receive HOST_STATUS
+		And my_poller should not receive HOST_STATUS
 
 	Scenario: As poller, when generating a host check result, it should be
 		registered to the object in Naemon. Additionally the result should
@@ -97,8 +97,8 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;1;Not OK
 		Then I should have 1 hosts objects matching state = 1
-		And my_peer received event HOST_CHECK
-		And my_master received event HOST_CHECK
+		And my_peer received event HOST_STATUS
+		And my_master received event HOST_STATUS
 
 	Scenario: As poller, when receiving a host check result from a peer it
 		should be registered to the object in Naemon. Additionally it should
@@ -108,14 +108,14 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| peer   | my_peer   | 4001 |
 			| master | my_master | 4002 |
 		And I should have 0 hosts objects matching state = 1
-		When my_peer sends event HOST_CHECK
+		When my_peer sends event HOST_STATUS
 			| name                  | hostA |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
 		Then I should have 1 hosts objects matching state = 1
-		And my_peer should not receive HOST_CHECK
-		And my_master should not receive HOST_CHECK
+		And my_peer should not receive HOST_STATUS
+		And my_master should not receive HOST_STATUS
 
 	# Scenarios below cover Service Check Results propagation
 
@@ -130,8 +130,8 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 		When I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Not OK
 		And I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;1;Not OK
 		Then I should have 1 services objects matching state = 1
-		And my_peer received event SERVICE_CHECK
-		And my_poller should not receive SERVICE_CHECK
+		And my_peer received event SERVICE_STATUS
+		And my_poller should not receive SERVICE_STATUS
 
 	Scenario: As master, when receiving a service check result from poller it
 		should be registered to the object in Naemon. Additionally the result
@@ -141,15 +141,15 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| peer   | my_peer   | 4001 | ignore      |
 			| poller | my_poller | 4002 | emptygroup  |
 		And I should have 0 services objects matching state = 1
-		When my_poller sends event SERVICE_CHECK
+		When my_poller sends event SERVICE_STATUS
 			| host_name             | hostA |
 			| service_description   | PONG  |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
 		Then I should have 1 services objects matching state = 1
-		And my_peer should not receive SERVICE_CHECK
-		And my_poller should not receive SERVICE_CHECK
+		And my_peer should not receive SERVICE_STATUS
+		And my_poller should not receive SERVICE_STATUS
 
 	Scenario: As master, when receiving a service check result from peer it
 		should be registered to the object in Naemon. Additionally it should
@@ -159,15 +159,15 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| peer   | my_peer   | 4001 | ignore      |
 			| poller | my_poller | 4002 | emptygroup  |
 		And I should have 0 services objects matching state = 1
-		When my_peer sends event SERVICE_CHECK
+		When my_peer sends event SERVICE_STATUS
 			| host_name             | hostA |
 			| service_description   | PONG  |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
 		Then I should have 1 services objects matching state = 1
-		And my_peer should not receive SERVICE_CHECK
-		And my_poller should not receive SERVICE_CHECK
+		And my_peer should not receive SERVICE_STATUS
+		And my_poller should not receive SERVICE_STATUS
 
 	Scenario: As poller, when generating a service check result, it should be
 		registered to the object in Naemon. Additionally the result should
@@ -180,8 +180,8 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 		When I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Not OK
 		And I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;1;Not OK
 		Then I should have 1 services objects matching state = 1
-		And my_peer received event SERVICE_CHECK
-		And my_master received event SERVICE_CHECK
+		And my_peer received event SERVICE_STATUS
+		And my_master received event SERVICE_STATUS
 
 	Scenario: As poller, when receiving a service check result from a peer it
 		should be registered to the object in Naemon. Additionally it should
@@ -191,12 +191,12 @@ Feature: When a passive check result is sent to a node, i.e. when a command
 			| peer   | my_peer   | 4001 |
 			| master | my_master | 4002 |
 		And I should have 0 services objects matching state = 1
-		When my_peer sends event SERVICE_CHECK
+		When my_peer sends event SERVICE_STATUS
 			| host_name             | hostA |
 			| service_description   | PONG  |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
 		Then I should have 1 services objects matching state = 1
-		And my_peer should not receive SERVICE_CHECK
-		And my_master should not receive SERVICE_CHECK
+		And my_peer should not receive SERVICE_STATUS
+		And my_master should not receive SERVICE_STATUS

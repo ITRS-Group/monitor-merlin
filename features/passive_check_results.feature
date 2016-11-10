@@ -55,7 +55,7 @@ Feature: Passive check result
 			| command_string | PROCESS_HOST_CHECK_RESULT |
 			| command_args   | hostB;1;Fromtest          |
 
-		And the_peer received event HOST_CHECK
+		And the_peer received event HOST_STATUS
 			| state.plugin_output | Fromtest |
 			| state.current_state | 1        |
 
@@ -79,7 +79,7 @@ Feature: Passive check result
 
 		Then I should have 1 hosts object matching plugin_output = Fromtest
 
-		And the_peer received event HOST_CHECK
+		And the_peer received event HOST_STATUS
 			| state.plugin_output | Fromtest |
 			| state.current_state | 1        |
 	
@@ -106,7 +106,7 @@ Feature: Passive check result
 			| command_string | PROCESS_SERVICE_CHECK_RESULT |
 			| command_args   | hostB;PONG;1;Fromtest        |
 
-		And the_peer received event SERVICE_CHECK
+		And the_peer received event SERVICE_STATUS
 			| state.plugin_output | Fromtest |
 			| state.current_state | 1        |
 	
@@ -130,7 +130,7 @@ Feature: Passive check result
 
 		Then I should have 1 services object matching plugin_output = Fromtest
 
-		And the_peer received event SERVICE_CHECK
+		And the_peer received event SERVICE_STATUS
 			| state.plugin_output | Fromtest |
 			| state.current_state | 1        |
 	

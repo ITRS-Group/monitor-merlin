@@ -33,72 +33,6 @@ struct merlin_check_stats {
 };
 static struct merlin_check_stats service_checks, host_checks;
 
-
-#ifdef DEBUG_DUPES_CAREFULLY
-#define mos_case(vname) \
-	if (offset >= offsetof(monitored_object_state, vname) && \
-	    offset < offsetof(monitored_object_state, vname) + sizeof(mss.vname)) \
-			return #vname
-static const char *mos_offset_name(int offset)
-{
-	monitored_object_state mss;
-
-	if (offset >= sizeof(monitored_object_state)) {
-		return "string area";
-	}
-
-	mos_case(initial_state);
-	mos_case(flap_detection_enabled);
-	mos_case(low_flap_threshold);
-	mos_case(high_flap_threshold);
-	mos_case(check_freshness);
-	mos_case(freshness_threshold);
-	mos_case(process_performance_data);
-	mos_case(checks_enabled);
-	mos_case(accept_passive_checks);
-	mos_case(event_handler_enabled);
-	mos_case(obsess);
-	mos_case(problem_has_been_acknowledged);
-	mos_case(acknowledgement_type);
-	mos_case(check_type);
-	mos_case(current_state);
-	mos_case(last_state);
-	mos_case(last_hard_state);
-	mos_case(state_type);
-	mos_case(current_attempt);
-	mos_case(current_event_id);
-	mos_case(last_event_id);
-	mos_case(current_problem_id);
-	mos_case(last_problem_id);
-	mos_case(latency);
-	mos_case(execution_time);
-	mos_case(notifications_enabled);
-	mos_case(last_notification);
-	mos_case(next_notification);
-	mos_case(next_check);
-	mos_case(last_check);
-	mos_case(last_state_change);
-	mos_case(last_hard_state_change);
-	mos_case(last_time_up);
-	mos_case(last_time_down);
-	mos_case(last_time_unreachable);
-	mos_case(has_been_checked);
-	mos_case(current_notification_number);
-	mos_case(current_notification_id);
-	mos_case(check_flapping_recovery_notification);
-	mos_case(scheduled_downtime_depth);
-	mos_case(pending_flex_downtime);
-	mos_case(is_flapping);
-	mos_case(flapping_comment_id);
-	mos_case(percent_state_change);
-	mos_case(plugin_output);
-	mos_case(long_plugin_output);
-	mos_case(perf_data);
-
-	return NULL;
-}
-#endif
-
 static int is_dupe(merlin_event *pkt)
 {
 	if (!check_dupes) {
@@ -122,39 +56,6 @@ static int is_dupe(merlin_event *pkt)
 		}
 		return 1;
 	}
-
-#ifdef DEBUG_DUPES_CAREFULLY
-	/*
-	 * The "near-dupes" detection only works for host and
-	 * service status events for now, so return early if
-	 * the event type is neither of those
-	 */
-	if (pkt->hdr.type == NEBCALLBACK_SERVICE_STATUS_DATA ||
-		pkt->hdr.type == NEBCALLBACK_HOST_STATUS_DATA)
-	{
-		int i, diffbytes = 0, diffvars = 0;
-		const char *name, *last_name = NULL;
-		unsigned char *a, *b;
-
-		lwarn("Near-duplicate %s event created by Nagios",
-			  callback_name(pkt->hdr.type));
-
-		a = (unsigned char *)&last_pkt;
-		b = (unsigned char *)pkt;
-		for (i = 0; i < packet_size(pkt); i++) {
-			if (a[i] == b[i])
-				continue;
-			diffbytes++;
-			name = mos_offset_name(i);
-			if (name && name == last_name)
-				continue;
-			diffvars++;
-			ldebug("%s differs", name);
-			last_name = name;
-		}
-		ldebug("%d variables and %d bytes differ", diffvars, diffbytes);
-	}
-#endif
 
 	return 0;
 }
@@ -364,17 +265,7 @@ static int hook_service_result(merlin_event *pkt, void *data)
 			set_service_check_node(&ipc, s, ds->check_type == CHECK_TYPE_PASSIVE);
 		}
 
-		/* any check via check result transfer */
-		if (merlin_recv_service == s)
-			return 0;
-
-		/*
-		 * We fiddle with the last_check time here so that the time
-		 * shown in nagios.log (for a service alert, e.g) is the same
-		 * as that in the report_data to avoid (user) confusion
-		 */
-		s->last_check = (time_t) ds->end_time.tv_sec;
-		return send_service_status(pkt, ds->attr, ds->object_ptr);
+		return 0;
 	}
 
 	return 0;
@@ -409,17 +300,7 @@ static int hook_host_result(merlin_event *pkt, void *data)
 			set_host_check_node(&ipc, h, ds->check_type == CHECK_TYPE_PASSIVE);
 		}
 
-		/* any check via check result transfer */
-		if (merlin_recv_host == h)
-			return 0;
-
-		/*
-		 * We fiddle with the last_check time here so that the time
-		 * shown in nagios.log (for a service alert, e.g) is the same
-		 * as that in the report_data to avoid (user) confusion
-		 */
-		h->last_check = (time_t) ds->end_time.tv_sec;
-		return send_host_status(pkt, ds->attr, ds->object_ptr);
+		return 0;
 	}
 
 	return 0;
@@ -857,6 +738,35 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	return cb_result;
 }
 
+/*
+ * The only node that should do any real update on the objects is the node
+ * owning the objects. Thus, it should only be sent from one node anyway.
+ */
+static int hook_host_status(merlin_event *pkt, void *data)
+{
+	nebstruct_host_status_data *ds = (nebstruct_host_status_data *)data;
+	merlin_node *node;
+	/* Only owning node is allowed to send status updates */
+	node = pgroup_host_node(((host *)ds->object_ptr)->id);
+	if (node == &ipc) {
+		return send_host_status(pkt, ds->attr, ds->object_ptr);
+	}
+	return 0;
+}
+
+static int hook_service_status(merlin_event *pkt, void *data)
+{
+	nebstruct_service_status_data *ds = (nebstruct_service_status_data *)data;
+	merlin_node *node;
+	/* Only owning node is allowed to send status updates */
+	node = pgroup_service_node(((service *)ds->object_ptr)->id);
+	if (node == &ipc) {
+		return send_service_status(pkt, ds->attr, ds->object_ptr);
+	}
+	return 0;
+}
+
+
 static int hook_contact_notification_method(merlin_event *pkt, void *data)
 {
 	nebstruct_contact_notification_method_data *ds =
@@ -1112,9 +1022,12 @@ neb_cb_result * merlin_mod_hook(int cb, void *data)
 		break;
 
 	case NEBCALLBACK_HOST_STATUS_DATA:
-	case NEBCALLBACK_SERVICE_STATUS_DATA:
-		lerr("Got %s, which is unhandled nowadays. What voodoo is this?\n", callback_name(cb));
+		result = hook_host_status(&pkt, data);
 		break;
+	case NEBCALLBACK_SERVICE_STATUS_DATA:
+		result = hook_service_status(&pkt, data);
+		break;
+
 	default:
 		lerr("Unhandled callback '%s' in merlin_hook()", callback_name(cb));
 	}

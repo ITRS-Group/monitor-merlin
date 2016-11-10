@@ -34,48 +34,48 @@ Feature: Notification execution for service notificaitons
 			| use             | contact_name |
 			| default-contact | myContact    |
 
-	Scenario: One master notifies if poller doesn't notify, given merlin SERVICE_CHECK events is received
+	Scenario: One master notifies if poller doesn't notify, given merlin SERVICE_STATUS events is received
 		Given I start naemon with merlin nodes connected
 			| type   | name       | port | hostgroup   | notifies |
 			| poller | the_poller | 4001 | pollergroup | no       |
 			| peer   | the_peer   | 4002 | ignore      | ignore   |
 
-		When the_poller sends event SERVICE_CHECK
+		When the_poller sends event SERVICE_STATUS
 			| host_name                  | hostA |
 			| service_description        | PONG  |
 			| state.state_type           | 0     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 1     |
 
-		And the_poller sends event SERVICE_CHECK
+		And the_poller sends event SERVICE_STATUS
 			| host_name                  | hostB |
 			| service_description        | PONG  |
 			| state.state_type           | 0     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 1     |
 
-		And the_poller sends event SERVICE_CHECK
+		And the_poller sends event SERVICE_STATUS
 			| host_name                  | hostA |
 			| service_description        | PONG  |
 			| state.state_type           | 0     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 2     |
 
-		And the_poller sends event SERVICE_CHECK
+		And the_poller sends event SERVICE_STATUS
 			| host_name                  | hostB |
 			| service_description        | PONG  |
 			| state.state_type           | 0     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 2     |
 
-		And the_poller sends event SERVICE_CHECK
+		And the_poller sends event SERVICE_STATUS
 			| host_name                  | hostA |
 			| service_description        | PONG  |
 			| state.state_type           | 1     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 3     |
 
-		And the_poller sends event SERVICE_CHECK
+		And the_poller sends event SERVICE_STATUS
 			| host_name                  | hostB |
 			| service_description        | PONG  |
 			| state.state_type           | 1     |
@@ -86,34 +86,34 @@ Feature: Notification execution for service notificaitons
 
 		Then file checks.log has 1 line matching ^notif service (hostA PONG|hostB PONG)$
 
-	Scenario: No masters notifies if poller notifies, given merlin SERVICE_CHECK events is received
+	Scenario: No masters notifies if poller notifies, given merlin SERVICE_STATUS events is received
 		Given I start naemon with merlin nodes connected
 			| type   | name       | port | hostgroup   | notifies |
 			| poller | the_poller | 4001 | pollergroup | yes      |
 			| peer   | the_peer   | 4002 | ignore      | ignore   |
 
-		When the_poller sends event SERVICE_CHECK
+		When the_poller sends event SERVICE_STATUS
 			| host_name                  | hostA |
 			| service_description        | PONG  |
 			| state.state_type           | 0     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 1     |
 
-		And the_poller sends event SERVICE_CHECK
+		And the_poller sends event SERVICE_STATUS
 			| host_name                  | hostB |
 			| service_description        | PONG  |
 			| state.state_type           | 0     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 1     |
 
-		And the_poller sends event SERVICE_CHECK
+		And the_poller sends event SERVICE_STATUS
 			| host_name                  | hostA |
 			| service_description        | PONG  |
 			| state.state_type           | 1     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 2     |
 
-		And the_poller sends event SERVICE_CHECK
+		And the_poller sends event SERVICE_STATUS
 			| host_name                  | hostB |
 			| service_description        | PONG  |
 			| state.state_type           | 1     |
