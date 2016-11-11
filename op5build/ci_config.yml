@@ -9,10 +9,6 @@ post:
     mon test rsync
     # fake asmonitor rights since we don't want to depend on monitor-nacoma
     # for op5-naemon, asmonitor should be moved to op5-monitor-user package
-    if [ -f /etc/SuSE-release ]; then
-        mkdir -p /etc/sudoers.d
-        echo '#includedir /etc/sudoers.d' >> /etc/sudoers
-    fi
     echo 'Defaults>monitor !requiretty' > /etc/sudoers.d/asmonitor
     echo 'ALL ALL=(monitor) NOPASSWD: ALL' >> /etc/sudoers.d/asmonitor
     chmod 440 /etc/sudoers.d/asmonitor
