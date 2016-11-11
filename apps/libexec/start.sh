@@ -4,4 +4,4 @@
 mon oconf poller-fix
 
 service merlind start
-service monitor start
+service naemon start
