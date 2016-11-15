@@ -84,7 +84,7 @@ STEP_END(step_end_scenario) {
 	StepsConfig *sc = (StepsConfig*) scenario;
 	if (sc->last_dir) {
 		chdir(sc->last_dir);
-		g_message("Switched back to: %s", sc->last_dir);
+		g_message("Switched back to: %s from %s", sc->last_dir, sc->current_dir);
 		g_free(sc->last_dir);
 	}
 	umask(sc->umask_store);
