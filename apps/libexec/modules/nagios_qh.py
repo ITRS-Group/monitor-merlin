@@ -36,17 +36,8 @@ class nagios_qh:
 
 	def format(self, data, rowsep='\n', pairsep=';', kvsep='='):
 		"""Lazily format a response into a sequence of dicts"""
-		def todict(row):
-			return dict(x.split(kvsep, 1) for x in row.split(pairsep))
-		rest = ''
-		for block in data:
-			block = rest + block
-			rows = block.split(rowsep)
-			for row in rows[:-1]:
-				yield todict(row)
-			rest = rows[-1]
-		if rest:
-			yield todict(rest)
+                for row in filter(None, ''.join(data).split(rowsep)):
+			yield dict(x.split(kvsep, 1) for x in row.split(pairsep))
 
 	def get(self, query, rowsep='\n', pairsep=';', kvsep='='):
 		"""Ask a query to nagios' query handler socket, and return an object
