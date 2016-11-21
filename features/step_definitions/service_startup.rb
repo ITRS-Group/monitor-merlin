@@ -38,7 +38,7 @@ end
 
 Given(/^I start merlin$/) do
   steps %Q{
-    And I have a database running configured with
+    And I have a database running
     And I start daemon merlind -d merlin.conf
   }
 end

@@ -38,7 +38,7 @@ Feature: Notification persistence
             | contact_name | myContact        |
 
         And I wait for 1 seconds
-        Then CONTACT_NOTIFICATION_METHOD is logged in the database 2 time with data
+        Then CONTACT_NOTIFICATION_METHOD is logged in the database 2 times with data
             | ack_author   | testCase         |
             | ack_data     | A little comment |
             | contact_name | myContact        |
@@ -48,5 +48,5 @@ Feature: Notification persistence
             | type   | name   | port | hostgroup    |
         And I start merlin
 
-        Then CONTACT_NOTIFICATION_METHOD is logged in the database 0 time with data
+        Then CONTACT_NOTIFICATION_METHOD is logged in the database 0 times with data
             | | |

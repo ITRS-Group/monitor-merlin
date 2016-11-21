@@ -1,6 +1,6 @@
 require "sequel"
 
-Given(/^I have a database running configured with$/) do
+Given(/^I have a database running$/) do
     h = @databaseconfig
     args = "--log-error=./db.log --datadir=./db/data --socket=./db.sock --pid-file=./db.pid"
     # The reason we use the exact path to mysqld here is because it's not in $PATH. The
@@ -17,7 +17,7 @@ Given(/^I have a database running configured with$/) do
         db.run "GRANT ALL PRIVILEGES ON #{h.name}.* To '#{h.user}'@'#{h.host}' IDENTIFIED BY '#{h.pass}'"
     end
     Sequel.mysql2(:host => h.host, :port => h.port, :username => h.user, :password => h.pass, :database => h.name) do |db|
-        db.run "CREATE TABLE IF NOT EXISTS notification( \
+        db.run "CREATE TABLE notification( \
                     instance_id         int NOT NULL DEFAULT 0, \
                     id                  int NOT NULL PRIMARY KEY AUTO_INCREMENT, \
                     notification_type   int, \
@@ -38,7 +38,7 @@ Given(/^I have a database running configured with$/) do
     end
 end
 
-Given(/^CONTACT_NOTIFICATION_METHOD is logged in the database (\d+) time with data$/) do |times, values|
+Given(/^CONTACT_NOTIFICATION_METHOD is logged in the database (\d+) times? with data$/) do |times, values|
     h = @databaseconfig
     v = values.rows_hash
     Sequel.mysql2(:host => h.host, :port => h.port, :username => h.user, :password => h.pass, :database => h.name) do |db|
