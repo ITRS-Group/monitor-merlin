@@ -235,8 +235,9 @@ static inline int should_run_check(unsigned int id)
 	return assigned_peer(id, ipc.info.active_peers + 1) == ipc.peer_id;
 }
 
-/*
+/**
  * The hooks are called from broker.c in Nagios.
+ * Handle service check result from local node. Should not be used from network
  */
 static int hook_service_result(merlin_event *pkt, void *data)
 {
@@ -257,20 +258,16 @@ static int hook_service_result(merlin_event *pkt, void *data)
 
 	case NEBTYPE_SERVICECHECK_PROCESSED:
 		unexpire_service(s);
-		if (merlin_sender) {
-			/* network-received events mustn't bounce back */
-			pkt->hdr.code = MAGIC_NONET;
-			set_service_check_node(merlin_sender, s, s->check_type == CHECK_TYPE_PASSIVE);
-		} else {
-			set_service_check_node(&ipc, s, ds->check_type == CHECK_TYPE_PASSIVE);
-		}
-
+		set_service_check_node(&ipc, s, ds->check_type == CHECK_TYPE_PASSIVE);
 		return 0;
 	}
 
 	return 0;
 }
 
+/**
+ * Handle host check result from local node. Should not be used from network
+ */
 static int hook_host_result(merlin_event *pkt, void *data)
 {
 	nebstruct_host_check_data *ds = (nebstruct_host_check_data *)data;
@@ -292,14 +289,7 @@ static int hook_host_result(merlin_event *pkt, void *data)
 	/* only send processed host checks */
 	case NEBTYPE_HOSTCHECK_PROCESSED:
 		unexpire_host(h);
-		if (merlin_sender) {
-			/* network-received events mustn't bounce back */
-			pkt->hdr.code = MAGIC_NONET;
-			set_host_check_node(merlin_sender, h, h->check_type == CHECK_TYPE_PASSIVE);
-		} else {
-			set_host_check_node(&ipc, h, ds->check_type == CHECK_TYPE_PASSIVE);
-		}
-
+		set_host_check_node(&ipc, h, ds->check_type == CHECK_TYPE_PASSIVE);
 		return 0;
 	}
 

@@ -451,6 +451,7 @@ static int handle_host_result(merlin_node *node, merlin_header *hdr, void *buf)
 		       obj->name, node_type(node), node->name, obj->last_check, st_obj->state.last_check);
 		return 0;
 	}
+	set_host_check_node(node, obj, FALSE);
 
 	if (hdr->type == NEBCALLBACK_HOST_CHECK_DATA) {
 		struct check_result cr;
@@ -507,6 +508,7 @@ static int handle_service_result(merlin_node *node, merlin_header *hdr, void *bu
 		       obj->last_check, st_obj->state.last_check);
 		return 0;
 	}
+	set_service_check_node(node, obj, FALSE);
 
 	if (hdr->type == NEBCALLBACK_SERVICE_CHECK_DATA) {
 		struct check_result cr;
