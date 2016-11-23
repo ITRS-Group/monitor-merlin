@@ -1,5 +1,8 @@
 post:
-  install: ['mysql-devel', 'ruby20-devel']
+  install:
+    - mysql-devel
+    - ruby20-devel
+    - python-nose
   steps: |
     mkdir -p -m 777 /mnt/logs/merlin_dtest
     mon test dist --basepath=/mnt/logs/merlin_dtest
@@ -15,4 +18,8 @@ post:
     chmod 440 /etc/sudoers.d/asmonitor
     sudo -u monitor mon test rsync
 
+    # Run unit tests
+    nosetests --nocapture --where apps/libexec/modules
+
+    # Install requirements for cucumber test
     gem2.0 install sequel mysql2
