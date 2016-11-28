@@ -205,6 +205,16 @@ static int send_host_status(merlin_event *pkt, int nebattr, host *obj)
 	return send_generic(pkt, &st_obj);
 }
 
+static int send_custom_host_status(uint16_t selection, host *obj)
+{
+	merlin_event pkt;
+	memset(&pkt, 0, sizeof(pkt));
+	pkt.hdr.type = NEBCALLBACK_HOST_STATUS_DATA;
+	pkt.hdr.selection = selection;
+
+	return send_host_status(&pkt, NEBATTR_NONE, obj);
+}
+
 static int send_service_status(merlin_event *pkt, int nebattr, service *obj)
 {
 	merlin_service_status st_obj;
@@ -225,9 +235,18 @@ static int send_service_status(merlin_event *pkt, int nebattr, service *obj)
 	st_obj.host_name = obj->host_name;
 	st_obj.service_description = obj->description;
 	MOD2NET_STATE_VARS(st_obj.state, obj);
-	pkt->hdr.selection = DEST_PEERS_MASTERS;
 
 	return send_generic(pkt, &st_obj);
+}
+
+static int send_custom_service_status(uint16_t selection, service *obj)
+{
+	merlin_event pkt;
+	memset(&pkt, 0, sizeof(pkt));
+	pkt.hdr.type = NEBCALLBACK_SERVICE_STATUS_DATA;
+	pkt.hdr.selection = selection;
+
+	return send_service_status(&pkt, NEBATTR_NONE, obj);
 }
 
 static inline int should_run_check(unsigned int id)
@@ -258,8 +277,27 @@ static int hook_service_result(merlin_event *pkt, void *data)
 
 	case NEBTYPE_SERVICECHECK_PROCESSED:
 		unexpire_service(s);
-		set_service_check_node(&ipc, s, ds->check_type == CHECK_TYPE_PASSIVE);
-		return 0;
+		if (merlin_sender) {
+			/* network-received events mustn't bounce back */
+			pkt->hdr.code = MAGIC_NONET;
+			set_service_check_node(merlin_sender, s, s->check_type == CHECK_TYPE_PASSIVE);
+		} else {
+			/* check results should always be sent to peers and masters */
+			pkt->hdr.selection = DEST_PEERS_MASTERS;
+			set_service_check_node(&ipc, s, ds->check_type == CHECK_TYPE_PASSIVE);
+		}
+
+		/* any check via check result transfer */
+		if (merlin_recv_service == s)
+			return 0;
+
+		/*
+		 * We fiddle with the last_check time here so that the time
+		 * shown in nagios.log (for a service alert, e.g) is the same
+		 * as that in the report_data to avoid (user) confusion
+		 */
+		s->last_check = (time_t) ds->end_time.tv_sec;
+		return send_service_status(pkt, ds->attr, ds->object_ptr);
 	}
 
 	return 0;
@@ -289,8 +327,27 @@ static int hook_host_result(merlin_event *pkt, void *data)
 	/* only send processed host checks */
 	case NEBTYPE_HOSTCHECK_PROCESSED:
 		unexpire_host(h);
-		set_host_check_node(&ipc, h, ds->check_type == CHECK_TYPE_PASSIVE);
-		return 0;
+		if (merlin_sender) {
+			/* network-received events mustn't bounce back */
+			pkt->hdr.code = MAGIC_NONET;
+			set_host_check_node(merlin_sender, h, h->check_type == CHECK_TYPE_PASSIVE);
+		} else {
+			/* check results should always be sent to peers and masters */
+			pkt->hdr.selection = DEST_PEERS_MASTERS;
+			set_host_check_node(&ipc, h, ds->check_type == CHECK_TYPE_PASSIVE);
+		}
+
+		/* any check via check result transfer */
+		if (merlin_recv_host == h)
+			return 0;
+
+		/*
+		 * We fiddle with the last_check time here so that the time
+		 * shown in nagios.log (for a service alert, e.g) is the same
+		 * as that in the report_data to avoid (user) confusion
+		 */
+		h->last_check = (time_t) ds->end_time.tv_sec;
+		return send_host_status(pkt, ds->attr, ds->object_ptr);
 	}
 
 	return 0;
@@ -732,6 +789,7 @@ static int hook_host_status(merlin_event *pkt, void *data)
 	/* Only owning node is allowed to send status updates */
 	node = pgroup_host_node(((host *)ds->object_ptr)->id);
 	if (node == &ipc) {
+		pkt->hdr.selection = DEST_PEERS_MASTERS;
 		return send_host_status(pkt, ds->attr, ds->object_ptr);
 	}
 	return 0;
@@ -744,6 +802,7 @@ static int hook_service_status(merlin_event *pkt, void *data)
 	/* Only owning node is allowed to send status updates */
 	node = pgroup_service_node(((service *)ds->object_ptr)->id);
 	if (node == &ipc) {
+		pkt->hdr.selection = DEST_PEERS_MASTERS;
 		return send_service_status(pkt, ds->attr, ds->object_ptr);
 	}
 	return 0;
@@ -791,6 +850,7 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 			ds->start_time.tv_sec = hst->last_notification;
 			ds->end_time.tv_usec = 0;
 			ds->end_time.tv_sec = hst->next_notification;
+			//send_custom_host_status(pkt->hdr.selection, hst);
 		} else if (ds->notification_type == SERVICE_NOTIFICATION) {
 			service *svc = ds->object_ptr;
 			ds->object_ptr = (void *)(uintptr_t)(svc->current_notification_number);
@@ -798,6 +858,7 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 			ds->start_time.tv_sec = svc->last_notification;
 			ds->end_time.tv_usec = 0;
 			ds->end_time.tv_sec = svc->next_notification;
+			//send_custom_service_status(pkt->hdr.selection, svc);
 		} else {
 			lerr("Unknown notification type %i", ds->notification_type);
 		}
@@ -1011,10 +1072,13 @@ neb_cb_result * merlin_mod_hook(int cb, void *data)
 		break;
 
 	case NEBCALLBACK_HOST_STATUS_DATA:
-		result = hook_host_status(&pkt, data);
-		break;
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
-		result = hook_service_status(&pkt, data);
+		/*
+		 * Don't handle status updates coming from Naemon.
+		 * If we need to send status updates for any reason it is done through
+		 * Merlin directly. For normal state updates, we let each node handle
+		 * check results so they keep their own state.
+		 */
 		break;
 
 	default:
