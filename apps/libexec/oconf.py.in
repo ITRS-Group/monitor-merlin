@@ -389,6 +389,7 @@ def cmd_poller_fix(args=[]):
 			sys.exit(1)
 
 	have_from_master_cfg = False
+	from_master_config_line = "cfg_file=oconf/from-master.cfg\n"
 	try:
 		f = open(naemon_cfg, 'r')
 		if not f:
@@ -398,8 +399,7 @@ def cmd_poller_fix(args=[]):
 		f.close()
 		i = 0
 		for line in lines:
-			#print("   line: %s\nlines[%3d]: %s\n" % (line, i, lines[i]))
-			if lines[i] == 'cfg_file=oconf/from-master.cfg\n':
+			if lines[i] == from_master_config_line:
 				have_from_master_cfg = True
 			elif lines[i].startswith("cfg_file=") or lines[i].startswith("cfg_dir="):
 				line = '#' + lines[i]
@@ -408,7 +408,7 @@ def cmd_poller_fix(args=[]):
 
 		# make sure we read the from-master.cfg file
 		if not have_from_master_cfg:
-			lines.append("cfg_file=oconf/from-master.cfg\n")
+			lines.append(from_master_config_line)
 		f = open(naemon_cfg, 'w')
 		if not f:
 			print(" poller_fix: Could not open %s for writing." % naemon_cfg)
