@@ -164,7 +164,8 @@ cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
 
 
 %check
-python tests/pyunit/test.py --verbose
+python tests/pyunit/test_log.py --verbose
+python tests/pyunit/test_oconf.py --verbose
 
 
 %post

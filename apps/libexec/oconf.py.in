@@ -364,6 +364,20 @@ def get_last_changed(files=False):
 
 	return last_changed
 
+def make_config_file_suitable_for_poller(lines):
+	have_from_master_cfg = False
+	from_master_config_line = "cfg_file=oconf/from-master.cfg"
+	for i, line in enumerate(lines):
+		if lines[i] == from_master_config_line:
+			have_from_master_cfg = True
+		elif lines[i].startswith("cfg_file=") or lines[i].startswith("cfg_dir="):
+			line = '#' + lines[i]
+			lines[i] = line
+
+	if not have_from_master_cfg:
+		lines.append(from_master_config_line)
+	return lines
+
 def cmd_poller_fix(args=[]):
 	"""
 	Fixes object configuration setup to be suitable for a poller.
@@ -388,34 +402,14 @@ def cmd_poller_fix(args=[]):
 				'Unknown argument: %s' % arg)
 			sys.exit(1)
 
-	have_from_master_cfg = False
-	from_master_config_line = "cfg_file=oconf/from-master.cfg\n"
 	try:
-		f = open(naemon_cfg, 'r')
-		if not f:
-			print(" poller_fix: Could not open %s for reading." % naemon_cfg)
-			sys.exit(1)
-		lines = f.readlines()
-		f.close()
-		i = 0
-		for line in lines:
-			if lines[i] == from_master_config_line:
-				have_from_master_cfg = True
-			elif lines[i].startswith("cfg_file=") or lines[i].startswith("cfg_dir="):
-				line = '#' + lines[i]
-				lines[i] = line
-			i += 1
+		with open(naemon_cfg, 'r') as f:
+			unchecked_lines = f.read().splitlines()
 
-		# make sure we read the from-master.cfg file
-		if not have_from_master_cfg:
-			lines.append(from_master_config_line)
-		f = open(naemon_cfg, 'w')
-		if not f:
-			print(" poller_fix: Could not open %s for writing." % naemon_cfg)
-			sys.exit(1)
-		f.writelines(lines)
-		f.close()
+		fixed_lines = make_config_file_suitable_for_poller(unchecked_lines)
 
+		with open(naemon_cfg, 'w') as f:
+			f.write("\n".join(fixed_lines)+"\n")
 	except Exception as e:
 		print(" poller_fix: Error while modifying %s: %s" % (naemon_cfg, e))
 		sys.exit(1)
