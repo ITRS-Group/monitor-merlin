@@ -163,7 +163,8 @@ cp data/kad.conf %buildroot%_sysconfdir/op5kad/conf.d/merlin.kad
 %endif
 
 %check
-python tests/pyunit/test.py --verbose
+python tests/pyunit/test_log.py --verbose
+python tests/pyunit/test_oconf.py --verbose
 
 
 %post

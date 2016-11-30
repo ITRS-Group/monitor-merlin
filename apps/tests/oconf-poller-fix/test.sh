@@ -16,21 +16,21 @@ cmd="python $mon
 	--merlin-cfg=$self_path/merlin.conf
 	--nagios-conf=$self_path/fixme.cfg
 	oconf poller-fix $self_path/fixme.cfg"
-#echo $cmd && exit 0
+
 $cmd || exit 1
-cmp --quiet $self_path/fixme.cfg $self_path/fixed-config.cfg
+diff -u $self_path/fixme.cfg $self_path/fixed-config.cfg
 result1=$?
+
+cp $self_path/fixed-config.cfg $self_path/fixed-config.cfg-first
 $cmd || exit 1
+diff -u $self_path/fixed-config.cfg-first $self_path/fixed-config.cfg
 result2=$?
-#rm -f $self_path/fixme.cfg
 
 if test $result1 -ne 0; then
-	echo "fail: Files differ"
+	echo "fail: Files differ" >&2
 	exit 1
 fi
 if test $result2 -ne 0; then
-	echo "fail: Files differ after second pass"
+	echo "fail: Files differ after second pass" >&2
+	exit 1
 fi
-
-echo "pass: Files match"
-exit 0
