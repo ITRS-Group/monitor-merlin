@@ -2,17 +2,15 @@ post:
   install:
     - mysql-devel
     - ruby20-devel
+    - ruby-devel
     - python-nose
   steps: |
+    rm -rf /mnt/logs/merlin_dtest
     mkdir -p -m 777 /mnt/logs/merlin_dtest
     mon test dist --basepath=/mnt/logs/merlin_dtest
     mon test rsync
     # fake asmonitor rights since we don't want to depend on monitor-nacoma
     # for op5-naemon, asmonitor should be moved to op5-monitor-user package
-    if [ -f /etc/SuSE-release ]; then
-        mkdir -p /etc/sudoers.d
-        echo '#includedir /etc/sudoers.d' >> /etc/sudoers
-    fi
     echo 'Defaults>monitor !requiretty' > /etc/sudoers.d/asmonitor
     echo 'ALL ALL=(monitor) NOPASSWD: ALL' >> /etc/sudoers.d/asmonitor
     chmod 440 /etc/sudoers.d/asmonitor
@@ -22,4 +20,4 @@ post:
     nosetests --nocapture --where apps/libexec/modules
 
     # Install requirements for cucumber test
-    gem2.0 install sequel mysql2
+    if which gem2.0; then gem2.0 install sequel mysql2; else gem install sequel mysql2; fi

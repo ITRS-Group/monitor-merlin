@@ -1,4 +1,4 @@
 #!/bin/sh
 
-service monitor stop
+service naemon stop
 service merlind stop
