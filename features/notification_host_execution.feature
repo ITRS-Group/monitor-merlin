@@ -230,3 +230,18 @@ Feature: Notification execution for host notificaitons
 		And other_poller should not receive EXTERNAL_COMMAND
 
 		And file checks.log has 1 line matching ^notif host (hostA|hostB)$
+
+
+	Scenario: As a poller with notifications turned off, notification
+		should be handled by a master.
+
+		Given I have merlin config notifies set to no
+		And I start naemon with merlin nodes connected
+			| type   | name         | port |
+			| master | the_master   | 4001 |
+
+		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;0;First OK
+		# Passive checks goes hard directly
+		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
+
+		Then file checks.log does not match ^notif host (hostA|hostB)$

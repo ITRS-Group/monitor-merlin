@@ -56,6 +56,7 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
 
     module {
       log_file = merlin.log
+      notifies = #{@merlinnodeconfig.get_var("notifies")}
     }
     daemon {
       pidfile = merlin.pid;

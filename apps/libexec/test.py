@@ -875,6 +875,7 @@ class fake_mesh:
 		care of them.
 		Checks can be tracked by monitoring @@BASEPATH@@/*-checks.log
 		"""
+		self.intermission('Letting nodes connect to each other', 20)
 		master = self.masters.nodes[0]
 		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('START_EXECUTING_SVC_CHECKS')
