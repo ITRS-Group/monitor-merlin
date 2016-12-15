@@ -819,9 +819,11 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
  */
 static int store_notification(merlin_event *pkt, nebstruct_notification_data *data)
 {
-	if(tmp_notif_data)
+	if(tmp_notif_data) {
+		lerr("Possible bug! store_notification() couldn't store because "
+				"a notification was already in storage!");
 		return -1;	/* there is already some stored notification, bailing */
-
+	}
 	/* copy the notification data to storage */
 	memcpy(&tmp_notif_pkt, pkt, packet_size(pkt));
 	tmp_notif_data = malloc(sizeof(nebstruct_notification_data));
@@ -842,7 +844,6 @@ static int store_notification(merlin_event *pkt, nebstruct_notification_data *da
  */
 static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 {
-	int ret;
 	nebstruct_notification_data *ds = (nebstruct_notification_data *)data;
 	unsigned int id, check_type = 0, rtype;
 	struct merlin_notify_stats *mns = NULL;
@@ -852,9 +853,10 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 
 	if (ds->type == NEBTYPE_NOTIFICATION_END){
 
+		int ret = 0;
+
 		/* Always propagate results to peers and masters */
 		pkt->hdr.selection = DEST_PEERS_MASTERS;
-		ret = 0;
 
 		if (ds->notification_type == HOST_NOTIFICATION) {
 			host *hst = ds->object_ptr;
@@ -875,23 +877,12 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		}
 
 		if(ds->reason_type == NOTIFICATION_CUSTOM) {
-			/* If it is a custom notification, so we just send it right away */
 			ret = send_generic(pkt, data);
 		} else {
-			/* If not, we store it and send it on the next outgoing check result */
 			ret = store_notification(pkt, ds);
 		}
 
-		if (ret == NEBERROR_CALLBACKCANCEL || ret == NEBERROR_CALLBACKOVERRIDE) {
-			const char *err_type = ret == NEBERROR_CALLBACKCANCEL ? "cancel" : "override";
-			lerr("Possible bug! Return from send_generic() triggered %s for notification end", err_type);
-			return neb_cb_result_create_full(ret,
-					"This might be a bug! Return from send_generic() triggered %s for notification end",
-					err_type);
-		}
-		else {
-			return neb_cb_result_create(ret);
-		}
+		return neb_cb_result_create(ret);
 	}
 
 	/* don't count or (try to) block notifications after they're sent */

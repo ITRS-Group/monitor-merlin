@@ -571,7 +571,8 @@ int net_sendto(merlin_node *node, merlin_event *pkt)
 		lerr("net_sendto() called with neither node nor pkt");
 		return -1;
 	}
-
+	ldebug("notif: Sending merlin packet of type %i to node %s",
+			pkt->hdr.type, node->name);
     /* Do not block in the Naemon event loop, retry on the next iteration. */
 	return node_send_event(node, pkt, 0);
 }

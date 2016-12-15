@@ -150,7 +150,7 @@ CukeStepEnvironment steps_merlin =
 				{ "^([a-z0-9-_]+) clears buffer$", step_clear_buffer },
 				{ "^([a-z0-9-_]+) received event ([A-Z_]+)$", step_record_check },
 				{
-					"^([a-z0-9-_]+) should not receive ([A-Z_]+)$",
+					"^([a-z0-9-_]+) should not.*received? ([A-Z_]+)$",
 					step_no_record_check },
 
 				{ NULL, NULL }
