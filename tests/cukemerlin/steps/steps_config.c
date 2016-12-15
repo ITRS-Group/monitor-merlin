@@ -33,6 +33,7 @@ static glong file_match_step(gpointer *scenario, const gchar *filename, const gc
 STEP_DEF(step_file_matches);
 STEP_DEF(step_file_not_matches);
 STEP_DEF(step_file_matches_count);
+STEP_DEF(step_file_no_match_after);
 
 CukeStepEnvironment steps_config = {
 	.tag = "config",
@@ -47,6 +48,7 @@ CukeStepEnvironment steps_config = {
 		{ "^file (.*) matches (.*)$", step_file_matches },
 		{ "^file (.*) does not match (.*)$", step_file_not_matches },
 		{ "^file (.*) has ([0-9]+) lines? matching (.*)$", step_file_matches_count },
+		{ "^file (.*) has no match (.*) after match (.*)", step_file_no_match_after },
 		{ NULL, NULL }
 	}
 };
@@ -241,6 +243,58 @@ static glong file_match_step(gpointer *scenario, const gchar *filename, const gc
 	return matching_count;
 }
 
+static glong file_match_last_line_step(gpointer *scenario, const gchar *filename, const gchar *pattern, CukeResponseRef respref) {
+	StepsConfig *sc = (StepsConfig *) scenario;
+
+	GIOChannel *fp = NULL;
+	GError *error = NULL;
+	GIOStatus status;
+	gchar *line = NULL;
+	gsize terminator = 0;
+
+	glong last_occurrence = -1;
+	glong i = 1;
+	GRegex *re = NULL;
+
+
+	re = g_regex_new(pattern, 0, 0, &error);
+	if(error != NULL) {
+		STEP_FAIL("Can't compile regex");
+		goto cleanup;
+	}
+
+	fp = g_io_channel_new_file(filename, "r", &error);
+	if(fp == NULL) {
+		STEP_FAIL("Can't open file");
+		goto cleanup;
+	}
+	while((status = g_io_channel_read_line(fp, &line, NULL, &terminator, &error)) == G_IO_STATUS_NORMAL) {
+		g_assert(error == NULL); /* Shouldn't be an error if status is normal */
+		g_assert(line != NULL); /* Line should be set if no error */
+		line[terminator] = '\0'; /* We don't need no linebreak */
+		if(g_regex_match(re, line, 0, NULL))
+			last_occurrence = i;
+		g_free(line);
+		i++;
+	}
+	if(error) {
+		STEP_FAIL("Error reading file");
+		goto cleanup;
+	}
+
+	cleanup: /**/
+	if(fp) {
+		g_io_channel_shutdown(fp, TRUE, &error);
+		g_io_channel_unref(fp);
+	}
+	if(re)
+		g_regex_unref(re);
+	if(error)
+		g_error_free(error);
+
+	return last_occurrence;
+}
+
 STEP_DEF(step_file_matches) {
 	gchar *filename = NULL;
 	gchar *pattern = NULL;
@@ -297,5 +351,33 @@ STEP_DEF(step_file_matches_count) {
 		g_free(error_line);
 	} else {
 		STEP_OK;
+	}
+}
+STEP_DEF(step_file_no_match_after) {
+
+	gchar *filename = NULL;
+	gchar *first_pattern = NULL;
+	gchar *second_pattern = NULL;
+	glong line_first;
+	glong line_second;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &filename)
+		|| !jsonx_locate(args, 'a', 1, 's', &first_pattern)
+		|| !jsonx_locate(args, 'a', 2, 's', &second_pattern)) {
+		STEP_FAIL("Invalid arguments");
+		return;
+	}
+
+	line_first = file_match_last_line_step(scenario, filename, first_pattern, respref);
+	line_second = file_match_last_line_step(scenario, filename, second_pattern, respref);
+
+	if (line_first > line_second) {
+		STEP_FAIL("Patterns found out of order");
+	} else if (line_second > line_first) {
+		STEP_OK;
+	} else if (line_first < 0 || line_second < 0) {
+		STEP_FAIL("Couldn't match both patterns");
+	} else if (line_first == line_second) {
+		STEP_FAIL("Both patterns found on same line");
 	}
 }
