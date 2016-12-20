@@ -28,76 +28,13 @@ static merlin_event last_pkt;
 static unsigned long long dupes, dupe_bytes;
 static uint32_t ev_mask;
 
+static merlin_event tmp_notif_pkt;
+static nebstruct_notification_data *tmp_notif_data;
+
 struct merlin_check_stats {
 	unsigned long long poller, peer, self, orphaned;
 };
 static struct merlin_check_stats service_checks, host_checks;
-
-
-#ifdef DEBUG_DUPES_CAREFULLY
-#define mos_case(vname) \
-	if (offset >= offsetof(monitored_object_state, vname) && \
-	    offset < offsetof(monitored_object_state, vname) + sizeof(mss.vname)) \
-			return #vname
-static const char *mos_offset_name(int offset)
-{
-	monitored_object_state mss;
-
-	if (offset >= sizeof(monitored_object_state)) {
-		return "string area";
-	}
-
-	mos_case(initial_state);
-	mos_case(flap_detection_enabled);
-	mos_case(low_flap_threshold);
-	mos_case(high_flap_threshold);
-	mos_case(check_freshness);
-	mos_case(freshness_threshold);
-	mos_case(process_performance_data);
-	mos_case(checks_enabled);
-	mos_case(accept_passive_checks);
-	mos_case(event_handler_enabled);
-	mos_case(obsess);
-	mos_case(problem_has_been_acknowledged);
-	mos_case(acknowledgement_type);
-	mos_case(check_type);
-	mos_case(current_state);
-	mos_case(last_state);
-	mos_case(last_hard_state);
-	mos_case(state_type);
-	mos_case(current_attempt);
-	mos_case(current_event_id);
-	mos_case(last_event_id);
-	mos_case(current_problem_id);
-	mos_case(last_problem_id);
-	mos_case(latency);
-	mos_case(execution_time);
-	mos_case(notifications_enabled);
-	mos_case(last_notification);
-	mos_case(next_notification);
-	mos_case(next_check);
-	mos_case(last_check);
-	mos_case(last_state_change);
-	mos_case(last_hard_state_change);
-	mos_case(last_time_up);
-	mos_case(last_time_down);
-	mos_case(last_time_unreachable);
-	mos_case(has_been_checked);
-	mos_case(current_notification_number);
-	mos_case(current_notification_id);
-	mos_case(check_flapping_recovery_notification);
-	mos_case(scheduled_downtime_depth);
-	mos_case(pending_flex_downtime);
-	mos_case(is_flapping);
-	mos_case(flapping_comment_id);
-	mos_case(percent_state_change);
-	mos_case(plugin_output);
-	mos_case(long_plugin_output);
-	mos_case(perf_data);
-
-	return NULL;
-}
-#endif
 
 static int is_dupe(merlin_event *pkt)
 {
@@ -122,39 +59,6 @@ static int is_dupe(merlin_event *pkt)
 		}
 		return 1;
 	}
-
-#ifdef DEBUG_DUPES_CAREFULLY
-	/*
-	 * The "near-dupes" detection only works for host and
-	 * service status events for now, so return early if
-	 * the event type is neither of those
-	 */
-	if (pkt->hdr.type == NEBCALLBACK_SERVICE_STATUS_DATA ||
-		pkt->hdr.type == NEBCALLBACK_HOST_STATUS_DATA)
-	{
-		int i, diffbytes = 0, diffvars = 0;
-		const char *name, *last_name = NULL;
-		unsigned char *a, *b;
-
-		lwarn("Near-duplicate %s event created by Nagios",
-			  callback_name(pkt->hdr.type));
-
-		a = (unsigned char *)&last_pkt;
-		b = (unsigned char *)pkt;
-		for (i = 0; i < packet_size(pkt); i++) {
-			if (a[i] == b[i])
-				continue;
-			diffbytes++;
-			name = mos_offset_name(i);
-			if (name && name == last_name)
-				continue;
-			diffvars++;
-			ldebug("%s differs", name);
-			last_name = name;
-		}
-		ldebug("%d variables and %d bytes differ", diffvars, diffbytes);
-	}
-#endif
 
 	return 0;
 }
@@ -324,7 +228,6 @@ static int send_service_status(merlin_event *pkt, int nebattr, service *obj)
 	st_obj.host_name = obj->host_name;
 	st_obj.service_description = obj->description;
 	MOD2NET_STATE_VARS(st_obj.state, obj);
-	pkt->hdr.selection = DEST_PEERS_MASTERS;
 
 	return send_generic(pkt, &st_obj);
 }
@@ -334,11 +237,33 @@ static inline int should_run_check(unsigned int id)
 	return assigned_peer(id, ipc.info.active_peers + 1) == ipc.peer_id;
 }
 
-/*
+static int flush_notification(void)
+{
+	if (tmp_notif_data == NULL)
+		return -1;
+
+	/* Send the stored notification */
+	send_generic(&tmp_notif_pkt, (void *) tmp_notif_data);
+
+	/* clear the stored notification */
+	free(tmp_notif_data->host_name);
+	free(tmp_notif_data->service_description);
+	free(tmp_notif_data->output);
+	free(tmp_notif_data->ack_author);
+	free(tmp_notif_data->ack_data);
+	free(tmp_notif_data);
+	tmp_notif_data = NULL;
+
+	return 0;
+}
+
+/**
  * The hooks are called from broker.c in Nagios.
+ * Handle service check result from local node. Should not be used from network
  */
 static int hook_service_result(merlin_event *pkt, void *data)
 {
+	int ret;
 	nebstruct_service_check_data *ds = (nebstruct_service_check_data *)data;
 	service *s = (service *)ds->object_ptr;
 	struct merlin_node *node;
@@ -361,6 +286,11 @@ static int hook_service_result(merlin_event *pkt, void *data)
 			pkt->hdr.code = MAGIC_NONET;
 			set_service_check_node(merlin_sender, s, s->check_type == CHECK_TYPE_PASSIVE);
 		} else {
+			/*
+			 * check results should always be sent to peers and masters if
+			 * generated locally.
+			 */
+			pkt->hdr.selection = DEST_PEERS_MASTERS;
 			set_service_check_node(&ipc, s, ds->check_type == CHECK_TYPE_PASSIVE);
 		}
 
@@ -374,14 +304,23 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		 * as that in the report_data to avoid (user) confusion
 		 */
 		s->last_check = (time_t) ds->end_time.tv_sec;
-		return send_service_status(pkt, ds->attr, ds->object_ptr);
+		ret = send_service_status(pkt, ds->attr, ds->object_ptr);
+
+		/* flush any stored notifications */
+		flush_notification();
+
+		return ret;
 	}
 
 	return 0;
 }
 
+/**
+ * Handle host check result from local node
+ */
 static int hook_host_result(merlin_event *pkt, void *data)
 {
+	int ret;
 	nebstruct_host_check_data *ds = (nebstruct_host_check_data *)data;
 	struct host *h = (struct host *)ds->object_ptr;
 	struct merlin_node *node;
@@ -406,6 +345,8 @@ static int hook_host_result(merlin_event *pkt, void *data)
 			pkt->hdr.code = MAGIC_NONET;
 			set_host_check_node(merlin_sender, h, h->check_type == CHECK_TYPE_PASSIVE);
 		} else {
+			/* check results should always be sent to peers and masters */
+			pkt->hdr.selection = DEST_PEERS_MASTERS;
 			set_host_check_node(&ipc, h, ds->check_type == CHECK_TYPE_PASSIVE);
 		}
 
@@ -419,7 +360,12 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		 * as that in the report_data to avoid (user) confusion
 		 */
 		h->last_check = (time_t) ds->end_time.tv_sec;
-		return send_host_status(pkt, ds->attr, ds->object_ptr);
+		ret = send_host_status(pkt, ds->attr, ds->object_ptr);
+
+		/* flush any stored notifications */
+		flush_notification();
+
+		return ret;
 	}
 
 	return 0;
@@ -576,15 +522,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 		return NEB_OK;
 
 		/*
-		 * Custom notifications are always sent from the node where
-		 * the user input the command, so we we must block them here
-		 * in order to not generate multiple notifications.
-		 */
-	case CMD_SEND_CUSTOM_HOST_NOTIFICATION:
-	case CMD_SEND_CUSTOM_SVC_NOTIFICATION:
-		return NEB_OK;
-
-		/*
 		 * These only contain the downtime id, so they're mostly useless,
 		 * but potentially dangerous.
 		 * We'll forward the downtime_delete event instead.
@@ -694,6 +631,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 			pkt->hdr.selection = get_cmd_selection(ds->command_args, 0);
 		break;
 
+	case CMD_SEND_CUSTOM_HOST_NOTIFICATION:
 	case CMD_PROCESS_HOST_CHECK_RESULT:
 		if (!merlin_sender) {
 			/* Send to correct node */
@@ -736,6 +674,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 			break;
 		}
 
+	case CMD_SEND_CUSTOM_SVC_NOTIFICATION:
 	case CMD_PROCESS_SERVICE_CHECK_RESULT:
 		if (!merlin_sender) {
 			/* Send to correct node */
@@ -871,6 +810,33 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
+/**
+ * store_notification() makes a deep copy of a notification message and stores
+ * it in a global variable tmp_notif_data. The purpose is to make it possible
+ * to send notification messages after a check result. Meaning that if a
+ * processed check result generates a notification, the notification will be
+ * stored and sent once the ending check result is sent.
+ */
+static int store_notification(merlin_event *pkt, nebstruct_notification_data *data)
+{
+	if(tmp_notif_data) {
+		lerr("Possible bug! store_notification() couldn't store because "
+				"a notification was already in storage!");
+		return -1;	/* there is already some stored notification, bailing */
+	}
+	/* copy the notification data to storage */
+	memcpy(&tmp_notif_pkt, pkt, packet_size(pkt));
+	tmp_notif_data = malloc(sizeof(nebstruct_notification_data));
+	memcpy(tmp_notif_data, data, sizeof(nebstruct_notification_data));
+	tmp_notif_data->host_name = data->host_name ? strdup(data->host_name) : NULL;
+	tmp_notif_data->service_description = data->service_description ? strdup(data->service_description) : NULL;
+	tmp_notif_data->output = data->output ? strdup(data->output) : NULL;
+	tmp_notif_data->ack_author = data->ack_author ? strdup(data->ack_author) : NULL;
+	tmp_notif_data->ack_data = data->ack_data ? strdup(data->ack_data) : NULL;
+
+	return 0;
+}
+
 /*
  * Called when a notification chain starts. This is used to
  * avoid sending notifications from a node that isn't supposed
@@ -886,7 +852,12 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	const char *owning_node_name = NULL;
 
 	if (ds->type == NEBTYPE_NOTIFICATION_END){
+
 		int ret = 0;
+
+		/* Always propagate results to peers and masters */
+		pkt->hdr.selection = DEST_PEERS_MASTERS;
+
 		if (ds->notification_type == HOST_NOTIFICATION) {
 			host *hst = ds->object_ptr;
 			ds->object_ptr = (void *)(uintptr_t)(hst->current_notification_number);
@@ -904,17 +875,14 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		} else {
 			lerr("Unknown notification type %i", ds->notification_type);
 		}
-		ret = send_generic(pkt, data);
-		if (ret == NEBERROR_CALLBACKCANCEL || ret == NEBERROR_CALLBACKOVERRIDE) {
-			const char *err_type = ret == NEBERROR_CALLBACKCANCEL ? "cancel" : "override";
-			lerr("Possible bug! Return from send_generic() triggered %s for notification end", err_type);
-			return neb_cb_result_create_full(ret,
-					"This might be a bug! Return from send_generic() triggered %s for notification end",
-					err_type);
+
+		if(ds->reason_type == NOTIFICATION_CUSTOM) {
+			ret = send_generic(pkt, data);
+		} else {
+			ret = store_notification(pkt, ds);
 		}
-		else {
-			return neb_cb_result_create(ret);
-		}
+
+		return neb_cb_result_create(ret);
 	}
 
 	/* don't count or (try to) block notifications after they're sent */
@@ -952,6 +920,7 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	if (online_masters && !(ipc.flags & MERLIN_NODE_NOTIFIES)) {
 		ldebug("notif: poller blocking notification in favour of master");
 		mns->master++;
+
 		return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 				"Notification will be handled by master(s)");
 	}
@@ -1113,8 +1082,14 @@ neb_cb_result * merlin_mod_hook(int cb, void *data)
 
 	case NEBCALLBACK_HOST_STATUS_DATA:
 	case NEBCALLBACK_SERVICE_STATUS_DATA:
-		lerr("Got %s, which is unhandled nowadays. What voodoo is this?\n", callback_name(cb));
+		/*
+		 * Don't handle status updates coming from Naemon.
+		 * If we need to send status updates for any reason it is done through
+		 * Merlin directly. For normal state updates, we let each node handle
+		 * check results so they keep their own state.
+		 */
 		break;
+
 	default:
 		lerr("Unhandled callback '%s' in merlin_hook()", callback_name(cb));
 	}

@@ -95,7 +95,6 @@ extern void set_service_check_node(merlin_node *node, service *s, int flags);
 	mrln.latency = nag->latency; \
 	mrln.execution_time = nag->execution_time; \
 	mrln.notifications_enabled = nag->notifications_enabled; \
-	mrln.next_check = nag->next_check; \
 	mrln.last_check = nag->last_check; \
 	mrln.last_state_change = nag->last_state_change; \
 	mrln.last_hard_state_change = nag->last_hard_state_change; \
@@ -167,7 +166,6 @@ struct tmp_net2mod_data {
 	nag->latency = mrln.latency; \
 	nag->execution_time = mrln.execution_time; \
 	nag->notifications_enabled = mrln.notifications_enabled; \
-	nag->next_check = mrln.next_check; \
 	nag->last_check = mrln.last_check; \
 	nag->last_state_change = mrln.last_state_change; \
 	nag->last_hard_state_change = mrln.last_hard_state_change; \

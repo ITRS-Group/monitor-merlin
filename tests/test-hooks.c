@@ -79,24 +79,6 @@ int ipc_grok_var(__attribute__((unused)) char *var, __attribute__((unused)) char
 #include "module.c"
 #include "pgroup.c"
 
-static void general_setup(void)
-{
-	num_peer_groups = 0;
-	peer_group = NULL;
-	nagios_iobs = iobroker_create();
-	qh_init(queryhandler_socket_path);
-	nebmodule_init(0, "tests/singlenode.conf", NULL);
-	ipc.name = "Local";
-	ipc.sock = -1;
-	memset(&last_decoded_event, 0, sizeof(merlin_event));
-}
-
-static void general_teardown(void)
-{
-	qh_deinit(queryhandler_socket_path);
-	iobroker_destroy(nagios_iobs, IOBROKER_CLOSE_SOCKETS);
-	nebmodule_deinit(0, 0);
-}
 
 static void expiration_setup(void)
 {
@@ -139,80 +121,6 @@ static void expiration_teardown(void)
 
 #define to_timed_event(user_data) \
 	((struct nm_event_execution_properties) {EVENT_EXEC_NORMAL, EVENT_TYPE_TIMED, user_data, {{last_event, 0}}})
-
-START_TEST(test_callback_host_check)
-{
-	time_t expected_last_check = time(NULL);
-	time_t not_expected_last_check = 2147123099;
-	host *hst;
-	int event_type = NEBTYPE_PROCESS_EVENTLOOPSTART;
-	nebstruct_host_check_data ev_data = {0,};
-	merlin_host_status *event_body;
-	struct timeval tv;
-
-	init_objects_host(1);
-	hst = create_host("test-host");
-	register_host(hst);
-	hst->last_check = not_expected_last_check;
-
-	post_config_init(0, &event_type);
-
-	gettimeofday(&tv, NULL);
-	ev_data.type = NEBTYPE_HOSTCHECK_PROCESSED;
-	ev_data.flags = 0;
-	ev_data.attr = NEBATTR_CHECK_ALERT;
-	ev_data.timestamp = tv;
-	ev_data.object_ptr = hst;
-	ev_data.end_time.tv_sec =  expected_last_check;
-	merlin_mod_hook(NEBCALLBACK_HOST_CHECK_DATA, &ev_data);
-	ck_assert_int_eq(last_decoded_event.hdr.type, NEBCALLBACK_HOST_CHECK_DATA);
-	event_body = (merlin_host_status *)last_decoded_event.body;
-	ck_assert_int_eq(event_body->nebattr, NEBATTR_CHECK_ALERT);
-	ck_assert_str_eq(event_body->name, hst->name);
-	ck_assert_int_eq(expected_last_check, event_body->state.last_check);
-
-	destroy_objects_host();
-}
-END_TEST
-
-START_TEST(test_callback_service_check)
-{
-	time_t expected_last_check = time(NULL);
-	time_t not_expected_last_check = 2147123099;
-	service *svc;
-	int event_type = NEBTYPE_PROCESS_EVENTLOOPSTART;
-	nebstruct_service_check_data ev_data = {0,};
-	merlin_service_status *event_body;
-	struct timeval tv;
-
-	init_objects_host(1);
-	init_objects_service(1);
-
-	register_host(create_host("test-host"));
-	svc = create_service(host_ary[0], "test-service");
-	register_service(svc);
-	svc->last_check = not_expected_last_check;
-
-	post_config_init(0, &event_type);
-
-	gettimeofday(&tv, NULL);
-	ev_data.type = NEBTYPE_SERVICECHECK_PROCESSED;
-	ev_data.flags = 0;
-	ev_data.attr = NEBATTR_CHECK_ALERT;
-	ev_data.timestamp = tv;
-	ev_data.object_ptr = svc;
-	ev_data.end_time.tv_sec =  expected_last_check;
-	merlin_mod_hook(NEBCALLBACK_SERVICE_CHECK_DATA, &ev_data);
-	ck_assert_int_eq(last_decoded_event.hdr.type, NEBCALLBACK_SERVICE_CHECK_DATA);
-	event_body = (merlin_service_status *)last_decoded_event.body;
-	ck_assert_int_eq(event_body->nebattr, NEBATTR_CHECK_ALERT);
-	ck_assert_str_eq(event_body->host_name, svc->host_name);
-	ck_assert_int_eq(expected_last_check, event_body->state.last_check);
-
-	destroy_objects_host();
-	destroy_objects_service();
-}
-END_TEST
 
 START_TEST(set_clear_svc_expire)
 {
@@ -362,12 +270,7 @@ Suite *
 check_hooks_suite(void)
 {
 	Suite *s = suite_create("hooks");
-
-	TCase *tc = tcase_create("callback");
-	tcase_add_checked_fixture (tc, general_setup, general_teardown);
-	tcase_add_test(tc, test_callback_host_check);
-	tcase_add_test(tc, test_callback_service_check);
-	suite_add_tcase(s, tc);
+	TCase *tc;
 
 	tc = tcase_create("expiration");
 	tcase_add_checked_fixture (tc, expiration_setup, expiration_teardown);

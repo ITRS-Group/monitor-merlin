@@ -340,9 +340,12 @@ uint16_t event_packer_str_to_type(const char *typestr) {
 		return NEBCALLBACK_CONTACT_STATUS_DATA;
 	} else if (0 == strcmp("ADAPTIVE_CONTACT", typestr)) {
 		return NEBCALLBACK_ADAPTIVE_CONTACT_DATA;
+	} else if (0 == strncmp("CTRL_", typestr, 5)) {
+		/* All prefxies of CTRL_ */
+		return CTRL_PACKET;
 	}
-	/* TODO: Better error handling. multiple packets end up in CTRL_PACKET */
-	return CTRL_PACKET;
+	/* Guaranteed not to collide with any NEBCALLBACK_..._DATA */
+	return NEBCALLBACK_TYPE__COUNT;
 }
 
 merlin_event *event_packer_unpack_kvv(const char *cmd, struct kvvec *kvv) {

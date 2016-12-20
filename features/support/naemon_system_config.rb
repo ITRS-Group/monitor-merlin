@@ -10,7 +10,9 @@ class NaemonSystemConfig
       "status_file" => "/dev/null",
       "log_file" => "naemon.log",
       "retain_state_information" => "1",
-      "state_retention_file" => "status.sav"
+      "state_retention_file" => "status.sav",
+      "execute_host_checks" => "0",
+      "execute_service_checks" => "0"
     }
   end
 
