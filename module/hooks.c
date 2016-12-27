@@ -896,6 +896,7 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 {
 	nebstruct_notification_data *ds = (nebstruct_notification_data *)data;
 	unsigned int id, check_type = 0, rtype;
+	unsigned int notifying_node = 0;
 	struct merlin_notify_stats *mns = NULL;
 	struct service *s = NULL;
 	struct host *h = NULL;
@@ -952,7 +953,8 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		ldebug("notif: Checking host notification for %s", h->name);
 	}
 
-	if (node_by_id(assigned_peer(id, ipc.info.active_peers + 1)) != NULL) {
+	notifying_node = assigned_peer(id, ipc.info.active_peers + 1);
+	if (node_by_id(notifying_node) != NULL) {
 		owning_node_name = node_by_id(assigned_peer(id,
 				ipc.info.active_peers + 1 /* number of active peers plus self */
 				))->name;
@@ -991,6 +993,11 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 
 			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 					"Notification will be handled by a poller (%s)", merlin_sender->name);
+		} else if (merlin_sender->type == MODE_PEER && merlin_sender->id == notifying_node) {
+			ldebug("notif: Peer will handles its own notifications. Cancelling notification");
+
+			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
+				"Notification will be handled by owning peer (%s)", merlin_sender->name);
 		}
 
 		/*
