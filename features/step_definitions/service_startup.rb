@@ -55,24 +55,24 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
     oconfsplit_dir = .;
 
     module {
-      log_file = merlin.log
-      notifies = #{@merlinnodeconfig.get_var("notifies")}
+      log_file = merlin.log;
+      notifies = #{@merlinnodeconfig.get_var("notifies")};
     }
     daemon {
       pidfile = merlin.pid;
-      log_file = merlin.log
-      import_program = /bin/false
+      log_file = merlin.log;
+      import_program = /bin/false;
       port = #{port};
       object_config {
-        push = ./push_cmd
-        fetch = ./fetch_cmd
+        push = ./push_cmd;
+        fetch = ./fetch_cmd;
       }
       database {
-        name = #{@databaseconfig.name}
-        host = #{@databaseconfig.host}
-        port = #{@databaseconfig.port}
-        user = #{@databaseconfig.user}
-        pass = #{@databaseconfig.pass}
+        name = #{@databaseconfig.name};
+        host = #{@databaseconfig.host};
+        port = #{@databaseconfig.port};
+        user = #{@databaseconfig.user};
+        pass = #{@databaseconfig.pass};
       }
     }
     "
