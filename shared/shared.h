@@ -50,6 +50,7 @@ static inline int min(int a, int b)
 extern const char *merlin_version;
 extern int is_module;
 extern int pulse_interval;
+extern int node_activity_check_interval;
 extern int debug;
 extern char *binlog_dir;
 extern char *merlin_config_file;
