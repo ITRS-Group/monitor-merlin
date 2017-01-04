@@ -10,6 +10,10 @@ Feature: Module handles network and connections
 	In the case of lost connection, the nodes should reconnect, and a new
 	successful connection replaces the old one.
 	
+	In a distributed system nodes should be aware of each others state.
+	Meaning that if a peer/poller/master is disconnected, it should be known to
+	all other nodes that the specific node is down.
+
 	Background: A hostgroup for pollers
 		Given I have naemon hostgroup objects
 			| hostgroup_name | alias |
@@ -175,3 +179,81 @@ Feature: Module handles network and connections
 		And I ask query handler merlin nodeinfo
 			| filter_var | filter_val | match_var   | match_val       |
 			| name       | my_master  | state       | STATE_CONNECTED |
+
+	Scenario: As a peer, if the number of seconds passed is greater than the
+		limit set by the parameter data_timeout we should consider the other
+		peer to be disconnected.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup  | data_timeout |
+			| peer   | the_peer    | 4001 | ignore     | 2            |
+		And the_peer should appear connected
+
+		When I wait for 3 seconds
+
+		Then the_peer should appear disconnected
+
+	Scenario: As a peer, if the number of seconds passed is less than the
+		limit set by the parameter data_timeout we should consider the other
+		peer to be connected.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup  | data_timeout |
+			| peer   | the_peer    | 4001 | ignore     | 5            |
+		And the_peer should appear connected
+
+		When I wait for 2 seconds
+
+		Then the_peer should appear connected
+
+	Scenario: As a master, if the number of seconds passed is greater than the
+		limit set by the parameter data_timeout we should consider the poller
+		to be disconnected.
+
+		Given I start naemon with merlin nodes connected
+			| type     | name          | port | hostgroup  | data_timeout |
+			| poller   | the_poller    | 4001 | emptygroup | 2            |
+		And the_poller should appear connected
+
+		When I wait for 3 seconds
+
+		Then the_poller should appear disconnected
+
+	Scenario: As a master, if the number of seconds passed is less than the
+		limit set by the parameter data_timeout we should consider the poller
+		to be connected.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup  | data_timeout |
+			| poller | the_poller  | 4001 | emptygroup | 5            |
+		And the_poller should appear connected
+
+		When I wait for 2 seconds
+
+		Then the_poller should appear connected
+
+	Scenario: As a poller, if the number of seconds passed is greater than the
+		limit set by the parameter data_timeout we should consider the master
+		to be disconnected.
+
+		Given I start naemon with merlin nodes connected
+			| type     | name          | port | hostgroup  | data_timeout |
+			| master   | the_master    | 4001 | ignore     | 2            |
+		And the_master should appear connected
+
+		When I wait for 3 seconds
+
+		Then the_master should appear disconnected
+
+	Scenario: As a poller, if the number of seconds passed is less than the
+		limit set by the parameter data_timeout we should consider the master
+		to be connected.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup  | data_timeout |
+			| master | the_master  | 4001 | ignore     | 5            |
+		And the_master should appear connected
+
+		When I wait for 2 seconds
+
+		Then the_master should appear connected

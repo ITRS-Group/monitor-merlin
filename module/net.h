@@ -15,4 +15,5 @@ extern int net_try_connect(merlin_node *node);
 extern int net_sendto(merlin_node *node, merlin_event *pkt);
 extern int net_sendto_many(merlin_node **ntable, uint num, merlin_event *pkt);
 extern int net_input(int sd, int io_evt, void *node_);
+extern void disconnect_inactive(merlin_node *node);
 #endif /* INCLUDE_net_h__ */

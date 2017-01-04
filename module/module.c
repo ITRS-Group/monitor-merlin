@@ -1234,9 +1234,10 @@ static void connect_to_all(struct nm_event_execution_properties *evprop)
 }
 
 /*
- * we send this every 15 seconds, just in case our nodes forget
- * about us. It shouldn't happen, but there are stranger things
- * than random bugs in computer programs.
+ * This is a scheduled event. Its occurence is stated in seconds in the
+ * variable 'pulse_interval (shared.c)'. We send this pulse because we don't
+ * want our fellow nodes to forget about us. It shouldn't happen, but there are
+ * stranger things than random bugs in computer programs.
  */
 static void send_pulse(struct nm_event_execution_properties *evprop)
 {
@@ -1251,6 +1252,28 @@ static void send_pulse(struct nm_event_execution_properties *evprop)
 		merlin_node *node = noc_table[i];
 		if (node->state == STATE_CONNECTED) {
 			node_send_ctrl_active(node, CTRL_GENERIC, &ipc.info);
+		}
+	}
+}
+
+/*
+ * This is a scheduled event. Its occurence is stated in seconds in the
+ * variable 'node_activity_check_interval (shared.c)'. We check if our fellow
+ * nodes have been active lately and if a node has been silent for
+ * more than their data_timeout parameter they should be considered down.
+ */
+static void disconnect_inactive_nodes(struct nm_event_execution_properties *evprop)
+{
+	unsigned int i;
+
+	if (evprop->execution_type != EVENT_EXEC_NORMAL)
+		return;
+
+	schedule_event(node_activity_check_interval, disconnect_inactive_nodes, NULL);
+	for (i = 0; i < num_nodes; i++) {
+		merlin_node *node = noc_table[i];
+		if(node->state != STATE_NONE) {
+			disconnect_inactive(node);
 		}
 	}
 }
@@ -1310,6 +1333,7 @@ static int post_config_init(int cb, void *ds)
 		 */
 		schedule_event(0, connect_to_all, NULL);
 		schedule_event(0, send_pulse, NULL);
+		schedule_event(0, disconnect_inactive_nodes, NULL);
 
 		/*
 	 	* now we register the hooks we're interested in, avoiding

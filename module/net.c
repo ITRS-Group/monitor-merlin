@@ -598,9 +598,10 @@ int net_sendto_many(merlin_node **ntable, uint num, merlin_event *pkt)
  * longer connected, signalling that we should, potentially, take
  * over checks for the AWOL node
  */
-static void check_node_activity(merlin_node *node)
+void disconnect_inactive(merlin_node *node)
 {
 	time_t now = time(NULL);
+	unsigned int delta_receive_time = now - node->last_recv;
 
 	if (node->sock == -1 || node->state != STATE_CONNECTED)
 		return;
@@ -609,6 +610,6 @@ static void check_node_activity(merlin_node *node)
 	if (!node->data_timeout)
 		return;
 
-	if (node->last_recv < now - node->data_timeout)
+	if (delta_receive_time >= node->data_timeout)
 		node_disconnect(node, "Too long since last action");
 }

@@ -21,3 +21,19 @@ Then(/^([a-z0-9\-_]+) received notification after all service check results$/) d
   log_file = "merlin.log"
   step "file #{log_file} has no match type 6 to node #{n} after match 5 to node #{n}"
 end
+
+Then(/([a-z0-9\-_]+) should appear disconnected$/) do |n|
+  steps %Q{
+    Given I ask query handler merlin nodeinfo
+      | filter_var | filter_val | match_var | match_val |
+      | name | #{n} | state | STATE_NONE |
+  }
+end
+
+Then(/([a-z0-9\-_]+) should appear connected$/) do |n|
+  steps %Q{
+    Given I ask query handler merlin nodeinfo
+      | filter_var | filter_val | match_var | match_val |
+      | name | #{n} | state | STATE_CONNECTED |
+  }
+end
