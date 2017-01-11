@@ -256,7 +256,7 @@ service_control_function restart nrpe || :
 
 %files
 %defattr(-,root,root)
-%config(noreplace) %mod_path/merlin.conf
+%attr(640, -, %daemon_group) %config(noreplace) %mod_path/merlin.conf
 %_datadir/merlin/sql
 %mod_path/merlind
 %_bindir/merlind
