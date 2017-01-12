@@ -45,7 +45,9 @@ int split_grok_var(const char *var, const char *value) {
 		dirname(cfgdir);
 		poller_config_dir = nspath_absolute(value, cfgdir);
 		nm_free(cfgdir);
+		return 1;
 	}
+	return 0;
 }
 
 static inline void nsplit_cache_command(struct command *cmd)
