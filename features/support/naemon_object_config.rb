@@ -36,6 +36,9 @@ class NaemonObjectConfig
       },{
         "command_name" => "log_notif_service",
         "command_line" => "./check_cmd notif service $HOSTNAME$ $SERVICEDESC$ $NOTIFICATIONCOMMENT$"
+      },{
+        "command_name" => "check_long_output",
+        "command_line" => "./output_cmd"
       }],
       "host" => [{
         "check_command" => "log_check_host",
