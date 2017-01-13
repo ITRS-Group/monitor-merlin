@@ -46,12 +46,12 @@ end
 # Generate a regex pattern from the supplied table to search the the
 # notifications log.
 Then(/^(\d+) (host|service) notifications? (?:was|were) sent$/) do | count, type, table |
-  regex = "^notif #{type} " # Log entries always start with notif service/host
+  regex = "^notif #{type}" # Log entries always start with notif service/host
   table.hashes.each do |obj|
     # Append each parameter and value given in the table to the regex pattern
     # string. We use positive lookahead so we don't have to consider order
     # when later trying to match.
-    regex << "(?=.*#{obj["parameter"]}=#{obj["value"]} ?)"
+    regex << "(?=.* #{obj["parameter"]}=#{obj["value"]})"
   end
   regex << ".*$"
   step "file notifications.log has #{count} line matching #{regex}"

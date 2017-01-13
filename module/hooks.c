@@ -291,10 +291,61 @@ static inline int should_run_check(unsigned int id)
 	return assigned_peer(id, ipc.info.active_peers + 1) == ipc.peer_id;
 }
 
+/**
+ * hold_notification_packet() makes a deep copy of a notification message and
+ * stores it in a global variable tmp_notif_data. The purpose is to make it
+ * possible to send notification messages the triggering check result.
+ * Meaning that if a processed check result generates a notification, the
+ * notification will be stored and sent once the ending check result is sent.
+ * Without this the check result will be sent right after the notification
+ * packet making the receiver overwrite any information stored from the
+ * notification packet.
+ */
+static int hold_notification_packet(merlin_event *pkt, nebstruct_notification_data *data)
+{
+	if(tmp_notif_data) {
+		lerr("Possible bug! hold_notification_packet() couldn't hold because "
+				"a notification packet was already being held!");
+		return -1;	/* there is already some stored notification, bailing */
+	}
+
+	if (data->notification_type == HOST_NOTIFICATION) {
+		ldebug("holding host notification for %s", data->host_name);
+	} else {
+		ldebug("holding service notification for %s;%s",
+				data->service_description, data->host_name);
+	}
+
+	/* copy the notification data to storage */
+	memcpy(&tmp_notif_pkt, pkt, packet_size(pkt));
+	tmp_notif_data = malloc(sizeof(nebstruct_notification_data));
+	memcpy(tmp_notif_data, data, sizeof(nebstruct_notification_data));
+	tmp_notif_data->host_name = data->host_name ? strdup(data->host_name) : NULL;
+	tmp_notif_data->service_description = data->service_description ? strdup(data->service_description) : NULL;
+	tmp_notif_data->output = data->output ? strdup(data->output) : NULL;
+	tmp_notif_data->ack_author = data->ack_author ? strdup(data->ack_author) : NULL;
+	tmp_notif_data->ack_data = data->ack_data ? strdup(data->ack_data) : NULL;
+
+	return 0;
+}
+
+/**
+ * flush_notification() is called every time we send a check result to
+ * peers/masters. So if the check result being sent is a notification triggering
+ * one there should be a notification packet in storage which then will be sent.
+ */
 static int flush_notification(void)
 {
 	if (tmp_notif_data == NULL)
 		return -1;
+
+	if (tmp_notif_data->notification_type == HOST_NOTIFICATION) {
+		ldebug("flushing host notification for %s",
+				tmp_notif_data->host_name);
+	} else {
+		ldebug("flushing service notification for %s;%s",
+				tmp_notif_data->service_description, tmp_notif_data->host_name);
+	}
 
 	/* Send the stored notification */
 	send_generic(&tmp_notif_pkt, (void *) tmp_notif_data);
@@ -860,33 +911,6 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
-/**
- * store_notification() makes a deep copy of a notification message and stores
- * it in a global variable tmp_notif_data. The purpose is to make it possible
- * to send notification messages after a check result. Meaning that if a
- * processed check result generates a notification, the notification will be
- * stored and sent once the ending check result is sent.
- */
-static int store_notification(merlin_event *pkt, nebstruct_notification_data *data)
-{
-	if(tmp_notif_data) {
-		lerr("Possible bug! store_notification() couldn't store because "
-				"a notification was already in storage!");
-		return -1;	/* there is already some stored notification, bailing */
-	}
-	/* copy the notification data to storage */
-	memcpy(&tmp_notif_pkt, pkt, packet_size(pkt));
-	tmp_notif_data = malloc(sizeof(nebstruct_notification_data));
-	memcpy(tmp_notif_data, data, sizeof(nebstruct_notification_data));
-	tmp_notif_data->host_name = data->host_name ? strdup(data->host_name) : NULL;
-	tmp_notif_data->service_description = data->service_description ? strdup(data->service_description) : NULL;
-	tmp_notif_data->output = data->output ? strdup(data->output) : NULL;
-	tmp_notif_data->ack_author = data->ack_author ? strdup(data->ack_author) : NULL;
-	tmp_notif_data->ack_data = data->ack_data ? strdup(data->ack_data) : NULL;
-
-	return 0;
-}
-
 /*
  * Called when a notification chain starts. This is used to
  * avoid sending notifications from a node that isn't supposed
@@ -927,10 +951,22 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 			lerr("Unknown notification type %i", ds->notification_type);
 		}
 
-		if(ds->reason_type == NOTIFICATION_CUSTOM) {
+		/*
+		 * If it is a custom notification it should always be sent directly
+		 * because we won't have a pending check result waiting to be sent.
+		 * The same goes for when we've ended up here as a result of a received
+		 * merlin event. In this case, if a poller sends a check result which
+		 * generates a notification that we're responsible for, we notify and
+		 * let fellow nodes know that we've notified directly.
+		 * Otherwise, we're are to expect a check result to be sent to fellow
+		 * nodes directly after and we don't want it to overwrite the data
+		 * sent in the notification packet, so we hold the notification packet
+		 * until next check result is sent.
+		 */
+		if(ds->reason_type == NOTIFICATION_CUSTOM || merlin_sender) {
 			ret = send_generic(pkt, data);
 		} else {
-			ret = store_notification(pkt, ds);
+			ret = hold_notification_packet(pkt, ds);
 		}
 
 		return neb_cb_result_create(ret);
@@ -994,7 +1030,7 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 					"Notification will be handled by a poller (%s)", merlin_sender->name);
 		} else if (merlin_sender->type == MODE_PEER && merlin_sender->id == notifying_node) {
-			ldebug("notif: Peer will handles its own notifications. Cancelling notification");
+			ldebug("notif: Peer will handle its own notifications. Cancelling notification");
 
 			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 				"Notification will be handled by owning peer (%s)", merlin_sender->name);
