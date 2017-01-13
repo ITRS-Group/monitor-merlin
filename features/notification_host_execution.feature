@@ -40,33 +40,23 @@ Feature: Notification execution for host notificaitons
 			| poller | the_poller | 4001 | pollergroup | no       |
 			| peer   | the_peer   | 4002 | ignore      | ignore   |
 
-		When the_poller sends event HOST_CHECK
-			| name                  | hostA |
-			| state.state_type      | 0     |
-			| state.current_state   | 1     |
-			| state.current_attempt | 1     |
-
 		And the_poller sends event HOST_CHECK
 			| name                  | hostB |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
-
-		And the_poller sends event HOST_CHECK
-			| name                  | hostA |
-			| state.state_type      | 1     |
-			| state.current_state   | 1     |
-			| state.current_attempt | 2     |
-
 		And the_poller sends event HOST_CHECK
 			| name                  | hostB |
 			| state.state_type      | 1     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 2     |
-
 		And I wait for 1 second
 
-		Then file checks.log has 1 line matching ^notif host (hostA|hostB)$
+		Then 1 host notification was sent
+			| parameter        | value   |
+			| hostname         | hostB   |
+			| hoststate        | DOWN    |
+			| notificationtype | PROBLEM |
 
 	Scenario: No masters notifies if poller notifies, given merlin HOST_CHECK events is received
 		Given I start naemon with merlin nodes connected
@@ -79,28 +69,24 @@ Feature: Notification execution for host notificaitons
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
-
 		And the_poller sends event HOST_CHECK
 			| name                  | hostB |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
-
 		And the_poller sends event HOST_CHECK
 			| name                  | hostA |
 			| state.state_type      | 1     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 2     |
-
 		And the_poller sends event HOST_CHECK
 			| name                  | hostB |
 			| state.state_type      | 1     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 2     |
-
 		And I wait for 1 second
 
-		Then file checks.log has 0 line matching ^notif host (hostA|hostB)$
+		Then no host notification was sent
 
 	Scenario: Poller should notify if poller is configured to notify
 		Given I start naemon with merlin nodes connected
@@ -110,9 +96,14 @@ Feature: Notification execution for host notificaitons
 		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;0;First OK
 		# Passive checks goes hard directly
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
-
 		And I wait for 1 second
-		Then file checks.log matches ^notif host hostA$
+
+		Then 1 host notification was sent
+			| parameter        | value   |
+			| hostname         | hostA   |
+			| hoststate        | DOWN    |
+			| notificationtype | PROBLEM |
+			| hostoutput       | Not OK  |
 		And my_master received event CONTACT_NOTIFICATION_METHOD
 			| host_name    | hostA     |
 			| contact_name | myContact |
@@ -129,7 +120,7 @@ Feature: Notification execution for host notificaitons
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;1;Not OK
 
-		When the_peer received event EXTERNAL_COMMAND
+		Then the_peer received event EXTERNAL_COMMAND
 			| command_type   | 87                        |
 			| command_string | PROCESS_HOST_CHECK_RESULT |
 			| command_args   | hostA;0;First OK          |
@@ -145,11 +136,14 @@ Feature: Notification execution for host notificaitons
 			| command_type   | 87                        |
 			| command_string | PROCESS_HOST_CHECK_RESULT |
 			| command_args   | hostB;1;Not OK            |
-
 		And the_poller should not receive EXTERNAL_COMMAND
-
-		Then file checks.log has 1 line matching ^notif host (hostA|hostB)$
-
+		#And file checks.log has 1 line matching ^notif host (hostA|hostB)$
+		And 1 host notification was sent
+			| parameter        | value   |
+			| hostname         | hostB   |
+			| hoststate        | DOWN    |
+			| notificationtype | PROBLEM |
+			| hostoutput       | Not OK  |
 
 	Scenario: Passive check result should only be executed on machine handling the check, when getting from merlin
 		Given I start naemon with merlin nodes connected
@@ -177,22 +171,24 @@ Feature: Notification execution for host notificaitons
 		# Next line waits
 		Then the_peer should not receive EXTERNAL_COMMAND
 		And the_poller should not receive EXTERNAL_COMMAND
-
-		And file checks.log has 1 line matching ^notif host (hostA|hostB)$
+		And 1 host notification was sent
+			| parameter        | value   |
+			| hostname         | hostB   |
+			| hoststate        | DOWN    |
+			| notificationtype | PROBLEM |
+			| hostoutput       | Not OK  |
 		
 	Scenario: Passive checks should be executed on poller if poller handling the check
 		Given I start naemon with merlin nodes connected
 			| type   | name       | port | hostgroup   |
 			| poller | the_poller | 4001 | pollergroup |
 			
-		
 		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;0;First OK
 		# Passive checks goes hard directly
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
-
 		And I wait for 1 second
 
-		When the_poller received event EXTERNAL_COMMAND
+		Then the_poller received event EXTERNAL_COMMAND
 			| command_type   | 87                        |
 			| command_string | PROCESS_HOST_CHECK_RESULT |
 			| command_args   | hostA;0;First OK          |
@@ -200,8 +196,7 @@ Feature: Notification execution for host notificaitons
 			| command_type   | 87                        |
 			| command_string | PROCESS_HOST_CHECK_RESULT |
 			| command_args   | hostA;1;Not OK            |
-
-		And file checks.log does not match ^notif host (hostA|hostB)$
+		And no host notification was sent
 		
 	Scenario: Passive checks sent from master handled by correct node in pollergroup
 		Given I start naemon with merlin nodes connected
@@ -228,9 +223,12 @@ Feature: Notification execution for host notificaitons
 
 		Then the_master should not receive EXTERNAL_COMMAND
 		And other_poller should not receive EXTERNAL_COMMAND
-
-		And file checks.log has 1 line matching ^notif host (hostA|hostB)$
-
+		And 1 host notification was sent
+			| parameter        | value   |
+			| hostname         | hostB   |
+			| hoststate        | DOWN    |
+			| notificationtype | PROBLEM |
+			| hostoutput       | Not OK  |
 
 	Scenario: As a poller with notifications turned off, notification
 		should be handled by a master.
@@ -244,4 +242,4 @@ Feature: Notification execution for host notificaitons
 		# Passive checks goes hard directly
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
 
-		Then file checks.log does not match ^notif host (hostA|hostB)$
+		Then no host notification was sent

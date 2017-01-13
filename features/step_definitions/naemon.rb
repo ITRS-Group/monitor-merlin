@@ -42,3 +42,16 @@ Then(/^(.*) of host (.*) should be (.*)$/) do
        | #{value} | #{host} |
     }
 end
+
+Then(/^(\d+) (host|service) notifications? (?:was|were) sent$/) do | count, type, table |
+  regex = "^notif #{type} "
+  table.hashes.each do |obj|
+    regex << "(?=.*#{obj["parameter"]}=#{obj["value"]} )"
+  end
+  regex << ".*$"
+  step "file notifications.log has #{count} line matching #{regex}"
+end
+
+Then(/^no (host|service) notification (?:was|has been) sent$/) do | type |
+  step "file notifications.log does not match ^notif #{type}"
+end

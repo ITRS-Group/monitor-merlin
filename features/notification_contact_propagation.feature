@@ -40,12 +40,16 @@ Feature: Notification propagation
 
 		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;gurka;4;testCase;A little comment
 		And I wait for 1 second
-		Then file checks.log matches ^notif host gurka A little comment$
+
+		Then 1 host notification was sent
+			| parameter           | value            |
+			| hostname            | gurka            |
+			| notificationcomment | A little comment |
+			| notificationtype    | CUSTOM           |
 		And ipc received event CONTACT_NOTIFICATION_METHOD
 			| ack_author   | testCase         |
 			| ack_data     | A little comment |
 			| contact_name | myContact        |
-
 
 	Scenario: Notifications from local system propagates to peer
 		Given I start naemon with merlin nodes connected
@@ -55,12 +59,16 @@ Feature: Notification propagation
 		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;gurka;4;testCase;A little comment
 		And I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;something;4;testCase;A little comment
 		And I wait for 1 second
-		Then file checks.log has 1 line matching ^notif host (gurka|something) A little comment$
+
+		Then 1 host notification was sent
+			| parameter           | value            |
+			| hostname            | something        |
+			| notificationcomment | A little comment |
+			| notificationtype    | CUSTOM           |
 		And the_peer received event CONTACT_NOTIFICATION_METHOD
 			| ack_author   | testCase         |
 			| ack_data     | A little comment |
 			| contact_name | myContact        |
-
 
 	Scenario: Notifications from peer propagates to daemon
 		Given I start naemon with merlin nodes connected
@@ -72,14 +80,14 @@ Feature: Notification propagation
 			| contact_name | myContact |
 			| ack_author   | someUser  |
 			| ack_data     | MyMessage |
+		And I wait for 1 second
+
 		Then ipc received event CONTACT_NOTIFICATION_METHOD
 			| host_name    | gurka     |
 			| contact_name | myContact |
 			| ack_author   | someUser  |
 			| ack_data     | MyMessage |
-
-		When I wait for 1 second
-		Then file checks.log does not match ^notif host gurka
+		And no host notification was sent
 
 	Scenario: Notifications from local system propagates to master
 		Given I start naemon with merlin nodes connected
@@ -88,13 +96,17 @@ Feature: Notification propagation
 
 		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;gurka;4;testCase;A little comment
 		And I wait for 1 second
-		Then file checks.log matches ^notif host gurka A little comment$
+
+		Then 1 host notification was sent
+			| parameter           | value            |
+			| hostname            | gurka            |
+			| notificationcomment | A little comment |
+			| notificationtype    | CUSTOM           |
 		And my_master received event CONTACT_NOTIFICATION_METHOD
 			| host_name    | gurka            |
 			| contact_name | myContact        |
 			| ack_author   | testCase         |
 			| ack_data     | A little comment |
-
 
 	Scenario: Notifications from poller propagates to daemon, poller notifies
 		Given I start naemon with merlin nodes connected
@@ -106,15 +118,14 @@ Feature: Notification propagation
 			| contact_name | myContact |
 			| ack_author   | someUser  |
 			| ack_data     | MyMessage |
+		And I wait for 1 second
+
 		Then ipc received event CONTACT_NOTIFICATION_METHOD
 			| host_name    | gurka     |
 			| contact_name | myContact |
 			| ack_author   | someUser  |
 			| ack_data     | MyMessage |
-
-		When I wait for 1 second
-		Then file checks.log does not match ^notif host gurka
-
+		And no host notification was sent
 
 	Scenario: Notifications from poller propagates to daemon, master notifies
 		Given I start naemon with merlin nodes connected
@@ -126,36 +137,42 @@ Feature: Notification propagation
 			| contact_name | myContact |
 			| ack_author   | someUser  |
 			| ack_data     | MyMessage |
+		And I wait for 1 second
+
 		Then ipc received event CONTACT_NOTIFICATION_METHOD
 			| host_name    | gurka     |
 			| contact_name | myContact |
 			| ack_author   | someUser  |
 			| ack_data     | MyMessage |
-
-		# The notification should not be logged, since it's only the node
-		# identifying the notifaciton that actually runs the script.
-		# The master should identeify it by the check result messages
-		When I wait for 1 second
-		Then file checks.log does not match ^notif host gurka
+		And no host notification was sent
 
 	Scenario: Host notification from master should not be sent to poller not handling the object.
 		Given I start naemon with merlin nodes connected
 			| type   | name       | port | hostgroup  | notifies |
 			| poller | the_poller | 4001 | emptygroup | no       |
-		And file checks.log does not match ^notif host gurka
+		And no host notification has been sent
 
 		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;gurka;4;testCase;A little comment
 
 		Then the_poller should not receive CONTACT_NOTIFICATION_METHOD
-		And file checks.log matches ^notif host gurka
+		And 1 host notification was sent
+			| parameter           | value            |
+			| hostname            | gurka            |
+			| notificationcomment | A little comment |
+			| notificationtype    | CUSTOM           |
 
 	Scenario: Service notification from master should not be sent to poller not handling the object.
 		Given I start naemon with merlin nodes connected
 			| type   | name       | port | hostgroup  | notifies |
 			| poller | the_poller | 4001 | emptygroup | no       |
-		And file checks.log does not match ^notif service gurka
+		And no host notification has been sent
 
 		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;gurka;PONG;4;testCase;A little comment
 
 		Then the_poller should not receive CONTACT_NOTIFICATION_METHOD
-		And file checks.log matches ^notif service gurka
+		And 1 service notification was sent
+			| parameter           | value            |
+			| hostname            | gurka            |
+			| servicedesc         | PONG             |
+			| notificationcomment | A little comment |
+			| notificationtype    | CUSTOM           |

@@ -32,10 +32,23 @@ class NaemonObjectConfig
         "command_line" => "./check_cmd check service $HOSTNAME$ $SERVICEDESC$"
       },{
         "command_name" => "log_notif_host",
-        "command_line" => "./check_cmd notif host $HOSTNAME$ $NOTIFICATIONCOMMENT$"
+        "command_line" => "./notif_cmd notif host"\
+          " hostname=$HOSTNAME$"\
+          " notificationcomment=$NOTIFICATIONCOMMENT$"\
+          " notificationtype=$NOTIFICATIONTYPE$"\
+          " hoststate=$HOSTSTATE$"\
+          " hostoutput=$HOSTOUTPUT$"\
+          " longhostoutput=$LONGHOSTOUTPUT$"\
       },{
         "command_name" => "log_notif_service",
-        "command_line" => "./check_cmd notif service $HOSTNAME$ $SERVICEDESC$ $NOTIFICATIONCOMMENT$"
+        "command_line" => "./notif_cmd notif service"\
+          " hostname=$HOSTNAME$"\
+          " servicedesc=$SERVICEDESC$"\
+          " notificationcomment=$NOTIFICATIONCOMMENT$"\
+          " notificationtype=$NOTIFICATIONTYPE$"\
+          " servicestate=$SERVICESTATE$"\
+          " serviceoutput=$SERVICEOUTPUT$"\
+          " longserviceoutput=$LONGSERVICEOUTPUT$"
       },{
         "command_name" => "check_long_output",
         "command_line" => "./output_cmd"
