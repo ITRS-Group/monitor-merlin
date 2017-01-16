@@ -25,7 +25,7 @@ Given(/^I start naemon$/) do
     And I have config file checks.log
       """
       """
-    And I start daemon naemon naemon.cfg as user @naemon_user@
+    And I start daemon naemon naemon.cfg as user monitor
     And I have query handler path naemon.qh
   }
 
