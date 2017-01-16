@@ -25,7 +25,7 @@ Given(/^I start naemon$/) do
     And I have config file checks.log
       """
       """
-    And I start daemon naemon naemon.cfg
+    And I start daemon su - -s /usr/bin/sh monitor -c 'naemon naemon.cfg'
     And I have query handler path naemon.qh
   }
 
