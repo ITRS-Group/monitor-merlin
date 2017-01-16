@@ -49,7 +49,11 @@ BuildRequires: op5-naemon-devel
 BuildRequires: python
 BuildRequires: gperf
 BuildRequires: check-devel
-BuildRequires: autoconf, automake, libtool
+# to be able to  run check (tests) as monitor
+BuildRequires: op5-monitor-user
+BuildRequires: autoconf
+BuildRequires: automake
+BuildRequires: libtool
 BuildRequires: glib2-devel
 BuildRequires: libdbi-devel
 BuildRequires: pkgconfig
@@ -125,7 +129,7 @@ autoreconf -i -s
 %configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=/opt/monitor/etc/mconf --with-naemon-user=monitor --with-naemon-group=%daemon_user --with-logdir=/var/log/op5/merlin %init_scripts
 
 %__make V=1
-%__make V=1 check
+asmonitor %__make V=1 check
 
 %install
 rm -rf %buildroot
