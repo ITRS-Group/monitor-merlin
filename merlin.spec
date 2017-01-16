@@ -51,6 +51,7 @@ BuildRequires: gperf
 BuildRequires: check-devel
 # to be able to  run check (tests) as monitor
 BuildRequires: op5-monitor-user
+BuildRequires: sudo
 BuildRequires: autoconf
 BuildRequires: automake
 BuildRequires: libtool
@@ -129,7 +130,7 @@ autoreconf -i -s
 %configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=/opt/monitor/etc/mconf --with-naemon-user=monitor --with-naemon-group=%daemon_user --with-logdir=/var/log/op5/merlin %init_scripts
 
 %__make V=1
-asmonitor %__make V=1 check
+sudo -u monitor %__make V=1 check
 
 %install
 rm -rf %buildroot
