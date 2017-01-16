@@ -25,7 +25,7 @@ Given(/^I start naemon$/) do
     And I have config file checks.log
       """
       """
-    And I start daemon naemon naemon.cfg
+    And I start daemon naemon naemon.cfg as user monitor
     And I have query handler path naemon.qh
   }
 
@@ -39,7 +39,7 @@ end
 Given(/^I start merlin$/) do
   steps %Q{
     And I have a database running
-    And I start daemon merlind -d merlin.conf
+    And I start daemon merlind -d merlin.conf as user root
   }
 end
 
