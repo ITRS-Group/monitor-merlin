@@ -72,3 +72,4 @@ merlincat$
 
 /cukemerlin
 /merlincat
+/features/step_definitions/service_startup.rb
