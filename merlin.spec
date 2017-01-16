@@ -130,6 +130,7 @@ autoreconf -i -s
 %configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=/opt/monitor/etc/mconf --with-naemon-user=monitor --with-naemon-group=%daemon_user --with-logdir=/var/log/op5/merlin %init_scripts
 
 %__make V=1
+echo 'Defaults:root !requiretty' > /etc/sudoers.d/fix_root_tty_for_mock_env
 sudo -u monitor %__make V=1 check
 
 %install
