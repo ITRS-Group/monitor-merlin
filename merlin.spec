@@ -10,10 +10,12 @@
 %endif
 %if 0%{?rhel} == 6
 %define mysqld mysqld
+%define daemon_user monitor
 %define daemon_group apache
 %endif
 %if 0%{?rhel} >= 7
 %define mysqld mariadb
+%define daemon_user monitor
 %define daemon_group apache
 %define init_scripts %{nil}
 # re-define service_control_function to use el7 commands
@@ -222,7 +224,7 @@ sed --follow-symlinks -r -i \
   %mod_path/merlin.conf
 
 # chown old cached nodesplit data, so it can be deleted
-chown -R monitor:%daemon_group %_localstatedir/cache/merlin
+chown -R %daemon_user:%daemon_group %_localstatedir/cache/merlin
 
 # restart all daemons
 %if 0%{?rhel} <= 6
@@ -247,14 +249,14 @@ fi
 
 %post -n monitor-merlin
 %create_service_control_function
-chown -Rh monitor:%daemon_group %prefix/etc
+chown -Rh %daemon_user:%daemon_group %prefix/etc
 sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon.cfg
 service_control_function restart monitor || :
 service_control_function restart nrpe || :
 
 %files
 %defattr(-,root,root)
-%config(noreplace) %mod_path/merlin.conf
+%attr(640, -, %daemon_group) %config(noreplace) %mod_path/merlin.conf
 %_datadir/merlin/sql
 %mod_path/merlind
 %_bindir/merlind
@@ -267,19 +269,19 @@ service_control_function restart nrpe || :
 %_sysconfdir/op5kad/conf.d/merlin.kad
 %_sysconfdir/init.d/merlind
 %endif
-%attr(-, monitor, %daemon_group) %dir %_localstatedir/lib/merlin
-%attr(-, monitor, %daemon_group) %dir %_localstatedir/log/op5/merlin
-%attr(-, monitor, %daemon_group) %dir %_localstatedir/run/merlin
-%attr(-, monitor, %daemon_group) %dir %_localstatedir/cache/merlin
-%attr(-, monitor, %daemon_group) %dir %_localstatedir/cache/merlin/config
+%attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/lib/merlin
+%attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/log/op5/merlin
+%attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/run/merlin
+%attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/cache/merlin
+%attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/cache/merlin/config
 
 %files -n monitor-merlin
 %defattr(-,root,root)
 %_libdir/merlin/merlin.*
 %mod_path/merlin.so
-%attr(-, monitor, %daemon_group) /opt/monitor/etc/mconf/merlin.cfg
-%attr(-, monitor, %daemon_group) %dir %_localstatedir/lib/merlin
-%attr(-, monitor, %daemon_group) %dir %_localstatedir/log/op5/merlin
+%attr(-, %daemon_user, %daemon_group) /opt/monitor/etc/mconf/merlin.cfg
+%attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/lib/merlin
+%attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/log/op5/merlin
 
 %files apps
 %defattr(-,root,root)
