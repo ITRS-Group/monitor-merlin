@@ -40,51 +40,31 @@ Feature: Notification execution for service notificaitons
 			| poller | the_poller | 4001 | pollergroup | no       |
 			| peer   | the_peer   | 4002 | ignore      | ignore   |
 
-		When the_poller sends event SERVICE_CHECK
-			| host_name                  | hostA |
-			| service_description        | PONG  |
-			| state.state_type           | 0     |
-			| state.current_state        | 1     |
-			| state.current_attempt      | 1     |
-
 		And the_poller sends event SERVICE_CHECK
 			| host_name                  | hostB |
 			| service_description        | PONG  |
 			| state.state_type           | 0     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 1     |
-
-		And the_poller sends event SERVICE_CHECK
-			| host_name                  | hostA |
-			| service_description        | PONG  |
-			| state.state_type           | 0     |
-			| state.current_state        | 1     |
-			| state.current_attempt      | 2     |
-
 		And the_poller sends event SERVICE_CHECK
 			| host_name                  | hostB |
 			| service_description        | PONG  |
 			| state.state_type           | 0     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 2     |
-
-		And the_poller sends event SERVICE_CHECK
-			| host_name                  | hostA |
-			| service_description        | PONG  |
-			| state.state_type           | 1     |
-			| state.current_state        | 1     |
-			| state.current_attempt      | 3     |
-
 		And the_poller sends event SERVICE_CHECK
 			| host_name                  | hostB |
 			| service_description        | PONG  |
 			| state.state_type           | 1     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 3     |
-
 		And I wait for 1 second
 
-		Then file checks.log has 1 line matching ^notif service (hostA PONG|hostB PONG)$
+		Then 1 service notification was sent
+			| parameter        | value   |
+			| hostname         | hostB   |
+			| servicedesc      | PONG    |
+			| notificationtype | PROBLEM |
 
 	Scenario: No masters notifies if poller notifies, given merlin SERVICE_CHECK events is received
 		Given I start naemon with merlin nodes connected
@@ -98,31 +78,39 @@ Feature: Notification execution for service notificaitons
 			| state.state_type           | 0     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 1     |
-
 		And the_poller sends event SERVICE_CHECK
 			| host_name                  | hostB |
 			| service_description        | PONG  |
 			| state.state_type           | 0     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 1     |
-
 		And the_poller sends event SERVICE_CHECK
 			| host_name                  | hostA |
 			| service_description        | PONG  |
 			| state.state_type           | 1     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 2     |
-
 		And the_poller sends event SERVICE_CHECK
 			| host_name                  | hostB |
 			| service_description        | PONG  |
 			| state.state_type           | 1     |
 			| state.current_state        | 1     |
 			| state.current_attempt      | 2     |
-
+		And the_poller sends event SERVICE_CHECK
+			| host_name                  | hostA |
+			| service_description        | PONG  |
+			| state.state_type           | 1     |
+			| state.current_state        | 1     |
+			| state.current_attempt      | 3     |
+		And the_poller sends event SERVICE_CHECK
+			| host_name                  | hostB |
+			| service_description        | PONG  |
+			| state.state_type           | 1     |
+			| state.current_state        | 1     |
+			| state.current_attempt      | 3     |
 		And I wait for 1 second
 
-		Then file checks.log has 0 line matching ^notif service (hostA PONG|hostB PONG)$
+		Then no service notification was sent
 
 	Scenario: Poller should notify if poller is configured to notify
 		Given I start naemon with merlin nodes connected
@@ -132,9 +120,14 @@ Feature: Notification execution for service notificaitons
 		When I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;0;First OK
 		# Retry three times
 		And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Not OK
-
 		And I wait for 1 second
-		Then file checks.log matches ^notif service hostA PONG$
+
+		Then 1 service notification was sent
+			| parameter        | value   |
+			| hostname         | hostA   |
+			| servicedesc      | PONG    |
+			| notificationtype | PROBLEM |
+			| serviceoutput    | Not OK  |
 		And my_master received event CONTACT_NOTIFICATION_METHOD
 			| host_name    | hostA     |
 			| contact_name | myContact |
@@ -151,7 +144,7 @@ Feature: Notification execution for service notificaitons
 		And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Not OK
 		And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;1;Not OK
 
-		When the_peer received event EXTERNAL_COMMAND
+		Then the_peer received event EXTERNAL_COMMAND
 			| command_type   | 30                           |
 			| command_string | PROCESS_SERVICE_CHECK_RESULT |
 			| command_args   | hostA;PONG;0;First OK        |
@@ -167,11 +160,12 @@ Feature: Notification execution for service notificaitons
 			| command_type   | 30                           |
 			| command_string | PROCESS_SERVICE_CHECK_RESULT |
 			| command_args   | hostB;PONG;1;Not OK          |
-
 		And the_poller should not receive EXTERNAL_COMMAND
-
-		Then file checks.log has 1 line matching ^notif service (hostA PONG|hostB PONG)$
-
+		And 1 service notification was sent
+			| parameter        | value   |
+			| hostname         | hostB   |
+			| servicedesc      | PONG    |
+			| notificationtype | PROBLEM |
 
 	Scenario: Passive check result should only be executed on machine handling the check, when getting from merlin
 		Given I start naemon with merlin nodes connected
@@ -199,22 +193,23 @@ Feature: Notification execution for service notificaitons
 		# Next line waits
 		Then the_peer should not receive EXTERNAL_COMMAND
 		And the_poller should not receive EXTERNAL_COMMAND
-
-		And file checks.log has 1 line matching ^notif service (hostA PONG|hostB PONG)$
+		And 1 service notification was sent
+			| parameter        | value   |
+			| hostname         | hostB   |
+			| servicedesc      | PONG    |
+			| notificationtype | PROBLEM |
 		
 	Scenario: Passive checks should be executed on poller if poller handling the check
 		Given I start naemon with merlin nodes connected
 			| type   | name       | port | hostgroup   |
 			| poller | the_poller | 4001 | pollergroup |
-			
 		
 		When I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;0;First OK
 		# Retry three times
 		And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Not OK
-
 		And I wait for 1 second
 
-		When the_poller received event EXTERNAL_COMMAND
+		Then the_poller received event EXTERNAL_COMMAND
 			| command_type   | 30                           |
 			| command_string | PROCESS_SERVICE_CHECK_RESULT |
 			| command_args   | hostA;PONG;0;First OK        |
@@ -222,8 +217,7 @@ Feature: Notification execution for service notificaitons
 			| command_type   | 30                           |
 			| command_string | PROCESS_SERVICE_CHECK_RESULT |
 			| command_args   | hostA;PONG;1;Not OK          |
-
-		And file checks.log does not match ^notif service (hostA PONG|hostB PONG)$
+		And no service notification was sent
 		
 	Scenario: Passive checks sent from master handled by correct node in pollergroup
 		Given I start naemon with merlin nodes connected
@@ -250,5 +244,8 @@ Feature: Notification execution for service notificaitons
 
 		Then the_master should not receive EXTERNAL_COMMAND
 		And other_poller should not receive EXTERNAL_COMMAND
-
-		And file checks.log has 1 line matching ^notif service (hostA PONG|hostB PONG)$
+		And 1 service notification was sent
+			| parameter        | value   |
+			| hostname         | hostB   |
+			| servicedesc      | PONG    |
+			| notificationtype | PROBLEM |

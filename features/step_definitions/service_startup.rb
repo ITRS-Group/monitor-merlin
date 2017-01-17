@@ -8,8 +8,15 @@ Given(/^I start naemon$/) do
   livestatus_module_path = "/usr/lib64/naemon-livestatus/livestatus.so"
   puts "Using module #{merlin_module_path}"
 
+  output_cmd = "#!/bin/sh\necho -e \"test_output\\ntest\\nlong\\noutput\"\nexit 0"
+  step "I have config file output_cmd with permission 777", output_cmd
+
   check_cmd = "#!/bin/sh\necho $@ >> checks.log\n"
   step "I have config file check_cmd with permission 777", check_cmd
+
+  notif_cmd = "#!/bin/sh\necho $@ >> notifications.log\n"
+  step "I have config file notif_cmd with permission 777", notif_cmd
+
 
   steps %Q{
     And I have naemon objects stored in oconf.cfg
@@ -26,6 +33,9 @@ Given(/^I start naemon$/) do
       """
       """
     And I start daemon naemon naemon.cfg as user monitor
+    And I have config file notifications.log
+      """
+      """
     And I have query handler path naemon.qh
   }
 
