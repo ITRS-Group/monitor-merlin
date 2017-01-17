@@ -23,4 +23,4 @@ post:
     if which gem2.0; then gem2.0 install sequel mysql2; else gem install sequel mysql2; fi
 
     # Verify file permissions after installation
-    test "$(stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf)" = "root:apache 640"
+    test `stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf` = "root:apache 640"
