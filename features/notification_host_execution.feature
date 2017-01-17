@@ -137,7 +137,6 @@ Feature: Notification execution for host notificaitons
 			| command_string | PROCESS_HOST_CHECK_RESULT |
 			| command_args   | hostB;1;Not OK            |
 		And the_poller should not receive EXTERNAL_COMMAND
-		#And file checks.log has 1 line matching ^notif host (hostA|hostB)$
 		And 1 host notification was sent
 			| parameter        | value   |
 			| hostname         | hostB   |
