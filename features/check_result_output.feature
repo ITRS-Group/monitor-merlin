@@ -1,9 +1,13 @@
 @config @daemons @merlin @queryhandler @livestatus
-Feature: Check result data sent from a check run locally should be correct
-	as well as it should be stored correctly in the host or service object.
+Feature: Running active checks locally which returns multi-line output
+	should store the output within the object in naemon. Meaning that that first
+	line of the output should be stored in the plugin_output parameter and the
+	remaining lines in the long_plugin_output parameter.
 
-	The same goes for a received check result. Stored data in the host or
-	service should be identical to the stored data in the senders object.
+	The same goes for when receiving a check result over merlin. Multi-line
+	output in the received check result object should be stored in the same
+	way it would be done locally which is first line in plugin_output and the
+	rest in long_plugin_output.
 
 	Background: Set up naemon configuration
 		Given I have naemon hostgroup objects
