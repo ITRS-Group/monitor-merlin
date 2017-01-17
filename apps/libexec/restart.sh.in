@@ -4,6 +4,6 @@ if /bin/su --login @naemon_user@ --command "/usr/bin/naemon  --precache-objects 
 	mon stop
 	mon start
 else
-	echo "Refusing to restart monitor with a flawed configuration"
+	echo "mon restart: Refusing to restart monitor with a flawed configuration"
 	exit 1
 fi
