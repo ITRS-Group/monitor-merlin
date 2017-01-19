@@ -110,6 +110,19 @@ Feature: Passive check result
 			| state.plugin_output | Fromtest |
 			| state.current_state | 1        |
 	
+	Scenario: Sending a passive service check result should leave output data
+			  as is (and not double escaped).
+		Given I start naemon with merlin nodes connected
+			| type   | name       | port |
+			| peer   | the_peer   | 4001 |
+
+		And I should have 0 services objects matching plugin_output = Fromtest
+
+		When I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Line1\nLine2\nLine3
+
+		Then I should have 1 services object matching plugin_output = Line1\nLine2\nLine3
+		And I should have 1 services object matching long_plugin_output = Line2\nLine3
+
 	Scenario: A node gets a passive service check result from a peer
 		Given I start naemon with merlin nodes connected
 			| type   | name       | port |
