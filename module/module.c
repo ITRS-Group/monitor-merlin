@@ -409,24 +409,18 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 static int handle_checkresult(struct check_result *cr, monitored_object_state *st)
 {
 	int ret;
-
-	/*
-	 * long_plugin_output is handled separately, since Nagios
-	 * is insane and escapes it directly when it parses it.
-	 */
-	if (st->perf_data) {
-		nm_asprintf(&cr->output, "%s|%s", st->plugin_output, st->perf_data);
-	} else {
-		cr->output = strdup(st->plugin_output);
-	}
-
-	cr->scheduled_check = 1;
-	cr->exited_ok = 1;
+	cr->check_type = st->check_type;
+	cr->check_options = st->checks_enabled;
+	cr->scheduled_check = st->should_be_scheduled;
 	cr->latency = st->latency;
 	cr->start_time.tv_sec = st->last_check;
 	cr->start_time.tv_usec = 0;
 	cr->finish_time.tv_sec = cr->start_time.tv_sec + (time_t)st->execution_time;
 	cr->finish_time.tv_usec = 1000000 * (st->execution_time - (time_t)st->execution_time);
+	cr->early_timeout = FALSE;
+	cr->exited_ok = TRUE;
+	cr->output = strdup(st->plugin_output);
+	cr->engine = NULL;
 	ret = process_check_result(cr);
 	free(cr->output);
 	return ret;
@@ -458,10 +452,8 @@ static int handle_host_result(merlin_node *node, merlin_header *hdr, void *buf)
 
 		init_check_result(&cr);
 		cr.object_check_type = HOST_CHECK;
-		cr.check_type = CHECK_TYPE_ACTIVE;
-		cr.host_name = st_obj->name;
+		cr.host_name = obj->name;
 		cr.service_description = NULL;
-		cr.engine = NULL;
 		cr.source = node->source_name;
 		/*
 		 * host DOWN states must always be critical, or Nagios will
@@ -470,12 +462,6 @@ static int handle_host_result(merlin_node *node, merlin_header *hdr, void *buf)
 		cr.return_code = st_obj->state.current_state == 0 ? 0 : 2;
 		merlin_recv_host = obj;
 		ret = handle_checkresult(&cr, &st_obj->state);
-		free(obj->long_plugin_output);
-		if (st_obj->state.long_plugin_output) {
-			obj->long_plugin_output = strdup(st_obj->state.long_plugin_output);
-		} else {
-			obj->long_plugin_output = NULL;
-		}
 		merlin_recv_host = NULL;
 		return ret;
 	} else {
@@ -514,20 +500,12 @@ static int handle_service_result(merlin_node *node, merlin_header *hdr, void *bu
 
 		init_check_result(&cr);
 		cr.object_check_type = SERVICE_CHECK;
-		cr.check_type = CHECK_TYPE_ACTIVE;
 		cr.host_name = obj->host_name;
 		cr.service_description = obj->description;
 		cr.return_code = st_obj->state.current_state;
-		cr.engine = NULL;
 		cr.source = node->source_name;
 		merlin_recv_service = obj;
 		ret = handle_checkresult(&cr, &st_obj->state);
-		free(obj->long_plugin_output);
-		if (st_obj->state.long_plugin_output) {
-			obj->long_plugin_output = strdup(st_obj->state.long_plugin_output);
-		} else {
-			obj->long_plugin_output = NULL;
-		}
 		merlin_recv_service = NULL;
 		return ret;
 	} else {
