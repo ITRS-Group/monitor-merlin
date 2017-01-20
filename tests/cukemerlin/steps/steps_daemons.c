@@ -36,7 +36,7 @@ CukeStepEnvironment steps_daemons = {
 	.end_scenario = step_end_scenario,
 
 	.definitions = {
-		{ "^I start daemon (.*) as user (.*)$", step_start_daemon },
+		{ "^I start daemon (.*)$", step_start_daemon },
 		{ "^I start command (.*)$", step_start_command },
 		{ NULL, NULL }
 	}
@@ -58,19 +58,11 @@ STEP_DEF(step_start_daemon) {
 	StepsDaemonProcess *dproc;
 
 	gchar *cmdline = NULL;
-	gchar *userline = NULL;
-	gchar *merged_cmdline = NULL;
 	if (!jsonx_locate(args, 'a', 0, 's', &cmdline)) {
 		STEP_FAIL("Invalid arguments");
 		return;
 	}
-	if (!jsonx_locate(args, 'a', 1, 's', &userline)) {
-		STEP_FAIL("Invalid arguments");
-		return;
-	}
-	merged_cmdline = g_strdup_printf("su %s --command '%s'", userline, cmdline);
-	dproc = dproc_new(merged_cmdline);
-	g_free(merged_cmdline);
+	dproc = dproc_new(cmdline);
 	if (dproc == NULL) {
 		STEP_FAIL("Failed while starting daemon");
 		return;
