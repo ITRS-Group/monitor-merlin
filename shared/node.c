@@ -713,6 +713,7 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 		/* 10MB in memory, 100MB on disk */
 		node->binlog = binlog_create(path, 10 << 20, 100 << 20, BINLOG_UNLINK);
 		if (!node->binlog) {
+			free(path);
 			lerr("Failed to create binary backlog for %s: %s",
 				 node->name, strerror(errno));
 			return -1;
