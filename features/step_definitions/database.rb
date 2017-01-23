@@ -8,7 +8,7 @@ Given(/^I have a database running$/) do
     # we try to kill it with SIGTERM
     steps %Q{
       And I start command mysql_install_db #{args}
-      And I start daemon /usr/libexec/mysqld #{args} --port=#{h.port} as user root
+      And I start daemon /usr/libexec/mysqld #{args} --port=#{h.port}
       And I wait for 1 second
     }
     Sequel.mysql2(:host => h.host, :port => h.port, :username => "root") do |db|

@@ -32,7 +32,7 @@ Given(/^I start naemon$/) do
     And I have config file checks.log
       """
       """
-    And I start daemon naemon naemon.cfg as user monitor
+    And I start daemon naemon --allow-root naemon.cfg
     And I have config file notifications.log
       """
       """
@@ -49,7 +49,7 @@ end
 Given(/^I start merlin$/) do
   steps %Q{
     And I have a database running
-    And I start daemon merlind -d merlin.conf as user root
+    And I start daemon merlind -d merlin.conf
   }
 end
 
