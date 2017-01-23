@@ -183,6 +183,7 @@ static int send_host_status(merlin_event *pkt, int nebattr, host *obj, check_res
 {
 	merlin_host_status st_obj;
 	static host *last_obj = NULL;
+	int ret = 0;
 
 	if (obj == merlin_recv_host)
 		return 0;
@@ -205,8 +206,8 @@ static int send_host_status(merlin_event *pkt, int nebattr, host *obj, check_res
 	if (pkt->hdr.type == NEBCALLBACK_HOST_CHECK_DATA) {
 		if (!cr) {
 			lerr("send_host_status() called with NEBCALLBACK_HOST_CHECK_DATA "
-					"but check result was NULL, skipping check result propagation");
-					return -1;
+				"but check result was NULL, skipping check result propagation");
+				return -1;
 		}
 		/*
 		 * We store check result values within a merlin_host_status object
@@ -218,19 +219,22 @@ static int send_host_status(merlin_event *pkt, int nebattr, host *obj, check_res
 		st_obj.state.should_be_scheduled = cr->scheduled_check;
 		st_obj.state.latency = cr->latency;
 		st_obj.state.current_state = cr->return_code;
-		st_obj.state.plugin_output = cr->output;
+		st_obj.state.plugin_output = cr->output ? strdup(cr->output) : NULL;
 		st_obj.state.last_check = obj->last_check;
 	} else {
 		MOD2NET_STATE_VARS(st_obj.state, obj);
 	}
 
-	return send_generic(pkt, &st_obj);
+	ret = send_generic(pkt, &st_obj);
+	free(st_obj.state.plugin_output);
+	return ret;
 }
 
 static int send_service_status(merlin_event *pkt, int nebattr, service *obj, check_result *cr)
 {
 	merlin_service_status st_obj;
 	static service *last_obj = NULL;
+	int ret = 0;
 
 	if (!obj) {
 		lerr("send_service_status() called with NULL obj");
@@ -251,9 +255,9 @@ static int send_service_status(merlin_event *pkt, int nebattr, service *obj, che
 	if (pkt->hdr.type == NEBCALLBACK_SERVICE_CHECK_DATA) {
 		if (!cr) {
 			lerr("send_service_status() called with "
-					"NEBCALLBACK_SERVICE_CHECK_DATA but check result was NULL, "
-					"skipping check result propagation.");
-					return -1;
+				"NEBCALLBACK_SERVICE_CHECK_DATA but check result was NULL, "
+				"skipping check result propagation.");
+				return -1;
 		}
 		/*
 		 * We store check result values within a merlin_host_status object
@@ -265,13 +269,15 @@ static int send_service_status(merlin_event *pkt, int nebattr, service *obj, che
 		st_obj.state.should_be_scheduled = cr->scheduled_check;
 		st_obj.state.latency = cr->latency;
 		st_obj.state.current_state = cr->return_code;
-		st_obj.state.plugin_output = cr->output;
+		st_obj.state.plugin_output = cr->output ? strdup(cr->output) : NULL;
 		st_obj.state.last_check = obj->last_check;
 	} else {
 		MOD2NET_STATE_VARS(st_obj.state, obj);
 	}
 
-	return send_generic(pkt, &st_obj);
+	ret = send_generic(pkt, &st_obj);
+	free(st_obj.state.plugin_output);
+	return ret;
 }
 
 static inline int should_run_check(unsigned int id)
