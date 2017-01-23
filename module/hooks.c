@@ -179,6 +179,33 @@ static int get_hostgroup_selection(const char *key)
 	return sel ? sel->id & 0xffff : DEST_PEERS_POLLERS;
 }
 
+/*
+ * We store check result values within a merlin_host_status object
+ * and repurpose the data structure to fit check result propagation
+ * instead of object state propagation.
+ */
+static int check_result_to_state(monitored_object_state *st, check_result *cr)
+{
+	if (!cr) {
+		lerr("check_result_to_state() called with check_result NULL");
+		return -1;
+	}
+	if (!st) {
+		lerr("check_result_to_state() called with monitored_object_state NULL");
+		return -1;
+	}
+
+	st->check_type = cr->check_type;
+	st->checks_enabled = cr->check_options;
+	st->should_be_scheduled = cr->scheduled_check;
+	st->latency = cr->latency;
+	st->current_state = cr->return_code;
+	st->plugin_output = cr->output ? strdup(cr->output) : NULL;
+	st->last_check = cr->start_time.tv_sec;
+
+	return 0;
+}
+
 static int send_host_status(merlin_event *pkt, int nebattr, host *obj, check_result *cr)
 {
 	merlin_host_status st_obj;
@@ -202,25 +229,15 @@ static int send_host_status(merlin_event *pkt, int nebattr, host *obj, check_res
 
 	st_obj.name = obj->name;
 	st_obj.nebattr = nebattr;
+	st_obj.state.execution_time = obj->execution_time;
 
 	if (pkt->hdr.type == NEBCALLBACK_HOST_CHECK_DATA) {
-		if (!cr) {
+		if (check_result_to_state(&st_obj.state, cr) != 0) {
 			lerr("send_host_status() called with NEBCALLBACK_HOST_CHECK_DATA "
-				"but check result was NULL, skipping check result propagation");
-				return -1;
+				"but check result conversion failed, "
+				"skipping check result propagation");
+			return -1;
 		}
-		/*
-		 * We store check result values within a merlin_host_status object
-		 * and repurpose the data structure to fit check result propagation
-		 * instead of object state propagation.
-		 */
-		st_obj.state.check_type = cr->check_type;
-		st_obj.state.checks_enabled = cr->check_options;
-		st_obj.state.should_be_scheduled = cr->scheduled_check;
-		st_obj.state.latency = cr->latency;
-		st_obj.state.current_state = cr->return_code;
-		st_obj.state.plugin_output = cr->output ? strdup(cr->output) : NULL;
-		st_obj.state.last_check = obj->last_check;
 	} else {
 		MOD2NET_STATE_VARS(st_obj.state, obj);
 	}
@@ -251,26 +268,15 @@ static int send_service_status(merlin_event *pkt, int nebattr, service *obj, che
 	st_obj.nebattr = nebattr;
 	st_obj.host_name = obj->host_name;
 	st_obj.service_description = obj->description;
+	st_obj.state.execution_time = obj->execution_time;
 
 	if (pkt->hdr.type == NEBCALLBACK_SERVICE_CHECK_DATA) {
-		if (!cr) {
+		if (check_result_to_state(&st_obj.state, cr) != 0) {
 			lerr("send_service_status() called with "
-				"NEBCALLBACK_SERVICE_CHECK_DATA but check result was NULL, "
-				"skipping check result propagation.");
-				return -1;
+				"NEBCALLBACK_SERVICE_CHECK_DATA but check result conversion "
+				"failed, skipping check result propagation");
+			return -1;
 		}
-		/*
-		 * We store check result values within a merlin_host_status object
-		 * and repurpose the data structure to fit check result propagation
-		 * instead of object state propagation.
-		 */
-		st_obj.state.check_type = cr->check_type;
-		st_obj.state.checks_enabled = cr->check_options;
-		st_obj.state.should_be_scheduled = cr->scheduled_check;
-		st_obj.state.latency = cr->latency;
-		st_obj.state.current_state = cr->return_code;
-		st_obj.state.plugin_output = cr->output ? strdup(cr->output) : NULL;
-		st_obj.state.last_check = obj->last_check;
 	} else {
 		MOD2NET_STATE_VARS(st_obj.state, obj);
 	}

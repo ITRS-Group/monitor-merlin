@@ -419,7 +419,7 @@ static int handle_checkresult(struct check_result *cr, monitored_object_state *s
 	cr->finish_time.tv_usec = 1000000 * (st->execution_time - (time_t)st->execution_time);
 	cr->early_timeout = FALSE;
 	cr->exited_ok = TRUE;
-	cr->output = strdup(st->plugin_output);
+	cr->output = st->plugin_output ? strdup(st->plugin_output) : NULL;
 	cr->engine = NULL;
 	ret = process_check_result(cr);
 	free(cr->output);
