@@ -757,6 +757,5 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char **argv)
 	}
 
 	test_binlog_leakage();
-	t_end();
-	return 0;
+	return t_end();
 }
