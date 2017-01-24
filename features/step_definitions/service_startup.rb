@@ -8,7 +8,7 @@ Given(/^I start naemon$/) do
   livestatus_module_path = "/usr/lib64/naemon-livestatus/livestatus.so"
   puts "Using module #{merlin_module_path}"
 
-  output_cmd = "#!/bin/sh\necho -e \"test_output\\ntest\\nlong\\noutput\"\nexit 0"
+  output_cmd = "#!/bin/sh\necho -e \"O K\\nL\\nO K|Perf. O K\"\nexit 0"
   step "I have config file output_cmd with permission 777", output_cmd
 
   check_cmd = "#!/bin/sh\necho $@ >> checks.log\n"

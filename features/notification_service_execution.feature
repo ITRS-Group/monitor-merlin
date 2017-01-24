@@ -41,30 +41,35 @@ Feature: Notification execution for service notificaitons
 			| peer   | the_peer   | 4002 | ignore      | ignore   |
 
 		And the_poller sends event SERVICE_CHECK
-			| host_name                  | hostB |
-			| service_description        | PONG  |
-			| state.state_type           | 0     |
-			| state.current_state        | 1     |
-			| state.current_attempt      | 1     |
+			| host_name                  | hostB              |
+			| service_description        | PONG               |
+			| state.state_type           | 0                  |
+			| state.current_state        | 1                  |
+			| state.current_attempt      | 1                  |
+			| state.plugin_output        | 1st line\n2nd line |
 		And the_poller sends event SERVICE_CHECK
-			| host_name                  | hostB |
-			| service_description        | PONG  |
-			| state.state_type           | 0     |
-			| state.current_state        | 1     |
-			| state.current_attempt      | 2     |
+			| host_name                  | hostB              |
+			| service_description        | PONG               |
+			| state.state_type           | 0                  |
+			| state.current_state        | 1                  |
+			| state.current_attempt      | 2                  |
+			| state.plugin_output        | 1st line\n2nd line |
 		And the_poller sends event SERVICE_CHECK
-			| host_name                  | hostB |
-			| service_description        | PONG  |
-			| state.state_type           | 1     |
-			| state.current_state        | 1     |
-			| state.current_attempt      | 3     |
+			| host_name                  | hostB              |
+			| service_description        | PONG               |
+			| state.state_type           | 0                  |
+			| state.current_state        | 1                  |
+			| state.current_attempt      | 1                  |
+			| state.plugin_output        | 1st line\n2nd line |
 		And I wait for 1 second
 
 		Then 1 service notification was sent
-			| parameter        | value   |
-			| hostname         | hostB   |
-			| servicedesc      | PONG    |
-			| notificationtype | PROBLEM |
+			| parameter         | value    |
+			| hostname          | hostB    |
+			| servicedesc       | PONG     |
+			| notificationtype  | PROBLEM  |
+			| serviceoutput     | 1st line |
+			| longserviceoutput | 2nd line |
 
 	Scenario: No masters notifies if poller notifies, given merlin SERVICE_CHECK events is received
 		Given I start naemon with merlin nodes connected

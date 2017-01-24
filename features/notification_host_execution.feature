@@ -41,22 +41,26 @@ Feature: Notification execution for host notificaitons
 			| peer   | the_peer   | 4002 | ignore      | ignore   |
 
 		And the_poller sends event HOST_CHECK
-			| name                  | hostB |
-			| state.state_type      | 0     |
-			| state.current_state   | 1     |
-			| state.current_attempt | 1     |
+			| name                  | hostB              |
+			| state.state_type      | 0                  |
+			| state.current_state   | 1                  |
+			| state.current_attempt | 1                  |
+			| state.plugin_output   | 1st line\n2nd line |
 		And the_poller sends event HOST_CHECK
-			| name                  | hostB |
-			| state.state_type      | 1     |
-			| state.current_state   | 1     |
-			| state.current_attempt | 2     |
+			| name                  | hostB              |
+			| state.state_type      | 1                  |
+			| state.current_state   | 1                  |
+			| state.current_attempt | 2                  |
+			| state.plugin_output   | 1st line\n2nd line |
 		And I wait for 1 second
 
 		Then 1 host notification was sent
-			| parameter        | value   |
-			| hostname         | hostB   |
-			| hoststate        | DOWN    |
-			| notificationtype | PROBLEM |
+			| parameter        | value    |
+			| hostname         | hostB    |
+			| hoststate        | DOWN     |
+			| notificationtype | PROBLEM  |
+			| hostoutput       | 1st line |
+			| longhostoutput   | 2nd line |
 
 	Scenario: No masters notifies if poller notifies, given merlin HOST_CHECK events is received
 		Given I start naemon with merlin nodes connected

@@ -43,10 +43,12 @@ Feature: Running active checks locally which returns multi-line output
 
 		When I wait for 1 second
 
-		Then plugin_output of service PONG on host hostB should be test_output
-		And long_plugin_output of service PONG on host hostB should be test\nlong\noutput\n
-		And plugin_output of service PING on host hostA should be test_output
-		And long_plugin_output of service PING on host hostA should be test\nlong\noutput\n
+		Then plugin_output of service PONG on host hostB should be O K
+		And long_plugin_output of service PONG on host hostB should be L\nO K
+		And perf_data of service PONG on host hostB should be Perf. O K
+		And plugin_output of service PING on host hostA should be O K
+		And long_plugin_output of service PING on host hostA should be L\nO K
+		And perf_data of service PING on host hostA should be Perf. O K
 
 	Scenario: Receiving a service check result with a multi-line output should
 		set plugin_output of the service to the first line and
@@ -57,11 +59,11 @@ Feature: Running active checks locally which returns multi-line output
 			| peer   | the_peer   | 4001 |
 
 		When the_peer sends event SERVICE_CHECK
-			| state.current_state      | 0                          |
-			| state.plugin_output      | Line1                      |
-			| state.long_plugin_output | Line2\nLine3\nLine4\nLine5 |
-			| host_name                | hostA                      |
-			| service_description      | PING                       |
+			| state.current_state      | 0                      |
+			| state.plugin_output      | O K\nL\nO K\|Perf. O K |
+			| host_name                | hostA                  |
+			| service_description      | PING                   |
 
-		Then plugin_output of service PING on host hostA should be Line1
-		And long_plugin_output of service PING on host hostA should be Line2\nLine3\nLine4\nLine5
+		Then plugin_output of service PING on host hostA should be O K
+		And long_plugin_output of service PING on host hostA should be L\nO K
+		And perf_data of service PING on host hostA should be Perf. O K
