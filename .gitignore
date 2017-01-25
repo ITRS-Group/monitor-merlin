@@ -44,6 +44,7 @@ apps/op5
 *.swp
 *~
 TAGS
+INSTALL
 Makefile.in
 Makefile
 /autom4te.cache
