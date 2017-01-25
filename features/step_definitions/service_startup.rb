@@ -32,6 +32,7 @@ Given(/^I start naemon$/) do
     And I have config file checks.log
       """
       """
+    And I start command naemon --allow-root -v naemon.cfg
     And I start daemon naemon --allow-root naemon.cfg
     And I have config file notifications.log
       """

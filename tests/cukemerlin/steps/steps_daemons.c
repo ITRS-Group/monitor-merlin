@@ -166,8 +166,7 @@ static gboolean waitpid_timeout(int pid, unsigned int timeout_sec) {
 static gint proc_run(const gchar *cmdline) {
 	gchar **argv = NULL;
 	GError *error = NULL;
-	GSpawnFlags flags = G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL
-		| G_SPAWN_STDERR_TO_DEV_NULL;
+	GSpawnFlags flags = G_SPAWN_SEARCH_PATH;
 	gint rc = 1;
 
 	if (!g_shell_parse_argv(cmdline, NULL, &argv, &error)) {
