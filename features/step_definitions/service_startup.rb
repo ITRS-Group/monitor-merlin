@@ -63,7 +63,8 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
     log_level = debug;
     use_syslog = 0;
 
-    oconfsplit_dir = .;
+    oconfsplit_dir = #{@merlinnodeconfig.get_var("oconfsplit_dir")};
+    binlog_dir = #{@merlinnodeconfig.get_var("binlog_dir")};
 
     module {
       log_file = merlin.log;
