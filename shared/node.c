@@ -700,7 +700,7 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 		char *path = NULL;
 
 		if (asprintf(&path, "%s/%s.%s.binlog",
-		             binlog_dir ? binlog_dir : BINLOGDIR,
+		             binlog_dir,
 		             is_module ? "module" : "daemon",
 		             node->name) < 15)
 		{
@@ -714,7 +714,7 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 		node->binlog = binlog_create(path, 10 << 20, 100 << 20, BINLOG_UNLINK);
 		if (!node->binlog) {
 			free(path);
-			lerr("Failed to create binary backlog for %s: %s",
+			lerr("Failed to allocate memory for binary backlog for %s: %s",
 				 node->name, strerror(errno));
 			return -1;
 		}

@@ -1134,6 +1134,12 @@ static void grok_daemon_compound(struct cfg_comp *comp)
 	}
 }
 
+
+/**
+ * This function may call exit() down the line.
+ *
+ * @return 0 on success, -1 on failure
+ */
 static int read_config(char *cfg_file)
 {
 	uint i;
@@ -1480,6 +1486,8 @@ static void post_process_nodes(void)
 /**
  * Initialization routine for the eventbroker module. This
  * function gets called by Nagios when it's done loading us
+ *
+ * @return 0 on success, -1 on failure
  */
 int nebmodule_init(__attribute__((unused)) int flags, char *arg, nebmodule *handle)
 {
