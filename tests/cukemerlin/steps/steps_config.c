@@ -33,7 +33,6 @@ static glong file_match_step(gpointer *scenario, const gchar *filename, const gc
 STEP_DEF(step_file_matches);
 STEP_DEF(step_file_not_matches);
 STEP_DEF(step_file_matches_count);
-STEP_DEF(step_file_no_match_after);
 
 CukeStepEnvironment steps_config = {
 	.tag = "config",
@@ -48,7 +47,6 @@ CukeStepEnvironment steps_config = {
 		{ "^file (.*) matches (.*)$", step_file_matches },
 		{ "^file (.*) does not match (.*)$", step_file_not_matches },
 		{ "^file (.*) has ([0-9]+) lines? matching (.*)$", step_file_matches_count },
-		{ "^file (.*) has no match (.*) after match (.*)", step_file_no_match_after },
 		{ NULL, NULL }
 	}
 };
@@ -348,35 +346,6 @@ STEP_DEF(step_file_matches_count) {
 		STEP_FAIL(error_line);
 		g_free(error_line);
 	} else {
-		STEP_OK;
-	}
-}
-STEP_DEF(step_file_no_match_after) {
-
-	gchar *filename = NULL;
-	gchar *first_pattern = NULL;
-	gchar *second_pattern = NULL;
-	glong line_first;
-	glong line_second;
-
-	if (!jsonx_locate(args, 'a', 0, 's', &filename)
-		|| !jsonx_locate(args, 'a', 1, 's', &first_pattern)
-		|| !jsonx_locate(args, 'a', 2, 's', &second_pattern)) {
-		STEP_FAIL("Invalid arguments");
-		return;
-	}
-
-	line_first = file_match_last_line_step(scenario, filename, first_pattern, respref);
-	line_second = file_match_last_line_step(scenario, filename, second_pattern, respref);
-
-
-	if (line_first < 0 || line_second < 0) {
-		STEP_FAIL("Couldn't match both patterns");
-	} else if (line_first > line_second) {
-		STEP_FAIL("Patterns found out of order");
-	} else if (line_first == line_second) {
-		STEP_FAIL("Both patterns found on same line");
-	} else if (line_second > line_first) {
 		STEP_OK;
 	}
 }

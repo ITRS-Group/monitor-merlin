@@ -218,7 +218,7 @@ Feature: A notification should always be handled by the owning node.
 		When I send naemon command RESTART_PROGRAM
 		And I wait for 3 seconds
 
-		Then I should have 2 hosts object matching last_notification > 0
+		Then I should have 2 hosts objects matching last_notification > 0
 
 
 	Scenario: As a poller, when generating a service notification result it
@@ -230,15 +230,6 @@ Feature: A notification should always be handled by the owning node.
 			| master | the_master | 4001 | ignore      |
 			| peer   | the_peer   | 4002 | pollergroup |
 		And I should have 0 services objects matching last_notification > 0
-
-		# Notifications are sent when a state goes from 0 to 1, so make sure
-		# we're on 0 to start with.
-		When I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;0;OK
-		And I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;0;OK
-
-		# Take them down. We must send the check result three times for services
-		# for them to generate notifications.
-		And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Not OK
 		And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;1;Not OK
 
 		Then the_peer received event NOTIFICATION
@@ -246,24 +237,21 @@ Feature: A notification should always be handled by the owning node.
 			| service_description | PONG   |
 			| state               | 1      |
 			| output              | Not OK |
+			| host_name           | hostB  |
 		And the_master received event NOTIFICATION
 			| notification_type   | 1      |
 			| service_description | PONG   |
 			| state               | 1      |
 			| output              | Not OK |
+			| host_name           | hostB  |
 		And I should have 1 services object matching last_notification > 0
 
 		When I send naemon command RESTART_PROGRAM
 		And I wait for 3 seconds
 		
 		Then I should have 1 services object matching last_notification > 0
-		
-		When I send naemon command RESTART_PROGRAM
-		And I wait for 3 seconds
-
-		Then I should have 1 services object matching last_notification > 0
-		And the_master received notification after all service check results
-		And the_peer received notification after all service check results
+		And I should have 1 services object matching last_notification > 0
+		And 1 notification for service PONG on host hostB was sent after check result
 
 
 	Scenario: As a poller, when generating a host notification result it
@@ -275,37 +263,26 @@ Feature: A notification should always be handled by the owning node.
 			| master | the_master | 4001 | ignore      |
 			| peer   | the_peer   | 4002 | pollergroup |
 		And I should have 0 hosts objects matching last_notification > 0
-
-		# Notifications are sent when a state goes from 0 to 1, so make sure
-		# we're on 0 to start with.
-		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;0;OK
-		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;0;OK
-
-		# Take them down, host check results needs only 1 execution to go hard.
-		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;1;Not OK
 
 		Then the_peer received event NOTIFICATION
 			| notification_type   | 0      |
 			| state               | 1      |
 			| output              | Not OK |
+			| host_name           | hostB  |
 		And the_master received event NOTIFICATION
 			| notification_type   | 0      |
 			| state               | 1      |
 			| output              | Not OK |
+			| host_name           | hostB  |
 		And I should have 1 hosts object matching last_notification > 0
 
 		When I send naemon command RESTART_PROGRAM
 		And I wait for 3 seconds
 
 		Then I should have 1 hosts object matching last_notification > 0
-
-		When I send naemon command RESTART_PROGRAM
-		And I wait for 3 seconds
-
-		Then I should have 1 hosts object matching last_notification > 0
-		And the_peer received notification after all host check results
-		And the_master received notification after all host check results
+		And I should have 1 hosts object matching last_notification > 0
+		And 1 notification for host hostB was sent after check result
 
 
 	Scenario: As a poller, when a peer sends service notification info it
@@ -354,7 +331,7 @@ Feature: A notification should always be handled by the owning node.
 			| host_name           | hostB  |
 			| state               | 1      |
 			| output              | Not OK |
-			
+
 		Then I should have 2 hosts objects matching last_notification > 0
 		And the_master should not receive NOTIFICATION
 		And the_peer should not receive NOTIFICATION
@@ -372,21 +349,14 @@ Feature: A notification should always be handled by the owning node.
 			| poller | the_poller  | 4002 | emptygroup |
 		And I should have 0 services objects matching last_notification > 0
 
-		# Notifications are sent when a state goes from 0 to 1, so make sure
-		# we're on 0 to start with.
-		When I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;0;OK
-		And I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;0;OK
-
-		# Take them down. We must send the check result three times for services
-		# for them to generate notifications.
-		And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Not OK
-		And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;1;Not OK
+		When for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;1;Not OK
 
 		Then the_peer received event NOTIFICATION
 			| notification_type   | 1      |
 			| service_description | PONG   |
 			| state               | 1      |
 			| output              | Not OK |
+			| host_name           | hostB  |
 		And the_poller should not receive NOTIFICATION
 		And I should have 1 services object matching last_notification > 0
 
@@ -394,7 +364,7 @@ Feature: A notification should always be handled by the owning node.
 		And I wait for 3 seconds
 
 		Then I should have 1 services object matching last_notification > 0
-		And the_peer received notification after all service check results
+		And 1 notification for service PONG on host hostB was sent after check result
 		
 	
 	Scenario: In a peered system, when sending passive check results for
@@ -409,14 +379,7 @@ Feature: A notification should always be handled by the owning node.
 			| poller | the_poller  | 4002 | emptygroup |
 		And I should have 0 services objects matching last_notification > 0
 
-		# Notifications are sent when a state goes from 0 to 1, so make sure
-		# we're on 0 to start with.
-		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;0;OK
-		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;0;OK
-
-		# Take them down, host check results needs only 1 execution to go hard.
-		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
-		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;1;Not OK
+		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostB;1;Not OK
 
 		Then the_peer received event NOTIFICATION
 			| notification_type   | 0      |
@@ -428,4 +391,34 @@ Feature: A notification should always be handled by the owning node.
 		And I wait for 3 seconds
 
 		Then I should have 1 hosts object matching last_notification > 0
-		And the_peer received notification after all host check results
+		And 1 notification for host hostB was sent after check result
+
+	Scenario: As a master with a non notifying poller we should send
+		notification without storing it since we won't be sending a
+		check result directly after.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup   | notifies |
+			| poller | the_poller  | 4001 | pollergroup | no       |
+
+		When the_poller sends event HOST_CHECK
+			| name                  | hostA |
+			| state.state_type      | 0     |
+			| state.current_state   | 1     |
+			| state.current_attempt | 1     |
+		And the_poller sends event HOST_CHECK
+			| name                  | hostA |
+			| state.state_type      | 1     |
+			| state.current_state   | 1     |
+			| state.current_attempt | 2     |
+		And the_poller sends event HOST_CHECK
+			| name                  | hostA |
+			| state.state_type      | 1     |
+			| state.current_state   | 1     |
+			| state.current_attempt | 3     |
+		And I wait for 1 second
+
+		Then no notification was held
+		And 1 host notification was sent
+			| parameter         | value    |
+			| hostname          | hostA    |

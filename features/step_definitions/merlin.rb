@@ -12,16 +12,23 @@ Given(/^([a-z0-9\-_]+) sends event ([A-Z_]+)$/) do |ref, event, values|
   end
 end
 
-Then(/^([a-z0-9\-_]+) received notification after all host check results$/) do |n|
-  log_file = "merlin.log"
-  step "file #{log_file} has no match type 7 to node #{n} after match 5 to node #{n}"
+Then(/^(\d*) notifications? for host (.*) was sent after check result$/) do |count,h|
+  steps %Q{
+    Then file merlin.log has #{count} line matching holding host notification for #{h}$
+    And file merlin.log has #{count} line matching flushing host notification for #{h}$
+  }
 end
 
-Then(/^([a-z0-9\-_]+) received notification after all service check results$/) do |n|
-  log_file = "merlin.log"
-  step "file #{log_file} has no match type 6 to node #{n} after match 5 to node #{n}"
+Then(/^(\d*) notifications? for service (.*) on host (.*) was sent after check result$/) do |count,s,h|
+  steps %Q{
+  Then file merlin.log has #{count} line matching holding service notification for #{s};#{h}$
+    And file merlin.log has #{count} line matching flushing service notification for #{s};#{h}$
+  }
 end
 
+Then(/^no notification was held$/) do
+  step "file merlin.log does not match holding.*notification"
+end
 Then(/([a-z0-9\-_]+) should appear disconnected$/) do |n|
   steps %Q{
     Given I ask query handler merlin nodeinfo
