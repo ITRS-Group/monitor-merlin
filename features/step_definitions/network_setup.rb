@@ -8,6 +8,7 @@ Given(/^I start naemon with merlin nodes connected$/) do |nodes|
   configured_peers = 0
   configured_pollers = 0
   configured_masters = 0
+  hostgroups = Hash.new(0)
 
   nodes.hashes.each do |obj|
     case obj["type"]
@@ -15,6 +16,7 @@ Given(/^I start naemon with merlin nodes connected$/) do |nodes|
       configured_peers += 1
     when "poller"
       configured_pollers += 1
+      hostgroups[obj["hostgroup"]] += 1
     when "master"
       configured_masters += 1
     end
@@ -42,9 +44,8 @@ Given(/^I start naemon with merlin nodes connected$/) do |nodes|
         ["configured_masters", configured_masters.to_s]
       ])
     when "poller"
-      # TODO: multiple poller groups, this assumes a single poller group
       step "#{obj["name"]} sends event CTRL_ACTIVE", Cucumber::Ast::Table.new([
-        ["configured_peers", (configured_pollers-1).to_s],
+        ["configured_peers", (hostgroups[obj["hostgroup"]]-1).to_s],
         ["configured_pollers", "0"],
         ["configured_masters", (configured_peers+1).to_s]
       ])
