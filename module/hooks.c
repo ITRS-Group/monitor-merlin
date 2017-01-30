@@ -964,6 +964,8 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		 * until next check result is sent.
 		 */
 		if(ds->reason_type == NOTIFICATION_CUSTOM || merlin_sender) {
+			if (merlin_sender)
+				pkt->hdr.selection = get_sel_id(merlin_sender->hostgroups);
 			ret = send_generic(pkt, data);
 		} else {
 			ret = hold_notification_packet(pkt, ds);
