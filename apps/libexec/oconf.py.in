@@ -390,8 +390,6 @@ def cmd_poller_fix(args=[]):
 			have_master = True
 			break
 	if not have_master:
-		if os.isatty(sys.stdout.fileno()):
-			print(" poller-fix: We're not a poller, so not fixing object config")
 		return 0
 
 	for arg in args:
