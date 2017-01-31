@@ -398,21 +398,24 @@ Feature: A notification should always be handled by the owning node.
 		check result directly after.
 
 		Given I start naemon with merlin nodes connected
-			| type   | name        | port | hostgroup   | notifies |
-			| poller | the_poller  | 4001 | pollergroup | no       |
+			| type   | name         | port | hostgroup   | notifies |
+			| peer   | the_peer     | 4001 | ignore      | ignore   |
+			| poller | poller_one   | 4002 | pollergroup | no       |
+			| poller | poller_two   | 4003 | pollergroup | no       |
+			| poller | poller_three | 4004 | emptygroup  | no       |
 
-		When the_poller sends event HOST_CHECK
-			| name                  | hostA |
+		When poller_one sends event HOST_CHECK
+			| name                  | hostB |
 			| state.state_type      | 0     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 1     |
-		And the_poller sends event HOST_CHECK
-			| name                  | hostA |
+		And poller_one sends event HOST_CHECK
+			| name                  | hostB |
 			| state.state_type      | 1     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 2     |
-		And the_poller sends event HOST_CHECK
-			| name                  | hostA |
+		And poller_one sends event HOST_CHECK
+			| name                  | hostB |
 			| state.state_type      | 1     |
 			| state.current_state   | 1     |
 			| state.current_attempt | 3     |
@@ -421,4 +424,8 @@ Feature: A notification should always be handled by the owning node.
 		Then no notification was held
 		And 1 host notification was sent
 			| parameter         | value    |
-			| hostname          | hostA    |
+			| hostname          | hostB    |
+		And the_peer received event NOTIFICATION
+		And poller_one received event NOTIFICATION
+		And poller_two received event NOTIFICATION
+		And poller_three should not receive NOTIFICATION
