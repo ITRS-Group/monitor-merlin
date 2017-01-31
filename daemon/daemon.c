@@ -402,19 +402,6 @@ int merlind_main(int argc, char **argv)
 		return 1;
 	}
 
-	if(!binlog_dir) {
-#ifndef BINLOGDIR
-		lerr("No binlog_dir configuration value given, and no compiled fallback exists\n");
-		exit(EXIT_FAILURE);
-#else
-		binlog_dir = strdup(BINLOGDIR);
-#endif
-	}
-	if(!access(binlog_dir, W_OK) == -1) {
-		lerr("Cannot write to binlog_dir: %s (%s)\n", binlog_dir, strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-
 	if (!pidfile)
 		pidfile = PKGRUNDIR "/merlin.pid";
 
