@@ -5,8 +5,10 @@
 #include "io.h"
 #include "compat.h"
 #include <arpa/inet.h>
+#include <errno.h>
 #include <string.h>
 #include <netdb.h>
+#include <unistd.h>
 
 merlin_node **noc_table, **poller_table, **peer_table;
 
@@ -699,8 +701,17 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 	if (!node->binlog) {
 		char *path = NULL;
 
+		if(access(binlog_dir ? binlog_dir : BINLOGDIR, W_OK) == -1) {
+			lerr("ERROR: Cannot write to binlog dir at '%s' (%d): "
+					"%s",
+					binlog_dir ? binlog_dir : BINLOGDIR,
+					errno,
+					strerror(errno));
+			return -1;
+		}
+
 		if (asprintf(&path, "%s/%s.%s.binlog",
-		             binlog_dir,
+		             binlog_dir ? binlog_dir : BINLOGDIR,
 		             is_module ? "module" : "daemon",
 		             node->name) < 15)
 		{

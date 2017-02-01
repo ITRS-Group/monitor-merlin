@@ -1174,20 +1174,6 @@ static int read_config(char *cfg_file)
 		}
 	}
 
-	if(!binlog_dir) {
-#ifndef BINLOGDIR
-		lwarn("No binlog_dir configuration value given, and no compiled fallback exists\n");
-		return -1;
-#else
-		binlog_dir = strdup(BINLOGDIR);
-#endif
-	}
-	if(!access(binlog_dir, W_OK) == -1) {
-		lwarn("Cannot write to binlog_dir: %s (%s)\n", binlog_dir, strerror(errno));
-		return -1;
-	}
-
-
 	/*
 	 * parse all the nodes. This warns or errors out on
 	 * config errors with illegal compounds as well

@@ -15,7 +15,6 @@
 #include "state.h"
 #include "shared.h"
 #include "db_updater.h"
-#include <unistd.h>
 
 static const char *progname;
 static const char *pidfile, *merlin_user;
