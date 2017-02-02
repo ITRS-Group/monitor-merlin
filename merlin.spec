@@ -270,6 +270,7 @@ service_control_function restart nrpe || :
 %_sysconfdir/init.d/merlind
 %endif
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/lib/merlin
+%attr(775, %daemon_user, %daemon_group) %dir %_localstatedir/lib/merlin/binlogs
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/log/op5/merlin
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/run/merlin
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/cache/merlin

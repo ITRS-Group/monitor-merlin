@@ -57,6 +57,5 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char *argv[])
 	t_start("testing string utilities");
 	test_unescape_newlines();
 
-	t_end();
-	return 0;
+	return t_end();
 }

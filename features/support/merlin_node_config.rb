@@ -2,7 +2,9 @@ class MerlinNodeConfig
 
   def initialize
     @current_config = {
-      "notifies" => "yes"
+      "notifies" => "yes",
+      "binlog_dir" => ".",
+      "oconfsplit_dir" => "."
     }
   end
 

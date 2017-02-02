@@ -83,6 +83,9 @@ int grok_confsync_compound(struct cfg_comp *comp, merlin_confsync *csync)
 	return 0;
 }
 
+/**
+ * @return 1 on success, 0 on failure
+ */
 static int grok_binlog_var(const char *key, const char *value)
 {
 	if (!strcmp(key, "binlog_dir")) {
@@ -95,6 +98,11 @@ static int grok_binlog_var(const char *key, const char *value)
 	return 0;
 }
 
+/**
+ * This function may call exit() down the line.
+ *
+ * @return 1 if the var was parsed, 0 if it did not match any rule
+ */
 int grok_common_var(struct cfg_comp *config, struct cfg_var *v)
 {
 	const char *expires;

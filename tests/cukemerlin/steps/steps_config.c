@@ -27,6 +27,7 @@ STEP_DEF(step_file);
 STEP_DEF(step_file_perm);
 STEP_DEF(step_dir);
 STEP_DEF(step_file_empty);
+STEP_DEF(step_file_should_be_empty);
 
 /* matches and not matches is similar, create a wrapper for those */
 static glong file_match_step(gpointer *scenario, const gchar *filename, const gchar *pattern, CukeResponseRef respref);
@@ -47,6 +48,7 @@ CukeStepEnvironment steps_config = {
 		{ "^file (.*) matches (.*)$", step_file_matches },
 		{ "^file (.*) does not match (.*)$", step_file_not_matches },
 		{ "^file (.*) has ([0-9]+) lines? matching (.*)$", step_file_matches_count },
+		{ "^the file ([^ ]+) should be empty$", step_file_should_be_empty },
 		{ NULL, NULL }
 	}
 };
@@ -348,4 +350,31 @@ STEP_DEF(step_file_matches_count) {
 	} else {
 		STEP_OK;
 	}
+}
+
+STEP_DEF(step_file_should_be_empty) {
+
+	gchar *filename = NULL;
+	struct stat *our_file = malloc(sizeof(stat));
+
+	if(!our_file) {
+		STEP_FAIL("Could not allocate memory for stat()");
+		return;
+	}
+
+	if (!jsonx_locate(args, 'a', 0, 's', &filename)) {
+		STEP_FAIL("Missing the filename argument");
+		return;
+	}
+
+	if(stat(filename, our_file) != 0) {
+		STEP_FAIL("Could not stat() the filename");
+		return;
+	}
+
+	if(our_file->st_size != 0) {
+		STEP_FAIL("The file is not empty");
+		return;
+	}
+	STEP_OK;
 }

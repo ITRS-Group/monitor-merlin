@@ -24,6 +24,7 @@ start.sh
 postgres.sh
 funused.sh
 test-hash
+test-csync
 bltest
 sltest
 test-lparse
@@ -44,6 +45,7 @@ apps/op5
 *.swp
 *~
 TAGS
+INSTALL
 Makefile.in
 Makefile
 /autom4te.cache
@@ -73,3 +75,5 @@ merlincat$
 /cukemerlin
 /merlincat
 /apps/libexec/restart.sh
+apps/tests/oconf-poller-fix/fixme.cfg
+apps/tests/oconf-poller-fix/fixed-config.cfg-first

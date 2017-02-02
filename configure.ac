@@ -107,4 +107,5 @@ AC_ARG_WITH(initscripts, AS_HELP_STRING([--with-initscripts], [The  merlin init 
 AC_SUBST(initscripts)
 
 AC_CONFIG_FILES([Makefile data/merlind install-merlin.sh])
+AC_CONFIG_MACRO_DIR([m4])
 AC_OUTPUT

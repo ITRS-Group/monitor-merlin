@@ -20,7 +20,7 @@ post:
     nosetests --nocapture --where apps/libexec/modules
 
     # Install requirements for cucumber test
-    if which gem2.0; then gem2.0 install sequel mysql2; else gem install sequel mysql2; fi
+    if which gem2.0; then gem2.0 install --no-ri --no-rdoc sequel mysql2; else gem install --no-ri --no-rdoc sequel mysql2; fi
 
     # Verify file permissions after installation
     stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 640" = "{}"

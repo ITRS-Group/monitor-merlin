@@ -31,40 +31,6 @@ struct binlog {
 	int fd;
 };
 
-#if 0
-static char *base_path;
-
-static int binlog_set_base_path(const char *path)
-{
-	unsigned int len;
-	struct stat st;
-	int result = 0;
-
-	len = strlen(path);
-
-	if (stat(path, &st) < 0)
-		return BINLOG_ESTAT;
-
-	if (!S_ISDIR(st.st_mode))
-		return BINLOG_ENOTDIR;
-
-	if (st.st_mode & S_IROTH || st.st_mode & S_IWOTH)
-		result = BINLOG_UNSAFE;
-
-	if (base_path)
-		free(base_path);
-
-	base_path = malloc(len + 2);
-	memcpy(base_path, path, len);
-	if (path[len] != '/') {
-		base_path[len++] = '/';
-	}
-	base_path[len++] = '\0';
-
-	return result;
-}
-#endif
-
 /*** private helpers ***/
 static int safe_write(binlog *bl, void *buf, int len)
 {
