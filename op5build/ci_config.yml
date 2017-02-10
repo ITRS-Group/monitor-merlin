@@ -19,8 +19,15 @@ post:
     # Run unit tests
     nosetests --nocapture --where apps/libexec/modules
 
-    # Install requirements for cucumber test
-    if which gem2.0; then gem2.0 install --no-ri --no-rdoc sequel mysql2; else gem install --no-ri --no-rdoc sequel mysql2; fi
-
     # Verify file permissions after installation
     stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 640" = "{}"
+
+    # Install requirements for cucumber test
+    if [ -f /usr/bin/systemctl ]; then
+      gem install --no-ri --no-rdoc cucumber:1.3.6 rspec:2.14.1 parallel_tests syntax:1.0.0 sequel mysql2
+    else
+      gem2.0 install --no-ri --no-rdoc cucumber:1.3.6 rspec:2.14.1 parallel_tests syntax:1.0.0 sequel mysql2
+    fi
+
+    # Run cucumber tests
+    cucumber

@@ -92,7 +92,7 @@ STEP_DEF(step_start_command) {
 
 static StepsDaemonProcess *dproc_new(const gchar *cmdline) {
 	StepsDaemonProcess *dproc = g_malloc0(sizeof(StepsDaemonProcess));
-	GSpawnFlags flags = G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH;
+	GSpawnFlags flags = G_SPAWN_SEARCH_PATH | G_SPAWN_CHILD_INHERITS_STDIN | G_SPAWN_DO_NOT_REAP_CHILD;
 	gchar **argv = NULL;
 	GError *error = NULL;
 
@@ -166,7 +166,7 @@ static gboolean waitpid_timeout(int pid, unsigned int timeout_sec) {
 static gint proc_run(const gchar *cmdline) {
 	gchar **argv = NULL;
 	GError *error = NULL;
-	GSpawnFlags flags = G_SPAWN_SEARCH_PATH;
+	GSpawnFlags flags = G_SPAWN_SEARCH_PATH | G_SPAWN_CHILD_INHERITS_STDIN;
 	gint rc = 1;
 
 	if (!g_shell_parse_argv(cmdline, NULL, &argv, &error)) {

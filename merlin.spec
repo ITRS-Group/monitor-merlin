@@ -110,10 +110,6 @@ Requires: monitor-livestatus
 Requires: op5-naemon
 Requires: merlin merlin-apps monitor-merlin
 BuildRequires: diffutils
-%if 0%{?rhel} >= 7
-%else
-Requires: rubygem20-op5cucumber
-%endif
 
 %description test
 Some additional test files for merlin
