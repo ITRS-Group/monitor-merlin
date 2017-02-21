@@ -903,9 +903,7 @@ static int ipc_reaper(int sd, __attribute__((unused)) int events, __attribute__(
 
 	do {
 		ret = read(sd, buf, sizeof(buf));
-		if (!ret) {
-			node_disconnect(&ipc, "read() returned zero");
-		} else if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+		if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 			/* ignored. if this happens, the iobroker is busted */
 			return 0;
 		} else {
