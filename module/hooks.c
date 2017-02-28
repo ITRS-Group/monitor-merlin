@@ -227,6 +227,8 @@ static int send_host_status(merlin_event *pkt, int nebattr, host *obj, check_res
 		last_obj = obj;
 	}
 
+	MOD2NET_STATE_VARS(st_obj.state, obj);
+
 	st_obj.name = obj->name;
 	st_obj.nebattr = nebattr;
 	st_obj.state.execution_time = obj->execution_time;
@@ -264,6 +266,8 @@ static int send_service_status(merlin_event *pkt, int nebattr, service *obj, che
 		check_dupes = 0;
 		last_obj = obj;
 	}
+
+	MOD2NET_STATE_VARS(st_obj.state, obj);
 
 	st_obj.nebattr = nebattr;
 	st_obj.host_name = obj->host_name;
