@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if /bin/su --login @naemon_user@ --command "/usr/bin/naemon  --precache-objects --verify-config /opt/monitor/etc/naemon.cfg"; then
+if /bin/su --login @naemon_user@ --command "/usr/bin/naemon  --precache-objects --verify-config @naemon_cfg@"; then
 	mon stop
 	mon start
 else
