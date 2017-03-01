@@ -5,10 +5,10 @@ post:
     - ruby-devel
     - python-nose
   steps: |
-    rm -rf /mnt/logs/merlin_dtest
-    mkdir -p -m 777 /mnt/logs/merlin_dtest
+    mkdir --parents --mode=777 /mnt/logs/merlin_dtest
     mon test dist --basepath=/mnt/logs/merlin_dtest
     mon test rsync
+    rm --force --recursive /mnt/logs/merlin_dtest
     # fake asmonitor rights since we don't want to depend on monitor-nacoma
     # for op5-naemon, asmonitor should be moved to op5-monitor-user package
     echo 'Defaults>monitor !requiretty' > /etc/sudoers.d/asmonitor
