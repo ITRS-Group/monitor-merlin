@@ -41,26 +41,29 @@ Feature: Notification execution for service notificaitons
 			| peer   | the_peer   | 4002 | ignore      | ignore   |
 
 		And the_poller sends event SERVICE_CHECK
-			| host_name                  | hostB              |
-			| service_description        | PONG               |
-			| state.state_type           | 0                  |
-			| state.current_state        | 1                  |
-			| state.current_attempt      | 1                  |
-			| state.plugin_output        | 1st line\n2nd line |
+			| host_name                | hostB    |
+			| service_description      | PONG     |
+			| state.state_type         | 0        |
+			| state.current_state      | 1        |
+			| state.current_attempt    | 1        |
+			| state.plugin_output      | 1st line |
+			| state.long_plugin_output | 2nd line |
 		And the_poller sends event SERVICE_CHECK
-			| host_name                  | hostB              |
-			| service_description        | PONG               |
-			| state.state_type           | 0                  |
-			| state.current_state        | 1                  |
-			| state.current_attempt      | 2                  |
-			| state.plugin_output        | 1st line\n2nd line |
+			| host_name                | hostB    |
+			| service_description      | PONG     |
+			| state.state_type         | 0        |
+			| state.current_state      | 1        |
+			| state.current_attempt    | 2        |
+            | state.plugin_output      | 1st line |
+            | state.long_plugin_output | 2nd line |
 		And the_poller sends event SERVICE_CHECK
-			| host_name                  | hostB              |
-			| service_description        | PONG               |
-			| state.state_type           | 0                  |
-			| state.current_state        | 1                  |
-			| state.current_attempt      | 1                  |
-			| state.plugin_output        | 1st line\n2nd line |
+			| host_name                | hostB    |
+			| service_description      | PONG     |
+			| state.state_type         | 0        |
+			| state.current_state      | 1        |
+			| state.current_attempt    | 1        |
+            | state.plugin_output      | 1st line |
+            | state.long_plugin_output | 2nd line |
 		And I wait for 1 second
 
 		Then 1 service notification was sent

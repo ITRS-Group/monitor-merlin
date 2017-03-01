@@ -52,6 +52,12 @@ class NaemonObjectConfig
       },{
         "command_name" => "check_long_output",
         "command_line" => "./output_cmd"
+      },{
+        "command_name" => "check_active_ok",
+        "command_line" => "./active_ok_cmd"
+      },{
+        "command_name" => "check_active_critical",
+        "command_line" => "./active_critical_cmd"
       }],
       "host" => [{
         "check_command" => "log_check_host",

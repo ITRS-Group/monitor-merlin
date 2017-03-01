@@ -41,17 +41,19 @@ Feature: Notification execution for host notificaitons
 			| peer   | the_peer   | 4002 | ignore      | ignore   |
 
 		And the_poller sends event HOST_CHECK
-			| name                  | hostB              |
-			| state.state_type      | 0                  |
-			| state.current_state   | 1                  |
-			| state.current_attempt | 1                  |
-			| state.plugin_output   | 1st line\n2nd line |
+			| name                     | hostB    |
+			| state.state_type         | 0        |
+			| state.current_state      | 1        |
+			| state.current_attempt    | 1        |
+			| state.plugin_output      | 1st line |
+			| state.long_plugin_output | 2nd line |
 		And the_poller sends event HOST_CHECK
-			| name                  | hostB              |
-			| state.state_type      | 1                  |
-			| state.current_state   | 1                  |
-			| state.current_attempt | 2                  |
-			| state.plugin_output   | 1st line\n2nd line |
+			| name                     | hostB    |
+			| state.state_type         | 1        |
+			| state.current_state      | 1        |
+			| state.current_attempt    | 2        |
+            | state.plugin_output      | 1st line |
+            | state.long_plugin_output | 2nd line |
 		And I wait for 1 second
 
 		Then 1 host notification was sent
