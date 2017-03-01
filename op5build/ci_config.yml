@@ -33,5 +33,4 @@ post:
     ulimit -c unlimited
     mkdir -p /mnt/logs
     echo "core ulimit: \$(ulimit -c)"
-    cucumber -t ~@skip -t ~@unreliable --strict --format html --out /mnt/logs/cucumber.html --format pretty
-    cucumber -t @skip -t ~@unreliable --wip --format html --out /mnt/logs/cucumber-wip.html --format pretty
+    cucumber --strict --format html --out /mnt/logs/cucumber.html --format pretty
