@@ -414,24 +414,23 @@ static char *concatenate_output(char *plugin_output, char *long_plugin_output, c
 		return NULL;
 
 	/* Allocate memory for the concatenated string */
-	length += plugin_output ? strlen(plugin_output) + 1 : 0;
-	length += long_plugin_output ? strlen(long_plugin_output) + 1 : 0;
-	length += perf_data ? strlen(perf_data) + 1 : 0;
-	length += 2; /* For the separators */
+	length += plugin_output ? strlen(plugin_output) + 1 : 1; /* Always add 1 for null byte */
+	length += long_plugin_output ? strlen(long_plugin_output) + 1 : 0; /* + 1 for delimiter */
+	length += perf_data ? strlen(perf_data) + 1 : 0; /* + 1 for delimiter */
 	output = malloc(length);
-	strcpy(output, "");
+	strncpy(output, "", 1);
 
 	/* Copy all output and performance data to output and separate it */
 	if (plugin_output) {
-		strcat(output, plugin_output);
+		strncat(output, plugin_output, length);
 	}
 	if (long_plugin_output) {
-		strcat(output, "\n");
-		strcat(output, long_plugin_output);
+		strncat(output, "\n", length-strlen(output));
+		strncat(output, long_plugin_output, length-strlen(output));
 	}
 	if (perf_data) {
-		strcat(output, "|");
-		strcat(output, perf_data);
+		strncat(output, "|", length-strlen(output));
+		strncat(output, perf_data, length-strlen(output));
 	}
 
 	return output;
