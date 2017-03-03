@@ -59,11 +59,13 @@ Feature: Running active checks locally which returns multi-line output
 			| peer   | the_peer   | 4001 |
 
 		When the_peer sends event SERVICE_CHECK
-			| state.current_state      | 0                      |
-			| state.plugin_output      | O K\nL\nO K\|Perf. O K |
-			| host_name                | hostA                  |
-			| service_description      | PING                   |
+			| state.current_state      | 0                    |
+			| state.plugin_output      | Plugin output        |
+			| state.long_plugin_output | Long\nplugin\noutput |
+			| state.perf_data          | Performance data     |
+			| host_name                | hostA                |
+			| service_description      | PING                 |
 
-		Then plugin_output of service PING on host hostA should be O K
-		And long_plugin_output of service PING on host hostA should be L\nO K
-		And perf_data of service PING on host hostA should be Perf. O K
+		Then plugin_output of service PING on host hostA should be Plugin output
+		And long_plugin_output of service PING on host hostA should be Long\nplugin\noutput
+		And perf_data of service PING on host hostA should be Performance data

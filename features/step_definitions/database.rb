@@ -35,6 +35,26 @@ Given(/^I have a database running$/) do
                     escalated           int, \
                     contacts_notified   int \
                ) COLLATE latin1_general_cs"
+        
+        db.run "CREATE TABLE report_data( \
+                    id                  bigint NOT NULL AUTO_INCREMENT PRIMARY KEY, \
+                    timestamp           int(11) NOT NULL DEFAULT '0', \
+                    event_type          int(11) NOT NULL DEFAULT '0', \
+                    flags               int(11) DEFAULT NULL, \
+                    attrib              int(11) DEFAULT NULL, \
+                    host_name           varchar(255) COLLATE latin1_general_cs DEFAULT '', \
+                    service_description varchar(255) COLLATE latin1_general_cs DEFAULT '', \
+                    state               int(2) NOT NULL DEFAULT '0', \
+                    hard                int(2) NOT NULL DEFAULT '0', \
+                    retry               int(5) NOT NULL DEFAULT '0', \
+                    downtime_depth      int(11) DEFAULT NULL, \
+                    output              text COLLATE latin1_general_cs, \
+                    long_output         text COLLATE latin1_general_cs, \
+                    KEY rd_timestamp    (`timestamp`), \
+                    KEY rd_event_type   (`event_type`), \
+                    KEY rd_name_evt_time(`host_name`,`service_description`,`event_type`,`hard`,`timestamp`), \
+                    KEY rd_state        (`state`) \
+               ) COLLATE latin1_general_cs"
     end
 end
 
@@ -52,6 +72,27 @@ Given(/^CONTACT_NOTIFICATION_METHOD is logged in the database (\d+) times? with 
             :ack_data => v.fetch("ack_data", nil)).count
         if db_times != times.to_i
             fail("found #{db_times} line(s) in database but expected #{times} line(s)")
+        end
+    end
+end
+
+Given(/^([a-zA-Z_\d]+) contains? (\d+) matching rows?$/) do |table, times, values|
+    values.map_headers! {|key| key.downcase.to_sym } # Symbolize keys
+    h = @databaseconfig
+    Sequel.mysql2(:host => h.host, :port => h.port, :username => h.user, :password => h.pass, :database => h.name) do |db|
+        db_times = db[:report_data].where(values.rows_hash).count
+        if db_times != times.to_i
+          fail("found #{db_times} line(s) in database but expected #{times} line(s)")
+        end
+    end
+end
+
+Given(/^([a-zA-Z_\d]+) has (\d+) entries?$/) do |table, num|
+    h = @databaseconfig
+    Sequel.mysql2(:host => h.host, :port => h.port, :username => h.user, :password => h.pass, :database => h.name) do |db|
+        db_times = db[:report_data].count
+        if db_times != num.to_i
+            fail("#{table} has #{db_times} entries, expected #{num}")
         end
     end
 end

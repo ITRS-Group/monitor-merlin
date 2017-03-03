@@ -11,6 +11,12 @@ Given(/^I start naemon$/) do
   output_cmd = "#!/bin/sh\necho -e \"O K\\nL\\nO K|Perf. O K\"\nexit 0"
   step "I have config file output_cmd with permission 777", output_cmd
 
+  active_ok_cmd = "#!/bin/sh\necho -e \"Plugin output\\nLong plugin output|Performance data\"\nexit 0"
+  step "I have config file active_ok_cmd with permission 777", active_ok_cmd
+
+  active_critical_cmd = "#!/bin/sh\necho -e \"Plugin output\\nLong plugin output|Performance data\"\nexit 2"
+  step "I have config file active_critical_cmd with permission 777", active_critical_cmd
+
   check_cmd = "#!/bin/sh\necho $@ >> checks.log\n"
   step "I have config file check_cmd with permission 777", check_cmd
 

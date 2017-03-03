@@ -405,13 +405,44 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 	}
 }
 
+static char *concatenate_output(char *plugin_output, char *long_plugin_output, char *perf_data)
+{
+	char *output = NULL;
+	int length = 0;
+
+	if (!plugin_output && !long_plugin_output && !perf_data)
+		return NULL;
+
+	/* Allocate memory for the concatenated string */
+	length += plugin_output ? strlen(plugin_output) + 1 : 1; /* Always add 1 for null byte */
+	length += long_plugin_output ? strlen(long_plugin_output) + 1 : 0; /* + 1 for delimiter */
+	length += perf_data ? strlen(perf_data) + 1 : 0; /* + 1 for delimiter */
+	output = malloc(length);
+	strncpy(output, "", 1);
+
+	/* Copy all output and performance data to output and separate it */
+	if (plugin_output) {
+		strncat(output, plugin_output, length);
+	}
+	if (long_plugin_output) {
+		strncat(output, "\n", length-strlen(output));
+		strncat(output, long_plugin_output, length-strlen(output));
+	}
+	if (perf_data) {
+		strncat(output, "|", length-strlen(output));
+		strncat(output, perf_data, length-strlen(output));
+	}
+
+	return output;
+}
+
 /* currently only called from "handle_{host,service}_status" */
 static int handle_checkresult(struct check_result *cr, monitored_object_state *st)
 {
 	int ret;
 	cr->check_type = st->check_type;
-	cr->check_options = st->checks_enabled;
-	cr->scheduled_check = st->should_be_scheduled;
+	cr->check_options = CHECK_OPTION_NONE;
+	cr->scheduled_check = TRUE;
 	cr->latency = st->latency;
 	cr->start_time.tv_sec = st->last_check;
 	cr->start_time.tv_usec = 0;
@@ -419,7 +450,7 @@ static int handle_checkresult(struct check_result *cr, monitored_object_state *s
 	cr->finish_time.tv_usec = 1000000 * (st->execution_time - (time_t)st->execution_time);
 	cr->early_timeout = FALSE;
 	cr->exited_ok = TRUE;
-	cr->output = st->plugin_output ? strdup(st->plugin_output) : NULL;
+	cr->output = concatenate_output(st->plugin_output, st->long_plugin_output, st->perf_data);
 	cr->engine = NULL;
 	ret = process_check_result(cr);
 	free(cr->output);
