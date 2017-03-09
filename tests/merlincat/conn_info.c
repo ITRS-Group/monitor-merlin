@@ -13,8 +13,9 @@ ConnectionStorage *connection_new(
 		gboolean (*is_connected)(gpointer),
 		gpointer user_data) {
 	ConnectionStorage *cs = g_malloc(sizeof(ConnectionStorage));
-	if(cs == NULL)
-		return NULL;
+	if(cs == NULL) {
+		g_assert(0);
+        }
 	cs->send = send;
 	cs->destroy = destroy;
 	cs->is_connected = is_connected;

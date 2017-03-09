@@ -1,3 +1,4 @@
+#include <glib.h>
 #include <gio/gio.h>
 #include <stdio.h>
 #include <gio/gunixsocketaddress.h>
@@ -45,19 +46,24 @@ ClientSource *client_source_new(const ConnectionInfo* conn_info,
 
 	if (conn_info->type == UNIX) {
 		cs->sock = g_socket_new(G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_DEFAULT, NULL);
+                g_assert(cs->sock != NULL);
+
 		addr = g_unix_socket_address_new(conn_info->dest_addr);
 	} else { /* conn_info->type == TCP */
 		cs->sock = g_socket_new(G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_STREAM, G_SOCKET_PROTOCOL_TCP, NULL);
+                g_assert(cs->sock != NULL);
 
 		/* Try to bind with a given source address... FIXME */
 		inetaddr = g_inet_address_new_from_string(conn_info->source_addr);
+                g_assert(inetaddr != NULL);
 		addr = g_inet_socket_address_new(inetaddr, conn_info->source_port);
-		g_socket_bind(cs->sock, addr, TRUE, NULL);
+		g_assert(g_socket_bind(cs->sock, addr, TRUE, NULL) == TRUE);
 		g_object_unref((GObject *)addr);
 		g_object_unref((GObject *)inetaddr);
 
 		/* Create destination address */
 		inetaddr = g_inet_address_new_from_string(conn_info->dest_addr);
+                g_assert(inetaddr != NULL);
 		addr = g_inet_socket_address_new(inetaddr, conn_info->dest_port);
 		g_object_unref((GObject *)inetaddr);
 	}
@@ -99,7 +105,9 @@ static gboolean client_source_data_callback(GSocket *socket,
 		return TRUE;
 	}
 
+        g_print("INFO: inside client_source_data_callback\n");
 	if(size == 0) {
+                g_print("INFO: connection was closed by peer\n");
 		// Connection closed
 		if(cs->conn_close) {
 			(*cs->conn_close)(cs->conn_user_data);
@@ -123,6 +131,7 @@ static gboolean client_source_data_callback(GSocket *socket,
 void client_source_destroy(ClientSource *cs) {
 	if(cs == NULL)
 		return;
+        g_print("INFO: inside client_source_destroy\n");
 
 
 	if(cs->sock) {

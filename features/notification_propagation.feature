@@ -224,7 +224,7 @@ Feature: A notification should always be handled by the owning node.
 	Scenario: As a poller, when generating a service notification result it
 		should propagate to peer and master. Also the results should persist
 		in Naemon through a restart.
-	
+
 		Given I start naemon with merlin nodes connected
 			| type   | name       | port | hostgroup   |
 			| master | the_master | 4001 | ignore      |
@@ -248,7 +248,7 @@ Feature: A notification should always be handled by the owning node.
 
 		When I send naemon command RESTART_PROGRAM
 		And I wait for 3 seconds
-		
+
 		Then I should have 1 services object matching last_notification > 0
 		And I should have 1 services object matching last_notification > 0
 		And 1 notification for service PONG on host hostB was sent after check result
@@ -257,7 +257,7 @@ Feature: A notification should always be handled by the owning node.
 	Scenario: As a poller, when generating a host notification result it
 		should propagate to peer and master. Also the results should persist
 		in Naemon through a restart.
-	
+
 		Given I start naemon with merlin nodes connected
 			| type   | name       | port | hostgroup   |
 			| master | the_master | 4001 | ignore      |
@@ -365,8 +365,8 @@ Feature: A notification should always be handled by the owning node.
 
 		Then I should have 1 services object matching last_notification > 0
 		And 1 notification for service PONG on host hostB was sent after check result
-		
-	
+
+
 	Scenario: In a peered system, when sending passive check results for
 		a host it should cause the owning node to notify and also
 		let the peer know that it has notified but not to pollers.

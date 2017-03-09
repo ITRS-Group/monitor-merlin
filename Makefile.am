@@ -287,6 +287,12 @@ cukemerlin_SOURCES = tests/cukemerlin/base/cukemerlin.c \
 cukemerlin_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIO_UNIX_CFLAGS) -I$(top_builddir)/tests/cukemerlin -I$(top_builddir)/tests
 cukemerlin_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS) $(GIO_UNIX_LIBS)
 
+int-test: docker-container
+	@docker run --volume=$(shell pwd):/tmp/m --workdir=/tmp/m --interactive=true --tty=true --rm=true $< cucumber
+
+docker-container:
+	@docker build --tag=$@ .
+
 
 apps/op5: apps/mon.py
 	cp $< $@
@@ -315,4 +321,4 @@ dist-hook:
 		echo A git clone is required to generate a ChangeLog and a AUTHORS file >&2; \
 	fi
 
-.PHONY: $(GENERATED_NEBEV)
+.PHONY: $(GENERATED_NEBEV) docker-container int-test

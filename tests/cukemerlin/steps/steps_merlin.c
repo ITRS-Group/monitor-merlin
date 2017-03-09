@@ -261,7 +261,7 @@ STEP_DEF(step_listen_tcp) {
 	conn_info.source_port = 0;
 	msc = mrlscenconn_new(&conn_info, conntag);
 	if (msc == NULL) {
-		STEP_FAIL("Can not start listen to merlin socket");
+		STEP_FAIL("Can not start listen to merlin TCP socket");
 		return;
 	}
 
@@ -294,7 +294,7 @@ STEP_DEF(step_listen_unix) {
 
 	g_free(conn_info.dest_addr);
 	if (msc == NULL) {
-		STEP_FAIL("Can not start listen to merlin socket");
+		STEP_FAIL("Can not start listen to merlin unix socket");
 		return;
 	}
 
@@ -401,6 +401,7 @@ STEP_DEF(step_send_event) {
 	}
 	if (msc->conn == NULL) {
 		/* If disconnected, fail */
+		g_print("ERROR: %s - %s\n", conntag, typetag);
 		STEP_FAIL("Connection isn't found");
 		return;
 	}
@@ -584,6 +585,7 @@ static MerlinScenarioConnection *mrlscen_get_conn(MerlinScenario *ms,
  */
 static MerlinScenarioConnection *mrlscenconn_new(ConnectionInfo *conn_info, const char *tag) {
 	MerlinScenarioConnection *msc = g_malloc0(sizeof(MerlinScenarioConnection));
+        g_print("INFO: inside mrlscenconn_new with %s\n", msc->tag);
 
 	msc->event_buffer = g_ptr_array_new_with_free_func(g_free);
 	msc->tag = g_strdup(tag);
@@ -609,6 +611,7 @@ static MerlinScenarioConnection *mrlscenconn_new(ConnectionInfo *conn_info, cons
 static void mrlscenconn_destroy(MerlinScenarioConnection *msc) {
 	if (msc == NULL)
 		return;
+        g_print("INFO: inside mrlscenconn_destroy\n", msc->tag);
 	steptimer_stop(msc, FALSE, "Scenario stopped");
 
 	kvvec_destroy(msc->match_kv, KVVEC_FREE_ALL);
@@ -688,7 +691,10 @@ static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
 
 static gpointer net_conn_new(ConnectionStorage *conn, gpointer user_data) {
 	MerlinScenarioConnection *msc = (MerlinScenarioConnection *) user_data;
+        g_assert(conn != NULL);
+        g_print("INFO: inside net_conn_new with %s\n", msc->tag);
 	if(msc->conn != NULL) {
+                g_print("INFO: inside net_conn_new conn not NULL\n", msc->tag);
 		/* If we already have a connection, we can't take a new one */
 		/* TODO: make it possible to disconnect/reject connection */
 		return NULL;
@@ -742,6 +748,7 @@ static void net_conn_close(gpointer conn_user_data) {
 	MerlinScenarioConnection *msc = (MerlinScenarioConnection *) conn_user_data;
 	if (msc == NULL)
 		return;
+        g_print("INFO: inside net_conn_close with %s\n", msc->tag);
 	merlinreader_destroy(msc->mr);
 	msc->mr = NULL;
 	msc->conn = NULL;
