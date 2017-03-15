@@ -107,6 +107,9 @@ shared_sources = $(common_sources) \
 	shared/binlog.c shared/binlog.h \
 	shared/configuration.c shared/configuration.h
 
+DOCKER_CONTAINER = 'docker/centos6'
+feature_tests = $(shell find features/ -maxdepth 1 -name '*.feature')
+
 db_wrap_sources = daemon/sql.c daemon/sql.h daemon/db_wrap.c daemon/db_wrap.h
 if HAVE_LIBDBI
 db_wrap_sources += daemon/db_wrap_dbi.c daemon/db_wrap_dbi.h
@@ -287,11 +290,13 @@ cukemerlin_SOURCES = tests/cukemerlin/base/cukemerlin.c \
 cukemerlin_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIO_UNIX_CFLAGS) -I$(top_builddir)/tests/cukemerlin -I$(top_builddir)/tests
 cukemerlin_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS) $(GIO_UNIX_LIBS)
 
-int-test: docker-container
-	@docker run --volume=$(shell pwd):/tmp/m --workdir=/tmp/m --interactive=true --tty=true --rm=true $< cucumber
+int-test: $(feature_tests)
 
-docker-container:
-	@docker build --tag=$@ .
+$(DOCKER_CONTAINER):
+	@docker build --tag=$@ $@
+
+$(feature_tests): $(DOCKER_CONTAINER)
+	@docker run --volume=$(shell pwd):/tmp/m --workdir=/tmp/m --interactive=true --rm=true $< bash -c 'cucumber --format=json --out=$@.json $@'
 
 
 apps/op5: apps/mon.py
@@ -321,4 +326,4 @@ dist-hook:
 		echo A git clone is required to generate a ChangeLog and a AUTHORS file >&2; \
 	fi
 
-.PHONY: $(GENERATED_NEBEV) docker-container int-test
+.PHONY: $(GENERATED_NEBEV) int-test $(DOCKER_CONTAINER) $(feature_tests)
