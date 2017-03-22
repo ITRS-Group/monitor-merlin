@@ -871,7 +871,7 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	struct host *h = NULL;
 	const char *owning_node_name = NULL;
 
-	if (ds->type == NEBTYPE_NOTIFICATION_END){
+	if (ds->type == NEBTYPE_NOTIFICATION_END) {
 
 		int ret = 0;
 
@@ -946,16 +946,13 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	}
 
 	/* handle NOTIFICATION_CUSTOM being 99 in some releases */
-	rtype = ds->reason_type;
-	if (rtype > 8)
-		rtype = 8;
+	rtype = ds->reason_type > 8 ? 8 : ds->reason_type;
 	mns = &merlin_notify_stats[rtype][ds->notification_type][check_type];
 
 	/* Break out if we only notify when no masters are present and we have masters */
 	if (online_masters && !(ipc.flags & MERLIN_NODE_NOTIFIES)) {
 		ldebug("notif: poller blocking notification in favour of master");
 		mns->master++;
-
 		return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 				"Notification will be handled by master(s)");
 	}
@@ -973,12 +970,12 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		ldebug("notif: merlin_sender->flags: %d", merlin_sender->flags);
 		if (merlin_sender->type == MODE_POLLER && merlin_sender->flags & MERLIN_NODE_NOTIFIES) {
 			ldebug("notif: Poller can notify. Cancelling notification");
-
+			mns->poller++;
 			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 					"Notification will be handled by a poller (%s)", merlin_sender->name);
-		} else if (merlin_sender->type == MODE_PEER && merlin_sender->id == notifying_node) {
+		} else if (merlin_sender->type == MODE_PEER && merlin_sender->peer_id == notifying_node) {
 			ldebug("notif: Peer will handle its own notifications. Cancelling notification");
-
+			mns->peer++;
 			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 				"Notification will be handled by owning peer (%s)", merlin_sender->name);
 		}
