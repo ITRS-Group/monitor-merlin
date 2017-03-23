@@ -255,8 +255,7 @@ Feature: Notification execution for host notificaitons
             | type   | name         | port | hostgroup  | notifies |
             | peer   | peer_one     | 4001 | ignore     | ignore   |
             | peer   | peer_two     | 4002 | ignore     | ignore   |
-        And peer_one disconnects from merlin
-        And peer_one appears disconnected
+        And peer_one becomes disconnected
         
         When peer_two sends event EXTERNAL_COMMAND
             | command_type   | 87                        |

@@ -44,3 +44,10 @@ Then(/([a-z0-9\-_]+) (?:should appear|appears) connected$/) do |n|
       | name | #{n} | state | STATE_CONNECTED |
   }
 end
+
+Then(/([a-z0-9\-_]+) (?:should become|becomes) disconnected/) do |n|
+  steps %Q{
+    Then #{n} disconnects from merlin
+    And #{n} appears disconnected
+  }
+end

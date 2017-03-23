@@ -264,8 +264,7 @@ Feature: Notification execution for service notificaitons
             | type   | name         | port | hostgroup  |
             | peer   | peer_one     | 4001 | ignore     |
             | peer   | peer_two     | 4002 | ignore     |
-        And peer_one disconnects from merlin
-        And peer_one appears disconnected
+        And peer_one becomes disconnected
         
         When for 3 times peer_two sends event EXTERNAL_COMMAND
             | command_type   | 30                           |
