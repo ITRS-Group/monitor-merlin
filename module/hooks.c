@@ -864,9 +864,9 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
 static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 {
 	nebstruct_notification_data *ds = (nebstruct_notification_data *)data;
-	unsigned int id, check_type = 0, rtype;
+	unsigned int id, check_type = 0;
 	unsigned int notifying_node = 0;
-	struct merlin_notify_stats *mns = NULL;
+	struct merlin_notify_stats *notif_stats = NULL;
 	struct service *s = NULL;
 	struct host *h = NULL;
 	const char *owning_node_name = NULL;
@@ -945,14 +945,12 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		owning_node_name = "<unknown>";
 	}
 
-	/* handle NOTIFICATION_CUSTOM being 99 in some releases */
-	rtype = ds->reason_type > 8 ? 8 : ds->reason_type;
-	mns = &merlin_notify_stats[rtype][ds->notification_type][check_type];
+	notif_stats = &merlin_notify_stats[ds->reason_type][ds->notification_type][check_type];
 
 	/* Break out if we only notify when no masters are present and we have masters */
 	if (online_masters && !(ipc.flags & MERLIN_NODE_NOTIFIES)) {
 		ldebug("notif: poller blocking notification in favour of master");
-		mns->master++;
+		notif_stats->master++;
 		return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 				"Notification will be handled by master(s)");
 	}
@@ -970,12 +968,12 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		ldebug("notif: merlin_sender->flags: %d", merlin_sender->flags);
 		if (merlin_sender->type == MODE_POLLER && merlin_sender->flags & MERLIN_NODE_NOTIFIES) {
 			ldebug("notif: Poller can notify. Cancelling notification");
-			mns->poller++;
+			notif_stats->poller++;
 			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 					"Notification will be handled by a poller (%s)", merlin_sender->name);
 		} else if (merlin_sender->type == MODE_PEER && merlin_sender->peer_id == notifying_node) {
 			ldebug("notif: Peer will handle its own notifications. Cancelling notification");
-			mns->peer++;
+			notif_stats->peer++;
 			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 				"Notification will be handled by owning peer (%s)", merlin_sender->name);
 		}
@@ -984,7 +982,7 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		 * Check if we should do it and, if so, allow it
 		 */
 		if ((num_peers == 0 || should_run_check(id))) {
-			mns->sent++;
+			notif_stats->sent++;
 			if(merlin_sender->type == MODE_POLLER) {
 				ldebug("notif: Poller can't notify and we're responsible, so notifying");
 			} else {
@@ -994,7 +992,7 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		}
 
 		ldebug("notif: A peer handles poller-sent check. Blocking notifications");
-		mns->peer++;
+		notif_stats->peer++;
 
 		return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 				"Notification originating on poller (%s) will be handled by another peer (%s)",
@@ -1005,14 +1003,14 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	/* never block normal, local notificatons from passive checks */
 	if (check_type == CHECK_TYPE_PASSIVE && ds->reason_type == NOTIFICATION_NORMAL) {
 		ldebug("notif: passive check delivered to us, so we notify");
-		mns->sent++;
+		notif_stats->sent++;
 		return neb_cb_result_create(0);
 	}
 
 	/* if we have no peers we won't block the notification at this point */
 	if (!num_peers) {
 		ldebug("notif: We have no peers, so won't block notification");
-		mns->sent++;
+		notif_stats->sent++;
 		return neb_cb_result_create(0);
 	}
 
@@ -1025,7 +1023,7 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	case NOTIFICATION_ACKNOWLEDGEMENT:
 	case NOTIFICATION_CUSTOM:
 		ldebug("notif: command-triggered and delivered to us, so allowing");
-		mns->sent++;
+		notif_stats->sent++;
 		return neb_cb_result_create(0);
 	}
 
@@ -1034,13 +1032,13 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		return neb_cb_result_create(0);
 	} else {
 		ldebug("notif: Blocking notification. A peer is supposed to send it");
-		mns->peer++;
+		notif_stats->peer++;
 
 		return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 				"A peer (%s) is supposed to send this notification", owning_node_name);
 	}
 
-	mns->sent++;
+	notif_stats->sent++;
 	ldebug("notif: Fell through to the end");
 	return neb_cb_result_create(0);
 }
