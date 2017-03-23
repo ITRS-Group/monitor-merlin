@@ -7,7 +7,7 @@ class NaemonSystemConfig
       "event_broker_options" => "-1",
       "command_file" => "naemon.cmd",
       "object_cache_file" => "objects.cache",
-      "status_file" => "/dev/null",
+      "status_file" => "status_file.sav",
       "log_file" => "naemon.log",
       "retain_state_information" => "1",
       "state_retention_file" => "status.sav",
