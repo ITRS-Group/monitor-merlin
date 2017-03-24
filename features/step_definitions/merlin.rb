@@ -29,7 +29,7 @@ end
 Then(/^no notification was held$/) do
   step "file merlin.log does not match holding.*notification"
 end
-Then(/([a-z0-9\-_]+) should appear disconnected$/) do |n|
+Then(/([a-z0-9\-_]+) (?:should appear|appears) disconnected$/) do |n|
   steps %Q{
     Given I ask query handler merlin nodeinfo
       | filter_var | filter_val | match_var | match_val |
@@ -37,10 +37,17 @@ Then(/([a-z0-9\-_]+) should appear disconnected$/) do |n|
   }
 end
 
-Then(/([a-z0-9\-_]+) should appear connected$/) do |n|
+Then(/([a-z0-9\-_]+) (?:should appear|appears) connected$/) do |n|
   steps %Q{
     Given I ask query handler merlin nodeinfo
       | filter_var | filter_val | match_var | match_val |
       | name | #{n} | state | STATE_CONNECTED |
+  }
+end
+
+Then(/([a-z0-9\-_]+) (?:should become|becomes) disconnected/) do |n|
+  steps %Q{
+    Then #{n} disconnects from merlin
+    And #{n} appears disconnected
   }
 end
