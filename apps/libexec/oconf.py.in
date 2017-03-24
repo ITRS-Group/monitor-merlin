@@ -101,40 +101,19 @@ def oconf_helper(args):
 		print("Helper %s was killed by signal %d" % (app, ret))
 	return ret
 
-def cmd_reload(args):
-	"""[--unsafe] [</path/to/nagios>]
-	Reloads object config by submitting an external command.
+def cmd_reload():
 	"""
-	global nagios_cfg
-	safe = True
-	bin = 'naemon'
-	for arg in args:
-		if arg == '--unsafe':
-			safe = False
-		elif arg == '--safe':
-			safe = True
-		elif arg.endswith('.cfg'):
-			nagios_cfg = arg
-		else:
-			bin = arg
+	Reloads the object configuration by restarting
+    the "naemon" and "merlind" processes
+	"""
 
+	global nagios_cfg
 	color = ansi_color()
 
 	# if we're a poller, fix up the configuration
 	cmd_poller_fix([nagios_cfg])
 
-	if safe:
-		cmd_args = [bin, '-v', nagios_cfg]
-		ret = os.spawnvp(os.P_WAIT, bin, cmd_args)
-		if ret != 0:
-			print("\n%sConfig seems broken. Refusing to reload%s" % (color.red, color.reset))
-			print("Testing command used:\n  %s" % ' '.join(cmd_args))
-			sys.exit(ret)
-		print("")
-
-	comp = parse_nagios_cfg(nagios_cfg)
-	ncmd = nagios_command('RESTART_PROCESS', comp.command_file)
-	ret = ncmd.submit()
+	ret = os.spawnvp(os.P_WAIT, '@exec_prefix@/bin/mon', 'restart')
 	if ret == False:
 		print("%sConfig reload failed%s" % (color.red, color.reset))
 		sys.exit(1)
