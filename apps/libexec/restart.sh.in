@@ -1,9 +1,4 @@
 #!/bin/sh
 
-if /bin/su --shell /bin/bash --login @naemon_user@ --command "/usr/bin/naemon  --precache-objects --verify-config @naemon_cfg@"; then
-	mon stop
-	mon start
-else
-	echo "mon restart: Refusing to restart monitor with a flawed configuration"
-	exit 1
-fi
+mon stop
+mon start
