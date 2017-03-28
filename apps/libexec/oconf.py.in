@@ -101,7 +101,7 @@ def oconf_helper(args):
 		print("Helper %s was killed by signal %d" % (app, ret))
 	return ret
 
-def cmd_reload():
+def cmd_reload(args):
 	"""
 	Reloads the object configuration by restarting
     the "naemon" and "merlind" processes
