@@ -104,7 +104,7 @@ def oconf_helper(args):
 def cmd_reload(args):
 	"""
 	Reloads the object configuration by restarting
-    the "naemon" and "merlind" processes
+	the "naemon" and "merlind" processes
 	"""
 
 	global nagios_cfg
@@ -113,8 +113,8 @@ def cmd_reload(args):
 	# if we're a poller, fix up the configuration
 	cmd_poller_fix([nagios_cfg])
 
-	ret = os.spawnvp(os.P_WAIT, '@exec_prefix@/bin/mon', 'restart')
-	if ret == False:
+	ret = subprocess.call(['@exec_prefix@/bin/mon', 'restart'])
+	if ret:
 		print("%sConfig reload failed%s" % (color.red, color.reset))
 		sys.exit(1)
 	else:
