@@ -102,18 +102,39 @@ def oconf_helper(args):
 	return ret
 
 def cmd_reload(args):
+	"""[--unsafe] [</path/to/nagios>]
+	Reloads object config by submitting an external command.
 	"""
-	Reloads the object configuration by restarting
-    the "naemon" and "merlind" processes
-	"""
-
 	global nagios_cfg
+	safe = True
+	bin = 'naemon'
+	for arg in args:
+		if arg == '--unsafe':
+			safe = False
+		elif arg == '--safe':
+			safe = True
+		elif arg.endswith('.cfg'):
+			nagios_cfg = arg
+		else:
+			bin = arg
+
 	color = ansi_color()
 
 	# if we're a poller, fix up the configuration
 	cmd_poller_fix([nagios_cfg])
 
-	ret = os.spawnvp(os.P_WAIT, '@exec_prefix@/bin/mon', 'restart')
+	if safe:
+		cmd_args = [bin, '-v', nagios_cfg]
+		ret = os.spawnvp(os.P_WAIT, bin, cmd_args)
+		if ret != 0:
+			print("\n%sConfig seems broken. Refusing to reload%s" % (color.red, color.reset))
+			print("Testing command used:\n  %s" % ' '.join(cmd_args))
+			sys.exit(ret)
+		print("")
+
+	comp = parse_nagios_cfg(nagios_cfg)
+	ncmd = nagios_command('RESTART_PROCESS', comp.command_file)
+	ret = ncmd.submit()
 	if ret == False:
 		print("%sConfig reload failed%s" % (color.red, color.reset))
 		sys.exit(1)
@@ -138,6 +159,35 @@ def cmd_files(args):
 	"""
 	sys.exit(oconf_helper(['files'] + args))
 
+def cmd_split(args):
+	"""<outfile:hostgroup1,hostgroup2,hostgroupN>
+	Writes config for hostgroup1,hostgroup2 and hostgroupN into outfile.
+	"""
+
+	usg = "\n\nusage: split %s" % cmd_split.__doc__.split('\n', 1)[0]
+	if len(args) == 0:
+		usage("'split' requires arguments%s" % usg)
+
+	argparams = []
+	grab_nagios_cfg(nagios_cfg)
+
+	for arg in args:
+		# Ignore global arguments
+		if arg.startswith('--'):
+			continue
+
+		# default case. outfile:hg1,hg2,hgN... argument
+		ary = arg.split(':')
+		if len(ary) != 2:
+			usage("Unknown argument for split: %s%s" % (arg, usg))
+
+		hgs = re.split('[\t ]*,[\t ]*', ary[1])
+		argparams.append({'file': ary[0], 'hostgroups': hgs})
+
+	if not len(argparams):
+		return
+
+	sys.exit(run_splitter(argparams))
 
 def get_ssh_key(node):
 	ssh_key = node.options.get('oconf_ssh_key', False)
