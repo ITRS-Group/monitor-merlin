@@ -101,7 +101,7 @@ def oconf_helper(args):
 		print("Helper %s was killed by signal %d" % (app, ret))
 	return ret
 
-def cmd_reload(args):
+def cmd_reload():
 	"""
 	Reloads the object configuration by restarting
     the "naemon" and "merlind" processes
@@ -138,6 +138,35 @@ def cmd_files(args):
 	"""
 	sys.exit(oconf_helper(['files'] + args))
 
+def cmd_split(args):
+	"""<outfile:hostgroup1,hostgroup2,hostgroupN>
+	Writes config for hostgroup1,hostgroup2 and hostgroupN into outfile.
+	"""
+
+	usg = "\n\nusage: split %s" % cmd_split.__doc__.split('\n', 1)[0]
+	if len(args) == 0:
+		usage("'split' requires arguments%s" % usg)
+
+	argparams = []
+	grab_nagios_cfg(nagios_cfg)
+
+	for arg in args:
+		# Ignore global arguments
+		if arg.startswith('--'):
+			continue
+
+		# default case. outfile:hg1,hg2,hgN... argument
+		ary = arg.split(':')
+		if len(ary) != 2:
+			usage("Unknown argument for split: %s%s" % (arg, usg))
+
+		hgs = re.split('[\t ]*,[\t ]*', ary[1])
+		argparams.append({'file': ary[0], 'hostgroups': hgs})
+
+	if not len(argparams):
+		return
+
+	sys.exit(run_splitter(argparams))
 
 def get_ssh_key(node):
 	ssh_key = node.options.get('oconf_ssh_key', False)
