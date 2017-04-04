@@ -1,0 +1,3 @@
+Defaults:@naemon_user@ !requiretty
+@naemon_user@ ALL=(root) NOPASSWD:/usr/bin/mon restart
+@naemon_user@ ALL=(root) NOPASSWD:/usr/bin/op5 restart
