@@ -155,7 +155,7 @@ balanced/redundancy mode.  naemon1 has 192.168.1.1 as IP. naemon2 has
 
 On master1, add the following section to your merlin.conf file:
 
-     peer master2 {
+     peer master2.example.com {
       address = 192.168.1.2;
       port = 15551; # optional, since 15551 is the default
      }
@@ -164,7 +164,7 @@ On master1, add the following section to your merlin.conf file:
 On master2, add the following section to your merlin.conf file:
 
 
-    peer master1 {
+    peer master1.example.com {
      address = 192.168.1.1;
      port = 15551; # optional, since 15551 is the default
     }
@@ -178,7 +178,7 @@ add following sections to your merlin.conf files:
 
 On master1 (the "master" server), add the following section:
 
-    poller poller1 {
+    poller poller1.example.com {
      address = 192.168.1.2
      port = 15551;
      hostgroup = germany-hosts; # name of the hostgroup containing all
@@ -188,7 +188,7 @@ On master1 (the "master" server), add the following section:
 
 On poller1 (the slave server), add the following section:
 
-    master master1 {
+    master master1.example.com {
      address = 192.168.1.1;
      port = 15551;
     }
