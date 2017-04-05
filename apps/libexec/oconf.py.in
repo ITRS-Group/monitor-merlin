@@ -305,7 +305,7 @@ def cmd_push(args):
 				else:
 					ret = os.spawnvp(os.P_WAIT, 'rsync', rsync_args)
 
-		if restart and not node.ctrl("mon oconf reload"):
+		if restart and not node.ctrl("mon restart"):
 			print("Restart failed for node '%s'" % name)
 			errors += 1
 
