@@ -97,6 +97,9 @@ the database that merlin will populate for you.
 GNU sed 4.0.9 or better is required for the install script to be able to modify
 your naemon configuration files.
 
+For redundant/distributed installation you also need sudo rights for naemon
+user to be able to reload the configuration on all your nodes in the cluster.
+The command that needs to be executed 'sudo mon restart'.
 
 ## Building and installation ##
 
