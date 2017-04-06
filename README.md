@@ -39,18 +39,18 @@
       .       ..  $OOOOOOOOOOOOOI       .      ,OON$,...,.  Z?
          .       .   . ..:~+=.   .   .   .   .   ZOOOOOOOOON
                    ..       .   .   .   .   .   .  ~7ZZZZZZO+
-       .              .   .    . . .   .    .            .   
+       .              .   .    . . .   .    .            .
 
 
 The Merlin project, or Module for Effortless Redundancy and Loadbalancing In
 Nagios, was initially started to create an easy way to set up distributed
 Nagios installations, allowing Nagios processes to exchange information
-directly as an alternative to the standard nagios way using NSCA.  Now, the
+directly as an alternative to the standard nagios way using NSCA. Now, the
 nagios support is deprecated in favour of Naemon ( www.naemon.org ) which is a
-fork of the Nagios project.  When starting the Ninja project we realised that
+fork of the Nagios project. When starting the Ninja project we realised that
 we could continue the work on Merlin and adopt the project to function as
 backend for Ninja by adding support for storing the status information in a
-database, fault tolearance and some other cool things.  This means that Merlin
+database, fault tolearance and some other cool things. This means that Merlin
 now are responsible for providing status data, acting as a backend, for the
 Ninja GUI.
 
@@ -97,6 +97,9 @@ the database that merlin will populate for you.
 GNU sed 4.0.9 or better is required for the install script to be able to modify
 your naemon configuration files.
 
+For redundant/distributed installation you also need sudo rights for naemon
+user to be able to reload the configuration on all your nodes in the cluster.
+The command that needs to be executed 'sudo mon restart'.
 
 ## Building and installation ##
 
@@ -141,7 +144,7 @@ comment. Thus,
     key = value; # comment
 
 makes "key" the key, "value" the value, terminated by the semi-colon, and "#
-comment" all of the comment.  Leading and trailing whitespace is ignored.
+comment" all of the comment. Leading and trailing whitespace is ignored.
 
 The thing it doesn't really cover very well is how to configure masters, peers
 and pollers, which is described more in-depth here.
@@ -150,12 +153,12 @@ In order to set up a load balanced system (ie, 2 or more peers), all you need
 to do is add a section similar to the following to your merlin configuration
 files on your merlin-empowered Naemon systems.  Let's pretend we have "master1"
 and "master2" in the network and you wish for them to be set up in load
-balanced/redundancy mode.  naemon1 has 192.168.1.1 as IP. naemon2 has
+balanced/redundancy mode. master1 has 192.168.1.1 as IP. master2 has
 192.168.1.2. Both use port 15551 (the default).
 
 On master1, add the following section to your merlin.conf file:
 
-     peer master2 {
+     peer master2.example.com {
       address = 192.168.1.2;
       port = 15551; # optional, since 15551 is the default
      }
@@ -163,22 +166,21 @@ On master1, add the following section to your merlin.conf file:
  
 On master2, add the following section to your merlin.conf file:
 
-
-    peer master1 {
+    peer master1.example.com {
      address = 192.168.1.1;
      port = 15551; # optional, since 15551 is the default
     }
 
 
 Assuming master2 is a poller-node instead, rename it to poller 1 that is
-responsible for checkinghosts in germany, you need to create a hostgroup in
+responsible for checking hosts in germany, you need to create a hostgroup in
 Naemon containing all the hosts in germany that you want poller1 to check for
 you. Let's assume you call that hostgroup "germany-hosts".  Then you need to
 add following sections to your merlin.conf files:
 
 On master1 (the "master" server), add the following section:
 
-    poller poller1 {
+    poller poller1.example.com {
      address = 192.168.1.2
      port = 15551;
      hostgroup = germany-hosts; # name of the hostgroup containing all
@@ -188,14 +190,14 @@ On master1 (the "master" server), add the following section:
 
 On poller1 (the slave server), add the following section:
 
-    master master1 {
+    master master1.example.com {
      address = 192.168.1.1;
      port = 15551;
     }
 
 
 Note that these configuration sections need to be in the base section of the
-configuration file. They must *not* be inside the daemon section.  This is
+configuration file. They must *not* be inside the daemon section. This is
 because the master server will disable checks for all its pollers once those
 pollers connect, and therefore it needs to read the list of available nodes at
 configuration time.
