@@ -4,6 +4,7 @@
 import os, sys, posix, re, copy, random
 import subprocess
 
+from multiprocessing import Pool
 from compound_config import *
 from merlin_apps_utils import *
 from nagios_command import *
@@ -173,146 +174,160 @@ def get_ssh_key(node):
 	return False
 
 
+def restart_node(node):
+        return node.ctrl("sudo mon restart")
+
+
+def sync_files((node, ssh_user, ssh_key, files_to_sync, dryrun)):
+        # we don't push to master nodes
+        if node.ntype == 'master':
+                print "%s is a master, refusing to push" % node.name
+                return True
+
+        # Use compression by default
+        ssh_cmd = 'ssh -C'
+
+        # if we're not running from console, we need to disable
+        # keyboard-interactive authentication to avoid hanging
+        if not os.isatty(sys.stdout.fileno()):
+                ssh_cmd += ' -o KbdInteractiveAuthentication=no'
+        if ssh_key:
+                ssh_cmd += ' -i ' + ssh_key
+        if ssh_user:
+                ssh_cmd += ' -l ' + ssh_user
+
+        # Copy recursively in 'archive' mode
+        base_rsync_args = ['rsync', '-aotzc', '--delete', '-b', '--backup-dir=%s/backups' % cache_dir]
+
+        for (src, dest) in files_to_sync.items():
+
+                address_dest = "%s:%s" % (node.address, dest)
+                if ssh_user:
+                        address_dest = ssh_user + '@' + address_dest
+                rsync_args = base_rsync_args + [src, '-e', ssh_cmd, address_dest]
+                if dryrun:
+                        print 'rsync command: %s' % ' '.join(rsync_args)
+                elif os.spawnvp(os.P_WAIT, 'rsync', rsync_args) != 0:
+                        return False
+        return True
+
+
 def cmd_push(args):
-	"""--no-restart [--push=oconf,extras,bsm] [--dryrun] [<node1> <node2> <nodeN>]
-	Sends object configuration to all peers and pollers, restarting
-	those that receive a configuration update.
+        """--no-restart [--push=oconf,extras,bsm] [--dryrun] [<node1> <node2> <nodeN>]
+        Sends object configuration to all peers and pollers, restarting
+        those that receive a configuration update.
 
-	SSH keys needs to be set up for this to be usable without admin supervision.
-	"""
-	errors = 0
-	restart_nodes = {}
-	wanted_nodes = []
-	restart = True
-	push_items = ['oconf', 'extras', 'bsm']
-	dryrun = False
+        SSH keys needs to be set up for this to be usable without admin supervision.
+        """
+        errors = 0
+        restart_nodes = {}
+        wanted_nodes = []
+        restart = True
+        push_items = ['oconf', 'extras', 'bsm']
+        dryrun = False
 
-	for arg in args:
-		if arg == '--no-restart':
-			restart = False
-			continue
-		if arg.startswith('--push='):
-			push_items = arg.split('=', 1)[1].split(',')
-			continue
-		if arg == '--dryrun' or arg == '-n':
-			dryrun = True
-			restart = False
-			continue
-		node = mconf.configured_nodes.get(arg)
-		if node:
-			wanted_nodes.append((node.name, node))
-			continue
-		prettyprint_docstring('push', cmd_push.__doc__,
-			'Unknown argument: %s' % arg)
-		sys.exit(1)
+        for arg in args:
+                if arg == '--no-restart':
+                        restart = False
+                        continue
+                if arg.startswith('--push='):
+                        push_items = arg.split('=', 1)[1].split(',')
+                        continue
+                if arg == '--dryrun' or arg == '-n':
+                        dryrun = True
+                        restart = False
+                        continue
+                node = mconf.configured_nodes.get(arg)
+                if node:
+                        wanted_nodes.append((node.name, node))
+                        continue
+                prettyprint_docstring('push', cmd_push.__doc__,
+                        'Unknown argument: %s' % arg)
+                sys.exit(1)
 
-	if not os.getuid() and 'oconf' in push_items:
-		print("  Using 'mon oconf push' to push object config as root is prohibited")
-		print("  Use 'mon oconf push --push=extras' to safely push items as root")
-		sys.exit(1)
+        if not os.getuid() and 'oconf' in push_items:
+                print("  Using 'mon oconf push' to push object config as root is prohibited")
+                print("  Use 'mon oconf push --push=extras' to safely push items as root")
+                sys.exit(1)
 
-	if not len(wanted_nodes):
-		wanted_nodes = mconf.configured_nodes.items()
+        if not len(wanted_nodes):
+                wanted_nodes = mconf.configured_nodes.items()
 
-	# Copy recursively in 'archive' mode
-	base_rsync_args = ['rsync', '-aotzc', '--delete']
-	base_rsync_args += ['-b', '--backup-dir=%s/backups' % cache_dir]
+        # Copy recursively in 'archive' mode
+        base_rsync_args = ['rsync', '-aotzc', '--delete']
+        base_rsync_args += ['-b', '--backup-dir=%s/backups' % cache_dir]
 
-	for name, node in wanted_nodes:
-		# we don't push to master nodes
-		if node.ntype == 'master':
-			print "%s is a master, refusing to push" % (name,)
-			continue
+        sync_list = []
+        for name, node in wanted_nodes:
 
-		# Use compression by default
-		ssh_cmd = 'ssh -C'
-		ssh_user = node.options.get('oconf_ssh_user', False)
+                files_to_sync = {}
+                ssh_user = node.options.get('oconf_ssh_user', None)
+                ssh_key = node.options.get('oconf_ssh_key', None)
 
-		# XXX rewrite this to node.ssh_key(), always returning a path
-		ssh_key = get_ssh_key(node)
-		if ssh_key and ssh_key != True:
-			if not os.path.isfile(ssh_key):
-				print("ssh key '%s' for node '%s' not found" % (ssh_key, name))
-				print("We can't push config without keys being properly set up")
-				continue
-			ssh_cmd += ' -i ' + ssh_key
+                if 'oconf' in push_items:
+                        oconf_file = '%s/%s.cfg' % (config_dir, name)
+                        if node.ntype == 'poller':
+                                if not os.path.exists(oconf_file):
+                                        print "Can't push to poller, %s, because %s doesn't exist" % (name, oconf_file)
+                                        continue
+                                source = oconf_file
+                                default_dest = '/opt/monitor/etc/oconf/from-master.cfg'
+                        else:
+                                source = node.options.get('oconf_source', '/opt/monitor/etc')
+                                default_dest = '/opt/monitor'
 
-		# if we're not running from console, we need to disable
-		# keyboard-interactive authentication to avoid hanging
-		if not os.isatty(sys.stdout.fileno()):
-			ssh_cmd += ' -o KbdInteractiveAuthentication=no'
+                        oconf_dest = node.options.get('oconf_dest', default_dest)
+                        files_to_sync[source] = oconf_dest
 
-		if ssh_user:
-			ssh_cmd += ' -l ' + ssh_user
-		node.ssh_cmd = ssh_cmd
+                if not 'extras' in push_items:
+                        node.paths_to_sync = {}
+                        
+                if node.paths_to_sync:
+                        for src, dest in node.paths_to_sync.items():
+                                if dest == True:
+                                        dest = src
+                                files_to_sync[src] = dest
 
-		if 'oconf' in push_items:
-			oconf_file = '%s/%s.cfg' % (config_dir, name)
+                if 'bsm' in push_items and os.path.isdir('/opt/synergy/etc/bps'):
+                        files_to_sync['/opt/synergy/etc/bps'] = '/opt/synergy/etc'
 
-			# now we set up source and destination. Pollers and peers
-			# have different demands for this, and peers can be
-			# configured to either transport only object configuration
-			# (put it in a directory on its own and ship only objects)
-			# or everything (ship /opt/monitor/etc to /opt/monitor)
-			if node.ntype == 'poller':
-				# pollers without an oconf_file are ignored
-				if not os.path.exists(oconf_file):
-					print "Can't push to poller, %s, because %s doesn't exist" % (name, oconf_file)
-					continue
-				source = oconf_file
-				default_dest = '/opt/monitor/etc/oconf/from-master.cfg'
-			else:
-				source = node.options.get('oconf_source', '/opt/monitor/etc')
-				default_dest = '/opt/monitor'
+                sync_list.append((node, ssh_user, ssh_key, files_to_sync, dryrun))
 
-			oconf_dest = node.options.get('oconf_dest', default_dest)
+        # Make sure the ssh key files exist if specified
+        non_existing_ssh_key_files = \
+                [(node.name, filename) for (node, _, ssh_key, _, _) \
+                in sync_list if ssh_key != None \
+                 and not os.file.exists(ssh_key)]
+        if len(non_existing_ssh_key_files) > 0:
+                for node, filename in non_existing_ssh_key_files:
+                        print 'ssh key %s for node %s could not be found! % (filename, node)'
+                sys.exit(1)
 
-			address_dest = "%s:%s" % (node.address, oconf_dest)
-			if ssh_user:
-				address_dest = ssh_user + '@' + host_dest
-			rsync_args = base_rsync_args + [source, '-e', ssh_cmd, address_dest]
-			if dryrun:
-				print('rsync command: %s' % ' '.join(rsync_args))
-			else:
-				ret = os.spawnvp(os.P_WAIT, 'rsync', rsync_args)
-				if ret != 0:
-					print("rsync returned %d. Breakage?" % ret)
-					print("Won't restart monitor and merlin on node '%s'" % name)
-					errors += 1
-					continue
+        # Make sure the files to be synched actually exists locally
+        non_existing_sync_files = \
+                [(node.name, src) for (node, _, _, files, _) in sync_list \
+                for (src,_) in files.items() if not os.path.exists(src)]
+        if len(non_existing_sync_files) > 0:
+                for node, filename in non_existing_sync_files:
+                        print 'wanted to sync file %s to node %s but file does not exist' % (filename, node)
+                sys.exit(1)
 
-		if not 'extras' in push_items:
-			node.paths_to_sync = {}
+        # Filter out masters as we don't want to push things upwards
+        l = filter(lambda x: x[0].ntype != 'master', sync_list)
+        
+        num_threads = max(1, len(mconf.configured_nodes))
+        p = Pool(num_threads)
+        results = p.map(sync_files, l)
 
-		# XXX FIXME: ugly hack to get synergy rules
-		# synchronized every once in a while
-		if 'bsm' in push_items and os.path.isdir('/opt/synergy/etc/bps'):
-			if not node.paths_to_sync:
-				node.paths_to_sync = {'/opt/synergy/etc/bps': '/opt/synergy/etc'}
-			else:
-				node.paths_to_sync['/opt/synergy/etc/bps'] = '/opt/synergy/etc'
+        if not all(results):
+                print 'Some error occured, exiting'
+                sys.exit(1)
 
-		if node.paths_to_sync:
-			for src, dest in node.paths_to_sync.items():
-				if dest == True:
-					dest = src
-				address_dest = "%s:%s" % (node.address, dest)
-				if ssh_user:
-					address_dest = ssh_user + '@' + host_dest
-				rsync_args = base_rsync_args + [src, '-e', node.ssh_cmd, address_dest]
-				if dryrun:
-					print('rsync command: %s' % ' '.join(rsync_args))
-				else:
-					ret = os.spawnvp(os.P_WAIT, 'rsync', rsync_args)
-
-		if restart and not node.ctrl("sudo mon restart"):
-			print("Restart failed for node '%s'" % name)
-			errors += 1
-
-	# splitting, pushing and restarting is done. If there were
-	# errors, we exit with non-zero exit status
-	if errors:
-		sys.exit(1)
+        if restart:
+                results = p.map(restart_node, mconf.configured_nodes.values())
+                if not all(results):
+                        print 'Failed to restart all nodes'
+                        sys.exit(1)
 
 
 def get_last_changed(files=False):

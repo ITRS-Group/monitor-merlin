@@ -8,6 +8,7 @@ import copy
 import subprocess
 import livestatus
 import traceback
+import tempfile
 from pprint import *
 import traceback
 
@@ -2501,6 +2502,7 @@ def cmd_rsync(args):
 	"""
 	tap = pytap.pytap("mon oconf push rsync command tests")
 	tap.verbose = 2
+	foo_path = tempfile.mkdtemp()
 	path = os.tempnam(None,'rsync')
 	fd = open(path, 'w')
 	fd.write("""peer thepeer {
@@ -2508,15 +2510,15 @@ def cmd_rsync(args):
 	hostgroups = oddment, tweak, nitwit
 	sync {
 		/etc/passwd
-		/tmp/foo = /usr/bin/lalala
+		%s = /usr/bin/test
 	}
 }
-	""")
+	""" % foo_path)
 	fd.close()
 	cmd = ['mon', '--merlin-conf=%s' % path, 'oconf', 'push', '--dryrun']
-	expect_out_extras = """rsync command: rsync -aotzc --delete -b --backup-dir=%s/backups /tmp/foo -e ssh -C -o KbdInteractiveAuthentication=no localhost:/usr/bin/lalala
+	expect_out_extras = """rsync command: rsync -aotzc --delete -b --backup-dir=%s/backups %s -e ssh -C -o KbdInteractiveAuthentication=no localhost:/usr/bin/test
 rsync command: rsync -aotzc --delete -b --backup-dir=%s/backups /etc/passwd -e ssh -C -o KbdInteractiveAuthentication=no localhost:/etc/passwd
-""" % (cache_dir, cache_dir)
+""" % (cache_dir, foo_path, cache_dir)
 	(out, err, result) = _test_run(cmd + ['--push=extras'])
 	tap.test(err, '', "Error output should be none")
 	tap.test(result, 0, "Result should be 0")
