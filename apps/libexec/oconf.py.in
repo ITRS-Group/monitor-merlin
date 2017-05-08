@@ -1,21 +1,22 @@
 #!/usr/bin/env python
 
 
-import os, sys, posix, re, copy, random
-import subprocess
+import os
+import sys
 
 from multiprocessing import Pool
-from compound_config import *
-from merlin_apps_utils import *
-from nagios_command import *
+from compound_config import parse_nagios_cfg
+from merlin_apps_utils import prettyprint_docstring
 
 obj_index = {}
+
+
 def idx_get(otype):
-	global obj_index
-	if not otype in obj_index.keys():
-		obj_index[otype] = 0
-	obj_index[otype] += 1
-	return obj_index[otype]
+    global obj_index
+    if otype not in obj_index.keys():
+        obj_index[otype] = 0
+    obj_index[otype] += 1
+    return obj_index[otype]
 
 
 last_changed = 0
@@ -27,363 +28,353 @@ object_cache = '/opt/monitor/var/objects.cache'
 obj_files = []
 config_dir = None
 
+
 def module_init(args):
-	global config_dir
-	rem_args = []
-	for arg in args:
-		if arg.startswith('--use-helper='):
-			continue
-		if arg == '--use-helper':
-			continue
-		if arg.startswith('--cache-dir='):
-			config_dir = arg.split('=', 1)[1]
-			continue
-		rem_args.append(arg)
-	if not config_dir:
-		config_dir = '%s/config' % cache_dir
-	return rem_args
+    global config_dir
+    global cache_dir
+    rem_args = []
+    for arg in args:
+        if arg.startswith('--use-helper='):
+            continue
+        if arg == '--use-helper':
+            continue
+        if arg.startswith('--cache-dir='):
+            config_dir = arg.split('=', 1)[1]
+            continue
+        rem_args.append(arg)
+    if not config_dir:
+        config_dir = '%s/config' % cache_dir
+    return rem_args
 
 
 # grab object configuration files from a cfg_dir directive
 def recurse_grab_object_cfg_files(v, basepath=''):
-	obj_files = []
-	if v[0] != '/':
-		v = basepath + '/' + v
-	f_ary = os.listdir(v)
-	for f in f_ary:
-		path = '%s/%s' % (v, f)
-		if os.path.isdir(path):
-			obj_files += recurse_grab_object_cfg_files(path, '')
-		elif os.path.isfile(path) and f[-4:] == '.cfg':
-			obj_files.append(path)
+    obj_files = []
+    if v[0] != '/':
+        v = basepath + '/' + v
+    f_ary = os.listdir(v)
+    for f in f_ary:
+        path = '%s/%s' % (v, f)
+        if os.path.isdir(path):
+            obj_files += recurse_grab_object_cfg_files(path, '')
+        elif os.path.isfile(path) and f[-4:] == '.cfg':
+            obj_files.append(path)
 
-	return obj_files
+    return obj_files
+
 
 def grab_nagios_cfg(nagios_cfg_path):
-	global force_include_commands
-	global object_cache
+    global force_include_commands
+    global object_cache
 
-	obj_files = []
-	comp = parse_nagios_cfg(nagios_cfg_path)
-	basepath = os.path.dirname(os.path.abspath(nagios_cfg_path))
-	for (k, v) in comp.params:
-		if k == 'cfg_file':
-			obj_files.append(v)
-		elif k == 'cfg_dir':
-			obj_files += recurse_grab_object_cfg_files(v, basepath + '/')
+    obj_files = []
+    comp = parse_nagios_cfg(nagios_cfg_path)
+    basepath = os.path.dirname(os.path.abspath(nagios_cfg_path))
+    for (k, v) in comp.params:
+        if k == 'cfg_file':
+            obj_files.append(v)
+        elif k == 'cfg_dir':
+            obj_files += recurse_grab_object_cfg_files(v, basepath + '/')
 
-	return obj_files
+    return obj_files
 
 
 def update_last_changed(path):
-	global last_changed
-	st = os.stat(path)
-	if st and st.st_mtime > last_changed:
-		last_changed = st.st_mtime
+    global last_changed
+    st = os.stat(path)
+    if st and st.st_mtime > last_changed:
+        last_changed = st.st_mtime
 
-def usage(msg = False):
-	if msg:
-		print(msg)
 
-	sys.exit(1)
+def usage(msg=False):
+    if msg:
+        print(msg)
+
+    sys.exit(1)
+
 
 def oconf_helper(args):
-	app = merlin_dir + '/oconf'
-	have_nagios_cfg = False
-	for arg in args:
-		if arg.startswith('--nagios-cfg'):
-			have_nagios_cfg = True
-			break
-	if not have_nagios_cfg:
-		args += ['--nagios-cfg=' + nagios_cfg]
+    global merlin_dir
+    app = merlin_dir + '/oconf'
+    have_nagios_cfg = False
+    for arg in args:
+        if arg.startswith('--nagios-cfg'):
+            have_nagios_cfg = True
+            break
+    if not have_nagios_cfg:
+        args += ['--nagios-cfg=' + nagios_cfg]
 
-	ret = os.spawnv(os.P_WAIT, app, [app] + args)
-	if ret < 0:
-		print("Helper %s was killed by signal %d" % (app, ret))
-	return ret
+    ret = os.spawnv(os.P_WAIT, app, [app] + args)
+    if ret < 0:
+        print("Helper %s was killed by signal %d" % (app, ret))
+    return ret
 
 
 def cmd_hash(args):
-	"""
-	Prints an SHA-1 hash of the running configuration.
-	"""
-	sys.exit(oconf_helper(['hash'] + args))
+    """
+    Prints an SHA-1 hash of the running configuration.
+    """
+    sys.exit(oconf_helper(['hash'] + args))
+
 
 def cmd_changed(args):
-	"""
-	Prints last modification time of all object configuration files.
-	"""
-	sys.exit(oconf_helper(['last-changed'] + args))
+    """
+    Prints last modification time of all object configuration files.
+    """
+    sys.exit(oconf_helper(['last-changed'] + args))
+
 
 def cmd_files(args):
-	"""
-	Prints the configuration files in alphabetical order.
-	"""
-	sys.exit(oconf_helper(['files'] + args))
+    """
+    Prints the configuration files in alphabetical order.
+    """
+    sys.exit(oconf_helper(['files'] + args))
 
-def cmd_split(args):
-	"""<outfile:hostgroup1,hostgroup2,hostgroupN>
-	Writes config for hostgroup1,hostgroup2 and hostgroupN into outfile.
-	"""
-
-	usg = "\n\nusage: split %s" % cmd_split.__doc__.split('\n', 1)[0]
-	if len(args) == 0:
-		usage("'split' requires arguments%s" % usg)
-
-	argparams = []
-	grab_nagios_cfg(nagios_cfg)
-
-	for arg in args:
-		# Ignore global arguments
-		if arg.startswith('--'):
-			continue
-
-		# default case. outfile:hg1,hg2,hgN... argument
-		ary = arg.split(':')
-		if len(ary) != 2:
-			usage("Unknown argument for split: %s%s" % (arg, usg))
-
-		hgs = re.split('[\t ]*,[\t ]*', ary[1])
-		argparams.append({'file': ary[0], 'hostgroups': hgs})
-
-	if not len(argparams):
-		return
-
-	sys.exit(run_splitter(argparams))
 
 def get_ssh_key(node):
-	ssh_key = node.options.get('oconf_ssh_key', False)
-	if ssh_key and os.path.isfile(ssh_key):
-		return ssh_key
-	home = os.getenv('HOME', False)
-	if not home:
-		return False
-	sshdir = home + "/.ssh"
-	if not os.path.isdir(sshdir):
-		return False
+    ssh_key = node.options.get('oconf_ssh_key', False)
+    if ssh_key and os.path.isfile(ssh_key):
+        return ssh_key
+    home = os.getenv('HOME', False)
+    if not home:
+        return False
+    sshdir = home + "/.ssh"
+    if not os.path.isdir(sshdir):
+        return False
 
-	# Try various keyfiles in the preferred order.
-	# If we find one, we simply return 'true', since
-	# ssh will look for the keys there too and may
-	# choose one with better encryption (or whatever).
-	for keyfile in ['id_rsa', 'id_dsa', 'identity']:
-		if os.path.isfile(sshdir + '/' + keyfile):
-			return True
+    # Try various keyfiles in the preferred order.
+    # If we find one, we simply return 'true', since
+    # ssh will look for the keys there too and may
+    # choose one with better encryption (or whatever).
+    for keyfile in ['id_rsa', 'id_dsa', 'identity']:
+        if os.path.isfile(sshdir + '/' + keyfile):
+            return True
 
-	# no key seems to exist
-	return False
+    # no key seems to exist
+    return False
 
 
 def restart_node(node):
-        return node.ctrl("sudo mon restart")
+    return node.ctrl("sudo mon restart")
 
 
 def sync_files((node, ssh_user, ssh_key, files_to_sync, dryrun)):
-        # we don't push to master nodes
-        if node.ntype == 'master':
-                print "%s is a master, refusing to push" % node.name
-                return True
-
-        # Use compression by default
-        ssh_cmd = 'ssh -C'
-
-        # if we're not running from console, we need to disable
-        # keyboard-interactive authentication to avoid hanging
-        if not os.isatty(sys.stdout.fileno()):
-                ssh_cmd += ' -o KbdInteractiveAuthentication=no'
-        if ssh_key:
-                ssh_cmd += ' -i ' + ssh_key
-        if ssh_user:
-                ssh_cmd += ' -l ' + ssh_user
-
-        # Copy recursively in 'archive' mode
-        base_rsync_args = ['rsync', '-aotzc', '--delete', '-b', '--backup-dir=%s/backups' % cache_dir]
-
-        for (src, dest) in files_to_sync.items():
-
-                address_dest = "%s:%s" % (node.address, dest)
-                if ssh_user:
-                        address_dest = ssh_user + '@' + address_dest
-                rsync_args = base_rsync_args + [src, '-e', ssh_cmd, address_dest]
-                if dryrun:
-                        print 'rsync command: %s' % ' '.join(rsync_args)
-                elif os.spawnvp(os.P_WAIT, 'rsync', rsync_args) != 0:
-                        return False
+    global cache_dir
+    # we don't push to master nodes
+    if node.ntype == 'master':
+        print "%s is a master, refusing to push" % node.name
         return True
+
+    # Use compression by default
+    ssh_cmd = 'ssh -C'
+
+    # if we're not running from console, we need to disable
+    # keyboard-interactive authentication to avoid hanging
+    if not os.isatty(sys.stdout.fileno()):
+        ssh_cmd += ' -o KbdInteractiveAuthentication=no'
+    if ssh_key:
+        ssh_cmd += ' -i ' + ssh_key
+    if ssh_user:
+        ssh_cmd += ' -l ' + ssh_user
+
+    # Copy recursively in 'archive' mode
+    base_rsync_args = ['rsync', '-aotzc', '--delete',
+                       '-b', '--backup-dir=%s/backups' % cache_dir]
+
+    for (src, dest) in files_to_sync.items():
+
+        address_dest = "%s:%s" % (node.address, dest)
+        if ssh_user:
+            address_dest = ssh_user + '@' + address_dest
+        rsync_args = base_rsync_args + [src, '-e', ssh_cmd, address_dest]
+        if dryrun:
+            print 'rsync command: %s' % ' '.join(rsync_args)
+        elif os.spawnvp(os.P_WAIT, 'rsync', rsync_args) != 0:
+            return False
+    return True
 
 
 def cmd_push(args):
-        """--no-restart [--push=oconf,extras,bsm] [--dryrun] [<node1> <node2> <nodeN>]
-        Sends object configuration to all peers and pollers, restarting
-        those that receive a configuration update.
+    """\
+    --no-restart [--push=oconf,extras,bsm] [--dryrun] [<node1> <node2> <nodeN>]
+    Sends object configuration to all peers and pollers, restarting
+    those that receive a configuration update.
 
-        SSH keys needs to be set up for this to be usable without admin supervision.
-        """
-        errors = 0
-        restart_nodes = {}
-        wanted_nodes = []
-        restart = True
-        push_items = ['oconf', 'extras', 'bsm']
-        dryrun = False
+    SSH keys needs to be set up to use this without admin supervision.
+    """
+    global cache_dir
+    global mconf
+    wanted_nodes = []
+    restart = True
+    push_items = ['oconf', 'extras', 'bsm']
+    dryrun = False
 
-        for arg in args:
-                if arg == '--no-restart':
-                        restart = False
-                        continue
-                if arg.startswith('--push='):
-                        push_items = arg.split('=', 1)[1].split(',')
-                        continue
-                if arg == '--dryrun' or arg == '-n':
-                        dryrun = True
-                        restart = False
-                        continue
-                node = mconf.configured_nodes.get(arg)
-                if node:
-                        wanted_nodes.append((node.name, node))
-                        continue
-                prettyprint_docstring('push', cmd_push.__doc__,
-                        'Unknown argument: %s' % arg)
-                sys.exit(1)
+    for arg in args:
+        if arg == '--no-restart':
+            restart = False
+            continue
+        if arg.startswith('--push='):
+            push_items = arg.split('=', 1)[1].split(',')
+            continue
+        if arg == '--dryrun' or arg == '-n':
+            dryrun = True
+            restart = False
+            continue
+        node = mconf.configured_nodes.get(arg)
+        if node:
+            wanted_nodes.append((node.name, node))
+            continue
+        prettyprint_docstring('push', cmd_push.__doc__,
+                              'Unknown argument: %s' % arg)
+        sys.exit(1)
 
-        if not os.getuid() and 'oconf' in push_items:
-                print("  Using 'mon oconf push' to push object config as root is prohibited")
-                print("  Use 'mon oconf push --push=extras' to safely push items as root")
-                sys.exit(1)
+    if not os.getuid() and 'oconf' in push_items:
+        print """\
+  Using 'mon oconf push' to push object config as root is prohibited
+  Use 'mon oconf push --push=extras' to safely push items as root"""
+        sys.exit(1)
 
-        if not len(wanted_nodes):
-                wanted_nodes = mconf.configured_nodes.items()
+    if not len(wanted_nodes):
+        wanted_nodes = mconf.configured_nodes.items()
 
-        # Copy recursively in 'archive' mode
-        base_rsync_args = ['rsync', '-aotzc', '--delete']
-        base_rsync_args += ['-b', '--backup-dir=%s/backups' % cache_dir]
+    # Copy recursively in 'archive' mode
+    base_rsync_args = ['rsync', '-aotzc', '--delete']
+    base_rsync_args += ['-b', '--backup-dir=%s/backups' % cache_dir]
 
-        sync_list = []
-        for name, node in wanted_nodes:
+    sync_list = []
+    for name, node in wanted_nodes:
 
-                files_to_sync = {}
-                ssh_user = node.options.get('oconf_ssh_user', None)
-                ssh_key = node.options.get('oconf_ssh_key', None)
+        files_to_sync = {}
+        ssh_user = node.options.get('oconf_ssh_user', None)
+        ssh_key = node.options.get('oconf_ssh_key', None)
 
-                if 'oconf' in push_items:
-                        oconf_file = '%s/%s.cfg' % (config_dir, name)
-                        if node.ntype == 'poller':
-                                if not os.path.exists(oconf_file):
-                                        print "Can't push to poller, %s, because %s doesn't exist" % (name, oconf_file)
-                                        continue
-                                source = oconf_file
-                                default_dest = '/opt/monitor/etc/oconf/from-master.cfg'
-                        else:
-                                source = node.options.get('oconf_source', '/opt/monitor/etc')
-                                default_dest = '/opt/monitor'
+        if 'oconf' in push_items:
+            oconf_file = '%s/%s.cfg' % (config_dir, name)
+            if node.ntype == 'poller':
+                if not os.path.exists(oconf_file):
+                    print 'Cannot push to poller %s, because %s does '
+                    'not exist' % (name, oconf_file)
+                    continue
+                source = oconf_file
+                default_dest = '/opt/monitor/etc/oconf/from-master.cfg'
+            else:
+                source = node.options.get('oconf_source', '/opt/monitor/etc')
+                default_dest = '/opt/monitor'
 
-                        oconf_dest = node.options.get('oconf_dest', default_dest)
-                        files_to_sync[source] = oconf_dest
+            oconf_dest = node.options.get('oconf_dest', default_dest)
+            files_to_sync[source] = oconf_dest
 
-                if not 'extras' in push_items:
-                        node.paths_to_sync = {}
-                        
-                if node.paths_to_sync:
-                        for src, dest in node.paths_to_sync.items():
-                                if dest == True:
-                                        dest = src
-                                files_to_sync[src] = dest
+        if 'extras' not in push_items:
+            node.paths_to_sync = {}
 
-                if 'bsm' in push_items and os.path.isdir('/opt/synergy/etc/bps'):
-                        files_to_sync['/opt/synergy/etc/bps'] = '/opt/synergy/etc'
+        if node.paths_to_sync:
+            for src, dest in node.paths_to_sync.items():
+                if dest is True:
+                    dest = src
+                files_to_sync[src] = dest
 
-                sync_list.append((node, ssh_user, ssh_key, files_to_sync, dryrun))
+        if 'bsm' in push_items and os.path.isdir('/opt/synergy/etc/bps'):
+            files_to_sync['/opt/synergy/etc/bps'] = '/opt/synergy/etc'
 
-        # Make sure the ssh key files exist if specified
-        non_existing_ssh_key_files = \
-                [(node.name, filename) for (node, _, ssh_key, _, _) \
-                in sync_list if ssh_key != None \
-                 and not os.file.exists(ssh_key)]
-        if len(non_existing_ssh_key_files) > 0:
-                for node, filename in non_existing_ssh_key_files:
-                        print 'ssh key %s for node %s could not be found! % (filename, node)'
-                sys.exit(1)
+        sync_list.append((node, ssh_user, ssh_key, files_to_sync, dryrun))
 
-        # Make sure the files to be synched actually exists locally
-        non_existing_sync_files = \
-                [(node.name, src) for (node, _, _, files, _) in sync_list \
-                for (src,_) in files.items() if not os.path.exists(src)]
-        if len(non_existing_sync_files) > 0:
-                for node, filename in non_existing_sync_files:
-                        print 'wanted to sync file %s to node %s but file does not exist' % (filename, node)
-                sys.exit(1)
+    # Make sure the ssh key files exist if specified
+    non_existing_ssh_key_files = \
+        [(node.name, ssh_file) for (node, _, ssh_file, _, _)
+         in sync_list if ssh_file is not None
+         and not os.file.exists(ssh_file)]
+    if len(non_existing_ssh_key_files) > 0:
+        for node, filename in non_existing_ssh_key_files:
+            print 'ssh key %s for node %s could not be found!' \
+                % (ssh_file, node)
+        sys.exit(1)
 
-        # Filter out masters as we don't want to push things upwards
-        l = filter(lambda x: x[0].ntype != 'master', sync_list)
-        
-        num_threads = max(1, len(mconf.configured_nodes))
-        p = Pool(num_threads)
-        results = p.map(sync_files, l)
+    # Make sure the files to be synched actually exists locally
+    non_existing_sync_files = \
+        [(node.name, src) for (node, _, _, files, _) in sync_list
+         for (src, _) in files.items() if not os.path.exists(src)]
+    if len(non_existing_sync_files) > 0:
+        for node, filename in non_existing_sync_files:
+            print 'failed to sync file %s to %s, file does not exist' \
+                % (filename, node)
+        sys.exit(1)
 
+    # Filter out masters as we don't want to push things upwards
+    l = filter(lambda x: x[0].ntype != 'master', sync_list)
+
+    num_threads = max(1, len(mconf.configured_nodes))
+    p = Pool(num_threads)
+    results = p.map(sync_files, l)
+
+    if not all(results):
+        print 'Some error occured, exiting'
+        sys.exit(1)
+
+    if restart:
+        results = p.map(restart_node, mconf.configured_nodes.values())
         if not all(results):
-                print 'Some error occured, exiting'
-                sys.exit(1)
-
-        if restart:
-                results = p.map(restart_node, mconf.configured_nodes.values())
-                if not all(results):
-                        print 'Failed to restart all nodes'
-                        sys.exit(1)
+            print 'Failed to restart all nodes'
+            sys.exit(1)
 
 
 def get_last_changed(files=False):
-	if last_changed != 0:
-		return last_changed
+    if last_changed != 0:
+        return last_changed
 
-	if not files:
-		files = grab_nagios_cfg(nagios_cfg)
-	map(update_last_changed, files)
+    if not files:
+        files = grab_nagios_cfg(nagios_cfg)
+    map(update_last_changed, files)
 
-	return last_changed
+    return last_changed
+
 
 def make_config_file_suitable_for_poller(lines):
-	have_from_master_cfg = False
-	from_master_config_line = "cfg_file=oconf/from-master.cfg"
-	for i, line in enumerate(lines):
-		if lines[i] == from_master_config_line:
-			have_from_master_cfg = True
-		elif lines[i].startswith("cfg_file=") or lines[i].startswith("cfg_dir="):
-			line = '#' + lines[i]
-			lines[i] = line
+    have_from_master_cfg = False
+    from_master_config_line = "cfg_file=oconf/from-master.cfg"
+    for i, line in enumerate(lines):
+        if lines[i] == from_master_config_line:
+            have_from_master_cfg = True
+        elif lines[i].startswith("cfg_file=") \
+                or lines[i].startswith("cfg_dir="):
+                line = '#' + lines[i]
+                lines[i] = line
 
-	if not have_from_master_cfg:
-		lines.append(from_master_config_line)
-	return lines
+    if not have_from_master_cfg:
+        lines.append(from_master_config_line)
+    return lines
+
 
 def cmd_poller_fix(args=[]):
-	"""
-	Fixes object configuration setup to be suitable for a poller.
-	If this node is not a poller, no changes will be made.
-	"""
-	global naemon_cfg
-	have_master = False
-	for name, node in mconf.configured_nodes.items():
-		if node.ntype == 'master':
-			have_master = True
-			break
-	if not have_master:
-		return 0
+    """
+    Fixes object configuration setup to be suitable for a poller.
+    If this node is not a poller, no changes will be made.
+    """
+    global naemon_cfg
+    global mconf
+    have_master = False
+    for name, node in mconf.configured_nodes.items():
+        if node.ntype == 'master':
+            have_master = True
+            break
+    if not have_master:
+        return 0
 
-	for arg in args:
-		if os.path.isfile(arg):
-			naemon_cfg = arg
-		else:
-			prettyprint_docstring('push', cmd_poller_fix.__doc__,
-				'Unknown argument: %s' % arg)
-			sys.exit(1)
+    for arg in args:
+        if os.path.isfile(arg):
+            naemon_cfg = arg
+        else:
+            prettyprint_docstring('push', cmd_poller_fix.__doc__,
+                                  'Unknown argument: %s' % arg)
+            sys.exit(1)
 
-	try:
-		with open(naemon_cfg, 'r') as f:
-			unchecked_lines = f.read().splitlines()
+    try:
+        with open(naemon_cfg, 'r') as f:
+            unchecked_lines = f.read().splitlines()
 
-		fixed_lines = make_config_file_suitable_for_poller(unchecked_lines)
+        fixed_lines = make_config_file_suitable_for_poller(unchecked_lines)
 
-		with open(naemon_cfg, 'w') as f:
-			f.write("\n".join(fixed_lines)+"\n")
-	except Exception as e:
-		print(" poller_fix: Error while modifying %s: %s" % (naemon_cfg, e))
-		sys.exit(1)
+        with open(naemon_cfg, 'w') as f:
+            f.write("\n".join(fixed_lines) + "\n")
+    except Exception as e:
+        print(" poller_fix: Error while modifying %s: %s" % (naemon_cfg, e))
+        sys.exit(1)
