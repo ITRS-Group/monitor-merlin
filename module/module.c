@@ -494,6 +494,11 @@ static int handle_host_result(merlin_node *node, merlin_header *hdr, void *buf)
 		merlin_recv_host = obj;
 		ret = handle_checkresult(&cr, &st_obj->state);
 		merlin_recv_host = NULL;
+		obj->current_notification_number = st_obj->state.current_notification_number;
+		obj->last_notification = st_obj->state.last_notification;
+		obj->next_notification = st_obj->state.next_notification;
+		obj->no_more_notifications = st_obj->state.last_notification;
+		obj->notified_on = st_obj->state.notified_on;
 		return ret;
 	} else {
 		NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
@@ -538,6 +543,11 @@ static int handle_service_result(merlin_node *node, merlin_header *hdr, void *bu
 		merlin_recv_service = obj;
 		ret = handle_checkresult(&cr, &st_obj->state);
 		merlin_recv_service = NULL;
+		obj->current_notification_number = st_obj->state.current_notification_number;
+		obj->last_notification = st_obj->state.last_notification;
+		obj->next_notification = st_obj->state.next_notification;
+		obj->no_more_notifications = st_obj->state.last_notification;
+		obj->notified_on = st_obj->state.notified_on;
 		return ret;
 	} else {
 		NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
