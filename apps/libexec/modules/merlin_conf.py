@@ -1,4 +1,9 @@
-import sys, os, re, locale
+import sys
+import os
+import io
+import re
+import locale
+import subprocess as sp
 from compound_config import *
 from merlin_apps_utils import *
 
@@ -179,10 +184,10 @@ class merlin_node:
 		prefix_args += ['-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes']
 		if self.ssh_key:
 			prefix_args += ['-i', self.ssh_key]
-		all_args = prefix_args + [command]
-		out.write("Connecting to '%s' with the following command:\n  %s\n"
-			  % (self.name, ' '.join(all_args)))
-		out.write("%s#--- REMOTE OUTPUT START ---%s\n" % (col, reset))
+		cmd = prefix_args + [command]
+		out.write(u'Connecting to \'%s\' with the following command:\n  %s\n'
+			  % (self.name, ' '.join(cmd)))
+		out.write(u'%s#--- REMOTE OUTPUT START ---%s\n' % (col, reset))
 
 		# Ideally we would have liked to pass out and err directly to a
 		# subprocess call in all cases, but unfortunately not all objects that
@@ -191,22 +196,22 @@ class merlin_node:
 		# method can be called with out/err being written directly to file and
 		# not being buffered in memory.
 		if isinstance(out, io.FileIO) and instance(err, io.FileIO):
-			ret = subprocess.call(['ssh'] + all_args, stdout=out, stderr=err)
+			ret = sp.call(cmd, stdout=out, stderr=err)
 		else:
-			p = io.Popen(['ssh'].extend(all_args), stdout=io.PIPE, stderr=io.PIPE)
+			p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE)
 			output, error = p.communicate()
-			output or out.write("%s\n" % output)
-			error or err.write("%s\n" % error)
+			output and out.write(u'%s\n' % output)
+			error and err.write(u'%s\n' % error)
 			ret = p.returncode
 
-		out.write("%s#--- REMOTE OUTPUT DONE ----%s\n" % (col, reset))
+		out.write(u'%s#--- REMOTE OUTPUT DONE ----%s\n' % (col, reset))
 		self.exit_code = ret
 
 		if ret < 0:
-			out.write("ssh was killed by signal %d\n" % ret)
+			out.write(u'ssh was killed by signal %d\n' % ret)
 			return False
 		if ret != 0:
-			out.write("ssh exited with return code %d\n" % ret)
+			out.write(u'ssh exited with return code %d\n' % ret)
 			return False
 		return True
 
