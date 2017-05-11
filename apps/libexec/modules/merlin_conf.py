@@ -143,8 +143,26 @@ class merlin_node:
 
 			print("%s=%s" % (k, v))
 
-
-	def ctrl(self, command):
+	
+	def ctrl(self, command, out=None, err=None):
+		"""
+		ctrl writes stdout to the instance given in out and stderr to the
+		instance given in err.
+		if both out and err are either omitted, None or of instance FileIO then
+		stdout and stderr will not be buffered in memory.
+		"""
+		assert out is None or isinstance(out, (io.RawIOBase, io.BufferedIOBase,
+											io.TextIOBase))
+		assert err is None or isinstance(err, (io.RawIOBase, io.BufferedIOBase,
+											io.TextIOBase))
+		
+		# Int Python 3 stdout and stderr are instances of TextIOBase but in
+		# Python 2 they're still instances of file which is a none existent
+		# type in Python 3. That's why we must wrap stdout/stderr in a FileIO
+		# object if no other out/err is given.
+		out = out or io.FileIO(sys.stdout.fileno(), mode='w', closefd=False)
+		err = err or io.FileIO(sys.stderr.fileno(), mode='w', closefd=False)
+		
 		col = color.yellow + color.bright
 		reset = color.reset
 
@@ -162,21 +180,33 @@ class merlin_node:
 		if self.ssh_key:
 			prefix_args += ['-i', self.ssh_key]
 		all_args = prefix_args + [command]
-		print("Connecting to '%s' with the following command:\n  %s"
+		out.write("Connecting to '%s' with the following command:\n  %s\n"
 			  % (self.name, ' '.join(all_args)))
-		sys.stdout.flush()
-		print("%s#--- REMOTE OUTPUT START ---%s" % (col, reset))
-		sys.stdout.flush()
-		ret = os.spawnvp(os.P_WAIT, "ssh", all_args)
-		sys.stdout.flush()
-		print("%s#--- REMOTE OUTPUT DONE ----%s" % (col, reset))
+		out.write("%s#--- REMOTE OUTPUT START ---%s\n" % (col, reset))
+
+		# Ideally we would have liked to pass out and err directly to a
+		# subprocess call in all cases, but unfortunately not all objects that
+		# inherit the IO baseclasses implement all the necessary methods which
+		# makes subprocess call fail. We added the FileIO expection so this
+		# method can be called with out/err being written directly to file and
+		# not being buffered in memory.
+		if isinstance(out, io.FileIO) and instance(err, io.FileIO):
+			ret = subprocess.call(['ssh'] + all_args, stdout=out, stderr=err)
+		else:
+			p = io.Popen(['ssh'].extend(all_args), stdout=io.PIPE, stderr=io.PIPE)
+			output, error = p.communicate()
+			output or out.write("%s\n" % output)
+			error or err.write("%s\n" % error)
+			ret = p.returncode
+
+		out.write("%s#--- REMOTE OUTPUT DONE ----%s\n" % (col, reset))
 		self.exit_code = ret
 
 		if ret < 0:
-			print("ssh was killed by signal %d" % ret)
+			out.write("ssh was killed by signal %d\n" % ret)
 			return False
 		if ret != 0:
-			print("ssh exited with return code %d" % ret)
+			out.write("ssh exited with return code %d\n" % ret)
 			return False
 		return True
 
