@@ -318,7 +318,8 @@ def cmd_push(args):
     results = p.map(sync_files, l)
 
     for (res, out) in results:
-        print out
+        if out:
+            print out
 
     if not all([ret for (ret, _) in results]):
         print 'Some error occured, exiting'
@@ -327,7 +328,8 @@ def cmd_push(args):
     if restart:
         results = p.map(restart_node, mconf.configured_nodes.values())
         for (res, out) in results:
-            print out
+            if out:
+                print out
         if not all([ret for (ret, _) in results]):
             print 'Failed to restart all nodes'
             sys.exit(1)
