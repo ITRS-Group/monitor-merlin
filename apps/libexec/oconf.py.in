@@ -158,7 +158,8 @@ def get_ssh_key(node):
 
 def restart_node(node):
     out = io.StringIO()
-    return (node.ctrl("sudo mon restart", out=out, err=out), out.getvalue())
+    return (node.ctrl("sudo mon restart", out=out, err=out),
+            out.getvalue().rstrip('\n'))
 
 
 def sync_files((node, ssh_user, ssh_key, files_to_sync, dryrun)):
@@ -199,7 +200,7 @@ def sync_files((node, ssh_user, ssh_key, files_to_sync, dryrun)):
             if p.returncode != 0:
                 retval = False
 
-    return (retval, out.getvalue())
+    return (retval, out.getvalue().rstrip('\n'))
 
 
 def cmd_push(args):
@@ -315,7 +316,7 @@ def cmd_push(args):
     num_threads = max(1, len(mconf.configured_nodes))
     p = Pool(num_threads)
     results = p.map(sync_files, l)
-    
+
     for (res, out) in results:
         print out
 
