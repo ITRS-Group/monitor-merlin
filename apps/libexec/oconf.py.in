@@ -2,7 +2,9 @@
 
 
 import os
+import io
 import sys
+import subprocess as sp
 
 from multiprocessing import Pool
 from compound_config import parse_nagios_cfg
@@ -155,15 +157,16 @@ def get_ssh_key(node):
 
 
 def restart_node(node):
-    return node.ctrl("sudo mon restart")
+    out = io.StringIO()
+    return (node.ctrl("sudo mon restart", out=out, err=out),
+            out.getvalue().rstrip('\n'))
 
 
 def sync_files((node, ssh_user, ssh_key, files_to_sync, dryrun)):
+
     global cache_dir
-    # we don't push to master nodes
-    if node.ntype == 'master':
-        print "%s is a master, refusing to push" % node.name
-        return True
+    retval = True
+    out = io.StringIO()
 
     # Use compression by default
     ssh_cmd = 'ssh -C'
@@ -178,7 +181,7 @@ def sync_files((node, ssh_user, ssh_key, files_to_sync, dryrun)):
         ssh_cmd += ' -l ' + ssh_user
 
     # Copy recursively in 'archive' mode
-    base_rsync_args = ['rsync', '-aotzc', '--delete',
+    base_rsync_args = ['-aotzc', '--delete',
                        '-b', '--backup-dir=%s/backups' % cache_dir]
 
     for (src, dest) in files_to_sync.items():
@@ -186,12 +189,18 @@ def sync_files((node, ssh_user, ssh_key, files_to_sync, dryrun)):
         address_dest = "%s:%s" % (node.address, dest)
         if ssh_user:
             address_dest = ssh_user + '@' + address_dest
-        rsync_args = base_rsync_args + [src, '-e', ssh_cmd, address_dest]
+        args = base_rsync_args + [src, '-e', ssh_cmd, address_dest]
         if dryrun:
-            print 'rsync command: %s' % ' '.join(rsync_args)
-        elif os.spawnvp(os.P_WAIT, 'rsync', rsync_args) != 0:
-            return False
-    return True
+            out.write(u'rsync command: %s\n' % ' '.join(['rsync'] + args))
+        else:
+            p = sp.Popen(['rsync'] + args, stdout=sp.PIPE, stderr=sp.PIPE)
+            output, error = p.communicate()
+            output and out.write(u'%s\n' % output)
+            error and out.write(u'%s\n' % error)
+            if p.returncode != 0:
+                retval = False
+
+    return (retval, out.getvalue().rstrip('\n'))
 
 
 def cmd_push(args):
@@ -276,7 +285,9 @@ def cmd_push(args):
         if 'bsm' in push_items and os.path.isdir('/opt/synergy/etc/bps'):
             files_to_sync['/opt/synergy/etc/bps'] = '/opt/synergy/etc'
 
-        sync_list.append((node, ssh_user, ssh_key, files_to_sync, dryrun))
+        sync_list.append(
+            (node, ssh_user, ssh_key, files_to_sync, dryrun)
+        )
 
     # Make sure the ssh key files exist if specified
     non_existing_ssh_key_files = \
@@ -306,13 +317,20 @@ def cmd_push(args):
     p = Pool(num_threads)
     results = p.map(sync_files, l)
 
-    if not all(results):
+    for (res, out) in results:
+        if out:
+            print out
+
+    if not all([ret for (ret, _) in results]):
         print 'Some error occured, exiting'
         sys.exit(1)
 
     if restart:
         results = p.map(restart_node, mconf.configured_nodes.values())
-        if not all(results):
+        for (res, out) in results:
+            if out:
+                print out
+        if not all([ret for (ret, _) in results]):
             print 'Failed to restart all nodes'
             sys.exit(1)
 
