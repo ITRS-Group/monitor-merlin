@@ -195,7 +195,7 @@ class merlin_node:
 		# makes subprocess call fail. We added the FileIO expection so this
 		# method can be called with out/err being written directly to file and
 		# not being buffered in memory.
-		if isinstance(out, io.FileIO) and instance(err, io.FileIO):
+		if isinstance(out, io.FileIO) and isinstance(err, io.FileIO):
 			ret = sp.call(cmd, stdout=out, stderr=err)
 		else:
 			p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE)
