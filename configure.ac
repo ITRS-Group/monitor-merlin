@@ -93,6 +93,9 @@ AC_SUBST(naemon_group)
 AC_ARG_WITH(pkgconfdir, AS_HELP_STRING([--with-pkgconfdir], [The directory where merlin installs its configuration (default=${sysconfdir}/merlin)]), [pkgconfdir=$withval], [pkgconfdir=\${sysconfdir}/merlin])
 AC_SUBST(pkgconfdir)
 
+AC_ARG_WITH(sudodir, AS_HELP_STRING([--with-sudodir], [The directory for sudoers dropdir (default=autodetect)]), [sudodir=$withval], [sudodir=${sysconfdir}/sudoers.d])
+AC_SUBST(sudodir)
+
 binlogdir=${localstatedir}/lib/merlin/binlogs
 AC_SUBST(binlogdir)
 pkgrundir=${localstatedir}/run/merlin

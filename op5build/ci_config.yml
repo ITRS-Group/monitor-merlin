@@ -5,10 +5,10 @@ post:
     - ruby-devel
     - python-nose
   steps: |
-    rm -rf /mnt/logs/merlin_dtest
-    mkdir -p -m 777 /mnt/logs/merlin_dtest
+    mkdir --parents --mode=777 /mnt/logs/merlin_dtest
     mon test dist --basepath=/mnt/logs/merlin_dtest
     mon test rsync
+    rm --force --recursive /mnt/logs/merlin_dtest
     # fake asmonitor rights since we don't want to depend on monitor-nacoma
     # for op5-naemon, asmonitor should be moved to op5-monitor-user package
     echo 'Defaults>monitor !requiretty' > /etc/sudoers.d/asmonitor
@@ -33,5 +33,4 @@ post:
     ulimit -c unlimited
     mkdir -p /mnt/logs
     echo "core ulimit: \$(ulimit -c)"
-    cucumber -t ~@skip -t ~@unreliable --strict --format html --out /mnt/logs/cucumber.html --format pretty
-    cucumber -t @skip -t ~@unreliable --wip --format html --out /mnt/logs/cucumber-wip.html --format pretty
+    cucumber --strict --format html --out /mnt/logs/cucumber.html --format pretty

@@ -1,4 +1,4 @@
-@config @daemons @merlin @queryhandler
+@config @daemons @merlin @queryhandler @livestatus
 Feature: Notification execution for service notificaitons
 	Notification scripts should only be executed on one node; the node that
 	identifies the notification.
@@ -257,3 +257,26 @@ Feature: Notification execution for service notificaitons
 			| hostname         | hostB   |
 			| servicedesc      | PONG    |
 			| notificationtype | PROBLEM |
+
+    Scenario: Notification should be sent for an owned object if the object
+        was previously owned by another peer.
+        Given I start naemon with merlin nodes connected
+            | type   | name         | port | hostgroup  |
+            | peer   | peer_one     | 4001 | ignore     |
+            | peer   | peer_two     | 4002 | ignore     |
+        And peer_one becomes disconnected
+        
+        When for 3 times peer_two sends event EXTERNAL_COMMAND
+            | command_type   | 30                           |
+            | command_string | PROCESS_SERVICE_CHECK_RESULT |
+            | command_args   | hostB;PONG;1;MON-10202       |
+            
+        Then plugin_output of service PONG on host hostB should be MON-10202
+        And file naemon.log does not match Notification will be handled by owning peer
+        And 1 service notification was sent
+            | parameter        | value     |
+            | hostname         | hostB     |
+            | servicedesc      | PONG      |
+            | notificationtype | PROBLEM   |
+            | servicestate     | WARNING   |
+            | serviceoutput    | MON-10202 |

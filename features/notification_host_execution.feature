@@ -1,4 +1,4 @@
-@config @daemons @merlin @queryhandler
+@config @daemons @merlin @queryhandler @livestatus
 Feature: Notification execution for host notificaitons
 	Notification scripts should only be executed on one node; the node that
 	identifies the notification.
@@ -248,3 +248,25 @@ Feature: Notification execution for host notificaitons
 		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Not OK
 
 		Then no host notification was sent
+
+    Scenario: Notification should be sent for an owned object if the object
+        was previously owned by another peer.
+        Given I start naemon with merlin nodes connected
+            | type   | name         | port | hostgroup  | notifies |
+            | peer   | peer_one     | 4001 | ignore     | ignore   |
+            | peer   | peer_two     | 4002 | ignore     | ignore   |
+        And peer_one becomes disconnected
+        
+        When peer_two sends event EXTERNAL_COMMAND
+            | command_type   | 87                        |
+            | command_string | PROCESS_HOST_CHECK_RESULT |
+            | command_args   | hostB;1;MON-10202         |
+            
+        Then plugin_output of host hostB should be MON-10202
+        And file naemon.log does not match Notification will be handled by owning peer
+        And 1 host notification was sent
+            | parameter        | value     |
+            | hostname         | hostB     |
+            | notificationtype | PROBLEM   |
+            | hoststate        | DOWN      |
+            | hostoutput       | MON-10202 |

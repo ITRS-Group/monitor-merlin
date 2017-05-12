@@ -77,3 +77,6 @@ merlincat$
 /apps/libexec/restart.sh
 apps/tests/oconf-poller-fix/fixme.cfg
 apps/tests/oconf-poller-fix/fixed-config.cfg-first
+m4/*.m4
+sudo/merlin
+.DS_Store
