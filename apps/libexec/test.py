@@ -840,6 +840,7 @@ class fake_mesh:
 
 		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('START_EXECUTING_SVC_CHECKS')
+		time.sleep(30)
 		status = self._test_until_or_fail('parents', self._test_parents, 90, predicate = lambda x: not x.name.startswith('pg1'))
 		master.submit_raw_command('STOP_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('STOP_EXECUTING_SVC_CHECKS')
@@ -880,6 +881,7 @@ class fake_mesh:
 		master = self.masters.nodes[0]
 		master.submit_raw_command('START_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('START_EXECUTING_SVC_CHECKS')
+		time.sleep(30)
 		status = self._test_until_or_fail('active checks', self._test_active_checks, 60)
 		master.submit_raw_command('STOP_EXECUTING_HOST_CHECKS')
 		master.submit_raw_command('STOP_EXECUTING_SVC_CHECKS')
