@@ -184,9 +184,6 @@ static int send_host_status(merlin_event *pkt, int nebattr, host *obj)
 	merlin_host_status st_obj;
 	static host *last_obj = NULL;
 
-	if (obj == merlin_recv_host)
-		return 0;
-
 	if (!obj) {
 		lerr("send_host_status() called with NULL obj");
 		return -1;
@@ -330,23 +327,22 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		return 0;
 
 	case NEBTYPE_SERVICECHECK_PROCESSED:
+
+		/* By default, check results are always sent to peers and masters */
+		pkt->hdr.selection = DEST_PEERS_MASTERS;
+		node = &ipc;
 		unexpire_service(s);
-		if (merlin_sender) {
-			/* network-received events mustn't bounce back */
+
+		if ((merlin_sender && recv_event) &&
+			(recv_event->hdr.type == NEBCALLBACK_SERVICE_CHECK_DATA ||
+			recv_event->hdr.type == NEBCALLBACK_SERVICE_STATUS_DATA))
+		{
+			/* Check result was received over network, block to avoid bounce */
 			pkt->hdr.code = MAGIC_NONET;
-			set_service_check_node(merlin_sender, s, s->check_type == CHECK_TYPE_PASSIVE);
-		} else {
-			/*
-			 * check results should always be sent to peers and masters if
-			 * generated locally.
-			 */
-			pkt->hdr.selection = DEST_PEERS_MASTERS;
-			set_service_check_node(&ipc, s, ds->check_type == CHECK_TYPE_PASSIVE);
+			node = merlin_sender;
 		}
 
-		/* any check via check result transfer */
-		if (merlin_recv_service == s)
-			return 0;
+		set_service_check_node(node, s, ds->check_type == CHECK_TYPE_PASSIVE);
 
 		/*
 		 * We fiddle with the last_check time here so that the time
@@ -387,20 +383,22 @@ static int hook_host_result(merlin_event *pkt, void *data)
 
 	/* only send processed host checks */
 	case NEBTYPE_HOSTCHECK_PROCESSED:
+
+		/* By default, check results are always sent to peers and masters */
+		pkt->hdr.selection = DEST_PEERS_MASTERS;
+		node = &ipc;
 		unexpire_host(h);
-		if (merlin_sender) {
-			/* network-received events mustn't bounce back */
+
+		if ((merlin_sender && recv_event) &&
+			(recv_event->hdr.type == NEBCALLBACK_HOST_CHECK_DATA ||
+			recv_event->hdr.type == NEBCALLBACK_HOST_STATUS_DATA))
+		{
+			/* check result was received over network, block to avoid bounce */
 			pkt->hdr.code = MAGIC_NONET;
-			set_host_check_node(merlin_sender, h, h->check_type == CHECK_TYPE_PASSIVE);
-		} else {
-			/* check results should always be sent to peers and masters */
-			pkt->hdr.selection = DEST_PEERS_MASTERS;
-			set_host_check_node(&ipc, h, ds->check_type == CHECK_TYPE_PASSIVE);
+			node = merlin_sender;
 		}
 
-		/* any check via check result transfer */
-		if (merlin_recv_host == h)
-			return 0;
+		set_host_check_node(node, h, ds->check_type == CHECK_TYPE_PASSIVE);
 
 		/*
 		 * We fiddle with the last_check time here so that the time
@@ -908,9 +906,10 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		 * sent in the notification packet, so we hold the notification packet
 		 * until next check result is sent.
 		 */
-		if(ds->reason_type == NOTIFICATION_CUSTOM || merlin_sender) {
-			if (merlin_sender)
+		if(ds->reason_type == NOTIFICATION_CUSTOM || (merlin_sender && recv_event)) {
+			if (merlin_sender && recv_event && recv_event->hdr.type != NEBCALLBACK_EXTERNAL_COMMAND_DATA) {
 				pkt->hdr.selection = get_sel_id(merlin_sender->hostgroups);
+			}
 			ret = send_generic(pkt, data);
 		} else {
 			ret = hold_notification_packet(pkt, ds);
