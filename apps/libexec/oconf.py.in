@@ -246,10 +246,6 @@ def cmd_push(args):
     if not len(wanted_nodes):
         wanted_nodes = mconf.configured_nodes.items()
 
-    # Copy recursively in 'archive' mode
-    base_rsync_args = ['rsync', '-aotzc', '--delete']
-    base_rsync_args += ['-b', '--backup-dir=%s/backups' % cache_dir]
-
     sync_list = []
     for name, node in wanted_nodes:
 
@@ -321,9 +317,10 @@ def cmd_push(args):
         if out:
             print out
 
+    exitval = 0
     if not all([ret for (ret, _) in results]):
-        print 'Some error occured, exiting'
-        sys.exit(1)
+        print 'Some error occured while synchronizing files!'
+        exitval = 1
 
     if restart:
         results = p.map(restart_node, mconf.configured_nodes.values())
@@ -332,7 +329,9 @@ def cmd_push(args):
                 print out
         if not all([ret for (ret, _) in results]):
             print 'Failed to restart all nodes'
-            sys.exit(1)
+            exitval = 1
+
+    sys.exit(exitval)
 
 
 def get_last_changed(files=False):
