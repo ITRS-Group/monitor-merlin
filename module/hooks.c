@@ -107,6 +107,8 @@ static int send_generic(merlin_event *pkt, void *data)
 
 	if (!num_nodes)
 		return 0;
+	if (pkt->hdr.code == MAGIC_NONET)
+		return 0;
 
 	/*
 	 * The module can mark certain packets with a magic destination.
