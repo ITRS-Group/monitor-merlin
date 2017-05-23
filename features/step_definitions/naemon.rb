@@ -43,6 +43,29 @@ Then(/^(.*) of host (.*) should be (.*)$/) do
     }
 end
 
+Then(/^host (.*) should be in downtime$/) do |host|
+  steps %Q{
+     When I submit the following livestatus query
+       | GET hosts                            |
+       | Columns: name                        |
+       | Filter: name = #{host}               |
+       | Filter: scheduled_downtime_depth > 0 |
+     Then I should see the following livestatus response
+       | name    |
+       | #{host} |
+    }
+end
+
+When(/^I put host (.*) in downtime for (.*) seconds?$/) do | host, duration |
+  start = Time.now.to_i
+  stop = start + duration.to_i
+  steps %Q{
+     When I send naemon command SCHEDULE_HOST_DOWNTIME;hostA;#{start};#{stop};1;0;#{duration.to_i};Test;Test
+     And I wait for 1 second
+     Then host #{host} should be in downtime
+    }
+end
+
 # Generate a regex pattern from the supplied table to search the the
 # notifications log.
 Then(/^(\d+) (host|service) notifications? (?:was|were) sent$/) do | count, type, table |

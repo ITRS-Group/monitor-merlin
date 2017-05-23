@@ -34,9 +34,6 @@ struct dlist_entry *expired_events;
 static struct dlist_entry **expired_hosts;
 static struct dlist_entry **expired_services;
 
-struct host *merlin_recv_host;
-struct service *merlin_recv_service;
-
 /** code start **/
 
 /*
@@ -491,9 +488,7 @@ static int handle_host_result(merlin_node *node, merlin_header *hdr, void *buf)
 		 * sometimes translate them to be UP (yes, it's that stupid).
 		 */
 		cr.return_code = st_obj->state.current_state == 0 ? 0 : 2;
-		merlin_recv_host = obj;
 		ret = handle_checkresult(&cr, &st_obj->state);
-		merlin_recv_host = NULL;
 		return ret;
 	} else {
 		NET2MOD_STATE_VARS(tmp, obj, st_obj->state);
@@ -535,9 +530,7 @@ static int handle_service_result(merlin_node *node, merlin_header *hdr, void *bu
 		cr.service_description = obj->description;
 		cr.return_code = st_obj->state.current_state;
 		cr.source = node->source_name;
-		merlin_recv_service = obj;
 		ret = handle_checkresult(&cr, &st_obj->state);
-		merlin_recv_service = NULL;
 		return ret;
 	} else {
 		NET2MOD_STATE_VARS(tmp, obj, st_obj->state);

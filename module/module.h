@@ -40,9 +40,6 @@ extern struct merlin_notify_stats merlin_notify_stats[9][2][2];
 
 extern struct dlist_entry *expired_events;
 
-extern struct host *merlin_recv_host;
-extern struct service *merlin_recv_service;
-
 extern bitmap *poller_handled_hosts;
 extern bitmap *poller_handled_services;
 
