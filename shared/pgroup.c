@@ -193,7 +193,6 @@ static merlin_peer_group *pgroup_create(char *hostgroups)
 
 /*
  * cshgs = comma-separated hostgroup string
- * mnemonic names can go fuck themselves
  */
 static merlin_peer_group *pgroup_get_by_cshgs(char *hgs)
 {
