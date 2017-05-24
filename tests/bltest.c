@@ -358,7 +358,6 @@ static char *msg_list[] = {
 	"Nuclear war can ruin your whole compile.",
 	"Remember, extremism in the nondefense of moderation is not a virtue.",
 	"What man has done, man can aspire to do.",
-	"Well, it don't make the sun shine, but at least it don't deepen the shit.",
 	"If you can, help others.  If you can't, at least don't hurt others.",
 	"Just think, with VLSI we can have 100 ENIACS on a chip!",
 	"Gort, klaatu nikto barada.",

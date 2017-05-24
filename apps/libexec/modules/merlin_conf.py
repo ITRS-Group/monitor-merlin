@@ -44,7 +44,7 @@ class merlin_node:
 			print("Any of %s would work" % "', '".join(self.valid_types))
 			return False
 		if not self.name:
-			print("We lack a name. How the fuck is that possible?")
+			print("We lack a name. How is that possible?")
 			return False
 		if not self.address:
 			print("No address given to node '%s'" % self.name)
