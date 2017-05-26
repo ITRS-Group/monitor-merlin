@@ -323,7 +323,7 @@ def cmd_push(args):
         exitval = 1
 
     if restart:
-        results = p.map(restart_node, mconf.configured_nodes.values())
+        results = p.map(restart_node, [node for (_, node) in wanted_nodes])
         for (res, out) in results:
             if out:
                 print out
