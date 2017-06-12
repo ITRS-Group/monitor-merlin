@@ -1318,8 +1318,6 @@ static int post_config_init(int cb, void *ds)
 		/* only call this function once */
 		neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);
 
-		// split_config();
-
 		linfo("Object configuration parsed.");
 		if (pgroup_init() < 0)
 			return -1;

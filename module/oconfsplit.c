@@ -269,6 +269,26 @@ static gboolean partial_hostgroup(gpointer _name, gpointer _hst, gpointer user_d
 	return FALSE;
 }
 
+void g_add_to_servicegroup(service *svc, servicegroup *sg)
+{
+	add_service_to_servicegroup(sg, svc);
+}
+
+int g_service_cmp(service *a, service *b)
+{
+	if (a && a->host_name && a->description &&
+		b && b->host_name && b->description) {
+		char stra[strlen(a->host_name) + strlen(a->description) + 1];
+		char strb[strlen(b->host_name) + strlen(b->description) + 1];
+		strcpy(stra, a->host_name);
+		strcat(stra, a->description);
+		strcpy(strb, b->host_name);
+		strcat(strb, b->description);
+		return strcmp(stra, strb);
+	}
+	return 0;
+}
+
 static int nsplit_partial_groups(void)
 {
 	struct hostgroup *hg;
@@ -295,17 +315,24 @@ static int nsplit_partial_groups(void)
 	}
 
 	for (sg = servicegroup_list; sg; sg = sg->next) {
+		GList *members_list;
 		struct servicesmember *sm;
 		struct servicegroup *tmpsg;
 		tmpsg = create_servicegroup(sg->group_name, sg->alias, sg->notes, sg->notes_url, sg->action_url);
-		for (sm = sg->members; sm; sm = sm->next) {
+
+		/* Add all service group members to a list so we can easily sort them */
+		for (sm = sg->members; sm != NULL; sm = sm->next) {
 			if (bitmap_isset(map.hosts, sm->service_ptr->host_ptr->id)) {
-				add_service_to_servicegroup(tmpsg, sm->service_ptr);
+				members_list = g_list_prepend(members_list, sm->service_ptr);
 			}
 		}
-		if (sg->members) {
+		members_list = g_list_sort(members_list, (GCompareFunc)g_service_cmp);
+		g_list_foreach(members_list, (GFunc)g_add_to_servicegroup, tmpsg);
+
+		if (tmpsg->members) {
 			fcache_servicegroup(fp, tmpsg);
 		}
+
 		destroy_servicegroup(tmpsg);
 	}
 	return 0;
