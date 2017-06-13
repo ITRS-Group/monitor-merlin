@@ -390,13 +390,13 @@ int split_config(void)
 	map.hostgroups = bitmap_create(num_objects.hostgroups);
 
 	for (i = 0; i < num_pollers; i++) {
-		char *outfile, *temp_file;
+		char *outfile, *tmp_file;
 		int fd;
 		struct timeval times[2] = {{0,0}, {0,0}};
 		blk_SHA_CTX ctx;
 
 		node = poller_table[i];
-		if (asprintf(&temp_file, "%s%s.cfg.XXXXXX", poller_config_dir, node->name) == -1) {
+		if (asprintf(&tmp_file, "%s%s.cfg.XXXXXX", poller_config_dir, node->name) == -1) {
 			lerr("Cannot nodesplit: there was an error generating temporary file name: %s", strerror(errno));
 			continue;
 		}
@@ -404,14 +404,14 @@ int split_config(void)
 			lerr("Cannot nodesplit: there was an error generating file name: %s", strerror(errno));
 			continue;
 		}
-		fd = mkstemp(temp_file);
+		fd = mkstemp(tmp_file);
 		if (fd < 0) {
-			lerr("Cannot nodesplit: Failed to create temporary file '%s' for writing: %s", temp_file, strerror(errno));
+			lerr("Cannot nodesplit: Failed to create temporary file '%s' for writing: %s", tmp_file, strerror(errno));
 			continue;
 		}
 		fp = fdopen(fd, "r+");
 		if (!fp) {
-			lerr("Cannot nodesplit: Failed to open '%s' for writing: %s", temp_file, strerror(errno));
+			lerr("Cannot nodesplit: Failed to open '%s' for writing: %s", tmp_file, strerror(errno));
 			continue;
 		}
 		linfo("OCONFSPLIT: Writing config for poller %s to '%s'\n", node->name, outfile);
@@ -446,8 +446,8 @@ int split_config(void)
 		}
 		nsplit_partial_groups();
 		fclose(fp);
-		if (rename(temp_file, outfile)) {
-			lerr("Cannot nodesplit: Failed to create '%s' from temporary file %s: %s", outfile, temp_file, strerror(errno));
+		if (rename(tmp_file, outfile)) {
+			lerr("Cannot nodesplit: Failed to create '%s' from temporary file %s: %s", outfile, tmp_file, strerror(errno));
 			continue;
 		}
 		times[0].tv_sec = times[1].tv_sec = ipc.info.last_cfg_change;
