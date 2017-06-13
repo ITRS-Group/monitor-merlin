@@ -28,6 +28,7 @@ STEP_DEF(step_file_perm);
 STEP_DEF(step_dir);
 STEP_DEF(step_file_empty);
 STEP_DEF(step_file_should_be_empty);
+STEP_DEF(step_files_are_identical);
 
 /* matches and not matches is similar, create a wrapper for those */
 static glong file_match_step(gpointer *scenario, const gchar *filename, const gchar *pattern, CukeResponseRef respref);
@@ -49,6 +50,7 @@ CukeStepEnvironment steps_config = {
 		{ "^file (.*) does not match (.*)$", step_file_not_matches },
 		{ "^file (.*) has ([0-9]+) lines? matching (.*)$", step_file_matches_count },
 		{ "^the file ([^ ]+) should be empty$", step_file_should_be_empty },
+		{ "^files (.+) and (.+) are identical$", step_files_are_identical },
 		{ NULL, NULL }
 	}
 };
@@ -376,5 +378,35 @@ STEP_DEF(step_file_should_be_empty) {
 		STEP_FAIL("The file is not empty");
 		return;
 	}
+	STEP_OK;
+}
+
+STEP_DEF(step_files_are_identical) {
+
+	gchar *file1, *file2, *file1content, *file2content;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &file1)
+		|| !jsonx_locate(args, 'a', 1, 's', &file2)) {
+		STEP_FAIL("Invalid arguments");
+		return;
+	}
+
+	if (!g_file_get_contents(file1, &file1content, NULL, NULL) ||
+		!g_file_get_contents(file2, &file2content, NULL, NULL)) {
+		g_free(file1content);
+		g_free(file2content);
+		STEP_FAIL("Could not get contents of file(s)");
+		return;
+	}
+
+	if (g_strcmp0(file1content, file2content) != 0) {
+		g_free(file1content);
+		g_free(file2content);
+		STEP_FAIL("Files are not identical!");
+		return;
+	}
+
+	g_free(file1content);
+	g_free(file2content);
 	STEP_OK;
 }
