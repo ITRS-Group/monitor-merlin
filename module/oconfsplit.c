@@ -277,7 +277,6 @@ void servicegroup_member_add(service *svc, servicegroup *sg)
 int service_cmp(service *a, service *b)
 {
 	int val;
-	char *stra, *strb;
 
 	assert(a);
 	assert(a->host_name);
@@ -286,17 +285,11 @@ int service_cmp(service *a, service *b)
 	assert(b->host_name);
 	assert(b->description);
 
-	/* Compare host name and service description combined */
-	stra = malloc(strlen(a->host_name) + strlen(a->description) + 1);
-	strcpy(stra, a->host_name);
-	strcat(stra, a->description);
-	strb = malloc(strlen(b->host_name) + strlen(b->description) + 1);
-	strcpy(strb, b->host_name);
-	strcat(strb, b->description);
-	val = strcmp(stra, strb);
-	free(stra);
-	free(strb);
-
+	/* Sort by hostname first since format of config is hostname first */
+	if ((val = strcmp(a->host_name, b->host_name)) == 0) {
+		/* The compared services are on the same host, order by description */
+		return strcmp(a->description, b->description);
+	}
 	return val;
 }
 
