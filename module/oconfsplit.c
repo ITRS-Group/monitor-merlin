@@ -269,24 +269,35 @@ static gboolean partial_hostgroup(gpointer _name, gpointer _hst, gpointer user_d
 	return FALSE;
 }
 
-void g_add_to_servicegroup(service *svc, servicegroup *sg)
+void servicegroup_member_add(service *svc, servicegroup *sg)
 {
 	add_service_to_servicegroup(sg, svc);
 }
 
-int g_service_cmp(service *a, service *b)
+int service_cmp(service *a, service *b)
 {
-	if (a && a->host_name && a->description &&
-		b && b->host_name && b->description) {
-		char stra[strlen(a->host_name) + strlen(a->description) + 1];
-		char strb[strlen(b->host_name) + strlen(b->description) + 1];
-		strcpy(stra, a->host_name);
-		strcat(stra, a->description);
-		strcpy(strb, b->host_name);
-		strcat(strb, b->description);
-		return strcmp(stra, strb);
-	}
-	return 0;
+	int val;
+	char *stra, *strb;
+
+	assert(a);
+	assert(a->host_name);
+	assert(a->description);
+	assert(b);
+	assert(b->host_name);
+	assert(b->description);
+
+	/* Compare host name and service description combined */
+	stra = malloc(strlen(a->host_name) + strlen(a->description) + 1);
+	strcpy(stra, a->host_name);
+	strcat(stra, a->description);
+	strb = malloc(strlen(b->host_name) + strlen(b->description) + 1);
+	strcpy(strb, b->host_name);
+	strcat(strb, b->description);
+	val = strcmp(stra, strb);
+	free(stra);
+	free(strb);
+
+	return val;
 }
 
 static int nsplit_partial_groups(void)
@@ -326,8 +337,8 @@ static int nsplit_partial_groups(void)
 				members_list = g_list_prepend(members_list, sm->service_ptr);
 			}
 		}
-		members_list = g_list_sort(members_list, (GCompareFunc)g_service_cmp);
-		g_list_foreach(members_list, (GFunc)g_add_to_servicegroup, tmpsg);
+		members_list = g_list_sort(members_list, (GCompareFunc)service_cmp);
+		g_list_foreach(members_list, (GFunc)servicegroup_member_add, tmpsg);
 
 		if (tmpsg->members) {
 			fcache_servicegroup(fp, tmpsg);
