@@ -269,6 +269,30 @@ static gboolean partial_hostgroup(gpointer _name, gpointer _hst, gpointer user_d
 	return FALSE;
 }
 
+void servicegroup_member_add(service *svc, servicegroup *sg)
+{
+	add_service_to_servicegroup(sg, svc);
+}
+
+int service_cmp(service *a, service *b)
+{
+	int val;
+
+	assert(a);
+	assert(a->host_name);
+	assert(a->description);
+	assert(b);
+	assert(b->host_name);
+	assert(b->description);
+
+	/* Sort by hostname first since format of config is hostname first */
+	if ((val = strcmp(b->host_name, a->host_name)) == 0) {
+		/* The compared services are on the same host, order by description */
+		return strcmp(b->description, a->description);
+	}
+	return val;
+}
+
 static int nsplit_partial_groups(void)
 {
 	struct hostgroup *hg;
@@ -295,17 +319,24 @@ static int nsplit_partial_groups(void)
 	}
 
 	for (sg = servicegroup_list; sg; sg = sg->next) {
+		GList *members_list;
 		struct servicesmember *sm;
 		struct servicegroup *tmpsg;
 		tmpsg = create_servicegroup(sg->group_name, sg->alias, sg->notes, sg->notes_url, sg->action_url);
-		for (sm = sg->members; sm; sm = sm->next) {
+
+		/* Add all service group members to a list so we can easily sort them */
+		for (sm = sg->members; sm != NULL; sm = sm->next) {
 			if (bitmap_isset(map.hosts, sm->service_ptr->host_ptr->id)) {
-				add_service_to_servicegroup(tmpsg, sm->service_ptr);
+				members_list = g_list_prepend(members_list, sm->service_ptr);
 			}
 		}
-		if (sg->members) {
+		members_list = g_list_sort(members_list, (GCompareFunc)service_cmp);
+		g_list_foreach(members_list, (GFunc)servicegroup_member_add, tmpsg);
+
+		if (tmpsg->members) {
 			fcache_servicegroup(fp, tmpsg);
 		}
+
 		destroy_servicegroup(tmpsg);
 	}
 	return 0;
@@ -363,13 +394,13 @@ int split_config(void)
 	map.hostgroups = bitmap_create(num_objects.hostgroups);
 
 	for (i = 0; i < num_pollers; i++) {
-		char *outfile, *temp_file;
+		char *outfile, *tmp_file;
 		int fd;
 		struct timeval times[2] = {{0,0}, {0,0}};
 		blk_SHA_CTX ctx;
 
 		node = poller_table[i];
-		if (asprintf(&temp_file, "%s%s.cfg.XXXXXX", poller_config_dir, node->name) == -1) {
+		if (asprintf(&tmp_file, "%s%s.cfg.XXXXXX", poller_config_dir, node->name) == -1) {
 			lerr("Cannot nodesplit: there was an error generating temporary file name: %s", strerror(errno));
 			continue;
 		}
@@ -377,14 +408,14 @@ int split_config(void)
 			lerr("Cannot nodesplit: there was an error generating file name: %s", strerror(errno));
 			continue;
 		}
-		fd = mkstemp(temp_file);
+		fd = mkstemp(tmp_file);
 		if (fd < 0) {
-			lerr("Cannot nodesplit: Failed to create temporary file '%s' for writing: %s", temp_file, strerror(errno));
+			lerr("Cannot nodesplit: Failed to create temporary file '%s' for writing: %s", tmp_file, strerror(errno));
 			continue;
 		}
 		fp = fdopen(fd, "r+");
 		if (!fp) {
-			lerr("Cannot nodesplit: Failed to open '%s' for writing: %s", temp_file, strerror(errno));
+			lerr("Cannot nodesplit: Failed to open '%s' for writing: %s", tmp_file, strerror(errno));
 			continue;
 		}
 		linfo("OCONFSPLIT: Writing config for poller %s to '%s'\n", node->name, outfile);
@@ -419,8 +450,8 @@ int split_config(void)
 		}
 		nsplit_partial_groups();
 		fclose(fp);
-		if (rename(temp_file, outfile)) {
-			lerr("Cannot nodesplit: Failed to create '%s' from temporary file %s: %s", outfile, temp_file, strerror(errno));
+		if (rename(tmp_file, outfile)) {
+			lerr("Cannot nodesplit: Failed to create '%s' from temporary file %s: %s", outfile, tmp_file, strerror(errno));
 			continue;
 		}
 		times[0].tv_sec = times[1].tv_sec = ipc.info.last_cfg_change;
