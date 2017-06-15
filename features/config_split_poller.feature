@@ -38,6 +38,6 @@ Feature: Merlin splits the configuration so that pollers only gets the configura
         
         Examples:
             | members                                     | output                                      |
-            | hostA,PING,hostA,PONG,hostB,PING,hostB,PONG | hostB,PONG,hostB,PING,hostA,PONG,hostA,PING |
-            | hostB,PONG,hostB,PING,hostA,PONG,hostA,PING | hostB,PONG,hostB,PING,hostA,PONG,hostA,PING |
-            | hostB,PING,hostA,PING,hostB,PONG,hostA,PONG | hostB,PONG,hostB,PING,hostA,PONG,hostA,PING |
+            | hostA,PING,hostA,PONG,hostB,PING,hostB,PONG | hostA,PING,hostA,PONG,hostB,PING,hostB,PONG |
+            | hostB,PONG,hostB,PING,hostA,PONG,hostA,PING | hostA,PING,hostA,PONG,hostB,PING,hostB,PONG |
+            | hostB,PING,hostA,PING,hostB,PONG,hostA,PONG | hostA,PING,hostA,PONG,hostB,PING,hostB,PONG |

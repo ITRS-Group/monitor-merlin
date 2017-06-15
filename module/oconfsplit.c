@@ -286,9 +286,9 @@ int service_cmp(service *a, service *b)
 	assert(b->description);
 
 	/* Sort by hostname first since format of config is hostname first */
-	if ((val = strcmp(a->host_name, b->host_name)) == 0) {
+	if ((val = strcmp(b->host_name, a->host_name)) == 0) {
 		/* The compared services are on the same host, order by description */
-		return strcmp(a->description, b->description);
+		return strcmp(b->description, a->description);
 	}
 	return val;
 }
