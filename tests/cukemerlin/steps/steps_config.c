@@ -32,9 +32,11 @@ STEP_DEF(step_files_are_identical);
 
 /* matches and not matches is similar, create a wrapper for those */
 static glong file_match_step(gpointer *scenario, const gchar *filename, const gchar *pattern, CukeResponseRef respref);
+static glong file_multiline_match_step(gpointer *scenario, const gchar *filename, const gchar *pattern, CukeResponseRef respref);
 STEP_DEF(step_file_matches);
 STEP_DEF(step_file_not_matches);
 STEP_DEF(step_file_matches_count);
+STEP_DEF(step_file_multiline_matches_count);
 
 CukeStepEnvironment steps_config = {
 	.tag = "config",
@@ -49,6 +51,7 @@ CukeStepEnvironment steps_config = {
 		{ "^file (.*) matches (.*)$", step_file_matches },
 		{ "^file (.*) does not match (.*)$", step_file_not_matches },
 		{ "^file (.*) has ([0-9]+) lines? matching (.*)$", step_file_matches_count },
+		{ "^file (.*) has ([0-9]+) occurences? of (.*)$", step_file_multiline_matches_count },
 		{ "^the file ([^ ]+) should be empty$", step_file_should_be_empty },
 		{ "^files (.+) and (.+) are identical$", step_files_are_identical },
 		{ NULL, NULL }
@@ -244,55 +247,31 @@ static glong file_match_step(gpointer *scenario, const gchar *filename, const gc
 	return matching_count;
 }
 
-static glong file_match_last_line_step(gpointer *scenario, const gchar *filename, const gchar *pattern, CukeResponseRef respref) {
+static glong file_multiline_match_step(gpointer *scenario, const gchar *filename, const gchar *pattern, CukeResponseRef respref) {
 	StepsConfig *sc = (StepsConfig *) scenario;
 
-	GIOChannel *fp = NULL;
 	GError *error = NULL;
-	GIOStatus status;
-	gchar *line = NULL;
-	gsize terminator = 0;
-
-	glong last_occurrence = -1;
-	glong i = 1;
+	glong matching_count = 0;
 	GRegex *re = NULL;
+	GMatchInfo *match_info;
+	gchar *content = NULL;
 
-
-	re = g_regex_new(pattern, 0, 0, &error);
+	re = g_regex_new(pattern, G_REGEX_MULTILINE, 0, &error);
 	if(error != NULL) {
 		STEP_FAIL("Can't compile regex");
-		goto cleanup;
 	}
 
-	fp = g_io_channel_new_file(filename, "r", &error);
-	if(fp == NULL) {
-		STEP_FAIL("Can't open file");
-		goto cleanup;
-	}
-	while((status = g_io_channel_read_line(fp, &line, NULL, &terminator, &error)) == G_IO_STATUS_NORMAL) {
-		g_assert(error == NULL); /* Shouldn't be an error if status is normal */
-		g_assert(line != NULL); /* Line should be set if no error */
-		line[terminator] = '\0'; /* We don't need no linebreak */
-		if(g_regex_match(re, line, 0, NULL))
-			last_occurrence = i;
-		g_free(line);
-		i++;
-	}
-	if(error) {
-		STEP_FAIL("Error reading file");
+	if (!g_file_get_contents(filename, &content, NULL, NULL)) {
+		STEP_FAIL("Could not get contents of file");
+		return;
 	}
 
-	cleanup:
-	if(fp) {
-		g_io_channel_shutdown(fp, TRUE, &error);
-		g_io_channel_unref(fp);
-	}
-	if(re)
-		g_regex_unref(re);
-	if(error)
-		g_error_free(error);
+	g_regex_match(re, content, G_REGEX_MATCH_NOTEMPTY, &match_info);
+	matching_count = g_match_info_get_match_count(match_info);
+	g_match_info_free(match_info);
+	g_free(content);
 
-	return last_occurrence;
+	return matching_count;
 }
 
 STEP_DEF(step_file_matches) {
@@ -347,6 +326,29 @@ STEP_DEF(step_file_matches_count) {
 	matching_lines = file_match_step(scenario, filename, pattern, respref);
 	if(matching_lines != expected_count) {
 		gchar *error_line = g_strdup_printf("Matched %d lines, expected %d", matching_lines, expected_count);
+		STEP_FAIL(error_line);
+		g_free(error_line);
+	} else {
+		STEP_OK;
+	}
+}
+
+STEP_DEF(step_file_multiline_matches_count) {
+	gchar *filename = NULL;
+	gchar *pattern = NULL;
+	glong expected_count = -1;
+	glong match_count;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &filename)
+		|| !jsonx_locate(args, 'a', 1, 'l', &expected_count)
+		|| !jsonx_locate(args, 'a', 2, 's', &pattern)) {
+		STEP_FAIL("Invalid arguments");
+		return;
+	}
+
+	match_count = file_multiline_match_step(scenario, filename, pattern, respref);
+	if(match_count != expected_count) {
+		gchar *error_line = g_strdup_printf("Found %d matches, expected %d", match_count, expected_count);
 		STEP_FAIL(error_line);
 		g_free(error_line);
 	} else {
