@@ -24,16 +24,18 @@ Feature: Merlin splits the configuration so that pollers only gets the configura
         ordered member list in the poller configuration. The order should
         always be the same if the members are the same, regardsless of the
         order in the masters configuration so that masters cannot generate
-        servicegroup members in arbitrary order.
+        servicegroup members in arbitrary order. Having multiple servicegroups
+        should also not affect the output of the configuration split.
         Given I have naemon servicegroup objects
             | servicegroup_name | alias | members   |
-            | the_servicegroup  | TSG   | <members> |
+            | sg1               | sg1   | <members> |
+            | sg2               | sg2   | <members> |
         And I start naemon with merlin nodes connected
             | type   | name        | port | hostgroup   |
             | poller | poller_one  | 4001 | pollergroup |
             | poller | poller_two  | 4002 | pollergroup |
-        Then file poller_one.cfg matches ^\s*members\s<output>$
-        And file poller_two.cfg matches ^\s*members\s<output>$
+        Then file poller_one.cfg has 1 occurence of define servicegroup \{\s*servicegroup_name\ssg1\s*alias\ssg1\s*members\s<output>\s*\}
+        And file poller_one.cfg has 1 occurence of define servicegroup \{\s*servicegroup_name\ssg2\s*alias\ssg2\s*members\s<output>\s*\}
         And files poller_one.cfg and poller_two.cfg are identical
         
         Examples:

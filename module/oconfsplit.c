@@ -319,13 +319,13 @@ static int nsplit_partial_groups(void)
 	}
 
 	for (sg = servicegroup_list; sg; sg = sg->next) {
-		GList *members_list;
+		GList *members_list = NULL;
 		struct servicesmember *sm;
 		struct servicegroup *tmpsg;
 		tmpsg = create_servicegroup(sg->group_name, sg->alias, sg->notes, sg->notes_url, sg->action_url);
 
 		/* Add all service group members to a list so we can easily sort them */
-		for (sm = sg->members; sm != NULL; sm = sm->next) {
+		for (sm = sg->members; sm; sm = sm->next) {
 			if (bitmap_isset(map.hosts, sm->service_ptr->host_ptr->id)) {
 				members_list = g_list_prepend(members_list, sm->service_ptr);
 			}
