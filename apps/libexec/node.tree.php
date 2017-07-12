@@ -178,7 +178,7 @@ EOSYNTAX;
 			}
 
 			// check if the line looks like a node preference
-			if(preg_match('/^([A-Z]+)=(.*)$/', $line, $match))
+			if(preg_match('/^([A-Z_]+)=(.*)$/', $line, $match))
 			{
 				$var = $match[1];
 				$val = $match[2];
