@@ -84,6 +84,33 @@ int grok_confsync_compound(struct cfg_comp *comp, merlin_confsync *csync)
 }
 
 /**
+ * Convert a string containing a positive number less than 2^64 to an unsigned long long int
+ *
+ * @param value A numeric string that can start with +
+ * @param out   Where the number will be written on a successful return, otherwise undefined.
+ *              The value might be overwritten on failure.
+ * @return      1 on success, 0 on failure
+ */
+static int read_positive_number(const char *value, unsigned long long int *out)
+{
+	assert(value != NULL);
+	assert(out != NULL);
+
+	if (*value == '-') {
+		return 0;
+	}
+
+	char *endptr = NULL;
+	*out = strtoull(value, &endptr, 10);
+
+	if (*endptr != '\0' || endptr == value) {
+		return 0;
+	}
+
+	return 1;
+}
+
+/**
  * @return 1 on success, 0 on failure
  */
 static int grok_binlog_var(const char *key, const char *value)
@@ -93,6 +120,14 @@ static int grok_binlog_var(const char *key, const char *value)
 			free(binlog_dir);
 		binlog_dir = strdup(value);
 		return 1;
+	}
+
+	if (!strcmp(key, "binlog_max_memory_size")) {
+		return read_positive_number(value, &binlog_max_memory_size);
+	}
+
+	if (!strcmp(key, "binlog_max_file_size")) {
+		return read_positive_number(value, &binlog_max_file_size);
 	}
 
 	return 0;

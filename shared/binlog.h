@@ -47,7 +47,7 @@ extern const char *binlog_path(binlog *bl);
  * @param flags Decide what to do with an already existing file at path
  * @return A binlog object on success, NULL on errors.
  */
-extern binlog *binlog_create(const char *path, unsigned int msize, unsigned int fsize, int flags);
+extern binlog *binlog_create(const char *path, unsigned long long int msize, unsigned long long int fsize, int flags);
 
 /**
  * Get the number of unread entries in the binlog

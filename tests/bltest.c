@@ -588,7 +588,7 @@ static char *msg_list[] = {
 struct test_binlog {
 	char *path;
 	char *name;
-	uint msize, fsize;
+	unsigned long long int msize, fsize;
 };
 static struct test_binlog test[] = {
 	{ "/tmp/binlog-test", "All in memory", 10000000, 1000000 },

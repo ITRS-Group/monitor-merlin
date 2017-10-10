@@ -851,3 +851,19 @@ I want icecream.
 Problem: Make feature Y work like this!
 Answer:
 Talk to Peter.
+
+Problem: I want to increase/decrease the size of Merlins binlog
+Answer:
+When two nodes lose connection Merlin will start to store the check
+results, and will sync the results when the nodes are connected
+again. The data is first written to memory, and after reaching
+the memory limit Merlin will write to /var/lib/merlin/binlogs/.
+The old default values were 10MB to memory and 100MB to the
+filesystem. The new defaults are 500MB to memory and 5000MB
+to filesystem.
+
+If you want to change these default values you can specify
+binlog_max_memory_size and binlog_max_file_size in merlin.conf.
+For example (in MB):
+binlog_max_memory_size = 50;
+binlog_max_file_size = 1337;

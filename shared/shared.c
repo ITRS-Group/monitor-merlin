@@ -17,6 +17,8 @@ int use_database = 0;
 char *merlin_config_file = NULL;
 merlin_nodeinfo *self = NULL;
 char *binlog_dir = NULL;
+unsigned long long int binlog_max_memory_size = 500;
+unsigned long long int binlog_max_file_size = 5000;
 
 char *next_word(char *str)
 {
