@@ -32,24 +32,6 @@ Feature: Running active checks locally which returns multi-line output
 		And I have naemon config cached_host_check_horizon set to 0
 		And I have naemon config cached_service_check_horizon set to 0
 
-	Scenario: Processing an active service check result locally with a
-		multi-line output should set plugin_output of the service to the first
-		line and long_plugin_output to the remaining lines.
-
-		Given I have naemon config execute_host_checks set to 1
-		And I have naemon config execute_service_checks set to 1
-		And I start naemon with merlin nodes connected
-			| type   | name       | port |
-
-		When I wait for 1 second
-
-		Then plugin_output of service PONG on host hostB should be O K
-		And long_plugin_output of service PONG on host hostB should be L\nO K
-		And perf_data of service PONG on host hostB should be Perf. O K
-		And plugin_output of service PING on host hostA should be O K
-		And long_plugin_output of service PING on host hostA should be L\nO K
-		And perf_data of service PING on host hostA should be Perf. O K
-
 	Scenario: Receiving a service check result with a multi-line output should
 		set plugin_output of the service to the first line and
 		long_plugin_output to the remaining lines.
