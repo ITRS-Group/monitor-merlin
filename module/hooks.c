@@ -248,8 +248,6 @@ static inline int should_run_check(unsigned int id)
 static int hold_notification_packet(merlin_event *pkt, nebstruct_notification_data *data)
 {
 	if(tmp_notif_data) {
-		lerr("Possible bug! hold_notification_packet() couldn't hold because "
-				"a notification packet was already being held!");
 		return -1;	/* there is already some stored notification, bailing */
 	}
 
