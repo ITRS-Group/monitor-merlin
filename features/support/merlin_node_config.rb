@@ -4,7 +4,9 @@ class MerlinNodeConfig
     @current_config = {
       "notifies" => "yes",
       "binlog_dir" => ".",
-      "oconfsplit_dir" => "."
+      "oconfsplit_dir" => ".",
+      "binlog_max_file_size" => "5000",
+      "binlog_max_memory_size" => "500"
     }
   end
 

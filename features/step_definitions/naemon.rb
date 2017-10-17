@@ -83,3 +83,21 @@ end
 Then(/^no (host|service) notification (?:was|has been) sent$/) do | type |
   step "file notifications.log does not match ^notif #{type}"
 end
+
+When(/^I send a passive check result for service (.*) on host (.*) with (\d+) MiB output data?$/) do | service, host, size |
+  # 65171 * 8 corresponds to 1 MiB (1048576 bytes)
+  output = "." * 65171
+  repeats = 8 * size.to_i
+
+  steps %Q{
+     When for #{repeats} times I send naemon command PROCESS_SERVICE_CHECK_RESULT;#{host};#{service};0;#{output}
+    }
+end
+
+Then(/^the (.*) should not be larger than (\d+) MiB$/) do | binlog, size |
+  size = size.to_i * 1024 * 1024
+
+  steps %Q{
+     Then the file #{binlog} should not be larger than #{size} bytes
+    }
+end
