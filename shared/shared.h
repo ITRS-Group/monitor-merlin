@@ -54,7 +54,8 @@ extern int node_activity_check_interval;
 extern int debug;
 extern char *binlog_dir;
 extern char *merlin_config_file;
-
+extern unsigned long long int binlog_max_memory_size;
+extern unsigned long long int binlog_max_file_size;
 
 extern int use_database;
 

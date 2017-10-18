@@ -721,8 +721,7 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 		linfo("Creating binary backlog for %s. On-disk location: %s",
 			  node->name, path);
 
-		/* 10MB in memory, 100MB on disk */
-		node->binlog = binlog_create(path, 10 << 20, 100 << 20, BINLOG_UNLINK);
+		node->binlog = binlog_create(path, binlog_max_memory_size * 1000 * 1000, binlog_max_file_size * 1000 * 1000, BINLOG_UNLINK);
 		if (!node->binlog) {
 			free(path);
 			lerr("Failed to allocate memory for binary backlog for %s: %s",
