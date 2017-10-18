@@ -270,3 +270,16 @@ Feature: Notification execution for host notificaitons
             | notificationtype | PROBLEM   |
             | hoststate        | DOWN      |
             | hostoutput       | MON-10202 |
+
+    Scenario: A poller should never notify if notifies = no
+        Given I have merlin config notifies set to no
+        And I start naemon with merlin nodes connected
+            | type   | name         | port |
+            | master | the_master   | 4001 |
+
+        When the_master becomes disconnected
+        And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Fromtest
+        And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Fromtest
+        And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Fromtest
+
+        Then no host notification was sent

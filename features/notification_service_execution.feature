@@ -280,3 +280,16 @@ Feature: Notification execution for service notificaitons
             | notificationtype | PROBLEM   |
             | servicestate     | WARNING   |
             | serviceoutput    | MON-10202 |
+
+    Scenario: A poller should never notify if notifies = no
+        Given I have merlin config notifies set to no
+        And I start naemon with merlin nodes connected
+            | type   | name         | port |
+            | master | the_master   | 4001 |
+
+        When the_master becomes disconnected
+        And I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Fromtest
+        And I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Fromtest
+        And I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Fromtest
+
+        Then no service notification was sent
