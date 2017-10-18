@@ -947,7 +947,7 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	notif_stats = &merlin_notify_stats[ds->reason_type][ds->notification_type][check_type];
 
 	/* Break out if we only notify when no masters are present and we have masters */
-	if (online_masters && !(ipc.flags & MERLIN_NODE_NOTIFIES)) {
+	if (!(ipc.flags & MERLIN_NODE_NOTIFIES)) {
 		ldebug("notif: poller blocking notification in favour of master");
 		notif_stats->master++;
 		return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
