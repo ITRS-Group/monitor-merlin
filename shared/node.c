@@ -4,6 +4,7 @@
 #include "ipc.h"
 #include "io.h"
 #include "compat.h"
+#include "node.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <string.h>
@@ -728,22 +729,16 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 				 node->name, strerror(errno));
 			return -1;
 		}
-
-		/* Switch to make sure only one warning is logged when the binlog is full */
-		binlog_warning = 1;
 		free(path);
 	}
 
 	result = binlog_add(node->binlog, pkt, packet_size(pkt));
 
-
-
 	/* If the binlog is full we should not wipe it, just stop writing to it. */
 	if (result == BINLOG_ENOSPC) {
-		if (binlog_warning) {
-			lwarn("The maximum binlog size has been reached.");
+		if (binlog_full_warning(node->binlog)) {
+			lwarn("Maximum binlog size reached.");
 		}
-		binlog_warning = 0;
 		return 0;
 	} else if (result < 0) {
 		binlog_wipe(node->binlog, BINLOG_UNLINK);
