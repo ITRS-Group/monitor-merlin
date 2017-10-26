@@ -26,7 +26,7 @@ Feature: Binlog
         | file_size | memory_size | output_data_size | binlog                | MiB |
         | 1         | 0           | 2                | module.my-peer.binlog | 1   |
         | 10        | 0           | 12               | module.my-peer.binlog | 10  |
-        | 10        | 1           | 4                | module.my-peer.binlog | 2   |
+        | 10        | 1           | 2                | module.my-peer.binlog | 2   |
 
 	Scenario: Log error when binlog dir does not exist
 		Given I have merlin config binlog_dir set to ./asdf-not-existing
@@ -35,7 +35,7 @@ Feature: Binlog
 			| peer   | my-peer | 4001 | 1            |
 
 		When I wait for 2 seconds
-		And my-peer should appear disconnected
+		And my-peer becomes disconnected
 
 		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Fromtest
 		Then file merlin.log matches ERROR: Cannot write to binlog dir

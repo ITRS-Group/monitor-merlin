@@ -101,3 +101,4 @@ Then(/^the (.*) should not be larger than (\d+) MiB$/) do | binlog, size |
      Then the file #{binlog} should not be larger than #{size} bytes
     }
 end
+

@@ -360,7 +360,7 @@ STEP_DEF(step_file_multiline_matches_count) {
 
 STEP_DEF(step_file_size) {
 
-		/*gchar *filename = NULL;
+		gchar *filename = NULL;
 		glong *max_file_size = NULL;
 		struct stat our_file;
 
@@ -382,7 +382,7 @@ STEP_DEF(step_file_size) {
 		if(our_file.st_size > max_file_size) {
 			STEP_FAIL("The file is too large");
 			return;
-		}*/
+		}
 		STEP_OK;
 }
 
