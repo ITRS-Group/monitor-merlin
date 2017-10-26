@@ -26,6 +26,7 @@ STEP_END(step_end_scenario);
 STEP_DEF(step_file);
 STEP_DEF(step_file_perm);
 STEP_DEF(step_dir);
+STEP_DEF(step_file_size);
 STEP_DEF(step_file_empty);
 STEP_DEF(step_file_should_be_empty);
 STEP_DEF(step_files_are_identical);
@@ -52,6 +53,7 @@ CukeStepEnvironment steps_config = {
 		{ "^file (.*) does not match (.*)$", step_file_not_matches },
 		{ "^file (.*) has ([0-9]+) lines? matching (.*)$", step_file_matches_count },
 		{ "^file (.*) has ([0-9]+) occurences? of (.*)$", step_file_multiline_matches_count },
+		{ "^the file ([^ ]+) should not be larger than ([0-9 ]+) bytes$", step_file_size },
 		{ "^the file ([^ ]+) should be empty$", step_file_should_be_empty },
 		{ "^files (.+) and (.+) are identical$", step_files_are_identical },
 		{ NULL, NULL }
@@ -356,10 +358,38 @@ STEP_DEF(step_file_multiline_matches_count) {
 	}
 }
 
+STEP_DEF(step_file_size) {
+
+		gchar *filename = NULL;
+		glong *max_file_size = NULL;
+		struct stat our_file;
+
+		if (!jsonx_locate(args, 'a', 0, 's', &filename)) {
+			STEP_FAIL("Missing the filename argument");
+			return;
+		}
+
+		if (!jsonx_locate(args, 'a', 1, 'l', &max_file_size)) {
+			STEP_FAIL("Missing the max_file_size argument");
+			return;
+		}
+
+		if(stat(filename, &our_file) != 0) {
+			STEP_FAIL("Could not stat() the filename");
+			return;
+		}
+
+		if(our_file.st_size > max_file_size) {
+			STEP_FAIL("The file is too large");
+			return;
+		}
+		STEP_OK;
+}
+
 STEP_DEF(step_file_should_be_empty) {
 
 	gchar *filename = NULL;
-	struct stat *our_file = malloc(sizeof(stat));
+	struct stat *our_file = malloc(sizeof(struct stat));
 
 	if(!our_file) {
 		STEP_FAIL("Could not allocate memory for stat()");

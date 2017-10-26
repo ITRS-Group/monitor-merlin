@@ -71,6 +71,8 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
 
     oconfsplit_dir = #{@merlinnodeconfig.get_var("oconfsplit_dir")};
     binlog_dir = #{@merlinnodeconfig.get_var("binlog_dir")};
+    binlog_max_memory_size = #{@merlinnodeconfig.get_var("binlog_max_memory_size")};
+    binlog_max_file_size = #{@merlinnodeconfig.get_var("binlog_max_file_size")};
 
     module {
       log_file = merlin.log;

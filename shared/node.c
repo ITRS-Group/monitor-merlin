@@ -721,7 +721,7 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 		linfo("Creating binary backlog for %s. On-disk location: %s",
 			  node->name, path);
 
-		node->binlog = binlog_create(path, binlog_max_memory_size * 1000 * 1000, binlog_max_file_size * 1000 * 1000, BINLOG_UNLINK);
+		node->binlog = binlog_create(path, binlog_max_memory_size * 1024 * 1024, binlog_max_file_size * 1024 * 1024, BINLOG_UNLINK);
 		if (!node->binlog) {
 			free(path);
 			lerr("Failed to allocate memory for binary backlog for %s: %s",
@@ -732,7 +732,11 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 	}
 
 	result = binlog_add(node->binlog, pkt, packet_size(pkt));
-	if (result < 0) {
+
+	/* If the binlog is full we should not wipe it, just stop writing to it. */
+	if (result == BINLOG_ENOSPC) {
+		return 0;
+	} else if (result < 0) {
 		binlog_wipe(node->binlog, BINLOG_UNLINK);
 		/* XXX should mark node as unsynced here */
 		node->stats.events.dropped += node->stats.events.logged + 1;
