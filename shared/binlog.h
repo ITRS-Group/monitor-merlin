@@ -39,7 +39,8 @@ extern void binlog_invalidate(binlog *bl);
 extern const char *binlog_path(binlog *bl);
 
 /**
- * Log a warning when the binlog is full, once.
+ * Check to make sure that only one warning is logged when
+ * the binlog is full, so the log isn't spammed.
  * @param bl The binary log to operate on
  * @return 1 if binlog just became full, 0 if it has already warned
  */

@@ -39,3 +39,15 @@ Feature: Binlog
 
 		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Fromtest
 		Then file merlin.log matches ERROR: Cannot write to binlog dir
+
+	Scenario: Log warning when binlog is full
+	    Given I have merlin config binlog_max_file_size set to 1
+	    And I have merlin config binlog_max_memory_size set to 0
+		And I start naemon with merlin nodes connected
+			| type   | name    | port | data_timeout |
+			| peer   | my-peer | 4001 | 1            |
+
+        When I wait for 2 seconds
+		And my-peer becomes disconnected
+        And I send a passive check result for service PONG on host hostA with 2 MiB output data
+		Then file merlin.log matches WARNING: Maximum binlog size reached
