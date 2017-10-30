@@ -200,3 +200,48 @@ Feature: If a passive check result is sent to a node, i.e. when a command
 		Then I should have 1 services objects matching state = 1
 		And my_peer should not receive SERVICE_CHECK
 		And my_master should not receive SERVICE_CHECK
+
+    Scenario: As a peer, when receiving a host check result, it should be sent
+        to daemon only once.
+        Given I start naemon with merlin nodes connected
+            | type   | name     | port |
+            | peer   | the_peer | 4001 |
+        And the_peer sends event HOST_CHECK
+            | nebattr                        | 3                  |
+            | state.check_type               | 0                  |
+            | state.current_state            | 0                  |
+            | state.state_type               | 1                  |
+            | state.current_attempt          | 1                  |
+            | state.last_check               | 105                |
+            | state.last_notification        | 105                |
+            | state.scheduled_downtime_depth | 0                  |
+            | state.plugin_output            | Plugin output      |
+            | state.long_plugin_output       | Long plugin output |
+            | state.perf_data                | Performance data   |
+            | name                           | hostA              |
+        Then ipc received event HOST_CHECK
+            | state.has_been_checked | 0 |
+        And ipc should not receive HOST_CHECK
+            | state.has_been_checked | 1 |
+
+    Scenario: As a peer, when receiving a service check result, it should be
+        sent to daemon only once.
+        Given I start naemon with merlin nodes connected
+            | type   | name     | port |
+            | peer   | the_peer | 4001 |
+        And the_peer sends event SERVICE_CHECK
+            | nebattr                        | 3                  |
+            | state.check_type               | 0                  |
+            | state.current_state            | 2                  |
+            | state.state_type               | 0                  |
+            | state.current_attempt          | 1                  |
+            | state.scheduled_downtime_depth | 0                  |
+            | state.plugin_output            | Plugin output      |
+            | state.long_plugin_output       | Long plugin output |
+            | state.perf_data                | Performance data   |
+            | host_name                      | hostA              |
+            | service_description            | PONG               |
+        Then ipc received event SERVICE_CHECK
+            | state.current_event_id | 0 |
+        And ipc should not receive SERVICE_CHECK
+            | state.current_event_id | 1 |
