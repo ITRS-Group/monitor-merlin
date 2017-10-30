@@ -219,8 +219,9 @@ def cmd_purge(args):
 		return True
 	conn = merlin_db.connect(mconf)
 	dbc = conn.cursor()
-	dbc.execute('DELETE FROM notification WHERE end_time < %s', int(oldest))
-	dbc.execute('DELETE FROM report_data WHERE timestamp < %s', int(oldest))
+	dbc.execute('DELETE FROM notification WHERE end_time < %s', [int(oldest)])
+	dbc.execute('DELETE FROM report_data WHERE timestamp < %s', [int(oldest)])
+	conn.commit()
 
 	return purge_naemon_log_files(oldest)
 
