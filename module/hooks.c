@@ -330,19 +330,7 @@ static int hook_service_result(merlin_event *pkt, void *data)
 
 		/* By default, check results are always sent to peers and masters */
 		pkt->hdr.selection = DEST_PEERS_MASTERS;
-		node = &ipc;
 		unexpire_service(s);
-
-		if ((merlin_sender && recv_event) &&
-			(recv_event->hdr.type == NEBCALLBACK_SERVICE_CHECK_DATA ||
-			recv_event->hdr.type == NEBCALLBACK_SERVICE_STATUS_DATA))
-		{
-			/* Check result was received over network, block to avoid bounce */
-			pkt->hdr.code = MAGIC_NONET;
-			node = merlin_sender;
-		}
-
-		set_service_check_node(node, s, ds->check_type == CHECK_TYPE_PASSIVE);
 
 		/*
 		 * We fiddle with the last_check time here so that the time
@@ -350,6 +338,21 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		 * as that in the report_data to avoid (user) confusion
 		 */
 		s->last_check = (time_t) ds->end_time.tv_sec;
+
+		if ((merlin_sender && recv_event) &&
+			(recv_event->hdr.type == NEBCALLBACK_SERVICE_CHECK_DATA ||
+			recv_event->hdr.type == NEBCALLBACK_SERVICE_STATUS_DATA))
+		{
+			/*
+			 * Check result was received over network.
+			 * Return so we don't make packets bounce on the network or
+			 * are sending duplicate packets to the daemon.
+			 */
+			set_service_check_node(merlin_sender, s, ds->check_type == CHECK_TYPE_PASSIVE);
+			return 0;
+		}
+
+		set_service_check_node(&ipc, s, ds->check_type == CHECK_TYPE_PASSIVE);
 		ret = send_service_status(pkt, ds->attr, ds->object_ptr);
 		flush_notification();
 
@@ -386,19 +389,7 @@ static int hook_host_result(merlin_event *pkt, void *data)
 
 		/* By default, check results are always sent to peers and masters */
 		pkt->hdr.selection = DEST_PEERS_MASTERS;
-		node = &ipc;
 		unexpire_host(h);
-
-		if ((merlin_sender && recv_event) &&
-			(recv_event->hdr.type == NEBCALLBACK_HOST_CHECK_DATA ||
-			recv_event->hdr.type == NEBCALLBACK_HOST_STATUS_DATA))
-		{
-			/* check result was received over network, block to avoid bounce */
-			pkt->hdr.code = MAGIC_NONET;
-			node = merlin_sender;
-		}
-
-		set_host_check_node(node, h, ds->check_type == CHECK_TYPE_PASSIVE);
 
 		/*
 		 * We fiddle with the last_check time here so that the time
@@ -406,6 +397,21 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		 * as that in the report_data to avoid (user) confusion
 		 */
 		h->last_check = (time_t) ds->end_time.tv_sec;
+
+		if ((merlin_sender && recv_event) &&
+			(recv_event->hdr.type == NEBCALLBACK_HOST_CHECK_DATA ||
+			recv_event->hdr.type == NEBCALLBACK_HOST_STATUS_DATA))
+		{
+			/*
+			 * Check result was received over network.
+			 * Return so we don't make packets bounce on the network or
+			 * are sending duplicate packets to the daemon.
+			 */
+			set_host_check_node(merlin_sender, h, ds->check_type == CHECK_TYPE_PASSIVE);
+			return 0;
+		}
+
+		set_host_check_node(&ipc, h, ds->check_type == CHECK_TYPE_PASSIVE);
 		ret = send_host_status(pkt, ds->attr, ds->object_ptr);
 		flush_notification();
 
