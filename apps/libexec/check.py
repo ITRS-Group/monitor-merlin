@@ -247,7 +247,7 @@ def cmd_orphans(args=False):
 
 def cmd_status(args=False):
 	"""
-	Checks that all nodes are connected and run checks (analogous to mon node check).
+	Checks that all nodes are connected and run checks.
 	"""
 	state = nplug.OK
 	sinfo = list(get_merlin_nodeinfo(qh))
