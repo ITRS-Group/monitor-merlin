@@ -888,8 +888,8 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	struct merlin_notify_stats *notif_stats = NULL;
 	struct service *s = NULL;
 	struct host *h = NULL;
-	int ret = 0;
 	merlin_node *owning_node = NULL;
+	int ret = 0;
 
 	if (ds->type == NEBTYPE_NOTIFICATION_END) {
 
@@ -918,7 +918,7 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 			if (merlin_sender && recv_event && recv_event->hdr.type != NEBCALLBACK_EXTERNAL_COMMAND_DATA) {
 				pkt->hdr.selection = get_sel_id(merlin_sender->hostgroups);
 			}
-				ret = send_generic(pkt, data);
+			ret = send_generic(pkt, data);
 		} else {
 			ret = hold_notification_packet(pkt, ds);
 		}
@@ -930,12 +930,12 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 		return 0;
 
 	if (ds->notification_type == HOST_NOTIFICATION){
-		h = (struct host *)ds->object_ptr;
+		h = ds->object_ptr;
 		owning_node = pgroup_host_node(h->id);
 		ldebug("notif: Checking host notification for %s", h->name);
 	} else {
-		s = (service *)ds->object_ptr;
-		owning_node = pgroup_service_node(h->id);
+		s = ds->object_ptr;
+		owning_node = pgroup_service_node(s->id);
 		ldebug("notif: Checking service notification for %s;%s",
 			   s->host_name, s->description);
 	}
