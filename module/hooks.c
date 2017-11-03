@@ -860,6 +860,23 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
+static struct merlin_notify_stats * get_stats(nebstruct_notification_data *ds)
+{
+	int rt = ds->reason_type;
+	int nt = ds->notification_type;
+	int ct = 0;
+
+	if (ds->notification_type == HOST_NOTIFICATION) {
+		struct host *h = (struct host *)ds->object_ptr;
+		ct = h->check_type;
+	} else {
+		struct service *s = (struct service *)ds->object_ptr;
+		ct = s->check_type;
+	}
+
+	return &merlin_notify_stats[rt][nt][ct];
+}
+
 /*
  * Called when a notification chain starts. This is used to
  * avoid sending notifications from a node that isn't supposed
@@ -868,59 +885,43 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
 static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 {
 	nebstruct_notification_data *ds = (nebstruct_notification_data *)data;
-	unsigned int id, check_type = 0;
-	unsigned int notifying_node = 0;
 	struct merlin_notify_stats *notif_stats = NULL;
 	struct service *s = NULL;
 	struct host *h = NULL;
-	const char *owning_node_name = NULL;
+	int ret = 0;
+	merlin_node *owning_node = NULL;
 
 	if (ds->type == NEBTYPE_NOTIFICATION_END) {
-
-		int ret = 0;
 
 		/* Always propagate results to peers and masters */
 		pkt->hdr.selection = DEST_PEERS_MASTERS;
 
 		if (ds->notification_type == HOST_NOTIFICATION) {
-			host *hst = ds->object_ptr;
-			ds->object_ptr = (void *)(uintptr_t)(hst->current_notification_number);
-			ds->start_time.tv_usec = hst->no_more_notifications;
-			ds->start_time.tv_sec = hst->last_notification;
+			h = ds->object_ptr;
+			ds->object_ptr = (void *)(uintptr_t)(h->current_notification_number);
+			ds->start_time.tv_usec = h->no_more_notifications;
+			ds->start_time.tv_sec = h->last_notification;
 			ds->end_time.tv_usec = 0;
-			ds->end_time.tv_sec = hst->next_notification;
+			ds->end_time.tv_sec = h->next_notification;
 		} else if (ds->notification_type == SERVICE_NOTIFICATION) {
-			service *svc = ds->object_ptr;
-			ds->object_ptr = (void *)(uintptr_t)(svc->current_notification_number);
-			ds->start_time.tv_usec = svc->no_more_notifications;
-			ds->start_time.tv_sec = svc->last_notification;
+			s = ds->object_ptr;
+			ds->object_ptr = (void *)(uintptr_t)(s->current_notification_number);
+			ds->start_time.tv_usec = s->no_more_notifications;
+			ds->start_time.tv_sec = s->last_notification;
 			ds->end_time.tv_usec = 0;
-			ds->end_time.tv_sec = svc->next_notification;
+			ds->end_time.tv_sec = s->next_notification;
 		} else {
 			lerr("Unknown notification type %i", ds->notification_type);
 		}
 
-		/*
-		 * If it is a custom notification it should always be sent directly
-		 * because we won't have a pending check result waiting to be sent.
-		 * The same goes for when we've ended up here as a result of a received
-		 * merlin event. In this case, if a poller sends a check result which
-		 * generates a notification that we're responsible for, we notify and
-		 * let fellow nodes know that we've notified directly.
-		 * Otherwise, we're are to expect a check result to be sent to fellow
-		 * nodes directly after and we don't want it to overwrite the data
-		 * sent in the notification packet, so we hold the notification packet
-		 * until next check result is sent.
-		 */
 		if(ds->reason_type == NOTIFICATION_CUSTOM || (merlin_sender && recv_event)) {
 			if (merlin_sender && recv_event && recv_event->hdr.type != NEBCALLBACK_EXTERNAL_COMMAND_DATA) {
 				pkt->hdr.selection = get_sel_id(merlin_sender->hostgroups);
 			}
-			ret = send_generic(pkt, data);
+				ret = send_generic(pkt, data);
 		} else {
 			ret = hold_notification_packet(pkt, ds);
 		}
-
 		return neb_cb_result_create(ret);
 	}
 
@@ -928,31 +929,23 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	if (ds->type != NEBTYPE_NOTIFICATION_START)
 		return 0;
 
-	if (ds->notification_type == SERVICE_NOTIFICATION) {
-		s = (service *)ds->object_ptr;
-		check_type = s->check_type;
-		id = s->id;
-		ldebug("notif: Checking service notification for %s;%s",
-		       s->host_name, s->description);
-	} else {
+	if (ds->notification_type == HOST_NOTIFICATION){
 		h = (struct host *)ds->object_ptr;
-		id = h->id;
-		check_type = h->check_type;
+		owning_node = pgroup_host_node(h->id);
 		ldebug("notif: Checking host notification for %s", h->name);
-	}
-
-	notifying_node = assigned_peer(id, ipc.info.active_peers + 1);
-	if (node_by_id(notifying_node) != NULL) {
-		owning_node_name = node_by_id(assigned_peer(id,
-				ipc.info.active_peers + 1 /* number of active peers plus self */
-				))->name;
 	} else {
-		owning_node_name = "<unknown>";
+		s = (service *)ds->object_ptr;
+		owning_node = pgroup_service_node(h->id);
+		ldebug("notif: Checking service notification for %s;%s",
+			   s->host_name, s->description);
 	}
 
-	notif_stats = &merlin_notify_stats[ds->reason_type][ds->notification_type][check_type];
+	notif_stats = get_stats(ds);
 
-	/* Break out if we only notify when no masters are present and we have masters */
+	/*
+	 * Break out if we only notify when no masters are present
+	 * and we have masters.
+	 */
 	if (online_masters && !(ipc.flags & MERLIN_NODE_NOTIFIES)) {
 		ldebug("notif: poller blocking notification in favour of master");
 		notif_stats->master++;
@@ -960,91 +953,37 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 				"Notification will be handled by master(s)");
 	}
 
-	/*
-	 * network-received events can go one of two ways:
-	 * If the sender is a poller that can't notify on its own, we may
-	 * have to send the notification, unless one of our peers is
-	 * supposed to do it.
-	 * If the sender is not a poller, we should handle the notification if we
-	 * are responsible for the check of that object, as usual
-	 */
-	if (merlin_sender) {
-		ldebug("notif: merlin_sender is %s %s", node_type(merlin_sender), merlin_sender->name);
-		ldebug("notif: merlin_sender->flags: %d", merlin_sender->flags);
-		if (merlin_sender->type == MODE_POLLER && merlin_sender->flags & MERLIN_NODE_NOTIFIES) {
+	/* Figure our who should handle the notification */
+	if (owning_node == &ipc) {
+		ldebug("notif: Node is owner, allowing notification");
+		notif_stats->sent++;
+		return neb_cb_result_create(0);
+	} else if (owning_node->type == MODE_POLLER) {
+		if (owning_node->flags & MERLIN_NODE_NOTIFIES) {
 			ldebug("notif: Poller can notify. Cancelling notification");
 			notif_stats->poller++;
 			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
-					"Notification will be handled by a poller (%s)", merlin_sender->name);
-		} else if (merlin_sender->type == MODE_PEER && merlin_sender->peer_id == notifying_node) {
-			ldebug("notif: Peer will handle its own notifications. Cancelling notification");
-			notif_stats->peer++;
-			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
-				"Notification will be handled by owning peer (%s)", merlin_sender->name);
-		}
-
-		/*
-		 * Check if we should do it and, if so, allow it
-		 */
-		if ((num_peers == 0 || should_run_check(id))) {
-			notif_stats->sent++;
-			if(merlin_sender->type == MODE_POLLER) {
-				ldebug("notif: Poller can't notify and we're responsible, so notifying");
+				"Notification will be handled by a poller (%s)",
+				owning_node->name);
+		} else {
+			/* Poller can't notify, who should handle it instead? */
+			if ((num_peers == 0 || should_run_check(h ? h->id : s->id))) {
+				notif_stats->sent++;
+				ldebug("notif: Poller can't notify, notifying in its place");
 			} else {
-				ldebug("notif: We're responsible, so notifying");
+				ldebug("notif: Poller can't notify, so a peer will notify");
 			}
-			return neb_cb_result_create(0);
 		}
-
-		ldebug("notif: A peer handles poller-sent check. Blocking notifications");
+	} else if (owning_node->type == MODE_PEER) {
+		ldebug("notif: Cancelling notification, a peer (%s) handles it",
+			owning_node->name);
 		notif_stats->peer++;
-
 		return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
-				"Notification originating on poller (%s) will be handled by another peer (%s)",
-				merlin_sender->name,
-				owning_node_name);
+			"Notification will be handled by a peer (%s)", owning_node->name);
 	}
 
-	/* never block normal, local notificatons from passive checks */
-	if (check_type == CHECK_TYPE_PASSIVE && ds->reason_type == NOTIFICATION_NORMAL) {
-		ldebug("notif: passive check delivered to us, so we notify");
-		notif_stats->sent++;
-		return neb_cb_result_create(0);
-	}
-
-	/* if we have no peers we won't block the notification at this point */
-	if (!num_peers) {
-		ldebug("notif: We have no peers, so won't block notification");
-		notif_stats->sent++;
-		return neb_cb_result_create(0);
-	}
-
-	/*
-	 * command-triggered notifications are sent immediately
-	 * from the node where they originated and blocked
-	 * everywhere else
-	 */
-	switch (ds->reason_type) {
-	case NOTIFICATION_ACKNOWLEDGEMENT:
-	case NOTIFICATION_CUSTOM:
-		ldebug("notif: command-triggered and delivered to us, so allowing");
-		notif_stats->sent++;
-		return neb_cb_result_create(0);
-	}
-
-	if (!num_peers || should_run_check(id)) {
-		ldebug("notif: We're responsible for this notification, so allowing it");
-		return neb_cb_result_create(0);
-	} else {
-		ldebug("notif: Blocking notification. A peer is supposed to send it");
-		notif_stats->peer++;
-
-		return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
-				"A peer (%s) is supposed to send this notification", owning_node_name);
-	}
-
+	ldebug("notif: we fell through somehow, allowing notification");
 	notif_stats->sent++;
-	ldebug("notif: Fell through to the end");
 	return neb_cb_result_create(0);
 }
 
