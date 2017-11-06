@@ -737,7 +737,7 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 	/* If the binlog is full we should not wipe it, just stop writing to it. */
 	if (result == BINLOG_ENOSPC) {
 		if (binlog_full_warning(node->binlog)) {
-			lwarn("WARNING: Maximum binlog size reached");
+			lwarn("WARNING: Maximum binlog size reached for node %s", node->name);
 		}
 		return 0;
 	} else if (result < 0) {

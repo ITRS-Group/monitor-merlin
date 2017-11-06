@@ -50,4 +50,4 @@ Feature: Binlog
         When I wait for 2 seconds
 		And my-peer becomes disconnected
         And I send a passive check result for service PONG on host hostA with 2 MiB output data
-		Then file merlin.log matches WARNING: Maximum binlog size reached
+		Then file merlin.log matches WARNING: Maximum binlog size reached for node hostA
