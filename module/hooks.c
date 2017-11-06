@@ -236,81 +236,11 @@ static inline int should_run_check(unsigned int id)
 }
 
 /**
- * hold_notification_packet() makes a deep copy of a notification message and
- * stores it in a global variable tmp_notif_data. The purpose is to make it
- * possible to send notification messages the triggering check result.
- * Meaning that if a processed check result generates a notification, the
- * notification will be stored and sent once the ending check result is sent.
- * Without this the check result will be sent right after the notification
- * packet making the receiver overwrite any information stored from the
- * notification packet.
- */
-static int hold_notification_packet(merlin_event *pkt, nebstruct_notification_data *data)
-{
-	if(tmp_notif_data) {
-		return -1;	/* there is already some stored notification, bailing */
-	}
-
-	if (data->notification_type == HOST_NOTIFICATION) {
-		ldebug("holding host notification for %s", data->host_name);
-	} else {
-		ldebug("holding service notification for %s;%s",
-				data->service_description, data->host_name);
-	}
-
-	/* copy the notification data to storage */
-	memcpy(&tmp_notif_pkt, pkt, packet_size(pkt));
-	tmp_notif_data = malloc(sizeof(nebstruct_notification_data));
-	memcpy(tmp_notif_data, data, sizeof(nebstruct_notification_data));
-	tmp_notif_data->host_name = data->host_name ? strdup(data->host_name) : NULL;
-	tmp_notif_data->service_description = data->service_description ? strdup(data->service_description) : NULL;
-	tmp_notif_data->output = data->output ? strdup(data->output) : NULL;
-	tmp_notif_data->ack_author = data->ack_author ? strdup(data->ack_author) : NULL;
-	tmp_notif_data->ack_data = data->ack_data ? strdup(data->ack_data) : NULL;
-
-	return 0;
-}
-
-/**
- * flush_notification() is called every time we send a check result to
- * peers/masters. So if the check result being sent is a notification triggering
- * one there should be a notification packet in storage which then will be sent.
- */
-static int flush_notification(void)
-{
-	if (tmp_notif_data == NULL)
-		return -1;
-
-	if (tmp_notif_data->notification_type == HOST_NOTIFICATION) {
-		ldebug("flushing host notification for %s",
-				tmp_notif_data->host_name);
-	} else {
-		ldebug("flushing service notification for %s;%s",
-				tmp_notif_data->service_description, tmp_notif_data->host_name);
-	}
-
-	/* Send the stored notification */
-	send_generic(&tmp_notif_pkt, (void *) tmp_notif_data);
-
-	/* clear the stored notification */
-	free(tmp_notif_data->host_name);
-	free(tmp_notif_data->service_description);
-	free(tmp_notif_data->output);
-	free(tmp_notif_data->ack_author);
-	free(tmp_notif_data->ack_data);
-	free(tmp_notif_data);
-	tmp_notif_data = NULL;
-
-	return 0;
-}
-
-/**
  * The hooks are called from broker.c in Nagios.
  * Handle service check result from local node. Should not be used from network
  */
 static int hook_service_result(merlin_event *pkt, void *data)
 {
-	int ret;
 	nebstruct_service_check_data *ds = (nebstruct_service_check_data *)data;
 	service *s = (service *)ds->object_ptr;
 	struct merlin_node *node;
@@ -353,10 +283,8 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		}
 
 		set_service_check_node(&ipc, s, ds->check_type == CHECK_TYPE_PASSIVE);
-		ret = send_service_status(pkt, ds->attr, ds->object_ptr);
-		flush_notification();
 
-		return ret;
+		return send_service_status(pkt, ds->attr, ds->object_ptr);
 	}
 
 	return 0;
@@ -367,7 +295,6 @@ static int hook_service_result(merlin_event *pkt, void *data)
  */
 static int hook_host_result(merlin_event *pkt, void *data)
 {
-	int ret;
 	nebstruct_host_check_data *ds = (nebstruct_host_check_data *)data;
 	struct host *h = (struct host *)ds->object_ptr;
 	struct merlin_node *node;
@@ -412,10 +339,8 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		}
 
 		set_host_check_node(&ipc, h, ds->check_type == CHECK_TYPE_PASSIVE);
-		ret = send_host_status(pkt, ds->attr, ds->object_ptr);
-		flush_notification();
 
-		return ret;
+		return send_host_status(pkt, ds->attr, ds->object_ptr);
 	}
 
 	return 0;
@@ -877,6 +802,26 @@ static struct merlin_notify_stats * get_stats(nebstruct_notification_data *ds)
 	return &merlin_notify_stats[rt][nt][ct];
 }
 
+static void update_last_notification_time(merlin_node *node, merlin_event *evt, nebstruct_notification_data *ds)
+{
+	if (!node || !evt) {
+		return;
+	}
+
+	if (ds->notification_type == HOST_NOTIFICATION &&
+			evt->hdr.type == NEBCALLBACK_HOST_STATUS_DATA ||
+			evt->hdr.type == NEBCALLBACK_HOST_CHECK_DATA)
+	{
+		struct host *h = ds->object_ptr;
+		merlin_host_status *hs = (merlin_host_status *)evt->body;
+		h->last_notification = hs->state.last_notification;
+	} else {
+		struct service *s = ds->object_ptr;
+		merlin_service_status *ss = (merlin_service_status *)evt->body;
+		s->last_notification = ss->state.last_notification;
+	}
+}
+
 /*
  * Called when a notification chain starts. This is used to
  * avoid sending notifications from a node that isn't supposed
@@ -914,15 +859,14 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 			lerr("Unknown notification type %i", ds->notification_type);
 		}
 
-		if(ds->reason_type == NOTIFICATION_CUSTOM || (merlin_sender && recv_event)) {
-			if (merlin_sender && recv_event && recv_event->hdr.type != NEBCALLBACK_EXTERNAL_COMMAND_DATA) {
-				pkt->hdr.selection = get_sel_id(merlin_sender->hostgroups);
-			}
-			ret = send_generic(pkt, data);
-		} else {
-			ret = hold_notification_packet(pkt, ds);
+		/* If a poller caused us to notify, send them the results */
+		if (merlin_sender && merlin_sender->type == MODE_POLLER) {
+			pkt->hdr.selection = get_sel_id(merlin_sender->hostgroups);
 		}
-		return neb_cb_result_create(ret);
+
+		send_generic(pkt, data);
+
+		return neb_cb_result_create(0);
 	}
 
 	/* don't count or (try to) block notifications after they're sent */
@@ -943,25 +887,26 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	notif_stats = get_stats(ds);
 
 	/*
-	 * Break out if we only notify when no masters are present
-	 * and we have masters.
+	 * If we're a poller and we have set "notifies = no" in our configuration
+	 * AND we currently have one or more masters online, we should NOT notify.
 	 */
 	if (online_masters && !(ipc.flags & MERLIN_NODE_NOTIFIES)) {
-		ldebug("notif: poller blocking notification in favour of master");
+		ldebug("notif: Poller blocking notification in favour of master");
 		notif_stats->master++;
 		return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 				"Notification will be handled by master(s)");
 	}
 
-	/* Figure our who should handle the notification */
+	/* Figure out who should handle the notification */
 	if (owning_node == &ipc) {
-		ldebug("notif: Node is owner, allowing notification");
+		ldebug("notif: Local node is owner, allowing notification");
 		notif_stats->sent++;
 		return neb_cb_result_create(0);
 	} else if (owning_node->type == MODE_POLLER) {
 		if (owning_node->flags & MERLIN_NODE_NOTIFIES) {
 			ldebug("notif: Poller can notify. Cancelling notification");
 			notif_stats->poller++;
+			update_last_notification_time(merlin_sender, recv_event, ds);
 			return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 				"Notification will be handled by a poller (%s)",
 				owning_node->name);
@@ -970,14 +915,18 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 			if ((num_peers == 0 || should_run_check(h ? h->id : s->id))) {
 				notif_stats->sent++;
 				ldebug("notif: Poller can't notify, notifying in its place");
+				return neb_cb_result_create(0);
 			} else {
 				ldebug("notif: Poller can't notify, so a peer will notify");
+				return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
+					"Poller can't notify, so a peer will notify");
 			}
 		}
 	} else if (owning_node->type == MODE_PEER) {
 		ldebug("notif: Cancelling notification, a peer (%s) handles it",
 			owning_node->name);
 		notif_stats->peer++;
+		update_last_notification_time(merlin_sender, recv_event, ds);
 		return neb_cb_result_create_full(NEBERROR_CALLBACKCANCEL,
 			"Notification will be handled by a peer (%s)", owning_node->name);
 	}
