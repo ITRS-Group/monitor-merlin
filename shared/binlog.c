@@ -28,6 +28,7 @@ struct binlog {
 	unsigned int mem_avail;
 	off_t max_file_size, file_size, file_read_pos, file_write_pos;
 	int is_valid;
+	int should_warn_if_full;
 	char *path;
 	int fd;
 };
@@ -77,6 +78,15 @@ const char *binlog_path(binlog *bl)
 	return bl->path;
 }
 
+int binlog_full_warning(binlog *bl)
+{
+	if (bl->should_warn_if_full) {
+		bl->should_warn_if_full = 0;
+		return 1;
+	}
+	return 0;
+}
+
 binlog *binlog_create(const char *path, unsigned long long int msize, unsigned long long int fsize, int flags)
 {
 	binlog *bl;
@@ -101,6 +111,7 @@ binlog *binlog_create(const char *path, unsigned long long int msize, unsigned l
 	bl->max_mem_size = msize;
 	bl->max_file_size = fsize;
 	bl->is_valid = 1;
+	bl->should_warn_if_full = 1;
 
 	if (bl->path && (flags & BINLOG_UNLINK))
 		unlink(bl->path);
