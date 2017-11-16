@@ -860,23 +860,6 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
-static struct merlin_notify_stats * get_notif_stats(nebstruct_notification_data *ds)
-{
-	int rt = ds->reason_type;
-	int nt = ds->notification_type;
-	int ct = 0;
-
-	if (ds->notification_type == HOST_NOTIFICATION) {
-		struct host *h = (struct host *)ds->object_ptr;
-		ct = h->check_type;
-	} else {
-		struct service *s = (struct service *)ds->object_ptr;
-		ct = s->check_type;
-	}
-
-	return &merlin_notify_stats[rt][nt][ct];
-}
-
 /*
  * Called when a notification chain starts. This is used to
  * avoid sending notifications from a node that isn't supposed
@@ -890,6 +873,7 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	struct host *hst;
 	struct service *svc;
 	unsigned int object_id;
+	int check_type;
 
 	if (ds->type == NEBTYPE_NOTIFICATION_END) {
 
@@ -947,16 +931,18 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 	if (ds->notification_type == HOST_NOTIFICATION){
 		hst = ds->object_ptr;
 		object_id = hst->id;
+		check_type = hst->check_type;
 		owning_node = pgroup_host_node(hst->id);
 		ldebug("notif: Checking host notification for %s", hst->name);
 	} else {
 		svc = ds->object_ptr;
 		object_id = svc->id;
+		check_type = svc->check_type;
 		owning_node = pgroup_service_node(svc->id);
 		ldebug("notif: Checking service notification for %s;%s",
 			   svc->host_name, svc->description);
 	}
-	notif_stats = get_notif_stats(ds);
+	notif_stats = &merlin_notify_stats[ds->reason_type][ds->notification_type][check_type];
 
 	/*
 	 * If we're a poller and we have set "notifies = no" in our configuration
