@@ -1,3 +1,5 @@
+vm-config: |
+  {"numCPUs": 4}
 post:
   install:
     - mysql-devel
