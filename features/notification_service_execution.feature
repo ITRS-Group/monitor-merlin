@@ -280,3 +280,85 @@ Feature: Notification execution for service notificaitons
             | notificationtype | PROBLEM   |
             | servicestate     | WARNING   |
             | serviceoutput    | MON-10202 |
+
+    Scenario: If a master has configured takeover = yes, then it should notify
+        for a service in place of a poller, in case the poller goes down
+
+        Given I have merlin config takeover set to yes
+        And I start naemon with merlin nodes connected
+            | type   | name       | port | hostgroup   |
+            | poller | the_poller | 4001 | pollergroup |
+
+        When the_poller becomes disconnected
+        And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostA;PONG;1;Not OK
+        And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;1;Not OK
+
+        Then 1 service notification was sent
+            | parameter        | value  |
+            | hostname         | hostA  |
+            | servicedesc      | PONG   |
+        And 1 service notification was sent
+            | parameter        | value  |
+            | hostname         | hostB  |
+            | servicedesc      | PONG   |
+
+    Scenario: A peer should send custom notification for an object
+        it is responsible for, even if the custom notification command is sent
+        to the remote naemon daemon
+
+        Given I start naemon with merlin nodes connected
+            | type   | name         | port |
+            | peer   | the_peer     | 4001 |
+
+        When the_peer sends event EXTERNAL_COMMAND
+            | command_type   | 160                          |
+            | command_string | SEND_CUSTOM_SVC_NOTIFICATION |
+            | command_args   | hostB;PONG;0;tester;Comment  |
+
+        Then 1 service notification was sent
+            | parameter        | value  |
+            | hostname         | hostB  |
+            | servicedesc      | PONG   |
+            | notificationtype | CUSTOM |
+
+    Scenario: A peer should not send a custom notification for an object
+        it is not responsible for, even if it received the command from a peer
+
+        Given I start naemon with merlin nodes connected
+            | type   | name         | port |
+            | peer   | the_peer     | 4001 |
+
+        When the_peer sends event EXTERNAL_COMMAND
+            | command_type   | 160                          |
+            | command_string | SEND_CUSTOM_SVC_NOTIFICATION |
+            | command_args   | hostA;PONG;0;tester;Comment  |
+
+        Then no service notification was sent
+
+    Scenario: A peer should send custom notification for an object it is
+        responsible for if the custom notification command is sent to the
+        local naemon daemon
+
+        Given I start naemon with merlin nodes connected
+            | type   | name         | port |
+            | peer   | the_peer     | 4001 |
+
+        When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostB;PONG;0;tester;Comment
+
+        Then 1 service notification was sent
+            | parameter        | value  |
+            | hostname         | hostB  |
+            | servicedesc      | PONG   |
+            | notificationtype | CUSTOM |
+
+    Scenario: A peer should not send custom notification for an
+        object it is not responsible for, even if the custom notification
+        command is sent to the local naemon daemon
+
+        Given I start naemon with merlin nodes connected
+            | type   | name         | port |
+            | peer   | the_peer     | 4001 |
+
+        When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostA;PONG;0;tester;Comment
+
+        Then no service notification was sent

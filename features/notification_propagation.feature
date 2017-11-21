@@ -429,3 +429,61 @@ Feature: A notification should always be handled by the owning node.
 		And poller_one received event NOTIFICATION
 		And poller_two received event NOTIFICATION
 		And poller_three should not receive NOTIFICATION
+
+    Scenario: A peer should send acknowledgement notification for an object
+        it is responsible for, even if the acknowledgement command is sent
+        to the remote naemon daemon
+
+        Given I start naemon with merlin nodes connected
+            | type   | name         | port |
+            | peer   | the_peer     | 4001 |
+        And for 3 times I send naemon command PROCESS_SERVICE_CHECK_RESULT;hostB;PONG;1;Fromtest
+
+        When the_peer sends event EXTERNAL_COMMAND
+            | command_type   | 34                          |
+            | command_string | ACKNOWLEDGE_SVC_PROBLEM     |
+            | command_args   | hostB;PONG;1;1;1;tester;Ack |
+
+        Then 1 service notification was sent
+            | parameter        | value   |
+            | hostname         | hostB   |
+            | servicedesc      | PONG    |
+            | notificationtype | PROBLEM |
+        And 1 service notification was sent
+            | parameter        | value           |
+            | hostname         | hostB           |
+            | servicedesc      | PONG            |
+            | notificationtype | ACKNOWLEDGEMENT |
+
+    Scenario: A peer should not send acknowledgement notification for an
+        object it is not responsible for, even if the acknowledgement command
+        is sent to the local naemon daemon
+
+        Given I start naemon with merlin nodes connected
+            | type   | name         | port |
+            | peer   | the_peer     | 4001 |
+        And the_peer sends event SERVICE_CHECK
+            | host_name             | hostA |
+            | service_description   | PONG  |
+            | state.check_type      | 1     |
+            | state.current_state   | 1     |
+            | state.state_type      | 0     |
+            | state.current_attempt | 1     |
+        And the_peer sends event SERVICE_CHECK
+            | host_name             | hostA |
+            | service_description   | PONG  |
+            | state.check_type      | 1     |
+            | state.current_state   | 1     |
+            | state.state_type      | 0     |
+            | state.current_attempt | 2     |
+        And the_peer sends event SERVICE_CHECK
+            | host_name             | hostA |
+            | service_description   | PONG  |
+            | state.check_type      | 1     |
+            | state.current_state   | 1     |
+            | state.state_type      | 1     |
+            | state.current_attempt | 3     |
+
+        When I send naemon command ACKNOWLEDGE_SVC_PROBLEM;hostA;PONG;1;1;1;tester;Ack
+
+        Then no service notification was sent
