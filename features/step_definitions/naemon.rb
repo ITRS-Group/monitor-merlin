@@ -102,3 +102,10 @@ Then(/^the (.*) should not be larger than (\d+) MiB$/) do | binlog, size |
     }
 end
 
+Then(/^(\d+) events? (?:was|were) handled for host (.+)$/) do | count, host |
+  step "file event_handlers.log has #{count} lines matching ^handle event #{host}"
+end
+
+Then(/^(\d+) events? (?:was|were) handled for service (.+) on host (.+)$/) do | count, service, host |
+  step "file event_handlers.log has #{count} lines matching ^handle event #{host} #{service}"
+end
