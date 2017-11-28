@@ -860,6 +860,47 @@ static int hook_contact_notification_method(merlin_event *pkt, void *data)
 	return send_generic(pkt, data);
 }
 
+/**
+ * @brief Callback for NEBCALLBACK_EVENT_HANDLER events
+ *
+ * When an NEBCALLBACK_EVENT_HANDLER event occurs this is a callback used to
+ * determine wether or not the local node should run the event handler.
+ *
+ * @return NEB_OK on OK to proceed with event handler execution
+ * @return NEBERROR_CALLBACKOVERRIDE when event handler should not be executed
+ */
+static int hook_event_handler(merlin_event *pkt, void *data)
+{
+	nebstruct_event_handler_data *ds = (nebstruct_event_handler_data *)data;
+	if (ds->type == NEBTYPE_EVENTHANDLER_START) {
+
+		merlin_node *owning_node;
+
+		if (ds->eventhandler_type == SERVICE_EVENTHANDLER || ds->eventhandler_type == GLOBAL_SERVICE_EVENTHANDLER) {
+			struct service *svc = (struct service *)ds->object_ptr;
+			owning_node = pgroup_service_node(svc->id);
+			ldebug("event_handler: Checking event_handler for service %s;%s",
+					svc->description, svc->host_name);
+		} else {
+			struct host *hst = (struct host *)ds->object_ptr;
+			owning_node = pgroup_host_node(hst->id);
+			ldebug("event_handler: Checking event_handler for host %s",
+					hst->name);
+		}
+
+		if (owning_node == &ipc) {
+			ldebug("event_handler: Local node is owner, running event handler");
+			return NEB_OK;
+		} else {
+			ldebug("event_handler: Owning node is %s (%s), not running event handler locally",
+					owning_node->name,
+					owning_node->type == MODE_POLLER ? "poller" : "peer");
+			return NEBERROR_CALLBACKOVERRIDE;
+		}
+	}
+	return NEB_OK;
+}
+
 /*
  * Called when a notification chain starts. This is used to
  * avoid sending notifications from a node that isn't supposed
@@ -1074,7 +1115,9 @@ neb_cb_result * merlin_mod_hook(int cb, void *data)
 		 * check results so they keep their own state.
 		 */
 		break;
-
+	case NEBCALLBACK_EVENT_HANDLER_DATA:
+		result = hook_event_handler(&pkt, data);
+		break;
 	default:
 		lerr("Unhandled callback '%s' in merlin_hook()", callback_name(cb));
 	}
@@ -1114,16 +1157,9 @@ static struct callback_struct {
 	const char *hook_name;
 } callback_table[] = {
 	CB_ENTRY(0, NEBCALLBACK_PROCESS_DATA, hook_generic),
-/*
-	CB_ENTRY(0, NEBCALLBACK_LOG_DATA, hook_generic),
-	CB_ENTRY(0, NEBCALLBACK_SYSTEM_COMMAND_DATA, hook_generic),
 	CB_ENTRY(0, NEBCALLBACK_EVENT_HANDLER_DATA, hook_generic),
-*/
 	CB_ENTRY(DEST_NETWORK, NEBCALLBACK_NOTIFICATION_DATA, hook_notification),
-/*	CB_ENTRY(0, NEBCALLBACK_CONTACT_NOTIFICATION_DATA, hook_contact_notification),
- */
 	CB_ENTRY(0, NEBCALLBACK_CONTACT_NOTIFICATION_METHOD_DATA, hook_contact_notification_method),
-
 	CB_ENTRY(0, NEBCALLBACK_SERVICE_CHECK_DATA, hook_service_result),
 	CB_ENTRY(0, NEBCALLBACK_HOST_CHECK_DATA, hook_host_result),
 	CB_ENTRY(0, NEBCALLBACK_COMMENT_DATA, hook_generic),

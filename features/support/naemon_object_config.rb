@@ -58,6 +58,9 @@ class NaemonObjectConfig
       },{
         "command_name" => "check_active_critical",
         "command_line" => "./active_critical_cmd"
+      },{
+        "command_name" => "event_handler",
+        "command_line" => "./event_handler_cmd handle event $HOSTNAME$ $SERVICEDESC$"
       }],
       "host" => [{
         "check_command" => "log_check_host",

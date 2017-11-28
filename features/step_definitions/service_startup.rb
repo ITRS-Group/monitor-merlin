@@ -23,6 +23,8 @@ Given(/^I start naemon$/) do
   notif_cmd = "#!/bin/sh\necho $@ >> notifications.log\n"
   step "I have config file notif_cmd with permission 777", notif_cmd
 
+  event_handler_cmd = "#!/bin/sh\necho $@ >> event_handlers.log\n"
+  step "I have config file event_handler_cmd with permission 777", event_handler_cmd
 
   steps %Q{
     And I have naemon objects stored in oconf.cfg
