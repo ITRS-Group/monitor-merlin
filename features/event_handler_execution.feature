@@ -37,8 +37,8 @@ Feature: Merlin distributes event handlers the same way it distributes check
             | state.current_state   | 1     |
             | state.current_attempt | 1     |
 
-        Then 0 events was handled for host hostA
-        And 1 event were handled for host hostB
+        Then 0 events were handled for host hostA
+        And 1 event was handled for host hostB
     
     Scenario: As a peer I should only handle events for services I am responsible for
 
@@ -80,8 +80,8 @@ Feature: Merlin distributes event handlers the same way it distributes check
             | state.current_state   | 1     |
             | state.current_attempt | 1     |
 
-        Then 0 events was handled for host hostA
-        And 1 events were handled for host hostB
+        Then 0 events were handled for host hostA
+        And 1 event was handled for host hostB
 
     Scenario: As a poller I should only handle events for services I am responsible for
 
@@ -103,5 +103,5 @@ Feature: Merlin distributes event handlers the same way it distributes check
             | state.current_state   | 1     |
             | state.current_attempt | 1     |
 
-        Then 0 events was handled for service PONG on host hostA
-        And 1 events were handled for service PONG on host hostB
+        Then 0 events were handled for service PONG on host hostA
+        And 1 event was handled for service PONG on host hostB
