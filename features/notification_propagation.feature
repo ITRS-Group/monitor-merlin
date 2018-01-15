@@ -251,7 +251,6 @@ Feature: A notification should always be handled by the owning node.
 		
 		Then I should have 1 services object matching last_notification > 0
 		And I should have 1 services object matching last_notification > 0
-		And 1 notification for service PONG on host hostB was sent after check result
 
 
 	Scenario: As a poller, when generating a host notification result it
@@ -282,7 +281,6 @@ Feature: A notification should always be handled by the owning node.
 
 		Then I should have 1 hosts object matching last_notification > 0
 		And I should have 1 hosts object matching last_notification > 0
-		And 1 notification for host hostB was sent after check result
 
 
 	Scenario: As a poller, when a peer sends service notification info it
@@ -364,7 +362,6 @@ Feature: A notification should always be handled by the owning node.
 		And I wait for 3 seconds
 
 		Then I should have 1 services object matching last_notification > 0
-		And 1 notification for service PONG on host hostB was sent after check result
 		
 	
 	Scenario: In a peered system, when sending passive check results for
@@ -391,7 +388,7 @@ Feature: A notification should always be handled by the owning node.
 		And I wait for 3 seconds
 
 		Then I should have 1 hosts object matching last_notification > 0
-		And 1 notification for host hostB was sent after check result
+
 
 	Scenario: As a master with a non notifying poller we should send
 		notification without storing it since we won't be sending a
@@ -421,7 +418,6 @@ Feature: A notification should always be handled by the owning node.
 			| state.current_attempt | 3     |
 		And I wait for 1 second
 
-		Then no notification was held
 		And 1 host notification was sent
 			| parameter         | value    |
 			| hostname          | hostB    |
