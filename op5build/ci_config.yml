@@ -2,6 +2,7 @@ vm-config: |
   {"numCPUs": 4}
 post:
   install:
+    - libyaml
     - mysql-devel
     - ruby20-devel
     - ruby-devel
