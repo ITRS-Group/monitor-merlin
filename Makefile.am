@@ -245,7 +245,8 @@ tests/merlincat/nebev-col2key.c: tests/merlincat/nebev-col2key.gperf
 
 tests/merlincat/kvvec2nebev.c: tests/merlincat/nebev-col2key.c
 
-BUILT_SOURCES = $(GENERATED_NEBEV) tests/merlincat/nebev-col2key.c apps/libexec/restart.sh
+BUILT_SOURCES = $(GENERATED_NEBEV) tests/merlincat/nebev-col2key.c \
+	 apps/libexec/restart.sh apps/libexec/oconf.py apps/mon.py apps/libexec/oconf.fetch.sh
 CLEANFILES = $(BUILT_SOURCES)
 
 merlincat_SOURCES = tests/merlincat/merlincat.c \
