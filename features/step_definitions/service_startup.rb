@@ -100,7 +100,9 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
     "
   nodes.hashes.each do |obj|
     configfile += sprintf "\n%s %s {\n", obj["type"], obj["name"]
-    configfile += "\taddress = 127.0.0.1\n" # There is no other way in tests
+    if !obj.include? 'address' then
+      configfile += "\taddress = 127.0.0.1\n" # There is no other way in tests
+    end
     obj.each do |key, value|
       if key != "type" and key != "name" and value != "ignore" then
         configfile += "\t#{key} = #{value}\n"

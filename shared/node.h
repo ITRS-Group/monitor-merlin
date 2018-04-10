@@ -263,6 +263,7 @@ extern merlin_nodeinfo *self;
 #define online_pollers self->active_pollers
 #define online_nodes (online_masters + online_pollers + online_peers)
 
+extern int resolve(const char *cp, struct in_addr *inp);
 extern node_selection *node_selection_by_name(const char *name);
 extern char *get_sel_name(int index);
 extern int get_sel_id(const char *name);
