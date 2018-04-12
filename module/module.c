@@ -1237,6 +1237,15 @@ static void connect_to_all(struct nm_event_execution_properties *evprop)
 		merlin_node *node = node_table[i];
 		if (node->state == STATE_CONNECTED || node->state == STATE_PENDING)
 			continue;
+
+		// check if the node has a valid IP address
+		// as we calloc the structure we can assume an un-resolved node
+		// will have an IP address = 0.
+		if (node->sain.sin_addr.s_addr == 0 ) {
+			resolve(node->name, &node->sain.sin_addr);
+		}
+
+		// connect to the node
 		net_try_connect(node);
 	}
 }

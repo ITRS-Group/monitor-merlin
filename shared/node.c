@@ -287,7 +287,7 @@ linked_item *nodes_by_sel_name(const char *name)
  * Resolve an ip-address or hostname and convert it to a
  * machine-usable 32-bit representation
  */
-static int resolve(const char *cp, struct in_addr *inp)
+int resolve(const char *cp, struct in_addr *inp)
 {
 	struct addrinfo hints, *rp, *ai = NULL;
 	int result;
@@ -498,7 +498,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 		address = node->name;
 
 	if (is_module && resolve(address, &node->sain.sin_addr) < 0)
-		cfg_error(c, address_var, "Unable to resolve '%s'\n", address);
+		cfg_warn(c, address_var, "Unable to resolve '%s'\n", address);
 
 	for (i = 0; i < c->nested; i++) {
 		struct cfg_comp *comp = c->nest[i];
