@@ -158,7 +158,7 @@ rename_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon $(GLIB_CFLAGS)
 rename_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 
 check_PROGRAMS = $(TESTS) test-dbwrap merlincat cukemerlin
-TESTS = sltest test-csync test-lparse hooktest stringutilstest showlogtest bltest codectest
+TESTS = sltest test-csync test-lparse hooktest stringutilstest showlogtest bltest codectest importlogtest
 TESTS_ENVIRONMENT = G_DEBUG=fatal-criticals; export G_DEBUG;
 
 sltest_SOURCES = tests/sltest.c tools/test_utils.c tools/slist.c tools/slist.h
@@ -183,6 +183,9 @@ bltest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools
 codectest_SOURCES = tests/codectest.c shared/codec.c shared/logging.h shared/shared.c
 codectest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/shared $(check_CFLAGS)
 codectest_LDADD = $(naemon_LIBS) $(check_LIBS)
+importlogtest_SOURCES = tests/test-importlog.c $(app_sources)
+importlogtest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools -I$(srcdir)/daemon $(check_CFLAGS) $(GLIB_CFLAGS)
+importlogtest_LDADD = $(naemon_LIBS) $(check_LIBS)
 
 # So, it turns out that this test isn't actually a test that has ever executed
 # It's just a binary that could be used for writing tests against. I give up :(

@@ -643,7 +643,7 @@ static int parse_line(char *line, uint len)
 
 	ltime = strtoul(line + 1, &ptr, 10);
 	if (line + 1 == ptr) {
-		lp_crash("Failed to parse log timestamp from '%s'. I can't handle malformed logdata", line);
+		warn("line %d; Failed to parse log timestamp from '%s'.", line_no, line);
 		return -1;
 	}
 
