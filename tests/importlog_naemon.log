@@ -1,0 +1,74 @@
+[1520325736] Naemon 1.0.6-source starting... (PID=1477)
+[1520325736] Local time is Tue Mar 06 08:42:16 UTC 2018
+[1520325736] LOG VERSION: 2.0
+[1520325736] qh: Socket '/opt/monitor/var/rw/nagios.qh' successfully initialized
+[1520325736] nerd: Channel hostchecks registered successfully
+[1520325736] nerd: Channel servicechecks registered successfully
+[1520325736] nerd: Fully initialized and ready to rock!
+[1520325736] Event broker module '/usr/lib64/merlin/merlin.so' initialized successfully.
+[1520325736] livestatus: Naemon Livestatus 1.0.6 Socket: '/opt/monitor/var/rw/live'
+[1520325736] livestatus: Finished initialization. Further log messages go to /opt/monitor/var/livestatus.log
+[1520325736] Event broker module '/usr/lib64/naemon-livestatus/livestatus.so' initialized successfully.
+[1520325736] INITIAL HOST STATE: monitor;UP;HARD;1;
+[1520325736] INITIAL SERVICE STATE: monitor;SSH Server;OK;HARD;1;(null)
+[1520325736] Successfully launched command file worker with pid 1490
+[1520325736] TIMEPERIOD TRANSITION: 24x7;-1;1
+[1520325736] TIMEPERIOD TRANSITION: none;-1;0
+[1520325736] TIMEPERIOD TRANSITION: nonworkhours;-1;0
+[1520325736] TIMEPERIOD TRANSITION: workhours;-1;1
+[1520325738] Caught 'Terminated', shutting down...
+[1520325738] Successfully shutdown... (PID=1477)
+[1520325738] Event broker module 'NERD' deinitialized successfully.
+[1520325738] Event broker module '/usr/lib64/merlin/merlin.so' deinitialized successfully.
+[1520325738] livestatus: deinitializing
+[1520325738] Event broker module '/usr/lib64/naemon-livestatus/livestatus.so' deinitialized successfully.
+[1520325738] Naemon 1.0.6-source starting... (PID=1596)
+[1520325738] Local time is Tue Mar 06 08:42:18 UTC 2018
+[1520325738] LOG VERSION: 2.0
+[1520325738] qh: Socket '/opt/monitor/var/rw/nagios.qh' successfully initialized
+[1520325738] nerd: Channel hostchecks registered successfully
+[1520325738] nerd: Channel servicechecks registered successfully
+[1520325738] nerd: Fully initialized and ready to rock!
+[1520325738] Event broker module '/usr/lib64/testthis/testthis.so' initialized successfully.
+[1520325738] Event broker module '/usr/lib64/merlin/merlin.so' initialized successfully.
+[1520325738] livestatus: Naemon Livestatus 1.0.6 Socket: '/opt/monitor/var/rw/live'
+[1520325738] livestatus: Finished initialization. Further log messages go to /opt/monitor/var/livestatus.log
+[1520325738] Event broker module '/usr/lib64/naemon-livestatus/livestatus.so' initialized successfully.
+[1520325738] INITIAL HOST STATE: monitor;UP;HARD;1;
+[1520325738] INITIAL SERVICE STATE: monitor;SSH Server;OK;HARD;1;
+[1520325738] Successfully launched command file worker with pid 1609
+[1520325738] TIMEPERIOD TRANSITION: 24x7;-1;1
+[1520325738] TIMEPERIOD TRANSITION: none;-1;0
+[1520325738] TIMEPERIOD TRANSITION: nonworkhours;-1;0
+[1520325738] TIMEPERIOD TRANSITION: workhours;-1;1
+[1520325749] Caught 'Hangup', restarting...
+[1520325749] Event broker module 'NERD' deinitialized successfully.
+[1520325749] Event broker module '/usr/lib64/testthis/testthis.so' deinitialized successfully.
+[1520325749] Event broker module '/usr/lib64/merlin/merlin.so' deinitialized successfully.
+[1520325749] livestatus: deinitializing
+[1520325749] Event broker module '/usr/lib64/naemon-livestatus/livestatus.so' deinitialized successfully.
+[1520325749] Naemon 1.0.6-source starting... (PID=1596)
+[1520325749] Local time is Tue Mar 06 08:42:29 UTC 2018
+[1520325749] LOG VERSION: 2.0
+[1520325749] qh: Socket '/opt/monitor/var/rw/nagios.qh' successfully initialized
+[1520325749] nerd: Channel hostchecks registered successfully
+[1520325749] nerd: Channel servicechecks registered successfully
+[1520325749] nerd: Fully initialized and ready to rock!
+[1520325749] Event broker module '/usr/lib64/testthis/testthis.so' initialized successfully.
+[1520325749] Event broker module '/usr/lib64/merlin/merlin.so' initialized successfully.
+[1520325749] livestatus: Naemon Livestatus 1.0.6 Socket: '/opt/monitor/var/rw/live'
+[1520325749] livestatus: Finished initialization. Further log messages go to /opt/monitor/var/livestatus.log
+[1520325749] Event broker module '/usr/lib64/naemon-livestatus/livestatus.so' initialized successfully.
+[1520325749] INITIAL HOST STATE: monitor;UP;HARD;1;
+[1520325749] INITIAL SERVICE STATE: monitor;SSH Server;OK;HARD;1;
+[1520325749] TIMEPERIOD TRANSITION: 24x7;-1;1
+[1520325749] TIMEPERIOD TRANSITION: none;-1;0
+[1520325749] TIMEPERIOD TRANSITION: nonworkhours;-1;0
+[1520325749] TIMEPERIOD TRANSITION: workhours;-1;1
+[1520325757] Caught 'Hangup', restarting...
+[1520325757] Event broker module 'NERD' deinitialized successfully.
+[1520325757] Event broker module '/usr/lib64/testthis/testthis.so' deinitialized successfully.
+[1520325757] Event broker module '/usr/lib64/merlin/merlin.so' deinitialized successfully.
+[1520325757] livestatus: deinitializing
+[1520325757] Event broker module '/usr/lib64/naemon-livestatus/livestatus.so' deinitialized successfully.
+[ok] status is ok
