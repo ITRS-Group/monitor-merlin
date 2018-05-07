@@ -65,6 +65,7 @@ end
 Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
   push_cmd = "#!/bin/sh\necho \"push $@\" >> config_sync.log"
   fetch_cmd = "#!/bin/sh\necho \"fetch $@\" >> config_sync.log"
+
   configfile = "
     ipc_socket = test_ipc.sock;
 
@@ -104,8 +105,14 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
       configfile += "\taddress = 127.0.0.1\n" # There is no other way in tests
     end
     obj.each do |key, value|
-      if key != "type" and key != "name" and value != "ignore" then
+      if key != "type" and key != "name" and value != "ignore" and key != "fetch" then
         configfile += "\t#{key} = #{value}\n"
+      end
+      if key == "fetch" then
+        configfile += "\tobject_config {\n\t\tfetch_name = #{obj["name"]}\n\t\t#{key} = #{value}\n\t}\n"
+        # get rid of the general fetch cmd as otherwise it overrides the node
+        # specific one
+        configfile.sub! 'fetch = ./fetch_cmd;', ''
       end
     end
     configfile += "}\n"

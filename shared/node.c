@@ -1227,6 +1227,24 @@ int node_oconf_cmp(const merlin_node *node, const merlin_nodeinfo *info)
 	/* if this is a master node, "any config" is as expected */
 	if (node->type == MODE_MASTER) {
 		ldebug("CSYNC: %s is a master in node_oconf_cmp", node->name);
+		/* If we should fetch config from the master node and the  config on the master
+		 * has changed, then we mark their config as newer, otherwise mark
+		 * everything as expected.
+		 *
+		 * Note that we check whether the the fetch.cmd contains 'mon oconf fetch'.
+		 * This is due to the fact that the fetch cmd might be used in other
+		 * capacities than to fetch configs from the master. This is for example
+		 * done during the tests.
+		 */
+		if (node->csync.fetch.cmd && strcmp(node->csync.fetch.cmd, "no") &&
+				strstr(node->csync.fetch.cmd, "mon oconf fetch") != NULL ) {
+			if (tdelta > 0) {
+				return 1;
+			} else if (tdelta < 0) {
+				return -1;
+			}
+		}
+
 		return 0;
 	}
 
