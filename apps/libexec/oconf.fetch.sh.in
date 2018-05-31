@@ -63,8 +63,11 @@ if [ $dest ]; then
 	local_md5=$(cat /opt/monitor/etc/oconf/from-master.cfg | md5sum)
 	remote_md5=$(ssh $ssh_prefix $master cat @cachedir@/config/$fetch_name.cfg | md5sum)
 
-	if [ "$local_md5" == "$remote_md5" ]; then
-		echo "Same md5sum, no need for a fetch, exiting"
+	local_time=$(mon oconf changed)
+	remote_time=$(ssh $ssh_prefix $master mon oconf changed)
+
+	if [ "$local_md5" = "$remote_md5" ] && [ "$local_time" = "$remote_time" ]; then
+		echo "Same md5sum and timestamp, no need for a fetch, exiting"
 		exit
 	else
 		echo "Fetching config from $source"
