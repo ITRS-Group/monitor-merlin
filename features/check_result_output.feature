@@ -49,5 +49,5 @@ Feature: Running active checks locally which returns multi-line output
 			| service_description      | PING                 |
 
 		Then plugin_output of service PING on host hostA should be Plugin output
-		And long_plugin_output of service PING on host hostA should be Long\nplugin\noutput
+		And long_plugin_output of service PING on host hostA should be Long\\nplugin\\noutput
 		And perf_data of service PING on host hostA should be Performance data

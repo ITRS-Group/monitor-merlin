@@ -1121,6 +1121,7 @@ void emit_string(SB *out, const char *str)
 	*b++ = '"';
 	while (*s != 0) {
 		unsigned char c = *s++;
+		unsigned char next = *s;
 
 		/* Encode the next character, and write it to b. */
 		switch (c) {
@@ -1130,7 +1131,8 @@ void emit_string(SB *out, const char *str)
 				break;
 			case '\\':
 				*b++ = '\\';
-				*b++ = '\\';
+				if (next != '\n')
+					*b++ = '\\';
 				break;
 			case '\b':
 				*b++ = '\\';
