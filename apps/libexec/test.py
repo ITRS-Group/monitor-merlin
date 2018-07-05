@@ -2518,8 +2518,8 @@ def cmd_rsync(args):
 	""" % foo_path)
 	fd.close()
 	cmd = ['mon', '--merlin-conf=%s' % path, 'oconf', 'push', '--dryrun']
-	expect_out_extras = """rsync command: rsync -aotzc --delete -b --backup-dir=%s/backups %s -e ssh -C -o KbdInteractiveAuthentication=no localhost:/usr/bin/test
-rsync command: rsync -aotzc --delete -b --backup-dir=%s/backups /etc/passwd -e ssh -C -o KbdInteractiveAuthentication=no localhost:/etc/passwd
+	expect_out_extras = """rsync command: rsync -aotzc --delete -b --backup-dir=%s/backups %s -e ssh -q -C -o KbdInteractiveAuthentication=no localhost:/usr/bin/test
+rsync command: rsync -aotzc --delete -b --backup-dir=%s/backups /etc/passwd -e ssh -q -C -o KbdInteractiveAuthentication=no localhost:/etc/passwd
 """ % (cache_dir, foo_path, cache_dir)
 	(out, err, result) = _test_run(cmd + ['--push=extras'])
 	tap.test(err, '', "Error output should be none")
@@ -2532,7 +2532,7 @@ rsync command: rsync -aotzc --delete -b --backup-dir=%s/backups /etc/passwd -e s
 
 	if os.getuid() != 0:
 		expect_result = 0
-		expect_out_oconf = """rsync command: rsync -aotzc --delete -b --backup-dir=%s/backups /opt/monitor/etc -e ssh -C -o KbdInteractiveAuthentication=no localhost:/opt/monitor
+		expect_out_oconf = """rsync command: rsync -aotzc --delete -b --backup-dir=%s/backups /opt/monitor/etc -e ssh -q -C -o KbdInteractiveAuthentication=no localhost:/opt/monitor
 """ % cache_dir
 	else:
 		expect_result = 1

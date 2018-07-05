@@ -168,8 +168,8 @@ def sync_files((node, ssh_user, ssh_key, files_to_sync, dryrun)):
     retval = True
     out = io.StringIO()
 
-    # Use compression by default
-    ssh_cmd = 'ssh -C'
+    # Use compression and quiet mode by default
+    ssh_cmd = 'ssh -q -C'
 
     # if we're not running from console, we need to disable
     # keyboard-interactive authentication to avoid hanging
