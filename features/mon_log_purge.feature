@@ -1,6 +1,8 @@
 @config @daemons @merlin @queryhandler @livestatus
 
 Feature: Testing "mon log purge" command for proper functioning
+	Background: Set up merlin 
+		Given I start merlin
 
 	Scenario: check mon log purge command if only one host present
 		Given I have the following report_data in the database
