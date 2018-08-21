@@ -12,3 +12,9 @@ Feature: Startup of merlin and Naemon
 		And I wait for 1 second
 
 	Then my_peer should appear disconnected
+
+	@systemd
+	Scenario: merlind should run as the monitor user when started from systemd
+
+		Given I start merlind with systemd
+		Then merlind should not run as the root user
