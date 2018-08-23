@@ -36,4 +36,9 @@ post:
     ulimit -c unlimited
     mkdir -p /mnt/logs
     echo "core ulimit: \$(ulimit -c)"
-    cucumber --strict --format html --out /mnt/logs/cucumber.html --format pretty
+    # skip systemd tests on EL6
+    if [ -f /usr/bin/systemctl ]; then
+      cucumber --strict --format html --out /mnt/logs/cucumber.html --format pretty
+    else
+      cucumber --strict --format html --out /mnt/logs/cucumber.html --format pretty --tags ~@systemd
+    fi
