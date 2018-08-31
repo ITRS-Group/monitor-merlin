@@ -1,5 +1,5 @@
 % MON(1)
-% Johan Thorén, Linus Agren, Jacob Hansen
+% Johan Thorén, Linus Ågren, Jacob Hansen
 % September 2018
 
 # NAME
