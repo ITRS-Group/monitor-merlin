@@ -8,7 +8,7 @@ mon
 
 # SYNOPSIS
 
-**mon**␣[**-h**]
+**mon**␣**COMMAND**␣[**OPTIONS␣...**␣|␣**COMMAND**␣...]
 
 # DESCRIPTION
 
@@ -28,10 +28,14 @@ You should not use **mon** unless specifically instructed by OP5 Support or the 
 The following commands are understood:
 
 **start**
+:  **mon**␣**start**
 :  Starts the *monitor* and *merlind* system processes.
 
 **restart**
+:  **mon**␣**restart**
 :  Restarts the *monitor* and *merlind* system processes.
+
+## ECMD
 
 # FILES
 
