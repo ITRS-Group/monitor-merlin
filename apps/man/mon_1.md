@@ -8,7 +8,7 @@ mon
 
 # SYNOPSIS
 
-**mon**␣**COMMAND**␣[**OPTIONS␣...**␣|␣**COMMAND**␣...]
+**mon**␣**COMMAND**␣[**OPTIONS␣...**␣|␣**COMMAND␣...**]
 
 # DESCRIPTION
 
