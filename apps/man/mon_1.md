@@ -35,6 +35,9 @@ The following commands are understood:
 
 ## ECMD
 
+**search**
+:  **mon**␣**ecmd**␣**search**␣\<regex\>
+
 # FILES
 
 Foo.
