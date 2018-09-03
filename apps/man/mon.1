@@ -2,12 +2,10 @@
 .SH NAME
 mon \- manage OP5 MONITOR
 .SH SYNOPSIS
-.B mon
-\fB COMMAND\fR
-[\fBOPTIONS\.\.\.\fR | \fBCOMMAND\.\.\.\fR]
+.B mon [-h] | \fBcommand\fR [\fBoptions\fR]... [\fBcommand\fR]
 .SH DESCRIPTION
 .B mon
-is used to manually stop and start the MONITOR system processes, and to set up a distributed or a load balanced environment.
+is used to manually stop and start the \fImonitor\fR system processes, and to set up a distributed and/or load balanced environment.
 .SH OPTIONS
 .TP
 .BR \-h ", " \-\-help
@@ -16,15 +14,15 @@ Display a friendly help message.
 .SS START
 .TP
 .BR mon\ start
-Start MONITOR and MERLIND system processes.
+Start \fImonitor\fR and \fImerlind\fR system processes.
 .SS STOP
 .TP
 .BR mon\ stop
-Stop MONITOR and MERLIND system processes.
+Stop \fImonitor\fR and \fImerlind\fR system processes.
 .SS RESTART
 .TP
 .BR mon\ restart
-Restart MONITOR and MERLIND system processes.
+Restart \fImonitor\fR and \fImerlind\fR system processes.
 .SS ASCII
 .SS CHECK
 .SS DB
@@ -32,16 +30,19 @@ Restart MONITOR and MERLIND system processes.
 .nf
 .SS search
 .TP
-.BR mon\ ecmd\ search\ \fIREGEX\fR
+.BR mon\ ecmd\ search\ \fIregex\fR
 Prints
-.BI TEMPLATES
+.I templates
 for all available commands matching
-.BI REGEX.
+.I regex.
 The search is case insensitive.
 .SS submit
 .TP
-.BR mon\ ecmd\ submit\ [\fIoptions\fR]\ \fIcommand\fR\ \fIargument\ ...\fR
-Submits a command to the monitoring engine using the supplied values.
+.BR mon\ ecmd\ submit\ \fI[options]\fR\ \fIcommand\fR\ \fIargument\ ...\fR
+Submits a
+.I command
+to the monitoring engine using the supplied
+.I arguments.
 .SS LOG
 .SS MT
 .SS NODE
