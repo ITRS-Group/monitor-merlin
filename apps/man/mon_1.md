@@ -16,8 +16,6 @@ The **mon** command is a very powerful command. It is used to manually stop and 
 
 Handle this command with care! It has the power to both create and destroy your whole *OP5 Monitor* installation.
 
-You should not use **mon** unless specifically instructed by OP5 Support or the Documentation itself.
-
 # OPTIONS
 
 **-h**, **--help**
