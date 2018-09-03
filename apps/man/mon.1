@@ -1,0 +1,68 @@
+.TH MON 1
+.SH NAME
+mon \- manage OP5 MONITOR
+.SH SYNOPSIS
+.B mon
+\fB COMMAND\fR
+[\fBOPTIONS\.\.\.\fR | \fBCOMMAND\.\.\.\fR]
+.SH DESCRIPTION
+.B mon
+is used to manually stop and start the MONITOR system processes, and to set up a distributed or a load balanced environment.
+.SH OPTIONS
+.TP
+.BR \-h ", " \-\-help
+Display a friendly help message.
+.SH COMMANDS
+.SS START
+.TP
+.BR mon\ start
+Start MONITOR and MERLIND system processes.
+.SS STOP
+.TP
+.BR mon\ stop
+Stop MONITOR and MERLIND system processes.
+.SS RESTART
+.TP
+.BR mon\ restart
+Restart MONITOR and MERLIND system processes.
+.SS ASCII
+.SS CHECK
+.SS DB
+.SS ECMD
+.nf
+.SS search
+.TP
+.BR mon\ ecmd\ search\ \fIREGEX\fR
+Prints
+.BI TEMPLATES
+for all available commands matching
+.BI REGEX.
+The search is case insensitive.
+.SS submit
+.TP
+.BR mon\ ecmd\ submit\ [\fIoptions\fR]\ \fIcommand\fR\ \fIargument\ ...\fR
+Submits a command to the monitoring engine using the supplied values.
+.SS LOG
+.SS MT
+.SS NODE
+.SS OCONF
+.SS QH
+.SS QUERY
+.SS SOP
+.SS SSHKEY
+.SS STATUS
+.SS SYSCONFIG
+.SH FILES
+.SH BUGS
+.SH EXAMPLE
+.TP
+To check the status of all connected nodes, use the
+.BR node\ status
+command:
+.PP
+.nf
+.RS
+mon node status
+.RE
+.fi
+.PP
