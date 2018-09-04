@@ -24,8 +24,11 @@ Stop \fImonitor\fR and \fImerlind\fR system processes.
 .BR mon\ restart
 Restart \fImonitor\fR and \fImerlind\fR system processes.
 .SS ASCII
+Documentation coming soon.
 .SS CHECK
+Documentation coming soon.
 .SS DB
+Documentation coming soon.
 .SS ECMD
 .nf
 .SS search
@@ -33,28 +36,47 @@ Restart \fImonitor\fR and \fImerlind\fR system processes.
 .BR mon\ ecmd\ search\ \fIregex\fR
 Prints
 .I templates
-for all available commands matching
-.I regex.
+for all available commands matching \fIregex\fR.
 The search is case insensitive.
 .SS submit
 .TP
 .BR mon\ ecmd\ submit\ \fI[options]\fR\ \fIcommand\fR\ \fIargument\ ...\fR
 Submits a
 .I command
-to the monitoring engine using the supplied
-.I arguments.
+to the monitoring engine using the supplied \fIargument(s)\fr.
 .SS LOG
+.SS show
+.TP
+.BR mon\ log\ show\ \fIargument\ ...\fR
+Runs the \fIshowlog\fR helper program.
+Arguments passed to this command will be sent to the \fIshowlog\fR helper.
+For more information, a help text can be found by running the command like this:
+.TP
+.BR mon\ log\ show\ \-\-help
 .SS MT
+Documentation coming soon.
 .SS NODE
+.SS add
+.TP
+.BR mon\ node\ add\ \fR<name>\fB\ \-\-type=[peer|poller|master]\fR\ [var\fIN\fR=\fIvalue\fR]
+Adds a node with the designated
+.I type
+and
+.I variables.
 .SS OCONF
+Documentation coming soon.
 .SS QH
+Documentation coming soon.
 .SS QUERY
+Documentation coming soon.
 .SS SOP
+Documentation coming soon.
 .SS SSHKEY
+Documentation coming soon.
 .SS STATUS
+Documentation coming soon.
 .SS SYSCONFIG
-.SH FILES
-.SH BUGS
+Documentation coming soon.
 .SH EXAMPLE
 .TP
 To check the status of all connected nodes, use the
@@ -64,6 +86,16 @@ command:
 .nf
 .RS
 mon node status
+.RE
+.fi
+.PP
+.TP
+To add a new service comment for the service \fIPING\fR on the host \fIfoo\fR would look something like this:
+.PP
+.nf
+.RS
+mon ecmd submit add_svc_comment service='foo;PING' \\
+persistent=1 author='John Doe' comment='the comment'
 .RE
 .fi
 .PP
