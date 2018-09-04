@@ -17,8 +17,9 @@ will be notified in the same place that you sent your patches.
   * Make commits of logical units
   * Check for unnecessary whitespace with "git diff --check" before committing
   * Do not check in commented out code or unneeded files
-  * The first line of the commit message should be a short description and  
-  should skip the full stop
+  * The first line of the commit message should be a short description (50
+  columns max) and should skip the full stop
+  * The commit body should be wrapped at 72 columns
   * One or more paragraphs, outlining the _what_ and the _why_ of the change.  
   That is; What changed? Why was the change necessary?
   * if you want your work included upstream, add a "Signed-off-by: Your Name  
