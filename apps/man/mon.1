@@ -51,8 +51,10 @@ to the monitoring engine using the supplied \fIargument(s)\fr.
 Runs the \fIshowlog\fR helper program.
 Arguments passed to this command will be sent to the \fIshowlog\fR helper.
 For more information, a help text can be found by running the command like this:
-.TP
+.PP
+.RS
 .BR mon\ log\ show\ \-\-help
+.RE
 .SS MT
 Documentation coming soon.
 .SS NODE
@@ -65,11 +67,26 @@ and
 .I variables.
 .SS ctrl
 .nf
-.B mon\ node\ ctrl\fR\\
-<name>\ ...\ \fB[--self|all|--type=[peer|poller|master]]\ \-\-\fR\ \fIcommand\fR
+.B mon\ node\ ctrl\fR\ <name>\ ...\ \e
+\fB[--self|all|--type=[peer|poller|master]]\ \-\-\fR\ \fIcommand\fR
 .fi
 .PP
-Executes \fIcommand\fR on the [remote] node(s) names.
+Executes \fIcommand\fR on the [remote] \fInode(s)\fR names.
+.PP
+Optional arguments:
+.TP
+.BR \-\-self
+Run \fIcommand\fR on the local system.
+.TP
+.BR \-\-all
+Run \fIcommand\fR on all configured \fInodes\fR.
+.TP
+.BR \-\-type
+Run \fIcommand\fR on configured \fInodes\fR of the given \fItype\fR.
+.TP
+.BR \-\-
+Stop argument scanning.
+Everything after will be treated as part of the \fIcommand\fR.
 .SS OCONF
 Documentation coming soon.
 .SS QH
@@ -101,7 +118,7 @@ To add a new service comment for the service \fIPING\fR on the host \fIfoo\fR wo
 .PP
 .nf
 .RS
-mon ecmd submit add_svc_comment service='foo;PING' \\
+mon ecmd submit add_svc_comment service='foo;PING' \e
 persistent=1 author='John Doe' comment='the comment'
 .RE
 .fi
