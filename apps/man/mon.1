@@ -123,6 +123,19 @@ Output is formatted in a fashion suitable for being used in shell scripts as:
 .RS
 .BR eval\ $(mon\ node\ show\ \fInodename\fR)
 .RE
+.SS status
+.TP
+.BR mon\ node\ status
+Show the status of all nodes configured in the running \fImerlin daemon\fR.
+Red text points to problem areas, such as:
+.IP \[bu] 2
+High latency
+.IP \[bu]
+The node being inactive
+.IP \[bu]
+Not handling any checks
+.IP \[bu]
+Sending regular enough \fIprogram_status\fR updates.
 .SS OCONF
 Documentation coming FOO.
 .SS QH
