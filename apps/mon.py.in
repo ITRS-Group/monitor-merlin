@@ -330,6 +330,9 @@ else:
 			args = rem_args
 
 	ret = commands[cmd](args)
-	if isinstance(ret, int):
+	if isinstance(ret, bool):
+		if ret == False:
+			sys.exit(1)
+	elif isinstance(ret, int):
 		sys.exit(ret)
 	sys.exit(0)
