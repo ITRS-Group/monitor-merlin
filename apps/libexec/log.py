@@ -236,4 +236,4 @@ def purge_naemon_log_files(oldest):
 			except (ValueError):
 				# File doesn't match our desired pattern, so just leave it
 				pass
-	return 'True'
+	return True
