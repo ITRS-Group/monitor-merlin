@@ -75,6 +75,7 @@ Feature: A notification should always be handled by the owning node.
 		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostA;PONG;4;testCase;A little comment
 
 		Then the_poller received event EXTERNAL_COMMAND
+		And no service notification was sent
 
 
 	Scenario: Custom host notifications sent to Naemon should be blocked and
@@ -87,6 +88,7 @@ Feature: A notification should always be handled by the owning node.
 		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;hostA;4;testCase;A little comment
 
 		Then the_poller received event EXTERNAL_COMMAND
+		And no host notification was sent
 
 
 	Scenario: Service notifications have been generated and a peer has handled
@@ -487,3 +489,253 @@ Feature: A notification should always be handled by the owning node.
         When I send naemon command ACKNOWLEDGE_SVC_PROBLEM;hostA;PONG;1;1;1;tester;Ack
 
         Then no service notification was sent
+
+
+ 	  Scenario: Custom host notifications sent to Naemon should be executed
+			on the master if the poller owns the service but doesn't notify.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup   | notifies |
+			| poller | the_poller  | 4002 | pollergroup | no       |
+
+		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;hostA;4;testCase;A little comment
+
+		Then the_poller should not receive EXTERNAL_COMMAND
+			| command_type   | 159                              |
+			| command_string | SEND_CUSTOM_HOST_NOTIFICATION    |
+		And 1 host notification was sent
+			| parameter         | value    |
+			| hostname          | hostA    |
+
+
+ 	  Scenario: Custom host notifications executed from a poller should be
+			executed on the master if the poller owns the host but doesn't notify.
+
+		Given I have merlin config notifies set to no
+		And I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup |
+			| master | the_master  | 4002 | ignore    |
+
+		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;hostA;4;testCase;A little comment
+
+		Then the_master received event EXTERNAL_COMMAND
+			| command_type   | 159                               |
+			| command_string | SEND_CUSTOM_HOST_NOTIFICATION     |
+		And no host notification was sent
+
+
+ 	  Scenario: Custom host notifications executed from a poller should not be
+			sent to the master if the poller owns the service and is set to notify
+
+		Given I have merlin config notifies set to yes
+		And I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup |
+			| master | the_master  | 4002 | ignore    |
+
+		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;hostA;4;testCase;A little comment
+
+		Then the_master should not receive EXTERNAL_COMMAND
+			| command_type   | 159                               |
+			| command_string | SEND_CUSTOM_HOST_NOTIFICATION     |
+		And 1 host notification was sent
+			| parameter         | value    |
+			| hostname          | hostA    |
+
+
+ 	  Scenario: Custom host notifications should be sent to peers, if the peer
+			checks the service
+
+		Given I start naemon with merlin nodes connected
+			| type | name        | port | hostgroup |
+			| peer | the_peer    | 4002 | ignore    |
+
+		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;hostA;4;testCase;A little comment
+
+		Then the_peer received event EXTERNAL_COMMAND
+			| command_type   | 159                              |
+			| command_string | SEND_CUSTOM_HOST_NOTIFICATION    |
+		And no host notification was sent
+
+
+ 	  Scenario: Custom host notifications should not be sent to peers, if the 
+			this node checks the service. This node should also send a notification
+
+		Given I have merlin config notifies set to yes
+		And I start naemon with merlin nodes connected
+			| type | name        | port | hostgroup |
+			| peer | the_peer    | 4002 | ignore    |
+
+		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;hostB;4;testCase;A little comment
+
+		Then the_peer should not receive EXTERNAL_COMMAND
+			| command_type   | 159                              |
+			| command_string | SEND_CUSTOM_HOST_NOTIFICATION    |
+		And 1 host notification was sent
+			| parameter         | value    |
+			| hostname          | hostB    |
+
+
+ 	  Scenario: Peers should recieve custom host notifcations even if it should
+			be handled by a poller.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup   |
+			| peer   | the_peer    | 4002 | ignore      |
+			| poller | the_poller  | 4003 | pollergroup |
+
+		When I send naemon command SEND_CUSTOM_HOST_NOTIFICATION;hostA;4;testCase;A little comment
+
+		Then the_peer received event EXTERNAL_COMMAND
+			| command_type   | 159                              |
+			| command_string | SEND_CUSTOM_HOST_NOTIFICATION    |
+		And the_poller received event EXTERNAL_COMMAND
+			| command_type   | 159                              |
+			| command_string | SEND_CUSTOM_HOST_NOTIFICATION    |
+		And no service notification was sent
+
+
+ 	  Scenario: Custom service notifications sent to Naemon should be executed
+			on the master if the poller owns the service but doesn't notify.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup   | notifies |
+			| poller | the_poller  | 4002 | pollergroup | no       |
+
+		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostA;PONG;4;testCase;A little comment
+
+		Then the_poller should not receive EXTERNAL_COMMAND
+			| command_type   | 160                              |
+			| command_string | SEND_CUSTOM_SVC_NOTIFICATION     |
+		And 1 service notification was sent
+			| parameter         | value    |
+			| hostname          | hostA    |
+			| servicedesc       | PONG     |
+
+
+ 	  Scenario: Custom service notifications executed from a poller should be
+			executed on the master if the poller owns the service but doesn't notify.
+
+		Given I have merlin config notifies set to no
+		And I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup |
+			| master | the_master  | 4002 | ignore    |
+
+		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostA;PONG;4;testCase;A little comment
+
+		Then the_master received event EXTERNAL_COMMAND
+			| command_type   | 160                              |
+			| command_string | SEND_CUSTOM_SVC_NOTIFICATION     |
+		And no service notification was sent
+
+
+ 	  Scenario: Custom service notifications executed from a poller should not be
+			sent to the master if the poller owns the service and is set to notify
+
+		Given I have merlin config notifies set to yes
+		And I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup |
+			| master | the_master  | 4002 | ignore    |
+
+		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostA;PONG;4;testCase;A little comment
+
+		Then the_master should not receive EXTERNAL_COMMAND
+			| command_type   | 160                              |
+			| command_string | SEND_CUSTOM_SVC_NOTIFICATION     |
+		And 1 service notification was sent
+			| parameter         | value    |
+			| hostname          | hostA    |
+			| servicedesc       | PONG     |
+
+
+ 	  Scenario: Custom service notifications should be sent to peers, if the peer
+			checks the service
+
+		Given I start naemon with merlin nodes connected
+			| type | name        | port | hostgroup |
+			| peer | the_peer    | 4002 | ignore    |
+
+		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostA;PONG;4;testCase;A little comment
+
+		Then the_peer received event EXTERNAL_COMMAND
+			| command_type   | 160                              |
+			| command_string | SEND_CUSTOM_SVC_NOTIFICATION     |
+
+
+ 	  Scenario: Custom service notifications should not be sent to peers, if the
+			this node checks the service. This node should also send a notification
+
+		Given I have merlin config notifies set to yes
+		And I start naemon with merlin nodes connected
+			| type | name        | port | hostgroup |
+			| peer | the_peer    | 4002 | ignore    |
+
+		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostB;PONG;4;testCase;A little comment
+
+		Then the_peer should not receive EXTERNAL_COMMAND
+			| command_type   | 160                              |
+			| command_string | SEND_CUSTOM_SVC_NOTIFICATION     |
+		And 1 service notification was sent
+			| parameter         | value    |
+			| hostname          | hostB    |
+			| servicedesc       | PONG     |
+
+
+ 	  Scenario: Peers should recieve custom service notifcations even if it should
+			be handled by a poller.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup   |
+			| peer   | the_peer    | 4002 | ignore      |
+			| poller | the_poller  | 4003 | pollergroup |
+
+		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostA;PONG;4;testCase;A little comment
+
+		Then the_peer received event EXTERNAL_COMMAND
+			| command_type   | 160                              |
+			| command_string | SEND_CUSTOM_SVC_NOTIFICATION     |
+		And the_poller received event EXTERNAL_COMMAND
+			| command_type   | 160                              |
+			| command_string | SEND_CUSTOM_SVC_NOTIFICATION     |
+
+
+ 	  Scenario: If two peered pollers have notifies=no then this node should
+			handle custom notifications.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup   | notifies |
+			| poller | poller1     | 4002 | pollergroup | no       |
+			| poller | poller2     | 4003 | pollergroup | no       |
+			| peer   | peer        | 4004 | ignore      | yes      |
+
+		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostA;PONG;4;testCase;A little comment
+
+		Then poller1 should not receive EXTERNAL_COMMAND
+			| command_type   | 160                              |
+			| command_string | SEND_CUSTOM_SVC_NOTIFICATION     |
+		And poller2 should not receive EXTERNAL_COMMAND
+			| command_type   | 160                              |
+			| command_string | SEND_CUSTOM_SVC_NOTIFICATION     |
+		And 1 service notification was sent
+			| parameter         | value    |
+			| hostname          | hostA    |
+			| servicedesc       | PONG     |
+
+
+ 	  Scenario: If one of two peered pollers have notifies=no then this node should
+			not send out custom notifications for objects handled on the pollers.
+
+		Given I start naemon with merlin nodes connected
+			| type   | name        | port | hostgroup   | notifies |
+			| poller | poller1     | 4002 | pollergroup | yes      |
+			| poller | poller2     | 4003 | pollergroup | no       |
+			| peer   | peer        | 4004 | ignore      | yes      |
+
+		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostA;PONG;4;testCase;A little comment
+
+		Then poller1 received event EXTERNAL_COMMAND
+			| command_type   | 160                              |
+			| command_string | SEND_CUSTOM_SVC_NOTIFICATION     |
+		And poller2 received event EXTERNAL_COMMAND
+			| command_type   | 160                              |
+			| command_string | SEND_CUSTOM_SVC_NOTIFICATION     |
+		And no service notification was sent

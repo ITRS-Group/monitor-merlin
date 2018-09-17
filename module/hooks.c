@@ -717,6 +717,18 @@ static int hook_external_command(merlin_event *pkt, void *data)
 			}
 
 			node = pgroup_host_node(this_host->id);
+			/* If we are handling a custom notification, then we need a few extra
+ 		 	 * checks to ensure notifications are sent by the master if the
+ 		 	 * responsible node has notifies=no.
+			 */
+			if (ds->command_type == CMD_SEND_CUSTOM_HOST_NOTIFICATION &&
+				((!(node->flags & MERLIN_NODE_NOTIFIES) && node != &ipc  && node->type == MODE_POLLER) ||
+				( node == &ipc && (node->flags & MERLIN_NODE_NOTIFIES)))) {
+				/* as we handle the notification on this system, we do not send out
+				 * the external command to other nodes
+				 */
+				return NEB_OK;
+			}
 			if (node != &ipc) {
 				/* We're not responsible, so block this command here */
 				cb_result = NEBERROR_CALLBACKCANCEL;
@@ -766,7 +778,19 @@ static int hook_external_command(merlin_event *pkt, void *data)
 			}
 
 			node = pgroup_service_node(this_service->id);
-			if (node != &ipc) {
+			/* If we are handling a custom notification, then we need a few extra
+ 		 	 * checks to ensure notifications are sent by the master if the
+ 		 	 * responsible node has notifies=no.
+			 */
+			if (ds->command_type == CMD_SEND_CUSTOM_SVC_NOTIFICATION &&
+				((!(node->flags & MERLIN_NODE_NOTIFIES) && node != &ipc && node->type == MODE_POLLER) ||
+				( node == &ipc && (node->flags & MERLIN_NODE_NOTIFIES)))) {
+				/* as we handle the notification on this system, we do not send out
+				 * the external command to other nodes
+				 */
+				return NEB_OK;
+			}
+			else if (node != &ipc) {
 				/* We're not responsible, so block this command here */
 				cb_result = NEBERROR_CALLBACKCANCEL;
 			}
@@ -830,8 +854,9 @@ static int hook_external_command(merlin_event *pkt, void *data)
 			return 0;
 		}
 
-		if (!merlin_sender)
+		if (!merlin_sender) {
 			pkt->hdr.selection = DEST_PEERS_POLLERS;
+		}
 		break;
 	}
 
@@ -1009,8 +1034,17 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 				"Notification will be handled by a poller (%s)",
 				owning_node->name);
 		} else {
+			unsigned int i;
+			int pollers_can_notify = 0;
 			/* Poller can't notify, who should handle it instead? */
-			if (num_peers == 0 || should_run_check(object_id)) {
+			/* First we check if any of the active pollers can notify */
+			for (i = 0; i < owning_node->pgroup->active_nodes; i++) {
+				merlin_node *node = owning_node->pgroup->nodes[i];
+				if (node->flags & MERLIN_NODE_NOTIFIES) {
+					pollers_can_notify++;
+				}
+			}
+			if (num_peers == 0 || should_run_check(object_id) || pollers_can_notify == 0) {
 				notif_stats->sent++;
 				ldebug("notif: Poller can't notify, notifying in its place");
 				return neb_cb_result_create(0);
