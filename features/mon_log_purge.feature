@@ -2,7 +2,11 @@
 
 Feature: Testing "mon log purge" command for proper functioning
 	Background: Set up merlin 
-		Given I start merlin
+		Given I have merlin configured for port 7000
+			| type | name | port | connect |
+
+		And I start merlin
+		And I wait for 1 second
 
 	Scenario: check mon log purge command if only one host present
 		Given I have the following report_data in the database
