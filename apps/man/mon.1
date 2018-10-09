@@ -113,7 +113,7 @@ Lists all nodes of the (optionally) specified \fItype\fR.
 Documentation missing.
 .SS remove
 .TP
-.BR mon\ node\ remove\ \fIname1\fR\ [nameN]\ ...
+.BR mon\ node\ remove\ \fI<name1>\fR\ [nameN]\ ...
 .SS show
 .TP
 .BR mon\ node\ show\ \fR[\-\-type=poller,peer,master]
@@ -137,7 +137,48 @@ Not handling any checks
 .IP \[bu]
 Sending regular enough \fIprogram_status\fR updates.
 .SS OCONF
-Documentation coming FOO.
+.SS changed
+.TP
+.BR mon\ oconf\ changed
+Print the last modification time among all object configuration files.
+Time is printed in the unix epoch time format.
+.SS fetch
+.TP
+.BR mon\ oconf\ fetch\ \fI<name>\fR
+Used by a \fIpoller\fR that is not reachable by it's \fImaster\fR to request that the \fImaster\fR sends object configuration.
+This is the opposite of \fBpush\fR.
+A notable difference is that the \fI<name>\fR of the \fImaster\fR needs to be specified, instead of using \fItype\fR or similar.
+.SS files
+.TP
+.BR mon\ oconf\ files
+Print a list of the \fInaemon\fR object configuration files in alphabetical order.
+.SS hash
+.TP
+.BR mon\ oconf\ hash
+Print a \fISHA1\fR hash of the running configuration.
+.SS hglist
+.TP
+.BR mon\ oconf\ hglist
+Print a sorted list of all configured hostgroups.
+.SS nodesplit
+.TP
+.BR mon\ oconf\ nodesplit
+Same as \fIsplit\fR, but uses merlin's configuration to split the configuration into files suitable for poller consumption.
+Used internally by \fB mon oconf push\fR.
+.SS poller-fix
+.TP
+.BR mon\ oconf\ poller-fix
+Fixes object configuration setup to be suitable for a \fIpoller\fR.
+If this \fInode\fR is not a \fIpoller\fR, no changes will be made.
+.SS push
+.TP
+.B mon\ oconf\ push\ \fR\e
+[\-\-no-restart] [\-\-push\=oconf,extras,bsm] [\-\-dryrun] [\fI<node1> <node2> <nodeN>\fR]
+.fi
+.PP
+Splits configuration based on \fImerlin's\fR peer and poller configuration and sends object configuration to all \fIpeers\fR and \fIpollers\fR, restarting those that receive a configuration update.
+SSH keys need to be set up for this to be usable without admin supervision.
+This command uses 'nodesplut' as its backend.
 .SS QH
 Documentation coming soon.
 .SS QUERY
