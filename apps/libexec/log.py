@@ -219,7 +219,9 @@ def cmd_purge(args):
 		return True
 	conn = merlin_db.connect(mconf)
 	dbc = conn.cursor()
+	print "Deleting old notifications from table 'notification'..."
 	dbc.execute('DELETE FROM notification WHERE end_time < %s', [int(oldest)])
+	print "Deleting old report data from table 'report_data'..."
 	dbc.execute('DELETE FROM report_data WHERE id NOT IN (SELECT id FROM (SELECT MAX(id) AS id FROM report_data WHERE timestamp < %s GROUP BY service_description, host_name) as tbl) AND timestamp < %s', [int(oldest),int(oldest)])
 	conn.commit()
 
@@ -232,6 +234,7 @@ def purge_naemon_log_files(oldest):
 		for log in glob.glob("%s/%s*" % (archive_dir, key)):
 			try:
 				if time.mktime(time.strptime(log, "%s/%s" % (archive_dir, logformat[key]))) < oldest:
+					print "Deleting logfile: " + str(log)
 					os.remove(log)
 			except (ValueError):
 				# File doesn't match our desired pattern, so just leave it
