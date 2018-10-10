@@ -60,19 +60,19 @@ Documentation coming soon.
 .SS NODE
 .SS add
 .TP
-.BR mon\ node\ add\ \fR<name>\ \-\-type=[peer|poller|master]\ [var\fIN\fR=\fIvalue]\ ...\fR
+.BR mon\ node\ add\ \fI<name>\fR\ \-\-type=[peer|poller|master]\ [var\fIN\fR=\fIvalue]\ ...\fR
 Adds a node with the designated
 .I type
 and
 .I variables.
 .SS ctrl
 .nf
-.B mon\ node\ ctrl\fR\ <name>\ ...\ \e
+.B mon\ node\ ctrl\fI\ <name>\fR\ ...\ \e
 [--self] [--all|--type=[peer|poller|master]]\ \-\-\ \fIcommand\fR
 .fi
 .PP
 Executes \fIcommand\fR on the [remote] node(s) named.
-If \fIname\fR is not specified the \fIcommand\fR will run on all \fInodes\fR except itself.
+If \fIname\fR is not specified the \fIcommand\fR will run on all nodes except itself.
 .PP
 Optional arguments:
 .TP
@@ -80,10 +80,10 @@ Optional arguments:
 Also run the \fIcommand\fR on the local system. This is not done unless explicitly specified by this flag.
 .TP
 .BR \-\-all
-Run \fIcommand\fR on all configured \fInodes\fR.
+Run \fIcommand\fR on all configured nodes.
 .TP
 .BR \-\-type
-Run \fIcommand\fR on configured \fInodes\fR of the given \fItype\fR.
+Run \fIcommand\fR on configured nodes of the given \fItype\fR.
 .TP
 .BR \-\-
 Stop argument scanning.
@@ -104,7 +104,7 @@ Example:
 .SS info
 .TP
 .BR mon\ node\ info
-Prints verbose information about all merlin nodes.
+Prints verbose information about all \fImerlin\fR nodes.
 .SS list
 .TP
 .BR mon\ node\ list\ \fR[\-\-type=master,peer,poller]
@@ -113,7 +113,7 @@ Lists all nodes of the (optionally) specified \fItype\fR.
 Documentation missing.
 .SS remove
 .TP
-.BR mon\ node\ remove\ \fI<name1>\fR\ [nameN]\ ...
+.BR mon\ node\ remove\ \fI<name1>\ [nameN]\fR\ ...
 .SS show
 .TP
 .BR mon\ node\ show\ \fR[\-\-type=poller,peer,master]
@@ -121,7 +121,7 @@ Display all variables for all nodes, or for one node.
 Output is formatted in a fashion suitable for being used in shell scripts as:
 .PP
 .RS
-.BR eval\ $(mon\ node\ show\ \fInodename\fR)
+.BR eval\ $(mon\ node\ show\ \fI<name>\fB)
 .RE
 .SS status
 .TP
@@ -145,9 +145,9 @@ Time is printed in the unix epoch time format.
 .SS fetch
 .TP
 .BR mon\ oconf\ fetch\ \fI<name>\fR
-Used by a \fIpoller\fR that is not reachable by it's \fImaster\fR to request that the \fImaster\fR sends object configuration.
+Used by a poller that is not reachable by it's master to request that the master sends object configuration.
 This is the opposite of \fBpush\fR.
-A notable difference is that the \fI<name>\fR of the \fImaster\fR needs to be specified, instead of using \fItype\fR or similar.
+A notable difference is that the \fI<name>\fR of the master needs to be specified, instead of using \fItype\fR or similar.
 .SS files
 .TP
 .BR mon\ oconf\ files
@@ -163,22 +163,22 @@ Print a sorted list of all configured hostgroups.
 .SS nodesplit
 .TP
 .BR mon\ oconf\ nodesplit
-Same as \fIsplit\fR, but uses merlin's configuration to split the configuration into files suitable for poller consumption.
+Same as \fBsplit\fR, but uses merlin's configuration to split the configuration into files suitable for poller consumption.
 Used internally by \fB mon oconf push\fR.
 .SS poller-fix
 .TP
 .BR mon\ oconf\ poller-fix
-Fixes object configuration setup to be suitable for a \fIpoller\fR.
-If this \fInode\fR is not a \fIpoller\fR, no changes will be made.
+Fixes object configuration setup to be suitable for a poller.
+If this node is not a poller, no changes will be made.
 .SS push
 .TP
 .B mon\ oconf\ push\ \fR\e
 [\-\-no-restart] [\-\-push\=oconf,extras,bsm] [\-\-dryrun] [\fI<node1> <node2> <nodeN>\fR]
 .fi
 .PP
-Splits configuration based on \fImerlin's\fR peer and poller configuration and sends object configuration to all \fIpeers\fR and \fIpollers\fR, restarting those that receive a configuration update.
+Splits configuration based on \fImerlin's\fR peer and poller configuration and sends object configuration to all peers and pollers, restarting those that receive a configuration update.
 SSH keys need to be set up for this to be usable without admin supervision.
-This command uses 'nodesplut' as its backend.
+This command uses \fBnodesplit\fR as its backend.
 .SS QH
 Documentation coming soon.
 .SS QUERY
