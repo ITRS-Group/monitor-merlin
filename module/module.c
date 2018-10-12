@@ -297,12 +297,12 @@ void schedule_expiration_event(int type, merlin_node *node, void *obj)
 
 	if (type == SERVICE_CHECK) {
 		s = (struct service *)obj;
-		when = service_check_timeout * 2;
+		when = service_check_timeout + get_service_check_interval_s(s);
 		if (service_expiry_map[s->id] != NULL)
 			return;
 	} else {
 		h = (struct host *)obj;
-		when = host_check_timeout * 2;
+		when = host_check_timeout + get_host_check_interval_s(h);
 		if (host_expiry_map[h->id] != NULL)
 			return;
 	}
