@@ -180,7 +180,16 @@ Splits configuration based on \fImerlin's\fR peer and poller configuration and s
 SSH keys need to be set up for this to be usable without admin supervision.
 This command uses \fBnodesplit\fR as its backend.
 .SS QH
-Documentation coming soon.
+.SS get
+.TP
+.BR mon\ qh\ get\ \-\-socket\=\fI<path>\ <query>
+Runs an arbitrary \fIquery\fR with the nagios query handler and pretty-prints the output.
+Queries need not include the trailing nulbyte or leading \(sh or \[at].
+.SS query
+.TP
+.BR mon\ qh\ query\ \-\-socket\=\fI<path>\ <query>
+Runs an arbitrary \fIquery\fR with the nagios query handler and prints its raw output.
+Queries need not include the trailing nulbyte or leading \(sh or \[at].
 .SS QUERY
 Documentation coming soon.
 .SS SOP
