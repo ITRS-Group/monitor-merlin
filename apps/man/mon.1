@@ -190,6 +190,13 @@ Queries need not include the trailing nulbyte or leading \(sh or \[at].
 .BR mon\ qh\ query\ \-\-socket\=\fI<path>\ <query>
 Runs an arbitrary \fIquery\fR with the nagios query handler and prints its raw output.
 Queries need not include the trailing nulbyte or leading \(sh or \[at].
+.PP
+.RS
+Find out more information about handlers using the \fBhelp\fR query:
+.TP
+.BR mon\ qh\ query\ help\ \fR[\ \fI<name>\fR\ |\ list\ ]
+Show more information about \fIname\fR or print a list of registered handlers.
+.RE
 .SS QUERY
 Documentation coming soon.
 .SS SOP
