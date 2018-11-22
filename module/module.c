@@ -1319,8 +1319,8 @@ static int post_config_init(int cb, void *ds)
 	}
 	if (*(int *)ds == NEBTYPE_PROCESS_EVENTLOOPSTART) {
 		if (host_check_node != NULL) {
-			/* only call this function once */
-			neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);
+			/* ensure we do not do anything if already run */
+			return 0;
 		}
 		/* required for the 'nodeinfo' query through the query handler */
 		host_check_node = calloc(num_objects.hosts, sizeof(merlin_node *));
