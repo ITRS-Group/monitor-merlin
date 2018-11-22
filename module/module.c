@@ -1318,14 +1318,15 @@ static int post_config_init(int cb, void *ds)
 		return 0;
 	}
 	if (*(int *)ds == NEBTYPE_PROCESS_EVENTLOOPSTART) {
+		if (host_check_node != NULL) {
+			/* only call this function once */
+			neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);
+		}
 		/* required for the 'nodeinfo' query through the query handler */
 		host_check_node = calloc(num_objects.hosts, sizeof(merlin_node *));
 		service_check_node = calloc(num_objects.services, sizeof(merlin_node *));
 		host_expiry_map = calloc(num_objects.hosts, sizeof(timed_event *));
 		service_expiry_map = calloc(num_objects.services, sizeof(timed_event *));
-
-		/* only call this function once */
-		neb_deregister_callback(NEBCALLBACK_PROCESS_DATA, post_config_init);
 
 		linfo("Object configuration parsed.");
 		if (pgroup_init() < 0)
