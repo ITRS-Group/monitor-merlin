@@ -35,6 +35,7 @@ Feature: Notification execution for host notificaitons
 			| default-contact | myContact    |
 
 	Scenario: One master notifies if poller doesn't notify, given merlin HOST_CHECK events is received
+		This node should notify for hostB
 		Given I start naemon with merlin nodes connected
 			| type   | name       | port | hostgroup   | notifies |
 			| poller | the_poller | 4001 | pollergroup | no       |
@@ -52,8 +53,8 @@ Feature: Notification execution for host notificaitons
 			| state.state_type         | 1        |
 			| state.current_state      | 1        |
 			| state.current_attempt    | 2        |
-            | state.plugin_output      | 1st line |
-            | state.long_plugin_output | 2nd line |
+			| state.plugin_output      | 1st line |
+			| state.long_plugin_output | 2nd line |
 		And I wait for 1 second
 
 		Then 1 host notification was sent
@@ -63,6 +64,31 @@ Feature: Notification execution for host notificaitons
 			| notificationtype | PROBLEM  |
 			| hostoutput       | 1st line |
 			| longhostoutput   | 2nd line |
+
+	Scenario: One master notifies if poller doesn't notify, given merlin HOST_CHECK events is received
+		A peer should notify for hostA, so this should not notify
+		Given I start naemon with merlin nodes connected
+			| type   | name       | port | hostgroup   | notifies |
+			| poller | the_poller | 4001 | pollergroup | no       |
+			| peer   | the_peer   | 4002 | ignore      | ignore   |
+
+		And the_poller sends event HOST_CHECK
+			| name                     | hostA    |
+			| state.state_type         | 0        |
+			| state.current_state      | 1        |
+			| state.current_attempt    | 1        |
+			| state.plugin_output      | 1st line |
+			| state.long_plugin_output | 2nd line |
+		And the_poller sends event HOST_CHECK
+			| name                     | hostA    |
+			| state.state_type         | 1        |
+			| state.current_state      | 1        |
+			| state.current_attempt    | 2        |
+			| state.plugin_output      | 1st line |
+			| state.long_plugin_output | 2nd line |
+		And I wait for 1 second
+
+		Then no host notification was sent
 
 	Scenario: No masters notifies if poller notifies, given merlin HOST_CHECK events is received
 		Given I start naemon with merlin nodes connected

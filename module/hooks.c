@@ -1044,7 +1044,7 @@ static neb_cb_result * hook_notification(merlin_event *pkt, void *data)
 					pollers_can_notify++;
 				}
 			}
-			if (num_peers == 0 || should_run_check(object_id) || pollers_can_notify == 0) {
+			if ((num_peers == 0 || should_run_check(object_id)) && pollers_can_notify == 0) {
 				notif_stats->sent++;
 				ldebug("notif: Poller can't notify, notifying in its place");
 				return neb_cb_result_create(0);
