@@ -730,7 +730,7 @@ Feature: A notification should always be handled by the owning node.
 			| poller | poller2     | 4003 | pollergroup | no       |
 			| peer   | peer        | 4004 | ignore      | yes      |
 
-		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostA;PONG;4;testCase;A little comment
+		When I send naemon command SEND_CUSTOM_SVC_NOTIFICATION;hostB;PONG;4;testCase;A little comment
 
 		Then poller1 received event EXTERNAL_COMMAND
 			| command_type   | 160                              |
