@@ -762,7 +762,6 @@ static int hook_external_command(merlin_event *pkt, void *data)
 			}
 			else if (node != &ipc) {
 				/* We're not responsible, so block this command here */
-				linfo("We are not responsible for this check");
 				cb_result = NEBERROR_CALLBACKCANCEL;
 			}
 			break;
