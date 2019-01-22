@@ -3,7 +3,7 @@
 # 140307 peklof@op5.com
 
 # Default to op5 Monitor's livestatus socket path.
-[ -n "$LS_SOCK" ] || LS_SOCK='/opt/monitor/var/rw/live'
+[ -n "$LS_SOCK" ] || LS_SOCK='/opt/monitor/var/rw/live_tmp'
 # Sane default
 IFS=$' \t\n'
 
