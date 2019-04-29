@@ -5,7 +5,7 @@
 	sharedscripts
 	missingok
 	postrotate
-		VERSION=$(cat /etc/os-release|grep 'VERSION_ID'|awk -F"\"" '{print $2}')
+		VERSION=$(awk -F= '/^VERSION_ID/ { print gensub(/\"([0-9]+).*/,"\\1","",$2) }' /etc/os-release)
 		if [[ "$VERSION" -ge 7 ]]; then
 			systemctl try-restart naemon > /dev/null 2>&1
 			systemctl try-restart merlind > /dev/null 2>&1
