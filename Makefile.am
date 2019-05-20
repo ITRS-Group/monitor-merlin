@@ -23,6 +23,7 @@ mon_SCRIPTS = \
 	apps/libexec/qh.py \
 	apps/libexec/query.ls.sh \
 	apps/libexec/query.lsq.sh \
+	apps/libexec/reportdata.py \
 	apps/libexec/restart.sh \
 	apps/libexec/sshkey.fetch.sh \
 	apps/libexec/sshkey.push.sh \
