@@ -7,6 +7,7 @@
 
 #include <time.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <naemon/naemon.h>
 
 /*
@@ -53,6 +54,7 @@ extern int pulse_interval;
 extern int node_activity_check_interval;
 extern int debug;
 extern char *binlog_dir;
+extern bool binlog_persist;
 extern char *merlin_config_file;
 extern unsigned long long int binlog_max_memory_size;
 extern unsigned long long int binlog_max_file_size;

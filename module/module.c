@@ -1478,6 +1478,10 @@ static void post_process_nodes(void)
 			lerr("Failed to create buffer queue for node %s. Aborting", node->name);
 		}
 
+		/* Read previously saved binlog from file and save it in
+		 * the nodes new binlog */
+		node_binlog_read_saved(node);
+
 		/*
 		 * this lets us support multiple merlin instances on
 		 * a single system, but all instances on the same
@@ -1635,6 +1639,11 @@ int nebmodule_deinit(__attribute__((unused)) int flags, __attribute__((unused)) 
 	nm_bufferqueue_destroy(ipc.bq);
 	for (i = 0; i < num_nodes; i++) {
 		struct merlin_node *node = node_table[i];
+		/* Save nodes binlog to file if binlog persistence is enabled */
+		if (binlog_persist == true) {
+			binlog_save(node->binlog);
+		}
+
 		free(node->name);
 		free(node->source_name);
 		free(node->hostgroups);

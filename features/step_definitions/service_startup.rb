@@ -77,6 +77,7 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
     binlog_dir = #{@merlinnodeconfig.get_var("binlog_dir")};
     binlog_max_memory_size = #{@merlinnodeconfig.get_var("binlog_max_memory_size")};
     binlog_max_file_size = #{@merlinnodeconfig.get_var("binlog_max_file_size")};
+    binlog_persist = #{@merlinnodeconfig.get_var("binlog_persist")};
 
     module {
       log_file = merlin.log;
@@ -144,4 +145,10 @@ end
 When(/^I submit the following livestatus query$/) do |query|
 	livestatus_socket_path = "live"
 	step "I submit the following livestatus query to #{livestatus_socket_path}", query
+end
+
+Given(/^I have a saved binlog$/) do
+  binlog_data_path = Dir.pwd + "/features/data"
+  step "I start command cp #{binlog_data_path}/module.my-peer.binlog.save ."
+  step "I start command cp #{binlog_data_path}/module.my-peer.binlog.meta ."
 end

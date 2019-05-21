@@ -51,3 +51,94 @@ Feature: Binlog
 		And my-peer becomes disconnected
 		And I send a passive check result for service PONG on host hostA with 2 MiB output data
 		Then file merlin.log matches WARNING: Maximum binlog size reached for node my-peer
+
+	Scenario: Binlog is saved on disk for persistence if nodes are
+		disconnected and we restart this nodes.
+		Given I start naemon with merlin nodes connected
+			| type   | name    | port | data_timeout |
+			| peer   | my-peer | 4001 | 1            |
+		And I wait for 2 seconds
+
+		When my-peer becomes disconnected
+		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Fromtest
+		And I send naemon command SHUTDOWN_PROGRAM
+		And I wait for 2 seconds
+		Then the file module.my-peer.binlog.save should exist
+		And the file module.my-peer.binlog.meta should exist
+
+	Scenario: Binlog is not saved on disk when nodes are connected
+		Given I start naemon with merlin nodes connected
+			| type   | name    | port |
+			| peer   | my-peer | 4001 |
+		And I wait for 1 seconds
+
+		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Fromtest
+		And I wait for 2 seconds
+		And I send naemon command SHUTDOWN_PROGRAM
+		Then the file module.my-peer.binlog.save should not exist
+		And the file module.my-peer.binlog.meta should not exist
+
+	Scenario: Saved binlog is loaded and deleted when naemon starts
+		Given I start naemon with merlin nodes connected
+			| type   | name    | port | data_timeout |
+			| peer   | my-peer | 4001 | 1            |
+		And I wait for 2 seconds
+
+		When my-peer becomes disconnected
+		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Fromtest
+		And I send naemon command RESTART_PROGRAM
+		And I wait for 2 seconds
+		Then the file module.my-peer.binlog.save should not exist
+		And the file module.my-peer.binlog.meta should not exist
+
+	Scenario: Saved binlog is sent to peer after restart.
+		Given I have a saved binlog
+		And I start naemon with merlin nodes connected
+			| type   | name    | port |
+			| peer   | my-peer | 4001 |
+
+		And I wait for 2 seconds
+		# Binlog is sent right before we send normal events.
+		# To ensure the binlog is sent, we send a small event first
+		And I send naemon command START_EXECUTING_HOST_CHECKS
+
+		Then the file module.my-peer.binlog.save should not exist
+		And the file module.my-peer.binlog.meta should not exist
+		And my-peer received event HOST_CHECK
+			| state.plugin_output | Fromtest |
+			| state.current_state | 1        |
+		And my-peer received event EXTERNAL_COMMAND
+			| command_type   | 87                        |
+			| command_string | PROCESS_HOST_CHECK_RESULT |
+			| command_args   | hostA;1;Fromtest          |
+
+	Scenario: Binlog is NOT saved on disk if binlog persist is disabled
+		Given I have merlin config binlog_persist set to 0
+		And I start naemon with merlin nodes connected
+			| type   | name    | port | data_timeout |
+			| peer   | my-peer | 4001 | 1            |
+		And I wait for 2 seconds
+
+		When my-peer becomes disconnected
+		And I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Fromtest
+		And I send naemon command SHUTDOWN_PROGRAM
+		And I wait for 2 seconds
+		Then the file module.my-peer.binlog.save should not exist
+		And the file module.my-peer.binlog.meta should not exist
+
+	Scenario: Saved binlog is not touched or sent to peer after restart if
+		binlog persist is disabled.
+		Given I have a saved binlog
+		And I have merlin config binlog_persist set to 0
+		And I start naemon with merlin nodes connected
+			| type   | name    | port |
+			| peer   | my-peer | 4001 |
+
+		And I wait for 2 seconds
+		# Binlog is sent right before we send normal events. We
+		# to ensure the binlog is sent, we send a small event first
+		And I send naemon command START_EXECUTING_HOST_CHECKS
+
+		Then the file module.my-peer.binlog.save should exist
+		And the file module.my-peer.binlog.meta should exist
+		And my-peer should not receive HOST_CHECK
