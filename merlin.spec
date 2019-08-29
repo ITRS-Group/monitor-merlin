@@ -21,6 +21,7 @@
 # re-define service_control_function to use el7 commands
 %define create_service_control_function function service_control_function () { systemctl $1 $2; };
 %endif
+%define operator_group mon_operators
 
 Summary: The merlin daemon is a multiplexing event-transport program
 Name: merlin
@@ -229,6 +230,9 @@ chown -R %daemon_user:%daemon_group %_localstatedir/cache/merlin
 for daemon in merlind nrpe; do
     service_control_function restart $daemon
 done
+
+# Create operator group for use in sudoers
+getent group %operator_group > /dev/null || groupadd %operator_group
 
 %preun -n monitor-merlin
 %create_service_control_function
