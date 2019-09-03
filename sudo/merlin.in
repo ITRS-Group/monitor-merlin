@@ -1,3 +1,15 @@
 Defaults:@naemon_user@ !requiretty
 @naemon_user@ ALL=(root) NOPASSWD:/usr/bin/mon restart
 @naemon_user@ ALL=(root) NOPASSWD:/usr/bin/op5 restart
+
+Cmnd_Alias      MON_OPERATOR =  /usr/bin/mon node status,\
+        /usr/bin/mon node list *,\
+        /usr/bin/mon node show *,\
+        /usr/bin/mon check exectime *,\
+        /usr/bin/mon check latency *,\
+        /usr/bin/mon check orphans,\
+        /usr/bin/mon start,\
+        /usr/bin/mon stop,\
+        /usr/bin/mon restart
+
+%mon_operators  ALL = (ALL) NOPASSWD: MON_OPERATOR
