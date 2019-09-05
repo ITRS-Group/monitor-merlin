@@ -65,6 +65,7 @@ def cmd_status(args):
 	mentioned = {}
 	pg_oconf_hash = {}
 	pg_conf = {}
+	exit_code = 0
 
 	sinfo = list(get_merlin_nodeinfo(query_socket))
 
@@ -125,6 +126,7 @@ def cmd_status(args):
 			name += ": %sACTIVE%s - %s%.3fs%s latency" % (color.green, color.reset, lat_color, latency, color.reset)
 		else:
 			name += " (%sINACTIVE%s)" % (color.red, color.reset)
+			exit_code = 1
 
 		print("%s" % name)
 
@@ -248,6 +250,7 @@ def cmd_status(args):
 			print("  peer-group %d: %s" % (pg_id, ', '.join(bad)))
 		print("%sPlease ensure that all peered nodes share neighbours%s" %
 			(color.yellow, color.reset))
+	return exit_code
 
 
 ## node commands ##
