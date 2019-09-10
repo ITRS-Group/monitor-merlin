@@ -71,7 +71,7 @@ def cmd_status(args):
 
 	if not sinfo:
 		print("Found no checks")
-		return
+		return 1
 
 	host_checks = 0
 	service_checks = 0
