@@ -108,6 +108,7 @@ network monitoring setup.
 Summary: Test files for merlin
 Group: op5/Monitor
 Requires: monitor-livestatus
+Requires: op5-lmd
 Requires: op5-naemon
 Requires: merlin merlin-apps monitor-merlin
 BuildRequires: diffutils
