@@ -8,6 +8,7 @@ post:
     - ruby-devel
     - python-nose
   steps: |
+    yum update -y
     mkdir --parents --mode=777 /mnt/logs/merlin_dtest
     mon test dist --basepath=/mnt/logs/merlin_dtest
     mon test rsync
