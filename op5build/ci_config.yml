@@ -36,6 +36,12 @@ post:
     ulimit -c unlimited
     mkdir -p /mnt/logs
     echo "core ulimit: \$(ulimit -c)"
+
+    # Workaround for EL7.7 bug BZ#1731062 (https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/7.7_release_notes/known_issues)
+    if [ -f /usr/bin/systemctl ]; then
+      ln -s /usr/bin/resolveip /usr/libexec/resolveip
+    fi
+
     # skip systemd tests on EL6
     if [ -f /usr/bin/systemctl ]; then
       cucumber --strict --format html --out /mnt/logs/cucumber.html --format pretty
