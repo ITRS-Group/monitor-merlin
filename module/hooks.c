@@ -687,6 +687,7 @@ static int hook_external_command(merlin_event *pkt, void *data)
 	case CMD_CHANGE_CONTACT_SVC_NOTIFICATION_TIMEPERIOD:
 	case CMD_CHANGE_HOST_MODATTR:
 	case CMD_CHANGE_SVC_MODATTR:
+	case CMD_DEL_DOWNTIME_BY_HOST_NAME:
 		/*
 		 * looks like we have everything we need, so get the
 		 * selection based on the hostname so the daemon knows
