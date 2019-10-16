@@ -44,6 +44,7 @@ Requires: libdbi-dbd-mysql
 %if 0%{?rhel} >= 7
 BuildRequires: systemd
 BuildRequires: mariadb-devel
+Obsoletes: merlin-slim
 %else
 Requires: op5kad
 BuildRequires: mysql-devel
@@ -64,6 +65,30 @@ The merlin daemon is a multiplexing event-transport program designed to
 link multiple Nagios instances together. It can also inject status
 data into a variety of databases, using libdbi.
 
+%if 0%{?rhel} >= 7
+%package slim
+Summary: Slim version of the merlin daemon
+Requires: libaio
+Requires: merlin-apps-slim >= %version
+Requires: glib2
+Requires: libdbi
+Requires: libdbi-dbd-mysql
+BuildRequires: op5-naemon-devel
+BuildRequires: python
+BuildRequires: gperf
+BuildRequires: check-devel
+BuildRequires: autoconf, automake, libtool
+BuildRequires: glib2-devel
+BuildRequires: libdbi-devel
+BuildRequires: pkgconfig
+BuildRequires: pkgconfig(gio-unix-2.0)
+
+%description slim
+The merlin daemon is a multiplexing event-transport program designed to
+link multiple Nagios instances together. It can also inject status
+data into a variety of databases, using libdbi. This version of the package is
+slim version that installs fewer dependencies.
+%endif
 
 %package -n monitor-merlin
 Summary: A Nagios module designed to communicate with the Merlin daemon
@@ -71,12 +96,24 @@ Group: op5/Monitor
 Requires: op5-naemon, merlin = %version-%release
 Requires: monitor-config
 Requires: op5-monitor-supported-database
+Obsoletes: monitor-merlin-slim
 
 %description -n monitor-merlin
 monitor-merlin is an event broker module running inside Nagios. Its
 only purpose in life is to send events from the Nagios core to the
 merlin daemon, which then takes appropriate action.
 
+%if 0%{?rhel} >= 7
+%package -n monitor-merlin-slim
+Summary: A Nagios module designed to communicate with the Merlin daemon
+Group: op5/Monitor
+Requires: op5-naemon-slim, merlin-slim = %version-%release
+
+%description -n monitor-merlin-slim
+monitor-merlin is an event broker module running inside Nagios. Its
+only purpose in life is to send events from the Nagios core to the
+merlin daemon, which then takes appropriate action.
+%endif
 
 %package apps
 Summary: Applications used to set up and aid a merlin/ninja installation
@@ -91,6 +128,7 @@ Requires: MySQL-python
 Requires: libdbi
 %endif
 Obsoletes: monitor-distributed
+Obsoletes: merlin-apps-slim
 
 %description apps
 This package contains standalone applications required by Ninja and
@@ -103,6 +141,29 @@ sha1 checksums and the latest changed such file, as well as
 preparing object configuration for pollers, helping with ssh key
 management and allround tasks regarding administering a distributed
 network monitoring setup.
+
+
+%if 0%{?rhel} >= 7
+%package apps-slim
+Summary: Applications used to set up and aid a merlin/ninja installation
+Group: op5/Monitor
+Requires: rsync
+Requires: libdbi
+Requires: openssh
+Requires: openssh-clients
+
+%description apps-slim
+This package contains standalone applications required by Ninja and
+Merlin in order to make them both fully support everything that a
+fully fledged op5 Monitor install is supposed to handle.
+'mon' works as a single entry point wrapper and general purpose helper
+tool for those applications and a wide variety of other different
+tasks, such as showing monitor's configuration files, calculating
+sha1 checksums and the latest changed such file, as well as
+preparing object configuration for pollers, helping with ssh key
+management and allround tasks regarding administering a distributed
+network monitoring setup.
+%endif
 
 %package test
 Summary: Test files for merlin
@@ -280,6 +341,7 @@ service_control_function restart nrpe || :
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/cache/merlin
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/cache/merlin/config
 
+
 %files -n monitor-merlin
 %defattr(-,root,root)
 %_libdir/merlin/merlin.*
@@ -310,6 +372,54 @@ service_control_function restart nrpe || :
 
 %exclude %_libdir/merlin/mon/test.py*
 %exclude %_libdir/merlin/merlin.*
+
+%if 0%{?rhel} >= 7
+%files slim
+%defattr(-,root,root)
+%attr(640, -, %daemon_group) %config(noreplace) %mod_path/merlin.conf
+%mod_path/merlind
+%_bindir/merlind
+%_libdir/merlin/install-merlin.sh
+%_sysconfdir/logrotate.d/merlin
+%_sysconfdir/nrpe.d/nrpe-merlin.cfg
+%attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/lib/merlin
+%attr(775, %daemon_user, %daemon_group) %dir %_localstatedir/lib/merlin/binlogs
+%attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/log/op5/merlin
+%attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/run/merlin
+%attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/cache/merlin
+%attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/cache/merlin/config
+
+%files -n monitor-merlin-slim
+%defattr(-,root,root)
+%_libdir/merlin/merlin.*
+%mod_path/merlin.so
+%attr(-, %daemon_user, %daemon_group) /opt/monitor/etc/mconf/merlin.cfg
+%attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/lib/merlin
+%attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/log/op5/merlin
+%attr(0440, root, root) %{_sysconfdir}/sudoers.d/merlin
+
+%files apps-slim
+%defattr(-,root,root)
+%_libdir/merlin/import
+%_libdir/merlin/showlog
+%_libdir/merlin/rename
+%_libdir/merlin/oconf
+%mod_path/import
+%mod_path/showlog
+%mod_path/rename
+%_libdir/merlin/mon
+%_bindir/mon
+%_bindir/op5
+%_sysconfdir/cron.d/*
+/opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
+
+%attr(600, root, root) %_libdir/merlin/mon/syscheck/db_mysql_check.sh
+%attr(600, root, root) %_libdir/merlin/mon/syscheck/fs_ext_state.sh
+%attr(600, root, root) %_libdir/merlin/mon/syscheck/proc_smsd.sh
+
+%exclude %_libdir/merlin/mon/test.py*
+%exclude %_libdir/merlin/merlin.*
+%endif
 
 %files test
 %defattr(-,root,root)
