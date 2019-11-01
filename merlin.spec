@@ -71,8 +71,7 @@ Summary: Slim version of the merlin daemon
 Requires: libaio
 Requires: merlin-apps-slim >= %version
 Requires: glib2
-Requires: libdbi
-Requires: libdbi-dbd-mysql
+Requires: op5-monitor-user
 BuildRequires: op5-naemon-devel
 BuildRequires: python
 BuildRequires: gperf
@@ -148,7 +147,6 @@ network monitoring setup.
 Summary: Applications used to set up and aid a merlin/ninja installation
 Group: op5/Monitor
 Requires: rsync
-Requires: libdbi
 Requires: openssh
 Requires: openssh-clients
 
@@ -400,13 +398,7 @@ service_control_function restart nrpe || :
 
 %files apps-slim
 %defattr(-,root,root)
-%_libdir/merlin/import
-%_libdir/merlin/showlog
-%_libdir/merlin/rename
 %_libdir/merlin/oconf
-%mod_path/import
-%mod_path/showlog
-%mod_path/rename
 %_libdir/merlin/mon
 %_bindir/mon
 %_bindir/op5
