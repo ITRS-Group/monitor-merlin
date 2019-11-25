@@ -9,7 +9,7 @@ def _cmd_pipe_sighandler(one, two):
 	return False
 
 class nagios_command:
-	
+
 	# @TODO: change 'ADD_HOST_COMMENT;host_name;persistent;author;comment'
 	# to
 	# 'ADD_HOST_COMMENT;host=host_name;boolean=persistent;integer=author;string=comment'
@@ -957,6 +957,16 @@ class nagios_command:
 			'brief': 'You are trying to execute an unsupported command.',
 			'template': 'CHANGE_CONTACT_MODSATTR;contact_name;value',
 		},
+		'DEL_DOWNTIME_BY_HOST_NAME': {
+			'nagios_id': 170,
+			'description': 'This command is used to delete a service or a host downtime.\n'
+			'"service_description", "downtime_start_time" and "comment" can be set to an empty string to match all downtimes.\n'
+			'If you for example only supply a hostname, all downtimes for that host is deleted. If only hostname and service_description, all downtimes on that service is deleted.\n'
+			'If you supply all arguments, only the service downtime, with the exact startime and comment is deleted.\n'
+			'If multiple downtimes matches all arguments, all are deleted.',
+			'brief': 'You want to delete a downtime on a host or service.',
+			'template': 'DEL_DOWNTIME_BY_HOST_NAME;hostname;service_description;downtime_start_time;comment',
+			},
 	}
 
 	def __init__(self, name=False, path=False):
