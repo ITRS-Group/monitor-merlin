@@ -47,12 +47,8 @@ Nagios, was initially started to create an easy way to set up distributed
 Nagios installations, allowing Nagios processes to exchange information
 directly as an alternative to the standard nagios way using NSCA. Now, the
 nagios support is deprecated in favour of Naemon ( www.naemon.org ) which is a
-fork of the Nagios project. When starting the Ninja project we realised that
-we could continue the work on Merlin and adopt the project to function as
-backend for Ninja by adding support for storing the status information in a
-database, fault tolearance and some other cool things. This means that Merlin
-now are responsible for providing status data, acting as a backend, for the
-Ninja GUI.
+fork of the Nagios project. Merlin can also save state changes to a database,
+which can be used for reporting purposes.
 
 ## Brief description of the Merlin project ##
 
@@ -67,10 +63,10 @@ sends all events received either to a database of your choice (using libdbi) or
 to another merlin daemon. If the daemon is unsuccessful in this it writes to a
 backlog and sends the data later.
 
-merlin database: This is a database that includes Naemon object status and
-status changes. It also contains comments, scheduled downtime etc.
+merlin database: This is a database that contains state changes.
 
-More information about the Merlin project and can be found at http://op5.org
+mon scripts: A bunch of utility scripts utilized to add new nodes to the system,
+and other useful things.
 
 ## Requirements ##
 
