@@ -142,6 +142,10 @@ void log_msg(int severity, const char *fmt, ...)
 	if (len < 0)
 		return;
 
+	/* Set to max size length if it was truncated */
+	if (len > 4095)
+		len=4095;
+
 	if (msg[len] == '\n')
 		msg[len] = 0;
 
