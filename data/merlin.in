@@ -6,8 +6,8 @@
 	missingok
 	postrotate
 		if command -v systemctl &>/dev/null; then
-			systemctl try-restart naemon > /dev/null 2>&1
 			systemctl try-restart merlind > /dev/null 2>&1
+			systemctl try-restart naemon > /dev/null 2>&1
 		else
 			service naemon status
 			mon_running=$?
