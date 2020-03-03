@@ -1,4 +1,4 @@
-[--outfile=<outfile>] [--all|--type=<peer|poller|master>] [source]..
+[--outfile=<outfile>] [--port <port>] [--all|--type=<peer|poller|master>] [source]..
 Fetch public ssh keys from specified remote node(s) (sources).
 
 The keys will be written to the specified outfile, or if not

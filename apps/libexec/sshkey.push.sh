@@ -6,7 +6,7 @@ get_val ()
 }
 
 append_key() {
-	cat $1 | ssh "$2" -C '
+	cat $1 | ssh -p "$port" "$2" -C '
 key=$(cat);
 uid=$(id -u)
 
@@ -44,7 +44,7 @@ fi
 usage()
 {
 	cat << END_OF_HELP
-[--key=<keyfile>] [--all|--type=<peer|poller|master>] [destination]..
+[--key=<keyfile>] [--port <port>] [--all|--type=<peer|poller|master>] [destination]..
 Pushes public SSH key to specified remote node(s) (destinations).
 
 The key will be read from specified keyfile, or if not
@@ -60,7 +60,7 @@ END_OF_HELP
 	exit # since the script wont need to do anything more
 }
 
-key= destinations=
+key= destinations= port=22
 while test "$#" -ne 0; do
 	case "$1" in
 	--key=*|-k=)
@@ -69,6 +69,10 @@ while test "$#" -ne 0; do
 	--key|-k)
 		shift
 		key="$1"
+	;;
+	--port|-p)
+		shift
+		port="$1"
 	;;
 	--help|-h)
 		usage

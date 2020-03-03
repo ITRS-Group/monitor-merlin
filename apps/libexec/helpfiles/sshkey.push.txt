@@ -1,4 +1,4 @@
-[--key=<keyfile>] [--all|--type=<peer|poller|master>] [destination]..
+[--key=<keyfile>] [--port <port>] [--all|--type=<peer|poller|master>] [destination]..
 Push public ssh key to specified remote node(s) (destinations).
 
 The key will be read from specified keyfile, or if not

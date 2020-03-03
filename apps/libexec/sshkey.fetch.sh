@@ -6,7 +6,7 @@ get_val ()
 }
 
 grab_key() {
-	ssh "$1" -C '
+	ssh -p "$port" "$1" -C '
 dir=$HOME/.ssh
 test -d $dir || mkdir -m 700 $dir
 for f in id_rsa id_dsa identity; do
@@ -29,7 +29,7 @@ cat $keyfile
 usage()
 {
 	cat << END_OF_HELP
-[--outfile=<outfile>] [--all|--type=<peer|poller|master>] [source]..
+[--outfile=<outfile>] [--port <port>] [--all|--type=<peer|poller|master>] [source]..
 Fetches public SSH keys from specified remote node(s) (sources).
 
 The keys will be written to the specified outfile, or if not
@@ -46,7 +46,7 @@ END_OF_HELP
 	exit # since the script wont need to do anything more
 }
 
-outfile= destinations=
+outfile= destinations= port=22
 while test "$#" -ne 0; do
 	case "$1" in
 	--outfile=*|-o=)
@@ -55,6 +55,10 @@ while test "$#" -ne 0; do
 	--outfile|-o)
 		shift
 		outfile="$1"
+	;;
+	--port|-p)
+		shift
+		port="$1"
 	;;
 	--help|-h)
 		usage
