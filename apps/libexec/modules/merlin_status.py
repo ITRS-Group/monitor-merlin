@@ -9,7 +9,10 @@ class merlin_status:
 
 	def __init__(self, lsc, qh):
 		self.lsc = lsc
-		self.ni = dict([(x['name'], x) for x in get_merlin_nodeinfo(qh)])
+		nodes = get_merlin_nodeinfo(qh)
+		if list(nodes)[0] == -1:
+			sys.exit(1)
+		self.ni = dict([(x['name'], x) for x in nodes])
 
 	def min_avg_max(self, table, col, filter=None):
 		"""

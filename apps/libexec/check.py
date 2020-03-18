@@ -80,7 +80,10 @@ def cmd_distribution(args):
 			print_perfdata = False
 
 	expired = get_expired(qh)
+	if list(expired)[0] == -1:
+		return 1
 	info = get_merlin_nodeinfo(qh)
+	
 	state = 3
 	if not expired:
 		print "OK: All %i nodes run their assigned checks" % (len(info),),
@@ -253,6 +256,8 @@ def cmd_status(args=False):
 	sinfo = list(get_merlin_nodeinfo(qh))
 	if not sinfo:
 		nplug.unknown("Found no checks, is nagios running?")
+	elif sinfo[0] == -1:
+		return 1
 
 	host_checks = 0
 	service_checks = 0

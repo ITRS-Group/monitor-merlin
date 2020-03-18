@@ -37,7 +37,12 @@ class nagios_qh:
 	def format(self, data, rowsep='\n', pairsep=';', kvsep='='):
 		"""Lazily format a response into a sequence of dicts"""
 		for row in filter(None, ''.join(data).split(rowsep)):
-			yield dict(x.split(kvsep, 1) for x in row.split(pairsep))
+			if row == "404: merlin: No such handler":
+				print("ERROR: Could not get nodeinfo. See /var/log/op5/merlin/neb.log for more information")
+				yield -1
+				break
+			else:
+				yield dict(x.split(kvsep, 1) for x in row.split(pairsep))
 
 	def get(self, query, rowsep='\n', pairsep=';', kvsep='='):
 		"""Ask a query to nagios' query handler socket, and return an object
