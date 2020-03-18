@@ -243,8 +243,14 @@ def cmd_push(args):
   Use 'mon oconf push --push=extras' to safely push items as root"""
         sys.exit(1)
 
+    # if no nodes were explicitly configured, get all nodes
     if not len(wanted_nodes):
         wanted_nodes = mconf.configured_nodes.items()
+        # remove nodes with connect = no
+        for name, node in wanted_nodes:
+            if isinstance(node.connect, basestring) and node.connect.lower() == "no":
+                wanted_nodes.remove((name, node))
+                print 'Not pushing to node: %s, as connect = no' % name
 
     sync_list = []
     for name, node in wanted_nodes:
@@ -257,8 +263,9 @@ def cmd_push(args):
             oconf_file = '%s/%s.cfg' % (config_dir, name)
             if node.ntype == 'poller':
                 if not os.path.exists(oconf_file):
-                    print 'Cannot push to poller %s, because %s does '
-                    'not exist' % (name, oconf_file)
+                    print 'Cannot push to poller %s ' \
+                            'because %s does not exist' % (name, oconf_file)
+                    wanted_nodes.remove((name, node))
                     continue
                 source = oconf_file
                 default_dest = '/opt/monitor/etc/oconf/from-master.cfg'
