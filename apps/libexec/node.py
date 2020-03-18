@@ -72,6 +72,8 @@ def cmd_status(args):
 	if not sinfo:
 		print("Found no checks")
 		return 1
+	elif sinfo[0] == -1:
+		return 1
 
 	host_checks = 0
 	service_checks = 0
@@ -481,6 +483,9 @@ def cmd_info(args):
 	"""
 	nodes = get_merlin_nodeinfo(query_socket)
 	for node in nodes:
+		if node == -1:
+			return 1
+
 		print node['name']
 		items = node.items()
 		items.sort()
