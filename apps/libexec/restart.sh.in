@@ -10,5 +10,6 @@ mon oconf poller-fix
 # However for some reason the service restart command does not exists until
 # we have called service stop of either merlin or naemon. Therefore we first
 # restart merlin with seperate commands, and thereafter restart naemon.
-/sbin/service merlind stop && /sbin/service merlind start
-/sbin/service naemon restart
+/bin/systemctl stop merlind && /bin/systemctl start merlind
+/bin/systemctl restart naemon
+/bin/systemctl start op5-monitor
