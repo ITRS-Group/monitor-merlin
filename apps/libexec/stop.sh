@@ -1,4 +1,4 @@
 #!/bin/sh
 
-/sbin/service naemon stop
-/sbin/service merlind stop
+/bin/systemctl stop naemon
+/bin/systemctl stop merlind
