@@ -5,4 +5,6 @@ mon oconf poller-fix
 
 /bin/systemctl start merlind
 /bin/systemctl start naemon
-/bin/systemctl start op5-monitor
+if systemctl list-units --full -all | grep -Fq "op5-monitor.service"; then
+    /bin/systemctl start op5-monitor
+fi
