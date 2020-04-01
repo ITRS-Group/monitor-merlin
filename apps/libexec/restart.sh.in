@@ -12,4 +12,6 @@ mon oconf poller-fix
 # restart merlin with seperate commands, and thereafter restart naemon.
 /bin/systemctl stop merlind && /bin/systemctl start merlind
 /bin/systemctl restart naemon
-/bin/systemctl start op5-monitor
+if systemctl list-units --full -all | grep -Fq "op5-monitor.service"; then
+    /bin/systemctl start op5-monitor
+fi
