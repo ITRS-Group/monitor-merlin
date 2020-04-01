@@ -80,10 +80,10 @@ def cmd_distribution(args):
 			print_perfdata = False
 
 	expired = get_expired(qh)
-	if list(expired)[0] == -1:
+	if expired and expired[0] == -1:
 		return 1
 	info = get_merlin_nodeinfo(qh)
-	
+
 	state = 3
 	if not expired:
 		print "OK: All %i nodes run their assigned checks" % (len(info),),
