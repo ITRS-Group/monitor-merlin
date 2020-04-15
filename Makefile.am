@@ -5,7 +5,7 @@ ACLOCAL_AMFLAGS = -I m4
 bin_PROGRAMS = merlind
 
 merlinlibdir = $(pkglibdir)
-merlinlib_PROGRAMS = import showlog rename oconf
+merlinlib_PROGRAMS = import showlog rename oconf keygen
 merlinlib_SCRIPTS = install-merlin.sh
 bin_SCRIPTS = apps/op5
 
@@ -16,6 +16,7 @@ mon_SCRIPTS = \
 	apps/libexec/db.py \
 	apps/libexec/ecmd.py \
 	apps/libexec/log.py \
+	apps/libexec/merlinkey.py \
 	apps/libexec/node.py \
 	apps/libexec/node.tree.php \
 	apps/libexec/oconf.fetch.sh \
@@ -104,6 +105,7 @@ common_sources = \
 shared_sources = $(common_sources) \
 	shared/ipc.c shared/ipc.h \
 	shared/io.c shared/io.h \
+	shared/encryption.c shared/encryption.h \
 	shared/node.c shared/node.h \
 	shared/codec.c shared/codec.h \
 	shared/binlog.c shared/binlog.h \
@@ -158,6 +160,10 @@ rename_SOURCES = $(app_sources) tools/rename.c $(db_wrap_sources)
 rename_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/daemon $(GLIB_CFLAGS)
 rename_LDADD = $(naemon_LIBS) $(AM_LDADD) $(GLIB_LIBS)
 
+keygen_SOURCES = tools/keygen.c
+keygen_CFLAGS = $(AM_CFLAGS)
+keygen_LDADD = -lsodium
+
 check_PROGRAMS = $(TESTS) test-dbwrap merlincat cukemerlin
 TESTS = sltest test-csync test-lparse hooktest stringutilstest showlogtest bltest codectest importlogtest
 TESTS_ENVIRONMENT = G_DEBUG=fatal-criticals; export G_DEBUG;
@@ -171,7 +177,7 @@ test_lparse_SOURCES = tests/test-lparse.c tools/lparse.c tools/logutils.c tools/
 test_lparse_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools $(GLIB_CFLAGS)
 test_lparse_CPPFLAGS = $(AM_CPPFLAGS)
 test_lparse_LDADD = $(naemon_LIBS)
-hooktest_SOURCES = tests/test-hooks.c module/net.c module/testif_qh.c module/script-helpers.c shared/cfgfile.c shared/shared.c shared/logging.c shared/dlist.c shared/io.c shared/node.c shared/codec.c shared/binlog.c module/misc.c module/sha1.c tools/test_utils.c module/oconfsplit.c shared/configuration.c module/queries.c
+hooktest_SOURCES = tests/test-hooks.c module/net.c module/testif_qh.c module/script-helpers.c shared/cfgfile.c shared/shared.c shared/logging.c shared/dlist.c shared/io.c shared/encryption.c shared/node.c shared/codec.c shared/binlog.c module/misc.c module/sha1.c tools/test_utils.c module/oconfsplit.c shared/configuration.c module/queries.c
 hooktest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module -I$(srcdir)/tools $(check_CFLAGS) $(GLIB_CFLAGS)
 hooktest_LDADD = $(naemon_LIBS) $(check_LIBS)
 stringutilstest_SOURCES = tests/test-stringutils.c tools/test_utils.c daemon/string_utils.c
@@ -211,7 +217,7 @@ endif
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)/config
 
-data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/merlin apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.fetch.sh apps/libexec/oconf.py apps/mon.py apps/libexec/restart.sh: % : %.in
+data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/merlin apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.fetch.sh apps/libexec/oconf.py apps/mon.py apps/libexec/restart.sh apps/libexec/merlinkey.py: % : %.in
 	$(AM_V_GEN) sed \
 		-e 's,@PYTHON[@],$(PYTHON),g' \
 		-e 's,@pkgconfdir[@],$(pkgconfdir),g' \

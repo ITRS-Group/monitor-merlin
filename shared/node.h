@@ -8,6 +8,8 @@
 #include "cfgfile.h"
 #include "binlog.h"
 #include "pgroup.h"
+#include <sodium.h>
+#include <stdbool.h>
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 # define MERLIN_SIGNATURE (uint64_t)0x4d524c4e45565400LL /* "MRLNEVT\0" */
@@ -15,7 +17,7 @@
 # define MERLIN_SIGNATURE (uint64_t)0x005456454e4c524dLL /* "MRLNEVT\0" */
 #endif
 
-#define MERLIN_PROTOCOL_VERSION 1
+#define MERLIN_PROTOCOL_VERSION 2
 
 /*
  * flags for node options. Must be powers of 2
@@ -89,9 +91,11 @@ struct merlin_header {
 	uint16_t selection;  /* used when noc Nagios communicates with mrd */
 	uint32_t len;        /* size of body */
 	struct timeval sent;  /* when this message was sent */
+	unsigned char authtag[crypto_secretbox_MACBYTES];
+	unsigned char nonce[crypto_secretbox_NONCEBYTES];
 
 	/* pad to 64 bytes for future extensions */
-	char padding[64 - sizeof(struct timeval) - (2 * 6) - 8];
+	char padding[128 - sizeof(struct timeval) - (2 * 6) - 8 - crypto_secretbox_MACBYTES-crypto_secretbox_NONCEBYTES];
 } __attribute__((packed));
 typedef struct merlin_header merlin_header;
 
@@ -248,6 +252,9 @@ struct merlin_node {
 	unsigned int csync_max_attempts;
 	time_t csync_last_attempt;
 	int (*action)(struct merlin_node *, int); /* (daemon) action handler */
+	bool encrypted;
+ 	unsigned char pubkey[crypto_box_PUBLICKEYBYTES];
+	unsigned char privkey[crypto_box_SECRETKEYBYTES];
 };
 
 #define node_table noc_table
