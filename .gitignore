@@ -30,6 +30,7 @@ sltest
 test-lparse
 import
 showlog
+keygen
 *.pyc
 oconf
 test-dbwrap

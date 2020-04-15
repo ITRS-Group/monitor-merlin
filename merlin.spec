@@ -41,6 +41,8 @@ Requires: glib2
 Requires: nrpe
 Requires: libdbi
 Requires: libdbi-dbd-mysql
+Requires: libsodium
+BuildRequires: libsodium-devel
 %if 0%{?rhel} >= 7
 BuildRequires: systemd
 BuildRequires: mariadb-devel
@@ -355,6 +357,7 @@ service_control_function restart nrpe || :
 %_libdir/merlin/showlog
 %_libdir/merlin/rename
 %_libdir/merlin/oconf
+%_libdir/merlin/keygen
 %mod_path/import
 %mod_path/showlog
 %mod_path/rename

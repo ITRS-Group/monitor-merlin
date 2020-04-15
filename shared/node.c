@@ -5,11 +5,14 @@
 #include "io.h"
 #include "compat.h"
 #include "node.h"
+#include "encryption.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <string.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <sodium.h>
+#include <stdbool.h>
 
 merlin_node **noc_table, **poller_table, **peer_table;
 
@@ -460,6 +463,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 
 	/* some sane defaults */
 	node->data_timeout = pulse_interval * 2;
+	node->encrypted = false;
 
 	for (i = 0; i < c->vars; i++) {
 		struct cfg_var *v = c->vlist[i];
@@ -488,6 +492,21 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 		}
 		else if (!strcmp(v->key, "max_sync_attempts")) {
 			/* restricting max sync attempts is a terrible idea, don't do anything */
+		}
+		else if (!strcmp(v->key, "encrypted")) {
+			int value;
+			value=atoi(v->value);
+			if (value == 1) {
+				node->encrypted=true;
+			} else {
+				node->encrypted=false;
+			}
+		} else if (!strcmp(v->key, "publickey")) {
+			if ( open_encryption_key(v->value, node->pubkey,
+						crypto_box_PUBLICKEYBYTES) ) {
+				cfg_error(c,v, "Could not open publickey: %s\n",
+						v->value);
+			}
 		}
 		else if (grok_node_flag(&node->flags, v->key, v->value) < 0) {
 			cfg_error(c, v, "Unknown variable\n");
@@ -835,6 +854,11 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 			ldebug(" config mtime: %lu", info->last_cfg_change);
 		}
 	}
+	if (node->encrypted) {
+		if (encrypt_pkt(pkt, node) == -1) {
+			node_disconnect(node, "Failed to encrypt packet");
+		}
+	}
 
 	sent = io_send_all(node->sock, data, len);
 	/* success. Should be the normal case */
@@ -906,8 +930,16 @@ merlin_event *node_get_event(merlin_node *node)
 		return NULL;
 	}
 
+	if (node->encrypted) {
+		lwarn("Try to decrypt msg");
+		if (decrypt_pkt(pkt, node) == -1) {
+			node_disconnect(node, "Failed to decrypt package from: %s", node->name);
+		}
+	}
+
 	/* debug log these transitions */
 	if (pkt->hdr.type == CTRL_PACKET && pkt->hdr.code == CTRL_ACTIVE) {
+
 		ldebug("CTRLEVENT: Received CTRL_ACTIVE from %s node %s", node_type(node), node->name);
 		node_log_info(node, (merlin_nodeinfo *)pkt->body);
 	}
