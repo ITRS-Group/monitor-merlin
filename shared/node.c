@@ -839,6 +839,7 @@ int node_recv(merlin_node *node)
 int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 {
 	merlin_event *pkt = (merlin_event *)data;
+	merlin_event *encrypted_pkt = NULL;
 	int sent, sd = 0;
 
 	if (!node || node->sock < 0)
@@ -854,13 +855,27 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 			ldebug(" config mtime: %lu", info->last_cfg_change);
 		}
 	}
+
 	if (node->encrypted) {
-		if (encrypt_pkt(pkt, node) == -1) {
+		encrypted_pkt = malloc(sizeof *encrypted_pkt);
+		memcpy(encrypted_pkt, pkt, packet_size(pkt));
+		if (strcmp(pkt->body, encrypted_pkt->body) == 0) {
+			ldebug("pkt->body and encrypted_body are equal");
+		} else {
+			ldebug("pkt->body and org_body are different");
+		}
+		if (encrypt_pkt(encrypted_pkt, node) == -1) {
 			node_disconnect(node, "Failed to encrypt packet");
 		}
+		pkt = encrypted_pkt;
+
 	}
 
-	sent = io_send_all(node->sock, data, len);
+	sent = io_send_all(node->sock, (void *) pkt, len);
+	if (encrypted_pkt != NULL) {
+		free(encrypted_pkt);
+	}
+
 	/* success. Should be the normal case */
 	if (sent == (int)len) {
 		node->stats.bytes.sent += sent;
