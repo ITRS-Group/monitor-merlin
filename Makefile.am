@@ -266,12 +266,13 @@ merlincat_SOURCES = tests/merlincat/merlincat.c \
 	tests/merlincat/merlincat_codec.c tests/merlincat/merlincat_codec.h \
 	tests/merlincat/console.c tests/merlincat/console.h \
 	tests/merlincat/event_packer.c tests/merlincat/event_packer.h \
+	tests/merlincat/merlincat_encryption.c tests/merlincat/merlincat_encryption.h \
 	tests/merlincat/conn_info.c tests/merlincat/conn_info.h \
 	tests/merlincat/nebev2kvvec.c tests/merlincat/nebev2kvvec.h \
 	tests/merlincat/kvvec2nebev.c tests/merlincat/kvvec2nebev.h
 
 merlincat_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIO_UNIX_CFLAGS)
-merlincat_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS) $(GIO_UNIX_LIBS)
+merlincat_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS) $(GIO_UNIX_LIBS) -lsodium
 
 cukemerlin_SOURCES = tests/cukemerlin/base/cukemerlin.c \
 	tests/cukemerlin/base/json.c tests/cukemerlin/base/json.h \
@@ -292,12 +293,13 @@ cukemerlin_SOURCES = tests/cukemerlin/base/cukemerlin.c \
 	tests/merlincat/merlincat_codec.c tests/merlincat/merlincat_codec.h \
 	tests/merlincat/console.c tests/merlincat/console.h \
 	tests/merlincat/event_packer.c tests/merlincat/event_packer.h \
+	tests/merlincat/merlincat_encryption.c tests/merlincat/merlincat_encryption.h \
 	tests/merlincat/conn_info.c tests/merlincat/conn_info.h \
 	tests/merlincat/nebev2kvvec.c tests/merlincat/nebev2kvvec.h \
 	tests/merlincat/kvvec2nebev.c tests/merlincat/kvvec2nebev.h
 
 cukemerlin_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GIO_UNIX_CFLAGS) -I$(top_builddir)/tests/cukemerlin -I$(top_builddir)/tests
-cukemerlin_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS) $(GIO_UNIX_LIBS)
+cukemerlin_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS) $(GIO_UNIX_LIBS) -lsodium
 
 
 apps/op5: apps/mon.py

@@ -54,6 +54,7 @@ char *event_packer_pack(const merlin_event *evt) {
 	free(packed_data);
 
 	kvvec_destroy(kvv, KVVEC_FREE_ALL);
+
 	return result_line;
 }
 
@@ -68,6 +69,7 @@ struct kvvec *event_packer_pack_kvv(const merlin_event *evt, const char **name) 
 	if (evt->hdr.type != CTRL_PACKET) {
 		if (merlincat_decode(unpacked_data, evt->hdr.len, evt->hdr.type)) {
 			g_free(unpacked_data);
+			g_message("merlincat_decode: failed");
 			return NULL;
 		}
 	}
