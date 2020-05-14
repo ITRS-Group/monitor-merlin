@@ -99,6 +99,10 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
       }
     }
     "
+  if ENV["MERLIN_ENCRYPTED"] == "TRUE" then
+    configfile+= "ipc_privatekey=#{ENV["MERLIN_PRIVKEY"]}"
+  end
+
   nodes.hashes.each do |obj|
     configfile += sprintf "\n%s %s {\n", obj["type"], obj["name"]
     if !obj.include? 'address' then
@@ -114,6 +118,10 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
         # specific one
         configfile.sub! 'fetch = ./fetch_cmd;', ''
       end
+    end
+    if ENV["MERLIN_ENCRYPTED"] == "TRUE" then
+      configfile += "\tencrypted = 1\n"
+      configfile += "\tpublickey = #{ENV["MERLIN_PUBKEY"]}\n"
     end
     configfile += "}\n"
   end
