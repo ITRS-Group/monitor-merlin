@@ -8,6 +8,7 @@
 #include <merlincat/server_gsource.h>
 #include <merlincat/event_packer.h>
 #include <merlincat/merlinreader.h>
+#include <merlincat/merlincat_encryption.h>
 
 /* merlin headers */
 #include <shared/shared.h>
@@ -428,6 +429,15 @@ STEP_DEF(step_send_event) {
 		return;
 	}
 
+	/* Do not encrypt messages to ipc */
+	if (strcmp(msc->tag, "ipc") != 0) {
+		/* encrypt_pkt figures out if encryption is enabled or not */
+		if (merlincat_encrypt_pkt(evt) != 0) {
+			STEP_FAIL("Failed to encrypt msg");
+			return;
+		}
+	}
+
 	g_message("Sending packet of type %s", typetag);
 	connection_send(msc->conn, evt, HDR_SIZE + evt->hdr.len);
 
@@ -632,12 +642,17 @@ static void mrlscenconn_record_match_set(MerlinScenarioConnection *msc,
 	msc->match_kv = matchkv;
 }
 
-static void mrlscenconn_print_event(merlin_event *evt, const char *conn_tag) {
+static int mrlscenconn_print_event(merlin_event *evt, const char *conn_tag) {
 	struct kvvec *evtkv;
 	const char *evtname;
 	int i;
 
 	evtkv = event_packer_pack_kvv(evt, &evtname);
+	if (evtkv == NULL) {
+		g_message("evtkv returned null");
+		return -1;
+	}
+
 	g_print("%-15s Merlin event: %s\n", conn_tag, evtname);
 	for(i=0; i<evtkv->kv_pairs; i++) {
 		char *valstr = strndup(evtkv->kv[i].value, evtkv->kv[i].value_len);
@@ -645,6 +660,7 @@ static void mrlscenconn_print_event(merlin_event *evt, const char *conn_tag) {
 		free(valstr);
 	}
 	kvvec_destroy(evtkv, KVVEC_FREE_ALL);
+	return 0;
 }
 
 static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
@@ -656,6 +672,10 @@ static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
 	const char *evtname;
 
 	evtkv = event_packer_pack_kvv(evt, &evtname);
+	if (evtkv == NULL) {
+		g_message("record_match: evtkv returned null");
+		return FALSE;
+	}
 
 	if (evt->hdr.type != msc->match_eventtype) {
 		kvvec_destroy(evtkv, KVVEC_FREE_ALL);
@@ -719,7 +739,18 @@ static void net_conn_data(ConnectionStorage *conn, gpointer buffer,
 		buffer += read_size;
 
 		while (NULL != (evt = merlinreader_get_event(msc->mr))) {
-			mrlscenconn_print_event(evt, msc->tag);
+			/* messages from ipc shouldn't be encrypted */
+			if (strcmp(msc->tag, "ipc") != 0) {
+				/* decrypt_pkt figures out if encryption is enabled or not */
+				if ( merlincat_decrypt_pkt(evt) != 0) {
+					g_message("Could not decrypt pkg, msg probably to ipc, continuing...");
+				}
+			}
+
+			if (mrlscenconn_print_event(evt, msc->tag) == -1) {
+				steptimer_stop(msc, FALSE, "Couldn't print event");
+			}
+
 			if (msc->event_buffer == NULL) {
 				g_free(evt);
 			} else {

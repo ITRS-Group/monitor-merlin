@@ -48,7 +48,7 @@ int init_sodium() {
 }
 
 int encrypt_pkt(merlin_event * pkt, merlin_node * recv) {
-
+	ldebug("Encrypting pkt for node: %s", recv->name);
 	if (init_sodium() == -1) {
 		return -1;
 	}
@@ -63,6 +63,7 @@ int encrypt_pkt(merlin_event * pkt, merlin_node * recv) {
 }
 
 int decrypt_pkt(merlin_event * pkt, merlin_node * sender) {
+	ldebug("Decrypting pkt for node: %s", sender->name);
 	if (init_sodium() == -1) {
 		return -1;
 	}

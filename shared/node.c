@@ -857,21 +857,20 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 	}
 
 	if (node->encrypted) {
+		/* allocate memory and copy the pkt */
 		encrypted_pkt = malloc(sizeof *encrypted_pkt);
 		memcpy(encrypted_pkt, pkt, packet_size(pkt));
-		if (strcmp(pkt->body, encrypted_pkt->body) == 0) {
-			ldebug("pkt->body and encrypted_body are equal");
-		} else {
-			ldebug("pkt->body and org_body are different");
-		}
+
 		if (encrypt_pkt(encrypted_pkt, node) == -1) {
 			node_disconnect(node, "Failed to encrypt packet");
 		}
+		/* Make sure we set the encrypted pkt as the pkt to send */
 		pkt = encrypted_pkt;
 
 	}
 
 	sent = io_send_all(node->sock, (void *) pkt, len);
+
 	if (encrypted_pkt != NULL) {
 		free(encrypted_pkt);
 	}
