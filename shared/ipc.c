@@ -58,7 +58,8 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 "csync_num_attempts=%d;csync_max_attempts=%d;"
 				 "csync_last_attempt=%lu;"
 				 "csync_push_cmd=%s;csync_push_is_running=%d;"
-				 "csync_fetch_cmd=%s;csync_fetch_is_running=%d"
+				 "csync_fetch_cmd=%s;csync_fetch_is_running=%d;"
+				 "encrypted=%d"
 				 "\n",
 				 instance_id,
 				 n->name, n->source_name, n->sock, node_type(n),
@@ -91,7 +92,8 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 n->csync_num_attempts, n->csync_max_attempts,
 				 n->csync_last_attempt,
 				 n->csync.push.cmd ? n->csync.push.cmd : "", n->csync.push.is_running,
-				 n->csync.fetch.cmd ? n->csync.fetch.cmd : "", n->csync.fetch.is_running
+				 n->csync.fetch.cmd ? n->csync.fetch.cmd : "", n->csync.fetch.is_running,
+				 n->encrypted
 				);
 	return 0;
 }

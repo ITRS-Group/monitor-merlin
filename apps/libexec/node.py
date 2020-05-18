@@ -90,6 +90,7 @@ def cmd_status(args):
 		iid = int(info.get('instance_id', 0))
 		node = mconf.configured_nodes.get(info['name'], False)
 		is_running = info.get('state') == 'STATE_CONNECTED'
+		is_encrypted = info.get("encrypted") == '1'
 		if is_running:
 			# latency is in milliseconds, so convert to float
 			latency = float(info.get('latency')) / 1000.0
@@ -126,6 +127,12 @@ def cmd_status(args):
 
 		if is_running:
 			name += ": %sACTIVE%s - %s%.3fs%s latency" % (color.green, color.reset, lat_color, latency, color.reset)
+			# Only show encryption status for non-ipc nodes
+			if "ipc" not in info['name']:
+				if is_encrypted:
+					name += " - (%sENCRYPTED%s)" % (color.green, color.reset)
+				else:
+					name += " - (UNENCRYPTED)"
 		else:
 			name += " (%sINACTIVE%s)" % (color.red, color.reset)
 			exit_code = 1
