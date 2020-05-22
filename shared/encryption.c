@@ -12,7 +12,7 @@
 bool sodium_init_done = false;
 int init_sodium(void);
 
-int open_encryption_key(char * path, unsigned char * target, size_t size){
+int open_encryption_key(const char * path, unsigned char * target, size_t size){
 	FILE *f;
 	size_t read;
 
@@ -55,7 +55,10 @@ int encrypt_pkt(merlin_event * pkt, merlin_node * recv) {
 
 	randombytes_buf(pkt->hdr.nonce, sizeof(pkt->hdr.nonce));
 
-	if (crypto_box_detached((unsigned char *)pkt->body, pkt->hdr.authtag, (unsigned char *)pkt->body, pkt->hdr.len, pkt->hdr.nonce, recv->pubkey, ipc.privkey) != 0) {
+	if (crypto_box_detached_afternm(
+				(unsigned char *)pkt->body, pkt->hdr.authtag,
+				(unsigned char *)pkt->body, pkt->hdr.len,
+				pkt->hdr.nonce, recv->sharedkey) != 0) {
 		lerr("could not encrypt msg!\n");
 		return -1;
 	}
@@ -68,9 +71,13 @@ int decrypt_pkt(merlin_event * pkt, merlin_node * sender) {
 		return -1;
 	}
 
-	if (crypto_box_open_detached((unsigned char *)pkt->body, (const unsigned char *)pkt->body, pkt->hdr.authtag, pkt->hdr.len, pkt->hdr.nonce, sender->pubkey, ipc.privkey) != 0) {
-			lerr("Encrypted message forged!\n");
-			return -1;
+	if (crypto_box_open_detached_afternm(
+				(unsigned char *)pkt->body,
+				(const unsigned char *)pkt->body,
+				pkt->hdr.authtag, pkt->hdr.len, pkt->hdr.nonce,
+				sender->sharedkey) != 0) {
+		lerr("Encrypted message forged!\n");
+		return -1;
 	}
 
 	return 0;
