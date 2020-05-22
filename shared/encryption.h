@@ -5,6 +5,6 @@
 
 int encrypt_pkt(merlin_event * pkt, merlin_node * sender);
 int decrypt_pkt(merlin_event * pkt, merlin_node * recv);
-int open_encryption_key(char * path, unsigned char * target, size_t size);
+int open_encryption_key(const char * path, unsigned char * target, size_t size);
 
 #endif

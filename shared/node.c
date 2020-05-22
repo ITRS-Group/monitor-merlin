@@ -502,10 +502,21 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 				node->encrypted=false;
 			}
 		} else if (!strcmp(v->key, "publickey")) {
-			if ( open_encryption_key(v->value, node->pubkey,
+			unsigned char pubkey[crypto_box_PUBLICKEYBYTES];
+			if ( open_encryption_key(v->value, pubkey,
 						crypto_box_PUBLICKEYBYTES) ) {
 				cfg_error(c,v, "Could not open publickey: %s\n",
 						v->value);
+			}
+			/* pre-calculate key */
+			if (crypto_box_beforenm(node->sharedkey, pubkey,ipc.privkey) != 0) {
+				cfg_error(c,v, "Could not pre-calculate shared key\n");
+			}
+			/* lock memory to ensure it cannot be swapped
+			 * and also exclude the memory from coredumps if supported
+			 */
+			if (sodium_mlock(node->sharedkey, crypto_box_BEFORENMBYTES) != 0) {
+				cfg_warn(c, v,  "sodium_mlock failed.\n");
 			}
 		}
 		else if (grok_node_flag(&node->flags, v->key, v->value) < 0) {
