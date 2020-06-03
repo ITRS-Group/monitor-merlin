@@ -2,7 +2,7 @@
 
 It is possible to configure merlin to encrypt the packets sent over the merlin port (default 15551).
 This can be useful if different OP5 Monitor nodes need to communicate over the internet, for example if you have a remote poller.
-For nodes which are placed within the same secure local network, encryption is often unnecessary, and introduced an unnecessary performance penalty.
+For nodes which are placed within the same secure local network, encryption is often unnecessary, and introduces an unnecessary performance penalty.
 
 Merlin uses public key encryption, which requires setup of both a private and public key for each node.
 
@@ -20,16 +20,17 @@ To setup encryption, you must first generate a key pair on every node involved i
 This is done using the command `mon merlinkey generate`. This will generate two files:
 key.priv and key.pub at /opt/monitor/op5/merlin by default, or you can use --path=/preferred/path/here
 
-When the keys have been created, the public key only (key.pub) needs to be copied to the relevant servers.
-The private key (key.priv) should never be shared.
+When the keys have been created, the public key (key.pub) needs to be copied to the relevant servers.
 
-This can most easily be done with scp, for example, in a situation where we have one master and one poller:
+This can be done with `scp`, for example, in a situation where we have one master and one poller:
 
 On master:
-scp /opt/monitor/merlin/key.pub poller_ip:/opt/monitor/op5/merlin/master.pub
+scp /opt/monitor/op5/merlin/key.pub poller_ip:/opt/monitor/op5/merlin/master.pub
 
 On poller:
-scp /opt/monitor/merlin/key.pub master_ip:/opt/monitor/op5/merlin/poller.pub
+scp /opt/monitor/op5/merlin/key.pub master_ip:/opt/monitor/op5/merlin/poller.pub
+
+**Important:** The private key (key.priv) should never be shared.
 
 ## Change merlin configuration
 
@@ -82,10 +83,12 @@ master master {
 
 ## Restart monitor
 
-After add the configuration changes has been made, OP5 Monitor needs to be restarted on every node:
+After the configuration changes has been made, OP5 Monitor needs to be restarted on every node:
 
 `mon restart`
 
 You can then verify that encryption has been enabled by running:
 
 `mon node status`
+
+Look for the encryption status at the end of the first line for each node.
