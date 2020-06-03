@@ -38,8 +38,7 @@ After the key pairs have been generated and the public keys have been copied we 
 
 To do so, we must change the merlin configuration file at /opt/monitor/op5/merlin/merlin.conf.
 
-First we must add the "top-level" setting `ipc_privatekey`. I can be added directly after the `ipc_socket` line.
-
+First we must add the "top-level" setting `ipc_privatekey`. It can be added directly after the `ipc_socket` line.
 The setting must be set to the location of the private key, which is `/opt/monitor/op5/merlin/key.priv` by default.
 
 Secondly we need to find the node configuration for the nodes we want to enable encryption for. Those are located at the end of the merlin.conf file. In every node definition we need to add two settings `encrypted` and `publickey`. `encrypted` must be set to 1 and the `publickey` must be set to the location of the copied public key file.
