@@ -91,17 +91,17 @@ struct merlin_header {
 	uint16_t selection;  /* used when noc Nagios communicates with mrd */
 	uint32_t len;        /* size of body */
 	struct timeval sent;  /* when this message was sent */
-	unsigned char authtag[crypto_secretbox_MACBYTES];
-	unsigned char nonce[crypto_secretbox_NONCEBYTES];
-
+	
 	/* pad to 64 bytes for future extensions */
-	char padding[128 - sizeof(struct timeval) - (2 * 6) - 8 - crypto_secretbox_MACBYTES-crypto_secretbox_NONCEBYTES];
+	char padding[64 - sizeof(struct timeval) - (2 * 6) - 8];
 } __attribute__((packed));
 typedef struct merlin_header merlin_header;
 
 struct merlin_event {
 	merlin_header hdr;
 	char body[128 << 10];
+	unsigned char authtag[crypto_secretbox_MACBYTES];
+	unsigned char nonce[crypto_secretbox_NONCEBYTES];
 } __attribute__((packed));
 typedef struct merlin_event merlin_event;
 

@@ -53,12 +53,12 @@ int encrypt_pkt(merlin_event * pkt, merlin_node * recv) {
 		return -1;
 	}
 
-	randombytes_buf(pkt->hdr.nonce, sizeof(pkt->hdr.nonce));
+	randombytes_buf(pkt->nonce, sizeof(pkt->nonce));
 
 	if (crypto_box_detached_afternm(
-				(unsigned char *)pkt->body, pkt->hdr.authtag,
+				(unsigned char *)pkt->body, pkt->authtag,
 				(unsigned char *)pkt->body, pkt->hdr.len,
-				pkt->hdr.nonce, recv->sharedkey) != 0) {
+				pkt->nonce, recv->sharedkey) != 0) {
 		lerr("could not encrypt msg!\n");
 		return -1;
 	}
@@ -74,7 +74,7 @@ int decrypt_pkt(merlin_event * pkt, merlin_node * sender) {
 	if (crypto_box_open_detached_afternm(
 				(unsigned char *)pkt->body,
 				(const unsigned char *)pkt->body,
-				pkt->hdr.authtag, pkt->hdr.len, pkt->hdr.nonce,
+				pkt->authtag, pkt->hdr.len, pkt->nonce,
 				sender->sharedkey) != 0) {
 		lerr("Encrypted message forged!\n");
 		return -1;
