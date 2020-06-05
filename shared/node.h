@@ -101,6 +101,7 @@ struct merlin_event {
 	merlin_header hdr;
 	char body[128 << 10];
 	unsigned char authtag[crypto_secretbox_MACBYTES];
+	unsigned char authtag_hdr[crypto_secretbox_MACBYTES];
 	unsigned char nonce[crypto_secretbox_NONCEBYTES];
 } __attribute__((packed));
 typedef struct merlin_event merlin_event;

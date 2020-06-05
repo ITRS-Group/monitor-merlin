@@ -929,6 +929,13 @@ merlin_event *node_get_event(merlin_node *node)
 	merlin_event *pkt;
 	nm_bufferqueue *bq = node->bq;
 
+	if (node->encrypted) {
+		lwarn("Try to decrypt msg");
+		if (decrypt_pkt(pkt, node) == -1) {
+			node_disconnect(node, "Failed to decrypt package from: %s", node->name);
+		}
+	}
+
 	if (nm_bufferqueue_peek(bq, HDR_SIZE, (void *)&hdr))
 		return NULL;
 
@@ -953,13 +960,6 @@ merlin_event *node_get_event(merlin_node *node)
 		lerr("IOC: Reading from '%s' failed, after checking that enough data was available. Disconnecting node", node->name);
 		node_disconnect(node, "IOC error");
 		return NULL;
-	}
-
-	if (node->encrypted) {
-		lwarn("Try to decrypt msg");
-		if (decrypt_pkt(pkt, node) == -1) {
-			node_disconnect(node, "Failed to decrypt package from: %s", node->name);
-		}
 	}
 
 	/* debug log these transitions */

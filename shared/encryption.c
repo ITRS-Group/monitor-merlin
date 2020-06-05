@@ -59,9 +59,19 @@ int encrypt_pkt(merlin_event * pkt, merlin_node * recv) {
 				(unsigned char *)pkt->body, pkt->authtag,
 				(unsigned char *)pkt->body, pkt->hdr.len,
 				pkt->nonce, recv->sharedkey) != 0) {
-		lerr("could not encrypt msg!\n");
+		lerr("could not encrypt body!\n");
 		return -1;
 	}
+	
+	/* encrypt the header */
+	if (crypto_box_detached_afternm(
+				(unsigned char *)&pkt->hdr, pkt->authtag_hdr,
+				(unsigned char *)&pkt->hdr, sizeof(pkt->hdr),
+				pkt->nonce, recv->sharedkey) != 0) {
+		lerr("could not encrypt merlin header!\n");
+		return -1;
+	}
+	
 	return 0;
 }
 
@@ -70,17 +80,24 @@ int decrypt_pkt(merlin_event * pkt, merlin_node * sender) {
 	if (init_sodium() == -1) {
 		return -1;
 	}
-
+	
+	if (crypto_box_open_detached_afternm(
+				(unsigned char *)&pkt->hdr,
+				(const unsigned char *)&pkt->hdr,
+				pkt->authtag_hdr, sizeof(pkt->hdr), pkt->nonce,
+				sender->sharedkey) != 0) {
+		lerr("Encrypted message forged (header)!\n");
+		return -1;
+	}
+	
 	if (crypto_box_open_detached_afternm(
 				(unsigned char *)pkt->body,
 				(const unsigned char *)pkt->body,
 				pkt->authtag, pkt->hdr.len, pkt->nonce,
 				sender->sharedkey) != 0) {
-		lerr("Encrypted message forged!\n");
+		lerr("Encrypted message forged (body)!\n");
 		return -1;
 	}
 
 	return 0;
 }
-
-

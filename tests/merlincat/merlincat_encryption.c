@@ -57,7 +57,7 @@ int merlincat_encrypt_pkt(merlin_event * pkt) {
 		return 0;
 	}
 
-	if (*pkt->hdr.nonce != '\0') {
+	if (*pkt->nonce != '\0') {
 		g_message("encrypt_pkt: pkt already encrypted");
 		return 0;
 	}
@@ -79,9 +79,14 @@ int merlincat_encrypt_pkt(merlin_event * pkt) {
 		return -1;
 	}
 
-	randombytes_buf(pkt->hdr.nonce, sizeof(pkt->hdr.nonce));
+	randombytes_buf(pkt->nonce, sizeof(pkt->nonce));
 
-	if (crypto_box_detached((unsigned char *)pkt->body, pkt->hdr.authtag, (unsigned char *)pkt->body, pkt->hdr.len, pkt->hdr.nonce, pubkey, privkey) != 0) {
+	if (crypto_box_detached((unsigned char *)pkt->body, pkt->authtag, (unsigned char *)pkt->body, pkt->hdr.len, pkt->nonce, pubkey, privkey) != 0) {
+		g_message("encrypt_pkt: could not encrypt pkt");
+		return 0;
+	}
+	
+	if (crypto_box_detached((unsigned char *)&pkt->hdr, pkt->authtag_hdr, (unsigned char *)&pkt->hdr, sizeof(pkt->hdr), pkt->nonce, pubkey, privkey) != 0) {
 		g_message("encrypt_pkt: could not encrypt pkt");
 		return 0;
 	}
@@ -97,7 +102,7 @@ int merlincat_decrypt_pkt(merlin_event * pkt) {
 		return 0;
 	}
 
-	if (*pkt->hdr.nonce == '\0') {
+	if (*pkt->nonce == '\0') {
 		g_message("decrypt_pkt: nonce empty");
 	}
 
@@ -118,11 +123,16 @@ int merlincat_decrypt_pkt(merlin_event * pkt) {
 		return -1;
 	}
 
-	if (crypto_box_open_detached((unsigned char *)pkt->body, (const unsigned char *)pkt->body, pkt->hdr.authtag, pkt->hdr.len, pkt->hdr.nonce, pubkey, privkey) != 0) {
+	if (crypto_box_open_detached((unsigned char *)&pkt->hdr, (const unsigned char *)&pkt->body, pkt->authtag_hdr, sizeof(pkt->hdr), pkt->nonce, pubkey, privkey) != 0) {
 		return -1;
 	}
 
-	*pkt->hdr.nonce = '\0';
+	if (crypto_box_open_detached((unsigned char *)pkt->body, (const unsigned char *)pkt->body, pkt->authtag, pkt->hdr.len, pkt->nonce, pubkey, privkey) != 0) {
+		return -1;
+	}
+	
+
+	*pkt->nonce = '\0';
 
 	return 0;
 }
