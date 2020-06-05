@@ -25,10 +25,10 @@ When the keys have been created, the public key (key.pub) needs to be copied to 
 This can be done with `scp`, for example, in a situation where we have one master and one poller:
 
 On master:
-scp /opt/monitor/op5/merlin/key.pub poller_ip:/opt/monitor/op5/merlin/master.pub
+asmonitor scp -p /opt/monitor/op5/merlin/key.pub poller_ip:/opt/monitor/op5/merlin/master.pub
 
 On poller:
-scp /opt/monitor/op5/merlin/key.pub master_ip:/opt/monitor/op5/merlin/poller.pub
+asmonitor scp -p /opt/monitor/op5/merlin/key.pub master_ip:/opt/monitor/op5/merlin/poller.pub
 
 **Important:** The private key (key.priv) should never be shared.
 
