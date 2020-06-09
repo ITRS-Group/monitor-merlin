@@ -23,7 +23,8 @@ def cmd_check_consistency(args):
 				GROUP BY host_name, service_description) B\
 			ON A.timestamp = B.TS\
 			AND A.host_name = B.host_name\
-			AND A.service_description = B.service_description")
+			AND A.service_description = B.service_description\
+			WHERE event_type NOT IN (1000,1001,1103,1104,100,103)")
 
 	rows = dbc.fetchall()
 
