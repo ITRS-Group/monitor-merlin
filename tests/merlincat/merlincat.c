@@ -12,6 +12,7 @@
 #include "merlinreader.h"
 #include "console.h"
 #include "event_packer.h"
+#include "merlincat_encryption.h"
 #include <shared/shared.h>
 #include <shared/compat.h>
 
@@ -121,6 +122,9 @@ static void net_send_ctrl_active(ConnectionStorage *conn) {
 
 	pkt.hdr.len = sizeof(merlin_nodeinfo);
 	memcpy(&pkt.body, &node, sizeof(merlin_nodeinfo));
+	if (merlincat_encrypt_pkt(&pkt) != 0) {
+		g_message("net_send_ctrl_active: Failed to encrypt pkt");
+	}
 
 	connection_send(conn, &pkt, HDR_SIZE + pkt.hdr.len);
 }

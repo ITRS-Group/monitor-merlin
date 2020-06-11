@@ -1638,6 +1638,10 @@ int nebmodule_deinit(__attribute__((unused)) int flags, __attribute__((unused)) 
 		free(node->name);
 		free(node->source_name);
 		free(node->hostgroups);
+		// unlock and zero out shared key for encrypted nodes
+		if (node->encrypted) {
+			sodium_munlock(node->sharedkey, crypto_box_BEFORENMBYTES);
+		}
 	}
 	safe_free(node_table);
 

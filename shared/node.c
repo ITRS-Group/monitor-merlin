@@ -5,11 +5,14 @@
 #include "io.h"
 #include "compat.h"
 #include "node.h"
+#include "encryption.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <string.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <sodium.h>
+#include <stdbool.h>
 
 merlin_node **noc_table, **poller_table, **peer_table;
 
@@ -460,6 +463,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 
 	/* some sane defaults */
 	node->data_timeout = pulse_interval * 2;
+	node->encrypted = false;
 
 	for (i = 0; i < c->vars; i++) {
 		struct cfg_var *v = c->vlist[i];
@@ -488,6 +492,32 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 		}
 		else if (!strcmp(v->key, "max_sync_attempts")) {
 			/* restricting max sync attempts is a terrible idea, don't do anything */
+		}
+		else if (!strcmp(v->key, "encrypted")) {
+			int value;
+			value=atoi(v->value);
+			if (value == 1) {
+				node->encrypted=true;
+			} else {
+				node->encrypted=false;
+			}
+		} else if (!strcmp(v->key, "publickey")) {
+			unsigned char pubkey[crypto_box_PUBLICKEYBYTES];
+			if ( open_encryption_key(v->value, pubkey,
+						crypto_box_PUBLICKEYBYTES) ) {
+				cfg_error(c,v, "Could not open publickey: %s\n",
+						v->value);
+			}
+			/* pre-calculate key */
+			if (crypto_box_beforenm(node->sharedkey, pubkey,ipc.privkey) != 0) {
+				cfg_error(c,v, "Could not pre-calculate shared key\n");
+			}
+			/* lock memory to ensure it cannot be swapped
+			 * and also exclude the memory from coredumps if supported
+			 */
+			if (sodium_mlock(node->sharedkey, crypto_box_BEFORENMBYTES) != 0) {
+				cfg_warn(c, v,  "sodium_mlock failed.\n");
+			}
 		}
 		else if (grok_node_flag(&node->flags, v->key, v->value) < 0) {
 			cfg_error(c, v, "Unknown variable\n");
@@ -820,6 +850,7 @@ int node_recv(merlin_node *node)
 int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 {
 	merlin_event *pkt = (merlin_event *)data;
+	merlin_event *encrypted_pkt = NULL;
 	int sent, sd = 0;
 
 	if (!node || node->sock < 0)
@@ -836,7 +867,25 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 		}
 	}
 
-	sent = io_send_all(node->sock, data, len);
+	if (node->encrypted) {
+		/* allocate memory and copy the pkt */
+		encrypted_pkt = malloc(sizeof *encrypted_pkt);
+		memcpy(encrypted_pkt, pkt, packet_size(pkt));
+
+		if (encrypt_pkt(encrypted_pkt, node) == -1) {
+			node_disconnect(node, "Failed to encrypt packet");
+		}
+		/* Make sure we set the encrypted pkt as the pkt to send */
+		pkt = encrypted_pkt;
+
+	}
+
+	sent = io_send_all(node->sock, (void *) pkt, len);
+
+	if (encrypted_pkt != NULL) {
+		free(encrypted_pkt);
+	}
+
 	/* success. Should be the normal case */
 	if (sent == (int)len) {
 		node->stats.bytes.sent += sent;
@@ -906,8 +955,16 @@ merlin_event *node_get_event(merlin_node *node)
 		return NULL;
 	}
 
+	if (node->encrypted) {
+		lwarn("Try to decrypt msg");
+		if (decrypt_pkt(pkt, node) == -1) {
+			node_disconnect(node, "Failed to decrypt package from: %s", node->name);
+		}
+	}
+
 	/* debug log these transitions */
 	if (pkt->hdr.type == CTRL_PACKET && pkt->hdr.code == CTRL_ACTIVE) {
+
 		ldebug("CTRLEVENT: Received CTRL_ACTIVE from %s node %s", node_type(node), node->name);
 		node_log_info(node, (merlin_nodeinfo *)pkt->body);
 	}

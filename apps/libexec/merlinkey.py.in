@@ -1,0 +1,43 @@
+import os, sys
+import time
+import pwd
+import grp
+import subprocess as sp
+
+merlin_conf_dir = "@pkgconfdir@"
+
+def initchildproc():
+	os.umask(0377)
+
+def cmd_generate(args):
+	""" --path=</path/to/save/keys>
+	Generates secure keys for encrypting Merlin communication
+
+	By default the keys are placed in /@pkgconfdir@.
+	"""
+
+	path = merlin_conf_dir
+	for arg in args:
+		if arg.startswith('--path'):
+			path = arg.split('=', 1)[1]
+
+	if os.path.isfile(path + '/key.pub'):
+		print 'File already exists. Key will not be generated.'
+		sys.exit(1)
+
+	if os.path.isfile(path + '/key.priv'):
+		print 'File already exists. Key will not be generated.'
+		sys.exit(1)
+
+	p = sp.Popen(['/usr/lib64/merlin/keygen', "-p", path], stdout=sp.PIPE,
+			stderr=sp.PIPE, preexec_fn=initchildproc)
+	p.wait()
+	if p.returncode != 0:
+		print 'Key generation failed'
+		sys.exit(1)
+	else:
+		uid = pwd.getpwnam("monitor").pw_uid
+		gid = grp.getgrnam("apache").gr_gid
+		os.chown(path + "/key.priv", uid, gid)
+		os.chown(path + "/key.pub", uid, gid)
+		print 'Key generated and saved at ' + path
