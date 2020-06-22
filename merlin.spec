@@ -403,6 +403,7 @@ service_control_function restart nrpe || :
 %defattr(-,root,root)
 %_libdir/merlin/oconf
 %_libdir/merlin/mon
+%_libdir/merlin/keygen
 %_bindir/mon
 %_bindir/op5
 %_sysconfdir/cron.d/*
