@@ -956,7 +956,6 @@ merlin_event *node_get_event(merlin_node *node)
 	}
 
 	if (node->encrypted) {
-		lwarn("Try to decrypt msg");
 		if (decrypt_pkt(pkt, node) == -1) {
 			node_disconnect(node, "Failed to decrypt package from: %s", node->name);
 		}

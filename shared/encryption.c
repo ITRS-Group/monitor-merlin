@@ -62,11 +62,14 @@ int encrypt_pkt(merlin_event * pkt, merlin_node * recv) {
 		lerr("could not encrypt msg!\n");
 		return -1;
 	}
+
+	ldebug("Pkt encryption for node: %s succeeded", recv->name);
+
 	return 0;
 }
 
 int decrypt_pkt(merlin_event * pkt, merlin_node * sender) {
-	ldebug("Decrypting pkt for node: %s", sender->name);
+	ldebug("Decrypting pkt from node: %s", sender->name);
 	if (init_sodium() == -1) {
 		return -1;
 	}
@@ -79,6 +82,8 @@ int decrypt_pkt(merlin_event * pkt, merlin_node * sender) {
 		lerr("Encrypted message forged!\n");
 		return -1;
 	}
+
+	ldebug("Pkt decryption from node: %s succeeded", sender->name);
 
 	return 0;
 }
