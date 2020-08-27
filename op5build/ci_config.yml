@@ -23,7 +23,7 @@ post:
     nosetests --nocapture --where apps/libexec/modules
 
     # Verify file permissions after installation
-    stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 640" = "{}"
+    stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 660" = "{}"
 
     # Install requirements for cucumber test
     if [ -f /usr/bin/systemctl ]; then

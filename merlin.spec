@@ -318,7 +318,7 @@ service_control_function restart nrpe || :
 
 %files
 %defattr(-,root,root)
-%attr(640, -, %daemon_group) %config(noreplace) %mod_path/merlin.conf
+%attr(660, -, %daemon_group) %config(noreplace) %mod_path/merlin.conf
 %_datadir/merlin/sql
 %mod_path/merlind
 %_bindir/merlind
@@ -374,7 +374,7 @@ service_control_function restart nrpe || :
 %if 0%{?rhel} >= 7
 %files slim
 %defattr(-,root,root)
-%attr(640, -, %daemon_group) %config(noreplace) %mod_path/merlin.conf
+%attr(660, -, %daemon_group) %config(noreplace) %mod_path/merlin.conf
 %mod_path/merlind
 %_bindir/merlind
 %_libdir/merlin/install-merlin.sh

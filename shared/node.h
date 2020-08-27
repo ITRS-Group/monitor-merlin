@@ -17,7 +17,7 @@
 # define MERLIN_SIGNATURE (uint64_t)0x005456454e4c524dLL /* "MRLNEVT\0" */
 #endif
 
-#define MERLIN_PROTOCOL_VERSION 2
+#define MERLIN_PROTOCOL_VERSION 3
 
 /*
  * flags for node options. Must be powers of 2
@@ -83,6 +83,8 @@
 #define MAX_PKT_SIZE ((int)PKT_SIZE)
 #define packet_size(pkt) ((int)((pkt)->hdr.len + HDR_SIZE))
 
+#define UUID_SIZE 36
+
 struct merlin_header {
 	union merlin_signature {
 		uint64_t id;     /* used for assignment and comparison */
@@ -96,9 +98,10 @@ struct merlin_header {
 	struct timeval sent;  /* when this message was sent */
 	unsigned char authtag[crypto_secretbox_MACBYTES];
 	unsigned char nonce[crypto_secretbox_NONCEBYTES];
+	char from_uuid[UUID_SIZE + 1]; /* 36 including null terminator */
 
 	/* pad to 64 bytes for future extensions */
-	char padding[128 - sizeof(struct timeval) - (2 * 6) - 8 - crypto_secretbox_MACBYTES-crypto_secretbox_NONCEBYTES];
+	char padding[128 - sizeof(struct timeval) - (2 * 6) - 8 - crypto_secretbox_MACBYTES-crypto_secretbox_NONCEBYTES - UUID_SIZE - 1];
 } __attribute__((packed));
 typedef struct merlin_header merlin_header;
 
@@ -258,6 +261,7 @@ struct merlin_node {
 	bool encrypted;
 	unsigned char privkey[crypto_box_SECRETKEYBYTES];
 	unsigned char sharedkey[crypto_box_BEFORENMBYTES];
+	char uuid[UUID_SIZE + 1]; /* 36 plus null terminator */
 };
 
 struct merlin_runcmd {
@@ -269,6 +273,7 @@ typedef struct merlin_runcmd merlin_runcmd;
 #define node_table noc_table
 extern merlin_node **noc_table, **peer_table, **poller_table;
 extern merlin_nodeinfo *self;
+extern unsigned int uuid_nodes;
 
 #define num_masters self->configured_masters
 #define num_peers self->configured_peers
@@ -318,4 +323,13 @@ static inline int node_send_ctrl_active(merlin_node *node, uint id, merlin_nodei
 {
 	return node_ctrl(node, CTRL_ACTIVE, id, (void *)info, sizeof(*info));
 }
+
+static inline int valid_uuid(char * uuid) {
+	if (uuid == NULL) {
+		return 1;
+	} else {
+		return ( strlen(uuid) == UUID_SIZE );
+	}
+}
+
 #endif
