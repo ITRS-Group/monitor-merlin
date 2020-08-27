@@ -15,6 +15,7 @@ mon_SCRIPTS = \
 	apps/libexec/check.py \
 	apps/libexec/db.py \
 	apps/libexec/ecmd.py \
+	apps/libexec/id.py \
 	apps/libexec/log.py \
 	apps/libexec/merlinkey.py \
 	apps/libexec/node.py \

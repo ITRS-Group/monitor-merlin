@@ -33,6 +33,7 @@ AX_CHECK_COMPILE_FLAG([-Wno-unused-parameter], AM_CFLAGS+=" -Wno-unused-paramete
 AX_CHECK_COMPILE_FLAG([-Wno-strict-aliasing], AM_CFLAGS+=" -Wno-strict-aliasing")
 AX_CHECK_COMPILE_FLAG([-Wno-error=unused-result], AM_CFLAGS+=" -Wno-error=unused-result")
 AX_CHECK_COMPILE_FLAG([-lsodium], AM_CFLAGS+=" -lsodium")
+AX_CHECK_COMPILE_FLAG([-lpthread], AM_CFLAGS+=" -lpthread")
 
 AC_SUBST([AM_CPPFLAGS])
 AC_SUBST([AM_CFLAGS])
