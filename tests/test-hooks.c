@@ -124,7 +124,7 @@ static void expiration_teardown(void)
 
 START_TEST(set_clear_svc_expire)
 {
-	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0},"", ""},{0}};
+	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0},"", "", ""},{0}};
 	nebstruct_service_check_data ds = {0,};
 	ds.type = NEBTYPE_SERVICECHECK_ASYNC_PRECHECK;
 	ds.object_ptr = host_ary[0]->services->service_ptr;
@@ -154,7 +154,7 @@ END_TEST
 
 START_TEST(set_clear_host_expire)
 {
-	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0},"", ""},{0}};
+	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0},"", "", ""},{0}};
 	nebstruct_host_check_data ds = {0,};
 	ds.type = NEBTYPE_HOSTCHECK_ASYNC_PRECHECK;
 	ds.object_ptr = host_ary[0];
@@ -185,7 +185,7 @@ END_TEST
 START_TEST(multiple_svc_expire)
 {
 	void *first_user_data;
-	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0},"", ""},{0}};
+	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0},"", "", ""},{0}};
 	nebstruct_service_check_data ds0 = {0,}, ds1 = {0,};
 	ds0.type = NEBTYPE_SERVICECHECK_ASYNC_PRECHECK;
 	ds0.object_ptr = host_ary[0]->services->service_ptr;
@@ -227,7 +227,7 @@ END_TEST
 START_TEST(multiple_host_expire)
 {
 	void *first_user_data;
-	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0},"", ""},{0}};
+	merlin_event pkt = {{{0,},0,0,0,0,0,{0,},{0},"", "", ""},{0}};
 	nebstruct_host_check_data ds0 = {0,}, ds1 = {0,};
 	ds0.type = NEBTYPE_HOSTCHECK_ASYNC_PRECHECK;
 	ds0.object_ptr = host_ary[0];

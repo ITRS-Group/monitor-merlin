@@ -18,6 +18,7 @@ merlin_node **noc_table, **poller_table, **peer_table;
 
 static int num_selections;
 static node_selection *selection_table;
+unsigned int uuid_nodes = 0;
 
 static void node_log_info(const merlin_node *node, const merlin_nodeinfo *info)
 {
@@ -518,6 +519,12 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			if (sodium_mlock(node->sharedkey, crypto_box_BEFORENMBYTES) != 0) {
 				cfg_warn(c, v,  "sodium_mlock failed.\n");
 			}
+		} else if (!strcmp(v->key, "uuid")) {
+			if (!valid_uuid(v->value)) {
+				cfg_error(c,v, "UUID must be exactly %d characters\n", UUID_SIZE);
+			}
+			uuid_nodes++;
+			strcpy(node->uuid, v->value);
 		}
 		else if (grok_node_flag(&node->flags, v->key, v->value) < 0) {
 			cfg_error(c, v, "Unknown variable\n");
@@ -856,6 +863,8 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 	if (!node || node->sock < 0)
 		return 0;
 
+	strcpy(pkt->hdr.from_uuid, ipc.uuid);
+
 	if (len >= HDR_SIZE && pkt->hdr.type == CTRL_PACKET) {
 		ldebug("Sending %s to %s", ctrl_name(pkt->hdr.code), node->name);
 		if (pkt->hdr.code == CTRL_ACTIVE) {
@@ -964,7 +973,7 @@ merlin_event *node_get_event(merlin_node *node)
 	/* debug log these transitions */
 	if (pkt->hdr.type == CTRL_PACKET && pkt->hdr.code == CTRL_ACTIVE) {
 
-		ldebug("CTRLEVENT: Received CTRL_ACTIVE from %s node %s", node_type(node), node->name);
+		ldebug("CTRLEVENT: Received CTRL_ACTIVE from %s node %s UUID: %s", node_type(node), node->name, pkt->hdr.from_uuid);
 		node_log_info(node, (merlin_nodeinfo *)pkt->body);
 	}
 
