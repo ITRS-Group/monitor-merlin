@@ -17,7 +17,7 @@
 # define MERLIN_SIGNATURE (uint64_t)0x005456454e4c524dLL /* "MRLNEVT\0" */
 #endif
 
-#define MERLIN_PROTOCOL_VERSION 2
+#define MERLIN_PROTOCOL_VERSION 3
 
 /*
  * flags for node options. Must be powers of 2
@@ -93,9 +93,10 @@ struct merlin_header {
 	struct timeval sent;  /* when this message was sent */
 	unsigned char authtag[crypto_secretbox_MACBYTES];
 	unsigned char nonce[crypto_secretbox_NONCEBYTES];
+	char from_uuid[36];
 
 	/* pad to 64 bytes for future extensions */
-	char padding[128 - sizeof(struct timeval) - (2 * 6) - 8 - crypto_secretbox_MACBYTES-crypto_secretbox_NONCEBYTES];
+	char padding[128 - sizeof(struct timeval) - (2 * 6) - 8 - crypto_secretbox_MACBYTES-crypto_secretbox_NONCEBYTES - 36];
 } __attribute__((packed));
 typedef struct merlin_header merlin_header;
 
@@ -255,6 +256,7 @@ struct merlin_node {
 	bool encrypted;
 	unsigned char privkey[crypto_box_SECRETKEYBYTES];
 	unsigned char sharedkey[crypto_box_BEFORENMBYTES];
+	char uuid[36];
 };
 
 #define node_table noc_table
