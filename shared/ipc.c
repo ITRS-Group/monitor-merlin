@@ -59,7 +59,7 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 "csync_last_attempt=%lu;"
 				 "csync_push_cmd=%s;csync_push_is_running=%d;"
 				 "csync_fetch_cmd=%s;csync_fetch_is_running=%d;"
-				 "encrypted=%d"
+				 "encrypted=%d;uuid=%s"
 				 "\n",
 				 instance_id,
 				 n->name, n->source_name, n->sock, node_type(n),
@@ -93,7 +93,7 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 n->csync_last_attempt,
 				 n->csync.push.cmd ? n->csync.push.cmd : "", n->csync.push.is_running,
 				 n->csync.fetch.cmd ? n->csync.fetch.cmd : "", n->csync.fetch.is_running,
-				 n->encrypted
+				 n->encrypted, n->uuid
 				);
 	return 0;
 }
@@ -204,6 +204,16 @@ int ipc_grok_var(char *var, char *val)
 
 	if (!strcmp(var, "ipc_privatekey")) {
 		return !ipc_set_private_key(val);
+	}
+
+	if (!strcmp(var, "ipc_uuid")) {
+		if (!valid_uuid(val)) {
+			lerr("IPC UUID must be exactly %d characters\n", UUID_SIZE);
+			return 0;
+		}
+		strcpy(ipc.uuid, val);
+
+		return 1;
 	}
 
 	if (!strcmp(var, "ipc_binlog")) {
