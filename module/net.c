@@ -22,17 +22,24 @@ static unsigned short net_source_port(merlin_node *node)
 }
 
 static merlin_node *find_node_uuid(int sd, struct sockaddr_in *sain) {
-	int bytes_read;
+	int bytes_read = 0;
 	merlin_header hdr;
 	merlin_node *found_node = NULL;
 	nm_bufferqueue *bq = nm_bufferqueue_create();
 
 	ldebug("FINDNODE UUID: reading from socket");
-	bytes_read = nm_bufferqueue_read(bq, sd);
+	// wait until we get something...
+	while (bytes_read < 1) {
+		bytes_read = nm_bufferqueue_read(bq, sd);
+	}
+	ldebug("FINDNODE UUID: read %d bytes", bytes_read);
 	if (bytes_read > 0) {
 		int i;
-		ldebug("FINDNODE UUID: read %d bytes", bytes_read);
 		nm_bufferqueue_peek(bq, HDR_SIZE, (void *)&hdr);
+		ldebug("FINDNODE UUID: code: %d, %d, %d", hdr.code, HDR_SIZE, hdr.len);
+		if (hdr.type == CTRL_PACKET) {
+			ldebug("FINDNODE UUID: CTRL active!");
+		}
 		for (i = 0; i < num_nodes; i++) {
 			merlin_node *node = node_table[i];
 			ldebug("FINDNODE UUID: comparing from_uuid: %s, node uuid: %s", hdr.from_uuid, node->uuid);
@@ -52,7 +59,7 @@ static merlin_node *find_node_uuid(int sd, struct sockaddr_in *sain) {
 static merlin_node *find_node(struct sockaddr_in *sain)
 {
 	uint i;
-	merlin_node *first =Y NULL;
+	merlin_node *first = NULL;
 
 	if (!sain)
 		return NULL;
@@ -285,9 +292,11 @@ static int conn_writable(int sd, int events, void *node_)
 			return 0;
 		}
 		// send initial handshake pkt
+		ldebug("CONN: In conn_writable(): node=%s; UUID-length: %ld", node->name, strlen(node->uuid));
 		if (strlen(node->uuid) == 36) {
 			merlin_event pkt;
 			int sent;
+			uint32_t len = sizeof(ipc.info);
 			ldebug("CONN: In conn_writable(): Sending handshake pkt to node=%s;", node->name);
 			memset(&pkt.hdr, 0, HDR_SIZE);
 
@@ -295,12 +304,14 @@ static int conn_writable(int sd, int events, void *node_)
 			pkt.hdr.protocol = MERLIN_PROTOCOL_VERSION;
 			gettimeofday(&pkt.hdr.sent, NULL);
 			pkt.hdr.type = CTRL_PACKET;
-			pkt.hdr.len = HDR_SIZE;
-			pkt.hdr.code = CTRL_ACTIVE;
+			pkt.hdr.len = len;
+			pkt.hdr.code = CTRL_GENERIC;
 			strcpy(pkt.hdr.from_uuid, ipc.uuid);
-			sent = io_send_all(node->sock, (void *) &pkt, HDR_SIZE);
-			if (sent == HDR_SIZE) {
-				ldebug("CONN: In conn_writable(): handshake pkt sent ok to node=%s;", node->name);
+			memcpy(&pkt.body, &ipc.info, len);
+			sent = io_send_all(node->sock, (void *) &pkt, packet_size(&pkt));
+			ldebug("CONN: In conn_writable(): sent: %d len: %d", sent, len);
+			if (sent == packet_size(&pkt)) {
+				ldebug("CONN: In conn_writable(): handshake pkt sent ok to node=%s; sent:", node->name);
 			} else {
 				ldebug("CONN: In conn_writable(): failed to send handshake to node=%s;", node->name);
 			}
@@ -505,7 +516,7 @@ static int net_accept_one(int sd, int events, void *discard)
 		lerr("accept() failed: %s", strerror(errno));
 		return -1;
 	}
-	node = find_node_uuid(sd, &sain);
+	node = find_node_uuid(sock, &sain);
 	//node = find_node(&sain);
 	linfo("NODESTATE: %s connected from %s:%d. Current state is %s",
 		  node ? node->name : "An unregistered node",
