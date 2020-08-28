@@ -972,7 +972,7 @@ merlin_event *node_get_event(merlin_node *node)
 	/* debug log these transitions */
 	if (pkt->hdr.type == CTRL_PACKET && pkt->hdr.code == CTRL_ACTIVE) {
 
-		ldebug("CTRLEVENT: Received CTRL_ACTIVE from %s node %s UUID: %s", node_type(node), node->name, node->uuid);
+		ldebug("CTRLEVENT: Received CTRL_ACTIVE from %s node %s UUID: %s", node_type(node), node->name, pkt->hdr.from_uuid);
 		node_log_info(node, (merlin_nodeinfo *)pkt->body);
 	}
 
