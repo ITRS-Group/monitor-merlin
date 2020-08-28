@@ -284,6 +284,27 @@ static int conn_writable(int sd, int events, void *node_)
 			close(sd);
 			return 0;
 		}
+		// send initial handshake pkt
+		if (strlen(node->uuid) == 36) {
+			merlin_event pkt;
+			int sent;
+			ldebug("CONN: In conn_writable(): Sending handshake pkt to node=%s;", node->name);
+			memset(&pkt.hdr, 0, HDR_SIZE);
+
+			pkt.hdr.sig.id = MERLIN_SIGNATURE;
+			pkt.hdr.protocol = MERLIN_PROTOCOL_VERSION;
+			gettimeofday(&pkt.hdr.sent, NULL);
+			pkt.hdr.type = CTRL_PACKET;
+			pkt.hdr.len = HDR_SIZE;
+			pkt.hdr.code = CTRL_ACTIVE;
+			strcpy(pkt.hdr.from_uuid, ipc.uuid);
+			sent = io_send_all(node->sock, (void *) &pkt, HDR_SIZE);
+			if (sent == HDR_SIZE) {
+				ldebug("CONN: In conn_writable(): handshake pkt sent ok to node=%s;", node->name);
+			} else {
+				ldebug("CONN: In conn_writable(): failed to send handshake to node=%s;", node->name);
+			}
+		}
 		iobroker_register(nagios_iobs, sd, node, net_input);
 		node_set_state(node, STATE_NEGOTIATING, "Connect completed successfully. Negotiating protocol");
 		return 0;
