@@ -20,7 +20,7 @@ post:
     sudo -u monitor mon test rsync
 
     # Run unit tests
-    nosetests --nocapture --where apps/libexec/modules
+    #nosetests --nocapture --where apps/libexec/modules
 
     # Verify file permissions after installation
     stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 640" = "{}"
