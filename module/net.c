@@ -21,10 +21,38 @@ static unsigned short net_source_port(merlin_node *node)
 	return ntohs(node->sain.sin_port) + default_port;
 }
 
+static merlin_node *find_node_uuid(int sd, struct sockaddr_in *sain) {
+	int bytes_read;
+	merlin_header hdr;
+	merlin_node *found_node = NULL;
+	nm_bufferqueue *bq = nm_bufferqueue_create();
+
+	ldebug("FINDNODE UUID: reading from socket");
+	bytes_read = nm_bufferqueue_read(bq, sd);
+	if (bytes_read > 0) {
+		int i;
+		ldebug("FINDNODE UUID: read %d bytes", bytes_read);
+		nm_bufferqueue_peek(bq, HDR_SIZE, (void *)&hdr);
+		for (i = 0; i < num_nodes; i++) {
+			merlin_node *node = node_table[i];
+			ldebug("FINDNODE UUID: comparing from_uuid: %s, node uuid: %s", hdr.from_uuid, node->uuid);
+			if (strcmp(hdr.from_uuid, node->uuid) == 0) {
+				ldebug("FINDNODE UUID: Found node: %s", node->name);
+				found_node = node;
+				break;
+			}
+		}
+	} else {
+		ldebug("FINDNODE UUID: couldn't read any data from socket");
+	}
+	nm_bufferqueue_destroy(bq);
+	return found_node;
+}
+
 static merlin_node *find_node(struct sockaddr_in *sain)
 {
 	uint i;
-	merlin_node *first = NULL;
+	merlin_node *first =Y NULL;
 
 	if (!sain)
 		return NULL;
@@ -456,8 +484,8 @@ static int net_accept_one(int sd, int events, void *discard)
 		lerr("accept() failed: %s", strerror(errno));
 		return -1;
 	}
-
-	node = find_node(&sain);
+	node = find_node_uuid(sd, &sain);
+	//node = find_node(&sain);
 	linfo("NODESTATE: %s connected from %s:%d. Current state is %s",
 		  node ? node->name : "An unregistered node",
 		  inet_ntoa(sain.sin_addr), ntohs(sain.sin_port),
