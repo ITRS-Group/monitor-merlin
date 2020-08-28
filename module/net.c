@@ -24,14 +24,16 @@ static unsigned short net_source_port(merlin_node *node)
 static merlin_node *find_node_uuid(int sd, struct sockaddr_in *sain) {
 	int bytes_read = 0;
 	merlin_header hdr;
-	merlin_node *found_node = NULL;
+	merlin_event *pkt;
 	nm_bufferqueue *bq = nm_bufferqueue_create();
+	merlin_node *found_node = NULL;
 
 	ldebug("FINDNODE UUID: reading from socket");
 	// wait until we get something...
-	while (bytes_read < 1) {
+	while (nm_bufferqueue_peek(bq, HDR_SIZE, (void *)&hdr) != 0) {
 		bytes_read = nm_bufferqueue_read(bq, sd);
 	}
+
 	ldebug("FINDNODE UUID: read %d bytes", bytes_read);
 	if (bytes_read > 0) {
 		int i;
@@ -291,31 +293,7 @@ static int conn_writable(int sd, int events, void *node_)
 			close(sd);
 			return 0;
 		}
-		// send initial handshake pkt
-		ldebug("CONN: In conn_writable(): node=%s; UUID-length: %ld", node->name, strlen(node->uuid));
-		if (strlen(node->uuid) == 36) {
-			merlin_event pkt;
-			int sent;
-			uint32_t len = sizeof(ipc.info);
-			ldebug("CONN: In conn_writable(): Sending handshake pkt to node=%s;", node->name);
-			memset(&pkt.hdr, 0, HDR_SIZE);
 
-			pkt.hdr.sig.id = MERLIN_SIGNATURE;
-			pkt.hdr.protocol = MERLIN_PROTOCOL_VERSION;
-			gettimeofday(&pkt.hdr.sent, NULL);
-			pkt.hdr.type = CTRL_PACKET;
-			pkt.hdr.len = len;
-			pkt.hdr.code = CTRL_GENERIC;
-			strcpy(pkt.hdr.from_uuid, ipc.uuid);
-			memcpy(&pkt.body, &ipc.info, len);
-			sent = io_send_all(node->sock, (void *) &pkt, packet_size(&pkt));
-			ldebug("CONN: In conn_writable(): sent: %d len: %d", sent, len);
-			if (sent == packet_size(&pkt)) {
-				ldebug("CONN: In conn_writable(): handshake pkt sent ok to node=%s; sent:", node->name);
-			} else {
-				ldebug("CONN: In conn_writable(): failed to send handshake to node=%s;", node->name);
-			}
-		}
 		iobroker_register(nagios_iobs, sd, node, net_input);
 		node_set_state(node, STATE_NEGOTIATING, "Connect completed successfully. Negotiating protocol");
 		return 0;
