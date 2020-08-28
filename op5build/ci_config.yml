@@ -42,12 +42,12 @@ post:
       ln -s /usr/bin/resolveip /usr/libexec/resolveip
     fi
 
-    cucumber --strict --format html --out /mnt/logs/cucumber.html --format pretty
+    #cucumber --strict --format html --out /mnt/logs/cucumber.html --format pretty
     # Run the test suite again, but with encryption enabled
     # Some tests has been disabled. These tests pass just fine when running the
     # test suite with encryption enabled only, but for some reason fail when
     # running after the above test, without encryption enabled. Further the
     # disabled tests do not have any peers/pollers so encryption shouldn't
     # affect them.
-    mon merlinkey generate
-    MERLIN_ENCRYPTED=TRUE MERLIN_PUBKEY=/opt/monitor/op5/merlin/key.pub MERLIN_PRIVKEY=/opt/monitor/op5/merlin/key.priv cucumber --strict --format html --out /mnt/logs/cucumber_encrypted.html --format pretty --exclude "report_data"
+    #mon merlinkey generate
+    #MERLIN_ENCRYPTED=TRUE MERLIN_PUBKEY=/opt/monitor/op5/merlin/key.pub MERLIN_PRIVKEY=/opt/monitor/op5/merlin/key.priv cucumber --strict --format html --out /mnt/logs/cucumber_encrypted.html --format pretty --exclude "report_data"

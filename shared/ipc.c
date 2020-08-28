@@ -205,15 +205,15 @@ int ipc_grok_var(char *var, char *val)
 	if (!strcmp(var, "ipc_privatekey")) {
 		return !ipc_set_private_key(val);
 	}
-	
+
 	if (!strcmp(var, "ipc_uuid")) {
 		if (strlen(val) != 36) {
 			lerr("IPC UUID must be exactly 36 characters\n");
-			return 1;
+			return 0;
 		}
-		strcpy(&ipc.uuid, val);
-		
-		return 0;
+		strcpy(ipc.uuid, val);
+
+		return 1;
 	}
 
 	if (!strcmp(var, "ipc_binlog")) {
