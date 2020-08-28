@@ -93,7 +93,7 @@ struct merlin_header {
 	struct timeval sent;  /* when this message was sent */
 	unsigned char authtag[crypto_secretbox_MACBYTES];
 	unsigned char nonce[crypto_secretbox_NONCEBYTES];
-	char from_uuid[36];
+	char from_uuid[37]; // 36 including null terminator
 
 	/* pad to 64 bytes for future extensions */
 	char padding[128 - sizeof(struct timeval) - (2 * 6) - 8 - crypto_secretbox_MACBYTES-crypto_secretbox_NONCEBYTES - 36];
@@ -256,7 +256,7 @@ struct merlin_node {
 	bool encrypted;
 	unsigned char privkey[crypto_box_SECRETKEYBYTES];
 	unsigned char sharedkey[crypto_box_BEFORENMBYTES];
-	char uuid[36];
+	char uuid[37]; // 36 plus null terminator
 };
 
 #define node_table noc_table
