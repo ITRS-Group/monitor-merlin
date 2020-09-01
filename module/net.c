@@ -16,15 +16,16 @@
 
 static int net_sock = -1; /* listening sock descriptor */
 
+static int node_accept(int sock, merlin_node * node, struct sockaddr_in sain); /* foward declaration */
+
 static unsigned short net_source_port(merlin_node *node)
 {
 	return ntohs(node->sain.sin_port) + default_port;
 }
 
-static merlin_node *find_node_uuid(int sd, struct sockaddr_in *sain) {
+static int find_node_uuid(int sd, struct sockaddr_in *sain) {
 	int bytes_read = 0;
 	merlin_header hdr;
-	merlin_event *pkt;
 	nm_bufferqueue *bq = nm_bufferqueue_create();
 	merlin_node *found_node = NULL;
 
@@ -36,7 +37,7 @@ static merlin_node *find_node_uuid(int sd, struct sockaddr_in *sain) {
 
 	ldebug("FINDNODE UUID: read %d bytes", bytes_read);
 	if (bytes_read > 0) {
-		int i;
+		uint32_t i;
 		nm_bufferqueue_peek(bq, HDR_SIZE, (void *)&hdr);
 		ldebug("FINDNODE UUID: code: %d, %d, %d", hdr.code, HDR_SIZE, hdr.len);
 		if (hdr.type == CTRL_PACKET) {
@@ -54,8 +55,14 @@ static merlin_node *find_node_uuid(int sd, struct sockaddr_in *sain) {
 	} else {
 		ldebug("FINDNODE UUID: couldn't read any data from socket");
 	}
+
+	if (!found_node) {
+		close(sd);
+	}
+
 	nm_bufferqueue_destroy(bq);
-	return found_node;
+
+	return node_accept(sd, found_node, *sain);
 }
 
 static merlin_node *find_node(struct sockaddr_in *sain)
@@ -71,7 +78,8 @@ static merlin_node *find_node(struct sockaddr_in *sain)
 		unsigned short source_port = ntohs(sain->sin_port);
 		unsigned short in_port = net_source_port(node);
 		ldebug("FINDNODE: node->sain.sin_addr.s_addr: %d", node->sain.sin_addr.s_addr);
-		if (node->sain.sin_addr.s_addr == sain->sin_addr.s_addr) {
+		if (node->sain.sin_addr.s_addr == sain->sin_addr.s_addr &&
+				!node->uuid) {
 			if (source_port == in_port) {
 				/* perfect match */
 				ldebug("Inbound connection matches %s exactly (%s:%d)",
@@ -477,33 +485,14 @@ int net_try_connect(merlin_node *node)
 	return 0;
 }
 
+static int node_accept(int sock, merlin_node * node, struct sockaddr_in sain) {
+	int result;
 
-/*
- * Accept an inbound connection from a remote host
- * Returns 0 on success and -1 on errors
- */
-static int net_accept_one(int sd, int events, void *discard)
-{
-	int sock, result;
-	merlin_node *node;
-	struct sockaddr_in sain;
-	socklen_t slen = sizeof(struct sockaddr_in);
 
-	sock = accept(sd, (struct sockaddr *)&sain, &slen);
-	if (sock < 0) {
-		lerr("accept() failed: %s", strerror(errno));
-		return -1;
-	}
-	node = find_node_uuid(sock, &sain);
-	//node = find_node(&sain);
 	linfo("NODESTATE: %s connected from %s:%d. Current state is %s",
 		  node ? node->name : "An unregistered node",
 		  inet_ntoa(sain.sin_addr), ntohs(sain.sin_port),
 		  node ? node_state_name(node->state) : "unknown");
-	if (!node) {
-		close(sock);
-		return 0;
-	}
 
 	switch (node->state) {
 	case STATE_NEGOTIATING:
@@ -539,6 +528,30 @@ static int net_accept_one(int sd, int events, void *discard)
 	}
 
 	return sock;
+}
+
+/*
+ * Accept an inbound connection from a remote host
+ * Returns 0 on success and -1 on errors
+ */
+static int net_accept_one(int sd, int events, void *discard)
+{
+	int sock;
+	merlin_node *node;
+	struct sockaddr_in sain;
+	socklen_t slen = sizeof(struct sockaddr_in);
+
+	sock = accept(sd, (struct sockaddr *)&sain, &slen);
+	if (sock < 0) {
+		lerr("accept() failed: %s", strerror(errno));
+		return -1;
+	}
+	node = find_node(&sain);
+	if (node) {
+		return node_accept(sock, node, sain);
+	} else {
+		return find_node_uuid(sock, &sain);
+	}
 }
 
 
