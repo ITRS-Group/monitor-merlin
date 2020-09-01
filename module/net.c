@@ -16,36 +16,43 @@
 
 static int net_sock = -1; /* listening sock descriptor */
 
-static int node_accept(int sock, merlin_node * node, struct sockaddr_in sain); /* foward declaration */
+static int node_accept(int sock, merlin_node * node); /* foward declaration */
 
 static unsigned short net_source_port(merlin_node *node)
 {
 	return ntohs(node->sain.sin_port) + default_port;
 }
 
-static int find_node_uuid(int sd, struct sockaddr_in *sain) {
+static int find_node_uuid(int sd, int ignore, nm_bufferqueue *bq) {
 	int bytes_read = 0;
 	merlin_header hdr;
-	nm_bufferqueue *bq = nm_bufferqueue_create();
+	merlin_event *pkt;
 	merlin_node *found_node = NULL;
 
 	ldebug("FINDNODE UUID: reading from socket");
-	// wait until we get something...
-	while (nm_bufferqueue_peek(bq, HDR_SIZE, (void *)&hdr) != 0) {
-		bytes_read = nm_bufferqueue_read(bq, sd);
+	// read data. If we haven't got at least one header, we return and come
+	// back later
+	bytes_read = nm_bufferqueue_read(bq, sd);
+	ldebug("FINDNODE UUID: read %d bytes", bytes_read);
+	if (nm_bufferqueue_peek(bq, HDR_SIZE, (void *)&hdr) != 0) {
+		ldebug("FINDNODE UUID: Not enough data yet...");
+		return 0;
 	}
 
-	ldebug("FINDNODE UUID: read %d bytes", bytes_read);
+	/* unregister from iobroker as soon as we get one header */
+	iobroker_unregister(nagios_iobs, sd);
+
 	if (bytes_read > 0) {
 		uint32_t i;
 		nm_bufferqueue_peek(bq, HDR_SIZE, (void *)&hdr);
-		ldebug("FINDNODE UUID: code: %d, %d, %d", hdr.code, HDR_SIZE, hdr.len);
-		if (hdr.type == CTRL_PACKET) {
-			ldebug("FINDNODE UUID: CTRL active!");
-		}
 		for (i = 0; i < num_nodes; i++) {
 			merlin_node *node = node_table[i];
+			if (!valid_uuid(node->uuid)) {
+				ldebug("FINDNODE UUID: Node: %s doesn't have a valid UUID", node->name);
+				continue;
+			}
 			ldebug("FINDNODE UUID: comparing from_uuid: %s, node uuid: %s", hdr.from_uuid, node->uuid);
+
 			if (strcmp(hdr.from_uuid, node->uuid) == 0) {
 				ldebug("FINDNODE UUID: Found node: %s", node->name);
 				found_node = node;
@@ -57,12 +64,16 @@ static int find_node_uuid(int sd, struct sockaddr_in *sain) {
 	}
 
 	if (!found_node) {
+		ldebug("FINDNODE UUID: couldn't find node by UUID");
 		close(sd);
+		return 0;
 	}
 
-	nm_bufferqueue_destroy(bq);
+	/* As we do not want to loose any events, we reassign the nodes bufferqueue */
+	nm_bufferqueue_destroy(found_node->bq);
+	found_node->bq = bq;
 
-	return node_accept(sd, found_node, *sain);
+	return node_accept(sd, found_node);
 }
 
 static merlin_node *find_node(struct sockaddr_in *sain)
@@ -79,7 +90,7 @@ static merlin_node *find_node(struct sockaddr_in *sain)
 		unsigned short in_port = net_source_port(node);
 		ldebug("FINDNODE: node->sain.sin_addr.s_addr: %d", node->sain.sin_addr.s_addr);
 		if (node->sain.sin_addr.s_addr == sain->sin_addr.s_addr &&
-				!node->uuid) {
+				!valid_uuid(node->uuid)) {
 			if (source_port == in_port) {
 				/* perfect match */
 				ldebug("Inbound connection matches %s exactly (%s:%d)",
@@ -485,14 +496,8 @@ int net_try_connect(merlin_node *node)
 	return 0;
 }
 
-static int node_accept(int sock, merlin_node * node, struct sockaddr_in sain) {
+static int node_accept(int sock, merlin_node * node) {
 	int result;
-
-
-	linfo("NODESTATE: %s connected from %s:%d. Current state is %s",
-		  node ? node->name : "An unregistered node",
-		  inet_ntoa(sain.sin_addr), ntohs(sain.sin_port),
-		  node ? node_state_name(node->state) : "unknown");
 
 	switch (node->state) {
 	case STATE_NEGOTIATING:
@@ -546,11 +551,27 @@ static int net_accept_one(int sd, int events, void *discard)
 		lerr("accept() failed: %s", strerror(errno));
 		return -1;
 	}
+
 	node = find_node(&sain);
+
+	linfo("NODESTATE: %s connected from %s:%d. Current state is %s",
+			node ? node->name : "An unregistered node",
+			inet_ntoa(sain.sin_addr), ntohs(sain.sin_port),
+			node ? node_state_name(node->state) : "unknown");
+
+
 	if (node) {
-		return node_accept(sock, node, sain);
+		return node_accept(sock, node);
 	} else {
-		return find_node_uuid(sock, &sain);
+		int result;
+		linfo("Trying to identify node by UUID");
+		/* buffer queue will be free'd by find_node_uuid */
+		nm_bufferqueue *bq = nm_bufferqueue_create();
+		result = iobroker_register(nagios_iobs, sock, bq, find_node_uuid);
+		if (result != 0) {
+			ldebug("net_accept_one: Failed to register find_node_uuid with iobroker");
+		}
+		return result;
 	}
 }
 

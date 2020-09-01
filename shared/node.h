@@ -311,4 +311,13 @@ static inline int node_send_ctrl_active(merlin_node *node, uint id, merlin_nodei
 {
 	return node_ctrl(node, CTRL_ACTIVE, id, (void *)info, sizeof(*info));
 }
+
+static inline int valid_uuid(char * uuid) {
+	if (uuid == NULL) {
+		return 1;
+	} else {
+		return ( strlen(uuid) == 36 );
+	}
+}
+
 #endif
