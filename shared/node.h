@@ -98,7 +98,7 @@ struct merlin_header {
 	char from_uuid[UUID_SIZE + 1]; /* 36 including null terminator */
 
 	/* pad to 64 bytes for future extensions */
-	char padding[128 - sizeof(struct timeval) - (2 * 6) - 8 - crypto_secretbox_MACBYTES-crypto_secretbox_NONCEBYTES - 36];
+	char padding[128 - sizeof(struct timeval) - (2 * 6) - 8 - crypto_secretbox_MACBYTES-crypto_secretbox_NONCEBYTES - UUID_SIZE - 1];
 } __attribute__((packed));
 typedef struct merlin_header merlin_header;
 
