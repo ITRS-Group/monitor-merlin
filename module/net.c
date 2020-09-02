@@ -23,15 +23,16 @@ static unsigned short net_source_port(merlin_node *node)
 	return ntohs(node->sain.sin_port) + default_port;
 }
 
-static int find_node_uuid(int sd, int ignore, nm_bufferqueue *bq) {
+static int find_node_uuid(int sd, int ignore, void * bq_) {
 	int bytes_read = 0;
+	int result;
+	nm_bufferqueue * bq = (nm_bufferqueue *) bq_;
 	merlin_header hdr;
-	merlin_event *pkt;
 	merlin_node *found_node = NULL;
+	merlin_event *pkt = NULL;
 
 	ldebug("FINDNODE UUID: reading from socket");
-	// read data. If we haven't got at least one header, we return and come
-	// back later
+	/* read data. If we haven't got at least one header, we return and come back later */
 	bytes_read = nm_bufferqueue_read(bq, sd);
 	ldebug("FINDNODE UUID: read %d bytes", bytes_read);
 	if (nm_bufferqueue_peek(bq, HDR_SIZE, (void *)&hdr) != 0) {
@@ -63,17 +64,30 @@ static int find_node_uuid(int sd, int ignore, nm_bufferqueue *bq) {
 		ldebug("FINDNODE UUID: couldn't read any data from socket");
 	}
 
+	/* Use the new buffer queue in case there are more unhandled events left */
+	nm_bufferqueue_destroy(found_node->bq);
+	found_node->bq = bq;
+
 	if (!found_node) {
 		ldebug("FINDNODE UUID: couldn't find node by UUID");
 		close(sd);
 		return 0;
 	}
 
-	/* As we do not want to loose any events, we reassign the nodes bufferqueue */
-	nm_bufferqueue_destroy(found_node->bq);
-	found_node->bq = bq;
+	/* Usually we have one full pkt worth of data. We save it for after socket negotation */
+	/* as otherwise we need to wait a full pulse interval before the node is */
+	/* marked as connected */
+	if (nm_bufferqueue_get_available(bq) >= HDR_SIZE + hdr.len) {
+		pkt = node_get_event(found_node);
+	}
 
-	return node_accept(sd, found_node);
+	result = node_accept(sd, found_node);
+
+	if (pkt) {
+		handle_event(found_node, pkt);
+	}
+
+	return result;
 }
 
 static merlin_node *find_node(struct sockaddr_in *sain)
@@ -198,6 +212,7 @@ int net_input(int sd, int io_evt, void *node_)
 
 	errno = 0;
 	ldebug("NETINPUT from %p (%s)", node, node ? node->name : "oops");
+
 	len = node_recv(node);
 	if (len < 0) {
 		return 0;
@@ -206,6 +221,7 @@ int net_input(int sd, int io_evt, void *node_)
 	node->last_recv = time(NULL);
 
 	while ((pkt = node_get_event(node))) {
+		ldebug("net_input: Handle pkts after node_recv");
 		events++;
 		handle_event(node, pkt);
 		free(pkt);
@@ -564,13 +580,15 @@ static int net_accept_one(int sd, int events, void *discard)
 		return node_accept(sock, node);
 	} else {
 		int result;
+		nm_bufferqueue *bq;
 		linfo("Trying to identify node by UUID");
 		/* buffer queue will be free'd by find_node_uuid */
-		nm_bufferqueue *bq = nm_bufferqueue_create();
+		bq = nm_bufferqueue_create();
 		result = iobroker_register(nagios_iobs, sock, bq, find_node_uuid);
 		if (result != 0) {
 			ldebug("net_accept_one: Failed to register find_node_uuid with iobroker");
 		}
+		/* TODO: If we never recieve anything on the socket, it will be open forever... */
 		return result;
 	}
 }

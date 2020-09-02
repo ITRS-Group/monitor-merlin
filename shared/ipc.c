@@ -207,8 +207,8 @@ int ipc_grok_var(char *var, char *val)
 	}
 
 	if (!strcmp(var, "ipc_uuid")) {
-		if (strlen(val) != 36) {
-			lerr("IPC UUID must be exactly 36 characters\n");
+		if (!valid_uuid(val)) {
+			lerr("IPC UUID must be exactly %d characters\n", UUID_SIZE);
 			return 0;
 		}
 		strcpy(ipc.uuid, val);

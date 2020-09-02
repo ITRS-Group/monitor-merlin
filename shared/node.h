@@ -80,6 +80,8 @@
 #define MAX_PKT_SIZE ((int)PKT_SIZE)
 #define packet_size(pkt) ((int)((pkt)->hdr.len + HDR_SIZE))
 
+#define UUID_SIZE 36
+
 struct merlin_header {
 	union merlin_signature {
 		uint64_t id;     /* used for assignment and comparison */
@@ -93,7 +95,7 @@ struct merlin_header {
 	struct timeval sent;  /* when this message was sent */
 	unsigned char authtag[crypto_secretbox_MACBYTES];
 	unsigned char nonce[crypto_secretbox_NONCEBYTES];
-	char from_uuid[37]; // 36 including null terminator
+	char from_uuid[UUID_SIZE + 1]; /* 36 including null terminator */
 
 	/* pad to 64 bytes for future extensions */
 	char padding[128 - sizeof(struct timeval) - (2 * 6) - 8 - crypto_secretbox_MACBYTES-crypto_secretbox_NONCEBYTES - 36];
@@ -256,7 +258,7 @@ struct merlin_node {
 	bool encrypted;
 	unsigned char privkey[crypto_box_SECRETKEYBYTES];
 	unsigned char sharedkey[crypto_box_BEFORENMBYTES];
-	char uuid[37]; // 36 plus null terminator
+	char uuid[UUID_SIZE + 1]; /* 36 plus null terminator */
 };
 
 #define node_table noc_table
@@ -316,7 +318,7 @@ static inline int valid_uuid(char * uuid) {
 	if (uuid == NULL) {
 		return 1;
 	} else {
-		return ( strlen(uuid) == 36 );
+		return ( strlen(uuid) == UUID_SIZE );
 	}
 }
 

@@ -519,8 +519,8 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 				cfg_warn(c, v,  "sodium_mlock failed.\n");
 			}
 		} else if (!strcmp(v->key, "uuid")) {
-			if (strlen(v->value) != 36) {
-				cfg_error(c,v, "UUID must be exactly 36 characters\n");
+			if (!valid_uuid(v->value)) {
+				cfg_error(c,v, "UUID must be exactly %d characters\n", UUID_SIZE);
 			}
 			strcpy(node->uuid, v->value);
 		}
@@ -862,6 +862,7 @@ int node_send(merlin_node *node, void *data, unsigned int len, int flags)
 		return 0;
 
 	strcpy(pkt->hdr.from_uuid, ipc.uuid);
+
 
 	if (len >= HDR_SIZE && pkt->hdr.type == CTRL_PACKET) {
 		ldebug("Sending %s to %s", ctrl_name(pkt->hdr.code), node->name);
