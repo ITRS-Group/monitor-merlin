@@ -1,10 +1,70 @@
 #include "codec.h"
+#include "logging.h"
 #include "string_utils.h"
 #include "ipc.h"
 #include "sql.h"
 #include "configuration.h"
 #include <naemon/naemon.h>
 
+
+static int current_service_state_differs_from_last_db_state(const merlin_service_status *p)
+{
+	char *host_name, *service_description;
+	int32_t log_state, log_hard;
+	int retval = FALSE;
+	db_wrap_result *result;
+
+	sql_quote(p->host_name, &host_name);
+	sql_quote(p->service_description, &service_description);
+	sql_query("SELECT state, hard FROM %s "
+		"WHERE host_name = %s AND service_description = %s "
+		"ORDER BY timestamp DESC LIMIT 1",
+		 sql_table_name(), host_name, service_description);
+	result = sql_get_result();
+	if (result != NULL && result->api->step(result) == DB_WRAP_E_OK) {
+		result->api->get_int32_ndx(result, 0, &log_state);
+		result->api->get_int32_ndx(result, 1, &log_hard);
+		if (p->state.current_state != log_state || (p->state.state_type == HARD_STATE) != log_hard) {
+			retval = TRUE;
+		}
+	}
+	else {
+		linfo("Service %s;%s: state not found in report database", host_name, service_description);
+	}
+
+	sql_free_result();
+	free(host_name);
+	return retval;
+}
+
+static int current_host_state_differs_from_last_db_state(const merlin_host_status *p)
+{
+	char *host_name;
+	int32_t log_state, log_hard;
+	int retval = FALSE;
+	db_wrap_result *result;
+
+	sql_quote(p->name, &host_name);
+	sql_query("SELECT state, hard FROM %s "
+		 "WHERE host_name = %s AND service_description = '' "
+		 "ORDER BY timestamp DESC LIMIT 1",
+		 sql_table_name(), host_name);
+	result = sql_get_result();
+	if (result != NULL && result->api->step(result) == DB_WRAP_E_OK) {
+		result->api->get_int32_ndx(result, 0, &log_state);
+		result->api->get_int32_ndx(result, 1, &log_hard);
+		if (p->state.current_state != log_state || (p->state.state_type == HARD_STATE) != log_hard) {
+			retval = TRUE;
+		}
+	}
+	else {
+		linfo("Host %s: state not found in report database", host_name);
+	}
+
+	sql_free_result();
+	free(host_name);
+	return retval;
+}
 
 static int handle_host_status(int cb, const merlin_host_status *p)
 {
@@ -13,8 +73,21 @@ static int handle_host_status(int cb, const merlin_host_status *p)
 	int result = 0, rpt_log = 0, perf_log = 0;
 
 	if (cb == NEBCALLBACK_HOST_CHECK_DATA) {
-		if (db_log_reports && (p->nebattr & (NEBATTR_CHECK_ALERT | NEBATTR_CHECK_FIRST)))
-			rpt_log = 1;
+		if (db_log_reports) {
+			if (p->nebattr & (NEBATTR_CHECK_ALERT | NEBATTR_CHECK_FIRST))
+				rpt_log = 1;
+			else if (current_host_state_differs_from_last_db_state(p)) {
+				/* Log state in report db if state differs from last state in db.
+				 * This solves MON-9116 where object recovery wasn't logged in
+				 * report db on other peers after peer recovery (since the peer
+				 * owning a host might not have seen that host as down during
+				 * disconnection, and thus sends us check results without
+				 * nebattr flags set).
+				 */
+				ldebug("Host %s: current state differs to last DB state, update DB.", p->name);
+				rpt_log = 1;
+			}
+		}
 		if (host_perf_table && p->state.perf_data && *p->state.perf_data) {
 			perf_log = 1;
 		}
@@ -85,9 +158,21 @@ static int handle_service_status(int cb, const merlin_service_status *p)
 	int result = 0, rpt_log = 0, perf_log = 0;
 
 	if (cb == NEBCALLBACK_SERVICE_CHECK_DATA) {
-		if (db_log_reports && (p->nebattr & (NEBATTR_CHECK_ALERT | NEBATTR_CHECK_FIRST)))
-			rpt_log = 1;
-
+		if (db_log_reports) {
+			if (p->nebattr & (NEBATTR_CHECK_ALERT | NEBATTR_CHECK_FIRST))
+				rpt_log = 1;
+			else if (current_service_state_differs_from_last_db_state(p)) {
+				/* Log state in report db if state differs from last state in db.
+				 * This solves MON-9116 where object recovery wasn't logged in
+				 * report db on other peers after peer recovery (since the peer
+				 * owning a host might not have seen that host as down during
+				 * disconnection, and thus sends us check results without
+				 * nebattr flags set).
+				 */
+				ldebug("Service %s;%s: current state differs to last DB state, update DB.", p->host_name, p->service_description);
+				rpt_log = 1;
+			}
+		}
 		if (service_perf_table && p->state.perf_data && *p->state.perf_data)
 			perf_log = 1;
 	}
