@@ -223,7 +223,7 @@ def cmd_fetch(args):
     files_to_fetch = []
     # Sync local configuration from the master
     config_source = "{}:{}".format(
-            node.address, "@cachedir@" + oconf_fetch_name + ".cfg"
+            node.address, "@cachedir@/config/" + oconf_fetch_name + ".cfg"
     )
     config_destination = "/opt/monitor/etc/oconf/from-master.cfg"
     files_to_fetch.append((config_source, config_destination))
