@@ -64,15 +64,17 @@ static int find_node_uuid(int sd, int ignore, void * bq_) {
 		ldebug("FINDNODE UUID: couldn't read any data from socket");
 	}
 
-	/* Use the new buffer queue in case there are more unhandled events left */
-	nm_bufferqueue_destroy(found_node->bq);
-	found_node->bq = bq;
 
 	if (!found_node) {
 		ldebug("FINDNODE UUID: couldn't find node by UUID");
+		nm_bufferqueue_destroy(bq);
 		close(sd);
 		return 0;
 	}
+
+	/* Use the new buffer queue in case there are more unhandled events left */
+	nm_bufferqueue_destroy(found_node->bq);
+	found_node->bq = bq;
 
 	/* Usually we have one full pkt worth of data. We save it for after socket negotation */
 	/* as otherwise we need to wait a full pulse interval before the node is */
