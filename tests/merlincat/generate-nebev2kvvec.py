@@ -266,6 +266,10 @@ event_structs = {
 		'uint:host_checks_handled',
 		'uint:service_checks_handled',
 		'uint:monitored_object_state_size',
+	],
+	'merlin_runcmd': [
+		'int:sd',
+		'str:content',
 	]
 }
 

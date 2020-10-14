@@ -6,6 +6,8 @@
 #include "testif_qh.h"
 #include <naemon/naemon.h>
 #include <string.h>
+#include "runcmd.h"
+#include "node.h"
 
 static int dump_cbstats(merlin_node *n, int sd)
 {
@@ -77,6 +79,83 @@ static int dump_expired(int sd)
 	return 0;
 }
 
+int runcmd_callback(merlin_node *node, merlin_event *pkt){
+	merlin_runcmd * runcmd = (merlin_runcmd *) pkt->body;
+	nsock_printf_nul(runcmd->sd,
+		"%s", runcmd->content
+	);
+	return 0;
+
+}
+
+static int remote_runcmd(int sd, char *buf, unsigned int len)
+{
+	struct kvvec *kvv;
+	char * node_name;
+	merlin_node * node = NULL;
+	uint i;
+	runcmd_ctx * ctx;
+	merlin_runcmd * runcmd;
+
+	if (0 != prefixcmp(buf, "node=")) {
+		nsock_printf_nul(sd, "outerr=runcmd must start with the node\n");
+		return 1;
+	}
+
+	/* get node name from buffer */
+	kvv = ekvstr_to_kvvec(buf);
+	node_name = kvvec_fetch_str_str(kvv, "node");
+
+	/* get the node */
+	for (i = 0; i < num_nodes; i++) {
+		merlin_node *_node = node_table[i];
+		if (strcmp(node_name, _node->name) == 0) {
+			node = _node;
+			break;
+		}
+	}
+
+	if (node == NULL) {
+		nsock_printf_nul(sd, "outerr=Could not find node: %s does it exist?\n", node_name);
+		return 1;
+	}
+
+	if (!node->encrypted) {
+		nsock_printf_nul(sd, "outerr=Encryption must be enbled to use SSH-less test this check on nodes with connect set to no\n");
+		return 1;
+	}
+
+	/* Filter away the node name from the command */
+	buf = strchr(buf, ';') + 1;
+
+	/* Destroy/free kvvec */
+	kvvec_destroy(kvv, KVVEC_FREE_ALL);
+
+	/* set runcmd */
+	runcmd = malloc(sizeof(*runcmd));
+	if (runcmd == NULL) {
+		nsock_printf_nul(sd, "outerr=Failed to malloc runcmd");
+		return 0;
+	}
+	runcmd->sd = sd;
+	runcmd->content = strdup(buf);
+
+	/* set the context */
+	ctx = malloc(sizeof(*ctx));
+	if (runcmd == NULL) {
+		nsock_printf_nul(sd, "outerr=Failed to malloc runcmd context");
+		free(runcmd);
+		return 0;
+	}
+	ctx->node = node;
+	ctx->runcmd = runcmd;
+	ctx->type = RUNCMD_CMD;
+
+	schedule_event(0, send_runcmd_cmd, ctx);
+	return 0;
+}
+
+
 /* Our primary query handler */
 int merlin_qh(int sd, char *buf, unsigned int len)
 {
@@ -112,6 +191,10 @@ int merlin_qh(int sd, char *buf, unsigned int len)
 	}
 	if (0 == strcmp(buf, "notify-stats")) {
 		dump_notify_stats(sd);
+		return 0;
+	}
+	if (0 == prefixcmp(buf, "runcmd ")) {
+		remote_runcmd(sd, buf+7, len);
 		return 0;
 	}
 

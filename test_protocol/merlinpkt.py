@@ -3,6 +3,7 @@ import struct
 CTRL_PACKET   = 0xffff
 ACK_PACKET    = 0xfffe
 NAK_PACKET    = 0xfffd
+RUNCMD_PACKET = 0xfffc
 
 CTRL_GENERIC  = 0
 CTRL_PULSE    = 1
