@@ -4,7 +4,6 @@
 #include "node.h"
 
 struct runcmd_ctx {
-  /* char * content; */
   struct merlin_runcmd * runcmd;
   struct merlin_node * node;
   uint16_t type;

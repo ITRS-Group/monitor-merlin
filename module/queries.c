@@ -110,9 +110,8 @@ static int remote_runcmd(int sd, char *buf, unsigned int len)
 
 	/* get the node */
 	for (i = 0; i < num_nodes; i++) {
-		merlin_node *_node = node_table[i];
-		if (strcmp(node_name, _node->name) == 0) {
-			node = _node;
+		if (strcmp(node_name, node_table[i]->name) == 0) {
+			node = node_table[i];
 			break;
 		}
 	}
@@ -127,8 +126,18 @@ static int remote_runcmd(int sd, char *buf, unsigned int len)
 		return 1;
 	}
 
+	if (node->state != STATE_CONNECTED) {
+		nsock_printf_nul(sd, "outerr=Node %s in not connected\n", node->name);
+		return 1;
+	}
+
 	/* Filter away the node name from the command */
-	buf = strchr(buf, ';') + 1;
+	buf = strchr(buf, ';');
+	if (buf == NULL) {
+		nsock_printf_nul(sd, "outerr=Error while parsing command\n");
+		return 1;
+	}
+	buf = buf + 1;
 
 	/* Destroy/free kvvec */
 	kvvec_destroy(kvv, KVVEC_FREE_ALL);
