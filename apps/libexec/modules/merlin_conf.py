@@ -57,7 +57,7 @@ class merlin_node:
 	def write(self, f):
 		oconf_vars = {}
 		f.write("%s %s {\n" % (self.ntype, self.name))
-		valid_vars = ['address', 'port', 'connect', 'uuid']
+		valid_vars = ['address', 'port', 'connect', 'uuid', 'publickey']
 		if self.ntype == 'poller':
 			valid_vars.append('hostgroup')
 			valid_vars.append('hostgroups')
@@ -73,6 +73,8 @@ class merlin_node:
 				continue
 			if type(v) == type([]):
 				v = ','.join(v)
+			if k == "publickey":
+			    f.write("\tencrypted = 1\n")
 
 			# we store and print oconf variables specially
 			f.write("\t%s = %s\n" % (k, v))
