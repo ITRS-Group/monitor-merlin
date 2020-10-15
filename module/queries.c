@@ -79,6 +79,7 @@ static int dump_expired(int sd)
 	return 0;
 }
 
+/* Called when a node recieves a RUNCMD_RESP packet. Output is printed to socket */
 int runcmd_callback(merlin_node *node, merlin_event *pkt){
 	merlin_runcmd * runcmd = (merlin_runcmd *) pkt->body;
 	nsock_printf_nul(runcmd->sd,
@@ -88,6 +89,7 @@ int runcmd_callback(merlin_node *node, merlin_event *pkt){
 
 }
 
+/* runc query handler for requesting a remote node to run a runcmd command */
 static int remote_runcmd(int sd, char *buf, unsigned int len)
 {
 	struct kvvec *kvv;

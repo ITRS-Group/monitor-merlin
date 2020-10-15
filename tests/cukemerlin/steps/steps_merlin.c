@@ -151,7 +151,7 @@ CukeStepEnvironment steps_merlin =
 				/* Receive events */
 				{ "^([a-z0-9-_]+) clears buffer$", step_clear_buffer },
 				{ "^([a-z0-9-_]+) received event ([A-Z_]+)$", step_record_check },
-				{ "^([a-z0-9-_]+) received event contains ([A-Z_]+)$", step_record_contains },
+				{ "^([a-z0-9-_]+) received event ([A-Z_]+) contains$", step_record_contains },
 				{
 					"^([a-z0-9-_]+) should not (?:have received|receive) ([A-Z_]+)$",
 					step_no_record_check },
@@ -471,7 +471,7 @@ STEP_DEF(step_clear_buffer) {
 	STEP_OK;
 }
 
-STEP_DEF(step_record_check) {
+static void step_record(gpointer *scenario, JsonNode *args, CukeResponseRef respref, bool contains) {
 	MerlinScenario *ms = (MerlinScenario*) scenario;
 	MerlinScenarioConnection *msc;
 	const char *conntag = NULL;
@@ -498,7 +498,7 @@ STEP_DEF(step_record_check) {
 
 	mrlscenconn_record_match_set(msc, typetag, jsontbl_to_kvvec(tbl));
 	for(i=0;i<msc->event_buffer->len;i++) {
-		if(mrlscenconn_record_match(msc, msc->event_buffer->pdata[i], false)) {
+		if(mrlscenconn_record_match(msc, msc->event_buffer->pdata[i], contains)) {
 			STEP_OK;
 			return;
 		}
@@ -507,40 +507,12 @@ STEP_DEF(step_record_check) {
 	steptimer_start(msc, respref, STEP_MERLIN_MESSAGE_TIMEOUT, FALSE, "No matching entries");
 }
 
+STEP_DEF(step_record_check) {
+	step_record(scenario, args, respref, false);
+}
+
 STEP_DEF(step_record_contains) {
-	MerlinScenario *ms = (MerlinScenario*) scenario;
-	MerlinScenarioConnection *msc;
-	const char *conntag = NULL;
-	const char *typetag = NULL;
-	JsonNode *tbl = NULL;
-	gint i;
-
-	if (!jsonx_locate(args, 'a', 0, 's', &conntag)
-		|| !jsonx_locate(args, 'a', 1, 's', &typetag)) {
-		STEP_FAIL("Invalid arguments");
-		return;
-	}
-
-	/* It's ok not to have a table, just keep it to NULL */
-	if (!jsonx_locate(args, 'a', 2, 'j', &tbl)) {
-		tbl = NULL;
-	}
-
-	msc = mrlscen_get_conn(ms, conntag);
-	if(msc == NULL) {
-		STEP_FAIL("Unknown connection reference");
-		return;
-	}
-
-	mrlscenconn_record_match_set(msc, typetag, jsontbl_to_kvvec(tbl));
-	for(i=0;i<msc->event_buffer->len;i++) {
-		if(mrlscenconn_record_match(msc, msc->event_buffer->pdata[i], true)) {
-			STEP_OK;
-			return;
-		}
-	}
-	msc->current_step = STEP_MERLIN_EVENT_RECEIVED;
-	steptimer_start(msc, respref, STEP_MERLIN_MESSAGE_TIMEOUT, FALSE, "No matching entries");
+	step_record(scenario, args, respref, true);
 }
 
 

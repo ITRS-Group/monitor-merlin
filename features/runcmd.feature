@@ -34,6 +34,6 @@ Feature: Test merlins runcmd feature.
 			| content | command.name=test_command;command.command_line=echo OK;runcmd=test_command |
 		And I wait for 4 second
 
-		Then my_peer received event contains RUNCMD_PACKET
+		Then my_peer received event RUNCMD_PACKET contains
 			| sd      | 29	      |
 			| content | outstd=OK |
