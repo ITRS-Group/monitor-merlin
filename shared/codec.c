@@ -329,7 +329,6 @@ int merlin_decode(void *ds, off_t len, int cb_type)
 		/* calloc to ensure we 0 initialize */
 		ptrs = calloc(7,sizeof(off_t));
 		ptrs[0] = offsetof(merlin_runcmd, content);
-		ldebug("merlin_decode: RUNCMD_PACKET");
 	}
 	else if (!ds || !len || cb_type < 0 || cb_type >= NEBCALLBACK_NUMITEMS)
 		return -1;
@@ -369,6 +368,5 @@ int merlin_decode(void *ds, off_t len, int cb_type)
 	if (cb_type == RUNCMD_PACKET) {
 		free(ptrs);
 	}
-	ldebug("merlin_decode: return value: %d", ret);
 	return ret;
 }
