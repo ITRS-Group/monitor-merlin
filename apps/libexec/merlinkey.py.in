@@ -37,7 +37,7 @@ def cmd_generate(args):
 		sys.exit(1)
 	else:
 		uid = pwd.getpwnam("monitor").pw_uid
-		gid = grp.getgrnam("root").gr_gid
-		os.chown(path + "/key.priv", uid, gid)
-		os.chown(path + "/key.pub", uid, gid)
+		# -1 means we leave group unchanged
+		os.chown(path + "/key.priv", uid, -1)
+		os.chown(path + "/key.pub", uid, -1)
 		print 'Key generated and saved at ' + path
