@@ -100,7 +100,7 @@ static int remote_runcmd(int sd, char *buf, unsigned int len)
 	merlin_runcmd * runcmd;
 
 	if (0 != prefixcmp(buf, "node=")) {
-		nsock_printf_nul(sd, "outerr=runcmd must start with the node\n");
+		nsock_printf_nul(sd, "outstd=runcmd must start with the node\n");
 		return 1;
 	}
 
@@ -117,24 +117,24 @@ static int remote_runcmd(int sd, char *buf, unsigned int len)
 	}
 
 	if (node == NULL) {
-		nsock_printf_nul(sd, "outerr=Could not find node: %s does it exist?\n", node_name);
+		nsock_printf_nul(sd, "outstd=Could not find node: %s does it exist?\n", node_name);
 		return 1;
 	}
 
 	if (!node->encrypted) {
-		nsock_printf_nul(sd, "outerr=Encryption must be enbled to use SSH-less test this check on nodes with connect set to no\n");
+		nsock_printf_nul(sd, "outstd=Encryption must be enbled to use SSH-less test this check on nodes with connect set to no\n");
 		return 1;
 	}
 
 	if (node->state != STATE_CONNECTED) {
-		nsock_printf_nul(sd, "outerr=Node %s in not connected\n", node->name);
+		nsock_printf_nul(sd, "outstd=Node %s in not connected\n", node->name);
 		return 1;
 	}
 
 	/* Filter away the node name from the command */
 	buf = strchr(buf, ';');
 	if (buf == NULL) {
-		nsock_printf_nul(sd, "outerr=Error while parsing command\n");
+		nsock_printf_nul(sd, "outstd=Error while parsing command\n");
 		return 1;
 	}
 	buf = buf + 1;
@@ -145,7 +145,7 @@ static int remote_runcmd(int sd, char *buf, unsigned int len)
 	/* set runcmd */
 	runcmd = malloc(sizeof(*runcmd));
 	if (runcmd == NULL) {
-		nsock_printf_nul(sd, "outerr=Failed to malloc runcmd");
+		nsock_printf_nul(sd, "outstd=Failed to malloc runcmd");
 		return 0;
 	}
 	runcmd->sd = sd;
@@ -154,7 +154,7 @@ static int remote_runcmd(int sd, char *buf, unsigned int len)
 	/* set the context */
 	ctx = malloc(sizeof(*ctx));
 	if (runcmd == NULL) {
-		nsock_printf_nul(sd, "outerr=Failed to malloc runcmd context");
+		nsock_printf_nul(sd, "outstd=Failed to malloc runcmd context");
 		free(runcmd);
 		return 0;
 	}
