@@ -172,6 +172,7 @@ Requires: monitor-livestatus
 Requires: op5-lmd
 Requires: op5-naemon
 Requires: merlin merlin-apps monitor-merlin
+Requires: monitor-testthis
 BuildRequires: diffutils
 Requires: op5-abrt-config
 

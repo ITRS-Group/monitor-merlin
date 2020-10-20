@@ -47,6 +47,7 @@
 #define CTRL_PACKET   0xffff  /* control packet. "code" described below */
 #define ACK_PACKET    0xfffe  /* ACK ("I understood") (not used) */
 #define NAK_PACKET    0xfffd  /* NAK ("I don't understand") (not used) */
+#define RUNCMD_PACKET 0xfffc  /* Used from runcmd pkts for "test this" */
 
 /* If "type" is CTRL_PACKET, then "code" is one of the following */
 #define CTRL_GENERIC  0 /* generic control packet */
@@ -57,6 +58,8 @@
 #define CTRL_STALL    5 /* (deprecated) signal that we can't accept events for a while */
 #define CTRL_RESUME   6 /* (deprecated) now we can accept events again */
 #define CTRL_STOP     7 /* exit() immediately (only accepted via ipc) */
+#define RUNCMD_CMD    8 /* Used for requesting a command to be run */
+#define RUNCMD_RESP   9 /* response of a command execution */
 /* the following magic entries can be used for the "code" entry */
 #define MAGIC_NONET 0xffff /* don't forward to the network */
 
@@ -256,6 +259,12 @@ struct merlin_node {
 	unsigned char privkey[crypto_box_SECRETKEYBYTES];
 	unsigned char sharedkey[crypto_box_BEFORENMBYTES];
 };
+
+struct merlin_runcmd {
+  int sd;
+  char * content;
+} __attribute__((packed));
+typedef struct merlin_runcmd merlin_runcmd;
 
 #define node_table noc_table
 extern merlin_node **noc_table, **peer_table, **poller_table;
