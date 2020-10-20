@@ -81,7 +81,7 @@ static void mrlscenconn_clear_buffer(MerlinScenarioConnection *msc);
 static void mrlscenconn_record_match_set(MerlinScenarioConnection *msc,
 	const char *typestr, struct kvvec *matchkv);
 static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
-	merlin_event *evt);
+	merlin_event *evt, bool contains);
 
 static MerlinScenarioConnection *mrlscen_get_conn(MerlinScenario *ms,
 	const gchar *tag);
@@ -107,6 +107,7 @@ STEP_DEF(step_send_event);
 
 STEP_DEF(step_clear_buffer);
 STEP_DEF(step_record_check);
+STEP_DEF(step_record_contains);
 STEP_DEF(step_no_record_check);
 
 static void steptimer_start(MerlinScenarioConnection *msc, CukeResponseRef respref, guint timeout, gboolean success, const gchar *message);
@@ -150,6 +151,7 @@ CukeStepEnvironment steps_merlin =
 				/* Receive events */
 				{ "^([a-z0-9-_]+) clears buffer$", step_clear_buffer },
 				{ "^([a-z0-9-_]+) received event ([A-Z_]+)$", step_record_check },
+				{ "^([a-z0-9-_]+) received event ([A-Z_]+) contains$", step_record_contains },
 				{
 					"^([a-z0-9-_]+) should not (?:have received|receive) ([A-Z_]+)$",
 					step_no_record_check },
@@ -469,7 +471,7 @@ STEP_DEF(step_clear_buffer) {
 	STEP_OK;
 }
 
-STEP_DEF(step_record_check) {
+static void step_record(gpointer *scenario, JsonNode *args, CukeResponseRef respref, bool contains) {
 	MerlinScenario *ms = (MerlinScenario*) scenario;
 	MerlinScenarioConnection *msc;
 	const char *conntag = NULL;
@@ -496,7 +498,7 @@ STEP_DEF(step_record_check) {
 
 	mrlscenconn_record_match_set(msc, typetag, jsontbl_to_kvvec(tbl));
 	for(i=0;i<msc->event_buffer->len;i++) {
-		if(mrlscenconn_record_match(msc, msc->event_buffer->pdata[i])) {
+		if(mrlscenconn_record_match(msc, msc->event_buffer->pdata[i], contains)) {
 			STEP_OK;
 			return;
 		}
@@ -504,6 +506,15 @@ STEP_DEF(step_record_check) {
 	msc->current_step = STEP_MERLIN_EVENT_RECEIVED;
 	steptimer_start(msc, respref, STEP_MERLIN_MESSAGE_TIMEOUT, FALSE, "No matching entries");
 }
+
+STEP_DEF(step_record_check) {
+	step_record(scenario, args, respref, false);
+}
+
+STEP_DEF(step_record_contains) {
+	step_record(scenario, args, respref, true);
+}
+
 
 STEP_DEF(step_no_record_check) {
 	MerlinScenario *ms = (MerlinScenario*) scenario;
@@ -532,7 +543,7 @@ STEP_DEF(step_no_record_check) {
 
 	mrlscenconn_record_match_set(msc, typetag, jsontbl_to_kvvec(tbl));
 	for(i=0;i<msc->event_buffer->len;i++) {
-		if(mrlscenconn_record_match(msc, msc->event_buffer->pdata[i])) {
+		if(mrlscenconn_record_match(msc, msc->event_buffer->pdata[i], false)) {
 			STEP_FAIL("Message received");
 			return;
 		}
@@ -664,7 +675,7 @@ static int mrlscenconn_print_event(merlin_event *evt, const char *conn_tag) {
 }
 
 static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
-	merlin_event *evt) {
+	merlin_event *evt, bool contains) {
 
 	struct kvvec *evtkv;
 	int evt_i, match_i, misses;
@@ -689,10 +700,18 @@ static gboolean mrlscenconn_record_match(MerlinScenarioConnection *msc,
 			if (0 == strcmp(evtkv->kv[evt_i].key,
 				msc->match_kv->kv[match_i].key)) {
 				found = 1;
-				if (0 != strcmp(evtkv->kv[evt_i].value,
-					msc->match_kv->kv[match_i].value)) {
-					/* Key matches, but not value = miss */
-					misses++;
+				if (!contains) {
+					if (0 != strcmp(evtkv->kv[evt_i].value,
+						msc->match_kv->kv[match_i].value)) {
+						/* Key matches, but not value = miss */
+						misses++;
+					}
+				} else {
+					if (strstr(evtkv->kv[evt_i].value,
+						msc->match_kv->kv[match_i].value) == NULL) {
+						/* Key matches, but not value = miss */
+						misses++;
+					}
 				}
 			}
 		}
@@ -755,12 +774,12 @@ static void net_conn_data(ConnectionStorage *conn, gpointer buffer,
 				g_free(evt);
 			} else {
 				if (msc->current_step == STEP_MERLIN_EVENT_RECEIVED) {
-					if(mrlscenconn_record_match(msc, evt)) {
+					if(mrlscenconn_record_match(msc, evt, false)) {
 						steptimer_stop(msc, TRUE, NULL);
 					}
 				}
 				if (msc->current_step == STEP_MERLIN_EVENT_NOT_RECEIVED) {
-					if(mrlscenconn_record_match(msc, evt)) {
+					if(mrlscenconn_record_match(msc, evt, false)) {
 						steptimer_stop(msc, FALSE, "Message received");
 					}
 				}
