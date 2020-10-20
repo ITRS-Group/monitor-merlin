@@ -35,6 +35,7 @@ Given(/^I start naemon$/) do
       cfg_file=oconf.cfg
       broker_module=#{merlin_module_path} merlin.conf
       broker_module=#{livestatus_module_path} log_file=livestatus.log live
+      broker_module=/usr/lib64/testthis/testthis.so
       include_file=naemon_extra.cfg
       """
     And I have config file checks.log

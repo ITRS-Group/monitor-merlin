@@ -1,4 +1,5 @@
 #include <shared/shared.h>
+#include <shared/node.h>
 #include "merlincat_codec.h"
 #include <string.h>
 
@@ -224,20 +225,28 @@ int merlincat_encode(gpointer data, int cb_type, gpointer buf, gsize buflen)
 	int i, len, num_strings;
 	off_t offset, *ptrs;
 
-	if (!data || cb_type < 0 || cb_type >= NEBCALLBACK_NUMITEMS)
+	if (cb_type == RUNCMD_PACKET && data != NULL) {
+		offset = sizeof(merlin_runcmd);
+		num_strings = 1;
+
+		/* calloc to ensure we 0 initialize */
+		ptrs = calloc(7,sizeof(off_t));
+		ptrs[0] = offsetof(merlin_runcmd, content);
+	}
+	else if (!data || cb_type < 0 || cb_type >= NEBCALLBACK_NUMITEMS)
 		return 0;
-
-	/*
-	 * offset points to where we should write, based off of
-	 * the base location of the block we're writing into.
-	 * Here, we set it to write to the first byte in pkt->body
-	 * not occupied with the binary data that makes up the
-	 * struct itself.
-	 */
-	offset = hook_info[cb_type].offset;
-	num_strings = hook_info[cb_type].strings;
-	ptrs = hook_info[cb_type].ptrs;
-
+	else {
+		/*
+		 * offset points to where we should write, based off of
+		 * the base location of the block we're writing into.
+		 * Here, we set it to write to the first byte in pkt->body
+		 * not occupied with the binary data that makes up the
+		 * struct itself.
+		 */
+		offset = hook_info[cb_type].offset;
+		num_strings = hook_info[cb_type].strings;
+		ptrs = hook_info[cb_type].ptrs;
+	}
 	/*
 	 * copy the base struct first. We'll overwrite the string
 	 * positions later on.
@@ -300,6 +309,10 @@ int merlincat_encode(gpointer data, int cb_type, gpointer buf, gsize buflen)
 	if (offset % 8)
 		offset += 8 - offset % 8;
 
+	if (cb_type == RUNCMD_PACKET) {
+		free(ptrs);
+	}
+
 	return offset;
 }
 
@@ -319,11 +332,19 @@ int merlincat_decode(gpointer ds, gsize len, int cb_type)
 	off_t *ptrs;
 	int num_strings, i, ret = 0;
 
-	if (!ds || !len || cb_type < 0 || cb_type >= NEBCALLBACK_NUMITEMS)
-		return -1;
+	if (cb_type == RUNCMD_PACKET && ds && len) {
+		num_strings = 1;
 
-	num_strings = hook_info[cb_type].strings;
-	ptrs = hook_info[cb_type].ptrs;
+		/* calloc to ensure we 0 initialize */
+		ptrs = calloc(7,sizeof(off_t));
+		ptrs[0] = offsetof(merlin_runcmd, content);
+	}
+	else if (!ds || !len || cb_type < 0 || cb_type >= NEBCALLBACK_NUMITEMS)
+		return -1;
+	else {
+		num_strings = hook_info[cb_type].strings;
+		ptrs = hook_info[cb_type].ptrs;
+	}
 
 	for (i = 0; i < num_strings; i++) {
 		char *ptr;
@@ -355,6 +376,9 @@ int merlincat_decode(gpointer ds, gsize len, int cb_type)
 
 		/* now write it back to the proper location */
 		memcpy((char *)ds + ptrs[i], &ptr, sizeof(ptr));
+	}
+	if (cb_type == RUNCMD_PACKET) {
+		free(ptrs);
 	}
 
 	return ret;

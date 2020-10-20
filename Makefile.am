@@ -125,6 +125,7 @@ module_sources = $(shared_sources) \
 	module/script-helpers.c module/script-helpers.h \
 	module/oconfsplit.c module/oconfsplit.h \
 	module/net.c module/net.h \
+	module/runcmd.c module/runcmd.h \
 	shared/pgroup.c shared/pgroup.h \
 	module/testif_qh.c module/testif_qh.h
 daemon_sources = $(shared_sources) $(db_wrap_sources) \
@@ -176,7 +177,7 @@ test_lparse_SOURCES = tests/test-lparse.c tools/lparse.c tools/logutils.c tools/
 test_lparse_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools $(GLIB_CFLAGS)
 test_lparse_CPPFLAGS = $(AM_CPPFLAGS)
 test_lparse_LDADD = $(naemon_LIBS)
-hooktest_SOURCES = tests/test-hooks.c module/net.c module/testif_qh.c module/script-helpers.c shared/cfgfile.c shared/shared.c shared/logging.c shared/dlist.c shared/io.c shared/encryption.c shared/node.c shared/codec.c shared/binlog.c module/misc.c module/sha1.c tools/test_utils.c module/oconfsplit.c shared/configuration.c module/queries.c
+hooktest_SOURCES = tests/test-hooks.c module/net.c module/testif_qh.c module/script-helpers.c shared/cfgfile.c shared/shared.c shared/logging.c shared/dlist.c shared/io.c shared/encryption.c shared/node.c shared/codec.c shared/binlog.c module/misc.c module/sha1.c tools/test_utils.c module/oconfsplit.c shared/configuration.c module/queries.c module/runcmd.c
 hooktest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module -I$(srcdir)/tools $(check_CFLAGS) $(GLIB_CFLAGS)
 hooktest_LDADD = $(naemon_LIBS) $(check_LIBS)
 stringutilstest_SOURCES = tests/test-stringutils.c tools/test_utils.c daemon/string_utils.c

@@ -15,6 +15,7 @@
 #include "oconfsplit.h"
 #include "script-helpers.h"
 #include "net.h"
+#include "runcmd.h"
 
 merlin_node **host_check_node = NULL;
 merlin_node **service_check_node = NULL;
@@ -799,6 +800,12 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 	if (pkt->hdr.type == CTRL_PACKET) {
 		handle_control(node, pkt);
 		return 0;
+	}
+	if (pkt->hdr.type == RUNCMD_PACKET) {
+		if (merlin_decode_event(node, pkt)) {
+			return 0;
+		}
+		return handle_runcmd_event(node, pkt);
 	}
 
 	if (node->state != STATE_CONNECTED) {

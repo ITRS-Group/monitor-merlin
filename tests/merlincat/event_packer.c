@@ -223,6 +223,11 @@ struct kvvec *event_packer_pack_kvv(const merlin_event *evt, const char **name) 
 		}
 		merlin_nodeinfo_to_kvvec(kvv, unpacked_data);
 		break;
+	case RUNCMD_PACKET:
+		if (name)
+			*name = "RUNCMD_PACKET";
+		merlin_runcmd_to_kvvec(kvv, unpacked_data);
+		break;
 	default:
 		if (name)
 			*name = "UNKNOWN";
@@ -345,6 +350,8 @@ uint16_t event_packer_str_to_type(const char *typestr) {
 	} else if (0 == strncmp("CTRL_", typestr, 5)) {
 		/* All prefxies of CTRL_ */
 		return CTRL_PACKET;
+	} else if (0 == strcmp("RUNCMD_PACKET", typestr)) {
+		return RUNCMD_PACKET;
 	}
 	/* Guaranteed not to collide with any NEBCALLBACK_..._DATA */
 	return NEBCALLBACK_TYPE__COUNT;
@@ -354,6 +361,7 @@ merlin_event *event_packer_unpack_kvv(const char *cmd, struct kvvec *kvv) {
 	merlin_event *evt = NULL;
 	gpointer unpacked_data = NULL;
 	int res = -1;
+	int i;
 
 	/* Create an empty merlin_event */
 	evt = malloc(sizeof(merlin_event));
@@ -382,7 +390,6 @@ merlin_event *event_packer_unpack_kvv(const char *cmd, struct kvvec *kvv) {
 	memset(unpacked_data, 0, 128 << 10);
 
 	evt->hdr.type = event_packer_str_to_type(cmd);
-
 	switch (evt->hdr.type) {
 	case NEBCALLBACK_PROCESS_DATA:
 		res = kvvec_to_process(kvv, unpacked_data);
@@ -465,6 +472,21 @@ merlin_event *event_packer_unpack_kvv(const char *cmd, struct kvvec *kvv) {
 	case CTRL_PACKET:
 		evt->hdr.code = CTRL_ACTIVE; /* Todo: Assume CTRL_ACTIVE */
 		res = kvvec_to_merlin_nodeinfo(kvv, unpacked_data);
+		break;
+	case RUNCMD_PACKET:
+		evt->hdr.code = RUNCMD_CMD;
+
+		/* if the content string contains outstd, it's a response */
+		for (i = 0; i < kvv->kv_pairs; i++) {
+			struct key_value *kv = &kvv->kv[i];
+			if (strcmp("content", kv->key)) {
+				if (strstr(kv->value, "outstd") != NULL) {
+					evt->hdr.code = RUNCMD_RESP;
+				}
+			}
+		}
+
+		res = kvvec_to_merlin_runcmd(kvv, unpacked_data);
 		break;
 	}
 
