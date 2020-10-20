@@ -601,6 +601,10 @@ Before do
       "attr" => "0",
       "flags" => "0",
       "type" => "0"
+    },
+    "RUNCMD_PACKET" => {
+      "sd" => "29",
+      "content" => ""
     }
   }
 end
