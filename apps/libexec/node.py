@@ -400,9 +400,9 @@ def cmd_ctrl(args):
 
 	global wanted_names
 
-	if len(args) == 0:
-		print("Control without commands seems quite pointless. I'm going home")
-		print("Try 'mon node help' for some assistance")
+	if not args:
+		print("Missing mandatory arguments to 'mon node ctrl'.")
+		print("Run 'mon node' for usage info on 'mon node ctrl'.")
 		sys.exit(1)
 
 	run_on_self = False
