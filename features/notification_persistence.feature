@@ -14,7 +14,7 @@ Feature: Notification persistence
             | ack_author   | testCase         |
             | ack_data     | A little comment |
             | contact_name | myContact        |
-        And I wait for 1 seconds
+        And I wait for 2 seconds
 
         Then CONTACT_NOTIFICATION_METHOD is logged in the database 1 time with data
             | ack_author   | testCase         |
@@ -37,7 +37,7 @@ Feature: Notification persistence
             | ack_data     | A little comment |
             | contact_name | myContact        |
 
-        And I wait for 1 seconds
+        And I wait for 2 seconds
         Then CONTACT_NOTIFICATION_METHOD is logged in the database 2 times with data
             | ack_author   | testCase         |
             | ack_data     | A little comment |
