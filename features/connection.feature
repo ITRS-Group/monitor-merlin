@@ -215,7 +215,7 @@ Feature: Module handles network and connections
 			| poller   | the_poller    | 4001 | emptygroup | 2            |
 		And the_poller should appear connected
 
-		When I wait for 3 seconds
+		When I wait for 4 seconds
 
 		Then the_poller should appear disconnected
 
@@ -241,7 +241,7 @@ Feature: Module handles network and connections
 			| master   | the_master    | 4001 | ignore     | 2            |
 		And the_master should appear connected
 
-		When I wait for 3 seconds
+		When I wait for 4 seconds
 
 		Then the_master should appear disconnected
 
