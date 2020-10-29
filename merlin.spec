@@ -173,6 +173,7 @@ Requires: op5-lmd
 Requires: op5-naemon
 Requires: merlin merlin-apps monitor-merlin
 BuildRequires: diffutils
+Requires: op5-abrt-config
 
 %description test
 Some additional test files for merlin
