@@ -3,6 +3,7 @@ Feature: Notification persistence
     Notification events that are received by the merlin daemon should be
     persisted in a database if available.
 
+    @unstable
     Scenario: Merlin daemon receives one notification event
         Given I have merlin configured for port 7000
             | type   | name   | port | hostgroup    |
@@ -21,6 +22,7 @@ Feature: Notification persistence
             | ack_data     | A little comment |
             | contact_name | myContact        |
 
+    @unstable
     Scenario: Merlin daemon doesn't overwrite notification event
         Given I have merlin configured for port 7000
             | type   | name   | port | hostgroup    |
