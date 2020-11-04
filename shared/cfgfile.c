@@ -276,6 +276,7 @@ static void cfg_print_error(struct cfg_comp *comp, struct cfg_var *v,
 	}
 	nm_log(NSLOG_CONFIG_ERROR, output);
 	nm_log(NSLOG_CONFIG_ERROR, "----");
+	free(output);
 }
 
 /** public functions **/
