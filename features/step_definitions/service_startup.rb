@@ -59,6 +59,7 @@ Given(/^I start merlin$/) do
   steps %Q{
     And I have a database running
     And I start daemon merlind -d merlin.conf
+    And I wait for 2 seconds
   }
 end
 
