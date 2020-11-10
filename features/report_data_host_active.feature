@@ -146,7 +146,8 @@ Feature: Report data is logged from certain active host check results
             | state.long_plugin_output       | Long plugin output |
             | state.perf_data                | Performance data   |
             | name                           | hostA              |
-            
+        And I wait for 3 seconds
+
         Then report_data contain 1 matching row
             | timestamp      | 101                |
             | event_type     | 801                |
@@ -246,7 +247,8 @@ Feature: Report data is logged from certain active host check results
             | state.long_plugin_output       | Long plugin output |
             | state.perf_data                | Performance data   |
             | name                           | hostB              |
-            
+        And I wait for 3 seconds
+
         Then report_data contain 1 matching row
             | timestamp      | 101                |
             | event_type     | 801                |

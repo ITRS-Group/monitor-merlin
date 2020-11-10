@@ -136,7 +136,8 @@ Feature: Report data is logged from certain active host check results
             | state.perf_data                | Performance data   |
             | host_name                      | hostA              |
             | service_description            | PING               |
-            
+        And I wait for 3 seconds
+        
         Then report_data contain 1 matching row
             | timestamp           | 101                |
             | event_type          | 701                |
@@ -241,8 +242,9 @@ Feature: Report data is logged from certain active host check results
             | state.long_plugin_output       | Long plugin output |
             | state.perf_data                | Performance data   |
             | host_name                      | hostA              |
-            | service_description            | PONG               |
-        
+            | service_description            | PONG               | 
+        And I wait for 3 seconds
+
         Then report_data contain 1 matching row
             | timestamp           | 101                |
             | event_type          | 701                |
