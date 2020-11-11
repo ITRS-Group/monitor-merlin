@@ -275,6 +275,7 @@ static const char *control_names[] = {
 	CTRL_ENTRY(STALL),
 	CTRL_ENTRY(RESUME),
 	CTRL_ENTRY(STOP),
+	CTRL_ENTRY(INVALID_CLUSTER),
 };
 const char *ctrl_name(uint code)
 {
