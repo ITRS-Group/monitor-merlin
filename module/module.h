@@ -54,6 +54,8 @@ extern node_selection *node_selection_by_hostname(const char *name);
 /** global variables exported by Nagios **/
 extern int __nagios_object_structure_version;
 
+extern char * cluster_update;
+
 /** prototypes **/
 extern void schedule_expiration_event(int type, merlin_node *node, void *obj);
 extern int handle_ipc_event(merlin_node *node, merlin_event *pkt);
