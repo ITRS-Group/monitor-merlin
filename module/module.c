@@ -35,6 +35,8 @@ struct dlist_entry *expired_events;
 static struct dlist_entry **expired_hosts;
 static struct dlist_entry **expired_services;
 
+char * cluster_update = NULL;
+
 /** code start **/
 
 /*
@@ -57,7 +59,6 @@ struct merlin_notify_stats merlin_notify_stats[9][2][2];
  * See grok_module_compound() for further details
  */
 static uint32_t event_mask;
-
 
 /*
  * this removes the necessity for linking the
@@ -371,8 +372,14 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 			return;
 		}
 		if (node_mconf_cmp(node, info)) {
+			/* We set the flag here, so next time we sent a CTRL packet
+			 * we send a CTRL_INVALID_CLUSTER 
+			 */
+			node->incompatible_cluster_config = true;
 			node_disconnect(node, "Incompatible cluster configuration");
 			return;
+		} else {
+			node->incompatible_cluster_config = false;
 		}
 		if ((ret = node_oconf_cmp(node, info))) {
 			csync_node_active(node, info, ret);
@@ -389,6 +396,13 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 			node_set_state(node, STATE_CONNECTED, "Received CTRL_ACTIVE");
 			ldebug("NODESTATE: %s node %s just marked as connected after CTRL_ACTIVE",
 				   node_type(node), node->name);
+		}
+		break;
+	case CTRL_INVALID_CLUSTER:
+		lwarn("Node %s has signalled that the cluster config is invalid", node->name);
+		if (cluster_update != NULL) {
+			ldebug("Running cluster update command");
+			update_cluster_config();
 		}
 		break;
 	case CTRL_STALL:
@@ -1112,6 +1126,10 @@ static void grok_module_compound(struct cfg_comp *comp)
 			} else {
 				ipc.flags |= MERLIN_NODE_NOTIFIES;
 			}
+			continue;
+		}
+		if (!strcmp(v->key, "cluster_update")) {
+			cluster_update = strdup(v->value);
 			continue;
 		}
 

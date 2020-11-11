@@ -381,7 +381,8 @@ static void create_node_tree(merlin_node *table, unsigned n)
 	xnoc = xpeer = xpoll = 0;
 	for (i = 0; i < n; i++) {
 		merlin_node *node = &table[i];
-
+		
+		node->incompatible_cluster_config = false;
 		switch (node->type) {
 		case MODE_NOC:
 			node->id = xnoc;
@@ -1201,6 +1202,9 @@ int node_ctrl(merlin_node *node, int code, uint selection, void *data,
 		return -1;
 	}
 
+	if (code == CTRL_ACTIVE && node->incompatible_cluster_config) {
+		code = CTRL_INVALID_CLUSTER;
+	} 
 	memset(&pkt.hdr, 0, HDR_SIZE);
 
 	pkt.hdr.sig.id = MERLIN_SIGNATURE;
