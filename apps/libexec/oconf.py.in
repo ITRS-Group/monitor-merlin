@@ -251,6 +251,8 @@ def cmd_fetch(args):
     if errors != 0:
         print "Errors occured while synchronizing files!"
         sys.exit(1)
+    # Restart this node after config files has been fetch
+    sp.call("sudo mon restart", shell=True)
     sys.exit(0)
 
 
