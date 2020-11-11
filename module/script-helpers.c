@@ -12,6 +12,7 @@
 #include "configuration.h"
 #include "shared.h"
 #include "script-helpers.h"
+#include "module.h"
 
 
 static void log_child_output(const char *prefix, char *buf)
@@ -217,4 +218,12 @@ void csync_node_active(merlin_node *node, const merlin_nodeinfo *info, int tdelt
 		child->is_running = 1;
 		wproc_run_callback(child->cmd, 600, handle_csync_finished, child, NULL);
 	}
+}
+
+static void handle_cluster_update_finished(wproc_result *wpres, void *arg, int flags) {
+	log_child_result(wpres, "Cluster update");
+}
+
+void update_cluster_config() {
+	wproc_run_callback(cluster_update, 60, handle_cluster_update_finished, NULL, 0);
 }

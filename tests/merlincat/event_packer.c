@@ -470,7 +470,11 @@ merlin_event *event_packer_unpack_kvv(const char *cmd, struct kvvec *kvv) {
 		res = kvvec_to_adaptive_contact(kvv, unpacked_data);
 		break;
 	case CTRL_PACKET:
-		evt->hdr.code = CTRL_ACTIVE; /* Todo: Assume CTRL_ACTIVE */
+		if (0 == strcmp("CTRL_INVALID_CLUSTER", cmd)) {
+			evt->hdr.code = CTRL_INVALID_CLUSTER;
+		} else {
+			evt->hdr.code = CTRL_ACTIVE;
+		}
 		res = kvvec_to_merlin_nodeinfo(kvv, unpacked_data);
 		break;
 	case RUNCMD_PACKET:
