@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <naemon/naemon.h>
 
 #include "cfgfile.h"
 
@@ -26,13 +27,13 @@ static char *cfg_read_file(const char *path, unsigned *len)
 	fd = open(path, O_RDONLY);
 	if (fd < 0) {
 		*len = -errno;
-		fprintf(stderr, "Failed to open '%s': %s\n", path, strerror(errno));
+		nm_log(NSLOG_CONFIG_ERROR, "Failed to open '%s': %s", path, strerror(errno));
 		return NULL;
 	}
 
 	if (fstat(fd, &st) < 0) {
 		*len = -errno;
-		fprintf(stderr, "Failed to stat '%s': %s\n", path, strerror(errno));
+		nm_log(NSLOG_CONFIG_ERROR, "Failed to stat '%s': %s", path, strerror(errno));
 		close(fd);
 		return NULL;
 	}
@@ -41,7 +42,7 @@ static char *cfg_read_file(const char *path, unsigned *len)
 	buf = malloc(st.st_size + 3);
 	if (!buf) {
 		*len = -errno;
-		fprintf(stderr, "Failed to allocate %lld bytes of memory for '%s'\n",
+		nm_log(NSLOG_CONFIG_ERROR, "Failed to allocate %lld bytes of memory for '%s'",
 		        (long long)st.st_size, path);
 		close(fd);
 		return NULL;
@@ -57,7 +58,7 @@ static char *cfg_read_file(const char *path, unsigned *len)
 	close(fd);
 
 	if (rd < 0 || total != st.st_size) {
-		fprintf(stderr, "Reading from '%s' failed: %s\n", path, strerror(*len));
+		nm_log(NSLOG_CONFIG_ERROR, "Reading from '%s' failed: %s", path, strerror(*len));
 		free(buf);
 		return NULL;
 	}
@@ -97,7 +98,7 @@ static struct cfg_comp *close_compound(struct cfg_comp *comp, unsigned line)
 {
 	if (comp) {
 		if (!comp->parent) {
-			cfg_error(comp, NULL, "Compound closed on line %d was never opened\n", line);
+			cfg_error(comp, NULL, "Compound closed on line %d was never opened", line);
 		}
 		return comp->parent;
 	}
@@ -108,7 +109,7 @@ static struct cfg_comp *close_compound(struct cfg_comp *comp, unsigned line)
 static void add_var(struct cfg_comp *comp, struct cfg_var *v)
 {
 	if (!comp)
-		cfg_error(NULL, v, "Adding variable to NULL compound. Weird that...\n");
+		cfg_error(NULL, v, "Adding variable to NULL compound. Weird that...");
 	if (comp->vars >= comp->vlist_len) {
 		comp->vlist_len += 5;
 		comp->vlist = realloc(comp->vlist, sizeof(struct cfg_var *) * comp->vlist_len);
@@ -252,26 +253,30 @@ static void cfg_print_error(struct cfg_comp *comp, struct cfg_var *v,
                             const char *fmt, va_list ap)
 {
 	struct cfg_comp *c;
+	char * output = NULL;
 
-	fprintf(stderr, "*** Configuration error\n");
+	nm_log(NSLOG_CONFIG_ERROR, "*** Configuration error");
 	if (v)
-		fprintf(stderr, "  on line %d, near '%s' = '%s'\n",
+		nm_log(NSLOG_CONFIG_ERROR, "  on line %d, near '%s' = '%s'",
 				v->line, v->key, v->value);
 
 	if (!comp->buf)
-		fprintf(stderr, "  in compound '%s' starting on line %d\n", comp->name, comp->start);
+		nm_log(NSLOG_CONFIG_ERROR, "  in compound '%s' starting on line %d", comp->name, comp->start);
 
 	for (c = comp; c; c = c->parent) {
 		if (!c->buf)
 			continue;
-		fprintf(stderr, "  in file '%s'\n", c->name);
+		nm_log(NSLOG_CONFIG_ERROR, "  in file '%s'", c->name);
 	}
 
-	fprintf(stderr, "----\n");
-	vfprintf(stderr, fmt, ap);
-	if (fmt[strlen(fmt) - 1] != '\n')
-		fputc('\n', stderr);
-	fprintf(stderr, "----\n");
+	nm_log(NSLOG_CONFIG_ERROR, "----");
+
+	if (vasprintf(&output, fmt, ap) < 0) {
+		output = strdup("unknown (vasprintf failed)");
+	}
+	nm_log(NSLOG_CONFIG_ERROR, output);
+	nm_log(NSLOG_CONFIG_ERROR, "----");
+	free(output);
 }
 
 /** public functions **/
@@ -339,7 +344,7 @@ struct cfg_comp *cfg_parse_file(const char *path)
 
 	/* this is the public API, so make sure all compounds are closed */
 	if (comp && comp->parent) {
-		cfg_error(comp, NULL, "Unclosed compound (there may be more)\n");
+		cfg_error(comp, NULL, "Unclosed compound (there may be more)");
 		return NULL;
 	}
 
