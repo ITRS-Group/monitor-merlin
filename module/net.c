@@ -18,10 +18,10 @@ static int net_sock = -1; /* listening sock descriptor */
 
 static unsigned short net_source_port(merlin_node *node)
 {
-	return ntohs(node->sain.sin_port) + default_port;
+	return ntohs(node->sain.sin6_port) + default_port;
 }
 
-static merlin_node *find_node(struct sockaddr_in *sain)
+static merlin_node *find_node(struct sockaddr_in6 *sain)
 {
 	uint i;
 	merlin_node *first = NULL;
@@ -31,14 +31,17 @@ static merlin_node *find_node(struct sockaddr_in *sain)
 
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
-		unsigned short source_port = ntohs(sain->sin_port);
+		unsigned short source_port = ntohs(sain->sin6_port);
 		unsigned short in_port = net_source_port(node);
-		ldebug("FINDNODE: node->sain.sin_addr.s_addr: %d", node->sain.sin_addr.s_addr);
-		if (node->sain.sin_addr.s_addr == sain->sin_addr.s_addr) {
+		ldebug("FINDNODE: node->sain.sin6_addr.s6_addr: %d", node->sain.sin6_addr.s6_addr);
+		
+		if (memcmp(&node->sain.sin6_addr.s6_addr, &sain->sin6_addr.s6_addr, 16) == 0) {
 			if (source_port == in_port) {
 				/* perfect match */
+				char buf[256]; /* used for inet_ntop() */
+				inet_ntop(sain->sin6_family, &sain->sin6_addr, buf, sizeof(buf));
 				ldebug("Inbound connection matches %s exactly (%s:%d)",
-				       node->name, inet_ntoa(sain->sin_addr), in_port);
+				       node->name, buf, in_port);
 				return node;
 			}
 
@@ -48,10 +51,15 @@ static merlin_node *find_node(struct sockaddr_in *sain)
 	}
 
 	if (first) {
+		
+		char sain_buf[256]; /* used for inet_ntop() */
+		char first_buf[256]; /* used for inet_ntop() */
+		inet_ntop(sain->sin6_family, &sain->sin6_addr, sain_buf, sizeof(sain_buf));
+		inet_ntop(first->sain.sin6_family, &first->sain.sin6_addr, first_buf, sizeof(first_buf));
 		lwarn("Inbound connection presumably from %s (%s:%d != %s:%d)",
 			  first->name,
-			  inet_ntoa(sain->sin_addr), ntohs(sain->sin_port),
-			  inet_ntoa(first->sain.sin_addr), net_source_port(first));
+			  sain_buf, ntohs(sain->sin6_port),
+			  first_buf, net_source_port(first));
 	}
 
 	return first;
@@ -97,10 +105,12 @@ int net_is_connected(merlin_node *node)
 	}
 
 	if (optval) {
+		char buf[256]; /* used for inet_ntop() */
+		inet_ntop(node->sain.sin6_family, &node->sain.sin6_addr, buf, sizeof(buf));
 		node_disconnect(node, "connect() to %s node %s (%s:%d) failed: %s",
 		                node_type(node), node->name,
-		                inet_ntoa(node->sain.sin_addr),
-		                ntohs(node->sain.sin_port),
+		                buf,
+		                ntohs(node->sain.sin6_port),
 		                strerror(optval));
 		return 0;
 	}
@@ -169,8 +179,9 @@ int net_input(int sd, int io_evt, void *node_)
  */
 static int net_negotiate_socket(merlin_node *node, int con, int lis)
 {
-	struct sockaddr_in lissain, consain;
+	struct sockaddr_in6 lissain, consain;
 	socklen_t slen = sizeof(struct sockaddr_in);
+	char buf[256]; /* used for inet_ntop() */
 
 	linfo("negotiate: Choosing socket for %s %s (%d or %d)", node_type(node), node->name, con, lis);
 
@@ -192,16 +203,19 @@ static int net_negotiate_socket(merlin_node *node, int con, int lis)
 		return lis;
 	}
 
+	inet_ntop(lissain.sin6_family, &lissain.sin6_addr, buf, sizeof(buf));
 	ldebug("negotiate: lis(%d): %s:%d", lis,
-		   inet_ntoa(lissain.sin_addr), ntohs(lissain.sin_port));
+		   buf, ntohs(lissain.sin6_port));
+	
+	inet_ntop(consain.sin6_family, &consain.sin6_addr, buf, sizeof(buf));
 	ldebug("negotiate: con(%d): %s:%d", con,
-		   inet_ntoa(consain.sin_addr), ntohs(consain.sin_port));
+		   buf, ntohs(consain.sin6_port));
 
-	if (lissain.sin_addr.s_addr > consain.sin_addr.s_addr) {
+	if (lissain.sin6_addr.s6_addr > consain.sin6_addr.s6_addr) {
 		ldebug("negotiate: con has lowest ip. using that");
 		return con;
 	}
-	if (consain.sin_addr.s_addr > lissain.sin_addr.s_addr) {
+	if (consain.sin6_addr.s6_addr > lissain.sin6_addr.s6_addr) {
 		ldebug("negotiate: lis has lowest ip. using that");
 		return lis;
 	}
@@ -212,11 +226,11 @@ static int net_negotiate_socket(merlin_node *node, int con, int lis)
 	 * things. In that case, let the portnumber decide
 	 * the tiebreak
 	 */
-	if (lissain.sin_port > consain.sin_port) {
+	if (lissain.sin6_port > consain.sin6_port) {
 		ldebug("negotiate: con has lowest port. using that");
 		return con;
 	}
-	if (consain.sin_port > lissain.sin_port) {
+	if (consain.sin6_port > lissain.sin6_port) {
 		ldebug("negotiate: lis has lowest port. using that");
 		return lis;
 	}
@@ -300,7 +314,7 @@ int net_try_connect(merlin_node *node)
 	struct sockaddr *sa = (struct sockaddr *)&node->sain;
 	int should_log = 0;
 	struct timeval connect_timeout = { MERLIN_CONNECT_TIMEOUT, 0 };
-	struct sockaddr_in sain;
+	struct sockaddr_in6 sain;
 	time_t interval = MERLIN_CONNECT_INTERVAL;
 	int result;
 
@@ -341,7 +355,7 @@ int net_try_connect(merlin_node *node)
 	/* create the socket if necessary */
 	if (node->conn_sock < 0) {
 		node_disconnect(node, "struct reset (no real disconnect)");
-		node->conn_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		node->conn_sock = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
 		if (node->conn_sock < 0) {
 			lerr("CONN: Failed to obtain connection socket for node %s: %s", node->name, strerror(errno));
 			lerr("CONN: Aborting connection attempt to %s", node->name);
@@ -349,11 +363,13 @@ int net_try_connect(merlin_node *node)
 		}
 	}
 
-	sa->sa_family = AF_INET;
+	sa->sa_family = AF_INET6;
 	if (should_log) {
+		char buf[256]; /* used for inet_ntop() */
+		inet_ntop(node->sain.sin6_family, &node->sain.sin6_addr, buf, sizeof(buf));
 		linfo("CONN: Connecting to %s %s@%s:%d", node_type(node), node->name,
-		      inet_ntoa(node->sain.sin_addr),
-		      ntohs(node->sain.sin_port));
+		      buf,
+		      ntohs(node->sain.sin6_port));
 	}
 
 	if (setsockopt(node->conn_sock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int))) {
@@ -367,12 +383,12 @@ int net_try_connect(merlin_node *node)
 		 * first we bind() to a local port calculated by our own
 		 * listening port + the target port.
 		 */
-		sain.sin_family = AF_INET;
-		sain.sin_port = htons(net_source_port(node));
-		sain.sin_addr.s_addr = 0;
+		sain.sin6_family = AF_INET6;
+		sain.sin6_port = htons(net_source_port(node));
+		//sain.sin6_addr.s6_addr = 0; TODO: fix??
 		if (bind(node->conn_sock, (struct sockaddr *)&sain, sizeof(sain))) {
 			lerr("CONN: Failed to bind() outgoing socket %d for node %s to port %d: %s",
-				 node->conn_sock, node->name, ntohs(sain.sin_port), strerror(errno));
+				 node->conn_sock, node->name, ntohs(sain.sin6_port), strerror(errno));
 			if (errno == EBADF || errno == EADDRINUSE) {
 				close(node->conn_sock);
 				node->conn_sock = -1;
@@ -397,7 +413,7 @@ int net_try_connect(merlin_node *node)
 		       node->conn_sock, node->name, strerror(errno));
 	}
 
-	if (connect(node->conn_sock, sa, sizeof(struct sockaddr_in)) < 0) {
+	if (connect(node->conn_sock, sa, sizeof(struct sockaddr_in6)) < 0) {
 		if (errno == EINPROGRESS) {
 			/*
 			 * non-blocking socket and connect() can't be completed
@@ -415,10 +431,12 @@ int net_try_connect(merlin_node *node)
 			close(node->conn_sock);
 			node->conn_sock = -1;
 			if (should_log) {
+				char buf[256]; /* used for inet_ntop() */
+				inet_ntop(node->sain.sin6_family, &node->sain.sin6_addr, buf, sizeof(buf));
 				node_disconnect(node, "CONN: connect() failed to %s node '%s' (%s:%d): %s",
 								node_type(node), node->name,
-								inet_ntoa(node->sain.sin_addr),
-								ntohs(node->sain.sin_port),
+								buf,
+								ntohs(node->sain.sin6_port),
 								strerror(errno));
 			} else {
 				node_disconnect(node, NULL);
@@ -448,8 +466,9 @@ static int net_accept_one(int sd, int events, void *discard)
 {
 	int sock, result;
 	merlin_node *node;
-	struct sockaddr_in sain;
-	socklen_t slen = sizeof(struct sockaddr_in);
+	struct sockaddr_in6 sain;
+	socklen_t slen = sizeof(struct sockaddr_in6);
+	char buf[256]; /* used for inet_ntop() */
 
 	sock = accept(sd, (struct sockaddr *)&sain, &slen);
 	if (sock < 0) {
@@ -458,9 +477,10 @@ static int net_accept_one(int sd, int events, void *discard)
 	}
 
 	node = find_node(&sain);
+	inet_ntop(sain.sin6_family, &sain.sin6_addr, buf, sizeof(buf));
 	linfo("NODESTATE: %s connected from %s:%d. Current state is %s",
 		  node ? node->name : "An unregistered node",
-		  inet_ntoa(sain.sin_addr), ntohs(sain.sin_port),
+		  buf, ntohs(sain.sin6_port),
 		  node ? node_state_name(node->state) : "unknown");
 	if (!node) {
 		close(sock);
@@ -527,18 +547,18 @@ int net_deinit(void)
 int net_init(void)
 {
 	int result, sockopt = 1;
-	struct sockaddr_in sain, inbound;
+	struct sockaddr_in6 sain, inbound;
 	struct sockaddr *sa = (struct sockaddr *)&sain;
 	socklen_t addrlen = sizeof(inbound);
 
 	if (!num_nodes)
 		return 0;
 
-	sain.sin_addr.s_addr = default_addr;
-	sain.sin_port = htons(default_port);
-	sain.sin_family = AF_INET;
+	sain.sin6_addr = in6addr_any;
+	sain.sin6_port = htons(default_port);
+	sain.sin6_family = AF_INET6;
 
-	net_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	net_sock = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
 	if (net_sock < 0)
 		return -1;
 

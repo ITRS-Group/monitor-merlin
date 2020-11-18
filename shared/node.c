@@ -290,14 +290,17 @@ linked_item *nodes_by_sel_name(const char *name)
  * Resolve an ip-address or hostname and convert it to a
  * machine-usable 32-bit representation
  */
-int resolve(const char *cp, struct in_addr *inp)
+int resolve(const char *cp, struct in6_addr *inp)
 {
 	struct addrinfo hints, *rp, *ai = NULL;
 	int result;
 
 	/* try simple lookup first and avoid DNS lookups */
-	result = inet_aton(cp, inp);
-	if (result)
+	result = inet_pton(AF_INET, cp, inp);
+	if (result) /* valid ipv4 */
+		return 0;
+	result = inet_pton(AF_INET6, cp, inp);
+	if (result) /* valid ipv6 */
 		return 0;
 
 	linfo("Resolving '%s'...", cp);
@@ -329,11 +332,11 @@ int resolve(const char *cp, struct in_addr *inp)
 
 	if (rp) {
 		char buf[256]; /* used for inet_ntop() */
-		struct sockaddr_in *sain = (struct sockaddr_in *)rp->ai_addr;
+		struct sockaddr_in6 *sain = (struct sockaddr_in6 *)rp->ai_addr;
 
 		linfo("'%s' resolves to %s", cp,
-			  inet_ntop(rp->ai_family, &sain->sin_addr, buf, sizeof(buf)));
-		memcpy(inp, &sain->sin_addr, sizeof(*inp));
+			  inet_ntop(rp->ai_family, &sain->sin6_addr, buf, sizeof(buf)));
+		memcpy(inp, &sain->sin6_addr, sizeof(*inp));
 	}
 	freeaddrinfo(ai);
 
@@ -480,8 +483,8 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			address_var = v;
 		}
 		else if (!strcmp(v->key, "port")) {
-			node->sain.sin_port = htons((unsigned short)atoi(v->value));
-			if (!node->sain.sin_port)
+			node->sain.sin6_port = htons((unsigned short)atoi(v->value));
+			if (!node->sain.sin6_port)
 				cfg_error(c, v, "Illegal value for port: %s\n", v->value);
 		}
 		else if (!strcmp(v->key, "data_timeout")) {
@@ -527,7 +530,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 	if (!address)
 		address = node->name;
 
-	if (is_module && resolve(address, &node->sain.sin_addr) < 0)
+	if (is_module && resolve(address, &node->sain.sin6_addr) < 0)
 		cfg_warn(c, address_var, "Unable to resolve '%s'\n", address);
 
 	for (i = 0; i < c->nested; i++) {
@@ -601,9 +604,10 @@ void node_grok_config(struct cfg_comp *config)
 
 		if (node->name)
 			node->name = strdup(node->name);
-		else
-			node->name = strdup(inet_ntoa(node->sain.sin_addr));
-
+		else {
+			char buf[256]; /* used for inet_ntop() */
+			node->name = strdup(inet_ntop(node->sain.sin6_family, &node->sain.sin6_addr, buf, sizeof(buf)));
+		}
 		node->sock = -1;
 		memset(&node->info, 0, sizeof(node->info));
 	}

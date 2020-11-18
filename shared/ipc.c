@@ -64,7 +64,7 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 instance_id,
 				 n->name, n->source_name, n->sock, node_type(n),
 				 node_state_name(n->state), n->peer_id, n->flags,
-				 inet_ntoa(n->sain.sin_addr), ntohs(n->sain.sin_port),
+				 /*inet_ntoa(n->sain.sin6_addr)*/ "missing", ntohs(n->sain.sin6_port),
 				 n->data_timeout, n->last_recv, n->last_sent,
 				 n->last_conn_attempt, n->last_action, n->latency,
 				 binlog_size(n->binlog), nm_bufferqueue_get_available(n->bq),

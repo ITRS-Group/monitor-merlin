@@ -224,7 +224,7 @@ struct merlin_node {
 	uint32_t peer_id;       /* peer id, used to distribute checks */
 	int flags;              /* flags for this node */
 	struct sockaddr *sa;    /* should always point to sain */
-	struct sockaddr_in sain;
+	struct sockaddr_in6 sain;
 	unsigned int data_timeout; /* send gracetime before we disconnect */
 	unsigned int host_checks; /* actually executed host checks */
 	unsigned int service_checks; /* actually executed service checks */
@@ -270,7 +270,7 @@ extern merlin_nodeinfo *self;
 #define online_pollers self->active_pollers
 #define online_nodes (online_masters + online_pollers + online_peers)
 
-extern int resolve(const char *cp, struct in_addr *inp);
+extern int resolve(const char *cp, struct in6_addr *inp);
 extern node_selection *node_selection_by_name(const char *name);
 extern char *get_sel_name(int index);
 extern int get_sel_id(const char *name);

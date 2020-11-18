@@ -1241,8 +1241,8 @@ static void connect_to_all(struct nm_event_execution_properties *evprop)
 		// check if the node has a valid IP address
 		// as we calloc the structure we can assume an un-resolved node
 		// will have an IP address = 0.
-		if (node->sain.sin_addr.s_addr == 0 ) {
-			resolve(node->name, &node->sain.sin_addr);
+		if (node->sain.sin6_addr.s6_addr == 0 ) {
+			resolve(node->name, &node->sain.sin6_addr);
 		}
 
 		// connect to the node
@@ -1470,8 +1470,8 @@ static void post_process_nodes(void)
 			}
 		}
 
-		if (!node->sain.sin_port)
-			node->sain.sin_port = htons(default_port);
+		if (!node->sain.sin6_port)
+			node->sain.sin6_port = htons(default_port);
 
 		node->bq = nm_bufferqueue_create();
 		if (node->bq == NULL) {
@@ -1488,7 +1488,7 @@ static void post_process_nodes(void)
 			continue;
 		}
 
-		if (node->sain.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+		if (node->sain.sin6_addr.s6_addr == htonl(INADDR_LOOPBACK)) {
 			node->flags |= MERLIN_NODE_FIXED_SRCPORT;
 			ldebug("Using fixed source-port for local %s node %s",
 				   node_type(node), node->name);
@@ -1497,7 +1497,7 @@ static void post_process_nodes(void)
 
 		for (x = i + 1; x < num_nodes; x++) {
 			merlin_node *nx = node_table[x];
-			if (node->sain.sin_addr.s_addr == nx->sain.sin_addr.s_addr) {
+			if (node->sain.sin6_addr.s6_addr == nx->sain.sin6_addr.s6_addr) {
 				ldebug("Using fixed source-port for %s node %s",
 				       node_type(node), node->name);
 				ldebug("Using fixed source-port for %s node %s",
@@ -1505,7 +1505,7 @@ static void post_process_nodes(void)
 				node->flags |= MERLIN_NODE_FIXED_SRCPORT;
 				nx->flags |= MERLIN_NODE_FIXED_SRCPORT;
 
-				if (node->sain.sin_port == nx->sain.sin_port) {
+				if (node->sain.sin6_port == nx->sain.sin6_port) {
 					lwarn("Nodes %s and %s have same ip *and* same port. Voodoo?",
 					      node->name, nx->name);
 				}
