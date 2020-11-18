@@ -1,46 +1,48 @@
 #!/usr/bin/env python
+from __future__ import print_function
+from builtins import str
+from builtins import object
 import socket
 
 
-class nagios_qh:
+class nagios_qh(object):
     __slots__ = ["query_handler", "socket", "read_size"]
-    read_size = 4096
-    socket = False
-    query_handler = False
 
     def __init__(self, query_handler):
+        self.read_size = 4096
+        self.socket = False
         self.query_handler = query_handler
 
     def query(self, query):
         """Ask a raw query to nagios' query handler socket, return the raw
         response as a lazily generated sequence."""
         if not query:
-            print "Missing query argument"
+            print("Missing query argument")
             return
         try:
             self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             self.socket.connect(self.query_handler)
 
-            self.socket.send(query + "\0")
+            self.socket.send((query + "\0").encode())
             while True:
                 try:
                     out = self.socket.recv(self.read_size)
                     if not out:
                         break
-                    yield out
+                    yield out.decode()
                 except KeyboardInterrupt:
-                    print "Good bye."
+                    print("Good bye.")
                     break
             self.socket.close()
-        except socket.error, e:
-            print "Couldn't connect to nagios socket %s: %s" % (
+        except socket.error as e:
+            print("Couldn't connect to nagios socket %s: %s" % (
                 self.query_handler,
                 str(e),
-            )
+            ))
 
     def format(self, data, rowsep="\n", pairsep=";", kvsep="="):
         """Lazily format a response into a sequence of dicts"""
-        for row in filter(None, "".join(data).split(rowsep)):
+        for row in [_f for _f in "".join(data).split(rowsep) if _f]:
             if row == "404: merlin: No such handler":
                 print (
                     "ERROR: Could not get nodeinfo. See /var/log/op5/merlin/neb.log for more information"

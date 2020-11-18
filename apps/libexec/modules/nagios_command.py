@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import object
 import signal, time, os, signal, posix, errno
 
 nagios_command_pipe_open_failed = False
@@ -10,7 +12,7 @@ def _cmd_pipe_sighandler(one, two):
     return False
 
 
-class nagios_command:
+class nagios_command(object):
 
     # @TODO: change 'ADD_HOST_COMMENT;host_name;persistent;author;comment'
     # to
@@ -1041,7 +1043,7 @@ class nagios_command:
         signal.alarm(2)
         try:
             cmd_fd = os.open(self.pipe_path, posix.O_WRONLY)
-        except OSError, ose:
+        except OSError as ose:
             if ose.errno == errno.EAGAIN:
                 return False
             return False
@@ -1060,7 +1062,7 @@ class nagios_command:
         if self.open_pipe() == False:
             return False
 
-        if os.write(self.pipe_fd, cmd) == len(cmd):
+        if os.write(self.pipe_fd, cmd.encode()) == len(cmd):
             return True
 
         return False

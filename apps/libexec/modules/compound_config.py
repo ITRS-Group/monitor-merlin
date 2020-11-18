@@ -1,7 +1,8 @@
+from builtins import object
 import os
 
 
-class compound_object:
+class compound_object(object):
     def __init__(self, name="", parent=False):
         # we stash start and end line so our caller can remove
         # compounds using sed without affecting config comments
@@ -72,7 +73,8 @@ def parse_conf(path, splitchar="="):
         line = line.strip()
         # this barfs on latin1 characters, but those aren't handled properly by
         # merlin anyway.
-        line = line.decode("latin1")
+        # TODO: Shouldn't need this in python3
+        # line = line.decode("latin1")
         if not line or line[0] == "#":
             continue
 

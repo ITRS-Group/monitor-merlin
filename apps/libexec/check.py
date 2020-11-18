@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, sys, re, time, errno
 
 import livestatus
@@ -88,31 +89,31 @@ def cmd_distribution(args):
 
     state = 3
     if not expired:
-        print "OK: All %i nodes run their assigned checks" % (len(info),),
+        print("OK: All %i nodes run their assigned checks" % (len(info),), end=' ')
         state = 0
     else:
-        print "ERROR: There are %i expired checks" % (len(expired),),
+        print("ERROR: There are %i expired checks" % (len(expired),), end=' ')
         state = 2
 
     if print_perfdata:
-        print "|",
+        print("|", end=' ')
         for i in info:
-            print (
+            print((
                 "'%(name)s_hosts'=%(host_checks_executed)s "
                 "'%(name)s_services'=%(service_checks_executed)s "
                 "'%(name)s_expired_hosts'=%(expired_hosts)s "
                 "'%(name)s_expired_services'=%(expired_services)s"
-            ) % i,
+            ) % i, end=' ')
     if expired:
-        print "\n"
+        print("\n")
         for check in expired:
-            print "%s was supposed to be executed by %s at %s" % (
-                check.has_key("service_description")
+            print("%s was supposed to be executed by %s at %s" % (
+                "service_description" in check
                 and check["host_name"] + ";" + check["service_description"]
                 or check["host_name"],
                 check["responsible"],
                 time.ctime(int(check["added"])),
-            )
+            ))
     sys.exit(state)
 
 
@@ -152,7 +153,7 @@ def check_min_avg_max(args, col, defaults=False, filter=False):
     try:
         values = mst.min_avg_max(otype, col, filter)
     except livestatus.livestatus.MKLivestatusSocketError:
-        print "UNKNOWN: Error asking livestatus for info, bailing out"
+        print("UNKNOWN: Error asking livestatus for info, bailing out")
         sys.exit(nplug.STATE_UNKNOWN)
     for thresh_type in ["critical", "warning"]:
         if state != nplug.STATE_OK:
@@ -261,7 +262,7 @@ def cmd_orphans(args=False):
             critical = total * 0.01
             warning = total * 0.005
     except livestatus.livestatus.MKLivestatusSocketError:
-        print "UNKNOWN: Error asking livestatus for info, bailing out"
+        print("UNKNOWN: Error asking livestatus for info, bailing out")
         sys.exit(nplug.UNKNOWN)
     if not warning and not critical:
         warning = critical = 1
@@ -299,50 +300,50 @@ def cmd_status(args=False):
             service_checks += int(info["service_checks_handled"])
 
     num_helpers = sum(
-        mconf.num_nodes[x] for x in mconf.num_nodes.values() if x in ("peer", "poller")
+        mconf.num_nodes[x] for x in list(mconf.num_nodes.values()) if x in ("peer", "poller")
     )
     for info in sinfo:
         if info.get("state") != "STATE_CONNECTED":
-            print "Error: %s is not connected." % (info["name"])
+            print("Error: %s is not connected." % (info["name"]))
             state = nplug.worst_state(state, nplug.CRITICAL)
             continue
-        if not info.has_key("latency"):
-            print "Error: Can't find latency information for %s - this shouldn't happen." % (
+        if "latency" not in info:
+            print("Error: Can't find latency information for %s - this shouldn't happen." % (
                 info["name"]
-            )
+            ))
             state = nplug.worst_state(state, nplug.CRITICAL)
         elif int(info["latency"]) > 5000 or int(info["latency"]) < -2000:
-            print "Warning: Latency for %s is %ss." % (
+            print("Warning: Latency for %s is %ss." % (
                 info["name"],
                 float(info["latency"]) / 1000,
-            )
+            ))
             state = nplug.worst_state(state, nplug.WARNING)
         if (
             info["type"] == "peer"
             and not (int(info.get("connect_time", 0)) + 30 > int(time.time()))
             and info.get("self_assigned_peer_id", 0) != info.get("peer_id", 0)
         ):
-            print "Warning: Peer id mismatch for %s: self-assigned=%s; real=%s." % (
+            print("Warning: Peer id mismatch for %s: self-assigned=%s; real=%s." % (
                 info["name"],
                 info.get("self_assigned_peer_id", 0),
                 info.get("peer_id", 0),
-            )
+            ))
             state = nplug.worst_state(state, nplug.WARNING)
 
         if not info.get("last_action"):
-            print "Warning: Unable to determine when %s was last alive." % (
+            print("Warning: Unable to determine when %s was last alive." % (
                 info["name"]
-            )
+            ))
             state = nplug.worst_state(state, nplug.UNKNOWN)
         elif not (int(info.get("last_action", 0)) + 30 > time.time()):
-            print "Error: %s hasn't checked in recently." % (info["name"])
+            print("Error: %s hasn't checked in recently." % (info["name"]))
             state = nplug.worst_state(state, nplug.CRITICAL)
 
         node = mconf.configured_nodes.get(info["name"], False)
         if int(info.get("instance_id", 0)) and not node:
-            print "Warning: Connected node %s is currently not int the configuration file." % (
+            print("Warning: Connected node %s is currently not int the configuration file." % (
                 info["name"]
-            )
+            ))
             state = nplug.worst_state(state, nplug.WARNING)
             continue
         if node:
@@ -350,21 +351,21 @@ def cmd_status(args=False):
                 if int(info.get("host_checks_executed", 0)) or int(
                     info.get("service_checks_executed", 0)
                 ):
-                    print "Error: Master %s should not run (visible) checks." % (
+                    print("Error: Master %s should not run (visible) checks." % (
                         info["name"]
-                    )
+                    ))
                     state = nplug.worst_state(state, nplug.CRITICAL)
             elif not int(info.get("host_checks_executed", 0)) and not int(
                 info.get("service_checks_executed", 0)
             ):
-                print "Error: Node %s runs no checks." % (info["name"])
+                print("Error: Node %s runs no checks." % (info["name"]))
                 state = nplug.worst_state(state, nplug.CRITICAL)
         if not int(info.get("instance_id", 0)) and num_helpers:
             if info.get("host_checks_executed", 0) == host_checks:
-                print "Error: There are other nodes, but this node runs all host checks."
+                print("Error: There are other nodes, but this node runs all host checks.")
                 state = nplug.worst_state(state, nplug.CRITICAL)
             if info.get("service_checks_executed", 0) == service_checks:
-                print "Error: There are other nodes, but this node runs all service checks."
+                print("Error: There are other nodes, but this node runs all service checks.")
                 state = nplug.worst_state(state, nplug.CRITICAL)
     if state == nplug.OK:
         nodes = []
@@ -373,7 +374,7 @@ def cmd_status(args=False):
             n = sum(1 for x in sinfo if x["type"] == type)
             if n != 0:
                 nodes.append("%s %s" % (n, type if n == 1 else type + "s"))
-        print "OK: Total nodes: %s." % (", ".join(nodes))
+        print("OK: Total nodes: %s." % (", ".join(nodes)))
     sys.exit(state)
 
 
@@ -447,13 +448,13 @@ def cmd_spool(args=False):
     now = int(time.time())
     try:
         result = get_files(path)
-    except OSError, e:
+    except OSError as e:
         nplug.die(nplug.STATE_UNKNOWN, 'Spool directory "%s" doesn\'t exist' % (path,))
 
     for p in result:
         try:
             st = os.stat(p)
-        except OSError, e:
+        except OSError as e:
             # since it's a spool directory it's quite normal
             # for files to disappear from it while we're
             # scanning it.
@@ -470,7 +471,7 @@ def cmd_spool(args=False):
         try:
             for p in bad_paths:
                 os.unlink(p)
-        except OSError, e:
+        except OSError as e:
             pass
 
     state = nplug.STATE_OK

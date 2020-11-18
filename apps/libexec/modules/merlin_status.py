@@ -1,10 +1,11 @@
+from builtins import object
 import sys, os
 
 import merlin_conf as mconf
 from merlin_qh import get_merlin_nodeinfo
 
 
-class merlin_status:
+class merlin_status(object):
     lsc = False
     ni = False
 
@@ -33,7 +34,7 @@ class merlin_status:
         return sum(
             [
                 int(x.get(key))
-                for x in self.ni.values()
+                for x in list(self.ni.values())
                 if x.get("type") in ("peer", "local")
             ]
         )
@@ -57,7 +58,7 @@ class merlin_status:
 
     def status(self, node_name=None):
         nodes = []
-        for name, row in self.ni.items():
+        for name, row in list(self.ni.items()):
             if node_name and node_name != row["instance_name"]:
                 continue
             if row["state"] == "STATE_NONE":

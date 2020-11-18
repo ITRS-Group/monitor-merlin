@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import str
 import os, sys
 import time
 import subprocess
@@ -53,9 +55,9 @@ def cmd_check_consistency(args):
                     stdout=subprocess.PIPE,
                 ).stdout.read()
                 if int(state) != int(ls_state):
-                    print "ERROR: " + host_name + ";" + service_description + " : db_state=" + str(
+                    print("ERROR: " + host_name + ";" + service_description + " : db_state=" + str(
                         state
-                    ) + " ls_state: " + ls_state.rstrip()
+                    ) + " ls_state: " + ls_state.rstrip())
                     errors = errors + 1
             elif host_name:
                 ls_query = (
@@ -68,9 +70,9 @@ def cmd_check_consistency(args):
                     stdout=subprocess.PIPE,
                 ).stdout.read()
                 if int(state) != int(ls_state):
-                    print "ERROR: " + host_name + " : db_state=" + str(
+                    print("ERROR: " + host_name + " : db_state=" + str(
                         state
-                    ) + " ls_state: " + ls_state.rstrip()
+                    ) + " ls_state: " + ls_state.rstrip())
                     errors = errors + 1
         # probably means state or ls_state is not an int, so we just continue
         except ValueError as e:
@@ -78,8 +80,8 @@ def cmd_check_consistency(args):
 
     merlin_db.disconnect()
     if errors == 0:
-        print "OK"
+        print("OK")
         return True
     else:
-        print "Errors: {}".format(errors)
+        print("Errors: {}".format(errors))
         return False

@@ -1,7 +1,8 @@
+from builtins import object
 from merlin_apps_utils import *
 
 
-class test_config_in:
+class test_config_in(object):
     nagios_config_in = """log_file=@@DIR@@/nagios.log
 check_workers=1
 resource_file=macros.cfg

@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import str
 import os, sys, re, time, socket, select
 
 from merlin_apps_utils import *
@@ -248,11 +250,11 @@ def cmd_status(args):
         )
 
     oconf_bad = {}
-    for pg_id, d in pg_oconf_hash.items():
+    for pg_id, d in list(pg_oconf_hash.items()):
         last = None
         if len(d) == 1:
             continue
-        for name, hash in d.items():
+        for name, hash in list(d.items()):
             if last != None and last != hash:
                 oconf_bad[pg_id] = d
                 break
@@ -262,8 +264,8 @@ def cmd_status(args):
             "\n%s%sObject config sync problem detected in the following groups%s"
             % (color.red, color.bright, color.reset)
         )
-        for pg_id, bad_nodes in oconf_bad.items():
-            bad = bad_nodes.keys()
+        for pg_id, bad_nodes in list(oconf_bad.items()):
+            bad = list(bad_nodes.keys())
             bad.sort()
             print ("  peer-group %d: %s" % (pg_id, ", ".join(bad)))
         print (
@@ -273,11 +275,11 @@ def cmd_status(args):
 
     # now check merlin configuration
     pconf_bad = {}
-    for pg_id, d in pg_conf.items():
+    for pg_id, d in list(pg_conf.items()):
         have_first = False
         if len(d) == 1:
             continue
-        for name, d2 in d.items():
+        for name, d2 in list(d.items()):
             cur_masters = d2.get("masters", -1)
             cur_peers = d2.get("peers", -1)
             cur_pollers = d2.get("pollers", -1)
@@ -299,8 +301,8 @@ def cmd_status(args):
             "\n%s%sMerlin config error detected in the following groups%s"
             % (color.red, color.bright, color.reset)
         )
-        for pg_id, bad_nodes in pconf_bad.items():
-            bad = bad_nodes.keys()
+        for pg_id, bad_nodes in list(pconf_bad.items()):
+            bad = list(bad_nodes.keys())
             bad.sort()
             print ("  peer-group %d: %s" % (pg_id, ", ".join(bad)))
         print (
@@ -318,7 +320,7 @@ def cmd_list(args):
     """
     global wanted_types
 
-    names = mconf.configured_nodes.keys()
+    names = list(mconf.configured_nodes.keys())
     names.sort()
     for name in names:
         node = mconf.configured_nodes[name]
@@ -339,7 +341,7 @@ def cmd_show(args):
         print ("No nodes configured")
         return
     if len(args) == 0:
-        names = mconf.configured_nodes.keys()
+        names = list(mconf.configured_nodes.keys())
         names.sort()
         for name in names:
             node = mconf.configured_nodes[name]
@@ -349,7 +351,7 @@ def cmd_show(args):
             node.show()
 
     for arg in args:
-        if not arg in mconf.configured_nodes.keys():
+        if not arg in list(mconf.configured_nodes.keys()):
             print ("'%s' is not a configured node. Try the 'list' command" % arg)
             # scripts will list one node at a time. If the command
             # fails, they don't have to check the output to see if
@@ -371,7 +373,7 @@ def cmd_add(args):
     if len(args) < 1:
         return False
     name = args[0]
-    if name in mconf.configured_nodes.keys():
+    if name in list(mconf.configured_nodes.keys()):
         print ("%s is already configured. Aborting" % name)
         return False
 
@@ -398,7 +400,7 @@ def _cmd_edit(args):
         return False
 
     name = args[0]
-    if not name in mconf.configured_nodes.keys():
+    if not name in list(mconf.configured_nodes.keys()):
         print ("%s isn't configured yet. Use 'add' to add it" % name)
         return False
 
@@ -461,7 +463,7 @@ def cmd_ctrl(args):
     for arg in args:
         i += 1
         if arg == "--all":
-            wanted_names = mconf.configured_nodes.keys()
+            wanted_names = list(mconf.configured_nodes.keys())
             continue
         elif arg == "--self":
             run_on_self = True
@@ -473,7 +475,7 @@ def cmd_ctrl(args):
             # to run the command on all configured nodes, possibly
             # including --self
             if not len(wanted_names):
-                wanted_names = mconf.configured_nodes.keys()
+                wanted_names = list(mconf.configured_nodes.keys())
             break
 
         node = mconf.configured_nodes.get(arg, False)
@@ -484,7 +486,7 @@ def cmd_ctrl(args):
         by_name = True
 
     if have_type_arg and not len(wanted_names):
-        wanted_names = mconf.configured_nodes.keys()
+        wanted_names = list(mconf.configured_nodes.keys())
 
     for name in wanted_names:
         node = mconf.configured_nodes.get(name, False)
@@ -505,7 +507,7 @@ def cmd_ctrl(args):
         os.spawnvp(os.P_WAIT, "/bin/sh", ["/bin/sh", "-c", cmd])
 
     blocked = 0
-    for name, node in nodes.items():
+    for name, node in list(nodes.items()):
         if str(node.connect) == "no":
             blocked += 1
         else:
@@ -520,13 +522,13 @@ def cmd_ctrl(args):
 
 
 def _cmd_rename(args):
-    if len(args) != 2 or not args[0] in mconf.configured_nodes.keys():
+    if len(args) != 2 or not args[0] in list(mconf.configured_nodes.keys()):
         print ("Which node do you want to rename? Try the 'list' command")
         return False
 
     node = mconf.configured_nodes[args[0]]
     dest = args[1]
-    if dest in mconf.configured_nodes.keys():
+    if dest in list(mconf.configured_nodes.keys()):
         print ("A node named '%s' already exists. Remove it first" % dest)
         return False
     mconf.configured_nodes.pop(args[0])
@@ -543,9 +545,9 @@ def cmd_info(args):
         if node == -1:
             return 1
 
-        print node["name"]
-        items = node.items()
+        print(node["name"])
+        items = list(node.items())
         items.sort()
         for key, val in items:
-            print "    %s = %s" % (key, val)
-        print ""
+            print("    %s = %s" % (key, val))
+        print("")

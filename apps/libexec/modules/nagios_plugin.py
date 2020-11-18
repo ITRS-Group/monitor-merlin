@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 
 STATE_OK = 0

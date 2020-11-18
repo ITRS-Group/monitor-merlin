@@ -1,4 +1,6 @@
+from past.builtins import cmp
 import nagios_qh
+from functools import cmp_to_key
 
 
 def get_merlin_nodeinfo(query_handler):
@@ -13,7 +15,7 @@ def get_merlin_nodeinfo(query_handler):
     ninfo = []
     for info in qh.get("#merlin nodeinfo\0"):
         ninfo.append(info)
-    ninfo.sort(nodeinfo_sorter)
+    ninfo.sort(key=cmp_to_key(nodeinfo_sorter))
     return ninfo
 
 
@@ -34,5 +36,5 @@ def get_expired(query_handler):
     expired = []
     for info in qh.get("#merlin expired\0"):
         expired.append(info)
-    expired.sort(sort)
+    expired.sort(key=cmp_to_key(sort))
     return expired

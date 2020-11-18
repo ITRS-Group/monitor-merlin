@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, sys, re, time, errno, json
 from merlin_apps_utils import *
 from nagios_command import *
@@ -6,7 +7,7 @@ from compound_config import parse_nagios_cfg
 
 def search(arg):
     arg = arg.upper()
-    for cname, ci in nagios_command.command_info.items():
+    for cname, ci in list(nagios_command.command_info.items()):
         if ci["description"] == "This command is not implemented":
             continue
 

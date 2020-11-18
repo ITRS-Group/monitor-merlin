@@ -1,9 +1,12 @@
+from __future__ import print_function
+from builtins import str
+from builtins import object
 import os, sys, time, copy
 from pprint import pformat, pprint
 import traceback
 
 
-class pytap:
+class pytap(object):
     """Python tap-ish class for testing blackbox systems where it's
     nifty to reset the test-suite every once in a while (such as when
     a particular condition has been met, and the only way to find out
@@ -120,7 +123,7 @@ class pytap:
             )
         else:
             summary += "%.2fs total: %d" % (self.runtime, self.num_tests)
-            for (cat, num) in self.tcount.items():
+            for (cat, num) in list(self.tcount.items()):
                 if not num:
                     continue
                 summary += ", " + self._colorize("%s: %s" % (cat, num), cat)
@@ -223,7 +226,7 @@ class pytap:
     def show_colors(self):
         """List which colors are set"""
         color_reset = "\033[0m"
-        for (name, color) in self.colors.items():
+        for (name, color) in list(self.colors.items()):
             print("%s%s%s" % (color, name, color_reset))
 
     def set_color(self, name=False, color=False):
@@ -452,7 +455,7 @@ class pytap:
             msg = [msg]
         for v in msg:
             self._indent(1)
-            if type(v) == type(unicode("lala")):
+            if type(v) == type(str("lala")):
                 v = str(v)
             elif type(v) != type("foo"):
                 v = pformat(v)
@@ -485,7 +488,7 @@ class pytap:
 
         if self.parent:
             self.parent.num_tests += self.num_tests
-            for (cat, num) in self.tcount.items():
+            for (cat, num) in list(self.tcount.items()):
                 if not self.parent.tcount.get(cat):
                     self.parent.tcount[cat] = 0
                 self.parent.tcount[cat] += num

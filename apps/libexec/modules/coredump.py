@@ -1,8 +1,9 @@
+from builtins import object
 import os, sys, re, time, subprocess
 from merlin_apps_utils import *
 
 
-class coredump:
+class coredump(object):
     """
     Class for crudely examining (most) coredumps and finely examining
     coredumps from monitor, merlin, and other core parts of op5

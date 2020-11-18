@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, sys, subprocess, tempfile
 
 pushed_logs = "/opt/monitor/pushed_logs"
@@ -20,7 +21,7 @@ def cmd_fetch(args):
         if arg.startswith("--incremental="):
             since = "--since=" + arg[14:]
 
-    for node in mconf.configured_nodes.values():
+    for node in list(mconf.configured_nodes.values()):
         if node.ntype == "master":
             continue
         ctrl = "mon log push"
@@ -57,7 +58,7 @@ def cmd_sortmerge(orig_args):
         since = "--incremental=" + since
 
     pushed = {}
-    for (name, node) in mconf.configured_nodes.items():
+    for (name, node) in list(mconf.configured_nodes.items()):
         if node.ntype == "master":
             continue
         if not os.access(pushed_logs + "/" + node.name, os.X_OK):
@@ -78,7 +79,7 @@ def cmd_sortmerge(orig_args):
         return False
 
     last_files = False
-    for (name, files) in pushed.items():
+    for (name, files) in list(pushed.items()):
         if last_files and not last_files == files:
             print (
                 "Some nodes appear to not have pushed the files they should have done"
@@ -91,7 +92,7 @@ def cmd_sortmerge(orig_args):
     stuff = subprocess.Popen(cmd_args, stdout=subprocess.PIPE)
     output = stuff.communicate()[0]
     sort_args += output.strip().split("\n")
-    for (name, more_files) in pushed.items():
+    for (name, more_files) in list(pushed.items()):
         for fname in more_files:
             sort_args.append(pushed_logs + "/" + name + "/" + fname)
 
@@ -175,7 +176,7 @@ def cmd_import(args):
         ret = subprocess.call([app] + args, stdout=None, stderr=sys.stderr)
         if ret < 0:
             print ("The import program was killed by signal %d" % ret)
-    except OSError, e:
+    except OSError as e:
         print ("An exception was thrown running the import program: %s" % e.strerror)
         ret = -1
     return ret
@@ -223,13 +224,13 @@ def cmd_purge(args):
     oldest = False
     for arg in args:
         if arg.startswith("--remove-older-than="):
-            if not arg[-1] in units.keys():
+            if not arg[-1] in list(units.keys()):
                 print ("Invalid unit: " + arg[-1])
                 return False
             try:
                 diff = float(arg[20:-1]) * units[arg[-1]]
             except ValueError:
-                print "Invalid number: " + arg[20:-1]
+                print("Invalid number: " + arg[20:-1])
                 return False
             oldest = time.mktime(time.gmtime()) - diff
     if not oldest:

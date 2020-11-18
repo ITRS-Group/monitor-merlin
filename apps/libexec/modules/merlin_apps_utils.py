@@ -1,7 +1,12 @@
+from __future__ import division
+from __future__ import print_function
+from builtins import chr
+from past.utils import old_div
+from builtins import object
 import sys, os, time, errno
 
 
-class ansi_color:
+class ansi_color(object):
     _color_names = "grey red green brown blue magenta cyan white"
     _attr_names = "none bold faint italic underline blink fast reverse concealed"
     esc = "%s[" % chr(27)
@@ -51,7 +56,7 @@ def time_delta(then, now=time.time()):
 
     for unit, div in dvals:
         if seconds > div:
-            ret += "%d%s " % ((seconds / div), unit)
+            ret += "%d%s " % ((old_div(seconds, div)), unit)
             seconds %= div
 
     ret += "%ds" % seconds
@@ -69,10 +74,10 @@ def strtobool(str):
     return False
 
 
-def mkdir_p(dirname, mode=0777):
+def mkdir_p(dirname, mode=0o777):
     try:
         os.makedirs(dirname, mode)
-    except OSError, exc:
+    except OSError as exc:
         if exc.errno == errno.EEXIST:
             pass
         else:

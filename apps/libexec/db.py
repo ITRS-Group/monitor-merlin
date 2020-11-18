@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os.path, glob, sys
 
 try:
@@ -16,30 +17,33 @@ def cmd_fixindexes(args):
     Don't run this tool unless you're asked to by op5 support staff
     or told to do so by a message during an rpm or yum upgrade.
     """
-    print "Adding indexes..."
-    print "(if this takes forever, aborting this and running"
-    print "\tmon log import --truncate-db"
-    print "might be quicker, but could permanently remove some old logs)"
+    print("Adding indexes...")
+    print("(if this takes forever, aborting this and running")
+    print("\tmon log import --truncate-db")
+    print("might be quicker, but could permanently remove some old logs)")
     conn = merlin_db.connect(mconf)
     cursor = conn.cursor()
     log = []
+    # TODO: These files are not here!
+    # And the driver is not py3 and probably not supported anymore
+    # Recomend removing and insteading relying on docs
     for table in glob.glob("/opt/monitor/op5/merlin/sql/mysql/*-indexes.sql"):
         queries = file(table)
         try:
             cursor.execute(queries.read())
-        except Exception, ex:
+        except Exception as ex:
             log.append("%s: %s" % (os.path.basename(table), ex[1]))
         queries.close()
     conn.commit()
     conn.close()
     if not log:
-        print "Indexes installed successfully"
+        print("Indexes installed successfully")
     else:
-        print "\nThere were problems. This is normal if the indexes already",
-        print "(partially) exist,\nbut could also indicate a problem."
-        print "\nMessages:"
+        print("\nThere were problems. This is normal if the indexes already", end=' ')
+        print("(partially) exist,\nbut could also indicate a problem.")
+        print("\nMessages:")
         for msg in log:
-            print "  %s" % msg
+            print("  %s" % msg)
 
 
 def module_init(args):

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, sys
 import time
 
@@ -22,4 +23,4 @@ def cmd_install_time(args):
 
     merlin_db.disconnect()
 
-    print starttime
+    print(starttime)

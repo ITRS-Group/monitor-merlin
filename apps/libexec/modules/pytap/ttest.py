@@ -1,3 +1,4 @@
+from builtins import range
 from pytap import *
 
 # import pytapunit

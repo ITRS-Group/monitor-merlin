@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, sys
 import compound_config as cconf
 
@@ -46,7 +47,7 @@ def cmd_query(args):
         prettyprint_docstring("query", cmd_query.__doc__, "Not enough arguments")
         return
     for block in handler.query(query):
-        print block,
+        print(block, end=' ')
         sys.stdout.flush()
 
 
@@ -64,9 +65,9 @@ def cmd_get(args):
     resp = handler.query(query)
     try:
         for row in handler.format(resp):
-            for pair in row.items():
-                print "%-25s %s" % pair
-            print ""
-    except ValueError, v:
-        print "WARNING: Couldn't format response, printing raw response:\n"
+            for pair in list(row.items()):
+                print("%-25s %s" % pair)
+            print("")
+    except ValueError as v:
+        print("WARNING: Couldn't format response, printing raw response:\n")
         cmd_query(args)

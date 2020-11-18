@@ -1,14 +1,18 @@
+from __future__ import print_function
+from past.builtins import cmp
+from builtins import object
 import sys
 import os
 import io
 import re
 import locale
 import subprocess as sp
+from functools import cmp_to_key
 from compound_config import *
 from merlin_apps_utils import *
 
 
-class merlin_node:
+class merlin_node(object):
     valid_types = ["poller", "master", "peer"]
     exit_code = False
 
@@ -50,7 +54,7 @@ class merlin_node:
         if not self.address:
             print("No address given to node '%s'" % self.name)
             return False
-        if self.ntype == "poller" and not "hostgroup" in self.options.keys():
+        if self.ntype == "poller" and not "hostgroup" in list(self.options.keys()):
             print("Pollers must have hostgroups.")
             return False
         return True
@@ -64,7 +68,7 @@ class merlin_node:
             valid_vars.append("hostgroups")
             valid_vars.append("takeover")
 
-        for (k, v) in self.options.items():
+        for (k, v) in list(self.options.items()):
             # we handle object_config variables first
             if k.startswith("oconf_"):
                 short_var = k.split("_", 1)[1]
@@ -80,7 +84,7 @@ class merlin_node:
 
         if len(oconf_vars):
             f.write("\n\tobject_config {\n")
-            for (k, v) in oconf_vars.items():
+            for (k, v) in list(oconf_vars.items()):
                 f.write("\t\t%s = %s\n" % (k, v))
             f.write("\t}\n")
 
@@ -124,7 +128,7 @@ class merlin_node:
         if k == "hostgroup" or k == "hostgroups":
             k = "hostgroup"
             v = re.split("[\t ]*,[\t ]*", v)
-            if self.options.has_key(k):
+            if k in self.options:
                 self.options[k] += v
             else:
                 self.options[k] = v
@@ -137,7 +141,7 @@ class merlin_node:
         return os.rename(node_conf_dir + "/" + name, node_conf_dir + "/" + arg)
 
     def show(self):
-        for (k, v) in self.options.items():
+        for (k, v) in list(self.options.items()):
             k = k.upper()
 
             if type(v) == type([]):
@@ -173,7 +177,7 @@ class merlin_node:
             locale.setlocale(locale.LC_CTYPE, "")
         except locale.Error:
             locale.setlocale(locale.LC_CTYPE, "C")
-        command = command.decode(locale.getpreferredencoding())
+        # command = command.decode(locale.getpreferredencoding())
 
         if not self.ssh_user:
             prefix_args = ["ssh", self.address]
@@ -184,10 +188,12 @@ class merlin_node:
             prefix_args += ["-i", self.ssh_key]
         cmd = prefix_args + [command]
         out.write(
-            u"Connecting to '%s' with the following command:\n  %s\n"
-            % (self.name, " ".join(cmd))
+            (
+                u"Connecting to '%s' with the following command:\n  %s\n"
+                % (self.name, " ".join(cmd))
+            ).encode()
         )
-        out.write(u"%s#--- REMOTE OUTPUT START ---%s\n" % (col, reset))
+        out.write((u"%s#--- REMOTE OUTPUT START ---%s\n" % (col, reset)).encode())
 
         # Ideally we would have liked to pass out and err directly to a
         # subprocess call in all cases, but unfortunately not all objects that
@@ -200,18 +206,18 @@ class merlin_node:
         else:
             p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE)
             output, error = p.communicate()
-            output and out.write(u"%s\n" % output)
-            error and err.write(u"%s\n" % error)
+            output and out.write((u"%s\n" % output).encode())
+            error and err.write((u"%s\n" % error).encode())
             ret = p.returncode
 
-        out.write(u"%s#--- REMOTE OUTPUT DONE ----%s\n" % (col, reset))
+        out.write((u"%s#--- REMOTE OUTPUT DONE ----%s\n" % (col, reset)).encode())
         self.exit_code = ret
 
         if ret < 0:
-            out.write(u"ssh was killed by signal %d\n" % ret)
+            out.write((u"ssh was killed by signal %d\n" % ret).encode())
             return False
         if ret != 0:
-            out.write(u"ssh exited with return code %d\n" % ret)
+            out.write((u"ssh exited with return code %d\n" % ret).encode())
             return False
         return True
 
@@ -229,6 +235,7 @@ module = {}
 _node_defaults = {}
 
 
+# TODO: Test for this
 def node_cmp(a, b):
     if a.ntype == "master" and b.ntype != "master":
         return -1
@@ -244,7 +251,7 @@ def node_cmp(a, b):
 def parse():
     try:
         conf = parse_conf(config_file)
-    except Exception, e:
+    except Exception as e:
         print("Failed to parse %s: %s" % (config_file, e.strerror))
         sys.exit(1)
 
@@ -297,11 +304,11 @@ def parse():
                     node.paths_to_sync[sk] = sv
 
     if len(sorted_nodes):
-        sorted_nodes.sort(node_cmp)
+        sorted_nodes.sort(key=cmp_to_key(node_cmp))
 
     # check and store how many peers each node has.
     i = 0
-    for node in configured_nodes.values():
+    for node in list(configured_nodes.values()):
         i += 1
         # all masters should be peers to each other
         if node.ntype == "master":
@@ -317,7 +324,7 @@ def parse():
 
         # poller. check how many nodes shares this poller's
         # hostgroup configuration.
-        for n2 in configured_nodes.values()[i:]:
+        for n2 in list(configured_nodes.values())[i:]:
             # the node is not a peer to itself, and it's not a
             # peer to nodes of different kinds.
             if n2.name == node.name or n2.ntype != node.ntype:
