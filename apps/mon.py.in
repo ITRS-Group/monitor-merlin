@@ -3,23 +3,26 @@
 import os, sys, subprocess, tempfile
 from subprocess import Popen, PIPE
 
-exec_prefix = '@exec_prefix@'
-prefix = '@prefix@'
-libexec_dir = "@libdir@/merlin/mon".replace('${exec_prefix}', exec_prefix).replace('${prefix}', prefix)
-merlin_dir = "@libdir@/merlin".replace('${prefix}', prefix)
-merlin_conf_dir = "@pkgconfdir@".replace('${prefix}', prefix)
+exec_prefix = "@exec_prefix@"
+prefix = "@prefix@"
+libexec_dir = "@libdir@/merlin/mon".replace("${exec_prefix}", exec_prefix).replace(
+    "${prefix}", prefix
+)
+merlin_dir = "@libdir@/merlin".replace("${prefix}", prefix)
+merlin_conf_dir = "@pkgconfdir@".replace("${prefix}", prefix)
 
-nagios_cfg = '@naemon_cfg@'
-cache_dir = '@cachedir@'
+nagios_cfg = "@naemon_cfg@"
+cache_dir = "@cachedir@"
 
 # run a generic helper from the libexec dir
 def run_helper(helper, args):
-	app = libexec_dir + "/" + helpers[helper]
-	ret = os.spawnv(os.P_WAIT, app, [app] + args)
-	if ret < 0:
-		print("Helper %s was killed by signal %d" % (app, ret))
+    app = libexec_dir + "/" + helpers[helper]
+    ret = os.spawnv(os.P_WAIT, app, [app] + args)
+    if ret < 0:
+        print ("Helper %s was killed by signal %d" % (app, ret))
 
-	sys.exit(ret)
+    sys.exit(ret)
+
 
 # the list of commands
 commands = {}
@@ -32,229 +35,255 @@ docstrings = {}
 
 
 def load_command_module(path):
-	global commands, init_funcs, mconf, docstrings
-	global command_mod_load_fail
-	ret = False
+    global commands, init_funcs, mconf, docstrings
+    global command_mod_load_fail
+    ret = False
 
-	if not libexec_dir in sys.path:
-		sys.path.append(libexec_dir)
+    if not libexec_dir in sys.path:
+        sys.path.append(libexec_dir)
 
-	modname = os.path.basename(path)[:-3]
-	try:
-		module = __import__(modname)
-	except Exception, ex:
-		# catch-all, primarily for development purposes
-		command_mod_load_fail[modname] = ex
-		return -1
+    modname = os.path.basename(path)[:-3]
+    try:
+        module = __import__(modname)
+    except Exception, ex:
+        # catch-all, primarily for development purposes
+        command_mod_load_fail[modname] = ex
+        return -1
 
-	if getattr(module, "pure_script", False):
-		return False
+    if getattr(module, "pure_script", False):
+        return False
 
-	# this is a command module, so pass on some sensible defaults
-	module.mconf = mconf
-	module.merlin_dir = merlin_dir
-	module.module_dir = module_dir
-	module.nagios_cfg = nagios_cfg
-	module.install_prefix = prefix
-	module.install_exec_prefix = exec_prefix
-	module.cache_dir = cache_dir
+    # this is a command module, so pass on some sensible defaults
+    module.mconf = mconf
+    module.merlin_dir = merlin_dir
+    module.module_dir = module_dir
+    module.nagios_cfg = nagios_cfg
+    module.install_prefix = prefix
+    module.install_exec_prefix = exec_prefix
+    module.cache_dir = cache_dir
 
-	# only initialize category (modname) when needed
-	try:
-		docstrings[modname]
-	except KeyError:
-		docstrings[modname] = {}
-	docstrings[modname]['__doc__'] = module.__doc__
+    # only initialize category (modname) when needed
+    try:
+        docstrings[modname]
+    except KeyError:
+        docstrings[modname] = {}
+    docstrings[modname]["__doc__"] = module.__doc__
 
-	# we grab the init function here, but delay running it
-	# until we know which module we'll be using.
-	init_func = getattr(module, "module_init", False)
+    # we grab the init function here, but delay running it
+    # until we know which module we'll be using.
+    init_func = getattr(module, "module_init", False)
 
-	for f in dir(module):
-		if not f.startswith('cmd_'):
-			continue
-		ret = True
-		func = getattr(module, f)
-		funcname = func.__name__[4:].replace('_', '-')
-		callname = modname + '.' + funcname
-		if func.__doc__:
-			docstrings[modname][funcname] = func.__doc__
-		commands[callname] = func
-		init_funcs[callname] = init_func
+    for f in dir(module):
+        if not f.startswith("cmd_"):
+            continue
+        ret = True
+        func = getattr(module, f)
+        funcname = func.__name__[4:].replace("_", "-")
+        callname = modname + "." + funcname
+        if func.__doc__:
+            docstrings[modname][funcname] = func.__doc__
+        commands[callname] = func
+        init_funcs[callname] = init_func
 
-	return ret
+    return ret
+
 
 def get_help_text(help_text_dir, bin_filename):
-	global docstrings
+    global docstrings
 
-	parts = bin_filename.split('.')
+    parts = bin_filename.split(".")
 
-	try:
-		parts[2]
-	except IndexError:
-		return False
+    try:
+        parts[2]
+    except IndexError:
+        return False
 
-	category = parts[0]
-	command = '.'.join(parts[1:][:-1])
+    category = parts[0]
+    command = ".".join(parts[1:][:-1])
 
-	help_text_file = help_text_dir + '/' + category + '.' + command + '.txt'
+    help_text_file = help_text_dir + "/" + category + "." + command + ".txt"
 
-	if not os.path.isfile(help_text_file):
-		return False # no help text file for this non-python command = skip it
-	if not os.access(help_text_file, os.R_OK):
-		return False # can't read help help text file = skip command
-	if os.access(help_text_file, os.X_OK):
-		return False # executable text file = skip command
+    if not os.path.isfile(help_text_file):
+        return False  # no help text file for this non-python command = skip it
+    if not os.access(help_text_file, os.R_OK):
+        return False  # can't read help help text file = skip command
+    if os.access(help_text_file, os.X_OK):
+        return False  # executable text file = skip command
 
-	help_text = open(help_text_file).read()
+    help_text = open(help_text_file).read()
 
-	if not help_text.strip:
-		return False # empty help text file (or just whitespace) = skip command
+    if not help_text.strip:
+        return False  # empty help text file (or just whitespace) = skip command
 
-	try:
-		docstrings[category]
-	except KeyError:
-		docstrings[category] = {}
+    try:
+        docstrings[category]
+    except KeyError:
+        docstrings[category] = {}
 
-	docstrings[category][command] = help_text
+    docstrings[category][command] = help_text
 
-	return True
+    return True
+
 
 def load_commands(name=False):
-	global args, commands, categories, helpers, help_helpers
+    global args, commands, categories, helpers, help_helpers
 
-	if os.access(libexec_dir, os.X_OK):
-		raw_helpers = os.listdir(libexec_dir)
-		for rh in raw_helpers:
-			path = libexec_dir + '/' + rh
+    if os.access(libexec_dir, os.X_OK):
+        raw_helpers = os.listdir(libexec_dir)
+        for rh in raw_helpers:
+            path = libexec_dir + "/" + rh
 
-			# ignore entries starting with dot
-			if rh[0] == '.':
-				continue
+            # ignore entries starting with dot
+            if rh[0] == ".":
+                continue
 
-			# ignore directories
-			if os.path.isdir(path):
-				continue
+            # ignore directories
+            if os.path.isdir(path):
+                continue
 
-			# ignore non-executables, unless they're python scriptlets
-			if not os.access(path, os.X_OK) and not rh.endswith('.py'):
-				continue
+            # ignore non-executables, unless they're python scriptlets
+            if not os.access(path, os.X_OK) and not rh.endswith(".py"):
+                continue
 
-			if name and not rh.startswith(name):
-				continue
+            if name and not rh.startswith(name):
+                continue
 
-			# remove script suffixes
-			ary = rh.split('.')
-			if len(ary) > 1 and ary[-1] in ['sh', 'php', 'pl', 'py', 'pyc']:
-				if ary[-1] == 'pyc':
-					continue
-				if len(ary) == 2 and ary[-1] == 'py':
-					if load_command_module(libexec_dir + '/' + rh) == True:
-						continue
-					# if we failed to load due to syntax error, don't
-					# bother presenting it as a standalone helper
-					if command_mod_load_fail.get(rh, False) != -1:
-						continue
-				elif len(args) < 2: # gather syntax texts only when showing help
-					if len(ary) >= 3 and ary[-1] != 'py': # non-python commands
-						if not get_help_text(libexec_dir + '/helpfiles/', rh):
-							continue
+            # remove script suffixes
+            ary = rh.split(".")
+            if len(ary) > 1 and ary[-1] in ["sh", "php", "pl", "py", "pyc"]:
+                if ary[-1] == "pyc":
+                    continue
+                if len(ary) == 2 and ary[-1] == "py":
+                    if load_command_module(libexec_dir + "/" + rh) == True:
+                        continue
+                    # if we failed to load due to syntax error, don't
+                    # bother presenting it as a standalone helper
+                    if command_mod_load_fail.get(rh, False) != -1:
+                        continue
+                elif len(args) < 2:  # gather syntax texts only when showing help
+                    if len(ary) >= 3 and ary[-1] != "py":  # non-python commands
+                        if not get_help_text(libexec_dir + "/helpfiles/", rh):
+                            continue
 
-				helper = '.'.join(ary[:-1])
-			else:
-				helper = '.'.join(ary)
+                helper = ".".join(ary[:-1])
+            else:
+                helper = ".".join(ary)
 
-			cat_cmd = helper.split('.', 1)
-			if len(cat_cmd) == 2:
-				(cat, cmd) = cat_cmd
-				helper = cat + '.' + cmd
-				if not cat in categories:
-					categories[cat] = []
-				if cmd in categories[cat]:
-					print("Can't override builtin category+command with helper %s" % helper)
-					continue
-				categories[cat].append(cmd)
-			else:
-				help_helpers.append(helper)
+            cat_cmd = helper.split(".", 1)
+            if len(cat_cmd) == 2:
+                (cat, cmd) = cat_cmd
+                helper = cat + "." + cmd
+                if not cat in categories:
+                    categories[cat] = []
+                if cmd in categories[cat]:
+                    print (
+                        "Can't override builtin category+command with helper %s"
+                        % helper
+                    )
+                    continue
+                categories[cat].append(cmd)
+            else:
+                help_helpers.append(helper)
 
-			if helper in commands:
-				print("Can't override builtin command with helper '%s'" % helper)
-				continue
+            if helper in commands:
+                print ("Can't override builtin command with helper '%s'" % helper)
+                continue
 
-			commands[helper] = run_helper
-			helpers[helper] = rh
+            commands[helper] = run_helper
+            helpers[helper] = rh
 
-	# we break things down to categories and subcommands
-	for raw_cmd in commands:
-		if not '.' in raw_cmd:
-			if not raw_cmd in help_helpers:
-				help_helpers.append(raw_cmd)
-			continue
+    # we break things down to categories and subcommands
+    for raw_cmd in commands:
+        if not "." in raw_cmd:
+            if not raw_cmd in help_helpers:
+                help_helpers.append(raw_cmd)
+            continue
 
-		parts = raw_cmd.split('.')
-		# invalid, causes breakage, though people seem to trigger it when
-		# testing changes to scripts
-		if len(parts) > 2:
-			continue
-		(cat, cmd) = parts
-		if not cat in categories:
-			categories[cat] = []
-		if not cmd in categories[cat]:
-			categories[cat].append(cmd)
-
+        parts = raw_cmd.split(".")
+        # invalid, causes breakage, though people seem to trigger it when
+        # testing changes to scripts
+        if len(parts) > 2:
+            continue
+        (cat, cmd) = parts
+        if not cat in categories:
+            categories[cat] = []
+        if not cmd in categories[cat]:
+            categories[cat].append(cmd)
 
 
 def mod_fail_print(text, mod):
-	msg = command_mod_load_fail.get(mod)
-	print("%s %sFailed to load command module %s%s%s%s:\n   %s%s%s%s\n" %
-		(text, color.red, color.yellow, color.bright, mod, color.reset,
-		color.red, color.bright, msg, color.reset))
+    msg = command_mod_load_fail.get(mod)
+    print (
+        "%s %sFailed to load command module %s%s%s%s:\n   %s%s%s%s\n"
+        % (
+            text,
+            color.red,
+            color.yellow,
+            color.bright,
+            mod,
+            color.reset,
+            color.red,
+            color.bright,
+            msg,
+            color.reset,
+        )
+    )
+
 
 def show_usage(ret):
-	load_commands()
-	print('usage: ' + os.path.basename(__file__) + ''' [category] <command> [options]
+    load_commands()
+    print (
+        "usage: "
+        + os.path.basename(__file__)
+        + """ [category] <command> [options]
 
-Where category is sometimes optional.\n''')
-	topic = 'Available categorized commands:'
-	print("%s\n%s" % (topic, '-' * len(topic)))
-	cat_keys = categories.keys()
-	cat_keys.sort()
-	cat_max_len = 0
-	for cat in cat_keys:
-		if len(cat) > cat_max_len:
-			cat_max_len = len(cat)
-	for cat in cat_keys:
-		print '  ' + cat.ljust(cat_max_len, ' ') + ' : ' + ', '.join(sorted(categories[cat]))
-	if len(help_helpers):
-		help_helpers.sort()
-		topic = "Commands without category:"
-		print("\n%s\n%s\n   %s" % (topic, '-' * len(topic), ', '.join(help_helpers)))
+Where category is sometimes optional.\n"""
+    )
+    topic = "Available categorized commands:"
+    print ("%s\n%s" % (topic, "-" * len(topic)))
+    cat_keys = categories.keys()
+    cat_keys.sort()
+    cat_max_len = 0
+    for cat in cat_keys:
+        if len(cat) > cat_max_len:
+            cat_max_len = len(cat)
+    for cat in cat_keys:
+        print "  " + cat.ljust(cat_max_len, " ") + " : " + ", ".join(
+            sorted(categories[cat])
+        )
+    if len(help_helpers):
+        help_helpers.sort()
+        topic = "Commands without category:"
+        print ("\n%s\n%s\n   %s" % (topic, "-" * len(topic), ", ".join(help_helpers)))
 
-	print('''\nCategorized commands are described by running: mon <category>
-Uncategorized commands are run by: mon <command>\n''')
+    print (
+        """\nCategorized commands are described by running: mon <category>
+Uncategorized commands are run by: mon <command>\n"""
+    )
 
-	for mod in command_mod_load_fail.keys():
-		mod_fail_print("(nonfatal)", mod)
-	sys.exit(ret)
+    for mod in command_mod_load_fail.keys():
+        mod_fail_print("(nonfatal)", mod)
+    sys.exit(ret)
+
 
 config_file = None
 args = []
 i = 0
 for arg in sys.argv[1:]:
-	i += 1
-	if arg.startswith('--merlin-cfg=') or arg.startswith('--merlin-conf='):
-		config_file = arg.split('=', 1)[1]
-	elif arg.startswith('--nagios-cfg=') or arg.startswith('--nagios-conf='):
-		nagios_cfg = arg.split('=', 1)[1]
-	elif arg.startswith('--object-cache='):
-		object_cache = arg.split('=', 1)[1]
-	elif arg.startswith('--libexecdir='):
-		libexec_dir = arg.split('=', 1)[1]
-	else:
-		args.append(arg)
-		continue
+    i += 1
+    if arg.startswith("--merlin-cfg=") or arg.startswith("--merlin-conf="):
+        config_file = arg.split("=", 1)[1]
+    elif arg.startswith("--nagios-cfg=") or arg.startswith("--nagios-conf="):
+        nagios_cfg = arg.split("=", 1)[1]
+    elif arg.startswith("--object-cache="):
+        object_cache = arg.split("=", 1)[1]
+    elif arg.startswith("--libexecdir="):
+        libexec_dir = arg.split("=", 1)[1]
+    else:
+        args.append(arg)
+        continue
 
-module_dir = libexec_dir + '/modules'
+module_dir = libexec_dir + "/modules"
 sys.path.insert(0, libexec_dir)
 sys.path.append(module_dir)
 
@@ -262,31 +291,31 @@ import merlin_conf as mconf
 import node
 from merlin_apps_utils import *
 
-mconf.config_file = config_file if config_file else '%s/merlin.conf' % merlin_conf_dir
+mconf.config_file = config_file if config_file else "%s/merlin.conf" % merlin_conf_dir
 
 if len(args) < 1:
-	show_usage(1)
-if args[0] == '-h' or args[0] == '--help' or args[0] == 'help':
-	show_usage(0)
+    show_usage(1)
+if args[0] == "-h" or args[0] == "--help" or args[0] == "help":
+    show_usage(0)
 
 autohelp = False
 cmd = cat = args[0]
 load_commands(cmd)
 
 if cat in commands:
-	args = args[1:]
+    args = args[1:]
 elif len(args) == 1:
-	# only one argument passed, and it's not a stand-alone command.
-	# Take it to mean 'help' for that category
-	cmd = cat + '.help'
-	autohelp = True
+    # only one argument passed, and it's not a stand-alone command.
+    # Take it to mean 'help' for that category
+    cmd = cat + ".help"
+    autohelp = True
 else:
-	if args == '--help' or sys.argv[2] == 'help':
-		cmd = cat + '.help'
-		autohelp = True
-	else:
-		cmd = cat + '.' + args[1]
-	args = args[2:]
+    if args == "--help" or sys.argv[2] == "help":
+        cmd = cat + ".help"
+        autohelp = True
+    else:
+        cmd = cat + "." + args[1]
+    args = args[2:]
 
 
 # now we parse the merlin config file and stash remaining args
@@ -295,44 +324,46 @@ mconf.parse()
 # if a dev's managed to hack in a bug in a command module, we
 # should tell the user so politely and not just fail to do anything
 if cat in command_mod_load_fail.keys():
-	mod_fail_print('%sfatal%s:' % (color.yellow, color.reset), cat)
-	sys.exit(1)
+    mod_fail_print("%sfatal%s:" % (color.yellow, color.reset), cat)
+    sys.exit(1)
 
 if not cmd in commands:
-	print("")
-	if not cat in categories.keys():
-		print("No category '%s' available, and it's not a raw command\n" % cat)
-	elif autohelp == True:
-		if not docstrings.get(cat):
-			print("Category '%s' has no help overview." % cat)
-		if docstrings.get(cat, {}).get('__doc__'):
-			print(docstrings[cat]['__doc__'])
-		cat_keys = categories[cat]
-		cat_keys.sort()
-		print("Available commands in category %s%s%s%s:" %
-			(color.blue, color.bright, cat, color.reset))
-		for cmd in cat_keys:
-			doc_string = docstrings.get(cat, {}).get(cmd, '\n(documentation missing)')
-			prettyprint_docstring(cmd, doc_string)
-	else:
-		print("Bad category/command: %s" % cmd.replace('.', ' '))
-	sys.exit(1)
+    print ("")
+    if not cat in categories.keys():
+        print ("No category '%s' available, and it's not a raw command\n" % cat)
+    elif autohelp == True:
+        if not docstrings.get(cat):
+            print ("Category '%s' has no help overview." % cat)
+        if docstrings.get(cat, {}).get("__doc__"):
+            print (docstrings[cat]["__doc__"])
+        cat_keys = categories[cat]
+        cat_keys.sort()
+        print (
+            "Available commands in category %s%s%s%s:"
+            % (color.blue, color.bright, cat, color.reset)
+        )
+        for cmd in cat_keys:
+            doc_string = docstrings.get(cat, {}).get(cmd, "\n(documentation missing)")
+            prettyprint_docstring(cmd, doc_string)
+    else:
+        print ("Bad category/command: %s" % cmd.replace(".", " "))
+    sys.exit(1)
 
 if commands[cmd] == run_helper:
-	run_helper(cmd, args)
+    run_helper(cmd, args)
 else:
-	# now we run the command module's possibly costly
-	# intialization routines
-	init = init_funcs.get(cmd, False)
-	if init != False:
-		rem_args = init(args)
-		if type(rem_args) == type([]):
-			args = rem_args
+    # now we run the command module's possibly costly
+    # intialization routines
+    init = init_funcs.get(cmd, False)
+    if init != False:
+        rem_args = init(args)
+        if type(rem_args) == type([]):
+            args = rem_args
 
-	ret = commands[cmd](args)
-	if isinstance(ret, bool):
-		if ret == False:
-			sys.exit(1)
-	elif isinstance(ret, int):
-		sys.exit(ret)
-	sys.exit(0)
+    ret = commands[cmd](args)
+    if isinstance(ret, bool):
+        if ret == False:
+            sys.exit(1)
+    elif isinstance(ret, int):
+        sys.exit(ret)
+    sys.exit(0)

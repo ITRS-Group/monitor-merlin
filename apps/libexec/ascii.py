@@ -2,12 +2,14 @@ import os, sys
 
 from merlin_apps_utils import *
 
+
 def cmd_merlin(discard):
-	"""
-	Draws the Merlin logo in ascii art.
-	"""
-	print(color)
-	print("""%s%s
+    """
+    Draws the Merlin logo in ascii art.
+    """
+    print(color)
+    print(
+        """%s%s
   ... . ...   . .   .  .   ..        .=M7        .   ..   .
 ...  . .      . . .     .           ?MMM. .     .    .
 . .       . .. . .   .  ... . .   =MMMM=...     ... ...  .
@@ -45,14 +47,17 @@ def cmd_merlin(discard):
   .       ..  $OOOOOOOOOOOOOI       .      ,OON$,...,.  Z?
      .       .   . ..:~+=.   .   .   .   .   ZOOOOOOOOON
                ..       .   .   .   .   .   .  ~7ZZZZZZO+
-   .              .   .    . . .   .    .            .      %s""" %
-(color.blue, color.bright, color.reset))
+   .              .   .    . . .   .    .            .      %s"""
+        % (color.blue, color.bright, color.reset)
+    )
+
 
 def cmd_ninja(discard):
-	"""
-	Draws the Ninja logo in ascii art.
-	"""
-	print("""%s%s%s%s                                                                   
+    """
+    Draws the Ninja logo in ascii art.
+    """
+    print(
+        """%s%s%s%s                                                                   
              ..     ...::::::::::::::::::::...     ..                
             .8$, .:MMMMMMMMMMMMMMMMMMMMMMMMMMMM:. .$8=.              
            MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM             
@@ -91,27 +96,29 @@ def cmd_ninja(discard):
           .MMMMMMM.                               .MMMMMMN.          
            .MMMMM.                                 .MMMMM.           
             :MMM=                                   =MMM:            
-             CM#                                     #MD             %s""" %
-(color.bright + color.esc, "40;7m", ' ', ' ', color.reset))
+             CM#                                     #MD             %s"""
+        % (color.bright + color.esc, "40;7m", " ", " ", color.reset)
+    )
+
 
 def cmd_screensaver(args):
-	"""
-	The most awesomest console-based screensaver in the entire world.
-	"""
-	interval = 5
-	for arg in args:
-		interval = arg
+    """
+    The most awesomest console-based screensaver in the entire world.
+    """
+    interval = 5
+    for arg in args:
+        interval = arg
 
-	interval = float(interval)
+    interval = float(interval)
 
-	if not interval:
-		interval = 5
+    if not interval:
+        interval = 5
 
-	try:
-		while True:
-			cmd_ninja(args)
-			time.sleep(interval)
-			cmd_merlin(args)
-			time.sleep(interval)
-	except:
-		sys.exit(0)
+    try:
+        while True:
+            cmd_ninja(args)
+            time.sleep(interval)
+            cmd_merlin(args)
+            time.sleep(interval)
+    except:
+        sys.exit(0)

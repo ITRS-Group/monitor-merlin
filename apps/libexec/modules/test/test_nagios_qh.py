@@ -28,7 +28,9 @@ def test_format_one_block_two_rows_two_values():
 def test_format_one_block_two_rows_three_values():
     n = nagios_qh(None)
     result = list(n.format(["test=1\ntest2=13;test3=42"]))
-    assert result == [{"test": "1"}, {"test2": "13", "test3": "42"}], "Unexpected result %s" % result
+    assert result == [{"test": "1"}, {"test2": "13", "test3": "42"}], (
+        "Unexpected result %s" % result
+    )
 
 
 def test_format_one_block_three_rows_two_values():

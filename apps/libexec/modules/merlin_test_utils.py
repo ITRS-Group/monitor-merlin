@@ -1,7 +1,8 @@
 from merlin_apps_utils import *
 
+
 class test_config_in:
-	nagios_config_in = """log_file=@@DIR@@/nagios.log
+    nagios_config_in = """log_file=@@DIR@@/nagios.log
 check_workers=1
 resource_file=macros.cfg
 broker_module=@@MODULE_PATH@@ @@DIR@@/merlin/merlin.conf
@@ -85,42 +86,42 @@ debug_verbosity=1
 max_debug_file_size=104857600
 """
 
-	macro_config_in = """
+    macro_config_in = """
 $USER1$=@@DIR@@
 $USER2$=@@NODENAME@@
 """
 
-	merlin_config_in = """ipc_socket = @@DIR@@/merlin/ipc.sock;
+    merlin_config_in = """ipc_socket = @@DIR@@/merlin/ipc.sock;
 
 log_level = debug
 use_syslog = 1
 
 module {
-	log_file = @@DIR@@/neb.log;
-	#@@MERLIN_MODULE_EXTRAS@@
+    log_file = @@DIR@@/neb.log;
+    #@@MERLIN_MODULE_EXTRAS@@
 }
 
 daemon {
-	pidfile = @@DIR@@/merlin/merlind.pid;
-	log_file = @@DIR@@/daemon.log;
-	port = @@NETWORK_PORT@@;
-	#@@MERLIN_DAEMON_EXTRAS@@
-	database {
-		name = @@DB_NAME@@;
-		user = merlin;
-		pass = merlin;
-		host = localhost;
-		type = mysql;
-		commit_interval = 3
-		commit_queries = 2000
-	}
-	object_config {
-		push = mon test mark --oneline --mark-file='@@DIR@@/oconf-push.log' --mark-name='@@NODENAME@@'
-	}
+    pidfile = @@DIR@@/merlin/merlind.pid;
+    log_file = @@DIR@@/daemon.log;
+    port = @@NETWORK_PORT@@;
+    #@@MERLIN_DAEMON_EXTRAS@@
+    database {
+        name = @@DB_NAME@@;
+        user = merlin;
+        pass = merlin;
+        host = localhost;
+        type = mysql;
+        commit_interval = 3
+        commit_queries = 2000
+    }
+    object_config {
+        push = mon test mark --oneline --mark-file='@@DIR@@/oconf-push.log' --mark-name='@@NODENAME@@'
+    }
 }
 #NODECONFIG
 """
-	shared_object_config = """
+    shared_object_config = """
 define timeperiod{
     timeperiod_name                mtest-24x7
     alias                          24 Hours A Day, 7 Days A Week
