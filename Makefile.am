@@ -11,7 +11,6 @@ bin_SCRIPTS = apps/op5
 
 mondir = $(libdir)/merlin/mon
 mon_SCRIPTS = \
-	apps/libexec/ascii.py \
 	apps/libexec/check.py \
 	apps/libexec/db.py \
 	apps/libexec/ecmd.py \
