@@ -23,6 +23,7 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 	merlin_node_stats *s = &n->stats;
 	struct merlin_assigned_objects aso;
 	merlin_peer_group *pg;
+	char buf[256];
 
 	i = &n->info;
 	pg = n->pgroup;
@@ -64,7 +65,7 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id)
 				 instance_id,
 				 n->name, n->source_name, n->sock, node_type(n),
 				 node_state_name(n->state), n->peer_id, n->flags,
-				 /*inet_ntoa(n->sain.sin6_addr)*/ "missing", ntohs(n->sain.sin6_port),
+				 get_sockaddr_ip(&n->sain, buf, sizeof(buf)), get_sockaddr_port(&n->sain),
 				 n->data_timeout, n->last_recv, n->last_sent,
 				 n->last_conn_attempt, n->last_action, n->latency,
 				 binlog_size(n->binlog), nm_bufferqueue_get_available(n->bq),

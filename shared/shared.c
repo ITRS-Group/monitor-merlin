@@ -427,3 +427,45 @@ int merlin_set_socket_options(int sd, int bufsize)
 
 	return 0;
 }
+
+const char * get_sockaddr_ip(struct sockaddr_storage * sain, char * s, size_t len)
+{
+    switch(sain->ss_family) {
+        case AF_INET:
+            return inet_ntop(AF_INET, &(((struct sockaddr_in *)sain)->sin_addr),
+                    s, len);
+
+        case AF_INET6:
+            return inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sain)->sin6_addr),
+                    s, len);
+
+        default:
+            strncpy(s, "Unknown AF", len);
+	    return NULL;
+    }
+}
+
+u_int16_t get_sockaddr_port(struct sockaddr_storage * sain) 
+{
+	if (sain->ss_family == AF_INET) {
+		return (u_int16_t) ((struct sockaddr_in *)sain)->sin_port;
+	} else if (sain->ss_family == AF_INET6) {
+		return ((struct sockaddr_in6 *)sain)->sin6_port;
+	} else {
+		return 0;
+	}
+}
+
+int sockaddr_equals(struct sockaddr_storage * sain1, struct sockaddr_storage * sain2) 
+{
+	char sain1_str[256];
+	char sain2_str[256];
+	
+	if (sain1->ss_family != sain2->ss_family) {
+		return 0;
+	}
+	
+	return strcmp(get_sockaddr_ip(sain1, sain1_str, sizeof(sain1_str)),
+			get_sockaddr_ip(sain2, sain2_str, sizeof(sain2_str))) == 0;
+
+}

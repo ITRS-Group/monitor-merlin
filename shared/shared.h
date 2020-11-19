@@ -8,6 +8,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <naemon/naemon.h>
+#include <arpa/inet.h>
 
 /*
  * debug macros. All of them (including assert), goes away when NDEBUG
@@ -169,4 +170,7 @@ extern int callback_id(const char *orig_name);
 extern const char *ctrl_name(uint code);
 extern const char *node_state_name(int state);
 extern const char *tv_delta(const struct timeval *start, const struct timeval *stop);
+extern const char * get_sockaddr_ip(struct sockaddr_storage * sain, char * s, size_t len);
+extern u_int16_t get_sockaddr_port(struct sockaddr_storage * sain);
+extern int sockaddr_equals(struct sockaddr_storage * sain1, struct sockaddr_storage * sain2);
 #endif

@@ -18,10 +18,10 @@ static int net_sock = -1; /* listening sock descriptor */
 
 static unsigned short net_source_port(merlin_node *node)
 {
-	return ntohs(node->sain.sin6_port) + default_port;
+	return get_sockaddr_port(&node->sain) + default_port;
 }
 
-static merlin_node *find_node(struct sockaddr_in6 *sain)
+static merlin_node *find_node(struct sockaddr_storage *sain)
 {
 	uint i;
 	merlin_node *first = NULL;
@@ -31,15 +31,21 @@ static merlin_node *find_node(struct sockaddr_in6 *sain)
 
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = node_table[i];
-		unsigned short source_port = ntohs(sain->sin6_port);
+		unsigned short source_port = get_sockaddr_port(&node->sain);
 		unsigned short in_port = net_source_port(node);
-		ldebug("FINDNODE: node->sain.sin6_addr.s6_addr: %d", node->sain.sin6_addr.s6_addr);
-		
-		if (memcmp(&node->sain.sin6_addr.s6_addr, &sain->sin6_addr.s6_addr, 16) == 0) {
+
+		char node_sain[256]; /* used for inet_ntop() */
+		char inc_sain[256]; /* used for inet_ntop() */
+		get_sockaddr_ip(sain, inc_sain, sizeof(inc_sain));
+		get_sockaddr_ip(&node->sain, node_sain, sizeof(node_sain));
+
+		ldebug("FINDNODE: comparing: %s with %s", inc_sain, node_sain);
+		if (sockaddr_equals(&node->sain, sain)) {
+			ldebug("FINDNODE: IPs didn't match");
 			if (source_port == in_port) {
 				/* perfect match */
 				char buf[256]; /* used for inet_ntop() */
-				inet_ntop(sain->sin6_family, &sain->sin6_addr, buf, sizeof(buf));
+				get_sockaddr_ip(sain, buf, sizeof(buf));
 				ldebug("Inbound connection matches %s exactly (%s:%d)",
 				       node->name, buf, in_port);
 				return node;
@@ -47,19 +53,20 @@ static merlin_node *find_node(struct sockaddr_in6 *sain)
 
 			if (!first && !(node->flags & MERLIN_NODE_FIXED_SRCPORT))
 				first = node;
+		} else {
+			ldebug("FINDNODE: IPs didn't match");
 		}
 	}
 
 	if (first) {
-		
 		char sain_buf[256]; /* used for inet_ntop() */
 		char first_buf[256]; /* used for inet_ntop() */
-		inet_ntop(sain->sin6_family, &sain->sin6_addr, sain_buf, sizeof(sain_buf));
-		inet_ntop(first->sain.sin6_family, &first->sain.sin6_addr, first_buf, sizeof(first_buf));
+		get_sockaddr_ip(sain, sain_buf, sizeof(sain_buf));
+		get_sockaddr_ip(&first->sain, first_buf, sizeof(first_buf));
 		lwarn("Inbound connection presumably from %s (%s:%d != %s:%d)",
 			  first->name,
-			  sain_buf, ntohs(sain->sin6_port),
-			  first_buf, net_source_port(first));
+			  sain_buf, get_sockaddr_port(sain),
+			  first_buf, get_sockaddr_port(&first->sain));
 	}
 
 	return first;
@@ -106,11 +113,11 @@ int net_is_connected(merlin_node *node)
 
 	if (optval) {
 		char buf[256]; /* used for inet_ntop() */
-		inet_ntop(node->sain.sin6_family, &node->sain.sin6_addr, buf, sizeof(buf));
+		get_sockaddr_ip(&node->sain, buf, sizeof(buf));
 		node_disconnect(node, "connect() to %s node %s (%s:%d) failed: %s",
 		                node_type(node), node->name,
 		                buf,
-		                ntohs(node->sain.sin6_port),
+		                get_sockaddr_port(&node->sain),
 		                strerror(optval));
 		return 0;
 	}
@@ -311,12 +318,13 @@ static int conn_writable(int sd, int events, void *node_)
 int net_try_connect(merlin_node *node)
 {
 	int sockopt = 1;
-	struct sockaddr *sa = (struct sockaddr *)&node->sain;
+	//struct sockaddr *sa = (struct sockaddr *)&node->sain;
 	int should_log = 0;
 	struct timeval connect_timeout = { MERLIN_CONNECT_TIMEOUT, 0 };
-	struct sockaddr_in6 sain;
+	struct sockaddr_storage sain;
 	time_t interval = MERLIN_CONNECT_INTERVAL;
 	int result;
+	socklen_t socklen;
 
 	/* don't log obsessively */
 	if (node->last_conn_attempt_logged + 30 <= time(NULL)) {
@@ -355,7 +363,7 @@ int net_try_connect(merlin_node *node)
 	/* create the socket if necessary */
 	if (node->conn_sock < 0) {
 		node_disconnect(node, "struct reset (no real disconnect)");
-		node->conn_sock = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+		node->conn_sock = socket(node->sain.ss_family, SOCK_STREAM, IPPROTO_TCP);
 		if (node->conn_sock < 0) {
 			lerr("CONN: Failed to obtain connection socket for node %s: %s", node->name, strerror(errno));
 			lerr("CONN: Aborting connection attempt to %s", node->name);
@@ -363,13 +371,12 @@ int net_try_connect(merlin_node *node)
 		}
 	}
 
-	sa->sa_family = AF_INET6;
 	if (should_log) {
 		char buf[256]; /* used for inet_ntop() */
-		inet_ntop(node->sain.sin6_family, &node->sain.sin6_addr, buf, sizeof(buf));
+		get_sockaddr_ip(&node->sain, buf, sizeof(buf));
 		linfo("CONN: Connecting to %s %s@%s:%d", node_type(node), node->name,
 		      buf,
-		      ntohs(node->sain.sin6_port));
+		      get_sockaddr_port(&node->sain));
 	}
 
 	if (setsockopt(node->conn_sock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int))) {
@@ -383,12 +390,17 @@ int net_try_connect(merlin_node *node)
 		 * first we bind() to a local port calculated by our own
 		 * listening port + the target port.
 		 */
-		sain.sin6_family = AF_INET6;
-		sain.sin6_port = htons(net_source_port(node));
-		//sain.sin6_addr.s6_addr = 0; TODO: fix??
+		sain.ss_family = node->sain.ss_family;
+		if (node->sain.ss_family == AF_INET6) {
+			((struct sockaddr_in6 *)&sain)->sin6_port = htons(net_source_port(node));
+			//sain.sin6_addr.s6_addr = 0; TODO: fix??
+		} else {
+			((struct sockaddr_in *)&sain)->sin_port = htons(net_source_port(node));
+			((struct sockaddr_in *)&sain)->sin_addr.s_addr = 0;
+		}
 		if (bind(node->conn_sock, (struct sockaddr *)&sain, sizeof(sain))) {
 			lerr("CONN: Failed to bind() outgoing socket %d for node %s to port %d: %s",
-				 node->conn_sock, node->name, ntohs(sain.sin6_port), strerror(errno));
+				 node->conn_sock, node->name, get_sockaddr_port(&sain), strerror(errno));
 			if (errno == EBADF || errno == EADDRINUSE) {
 				close(node->conn_sock);
 				node->conn_sock = -1;
@@ -412,8 +424,12 @@ int net_try_connect(merlin_node *node)
 		ldebug("CONN: Failed to set send timeout for %d, node %s: %s",
 		       node->conn_sock, node->name, strerror(errno));
 	}
-
-	if (connect(node->conn_sock, sa, sizeof(struct sockaddr_in6)) < 0) {
+	if (node->sain.ss_family == AF_INET6) {
+		socklen = sizeof(struct sockaddr_in6);
+	} else {
+		socklen = sizeof(struct sockaddr_in);
+	}
+	if (connect(node->conn_sock, (struct sockaddr *) &node->sain, socklen) < 0) {
 		if (errno == EINPROGRESS) {
 			/*
 			 * non-blocking socket and connect() can't be completed
@@ -432,11 +448,11 @@ int net_try_connect(merlin_node *node)
 			node->conn_sock = -1;
 			if (should_log) {
 				char buf[256]; /* used for inet_ntop() */
-				inet_ntop(node->sain.sin6_family, &node->sain.sin6_addr, buf, sizeof(buf));
+				get_sockaddr_ip(&node->sain, buf, sizeof(buf));
 				node_disconnect(node, "CONN: connect() failed to %s node '%s' (%s:%d): %s",
 								node_type(node), node->name,
 								buf,
-								ntohs(node->sain.sin6_port),
+								get_sockaddr_port(&node->sain),
 								strerror(errno));
 			} else {
 				node_disconnect(node, NULL);
@@ -466,8 +482,8 @@ static int net_accept_one(int sd, int events, void *discard)
 {
 	int sock, result;
 	merlin_node *node;
-	struct sockaddr_in6 sain;
-	socklen_t slen = sizeof(struct sockaddr_in6);
+	struct sockaddr_storage sain;
+	socklen_t slen = sizeof(struct sockaddr_storage);
 	char buf[256]; /* used for inet_ntop() */
 
 	sock = accept(sd, (struct sockaddr *)&sain, &slen);
@@ -477,10 +493,10 @@ static int net_accept_one(int sd, int events, void *discard)
 	}
 
 	node = find_node(&sain);
-	inet_ntop(sain.sin6_family, &sain.sin6_addr, buf, sizeof(buf));
+	get_sockaddr_ip(&sain, buf, sizeof(buf));
 	linfo("NODESTATE: %s connected from %s:%d. Current state is %s",
 		  node ? node->name : "An unregistered node",
-		  buf, ntohs(sain.sin6_port),
+		  buf, get_sockaddr_port(&sain),
 		  node ? node_state_name(node->state) : "unknown");
 	if (!node) {
 		close(sock);
@@ -547,9 +563,49 @@ int net_deinit(void)
 int net_init(void)
 {
 	int result, sockopt = 1;
+	struct sockaddr_in sain, inbound;
+	struct sockaddr *sa = (struct sockaddr *)&sain;
+	socklen_t addrlen = sizeof(inbound);
+
+	if (!num_nodes)
+		return 0;
+
+	sain.sin_addr.s_addr = default_addr;
+	sain.sin_port = htons(default_port);
+	sain.sin_family = AF_INET;
+
+	net_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (net_sock < 0)
+		return -1;
+
+	merlin_set_socket_options(net_sock, 0);
+
+	/* if this fails we can do nothing but try anyway */
+	(void)setsockopt(net_sock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int));
+
+	result = bind(net_sock, sa, addrlen);
+	if (result < 0)
+		return -1;
+
+	result = listen(net_sock, SOMAXCONN);
+	if (result < 0)
+		return -1;
+
+	result = iobroker_register(nagios_iobs, net_sock, NULL, net_accept_one);
+	if (result < 0) {
+		lerr("IOB: Failed to register network socket with I/O broker: %s", iobroker_strerror(result));
+		return -1;
+	}
+
+	return 0;
+}
+
+int net_init6(void) {
+	int result, sockopt = 1;
 	struct sockaddr_in6 sain, inbound;
 	struct sockaddr *sa = (struct sockaddr *)&sain;
 	socklen_t addrlen = sizeof(inbound);
+	int v6Only = 1;
 
 	if (!num_nodes)
 		return 0;
@@ -566,6 +622,10 @@ int net_init(void)
 
 	/* if this fails we can do nothing but try anyway */
 	(void)setsockopt(net_sock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int));
+
+	if (setsockopt(net_sock, IPPROTO_IPV6, IPV6_V6ONLY, &v6Only, sizeof( v6Only )) < 0){
+		return -1;
+	}
 
 	result = bind(net_sock, sa, addrlen);
 	if (result < 0)

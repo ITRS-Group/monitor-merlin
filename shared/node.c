@@ -290,18 +290,23 @@ linked_item *nodes_by_sel_name(const char *name)
  * Resolve an ip-address or hostname and convert it to a
  * machine-usable 32-bit representation
  */
-int resolve(const char *cp, struct in6_addr *inp)
+int resolve(const char *cp, struct sockaddr_storage *node_sain)
 {
 	struct addrinfo hints, *rp, *ai = NULL;
 	int result;
 
 	/* try simple lookup first and avoid DNS lookups */
-	result = inet_pton(AF_INET, cp, inp);
-	if (result) /* valid ipv4 */
+	ldebug("Address: %s", cp);
+	result = inet_pton(AF_INET, cp, &((struct sockaddr_in *)node_sain)->sin_addr);
+	if (result) { /* valid ipv4 */
+		node_sain->ss_family = AF_INET;
 		return 0;
-	result = inet_pton(AF_INET6, cp, inp);
-	if (result) /* valid ipv6 */
+	}
+	result = inet_pton(AF_INET6, cp, &((struct sockaddr_in6 *)node_sain)->sin6_addr);
+	if (result) { /* valid ipv6 */
+		node_sain->ss_family = AF_INET6;
 		return 0;
+	}
 
 	linfo("Resolving '%s'...", cp);
 	/*
@@ -332,11 +337,23 @@ int resolve(const char *cp, struct in6_addr *inp)
 
 	if (rp) {
 		char buf[256]; /* used for inet_ntop() */
-		struct sockaddr_in6 *sain = (struct sockaddr_in6 *)rp->ai_addr;
+		node_sain->ss_family = rp->ai_family;
+		if (rp->ai_family == AF_INET6) { 
+			struct sockaddr_in6 *sain = (struct sockaddr_in6 *)rp->ai_addr;
+			struct in6_addr *inp = &((struct sockaddr_in6 *)node_sain)->sin6_addr;
 
-		linfo("'%s' resolves to %s", cp,
-			  inet_ntop(rp->ai_family, &sain->sin6_addr, buf, sizeof(buf)));
-		memcpy(inp, &sain->sin6_addr, sizeof(*inp));
+			linfo("'%s' resolves to %s", cp,
+				  inet_ntop(rp->ai_family, &sain->sin6_addr, buf, sizeof(buf)));
+			memcpy(inp, &sain->sin6_addr, sizeof(*inp));
+		} else {
+			struct sockaddr_in *sain = (struct sockaddr_in *)rp->ai_addr;
+			struct in_addr *inp = &((struct sockaddr_in *)node_sain)->sin_addr;
+
+			linfo("'%s' resolves to %s", cp,
+				  inet_ntop(rp->ai_family, &sain->sin_addr, buf, sizeof(buf)));
+			memcpy(inp, &sain->sin_addr, sizeof(*inp));
+		
+		}
 	}
 	freeaddrinfo(ai);
 
@@ -483,8 +500,8 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			address_var = v;
 		}
 		else if (!strcmp(v->key, "port")) {
-			node->sain.sin6_port = htons((unsigned short)atoi(v->value));
-			if (!node->sain.sin6_port)
+			((struct sockaddr_in6 *)&node->sain)->sin6_port = htons((unsigned short)atoi(v->value));
+			if (!((struct sockaddr_in6 *)&node->sain)->sin6_port)
 				cfg_error(c, v, "Illegal value for port: %s\n", v->value);
 		}
 		else if (!strcmp(v->key, "data_timeout")) {
@@ -530,7 +547,9 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 	if (!address)
 		address = node->name;
 
-	if (is_module && resolve(address, &node->sain.sin6_addr) < 0)
+	/* node->sain.ss_family == AF_UNSPEC; */
+
+	if (is_module && resolve(address, &node->sain) < 0)
 		cfg_warn(c, address_var, "Unable to resolve '%s'\n", address);
 
 	for (i = 0; i < c->nested; i++) {
@@ -606,7 +625,7 @@ void node_grok_config(struct cfg_comp *config)
 			node->name = strdup(node->name);
 		else {
 			char buf[256]; /* used for inet_ntop() */
-			node->name = strdup(inet_ntop(node->sain.sin6_family, &node->sain.sin6_addr, buf, sizeof(buf)));
+			node->name = strdup(get_sockaddr_ip(&node->sain, buf, sizeof(buf)));
 		}
 		node->sock = -1;
 		memset(&node->info, 0, sizeof(node->info));

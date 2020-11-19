@@ -1241,8 +1241,8 @@ static void connect_to_all(struct nm_event_execution_properties *evprop)
 		// check if the node has a valid IP address
 		// as we calloc the structure we can assume an un-resolved node
 		// will have an IP address = 0.
-		if (node->sain.sin6_addr.s6_addr == 0 ) {
-			resolve(node->name, &node->sain.sin6_addr);
+		if (node->sain.ss_family != AF_INET && node->sain.ss_family != AF_INET6 ) {
+			resolve(node->name, &node->sain);
 		}
 
 		// connect to the node
@@ -1362,6 +1362,9 @@ static int post_config_init(int cb, void *ds)
 			lerr("Failed to initialize networking: %s\n", strerror(errno));
 			return -1;
 		}
+		if (net_init6() < 0) {
+			lerr("Failed to initialize IPv6 networking: %s\n", strerror(errno));
+		}
 
 		/*
 		 * this is the last event related to startup, so the regular mod hook
@@ -1470,8 +1473,13 @@ static void post_process_nodes(void)
 			}
 		}
 
-		if (!node->sain.sin6_port)
-			node->sain.sin6_port = htons(default_port);
+		if (get_sockaddr_port(&node->sain)) {
+			if (node->sain.ss_family == AF_INET) {
+				((struct sockaddr_in *)&node->sain)->sin_port = htons(default_port);
+			} else if (node->sain.ss_family == AF_INET6) {
+				((struct sockaddr_in6 *)&node->sain)->sin6_port = htons(default_port);
+			}
+		}
 
 		node->bq = nm_bufferqueue_create();
 		if (node->bq == NULL) {
@@ -1488,16 +1496,26 @@ static void post_process_nodes(void)
 			continue;
 		}
 
-		if (node->sain.sin6_addr.s6_addr == htonl(INADDR_LOOPBACK)) {
-			node->flags |= MERLIN_NODE_FIXED_SRCPORT;
-			ldebug("Using fixed source-port for local %s node %s",
-				   node_type(node), node->name);
-			continue;
+		if (node->sain.ss_family == AF_INET6) {
+			if (((struct sockaddr_in6 *)&node->sain)->sin6_addr.s6_addr == in6addr_loopback.s6_addr) {
+				node->flags |= MERLIN_NODE_FIXED_SRCPORT;
+				ldebug("Using fixed source-port for local %s node %s",
+					   node_type(node), node->name);
+				continue;
+			}
+		} else {
+			if (((struct sockaddr_in *)&node->sain)->sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+				node->flags |= MERLIN_NODE_FIXED_SRCPORT;
+				ldebug("Using fixed source-port for local %s node %s",
+					   node_type(node), node->name);
+				continue;
+			}
+		
 		}
 
 		for (x = i + 1; x < num_nodes; x++) {
 			merlin_node *nx = node_table[x];
-			if (node->sain.sin6_addr.s6_addr == nx->sain.sin6_addr.s6_addr) {
+			if (sockaddr_equals(&node->sain, &nx->sain)) {
 				ldebug("Using fixed source-port for %s node %s",
 				       node_type(node), node->name);
 				ldebug("Using fixed source-port for %s node %s",
@@ -1505,7 +1523,7 @@ static void post_process_nodes(void)
 				node->flags |= MERLIN_NODE_FIXED_SRCPORT;
 				nx->flags |= MERLIN_NODE_FIXED_SRCPORT;
 
-				if (node->sain.sin6_port == nx->sain.sin6_port) {
+				if (get_sockaddr_port(&node->sain) == get_sockaddr_port(&nx->sain)) {
 					lwarn("Nodes %s and %s have same ip *and* same port. Voodoo?",
 					      node->name, nx->name);
 				}
