@@ -15,6 +15,7 @@
 #define MERLIN_CONNECT_INTERVAL 5 /* connect interval */
 
 static int net_sock = -1; /* listening sock descriptor */
+static int net_sock6 = -1; /* listening sock descriptor ipv6 */
 
 static unsigned short net_source_port(merlin_node *node)
 {
@@ -554,6 +555,12 @@ int net_deinit(void)
 	close(net_sock);
 	net_sock = -1;
 
+	/* IPv6 */
+	if (net_sock6 != -1) {
+		iobroker_close(nagios_iobs, net_sock6);
+		close(net_sock6);
+		net_sock6 = -1;
+	}
 	return 0;
 }
 
@@ -614,28 +621,28 @@ int net_init6(void) {
 	sain.sin6_port = htons(default_port);
 	sain.sin6_family = AF_INET6;
 
-	net_sock = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
-	if (net_sock < 0)
+	net_sock6 = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+	if (net_sock6 < 0)
 		return -1;
 
-	merlin_set_socket_options(net_sock, 0);
+	merlin_set_socket_options(net_sock6, 0);
 
 	/* if this fails we can do nothing but try anyway */
-	(void)setsockopt(net_sock, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int));
+	(void)setsockopt(net_sock6, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(int));
 
-	if (setsockopt(net_sock, IPPROTO_IPV6, IPV6_V6ONLY, &v6Only, sizeof( v6Only )) < 0){
+	if (setsockopt(net_sock6, IPPROTO_IPV6, IPV6_V6ONLY, &v6Only, sizeof( v6Only )) < 0){
 		return -1;
 	}
 
-	result = bind(net_sock, sa, addrlen);
+	result = bind(net_sock6, sa, addrlen);
 	if (result < 0)
 		return -1;
 
-	result = listen(net_sock, SOMAXCONN);
+	result = listen(net_sock6, SOMAXCONN);
 	if (result < 0)
 		return -1;
 
-	result = iobroker_register(nagios_iobs, net_sock, NULL, net_accept_one);
+	result = iobroker_register(nagios_iobs, net_sock6, NULL, net_accept_one);
 	if (result < 0) {
 		lerr("IOB: Failed to register network socket with I/O broker: %s", iobroker_strerror(result));
 		return -1;
