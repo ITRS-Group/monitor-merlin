@@ -219,6 +219,55 @@ void csync_node_active(merlin_node *node, const merlin_nodeinfo *info, int tdelt
 		wproc_run_callback(child->cmd, 600, handle_csync_finished, child, NULL);
 	}
 }
+/*
+ * Simplified version of csync_node_active. This is executed when we
+ * recieve a CTRL_FETCH command, from a remote-node. This function only deals
+ * with feching, and will fetch even when there are no config changes, so that
+ * file syncs are triggered.
+ */
+void csync_fetch(merlin_node *node) {
+	merlin_confsync *cs = &node->csync;
+	merlin_child *child = NULL;
+
+	if (node->type == MODE_MASTER) {
+		if (cs->fetch.cmd && strcmp(cs->fetch.cmd, "no")) {
+			child = &cs->fetch;
+			ldebug("CSYNC_FETCH: %s %s: We'll try to fetch", node_type(node), node->name);
+		} else {
+			ldebug("CSYNC_FETCH: %s %s: Should have fetched, but fetch not configured",
+			       node_type(node), node->name);
+			return;
+		}
+	} else if (node->type == MODE_POLLER) {
+		linfo("CSYNC_FETCH: %s %s: got a signal to fetch, but we won't fetch from a poller", node_type(node), node->name);
+	} else {
+		if (cs->fetch.cmd && strcmp(cs->fetch.cmd, "no")) {
+			child = &cs->fetch;
+			ldebug("CSYNC_FETCH: %s %s: We'll try to fetch", node_type(node), node->name);
+		} else {
+			ldebug("CSYNC_FETCH: %s %s: Should have fetched, but fetch not configured",
+			       node_type(node), node->name);
+			return;
+		}
+	}
+
+	node->csync_last_attempt = time(NULL);
+	child->node = node;
+
+	linfo("CSYNC_FETCH: %s %s: fetch triggered; command: [%s]",
+	      node_type(node), node->name, child->cmd);
+
+	/*
+	 * Using ":" as a command is a standard trick to make sure it succeeds.
+	 * It's also reasonably standard to avoid running such commands at all
+	 * from programs, and here it's used to make the running of test-csync
+	 * simpler than it otherwise would be.
+	 */
+	if (strcmp(child->cmd, ":")) {
+		child->is_running = 1;
+		wproc_run_callback(child->cmd, 600, handle_csync_finished, child, NULL);
+	}
+}
 
 static void handle_cluster_update_finished(wproc_result *wpres, void *arg, int flags) {
 	log_child_result(wpres, "Cluster update");

@@ -405,6 +405,9 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 			update_cluster_config();
 		}
 		break;
+	case CTRL_FETCH:
+		csync_fetch(node);
+		break;
 	case CTRL_STALL:
 	case CTRL_RESUME:
 		linfo("Received (and ignoring) CTRL_{STALL,RESUME} event.");
