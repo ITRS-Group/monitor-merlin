@@ -57,3 +57,10 @@ Feature: Module should handle conf sync with poller
 		Then master is not connected to merlin
 		And file merlin.log matches fetch triggered
 		And file config_sync.log does not match ^push
+
+	Scenario: poller should fetch if master sends CTRL_FETCH
+		Given master connect to merlin at port 7000 from port 11001
+		And master sends event CTRL_FETCH
+			| configured_masters |                    1 |
+		When I wait for 1 second
+		Then file merlin.log matches fetch triggered

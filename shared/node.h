@@ -58,9 +58,11 @@
 #define CTRL_STALL		5  /* (deprecated) signal that we can't accept events for a while */
 #define CTRL_RESUME		6  /* (deprecated) now we can accept events again */
 #define CTRL_STOP		7  /* exit() immediately (only accepted via ipc) */
-#define CTRL_INVALID_CLUSTER	8 /* signals to a node that it's cluster cfg is invalid */
-#define RUNCMD_CMD		9  /* Used for requesting a command to be run */
-#define RUNCMD_RESP		10  /* response of a command execution */
+#define CTRL_INVALID_CLUSTER	8  /* signals to a node that it's cluster cfg is invalid */
+#define CTRL_FETCH		9  /* signals to remote node that it should do a mon fetch */
+/* some margin for later CTRL commands */
+#define RUNCMD_CMD		20  /* Used for requesting a command to be run */
+#define RUNCMD_RESP		21  /* response of a command execution */
 /* the following magic entries can be used for the "code" entry */
 #define MAGIC_NONET 0xffff /* don't forward to the network */
 

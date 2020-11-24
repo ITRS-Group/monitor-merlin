@@ -56,6 +56,8 @@ static int help(int sd)
 		"cbstats       Print callback statistics for each node\n"
 		"notify-stats  Print notification statistics\n"
 		"expired       Print information regarding expired events\n"
+		"runcmd        Runs a runcmd (test this check) on a remote node\n"
+		"remote-fetch  Tells a remote node to execute mon oconf fetch\n"
 	);
 	return 0;
 }
@@ -166,6 +168,87 @@ static int remote_runcmd(int sd, char *buf, unsigned int len)
 	return 0;
 }
 
+/* We run this in a scheduled task to send a ctrl_fetch to a specific node*/
+void send_ctrl_fetch(struct nm_event_execution_properties *evprop) {
+	merlin_node * node = (merlin_node *) evprop->user_data;
+	node_ctrl(node, CTRL_FETCH, CTRL_GENERIC, NULL, 0);
+}
+
+/* Send a CTRL_FETCH to a remote node, which in turn does a mon oconf fetch.
+ * format: node=name;node_type=master/poller/peer.
+ * Name ignored if type set
+ */
+static int remote_fetch(int sd, char *buf, unsigned int len) {
+	struct kvvec *kvv;
+	char * node_name = NULL;
+	char * type_str = NULL;
+	int type;
+
+	if (0 != prefixcmp(buf, "node=") && 0 != prefixcmp(buf, "type=")) {
+		nsock_printf_nul(sd, "command must start with node= or type=\n");
+	}
+
+	kvv = ekvstr_to_kvvec(buf);
+
+	/*
+	 * if node/type is supplied by with no actual data i.e node=;type=poller
+	 * then the kvvvec fucntion will segfault. So we sanity check to make sure
+	 * we provide a sensible value before trying to fetch the string.
+	 */
+	if (strstr(buf, "node=;") == NULL) {
+		node_name = kvvec_fetch_str_str(kvv, "node");
+	}
+	if (strstr(buf, "type=;") == NULL) {
+		type_str = kvvec_fetch_str_str(kvv, "type");
+	}
+
+	if (type_str != NULL) {
+		unsigned int i;
+		nsock_printf_nul(sd, "Unknown node type: %s\n", type_str);
+		if (strcmp(type_str, "poller") == 0) {
+			type=MODE_POLLER;
+		} else if (strcmp(type_str, "master") == 0) {
+			nsock_printf_nul(sd, "Masters shouldn't fetch from pollers.\n");
+			return 1;
+		} else if (strcmp(type_str, "peer") == 0) {
+			type=MODE_PEER;
+		} else {
+			nsock_printf_nul(sd, "Unknown node type: %s\n", type_str);
+			return 1;
+		}
+
+		for (i = 0; i < num_nodes; i++) {
+			merlin_node *node = noc_table[i];
+			if (node->state == STATE_CONNECTED && node->type == type) {
+				ldebug("Sending ctrl_fetch to: %s\n", node->name);
+				schedule_event(0, send_ctrl_fetch, node);
+			}
+		}
+	} else if (node_name != NULL) {
+		merlin_node * node = NULL;
+		unsigned int i;
+
+		for (i = 0; i < num_nodes; i++) {
+			if (strcmp(node_name, node_table[i]->name) == 0) {
+				node = node_table[i];
+				break;
+			}
+		}
+
+		if (node == NULL) {
+			nsock_printf_nul(sd, "Could not find node: %s does it exist?\n", node_name);
+			return 1;
+		} else if (node->state != STATE_CONNECTED) {
+			nsock_printf_nul(sd, "Node %s is not connected\n", node->name);
+		}
+		else {
+			ldebug("Sending ctrl_fetch to: %s\n", node->name);
+			schedule_event(0, send_ctrl_fetch, node);
+		}
+	}
+
+	return 0;
+}
 
 /* Our primary query handler */
 int merlin_qh(int sd, char *buf, unsigned int len)
@@ -206,6 +289,10 @@ int merlin_qh(int sd, char *buf, unsigned int len)
 	}
 	if (0 == prefixcmp(buf, "runcmd ")) {
 		remote_runcmd(sd, buf+7, len);
+		return 0;
+	}
+	if (0 == prefixcmp(buf, "remote-fetch ")) {
+		remote_fetch(sd, buf+13, len);
 		return 0;
 	}
 
