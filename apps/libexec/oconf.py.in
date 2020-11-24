@@ -5,6 +5,8 @@ import os
 import io
 import sys
 import subprocess as sp
+import compound_config as cconf
+import nagios_qh
 
 from multiprocessing import Pool
 from compound_config import parse_nagios_cfg
@@ -12,6 +14,7 @@ from merlin_apps_utils import prettyprint_docstring
 
 obj_index = {}
 
+query_socket = False
 
 def idx_get(otype):
     global obj_index
@@ -34,6 +37,7 @@ config_dir = None
 def module_init(args):
     global config_dir
     global cache_dir
+    global query_socket
     rem_args = []
     for arg in args:
         if arg.startswith('--use-helper='):
@@ -46,6 +50,14 @@ def module_init(args):
         rem_args.append(arg)
     if not config_dir:
         config_dir = '%s/config' % cache_dir
+
+    if not query_socket:
+        if os.access(nagios_cfg, os.R_OK):
+            comp = cconf.parse_nagios_cfg(nagios_cfg)
+            query_socket = comp.query_socket
+        else:
+            query_socket = '/opt/monitor/var/rw/nagios.qh'
+
     return rem_args
 
 
@@ -254,6 +266,55 @@ def cmd_fetch(args):
     # Restart this node after config files has been fetch
     sp.call("sudo mon restart", shell=True)
     sys.exit(0)
+
+def cmd_remote_fetch(args):
+    """\
+    [--type=<peer|poller> [<node>]
+    Tells a specific node to fetch split configuration from this node.
+
+    NOTE: A configuration variable called "fetch_name" is
+    required in the object_config section of merlin.cfg on the
+    remote node. The variable should be set to the name of the node,
+    as seen by the master.
+"""
+
+    global query_socket
+    node = ""
+    node_type = ""
+    qh_args = ""
+
+    for arg in args:
+        if arg.startswith('--type='):
+            node_type = arg.split('=')[1]
+        elif arg.startswith('--help'):
+            prettyprint_docstring(
+                'remote-fetch', cmd_remote_fetch.__doc__
+            )
+            sys.exit(1)
+        elif arg.startswith('--'):
+            prettyprint_docstring(
+                'remote-fetch', cmd_remote_fetch.__doc__, 'Unknown argument: %s' % arg
+            )
+            sys.exit(1)
+        else:
+            node = arg
+
+    if node:
+        qh_args += "node=%s;" %node
+    if node_type:
+        qh_args += "type=%s" %node_type
+    if not qh_args:
+        print "No node type or node specified. See `mon oconf remote-fetch help` for more details."
+        return False
+
+    qh = nagios_qh.nagios_qh(query_socket)
+    res = qh.query('#merlin remote-fetch ' + qh_args + '\0')
+    for line in res:
+        print line
+        if qh_args not in line:
+            print line
+
+    return True
 
 
 # Copied and modifed from sync_files

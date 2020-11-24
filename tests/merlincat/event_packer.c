@@ -472,7 +472,10 @@ merlin_event *event_packer_unpack_kvv(const char *cmd, struct kvvec *kvv) {
 	case CTRL_PACKET:
 		if (0 == strcmp("CTRL_INVALID_CLUSTER", cmd)) {
 			evt->hdr.code = CTRL_INVALID_CLUSTER;
-		} else {
+		} else if (0 == strcmp("CTRL_FETCH", cmd)) {
+			evt->hdr.code = CTRL_FETCH;
+		}
+		else {
 			evt->hdr.code = CTRL_ACTIVE;
 		}
 		res = kvvec_to_merlin_nodeinfo(kvv, unpacked_data);
