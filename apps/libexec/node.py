@@ -162,9 +162,9 @@ def cmd_status(args):
 			conn_delta = time_delta(conn_time)
 		else:
 			conn_delta = 'unknown'
-		last_alive = int(info.get('last_action'))
-		if not last_alive:
-			alive_delta = 'UNKNOWN'
+		last_alive = int(info.get('last_action', -1))
+		if last_alive < 0:
+			alive_delta = 'unknown'
 			la_color = color.red
 		else:
 			alive_delta = time_delta(last_alive) + ' ago'
