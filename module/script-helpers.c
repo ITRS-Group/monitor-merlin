@@ -273,6 +273,13 @@ static void handle_cluster_update_finished(wproc_result *wpres, void *arg, int f
 	log_child_result(wpres, "Cluster update");
 }
 
-void update_cluster_config() {
+void update_cluster_config(merlin_node * node) {
+	time_t now = time(NULL);
+	if (node->cluster_update_last_attempt >= now - 30) {
+		ldebug("Cluster Update: Update attempted %lu seconds ago. Waiting at least %lu seconds",
+		       now - node->cluster_update_last_attempt, 30 - (now - node->cluster_update_last_attempt));
+		return;
+	}
+	node->cluster_update_last_attempt = now;
 	wproc_run_callback(cluster_update, 60, handle_cluster_update_finished, NULL, 0);
 }

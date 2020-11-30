@@ -402,7 +402,7 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 		lwarn("Node %s has signalled that the cluster config is invalid", node->name);
 		if (cluster_update != NULL) {
 			ldebug("Running cluster update command");
-			update_cluster_config();
+			update_cluster_config(node);
 		}
 		break;
 	case CTRL_FETCH:
