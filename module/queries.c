@@ -204,7 +204,6 @@ static int remote_fetch(int sd, char *buf, unsigned int len) {
 
 	if (type_str != NULL) {
 		unsigned int i;
-		nsock_printf_nul(sd, "Unknown node type: %s\n", type_str);
 		if (strcmp(type_str, "poller") == 0) {
 			type=MODE_POLLER;
 		} else if (strcmp(type_str, "master") == 0) {
