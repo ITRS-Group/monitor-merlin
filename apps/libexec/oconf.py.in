@@ -310,7 +310,6 @@ def cmd_remote_fetch(args):
     qh = nagios_qh.nagios_qh(query_socket)
     res = qh.query('#merlin remote-fetch ' + qh_args + '\0')
     for line in res:
-        print line
         if qh_args not in line:
             print line
 
