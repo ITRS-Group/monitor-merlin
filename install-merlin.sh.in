@@ -27,7 +27,7 @@ db_setup ()
 
 	case "$db_type" in
 		mysql)
-			$(eval "$mysql -e ''")
+			$(eval "$mysql -e 'use $db_name'")
 			if [ $? -ne 0 ]; then
 				echo "Couldn't connect to database, giving up."
 				echo ""
