@@ -69,42 +69,56 @@ def module_init(args):
 	return rem_args
 
 def cmd_distribution(args):
-	"""[--no-perfdata]
-	Checks to make sure all checks we know about are being executed
-	by someone within the timeframe we expect.
-	"""
+        """[--no-perfdata] [--warning=X] [--critical=X]
+        Checks to make sure all checks we know about are being executed
+        by someone within the timeframe we expect.
+          --warning  default is 1
+          --critical default is 1 (any expired checks results in a critical alert)
+        """
 
-	print_perfdata = True
-	for arg in args:
-		if arg == '--no-perfdata':
-			print_perfdata = False
+        print_perfdata = True
+        for arg in args:
+                if arg == '--no-perfdata':
+                        print_perfdata = False
 
-	expired = get_expired(qh)
-	if expired and expired[0] == -1:
-		return 1
-	info = get_merlin_nodeinfo(qh)
+        expired = get_expired(qh)
+        if expired and expired[0] == -1:
+                return 1
+        info = get_merlin_nodeinfo(qh)
 
-	state = 3
-	if not expired:
-		print "OK: All %i nodes run their assigned checks" % (len(info),),
-		state = 0
-	else:
-		print "ERROR: There are %i expired checks" % (len(expired),),
-		state = 2
+        state = nplug.STATE_UNKNOWN
+        warn = 1
+        crit = 1
 
-	if print_perfdata:
-		print "|",
-		for i in info:
-			print ("'%(name)s_hosts'=%(host_checks_executed)s " \
-				"'%(name)s_services'=%(service_checks_executed)s " \
-				"'%(name)s_expired_hosts'=%(expired_hosts)s " \
-				"'%(name)s_expired_services'=%(expired_services)s") % i,
-	if expired:
-		print "\n"
-		for check in expired:
-			print "%s was supposed to be executed by %s at %s" % (check.has_key('service_description') and check['host_name'] + ';' + check['service_description'] or check['host_name'], check['responsible'], time.ctime(int(check['added'])))
-	sys.exit(state)
+        for arg in args:
+                if arg.startswith('--warning='):
+                        warn = int(arg.split('=', 1)[1])
+                elif arg.startswith('--critical='):
+                        crit = int(arg.split('=', 1)[1])
+                else:
+                        nplug.unknown("Unknown argument: %s" % arg)
+        if len(expired) >= crit:
+                print "CRITICAL: There are %i expired checks" % (len(expired),),
+                state = nplug.STATE_CRITICAL
+        elif ((len(expired) >= warn) and (len(expired) < crit)):
+                print "WARNING: There are %i expired checks" % (len(expired),),
+                state = nplug.STATE_WARNING
+        elif len(expired) < warn:
+                print "OK: All %i nodes run their assigned checks" % (len(info),),
+                state = nplug.STATE_OK
 
+        if print_perfdata:
+                print "|",
+                for i in info:
+                        print ("'%(name)s_hosts'=%(host_checks_executed)s " \
+                                "'%(name)s_services'=%(service_checks_executed)s " \
+                                "'%(name)s_expired_hosts'=%(expired_hosts)s " \
+                                "'%(name)s_expired_services'=%(expired_services)s") % i,
+        if expired:
+                print "\n"
+                for check in expired:
+                        print "%s was supposed to be executed by %s at %s" % (check.has_key('service_description') and check['host_name'] + ';' + check['service_description'] or check['host_name'], check['responsible'], time.ctime(int(check['added'])))
+        sys.exit(state)
 
 def check_min_avg_max(args, col, defaults=False, filter=False):
 	order = ['min', 'avg', 'max']
