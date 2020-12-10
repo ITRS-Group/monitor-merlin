@@ -311,8 +311,11 @@ chown -Rh %daemon_user:%daemon_group %prefix/etc
 sed --follow-symlinks -i '/broker_module.*merlin.so.*/d' /opt/monitor/etc/naemon.cfg
 service_control_function restart monitor || :
 service_control_function restart nrpe || :
+
 %if 0%{?rhel} >= 7
-    service_control_function restart op5-monitor || :
+if [ $1 -eq 2 ]; then
+	service_control_function restart op5-monitor > /dev/null 2>&1 || :
+fi
 %endif
 
 %files
