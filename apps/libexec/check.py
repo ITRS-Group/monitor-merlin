@@ -111,14 +111,15 @@ def cmd_distribution(args):
 		print "|",
 		for i in info:
 			print ("'%(name)s_hosts'=%(host_checks_executed)s " \
-			"'%(name)s_services'=%(service_checks_executed)s " \
-			"'%(name)s_expired_hosts'=%(expired_hosts)s " \
-			"'%(name)s_expired_services'=%(expired_services)s") % i,
+				"'%(name)s_services'=%(service_checks_executed)s " \
+				"'%(name)s_expired_hosts'=%(expired_hosts)s " \
+				"'%(name)s_expired_services'=%(expired_services)s") % i,
 	if expired:
 		print "\n"
 		for check in expired:
 			print "%s was supposed to be executed by %s at %s" % (check.has_key('service_description') and check['host_name'] + ';' + check['service_description'] or check['host_name'], check['responsible'], time.ctime(int(check['added'])))
 	sys.exit(state)
+
 
 def check_min_avg_max(args, col, defaults=False, filter=False):
 	order = ['min', 'avg', 'max']
@@ -455,8 +456,8 @@ def cmd_cores(args=False):
 	/tmp/mon-cores in order to keep working directories clean.
 	  --warning  default is 0
 	  --critical default is 1 (any corefile results in a critical alert)
-	  --dir	  lets you specify more paths to search for corefiles. This
-				 option can be given multiple times.
+	  --dir      lets you specify more paths to search for corefiles. This
+	             option can be given multiple times.
 	  --delete   deletes corefiles not coming from 'merlind' or 'monitor'
 	"""
 	warn = 0
