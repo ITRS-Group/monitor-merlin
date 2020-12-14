@@ -69,9 +69,11 @@ def module_init(args):
 	return rem_args
 
 def cmd_distribution(args):
-	"""[--no-perfdata]
+	"""[--no-perfdata] [--warning=X] [--critical=X]
 	Checks to make sure all checks we know about are being executed
 	by someone within the timeframe we expect.
+	  --warning  default is 1
+	  --critical default is 1 (any expired checks results in a critical alert)
 	"""
 
 	print_perfdata = True
@@ -84,13 +86,26 @@ def cmd_distribution(args):
 		return 1
 	info = get_merlin_nodeinfo(qh)
 
-	state = 3
-	if not expired:
+	state = nplug.STATE_UNKNOWN
+	warn = 1
+	crit = 1
+
+	for arg in args:
+		if arg.startswith('--warning='):
+			warn = int(arg.split('=', 1)[1])
+		elif arg.startswith('--critical='):
+			crit = int(arg.split('=', 1)[1])
+		else:
+			nplug.unknown("Unknown argument: %s" % arg)
+	if len(expired) >= crit:
+		print "CRITICAL: There are %i expired checks" % (len(expired),),
+		state = nplug.STATE_CRITICAL
+	elif ((len(expired) >= warn) and (len(expired) < crit)):
+		print "WARNING: There are %i expired checks" % (len(expired),),
+		state = nplug.STATE_WARNING
+	elif len(expired) < warn:
 		print "OK: All %i nodes run their assigned checks" % (len(info),),
-		state = 0
-	else:
-		print "ERROR: There are %i expired checks" % (len(expired),),
-		state = 2
+		state = nplug.STATE_OK
 
 	if print_perfdata:
 		print "|",
