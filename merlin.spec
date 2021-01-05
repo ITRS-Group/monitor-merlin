@@ -321,6 +321,7 @@ fi
 
 %files
 %defattr(-,root,root)
+%dir %attr(750, %daemon_user, -) %mod_path
 %attr(660, -, %daemon_group) %config(noreplace) %mod_path/merlin.conf
 %_datadir/merlin/sql
 %mod_path/merlind
