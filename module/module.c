@@ -1324,6 +1324,58 @@ static void disconnect_inactive_nodes(struct nm_event_execution_properties *evpr
 }
 
 /*
+ * This is a scheduled event. Its occurence is stated in seconds in the
+ * variable 'node_auto_delete_check_interval (shared.c)'. For any node that is
+ * not active, and has an auto_delete interval set, we check if it has been
+ * inactive for at least auto_delete seconds, and if it has we delete the node
+ * and restart.
+ */
+static void auto_delete_nodes(struct nm_event_execution_properties *evprop) {
+	unsigned int i;
+	int offset = 0;
+	time_t now = time(NULL);
+	bool node_deleted = false;
+	char nodes_to_delete[AUTO_DELETE_BUFFER_SIZE];
+
+	ldebug("AUTO_DELETE: Checking for nodes to be auto deleted");
+
+	if (evprop->execution_type != EVENT_EXEC_NORMAL)
+		return;
+
+	schedule_event(node_auto_delete_check_interval, auto_delete_nodes, NULL);
+	for (i = 0; i < num_nodes; i++) {
+		merlin_node *node = noc_table[i];
+		if(node->auto_delete > 0 &&
+		   node->state != STATE_CONNECTED) {
+			unsigned int last_seen_delta;
+			/* If we have never seen the node, we use the ipc_connect time,
+			 * as it will always disconnected for at least that amount of time */
+			if (node->last_recv == 0) {
+				last_seen_delta = now - ipc.connect_time;
+			} else {
+				last_seen_delta = now - node->last_recv;
+			}
+
+			if (last_seen_delta > node->auto_delete) {
+				linfo("AUTO_DELETE: %s scheduled for removal", node->name);
+				/* Add the node to the list and fail if the string was truncated */
+				offset += snprintf(nodes_to_delete+offset, sizeof(nodes_to_delete), "%s ", node->name);
+				if (offset < 0 || offset >= AUTO_DELETE_BUFFER_SIZE) {
+					lwarn("AUTO_DELETE: Couldn't delete nodes due to insufficient buffer size: %d", offset);
+				}
+				node_deleted = true;
+			} else {
+				ldebug("AUTO_DELETE: %s has %d seconds left before auto deletion", node->name, last_seen_delta);
+			}
+		}
+	}
+	/* Actually delete the nodes and restart */
+	if (node_deleted) {
+		auto_delete_node_cmd(nodes_to_delete);
+	}
+}
+
+/*
  * Sends the path to objects.cache and status.log to the
  * daemon so it can import the necessary data into the
  * database.
@@ -1377,6 +1429,7 @@ static int post_config_init(int cb, void *ds)
 		schedule_event(0, connect_to_all, NULL);
 		schedule_event(0, send_pulse, NULL);
 		schedule_event(0, disconnect_inactive_nodes, NULL);
+		schedule_event(node_auto_delete_check_interval, auto_delete_nodes, NULL);
 
 		/*
 	 	* now we register the hooks we're interested in, avoiding

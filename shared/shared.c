@@ -13,6 +13,7 @@ int debug = 0;  /* doesn't actually do anything right now */
 int is_module = 1; /* the daemon sets this to 0 immediately */
 int pulse_interval = 10; /* seconds between each CTRL_ACTIVE packet sent */
 int node_activity_check_interval = 1; /* seconds between each activity check */
+int node_auto_delete_check_interval = 30; /* seconds between each auto delete check */
 int use_database = 0;
 char *merlin_config_file = NULL;
 merlin_nodeinfo *self = NULL;
