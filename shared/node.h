@@ -266,6 +266,7 @@ struct merlin_node {
 	unsigned char sharedkey[crypto_box_BEFORENMBYTES];
 	char uuid[UUID_SIZE + 1]; /* 36 plus null terminator */
 	bool incompatible_cluster_config;
+	unsigned int auto_delete;
 };
 
 struct merlin_runcmd {

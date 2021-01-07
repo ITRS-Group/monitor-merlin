@@ -466,6 +466,7 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 	/* some sane defaults */
 	node->data_timeout = pulse_interval * 2;
 	node->encrypted = false;
+	node->auto_delete = 0;
 
 	for (i = 0; i < c->vars; i++) {
 		struct cfg_var *v = c->vlist[i];
@@ -526,6 +527,12 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			}
 			uuid_nodes++;
 			strcpy(node->uuid, v->value);
+		} else if (!strcmp(v->key, "auto_delete")) {
+			char *endptr;
+			node->auto_delete = (unsigned int)strtol(v->value, &endptr, 10);
+			if (*endptr != 0)
+				cfg_error(c, v, "Illegal value for auto_delete: %s\n", v->value);
+			
 		}
 		else if (grok_node_flag(&node->flags, v->key, v->value) < 0) {
 			cfg_error(c, v, "Unknown variable\n");
