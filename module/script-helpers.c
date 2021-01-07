@@ -276,3 +276,19 @@ static void handle_cluster_update_finished(wproc_result *wpres, void *arg, int f
 void update_cluster_config() {
 	wproc_run_callback(cluster_update, 60, handle_cluster_update_finished, NULL, 0);
 }
+
+static void handle_auto_delete_finished(wproc_result *wpres, void *arg, int flags) {
+	log_child_result(wpres, "Auto delete");
+}
+
+void auto_delete_node_cmd(char * nodes_to_delete) {
+	char cmd[AUTO_DELETE_BUFFER_SIZE];
+	int ret;
+	ret = snprintf(cmd, sizeof(cmd), "mon node remove %s && sudo mon restart", nodes_to_delete);
+	if (ret < 0 || ret >= AUTO_DELETE_BUFFER_SIZE) {
+		lwarn("AUTO_DELETE_CMD: Couldn't delete nodes due to insufficient buffer size: %d", ret);
+	} else {
+		ldebug("AUTO_DELETE_CMD: Executing \"%s\"", cmd);
+		wproc_run_callback(cmd, 300, handle_auto_delete_finished, NULL, 0);
+	}
+}
