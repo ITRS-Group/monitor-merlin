@@ -190,4 +190,6 @@ struct tmp_net2mod_data {
 	safe_free(tmp.old_long_plugin_output); \
 	safe_free(tmp.old_perf_data);
 
+#define AUTO_DELETE_BUFFER_SIZE 1024 /* Fixed sized buffer used in auto_delete_nodes  */
+
 #endif /* MRM_MOD_H */
