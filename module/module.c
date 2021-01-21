@@ -1342,22 +1342,30 @@ static void auto_delete_nodes(struct nm_event_execution_properties *evprop) {
 	if (evprop->execution_type != EVENT_EXEC_NORMAL)
 		return;
 
+	/* If IPC is not connected we probably have bigger problems, so we just return
+	 * this also ensures we don't use a potentially unsafe ipc.connect_time
+	 * down the line */
+	if (ipc.state != STATE_CONNECTED) {
+		ldebug("AUTO_DELETE: ipc is not connected, do nothing");
+		return;
+	}
+
 	schedule_event(node_auto_delete_check_interval, auto_delete_nodes, NULL);
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = noc_table[i];
 		if(node->auto_delete > 0 &&
 		   node->state != STATE_CONNECTED) {
-			unsigned int last_seen_delta;
+			time_t last_seen_delta;
 			/* If we have never seen the node, we use the ipc_connect time,
 			 * as it will always disconnected for at least that amount of time */
-			if (node->last_recv == 0) {
+			if (node->last_action == 0) {
 				last_seen_delta = now - ipc.connect_time;
 			} else {
-				last_seen_delta = now - node->last_recv;
+				last_seen_delta = now - node->last_action;
 			}
 
 			if (last_seen_delta > node->auto_delete) {
-				linfo("AUTO_DELETE: %s scheduled for removal", node->name);
+				linfo("AUTO_DELETE: %s scheduled for removal. last_seen_delta: %ld", node->name, last_seen_delta);
 				/* Add the node to the list and fail if the string was truncated */
 				offset += snprintf(nodes_to_delete+offset, sizeof(nodes_to_delete), "%s ", node->name);
 				if (offset < 0 || offset >= AUTO_DELETE_BUFFER_SIZE) {
@@ -1365,7 +1373,7 @@ static void auto_delete_nodes(struct nm_event_execution_properties *evprop) {
 				}
 				node_deleted = true;
 			} else {
-				ldebug("AUTO_DELETE: %s has %d seconds left before auto deletion", node->name, last_seen_delta);
+				ldebug("AUTO_DELETE: %s has %ld seconds left before auto deletion", node->name, last_seen_delta);
 			}
 		}
 	}
