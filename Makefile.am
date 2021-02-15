@@ -244,7 +244,7 @@ GENERATED_NEBEV = \
 	tests/merlincat/nebev-col2key.gperf
 
 $(GENERATED_NEBEV): tests/merlincat/generate-nebev2kvvec.py
-	$(AM_V_GEN) python tests/merlincat/generate-nebev2kvvec.py
+	$(AM_V_GEN) python2 tests/merlincat/generate-nebev2kvvec.py
 
 tests/merlincat/nebev-col2key.c: tests/merlincat/nebev-col2key.gperf
 	$(AM_V_GEN) $(GPERF) --switch=1 --struct-type \
