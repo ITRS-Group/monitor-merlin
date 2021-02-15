@@ -1,13 +1,8 @@
 vm-config: |
   {"numCPUs": 4}
 post:
-  install:
-    - libyaml
-    - mysql-devel
-    - ruby20-devel
-    - ruby-devel
-    - python-nose
   steps: |
+    set -x
     mkdir --parents --mode=777 /mnt/logs/merlin_dtest
     mon test dist --basepath=/mnt/logs/merlin_dtest
     mon test rsync
@@ -20,17 +15,20 @@ post:
     sudo -u monitor mon test rsync
 
     # Run unit tests
-    nosetests --nocapture --where apps/libexec/modules
+    nosetests ${VERBOSE:+-v} --nocapture --where apps/libexec/modules
 
     # Verify file permissions after installation
     stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 660" = "{}"
 
     # Install requirements for cucumber test
-    if [ -f /usr/bin/systemctl ]; then
-      gem install --no-ri --no-rdoc cucumber:1.3.6 rspec:2.14.1 parallel:1.13.0 parallel_tests:2.23.0 syntax:1.0.0 sequel mysql2
-    else
-      gem2.0 install --no-ri --no-rdoc cucumber:1.3.6 rspec:2.14.1 parallel:1.13.0 parallel_tests:2.23.0 syntax:1.0.0 sequel mysql2:0.4.6
-    fi
+    gem install --no-ri --no-rdoc \
+        cucumber:1.3.6 \
+        rspec:2.14.1 \
+        parallel:1.13.0 \
+        parallel_tests:2.23.0 \
+        syntax:1.0.0 \
+        sequel \
+        mysql2
 
     # Run cucumber tests
     ulimit -c unlimited
@@ -38,11 +36,12 @@ post:
     echo "core ulimit: \$(ulimit -c)"
 
     # Workaround for EL7.7 bug BZ#1731062 (https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/7.7_release_notes/known_issues)
-    if [ -f /usr/bin/systemctl ]; then
-      ln -s /usr/bin/resolveip /usr/libexec/resolveip
+    if grep -F 'release 7.7' /etc/redhat-release; then
+        ln -vs /usr/bin/resolveip /usr/libexec/resolveip
     fi
 
-    cucumber --strict --format html --out /mnt/logs/cucumber.html --format pretty
+    cucumber ${VERBOSE:+-v} --strict --format html \
+        --out /mnt/logs/cucumber.html --format pretty
     # Run the test suite again, but with encryption enabled
     # Some tests has been disabled. These tests pass just fine when running the
     # test suite with encryption enabled only, but for some reason fail when
@@ -50,4 +49,9 @@ post:
     # disabled tests do not have any peers/pollers so encryption shouldn't
     # affect them.
     mon merlinkey generate
-    MERLIN_ENCRYPTED=TRUE MERLIN_PUBKEY=/opt/monitor/op5/merlin/key.pub MERLIN_PRIVKEY=/opt/monitor/op5/merlin/key.priv cucumber --strict --format html --out /mnt/logs/cucumber_encrypted.html --format pretty --exclude "report_data" --tags ~@unstable
+    export MERLIN_ENCRYPTED=TRUE
+    export MERLIN_PUBKEY=/opt/monitor/op5/merlin/key.pub
+    export MERLIN_PRIVKEY=/opt/monitor/op5/merlin/key.priv
+    cucumber ${VERBOSE:+-v} --strict --format html \
+        --out /mnt/logs/cucumber_encrypted.html \
+        --format pretty --exclude "report_data" --tags ~@unstable

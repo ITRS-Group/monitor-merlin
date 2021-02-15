@@ -18,7 +18,7 @@
 %define daemon_user monitor
 %define daemon_group apache
 %define init_scripts %{nil}
-# re-define service_control_function to use el7 commands
+# re-define service_control_function to use systemctl
 %define create_service_control_function function service_control_function () { systemctl $1 $2; };
 %endif
 %define operator_group mon_operators
@@ -29,7 +29,7 @@ Version: %{op5version}
 Release: %{op5release}%{?dist}
 License: GPLv2
 Group: op5/Monitor
-URL: http://www.op5.se
+URL: https://www.itrsgroup.com
 Source0: %name-%version.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}
 Prefix: /opt/monitor
@@ -52,7 +52,7 @@ Requires: op5kad
 BuildRequires: mysql-devel
 %endif
 BuildRequires: op5-naemon-devel
-BuildRequires: python
+BuildRequires: python2
 BuildRequires: gperf
 BuildRequires: check-devel
 BuildRequires: autoconf, automake, libtool
@@ -75,7 +75,7 @@ Requires: merlin-apps-slim >= %version
 Requires: glib2
 Requires: op5-monitor-user
 BuildRequires: op5-naemon-devel
-BuildRequires: python
+BuildRequires: python2
 BuildRequires: gperf
 BuildRequires: check-devel
 BuildRequires: autoconf, automake, libtool
@@ -125,7 +125,11 @@ Requires: op5-monitor-supported-database
 Requires: libdbi1
 Requires: python-mysql
 %else
+%if 0%{?rhel} >= 8
+BuildRequires: python2-PyMySQL
+%else
 Requires: MySQL-python
+%endif
 Requires: libdbi
 %endif
 Obsoletes: monitor-distributed
@@ -173,8 +177,12 @@ Requires: op5-lmd
 Requires: op5-naemon
 Requires: merlin merlin-apps monitor-merlin
 Requires: monitor-testthis
+Requires: abrt-cli
+Requires: libyaml
+Requires: mariadb-devel
+Requires: ruby-devel
+Requires: python2-nose
 BuildRequires: diffutils
-Requires: op5-abrt-config
 
 %description test
 Some additional test files for merlin
@@ -191,8 +199,7 @@ autoreconf -i -s
 %__make V=1 check
 
 %install
-rm -rf %buildroot
-%__make install DESTDIR=%buildroot naemon_user=$(id -un) naemon_group=$(id -gn)
+%make_install naemon_user=$(id -un) naemon_group=$(id -gn)
 
 ln -s ../../../../usr/bin/merlind %buildroot/%mod_path/merlind
 ln -s ../../../../%_libdir/merlin/import %buildroot/%mod_path/import
@@ -217,8 +224,7 @@ mkdir -p %buildroot%_sysconfdir/nrpe.d
 cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
 
 %if 0%{?rhel} >= 7
-mkdir --parents %{buildroot}%{_unitdir}
-cp merlind.service %{buildroot}%{_unitdir}/merlind.service
+%{__install} -D -m 644 merlind.service %{buildroot}%{_unitdir}/merlind.service
 %else
 mkdir -p %buildroot%_sysconfdir/op5kad/conf.d
 make data/kad.conf
@@ -226,8 +232,8 @@ cp data/kad.conf %buildroot%_sysconfdir/op5kad/conf.d/merlin.kad
 %endif
 
 %check
-python tests/pyunit/test_log.py --verbose
-python tests/pyunit/test_oconf.py --verbose
+python2 tests/pyunit/test_log.py --verbose
+python2 tests/pyunit/test_oconf.py --verbose
 
 
 %post
@@ -330,7 +336,7 @@ fi
 %_sysconfdir/logrotate.d/merlin
 %_sysconfdir/nrpe.d/nrpe-merlin.cfg
 %if 0%{?rhel} >= 7
-%attr(664, root, root) %{_unitdir}/merlind.service
+%{_unitdir}/merlind.service
 %else
 %_sysconfdir/op5kad/conf.d/merlin.kad
 %_sysconfdir/init.d/merlind
@@ -428,5 +434,7 @@ fi
 rm -rf %buildroot
 
 %changelog
+* Thu Feb 11 2021 Aksel Sjögren <asjogren@itrsgroup.com>
+- Adapt for building on el8.
 * Tue Mar 17 2009 Andreas Ericsson <ae@op5.se>
 - Initial specfile creation.

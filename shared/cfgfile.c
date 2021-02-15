@@ -274,7 +274,7 @@ static void cfg_print_error(struct cfg_comp *comp, struct cfg_var *v,
 	if (vasprintf(&output, fmt, ap) < 0) {
 		output = strdup("unknown (vasprintf failed)");
 	}
-	nm_log(NSLOG_CONFIG_ERROR, output);
+	nm_log(NSLOG_CONFIG_ERROR, "%s", output);
 	nm_log(NSLOG_CONFIG_ERROR, "----");
 	free(output);
 }
