@@ -1,6 +1,8 @@
 vm-config: |
   {"numCPUs": 4}
 post:
+  warn_on_failure:
+    - el8/x86_64
   steps: |
     set -x
     mkdir --parents --mode=777 /mnt/logs/merlin_dtest
