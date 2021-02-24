@@ -70,7 +70,7 @@ Feature: Binlog
 		Given I start naemon with merlin nodes connected
 			| type   | name    | port |
 			| peer   | my-peer | 4001 |
-		And I wait for 1 seconds
+		And my-peer is connected to merlin
 
 		When I send naemon command PROCESS_HOST_CHECK_RESULT;hostA;1;Fromtest
 		And I wait for 2 seconds
@@ -93,11 +93,12 @@ Feature: Binlog
 
 	Scenario: Saved binlog is sent to peer after restart.
 		Given I have a saved binlog
+		And I have merlin config binlog_persist set to 1
 		And I start naemon with merlin nodes connected
 			| type   | name    | port |
 			| peer   | my-peer | 4001 |
 
-		And I wait for 2 seconds
+		And my-peer is connected to merlin
 		# Binlog is sent right before we send normal events.
 		# To ensure the binlog is sent, we send a small event first
 		And I send naemon command START_EXECUTING_HOST_CHECKS
@@ -134,7 +135,8 @@ Feature: Binlog
 			| type   | name    | port |
 			| peer   | my-peer | 4001 |
 
-		And I wait for 2 seconds
+		#And I wait for 2 seconds
+		And my-peer is connected to merlin
 		# Binlog is sent right before we send normal events. We
 		# to ensure the binlog is sent, we send a small event first
 		And I send naemon command START_EXECUTING_HOST_CHECKS

@@ -549,7 +549,7 @@ unsigned int binlog_available(binlog *bl)
 	return (bl->file_size - bl->file_read_pos) + bl->mem_avail;
 }
 
-int binlog_write_file_metadata(binlog *bl) {
+static int binlog_write_file_metadata(binlog *bl) {
 	FILE *file;
 
 	binlog_flush(bl);
@@ -565,7 +565,7 @@ int binlog_write_file_metadata(binlog *bl) {
 }
 
 binlog * binlog_get_saved(binlog * node_binlog) {
-	int ret;
+	int ret, elements_read;
 	struct binlog *bl;
 	FILE * file;
 
@@ -581,14 +581,21 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 		return NULL;
 	}
 
-	bl = malloc(sizeof(struct binlog));
 	file = fopen(node_binlog->file_metadata_path, "rb");
+	/* Make sure we could open the file correctly */
+	if (file == NULL) {
+		return NULL;
+	}
 
-	if (file != NULL) {
-		fread(bl, sizeof(struct binlog), 1, file);
-		fclose(file);
-	} else {
-		free (bl);
+	/* free'd either here (binlog_destroy) or by the caller (node_binlog_read_saved) */
+	bl = malloc(sizeof(struct binlog));
+
+	elements_read = fread(bl, sizeof(struct binlog), 1, file);
+	fclose(file);
+
+	/* Make sure we sucessfully read one binlog struct */
+	if (elements_read != 1) {
+		binlog_destroy(bl,BINLOG_UNLINK);
 		return NULL;
 	}
 
@@ -598,7 +605,7 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 	bl->fd = -1;
 	ret = binlog_open(bl);
 	if (ret < 0) {
-		binlog_wipe(bl, BINLOG_UNLINK);
+		binlog_destroy(bl, BINLOG_UNLINK);
 		return NULL;
 	}
 	/* get rid of the metadata file now */

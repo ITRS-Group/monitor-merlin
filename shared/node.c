@@ -834,15 +834,16 @@ int node_binlog_read_saved(merlin_node *node)
 			}
 			lerr("BACKLOG-SAVED: binlog claims the data length is %u", len);
 			lerr("BACKLOG-SAVED: wiping backlog. %s is now out of sync", node->name);
-			binlog_wipe(node->binlog, BINLOG_UNLINK);
+			binlog_destroy(node->binlog, BINLOG_UNLINK);
 			return -1;
 		}
 		errno = 0;
+		ldebug("BACKLOG-SAVED: Read event of type : %d", temp_pkt->hdr.type);
 		binlog_add(node->binlog, (void *)temp_pkt, len);
 
 	}
-	/* wipe the binlog afterwards */
-	binlog_wipe(saved_binlog, BINLOG_UNLINK);
+	/* wipe the binlog and free memory */
+	binlog_destroy(saved_binlog, BINLOG_UNLINK);
 
 	/* Timing information */
 	diff = clock() - start;
