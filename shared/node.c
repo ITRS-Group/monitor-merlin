@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <sodium.h>
 #include <stdbool.h>
+#include <time.h>
 
 merlin_node **noc_table, **poller_table, **peer_table;
 
@@ -714,21 +715,7 @@ void node_disconnect(merlin_node *node, const char *fmt, ...)
 	node->bq = nm_bufferqueue_create();
 }
 
-static int node_binlog_add(merlin_node *node, merlin_event *pkt)
-{
-	int result;
-
-	/*
-	 * we skip stashing some packet types in the binlog. Typically
-	 * those that get generated immediately upon reconnect anyway
-	 * since they would just cause unnecessary overhead and might
-	 * trigger a lot of unnecessary actions if stashed.
-	 */
-	if (pkt->hdr.type == CTRL_PACKET) {
-		if (pkt->hdr.code == CTRL_ACTIVE || pkt->hdr.code == CTRL_INACTIVE)
-			return 0;
-	}
-
+int node_create_binlog(merlin_node *node) {
 	if (!node->binlog) {
 		char *path = NULL;
 
@@ -761,6 +748,26 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 		}
 		free(path);
 	}
+	return 0;
+}
+
+static int node_binlog_add(merlin_node *node, merlin_event *pkt)
+{
+	int result;
+
+	/*
+	 * we skip stashing some packet types in the binlog. Typically
+	 * those that get generated immediately upon reconnect anyway
+	 * since they would just cause unnecessary overhead and might
+	 * trigger a lot of unnecessary actions if stashed.
+	 */
+	if (pkt->hdr.type == CTRL_PACKET) {
+		if (pkt->hdr.code == CTRL_ACTIVE || pkt->hdr.code == CTRL_INACTIVE)
+			return 0;
+	}
+
+	if (node_create_binlog(node) != 0)
+		return -1;
 
 	result = binlog_add(node->binlog, pkt, packet_size(pkt));
 
@@ -785,6 +792,65 @@ static int node_binlog_add(merlin_node *node, merlin_event *pkt)
 	node_log_event_count(node, 0);
 
 	return result;
+}
+
+int node_binlog_read_saved(merlin_node *node)
+{
+	binlog * saved_binlog;
+	merlin_event *temp_pkt;
+	unsigned int len, msec;
+	clock_t start = clock(), diff;
+
+	/* Don't do anything if binlog persistence is disabled */
+	if (binlog_persist == false) {
+		return 0;
+	}
+
+	ldebug("Reading saved binlog for node: %s:", node->name);
+
+	if (node_create_binlog(node) != 0) {
+		/* Something went wrong when creating the binlog */
+		return -1;
+	}
+
+	saved_binlog = binlog_get_saved(node->binlog);
+	/* There is no saved binlog to read this is normal in most cases */
+	if (saved_binlog == NULL) {
+		ldebug("No saved binlog for node: %s", node->name);
+		return 0;
+	}
+
+	ldebug("Reading saved backlog for %s (%u entries, %s)", node->name,
+		   binlog_num_entries(saved_binlog), human_bytes(binlog_available(saved_binlog)));
+
+	while (!binlog_read(saved_binlog, (void **)&temp_pkt, &len)) {
+		if (!temp_pkt || packet_size(temp_pkt) != (int)len ||
+		    !len || !packet_size(temp_pkt) || packet_size(temp_pkt) > MAX_PKT_SIZE)
+		{
+			if (!temp_pkt) {
+				lerr("BACKLOG-SAVED: binlog returned 0 but presented no data");
+			} else {
+				lerr("BACKLOG-SAVED: binlog returned a packet claiming to be of size %d", packet_size(temp_pkt));
+			}
+			lerr("BACKLOG-SAVED: binlog claims the data length is %u", len);
+			lerr("BACKLOG-SAVED: wiping backlog. %s is now out of sync", node->name);
+			binlog_destroy(node->binlog, BINLOG_UNLINK);
+			return -1;
+		}
+		errno = 0;
+		ldebug("BACKLOG-SAVED: Read event of type : %d", temp_pkt->hdr.type);
+		binlog_add(node->binlog, (void *)temp_pkt, len);
+
+	}
+	/* wipe the binlog and free memory */
+	binlog_destroy(saved_binlog, BINLOG_UNLINK);
+
+	/* Timing information */
+	diff = clock() - start;
+	msec = diff * 1000 / CLOCKS_PER_SEC;
+	ldebug("Reading saved binlog for %s took: %d seconds & %d milliseconds",
+			node->name, msec/1000, msec%1000);
+	return 0;
 }
 
 /*
@@ -1003,9 +1069,8 @@ int node_send_event(merlin_node *node, merlin_event *pkt, int msec)
 	}
 
 	/* if binlog has entries, we must send those first */
-	if (binlog_has_entries(node->binlog)) {
+	if (binlog_has_entries(node->binlog))
 		node_send_binlog(node, pkt);
-	}
 
 	/* binlog may still have entries. If so, add to it and return */
 	if (binlog_has_entries(node->binlog))

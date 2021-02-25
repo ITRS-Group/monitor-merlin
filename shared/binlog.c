@@ -9,8 +9,9 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <stdio.h> /* for debugging only */
+#include <stdio.h>
 #include "binlog.h"
+#include "logging.h"
 
 struct binlog_entry {
 	unsigned int size;
@@ -30,6 +31,8 @@ struct binlog {
 	int is_valid;
 	int should_warn_if_full;
 	char *path;
+	char *file_metadata_path;
+	char *file_save_path;
 	int fd;
 };
 
@@ -113,6 +116,16 @@ binlog *binlog_create(const char *path, unsigned long long int msize, unsigned l
 	bl->is_valid = 1;
 	bl->should_warn_if_full = 1;
 
+	if (asprintf(&bl->file_metadata_path, "%s.meta",path) < 15)
+	{
+		return NULL;
+	}
+
+	if (asprintf(&bl->file_save_path, "%s.save",path) < 15)
+	{
+		return NULL;
+	}
+
 	if (bl->path && (flags & BINLOG_UNLINK))
 		unlink(bl->path);
 
@@ -176,6 +189,14 @@ void binlog_destroy(binlog *bl, int flags)
 		free(bl->path);
 		bl->path = NULL;
 	}
+	if (bl->file_metadata_path) {
+		free(bl->file_metadata_path);
+		bl->file_metadata_path = NULL;
+	}
+	if (bl->file_save_path) {
+		free(bl->file_save_path);
+		bl->file_metadata_path = NULL;
+	}
 
 	free(bl);
 }
@@ -201,10 +222,12 @@ static int binlog_file_read(binlog *bl, void **buf, unsigned int *len)
 	result = read(bl->fd, len, sizeof(*len));
 	if(result < 0)
 		return -1;
+
 	*buf = malloc(*len);
 	result = read(bl->fd, *buf, *len);
 	if(result < 0)
 		return -1;
+
 	bl->file_read_pos = lseek(bl->fd, 0, SEEK_CUR);
 	bl->file_entries--;
 
@@ -524,4 +547,80 @@ unsigned int binlog_available(binlog *bl)
 		return 0;
 
 	return (bl->file_size - bl->file_read_pos) + bl->mem_avail;
+}
+
+static int binlog_write_file_metadata(binlog *bl) {
+	FILE *file;
+
+	binlog_flush(bl);
+	file = fopen(bl->file_metadata_path, "wb");
+	if (file != NULL) {
+		fwrite(bl, sizeof(binlog), 1, file);
+		fclose(file);
+	} else {
+		return -1;
+	}
+
+	return 0;
+}
+
+binlog * binlog_get_saved(binlog * node_binlog) {
+	int ret, elements_read;
+	struct binlog *bl;
+	FILE * file;
+
+	/* Check if there is a saved binlog to read */
+	if( access( node_binlog->file_metadata_path, F_OK ) != 0 ) {
+		return NULL;
+	}
+
+	if( access( node_binlog->file_save_path, F_OK ) != 0 ) {
+		/* For some reason we had a metadata file, but no save file. */
+		/* Delete the metadata file */
+		unlink(node_binlog->file_metadata_path);
+		return NULL;
+	}
+
+	file = fopen(node_binlog->file_metadata_path, "rb");
+	/* Make sure we could open the file correctly */
+	if (file == NULL) {
+		return NULL;
+	}
+
+	/* free'd either here (binlog_destroy) or by the caller (node_binlog_read_saved) */
+	bl = malloc(sizeof(struct binlog));
+
+	elements_read = fread(bl, sizeof(struct binlog), 1, file);
+	fclose(file);
+
+	/* Make sure we sucessfully read one binlog struct */
+	if (elements_read != 1) {
+		binlog_destroy(bl,BINLOG_UNLINK);
+		return NULL;
+	}
+
+	bl->file_metadata_path = strdup(node_binlog->file_metadata_path);
+	bl->path = strdup(node_binlog->file_save_path);
+	/* Need to reset the file descriptor as it won't be valid anymore */
+	bl->fd = -1;
+	ret = binlog_open(bl);
+	if (ret < 0) {
+		binlog_destroy(bl, BINLOG_UNLINK);
+		return NULL;
+	}
+	/* get rid of the metadata file now */
+	unlink(node_binlog->file_metadata_path);
+	return bl;
+}
+
+int binlog_save(binlog *bl) {
+	if (bl && binlog_num_entries(bl) > 0) {
+		if (binlog_write_file_metadata(bl) != 0) {
+			return -1;
+		}
+		if (rename(bl->path, bl->file_save_path) != 0) {
+			return -1;
+		}
+	}
+	return 0;
 }

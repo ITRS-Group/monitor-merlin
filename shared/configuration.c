@@ -130,6 +130,16 @@ static int grok_binlog_var(const char *key, const char *value)
 		return read_positive_number(value, &binlog_max_file_size);
 	}
 
+	if (!strcmp(key, "binlog_persist")) {
+		int binlog_val = atoi(value);
+		if (binlog_val == 0) {
+		 	binlog_persist = false;
+		} else {
+			binlog_persist = true;
+		}
+		return 1;
+	}
+
 	return 0;
 }
 

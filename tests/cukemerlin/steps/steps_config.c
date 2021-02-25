@@ -30,6 +30,8 @@ STEP_DEF(step_file_size);
 STEP_DEF(step_file_empty);
 STEP_DEF(step_file_should_be_empty);
 STEP_DEF(step_files_are_identical);
+STEP_DEF(step_file_exists);
+STEP_DEF(step_file_not_exists);
 
 /* matches and not matches is similar, create a wrapper for those */
 static glong file_match_step(gpointer *scenario, const gchar *filename, const gchar *pattern, CukeResponseRef respref);
@@ -56,6 +58,8 @@ CukeStepEnvironment steps_config = {
 		{ "^the file ([^ ]+) should not be larger than ([0-9 ]+) bytes$", step_file_size },
 		{ "^the file ([^ ]+) should be empty$", step_file_should_be_empty },
 		{ "^files (.+) and (.+) are identical$", step_files_are_identical },
+		{ "^the file ([^ ]+) should exist$", step_file_exists },
+		{ "^the file ([^ ]+) should not exist$", step_file_not_exists },
 		{ NULL, NULL }
 	}
 };
@@ -199,6 +203,47 @@ STEP_DEF(step_file_empty) {
 	STEP_OK;
 }
 
+STEP_DEF(step_file_exists) {
+	StepsConfig *sc = (StepsConfig *) scenario;
+
+	gchar *filename = NULL;
+	GError *error = NULL;
+	gint fd = 0;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &filename)) {
+		STEP_FAIL("Invalid arguments");
+		return;
+	}
+
+	if (!g_file_test (filename, G_FILE_TEST_EXISTS)) {
+		STEP_FAIL("File does not exist");
+		g_error_free(error);
+		return;
+	}
+
+	STEP_OK;
+}
+
+STEP_DEF(step_file_not_exists) {
+	StepsConfig *sc = (StepsConfig *) scenario;
+
+	gchar *filename = NULL;
+	GError *error = NULL;
+	gint fd = 0;
+
+	if (!jsonx_locate(args, 'a', 0, 's', &filename)) {
+		STEP_FAIL("Invalid arguments");
+		return;
+	}
+
+	if (g_file_test (filename, G_FILE_TEST_EXISTS)) {
+		STEP_FAIL("File does exists");
+		g_error_free(error);
+		return;
+	}
+
+	STEP_OK;
+}
 
 static glong file_match_step(gpointer *scenario, const gchar *filename, const gchar *pattern, CukeResponseRef respref) {
 	StepsConfig *sc = (StepsConfig *) scenario;

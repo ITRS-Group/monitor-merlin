@@ -1,6 +1,7 @@
 #ifndef INCLUDE_binlog_h
 #define INCLUDE_binlog_h
 #include <unistd.h>
+
 /**
  * @file binlog.h
  * @brief binary logging functions
@@ -165,6 +166,20 @@ extern unsigned int binlog_size(binlog *bl);
  * @return Number of bytes available for reading from this log
  */
 extern unsigned int binlog_available(binlog *bl);
+
+/**
+ * Creates a new binlog from a binlog that was persistently saved on disk.
+ * @param bl the normal binlog for a node
+ * @return the persistently saved binlog
+ */
+extern binlog * binlog_get_saved(binlog * node_binlog); 
+
+/**
+ * Saves a binlog persistently on disk.
+ * @param bl the binlog to save
+ * @return 0 on success -1 otherwise
+ */
+extern int binlog_save(binlog *bl);
 
 /** warning condition for backlog base path having insecure permissions */
 #define BINLOG_UNSAFE  1

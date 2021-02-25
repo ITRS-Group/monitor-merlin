@@ -1,0 +1,39 @@
+The two binary files in this directory are used for testing binlog persitence.
+The binlog contains the following events:
+
+* EXTERNAL_COMMAND
+	type = 1400
+	command_type = 87
+	command_string = PROCESS_HOST_CHECK_RESULT
+	command_args = hostA;1;Fromtest
+* HOST_CHECK
+	state.initial_state = 0
+	state.check_type = 1
+	state.current_state = 1
+	state.last_state = 0
+	state.last_hard_state = 0	
+	state.state_type = 1
+	state.current_attempt = 1
+	state.notifications_enabled = 1
+	state.last_notification = 0
+	state.next_notification = 0
+	state.last_state_change = 1613558292
+	state.last_hard_state_change = 1613558292
+	state.plugin_output = Fromtest
+	name = hostA
+* NOTIFICATION
+	type = 601
+	notification_type = 0
+	start_time = 0.000000
+	end_time = 0.000000
+	host_name = hostA
+	reason_type = 0
+	state = 1
+	output = Fromtest
+	escalated = 0
+	contacts_notified = 0
+* EXTERNAL_COMMAND
+	type = 1400
+	command_type = 8
+	command_string = SHUTDOWN_PROGRAM
+	command_args =

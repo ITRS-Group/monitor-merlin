@@ -295,6 +295,8 @@ int dump_nodeinfo(merlin_node *n, int sd, int instance_id);
 extern int node_compat_cmp(const merlin_node *node, const merlin_event *pkt);
 extern int node_oconf_cmp(const merlin_node *node, const merlin_nodeinfo *info);
 extern int node_mconf_cmp(const merlin_node *node, const merlin_nodeinfo *info);
+extern int node_create_binlog(merlin_node *node);
+extern int node_binlog_read_saved(merlin_node *node);
 
 /*
  * we make these inlined rather than macros so the compiler
