@@ -518,7 +518,7 @@ merlin_event *event_packer_unpack_kvv(const char *cmd, struct kvvec *kvv) {
 		}
 		evt->hdr.len = size;
 	}
-
+	strcpy(evt->hdr.from_uuid, "41e3aa75-6885-4890-a254-907326792fa0");
 	free(unpacked_data);
 	return evt;
 }
