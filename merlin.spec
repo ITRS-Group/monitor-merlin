@@ -172,6 +172,7 @@ Requires: monitor-livestatus
 Requires: op5-lmd
 Requires: op5-naemon
 Requires: merlin merlin-apps monitor-merlin
+Requires: monitor-testthis
 BuildRequires: diffutils
 Requires: op5-abrt-config
 
@@ -320,7 +321,8 @@ fi
 
 %files
 %defattr(-,root,root)
-%attr(640, -, %daemon_group) %config(noreplace) %mod_path/merlin.conf
+%dir %attr(750, %daemon_user, -) %mod_path
+%attr(660, -, %daemon_group) %config(noreplace) %mod_path/merlin.conf
 %_datadir/merlin/sql
 %mod_path/merlind
 %_bindir/merlind
@@ -376,7 +378,7 @@ fi
 %if 0%{?rhel} >= 7
 %files slim
 %defattr(-,root,root)
-%attr(640, -, %daemon_group) %config(noreplace) %mod_path/merlin.conf
+%attr(660, -, %daemon_group) %config(noreplace) %mod_path/merlin.conf
 %mod_path/merlind
 %_bindir/merlind
 %_libdir/merlin/install-merlin.sh

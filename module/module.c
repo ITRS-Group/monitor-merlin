@@ -15,6 +15,7 @@
 #include "oconfsplit.h"
 #include "script-helpers.h"
 #include "net.h"
+#include "runcmd.h"
 
 merlin_node **host_check_node = NULL;
 merlin_node **service_check_node = NULL;
@@ -33,6 +34,8 @@ static timed_event **host_expiry_map, **service_expiry_map;
 struct dlist_entry *expired_events;
 static struct dlist_entry **expired_hosts;
 static struct dlist_entry **expired_services;
+
+char * cluster_update = NULL;
 
 /** code start **/
 
@@ -56,7 +59,6 @@ struct merlin_notify_stats merlin_notify_stats[9][2][2];
  * See grok_module_compound() for further details
  */
 static uint32_t event_mask;
-
 
 /*
  * this removes the necessity for linking the
@@ -370,8 +372,14 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 			return;
 		}
 		if (node_mconf_cmp(node, info)) {
+			/* We set the flag here, so next time we sent a CTRL packet
+			 * we send a CTRL_INVALID_CLUSTER 
+			 */
+			node->incompatible_cluster_config = true;
 			node_disconnect(node, "Incompatible cluster configuration");
 			return;
+		} else {
+			node->incompatible_cluster_config = false;
 		}
 		if ((ret = node_oconf_cmp(node, info))) {
 			csync_node_active(node, info, ret);
@@ -389,6 +397,16 @@ void handle_control(merlin_node *node, merlin_event *pkt)
 			ldebug("NODESTATE: %s node %s just marked as connected after CTRL_ACTIVE",
 				   node_type(node), node->name);
 		}
+		break;
+	case CTRL_INVALID_CLUSTER:
+		lwarn("Node %s has signalled that the cluster config is invalid", node->name);
+		if (cluster_update != NULL) {
+			ldebug("Running cluster update command");
+			update_cluster_config();
+		}
+		break;
+	case CTRL_FETCH:
+		csync_fetch(node);
 		break;
 	case CTRL_STALL:
 	case CTRL_RESUME:
@@ -800,6 +818,12 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 		handle_control(node, pkt);
 		return 0;
 	}
+	if (pkt->hdr.type == RUNCMD_PACKET) {
+		if (merlin_decode_event(node, pkt)) {
+			return 0;
+		}
+		return handle_runcmd_event(node, pkt);
+	}
 
 	if (node->state != STATE_CONNECTED) {
 		/* the f*ck did that happen? An unconnected node talking to us */
@@ -1107,6 +1131,10 @@ static void grok_module_compound(struct cfg_comp *comp)
 			}
 			continue;
 		}
+		if (!strcmp(v->key, "cluster_update")) {
+			cluster_update = strdup(v->value);
+			continue;
+		}
 
 		if (grok_common_var(comp, v))
 			continue;
@@ -1296,6 +1324,66 @@ static void disconnect_inactive_nodes(struct nm_event_execution_properties *evpr
 }
 
 /*
+ * This is a scheduled event. Its occurence is stated in seconds in the
+ * variable 'node_auto_delete_check_interval (shared.c)'. For any node that is
+ * not active, and has an auto_delete interval set, we check if it has been
+ * inactive for at least auto_delete seconds, and if it has we delete the node
+ * and restart.
+ */
+static void auto_delete_nodes(struct nm_event_execution_properties *evprop) {
+	unsigned int i;
+	int offset = 0;
+	time_t now = time(NULL);
+	bool node_deleted = false;
+	char nodes_to_delete[AUTO_DELETE_BUFFER_SIZE];
+
+	ldebug("AUTO_DELETE: Checking for nodes to be auto deleted");
+
+	if (evprop->execution_type != EVENT_EXEC_NORMAL)
+		return;
+
+	/* If IPC is not connected we probably have bigger problems, so we just return
+	 * this also ensures we don't use a potentially unsafe ipc.connect_time
+	 * down the line */
+	if (ipc.state != STATE_CONNECTED) {
+		ldebug("AUTO_DELETE: ipc is not connected, do nothing");
+		return;
+	}
+
+	schedule_event(node_auto_delete_check_interval, auto_delete_nodes, NULL);
+	for (i = 0; i < num_nodes; i++) {
+		merlin_node *node = noc_table[i];
+		if(node->auto_delete > 0 &&
+		   node->state != STATE_CONNECTED) {
+			time_t last_seen_delta;
+			/* If we have never seen the node, we use the ipc_connect time,
+			 * as it will always disconnected for at least that amount of time */
+			if (node->last_action == 0) {
+				last_seen_delta = now - ipc.connect_time;
+			} else {
+				last_seen_delta = now - node->last_action;
+			}
+
+			if (last_seen_delta > node->auto_delete) {
+				linfo("AUTO_DELETE: %s scheduled for removal. last_seen_delta: %ld", node->name, last_seen_delta);
+				/* Add the node to the list and fail if the string was truncated */
+				offset += snprintf(nodes_to_delete+offset, sizeof(nodes_to_delete), "%s ", node->name);
+				if (offset < 0 || offset >= AUTO_DELETE_BUFFER_SIZE) {
+					lwarn("AUTO_DELETE: Couldn't delete nodes due to insufficient buffer size: %d", offset);
+				}
+				node_deleted = true;
+			} else {
+				ldebug("AUTO_DELETE: %s has %ld seconds left before auto deletion", node->name, last_seen_delta);
+			}
+		}
+	}
+	/* Actually delete the nodes and restart */
+	if (node_deleted) {
+		auto_delete_node_cmd(nodes_to_delete);
+	}
+}
+
+/*
  * Sends the path to objects.cache and status.log to the
  * daemon so it can import the necessary data into the
  * database.
@@ -1349,6 +1437,7 @@ static int post_config_init(int cb, void *ds)
 		schedule_event(0, connect_to_all, NULL);
 		schedule_event(0, send_pulse, NULL);
 		schedule_event(0, disconnect_inactive_nodes, NULL);
+		schedule_event(node_auto_delete_check_interval, auto_delete_nodes, NULL);
 
 		/*
 	 	* now we register the hooks we're interested in, avoiding

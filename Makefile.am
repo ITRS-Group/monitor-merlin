@@ -15,11 +15,11 @@ mon_SCRIPTS = \
 	apps/libexec/check.py \
 	apps/libexec/db.py \
 	apps/libexec/ecmd.py \
+	apps/libexec/id.py \
 	apps/libexec/log.py \
 	apps/libexec/merlinkey.py \
 	apps/libexec/node.py \
 	apps/libexec/node.tree.php \
-	apps/libexec/oconf.fetch.sh \
 	apps/libexec/oconf.py \
 	apps/libexec/qh.py \
 	apps/libexec/query.ls.sh \
@@ -126,6 +126,7 @@ module_sources = $(shared_sources) \
 	module/script-helpers.c module/script-helpers.h \
 	module/oconfsplit.c module/oconfsplit.h \
 	module/net.c module/net.h \
+	module/runcmd.c module/runcmd.h \
 	shared/pgroup.c shared/pgroup.h \
 	module/testif_qh.c module/testif_qh.h
 daemon_sources = $(shared_sources) $(db_wrap_sources) \
@@ -177,7 +178,7 @@ test_lparse_SOURCES = tests/test-lparse.c tools/lparse.c tools/logutils.c tools/
 test_lparse_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tools $(GLIB_CFLAGS)
 test_lparse_CPPFLAGS = $(AM_CPPFLAGS)
 test_lparse_LDADD = $(naemon_LIBS)
-hooktest_SOURCES = tests/test-hooks.c module/net.c module/testif_qh.c module/script-helpers.c shared/cfgfile.c shared/shared.c shared/logging.c shared/dlist.c shared/io.c shared/encryption.c shared/node.c shared/codec.c shared/binlog.c module/misc.c module/sha1.c tools/test_utils.c module/oconfsplit.c shared/configuration.c module/queries.c
+hooktest_SOURCES = tests/test-hooks.c module/net.c module/testif_qh.c module/script-helpers.c shared/cfgfile.c shared/shared.c shared/logging.c shared/dlist.c shared/io.c shared/encryption.c shared/node.c shared/codec.c shared/binlog.c module/misc.c module/sha1.c tools/test_utils.c module/oconfsplit.c shared/configuration.c module/queries.c module/runcmd.c
 hooktest_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/module -I$(srcdir)/tools $(check_CFLAGS) $(GLIB_CFLAGS)
 hooktest_LDADD = $(naemon_LIBS) $(check_LIBS)
 stringutilstest_SOURCES = tests/test-stringutils.c tools/test_utils.c daemon/string_utils.c
@@ -217,7 +218,7 @@ endif
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)/config
 
-data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/merlin apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.fetch.sh apps/libexec/oconf.py apps/mon.py apps/libexec/restart.sh apps/libexec/merlinkey.py: % : %.in
+data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/merlin apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.py apps/mon.py apps/libexec/restart.sh apps/libexec/merlinkey.py: % : %.in
 	$(AM_V_GEN) sed \
 		-e 's,@PYTHON[@],$(PYTHON),g' \
 		-e 's,@pkgconfdir[@],$(pkgconfdir),g' \
@@ -256,7 +257,7 @@ tests/merlincat/nebev-col2key.c: tests/merlincat/nebev-col2key.gperf
 tests/merlincat/kvvec2nebev.c: tests/merlincat/nebev-col2key.c
 
 BUILT_SOURCES = $(GENERATED_NEBEV) tests/merlincat/nebev-col2key.c \
-	 apps/libexec/restart.sh apps/libexec/oconf.py apps/mon.py apps/libexec/oconf.fetch.sh
+	 apps/libexec/restart.sh apps/libexec/oconf.py apps/mon.py
 CLEANFILES = $(BUILT_SOURCES)
 
 merlincat_SOURCES = tests/merlincat/merlincat.c \

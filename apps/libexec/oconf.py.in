@@ -5,6 +5,8 @@ import os
 import io
 import sys
 import subprocess as sp
+import compound_config as cconf
+import nagios_qh
 
 from multiprocessing import Pool
 from compound_config import parse_nagios_cfg
@@ -12,6 +14,7 @@ from merlin_apps_utils import prettyprint_docstring
 
 obj_index = {}
 
+query_socket = False
 
 def idx_get(otype):
     global obj_index
@@ -34,6 +37,7 @@ config_dir = None
 def module_init(args):
     global config_dir
     global cache_dir
+    global query_socket
     rem_args = []
     for arg in args:
         if arg.startswith('--use-helper='):
@@ -46,6 +50,14 @@ def module_init(args):
         rem_args.append(arg)
     if not config_dir:
         config_dir = '%s/config' % cache_dir
+
+    if not query_socket:
+        if os.access(nagios_cfg, os.R_OK):
+            comp = cconf.parse_nagios_cfg(nagios_cfg)
+            query_socket = comp.query_socket
+        else:
+            query_socket = '/opt/monitor/var/rw/nagios.qh'
+
     return rem_args
 
 
@@ -160,6 +172,196 @@ def restart_node(node):
     out = io.StringIO()
     return (node.ctrl("sudo mon restart", out=out, err=out),
             out.getvalue().rstrip('\n'))
+
+
+def cmd_fetch(args):
+    """\
+    [--dryrun] [--sync] [--verbose] <node>
+    Fetch split configuration from a master node.
+
+    If the --sync option is used the files specifed in the sync {...} section
+    in the merlin configuration will be fetched as well.
+
+    SSH keys needs to be set up to use this without admin supervision.
+
+    NOTE: A configuration variable called "fetch_name" is
+    required in the object_config section of merlin.cfg on the
+    poller. The variable should be set to the name of the poller,
+    as seen by the master.
+"""
+    dryrun = False
+    sync = False
+    node = None
+    verbose = False
+
+    for arg in args:
+        if arg == '--dryrun':
+            dryrun = True
+        elif arg == '--sync':
+            sync = True
+        elif arg == '--verbose':
+            verbose = True
+        elif arg.startswith('--'):
+            prettyprint_docstring(
+                'fetch', cmd_fetch.__doc__, 'Unknown argument: %s' % arg
+            )
+            sys.exit(1)
+        else:
+            # arg must be name of node
+            node = mconf.configured_nodes.get(arg)
+            if not node:
+                prettyprint_docstring(
+                    'fetch', cmd_fetch.__doc__, 'Unknown node: %s' % arg
+                )
+                sys.exit(1)
+
+    if not node:
+        prettyprint_docstring('fetch', cmd_fetch.__doc__, 'No node given')
+        sys.exit(1)
+
+    # Set oconf options
+    oconf_ssh_port = node.options.get("oconf_ssh_port")
+    oconf_fetch = node.options.get("oconf_fetch")
+    oconf_fetch_name = node.options.get("oconf_fetch_name")
+    oconf_ssh_user = node.options.get('oconf_ssh_user')
+    oconf_ssh_key = node.options.get('oconf_ssh_key')
+    if not oconf_fetch_name:
+        prettyprint_docstring(
+            'fetch', cmd_fetch.__doc__, 'fetch_name needs to be set'
+        )
+        sys.exit(1)
+
+    # List of tuples (source, destination)
+    files_to_fetch = []
+    # Sync local configuration from the master
+    config_source = "{}:{}".format(
+            node.address, "@cachedir@/config/" + oconf_fetch_name + ".cfg"
+    )
+    config_destination = "/opt/monitor/etc/oconf/from-master.cfg"
+    files_to_fetch.append((config_source, config_destination))
+
+    if sync:
+        for (source, destination) in node.paths_to_sync.items():
+            # If no destination is given the value will be True
+            # in that case we assume that source == destination
+            if destination is True:
+                destination = source
+            files_to_fetch.append(
+                ("{}:{}".format(node.address, source), destination)
+            )
+
+    errors = 0
+    for (source, destination) in files_to_fetch:
+        return_code, output = rsync_file_from_remote(
+            source, destination, oconf_ssh_user,
+            oconf_ssh_key, oconf_ssh_port, dryrun
+        )
+        errors += return_code
+        if output:
+            print output
+
+    if errors != 0:
+        print "Errors occured while synchronizing files!"
+        sys.exit(1)
+    # Restart this node after config files has been fetch
+    sp.call("sudo mon restart", shell=True)
+    sys.exit(0)
+
+def cmd_remote_fetch(args):
+    """\
+    [--type=<peer|poller> [<node>]
+    Tells a specific node to fetch split configuration from this node.
+
+    NOTE: A configuration variable called "fetch_name" is
+    required in the object_config section of merlin.cfg on the
+    remote node. The variable should be set to the name of the node,
+    as seen by the master.
+"""
+
+    global query_socket
+    node = ""
+    node_type = ""
+    qh_args = ""
+
+    for arg in args:
+        if arg.startswith('--type='):
+            node_type = arg.split('=')[1]
+        elif arg.startswith('--help'):
+            prettyprint_docstring(
+                'remote-fetch', cmd_remote_fetch.__doc__
+            )
+            sys.exit(1)
+        elif arg.startswith('--'):
+            prettyprint_docstring(
+                'remote-fetch', cmd_remote_fetch.__doc__, 'Unknown argument: %s' % arg
+            )
+            sys.exit(1)
+        else:
+            node = arg
+
+    if node:
+        qh_args += "node=%s;" %node
+    if node_type:
+        qh_args += "type=%s" %node_type
+    if not qh_args:
+        print "No node type or node specified. See `mon oconf remote-fetch help` for more details."
+        return False
+
+    qh = nagios_qh.nagios_qh(query_socket)
+    res = qh.query('#merlin remote-fetch ' + qh_args + '\0')
+    for line in res:
+        if qh_args not in line:
+            print line
+
+    return True
+
+
+# Copied and modifed from sync_files
+def rsync_file_from_remote(
+    source, destination, ssh_user=None, ssh_key=None, ssh_port=None, dryrun=False
+):
+    """ Rsyncs a file from a remote system using ssh as transport
+        Expects source to be of the form, <host>:<path>
+    """
+    global cache_dir
+    return_code = 0
+    out = io.StringIO()
+
+    # Use compression by default
+    ssh_cmd = 'ssh -C'
+
+    ssh_user = None
+    # if we're not running from console, we need to disable
+    # keyboard-interactive authentication to avoid hanging
+    if not os.isatty(sys.stdout.fileno()):
+        ssh_cmd += ' -o KbdInteractiveAuthentication=no'
+    if ssh_key:
+        ssh_cmd += ' -i ' + ssh_key
+    if ssh_user:
+        ssh_cmd += ' -l ' + ssh_user
+    if ssh_port:
+        ssh_cmd += ' -p ' + ssh_port
+
+    if ssh_user:
+        source = "{}@{}".format(ssh_user, source)
+
+    # Copy recursively in 'archive' mode
+    base_rsync_cmd = [
+        'rsync', '-aotzc', '--delete', '-b',
+        '--backup-dir=%s/backups' % cache_dir
+    ]
+
+    rsync_cmd = base_rsync_cmd + ['-e', ssh_cmd, source, destination]
+    if dryrun:
+        out.write(u'rsync command: %s\n' % ' '.join(rsync_cmd))
+    else:
+        p = sp.Popen(rsync_cmd, stdout=sp.PIPE, stderr=sp.PIPE)
+        output, error = p.communicate()
+        output and out.write(u'%s\n' % output)
+        error and out.write(u'%s\n' % error)
+        return_code = p.returncode
+
+    return (return_code, out.getvalue().rstrip('\n'))
 
 
 def sync_files((node, ssh_user, ssh_key, files_to_sync, dryrun)):

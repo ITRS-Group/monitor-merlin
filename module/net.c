@@ -10,15 +10,115 @@
 #include "io.h"
 #include "ipc.h"
 #include "net.h"
+#include <pthread.h>
+#include <naemon/naemon.h>
 
 #define MERLIN_CONNECT_TIMEOUT 20 /* the (hardcoded) connect timeout we use */
 #define MERLIN_CONNECT_INTERVAL 5 /* connect interval */
 
+struct find_uuid_ctx {
+	nm_bufferqueue * bq;
+	timed_event * timeout_event;
+	int sock;
+	pthread_mutex_t lock; /* for handling UUID timeout racecondition */
+};
+
 static int net_sock = -1; /* listening sock descriptor */
+
+static int node_accept(int sock, merlin_node * node); /* forward declaration */
 
 static unsigned short net_source_port(merlin_node *node)
 {
 	return ntohs(node->sain.sin_port) + default_port;
+}
+
+/* Find a node by UUID by first reading the first packet from the socket and
+ * comparing the UUID part of the header with the UUID specified in config
+ */
+static int find_node_uuid(int sd, int ignore, void * ctx_) {
+	int bytes_read = 0;
+	int result;
+	uint32_t i;
+	struct find_uuid_ctx * ctx = (struct find_uuid_ctx *) ctx_;
+	nm_bufferqueue * bq = ctx->bq;
+	merlin_header hdr;
+	merlin_node *found_node = NULL;
+	merlin_event *pkt = NULL;
+
+	/* We get a mutex here in the very unlikely case that we entered this */
+	/* function but uuid_socket_timeout is called before the event is destroyed below */
+	if (pthread_mutex_trylock(&ctx->lock) != 0) {
+		ldebug("FINDNODE UUID: Couldn't get mutex");
+		return 0;
+	}
+
+	/* unregister from iobroker and delete expiry event as soon as we get data */
+	iobroker_unregister(nagios_iobs, sd);
+	destroy_event(ctx->timeout_event);
+
+	/* unlock mutex again now that event is destroyed */
+	if (pthread_mutex_unlock(&ctx->lock) != 0) {
+		lwarn("FINDNODE UUID: Couldn't unlock mutex");
+	}
+
+	/* Destroy the mutex */
+	if (pthread_mutex_destroy(&ctx->lock) != 0) {
+		lwarn("FINDNODE UUID: Couldn't destroy mutex");
+	}
+
+	/* read data. If we haven't got at least one header, we return and come back later */
+	bytes_read = nm_bufferqueue_read(bq, sd);
+	ldebug("FINDNODE UUID: read %d bytes", bytes_read);
+	if (nm_bufferqueue_peek(bq, HDR_SIZE, (void *)&hdr) != 0) {
+		ldebug("FINDNODE UUID: Not enough read for a header pkt. Closing connection sd: %d", sd);
+		close(sd);
+		nm_bufferqueue_destroy(bq);
+		free(ctx);
+		return 0;
+	}
+
+	for (i = 0; i < num_nodes; i++) {
+		merlin_node *node = node_table[i];
+		if (!valid_uuid(node->uuid)) {
+			ldebug("FINDNODE UUID: Node: %s doesn't have a valid UUID", node->name);
+			continue;
+		}
+		ldebug("FINDNODE UUID: comparing from_uuid: %s, node uuid: %s", hdr.from_uuid, node->uuid);
+
+		if (strcmp(hdr.from_uuid, node->uuid) == 0) {
+			ldebug("FINDNODE UUID: Found node: %s", node->name);
+			found_node = node;
+			break;
+		}
+	}
+
+
+	if (!found_node) {
+		ldebug("FINDNODE UUID: couldn't find node by UUID");
+		nm_bufferqueue_destroy(bq);
+		free(ctx);
+		close(sd);
+		return 0;
+	}
+
+	/* Use the new buffer queue in case there are more unhandled events left */
+	nm_bufferqueue_destroy(found_node->bq);
+	found_node->bq = bq;
+
+	/* Usually we have one full pkt worth of data. We save it for after socket negotation */
+	/* as otherwise we need to wait a full pulse interval before the node is */
+	/* marked as connected */
+	if (nm_bufferqueue_get_available(bq) >= HDR_SIZE + hdr.len) {
+		pkt = node_get_event(found_node);
+	}
+
+	result = node_accept(sd, found_node);
+
+	if (pkt) {
+		handle_event(found_node, pkt);
+	}
+
+	return result;
 }
 
 static merlin_node *find_node(struct sockaddr_in *sain)
@@ -34,7 +134,8 @@ static merlin_node *find_node(struct sockaddr_in *sain)
 		unsigned short source_port = ntohs(sain->sin_port);
 		unsigned short in_port = net_source_port(node);
 		ldebug("FINDNODE: node->sain.sin_addr.s_addr: %d", node->sain.sin_addr.s_addr);
-		if (node->sain.sin_addr.s_addr == sain->sin_addr.s_addr) {
+		if (node->sain.sin_addr.s_addr == sain->sin_addr.s_addr &&
+				!valid_uuid(node->uuid)) {
 			if (source_port == in_port) {
 				/* perfect match */
 				ldebug("Inbound connection matches %s exactly (%s:%d)",
@@ -439,33 +540,9 @@ int net_try_connect(merlin_node *node)
 	return 0;
 }
 
-
-/*
- * Accept an inbound connection from a remote host
- * Returns 0 on success and -1 on errors
- */
-static int net_accept_one(int sd, int events, void *discard)
-{
-	int sock, result;
-	merlin_node *node;
-	struct sockaddr_in sain;
-	socklen_t slen = sizeof(struct sockaddr_in);
-
-	sock = accept(sd, (struct sockaddr *)&sain, &slen);
-	if (sock < 0) {
-		lerr("accept() failed: %s", strerror(errno));
-		return -1;
-	}
-
-	node = find_node(&sain);
-	linfo("NODESTATE: %s connected from %s:%d. Current state is %s",
-		  node ? node->name : "An unregistered node",
-		  inet_ntoa(sain.sin_addr), ntohs(sain.sin_port),
-		  node ? node_state_name(node->state) : "unknown");
-	if (!node) {
-		close(sock);
-		return 0;
-	}
+/* Accepts a socket connection and associate it with the node */
+static int node_accept(int sock, merlin_node * node) {
+	int result;
 
 	switch (node->state) {
 	case STATE_NEGOTIATING:
@@ -501,6 +578,104 @@ static int net_accept_one(int sd, int events, void *discard)
 	}
 
 	return sock;
+}
+
+/* If UUID is enabled, and a socket connection is made, but no data is sent over
+ * the socket, we need to ensure the socket is eventually closed.
+ */
+void uuid_socket_timeout(struct nm_event_execution_properties *evprop)
+{
+	struct find_uuid_ctx * ctx = (struct find_uuid_ctx *) evprop->user_data;
+	long time_left_s = get_timed_event_time_left_ms(ctx->timeout_event) / 1000;
+	ldebug("Socket timeout: %ld s left to expiry", time_left_s);
+	/* Because it is only possible to "destroy and execute" the event, we need a */
+	/* sanity check here if it is really time to run this */
+	if (get_timed_event_time_left_ms(ctx->timeout_event) > 0) {
+		ldebug("Socket timeout: STILL %ld s left to expiry", time_left_s);
+		return;
+	}
+
+	/* Get mutex to make sure we didn't interrupt a find_node_uuid call */
+	if (pthread_mutex_trylock(&ctx->lock) != 0) {
+		ldebug("UUID_SOCKET_TIMEOUT: Couldn't get mutex");
+		return;
+	}
+
+	ldebug("Socket: %d not assigned to a node, closing", ctx->sock);
+	iobroker_unregister(nagios_iobs, ctx->sock);
+	nm_bufferqueue_destroy(ctx->bq);
+	close(ctx->sock);
+
+	if (pthread_mutex_unlock(&ctx->lock) != 0) {
+		lwarn("UUID_SOCKET_TIMEOUT: Couldn't unlock mutex");
+	}
+
+	if (pthread_mutex_destroy(&ctx->lock) != 0) {
+		lwarn("UUID_SOCKET_TIMEOUT: Couldn't destroy mutex");
+	}
+
+	free(ctx);
+}
+
+/*
+ * Accept an inbound connection from a remote host
+ * Returns 0 on success and -1 on errors
+ */
+static int net_accept_one(int sd, int events, void *discard)
+{
+	int sock;
+	merlin_node *node;
+	struct sockaddr_in sain;
+	socklen_t slen = sizeof(struct sockaddr_in);
+
+	sock = accept(sd, (struct sockaddr *)&sain, &slen);
+	if (sock < 0) {
+		lerr("accept() failed: %s", strerror(errno));
+		return -1;
+	}
+
+	node = find_node(&sain);
+
+	linfo("NODESTATE: %s connected from %s:%d. Current state is %s",
+			node ? node->name : "An unregistered node",
+			inet_ntoa(sain.sin_addr), ntohs(sain.sin_port),
+			node ? node_state_name(node->state) : "unknown");
+
+	if (node) {
+		return node_accept(sock, node);
+	} else if (uuid_nodes > 0) {
+		int result;
+		struct find_uuid_ctx * ctx;
+		/* memory will be free'd in find_node_uuid or uuid_socket_timeout */
+		ctx = malloc(sizeof(*ctx));
+		if (ctx == NULL) {
+			lerr("net_accept_one: could not malloc ctx");
+			return 0;
+		}
+		ctx->bq = nm_bufferqueue_create();
+		ctx->sock=sock;
+
+		if (pthread_mutex_init(&ctx->lock, NULL) != 0) {
+			lwarn("net_accept_one: Couldn't init mutex");
+			return 0;
+		}
+
+		/* In case we don't recieve any data at all on the socket connection */
+		/* we'll close the connection after MERLIN_CONNECT_TIMEOUT */
+		ctx->timeout_event = schedule_event(MERLIN_CONNECT_TIMEOUT, uuid_socket_timeout, (void *) ctx);
+		linfo("Trying to identify node by UUID coming from socket: %d", sock);
+
+		result = iobroker_register(nagios_iobs, sock, ctx, find_node_uuid);
+		if (result != 0) {
+			destroy_event(ctx->timeout_event);
+			free(ctx->bq);
+			ldebug("net_accept_one: Failed to register find_node_uuid with iobroker");
+		}
+		return result;
+	} else {
+		close(sock);
+		return 0;
+	}
 }
 
 

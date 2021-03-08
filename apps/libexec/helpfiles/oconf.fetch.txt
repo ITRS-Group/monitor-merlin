@@ -1,7 +1,0 @@
-<master node>
-Fetch split configuration from a master node.
-
-NOTE: A configuration variable called "oconf_fetch_name" is
-required in the poller's merlin.cfg for the specified master
-node. The variable should be set to the name of this node,
-as seen by the master.

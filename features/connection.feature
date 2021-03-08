@@ -257,3 +257,42 @@ Feature: Module handles network and connections
 		When I wait for 2 seconds
 
 		Then the_master should appear connected
+
+
+	# 41e3aa75-6885-4890-a254-907326792fa0 is the UUID sent by cukemerlin pkgs
+	Scenario: The module connects to peers with UUID
+		Given I have merlin configured for port 7000
+			| type | name    | port | uuid                                 |
+			| peer | my_peer | 4123 | 41e3aa75-6885-4890-a254-907326792fa0 |
+		And my_peer listens for merlin at port 4123
+
+		When I start naemon
+		And I wait for 1 second
+		And node my_peer have info hash my_hash at 5000
+		And node my_peer have expected hash my_hash at 5000
+
+		Then my_peer is connected to merlin
+
+		When my_peer sends event CTRL_ACTIVE
+			| configured_peers   |           1 |
+			| configured_pollers |           0 |
+			| configured_masters |           0 |
+		And I wait for 1 second
+
+		Then my_peer received event CTRL_ACTIVE
+		And I ask query handler merlin nodeinfo
+			| filter_var | filter_val | match_var   | match_val       |
+			| name       | my_peer    | state       | STATE_CONNECTED |
+
+	Scenario: The module doesn't connect to peers with wrong UUID
+		Given I have merlin configured for port 7000
+			| type | name    | port | connect | uuid                                 |
+			| peer | my_peer | 4123 | no      | 41e3aa75-6885-4890-ffff-907326792fa0 |
+		And my_peer listens for merlin at port 4123
+
+		When I start naemon
+		And I wait for 1 second
+		And node my_peer have info hash my_hash at 5000
+		And node my_peer have expected hash my_hash at 5000
+
+		Then my_peer should appear disconnected

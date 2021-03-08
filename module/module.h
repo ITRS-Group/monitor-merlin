@@ -54,6 +54,8 @@ extern node_selection *node_selection_by_hostname(const char *name);
 /** global variables exported by Nagios **/
 extern int __nagios_object_structure_version;
 
+extern char * cluster_update;
+
 /** prototypes **/
 extern void schedule_expiration_event(int type, merlin_node *node, void *obj);
 extern int handle_ipc_event(merlin_node *node, merlin_event *pkt);
@@ -187,5 +189,7 @@ struct tmp_net2mod_data {
 	safe_free(tmp.old_plugin_output); \
 	safe_free(tmp.old_long_plugin_output); \
 	safe_free(tmp.old_perf_data);
+
+#define AUTO_DELETE_BUFFER_SIZE 1024 /* Fixed sized buffer used in auto_delete_nodes  */
 
 #endif /* MRM_MOD_H */
