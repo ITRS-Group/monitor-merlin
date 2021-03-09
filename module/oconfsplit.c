@@ -8,6 +8,7 @@
 #include <getopt.h>
 #include <libgen.h>
 #include <glib.h>
+#include <stdbool.h>
 
 static struct {
 	bitmap *hosts;
@@ -242,7 +243,7 @@ static gboolean nsplit_cache_host(gpointer _name, gpointer _hst, __attribute__((
 			nsplit_cache_contacts(se->contacts);
 			fcache_serviceescalation(fp, se);
 		}
-		destroy_service(tmpsvc);
+		destroy_service(tmpsvc, FALSE);
 	}
 	/* This is a temporary host, which doesn't have back references... ugh */
 	if (tmphst->parent_hosts != NULL) {
@@ -337,7 +338,7 @@ static int nsplit_partial_groups(void)
 			fcache_servicegroup(fp, tmpsg);
 		}
 
-		destroy_servicegroup(tmpsg);
+		destroy_servicegroup(tmpsg, FALSE);
 	}
 	return 0;
 }

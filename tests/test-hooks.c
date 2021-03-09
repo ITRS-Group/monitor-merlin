@@ -113,7 +113,7 @@ static void expiration_setup(void)
 static void expiration_teardown(void)
 {
 	destroy_objects_host();
-	destroy_objects_service();
+	destroy_objects_service(TRUE);
 	qh_deinit(queryhandler_socket_path);
 	iobroker_destroy(nagios_iobs, IOBROKER_CLOSE_SOCKETS);
 	nebmodule_deinit(0, 0);
