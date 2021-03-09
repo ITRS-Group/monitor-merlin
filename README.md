@@ -71,8 +71,7 @@ and other useful things.
 ## Requirements ##
 
 Merlin requires Naemon, including its development headers for building.
-Currently, it requires the very latest development version (> 1.0.3) for
-auto-detecting paths to Naemon.
+Currently, it requires version >= 1.2.4.
 
 Other general build requirements: gcc, autoconf, automake, glib-2-devel,
 check-devel, libdbi-devel, libtool, naemon-devel, gperf
