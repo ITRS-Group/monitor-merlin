@@ -17,7 +17,11 @@ post:
     sudo -u monitor mon test rsync
 
     # Run unit tests
-    nosetests-2 ${VERBOSE:+-v} --nocapture --where apps/libexec/modules
+    if [ \$RHEL_VERSION == "8" ]; then
+      nosetests-2 ${VERBOSE:+-v} --nocapture --where apps/libexec/modules
+    else
+      nosetests ${VERBOSE:+-v} --nocapture --where apps/libexec/modules
+    fi
 
     # Verify file permissions after installation
     stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 660" = "{}"
