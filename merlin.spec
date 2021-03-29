@@ -175,6 +175,9 @@ Requires: merlin merlin-apps monitor-merlin
 Requires: monitor-testthis
 BuildRequires: diffutils
 Requires: op5-abrt-config
+# Required development tools for building gems
+Requires: make automake gcc
+Requires: redhat-rpm-config
 
 %description test
 Some additional test files for merlin
