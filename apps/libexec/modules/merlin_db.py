@@ -1,3 +1,5 @@
+import sys
+
 conn = False
 
 def connect(mconf, reuse_conn=True):
@@ -27,10 +29,13 @@ def connect(mconf, reuse_conn=True):
 	if db_type == 'mysql':
 		try:
 			import MySQLdb as db
-		except:
-			print("Failed to import MySQLdb")
-			print("Install mysqldb-python or MySQLdb-python to make this command work")
-			sys.exit(1)
+		except ImportError:
+			try:
+				import pymysql as db
+			except ImportError:
+				print("Failed to import MySQLdb or PyMySQL")
+				print("Install MySQL-python or python2-PyMySQL to make this command work")
+				sys.exit(1)
 		if db_pass == False:
 			conn = db.connect(host=db_host, user=db_user, db=db_name)
 		else:
