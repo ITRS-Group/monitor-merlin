@@ -182,6 +182,9 @@ Requires: libyaml
 Requires: mariadb-devel
 Requires: ruby-devel
 Requires: python2-nose
+# Required development tools for building gems
+Requires: make automake gcc
+Requires: redhat-rpm-config
 BuildRequires: diffutils
 
 %description test

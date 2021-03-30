@@ -2,7 +2,7 @@ require "sequel"
 
 Given(/^I have a database running$/) do
     h = @databaseconfig
-    args = "--log-error=./db.log --log=./general-db.log --datadir=./db/data --socket=./db.sock --pid-file=./db.pid"
+    args = "--log-error=./db.log --general-log=./general-db.log --datadir=./db/data --socket=./db.sock --pid-file=./db.pid"
     # The reason we use the exact path to mysqld here is because it's not in $PATH. The
     # alternative is to use mysqld_safe which is in $PATH but it doesn't terminate when
     # we try to kill it with SIGTERM
