@@ -15,14 +15,18 @@ post:
     sudo -u monitor mon test rsync
 
     # Run unit tests
-    nosetests ${VERBOSE:+-v} --nocapture --where apps/libexec/modules
+    if [ \$RHEL_VERSION == "8" ]; then
+      nosetests-2 \${VERBOSE:+-v} --nocapture --where apps/libexec/modules
+    else
+      nosetests \${VERBOSE:+-v} --nocapture --where apps/libexec/modules
+    fi
 
     # Verify file permissions after installation
     stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 660" = "{}"
 
     # Install requirements for cucumber test
     gem install --no-ri --no-rdoc \
-        cucumber:1.3.6 \
+        cucumber:1.3.18 \
         rspec:2.14.1 \
         parallel:1.13.0 \
         parallel_tests:2.23.0 \
@@ -40,7 +44,7 @@ post:
         ln -vs /usr/bin/resolveip /usr/libexec/resolveip
     fi
 
-    cucumber ${VERBOSE:+-v} --strict --format html \
+    cucumber \${VERBOSE:+-v} --strict --format html \
         --out /mnt/logs/cucumber.html --format pretty
     # Run the test suite again, but with encryption enabled
     # Some tests has been disabled. These tests pass just fine when running the
@@ -52,6 +56,6 @@ post:
     export MERLIN_ENCRYPTED=TRUE
     export MERLIN_PUBKEY=/opt/monitor/op5/merlin/key.pub
     export MERLIN_PRIVKEY=/opt/monitor/op5/merlin/key.priv
-    cucumber ${VERBOSE:+-v} --strict --format html \
+    cucumber \${VERBOSE:+-v} --strict --format html \
         --out /mnt/logs/cucumber_encrypted.html \
         --format pretty --exclude "report_data" --tags ~@unstable
