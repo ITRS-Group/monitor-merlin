@@ -82,3 +82,4 @@ m4/*.m4
 sudo/merlin
 .DS_Store
 .pydevproject
+merlind.service
