@@ -7,7 +7,7 @@ After=syslog.target network.target mariadb.service
 #By doing this we leverage the rhel7 systemd unit file structure.
 ExecStart=/usr/bin/merlind --config @pkgconfdir@/merlin.conf --debug
 Restart=always
-User=monitor
+User=@naemon_user@
 LimitNOFILE=16384
 
 [Install]
