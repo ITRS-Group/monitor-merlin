@@ -165,9 +165,9 @@ def parse_nagios_cfg(path):
 	# we're basically guessing if these aren't set, but it follows the
 	# Nagios defaults more or less, so that's probably ok.
 	if not comp.command_file:
-		comp.command_file = '%s/rw/nagios.cmd' % (comp.temp_path)
+		comp.command_file = '%s/rw/naemon.cmd' % (comp.temp_path)
 	if not comp.query_socket:
-		comp.query_socket = "%s/nagios.qh" % (os.path.dirname(comp.command_file))
+		comp.query_socket = "%s/naemon.qh" % (os.path.dirname(comp.command_file))
 
 	return comp
 
