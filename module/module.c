@@ -1358,7 +1358,7 @@ static void auto_delete_nodes(struct nm_event_execution_properties *evprop) {
 			time_t last_seen_delta;
 			/* If we have never seen the node, we use the ipc_connect time,
 			 * as it will always disconnected for at least that amount of time */
-			if (node->last_action == 0) {
+			if (node->last_action <= 0) {
 				last_seen_delta = now - ipc.connect_time;
 			} else {
 				last_seen_delta = now - node->last_action;
@@ -1366,6 +1366,7 @@ static void auto_delete_nodes(struct nm_event_execution_properties *evprop) {
 
 			if (last_seen_delta > node->auto_delete) {
 				linfo("AUTO_DELETE: %s scheduled for removal. last_seen_delta: %ld", node->name, last_seen_delta);
+				ldebug("AUTO_DELETE: ipc.connect_time: %ld , node->last_action: %d", ipc.connect_time, node->last_action);
 				/* Add the node to the list and fail if the string was truncated */
 				offset += snprintf(nodes_to_delete+offset, sizeof(nodes_to_delete), "%s ", node->name);
 				if (offset < 0 || offset >= AUTO_DELETE_BUFFER_SIZE) {
