@@ -1374,7 +1374,7 @@ static void auto_delete_nodes(struct nm_event_execution_properties *evprop) {
 				}
 				node_deleted = true;
 			} else {
-				ldebug("AUTO_DELETE: %s has %ld seconds left before auto deletion", node->name, last_seen_delta);
+				ldebug("AUTO_DELETE: %s has %ld seconds left before auto deletion", node->name, node->auto_delete-last_seen_delta);
 			}
 		}
 	}
