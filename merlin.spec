@@ -132,6 +132,7 @@ Requires: MySQL-python
 %endif
 Requires: libdbi
 %endif
+Requires: unixcat
 Obsoletes: monitor-distributed
 Obsoletes: merlin-apps-slim
 
