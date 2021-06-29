@@ -17,9 +17,12 @@ def cmd_generate(args):
 	"""
 
 	path = merlin_conf_dir
+	write_to_file = False
 	for arg in args:
 		if arg.startswith('--path'):
 			path = arg.split('=', 1)[1]
+		if arg.startswith('--write'):
+			write_to_file = True
 
 	if os.path.isfile(path + '/key.pub'):
 		print 'File already exists. Key will not be generated.'
@@ -29,15 +32,26 @@ def cmd_generate(args):
 		print 'File already exists. Key will not be generated.'
 		sys.exit(1)
 
+	if write_to_file:
+		with open(merlin_conf_dir + "/merlin.conf", 'r') as fh:
+			for line in fh:
+				if "ipc_privatekey" in line:
+					print "Conflict, private key location already specified: " + line.strip()
+					sys.exit(1)
+
 	p = sp.Popen(['/usr/lib64/merlin/keygen', "-p", path], stdout=sp.PIPE,
 			stderr=sp.PIPE, preexec_fn=initchildproc)
 	p.wait()
 	if p.returncode != 0:
 		print 'Key generation failed'
 		sys.exit(1)
-	else:
-		uid = pwd.getpwnam("monitor").pw_uid
-		# -1 means we leave group unchanged
-		os.chown(path + "/key.priv", uid, -1)
-		os.chown(path + "/key.pub", uid, -1)
-		print 'Key generated and saved at ' + path
+
+	if write_to_file:
+		with open(merlin_conf_dir + "/merlin.conf", 'a') as fh:
+			fh.write("ipc_privatekey = {}".format(path + "/key.priv"))
+
+	uid = pwd.getpwnam("monitor").pw_uid
+	# -1 means we leave group unchanged
+	os.chown(path + "/key.priv", uid, -1)
+	os.chown(path + "/key.pub", uid, -1)
+	print 'Key generated and saved at ' + path
