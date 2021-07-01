@@ -1323,6 +1323,86 @@ static void disconnect_inactive_nodes(struct nm_event_execution_properties *evpr
 	}
 }
 
+/**
+ * Utility function for auto_delete
+ * Returns: in seconds, how long time since the node was last seen
+ */
+static time_t auto_del_last_seen_delta(merlin_node *node) {
+	time_t last_seen_delta;
+	time_t now = time(NULL);
+
+	/* If we have never seen the node, we use the ipc_connect time,
+	 * as it will always disconnected for at least that amount of time */
+	if (node->last_action <= 0) {
+		last_seen_delta = now - ipc.connect_time;
+	} else {
+		last_seen_delta = now - node->last_action;
+	}
+	return last_seen_delta;
+
+}
+
+/**
+ * Utility function for auto_delete
+ * Returns: true if any node in the pgroup is seen "recently", false otherwise
+ */
+static bool auto_delete_pgroup_recently_seen(merlin_node * node) {
+	unsigned int i;
+	for (i=0; i < node->pgroup->total_nodes; i++) {
+		merlin_node * tmp_node = node->pgroup->nodes[i];
+		if (tmp_node == node) {
+			continue;
+		}
+		if (auto_del_last_seen_delta(tmp_node) < pulse_interval*2) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Determines whether a node should be auto_deleted
+ * returns: true if node should be auto_deleted false otherwise
+ */
+static bool should_auto_delete(merlin_node * node) {
+	/* No auto_delete if the node is not not configured for auto deletion,
+	 * or if the node is active */
+	if(node->auto_delete > 0 &&
+	   node->state != STATE_CONNECTED) {
+		time_t last_seen_delta = auto_del_last_seen_delta(node);
+
+		if (last_seen_delta > node->auto_delete) {
+			/* To ensure masters doesn't end up taking over checks,
+			 * we never delete a single node in a pgroup */
+			if (node->pgroup->total_nodes == 1) {
+				linfo("AUTO_DELETE: %s was scheduled for removal, but this is the only node in the pgroup. Keeping node.", node->name);
+				return false;
+			}
+
+			/* If no nodes have been seen/active for a while we
+			 * don't do any auto deletion. This most likely mean we
+			 * have a full network outage and the pollers are most
+			 * likely alive but unable to connect */
+			if (node->pgroup->active_nodes == 0 &&
+					auto_delete_pgroup_recently_seen(node) == false) {
+				linfo("AUTO_DELETE: %s was scheduled for removal, but no other nodes in the pgroup has been seen recently, network outage likely. Keeping node.", node->name);
+				return false;
+			}
+
+			linfo("AUTO_DELETE: %s scheduled for removal. last_seen_delta: %ld",
+					node->name, last_seen_delta);
+			ldebug("AUTO_DELETE: ipc.connect_time: %ld, node->last_action: %d",
+					ipc.connect_time, node->last_action);
+
+			return true;
+		} else {
+			ldebug("AUTO_DELETE: %s has %ld seconds left before auto deletion",
+					node->name, node->auto_delete-last_seen_delta);
+		}
+	}
+	return false;
+}
+
 /*
  * This is a scheduled event. Its occurence is stated in seconds in the
  * variable 'node_auto_delete_check_interval (shared.c)'. For any node that is
@@ -1333,7 +1413,6 @@ static void disconnect_inactive_nodes(struct nm_event_execution_properties *evpr
 static void auto_delete_nodes(struct nm_event_execution_properties *evprop) {
 	unsigned int i;
 	int offset = 0;
-	time_t now = time(NULL);
 	bool node_deleted = false;
 	char nodes_to_delete[AUTO_DELETE_BUFFER_SIZE];
 
@@ -1353,29 +1432,18 @@ static void auto_delete_nodes(struct nm_event_execution_properties *evprop) {
 	schedule_event(node_auto_delete_check_interval, auto_delete_nodes, NULL);
 	for (i = 0; i < num_nodes; i++) {
 		merlin_node *node = noc_table[i];
-		if(node->auto_delete > 0 &&
-		   node->state != STATE_CONNECTED) {
-			time_t last_seen_delta;
-			/* If we have never seen the node, we use the ipc_connect time,
-			 * as it will always disconnected for at least that amount of time */
-			if (node->last_action <= 0) {
-				last_seen_delta = now - ipc.connect_time;
-			} else {
-				last_seen_delta = now - node->last_action;
+		if (should_auto_delete(node) == true) {
+			/* Add the node to list of nodes to delete, fail if the
+			 * string was truncated */
+			offset += snprintf(nodes_to_delete+offset,
+					sizeof(nodes_to_delete), "%s ",
+					node->name);
+			if (offset < 0 || offset >= AUTO_DELETE_BUFFER_SIZE) {
+				lwarn("AUTO_DELETE: Couldn't delete nodes due \
+						to insufficient buffer size: %d",
+						offset);
 			}
-
-			if (last_seen_delta > node->auto_delete) {
-				linfo("AUTO_DELETE: %s scheduled for removal. last_seen_delta: %ld", node->name, last_seen_delta);
-				ldebug("AUTO_DELETE: ipc.connect_time: %ld , node->last_action: %d", ipc.connect_time, node->last_action);
-				/* Add the node to the list and fail if the string was truncated */
-				offset += snprintf(nodes_to_delete+offset, sizeof(nodes_to_delete), "%s ", node->name);
-				if (offset < 0 || offset >= AUTO_DELETE_BUFFER_SIZE) {
-					lwarn("AUTO_DELETE: Couldn't delete nodes due to insufficient buffer size: %d", offset);
-				}
-				node_deleted = true;
-			} else {
-				ldebug("AUTO_DELETE: %s has %ld seconds left before auto deletion", node->name, node->auto_delete-last_seen_delta);
-			}
+			node_deleted = true;
 		}
 	}
 	/* Actually delete the nodes and restart */
