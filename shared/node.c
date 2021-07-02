@@ -530,10 +530,13 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 			strcpy(node->uuid, v->value);
 		} else if (!strcmp(v->key, "auto_delete")) {
 			char *endptr;
-			node->auto_delete = (unsigned int)strtol(v->value, &endptr, 10);
-			if (*endptr != 0)
-				cfg_error(c, v, "Illegal value for auto_delete: %s\n", v->value);
-			
+			if (node->type != MODE_POLLER) {
+				cfg_warn(c,v, "auto_delete is only supported for pollers, ignoring.");
+			} else {
+				node->auto_delete = (unsigned int)strtol(v->value, &endptr, 10);
+				if (*endptr != 0)
+					cfg_error(c, v, "Illegal value for auto_delete: %s\n", v->value);
+			}
 		}
 		else if (grok_node_flag(&node->flags, v->key, v->value) < 0) {
 			cfg_error(c, v, "Unknown variable\n");
