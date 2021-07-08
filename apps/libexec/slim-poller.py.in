@@ -1,0 +1,146 @@
+import fcntl, sys, os
+import subprocess as sp
+import shlex
+
+
+LOCK_FILE = "/tmp/slim-poller.lock"
+MERLIN_CONF_DIR = "@pkgconfdir@"
+
+
+def module_init(args):
+    return args
+
+
+def _eprint(string):
+    """Print to stderr"""
+    print >>sys.stderr, string
+
+
+def _execute_shell_cmd(cmd):
+    args = shlex.split(cmd)
+    p = sp.Popen(args, stdout=sp.PIPE, stderr=sp.PIPE)
+    (stdout, stderr) = p.communicate()
+    if p.returncode != 0:
+        stderr = str(stderr) + " Args: " + " ".join(args)
+        raise Exception(stderr)
+
+    return stdout
+
+
+def cmd_register(args):
+    """Called by the slim-poller when registering, do NOT use manually
+    Required:
+        --poller-name=<string>
+        --poller-address=<string>
+        --uuid=<string>
+        --hostgroups=<comma seperated string>
+        --public-key=<path>
+    Optional:
+        --cluster (register with whole cluster)
+    """
+
+    POLLER_NAME = (
+        POLLER_ADDRESS
+    ) = HOSTGROUPS = UUID = PUBLIC_KEY = REGISTER_WITH_CLUSTER = None
+
+    for arg in args:
+        if arg.startswith("--poller-name"):
+            POLLER_NAME = arg.split("=", 1)[1]
+        if arg.startswith("--poller-address"):
+            POLLER_ADDRESS = arg.split("=", 1)[1]
+        if arg.startswith("--uuid"):
+            UUID = arg.split("=", 1)[1]
+        if arg.startswith("--hostgroups"):
+            HOSTGROUPS = arg.split("=", 1)[1]
+        if arg.startswith("--public-key"):
+            PUBLIC_KEY = arg.split("=", 1)[1]
+        if arg.startswith("--cluster"):
+            REGISTER_WITH_CLUSTER = True
+
+    # If not set
+    if not (POLLER_NAME and POLLER_ADDRESS and HOSTGROUPS and UUID and PUBLIC_KEY):
+        _eprint("Missing flag argument")
+        sys.exit(1)
+
+    cluster_cmd = "mon node ctrl --self --type=peer -- "
+    add_cmd = (
+        "mon node add {poller_name} "
+        "type=poller "
+        "address={poller_address} "
+        "hostgroup={hostgroups} "
+        "connect=no "
+        "notifies=no  "
+        "uuid={uuid} "
+        "auto_delete=300 "
+        "takeover=no "
+        "publickey={public_key}"
+    ).format(
+        poller_name=POLLER_NAME,
+        poller_address=POLLER_ADDRESS,
+        hostgroups=HOSTGROUPS,
+        uuid=UUID,
+        public_key=PUBLIC_KEY,
+    )
+    encryption_key_cmd = "mon merlinkey generate --write"
+    restart_cmd = "sudo mon restart"
+
+    file_descriptor = open(LOCK_FILE, "w")
+    try:
+        # Non blocking exclusive lock
+        fcntl.flock(file_descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        for cmd in (add_cmd, encryption_key_cmd, restart_cmd):
+            if REGISTER_WITH_CLUSTER:
+                cmd = cluster_cmd + cmd
+            _execute_shell_cmd(cmd)
+
+        # Return current cluster configuration as output
+        print(_execute_shell_cmd("mon node show"))
+    except IOError:
+        _eprint("Failed to aquire lock")
+        sys.exit(1)
+    except Exception as e:
+        _eprint(str(e))
+        sys.exit(1)
+    finally:
+        fcntl.flock(file_descriptor, fcntl.LOCK_UN)
+        os.remove(LOCK_FILE)
+
+
+def cmd_deregister(args):
+    """Called by the slim-poller when deregistering, do NOT use manually
+    Required:
+        --poller-name=<string>
+    """
+
+    POLLER_NAME = None
+
+    for arg in args:
+        if arg.startswith("--poller-name"):
+            POLLER_NAME = arg.split("=", 1)[1]
+
+    # If not set
+    if not POLLER_NAME:
+        _eprint("Missing poller name argument")
+        sys.exit(1)
+
+    file_descriptor = open(LOCK_FILE, "w")
+    pubkey_path = "{}/{}.pub".format(MERLIN_CONF_DIR, POLLER_NAME)
+    try:
+        # Non blocking exclusive lock
+        fcntl.flock(file_descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        _execute_shell_cmd(
+            "mon node ctrl --self --type=peer -- mon node remove {}".format(POLLER_NAME)
+        )
+        _execute_shell_cmd(
+            "mon node ctrl --self --type=peer -- rm -f {}".format(pubkey_path)
+        )
+        _execute_shell_cmd("mon node ctrl --self --type=peer -- sudo mon restart")
+    except IOError:
+        _eprint("Failed to aquire lock")
+        sys.exit(1)
+    except Exception as e:
+        _eprint(str(e))
+        sys.exit(1)
+    finally:
+        fcntl.flock(file_descriptor, fcntl.LOCK_UN)
+        os.remove(LOCK_FILE)

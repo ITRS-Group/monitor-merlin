@@ -26,6 +26,7 @@ mon_SCRIPTS = \
 	apps/libexec/query.lsq.sh \
 	apps/libexec/reportdata.py \
 	apps/libexec/restart.sh \
+	apps/libexec/slim-poller.py \
 	apps/libexec/sshkey.fetch.sh \
 	apps/libexec/sshkey.push.sh \
 	apps/libexec/start.sh \
@@ -218,7 +219,7 @@ endif
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)/config
 
-data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/merlin apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.py apps/mon.py apps/libexec/restart.sh apps/libexec/merlinkey.py: % : %.in
+data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/merlin apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.py apps/mon.py apps/libexec/restart.sh apps/libexec/merlinkey.py apps/libexec/slim-poller.py: % : %.in
 	$(AM_V_GEN) sed \
 		-e 's,@PYTHON[@],$(PYTHON),g' \
 		-e 's,@pkgconfdir[@],$(pkgconfdir),g' \
