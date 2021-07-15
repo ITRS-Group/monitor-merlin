@@ -491,7 +491,7 @@ static int cmpstringp(const void *p1, const void *p2)
  * returns a sorted version of a comma-separated string, with
  * spaces surrounding commas removed
  */
-static char *get_sorted_csstr(const char *orig_str)
+char *get_sorted_csstr(const char *orig_str)
 {
 	char *str, *comma, *ret = NULL, **ary, *next;
 	unsigned int i = 0, entries = 0, len;

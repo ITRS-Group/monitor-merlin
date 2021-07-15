@@ -267,6 +267,7 @@ struct merlin_node {
 	char uuid[UUID_SIZE + 1]; /* 36 plus null terminator */
 	bool incompatible_cluster_config;
 	unsigned int auto_delete;
+	objectlist *ipc_blocked_hostgroups;       /* only used for IPC */
 };
 
 struct merlin_runcmd {
@@ -316,7 +317,7 @@ extern int node_oconf_cmp(const merlin_node *node, const merlin_nodeinfo *info);
 extern int node_mconf_cmp(const merlin_node *node, const merlin_nodeinfo *info);
 extern int node_create_binlog(merlin_node *node);
 extern int node_binlog_read_saved(merlin_node *node);
-
+extern bool node_blocked_hostgroup(const merlin_node *node, void * data, int type);
 /*
  * we make these inlined rather than macros so the compiler
  * does type-checking in the arguments
