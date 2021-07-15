@@ -24,12 +24,15 @@ def cmd_generate(args):
 		if arg.startswith('--write'):
 			write_to_file = True
 
-	if os.path.isfile(path + '/key.pub'):
-		print 'File already exists. Key will not be generated.'
-		sys.exit(1)
+	has_pub_key = os.path.isfile(path + '/key.pub')
+	has_priv_key = os.path.isfile(path + '/key.priv')
 
-	if os.path.isfile(path + '/key.priv'):
-		print 'File already exists. Key will not be generated.'
+	if has_pub_key and has_priv_key:
+		print 'File already exists. Keys will not be generated.'
+		sys.exit(0)
+
+	if has_pub_key or has_priv_key:
+		print 'One of the encryption keys already exists. Remove and try again'
 		sys.exit(1)
 
 	if write_to_file:
