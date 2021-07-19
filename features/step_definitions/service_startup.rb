@@ -67,6 +67,11 @@ end
 Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
   push_cmd = "#!/bin/sh\necho \"push $@\" >> config_sync.log"
   fetch_cmd = "#!/bin/sh\necho \"fetch $@\" >> config_sync.log"
+ 
+  blocked_hostgroups = @merlinnodeconfig.get_var("ipc_blocked_hostgroups") 
+  unless blocked_hostgroups.to_s.strip.empty?
+    blocked_hostgroups = "ipc_blocked_hostgroups = #{blocked_hostgroups}"
+  end
 
   configfile = "
     ipc_socket = test_ipc.sock;
@@ -79,6 +84,7 @@ Given(/^I have merlin configured for port (\d+)$/) do |port, nodes|
     binlog_max_memory_size = #{@merlinnodeconfig.get_var("binlog_max_memory_size")};
     binlog_max_file_size = #{@merlinnodeconfig.get_var("binlog_max_file_size")};
     binlog_persist = #{@merlinnodeconfig.get_var("binlog_persist")};
+    #{blocked_hostgroups}
 
     module {
       log_file = merlin.log;

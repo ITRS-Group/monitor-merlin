@@ -1439,3 +1439,72 @@ int handle_ctrl_active(merlin_node *node, merlin_event *pkt)
 
 	return node_oconf_cmp(node, (merlin_nodeinfo *)pkt->body) ? ESYNC_ECONFTIME : 0;
 }
+
+
+/*
+ * Check whether a object is part of any of the hostgroups defined in
+ * ipc_blocked_hostgroups. This is intended to be a failsafe if you for some
+ * reason don't want checks in certain hostgroups to be executed on this node.
+ *
+ * This should only ever be used on IPC and returns false in other cases.
+ *
+ * Arguments:
+ *  node  the relevant merlin node (should be IPC)
+ *  data  either nebstruct_host_check_data or nebstruct_service_check_data
+ *  type  the NEB type to determine whether we have a host/service object
+ *
+ * Returns:
+ *  true  if an object (data) is included in a hostgroup in ipc_blocked_hostgroups
+ *  false if the object isn't included in any hostgroups defined in ipc_blocked_hostgroups
+ */
+bool node_blocked_hostgroup(const merlin_node *node, void * data, int type) {
+	struct host *hst = NULL;
+	struct service * svc = NULL;
+	objectlist * hostgroups_list;
+	nebstruct_service_check_data * svc_ds;
+	nebstruct_host_check_data * hst_ds;
+	objectlist * blocked_hostgroups;
+
+	/* Only allowed for IPC */
+	if (node != &ipc) {
+		return false;
+	}
+
+	/* If no blocked hostgroups are set, return immediately. */
+	if (node->ipc_blocked_hostgroups == NULL) {
+		return false;
+	}
+
+	/* Grab the host object */
+	switch (type) {
+	case NEBTYPE_SERVICECHECK_ASYNC_PRECHECK:
+		svc_ds = (nebstruct_service_check_data *)data;
+		svc = (struct service *)svc_ds->object_ptr;
+		hst = svc->host_ptr;
+		break;
+
+	case NEBTYPE_HOSTCHECK_ASYNC_PRECHECK:
+	case NEBTYPE_HOSTCHECK_SYNC_PRECHECK:
+		hst_ds = (nebstruct_host_check_data *)data;
+		hst = (struct host *)hst_ds->object_ptr;
+		break;
+	default:
+		return false;
+	}
+
+
+	/* loop over the host hostgroups and check if any of those exist in the
+	 * blocked hostgroups list */
+	for (hostgroups_list = hst->hostgroups_ptr; hostgroups_list != NULL; hostgroups_list = hostgroups_list->next) {
+		hostgroup * hstgroup = hostgroups_list->object_ptr;
+		for (blocked_hostgroups = node->ipc_blocked_hostgroups; blocked_hostgroups != NULL; blocked_hostgroups = blocked_hostgroups->next) {
+			char * blocked_hstgroup = blocked_hostgroups->object_ptr;
+			if (strcmp(hstgroup->group_name, blocked_hstgroup) == 0) {
+				ldebug("Blocking check execution of %s%s%s due to hostgroup: %s, being present in the ipc_blocked_hostgroups setting", hst->name, svc ? ";" : "", svc ? svc->description : "", hstgroup->group_name);
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
