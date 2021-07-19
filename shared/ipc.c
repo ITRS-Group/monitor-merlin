@@ -8,6 +8,7 @@
 #include "io.h"
 #include "node.h"
 #include "encryption.h"
+#include "pgroup.h"
 
 static int listen_sock = -1; /* for bind() and such */
 static char *ipc_sock_path;
@@ -212,6 +213,25 @@ int ipc_grok_var(char *var, char *val)
 			return 0;
 		}
 		strcpy(ipc.uuid, val);
+
+		return 1;
+	}
+
+	if (!strcmp(var, "ipc_blocked_hostgroups")) {
+		char *token;
+		char * saveptr;
+		const char delim[2] = ",";
+		char * hostgroups = get_sorted_csstr(val);
+
+		// Tokenize the blocked hostgroups into a objectlist (linkedlist)
+		token = strtok_r(hostgroups, delim, &saveptr);
+
+		while (token != NULL) {
+			prepend_object_to_objectlist(&ipc.ipc_blocked_hostgroups, strdup(val));
+			token = strtok_r(NULL, delim, &saveptr);
+		}
+
+		free(hostgroups);
 
 		return 1;
 	}

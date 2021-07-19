@@ -338,6 +338,8 @@ static int hook_service_result(merlin_event *pkt, void *data)
 		if (node != &ipc) {
 			/* We're not responsible, so block this check here */
 			return NEBERROR_CALLBACKCANCEL;
+		} else if (node_blocked_hostgroup(node, data, ds->type) == true ) {
+			return NEBERROR_CALLBACKCANCEL;
 		}
 		service_checks.self++;
 		return 0;
@@ -395,6 +397,8 @@ static int hook_host_result(merlin_event *pkt, void *data)
 		schedule_expiration_event(HOST_CHECK, node, h);
 		if (node != &ipc) {
 			/* We're not responsible, so block this check here */
+			return NEBERROR_CALLBACKCANCEL;
+		} else if (node_blocked_hostgroup(node, data, ds->type) == true ) {
 			return NEBERROR_CALLBACKCANCEL;
 		}
 		host_checks.self++;

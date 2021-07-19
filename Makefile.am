@@ -110,6 +110,7 @@ shared_sources = $(common_sources) \
 	shared/node.c shared/node.h \
 	shared/codec.c shared/codec.h \
 	shared/binlog.c shared/binlog.h \
+	shared/pgroup.c shared/pgroup.h \
 	shared/configuration.c shared/configuration.h
 
 db_wrap_sources = daemon/sql.c daemon/sql.h daemon/db_wrap.c daemon/db_wrap.h
@@ -128,7 +129,6 @@ module_sources = $(shared_sources) \
 	module/oconfsplit.c module/oconfsplit.h \
 	module/net.c module/net.h \
 	module/runcmd.c module/runcmd.h \
-	shared/pgroup.c shared/pgroup.h \
 	module/testif_qh.c module/testif_qh.h
 daemon_sources = $(shared_sources) $(db_wrap_sources) \
 	daemon/daemonize.c daemon/daemonize.h \

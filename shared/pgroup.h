@@ -54,4 +54,5 @@ merlin_peer_group *pgroup_by_host_id(unsigned int id);
 merlin_peer_group *pgroup_by_service_id(unsigned int id);
 struct merlin_node *pgroup_host_node(unsigned int id);
 struct merlin_node *pgroup_service_node(unsigned int id);
+char *get_sorted_csstr(const char *orig_str);
 #endif

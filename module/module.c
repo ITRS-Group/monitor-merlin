@@ -1794,6 +1794,8 @@ int nebmodule_deinit(__attribute__((unused)) int flags, __attribute__((unused)) 
 	 * Nagios' command pipe.
 	 */
 	nm_bufferqueue_destroy(ipc.bq);
+	free_objectlist(&ipc.ipc_blocked_hostgroups);
+
 	for (i = 0; i < num_nodes; i++) {
 		struct merlin_node *node = node_table[i];
 		/* Save nodes binlog to file if binlog persistence is enabled */

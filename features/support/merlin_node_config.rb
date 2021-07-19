@@ -7,7 +7,8 @@ class MerlinNodeConfig
       "oconfsplit_dir" => ".",
       "binlog_max_file_size" => "5000",
       "binlog_max_memory_size" => "500",
-      "binlog_persist" => "1"
+      "binlog_persist" => "1",
+      "ipc_blocked_hostgroups" => ""
     }
   end
 
