@@ -1,4 +1,4 @@
-import fcntl, sys, os
+import fcntl, sys
 import subprocess as sp
 import shlex
 
@@ -103,7 +103,6 @@ def cmd_register(args):
         sys.exit(1)
     finally:
         fcntl.flock(file_descriptor, fcntl.LOCK_UN)
-        os.remove(LOCK_FILE)
 
 
 def cmd_deregister(args):
@@ -143,4 +142,3 @@ def cmd_deregister(args):
         sys.exit(1)
     finally:
         fcntl.flock(file_descriptor, fcntl.LOCK_UN)
-        os.remove(LOCK_FILE)
