@@ -38,7 +38,7 @@ AX_CHECK_COMPILE_FLAG([-lpthread], AM_CFLAGS+=" -lpthread")
 AC_SUBST([AM_CPPFLAGS])
 AC_SUBST([AM_CFLAGS])
 
-PKG_CHECK_MODULES([naemon], [naemon >= 0.8])
+PKG_CHECK_MODULES([naemon], [naemon >= 1.2.4])
 naemon_cfg=`$PKG_CONFIG --variable=mainconf naemon`
 AS_IF([test "x$naemon_cfg" == "x"],
 	  [naemon_cfg=/etc/naemon/naemon.cfg])
