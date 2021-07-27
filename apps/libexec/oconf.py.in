@@ -29,7 +29,6 @@ nagios_cfg = '@naemon_cfg@'
 naemon_cfg = nagios_cfg
 object_cfg_files = {}
 object_prefix = ''
-object_cache = '/opt/monitor/var/objects.cache'
 obj_files = []
 config_dir = None
 
@@ -79,7 +78,6 @@ def recurse_grab_object_cfg_files(v, basepath=''):
 
 def grab_nagios_cfg(nagios_cfg_path):
     global force_include_commands
-    global object_cache
 
     obj_files = []
     comp = parse_nagios_cfg(nagios_cfg_path)
@@ -189,10 +187,15 @@ def cmd_fetch(args):
     poller. The variable should be set to the name of the poller,
     as seen by the master.
 """
+    global naemon_cfg
     dryrun = False
     sync = False
     node = None
     verbose = False
+
+    naemon_cfg_dir = os.path.dirname(naemon_cfg)
+    # os.pardir would get us i.e /etc/naemon/.. so we need the abs path
+    naemon_cfg_dir_parent = os.path.abspath(os.path.join(naemon_cfg_dir, os.pardir))
 
     for arg in args:
         if arg == '--dryrun':
@@ -237,7 +240,7 @@ def cmd_fetch(args):
     config_source = "{}:{}".format(
             node.address, "@cachedir@/config/" + oconf_fetch_name + ".cfg"
     )
-    config_destination = "/opt/monitor/etc/oconf/from-master.cfg"
+    config_destination = naemon_cfg_dir + "/oconf/from-master.cfg"
     files_to_fetch.append((config_source, config_destination))
 
     if sync:
@@ -415,10 +418,14 @@ def cmd_push(args):
     """
     global cache_dir
     global mconf
+    global naemon_cfg
     wanted_nodes = []
     restart = True
     push_items = ['oconf', 'extras', 'bsm']
     dryrun = False
+    naemon_cfg_dir = os.path.dirname(naemon_cfg)
+    # os.pardir would get us i.e /etc/naemon/.. so we need the abs path
+    naemon_cfg_dir_parent = os.path.abspath(os.path.join(naemon_cfg_dir, os.pardir))
 
     for arg in args:
         if arg == '--no-restart':
@@ -470,10 +477,10 @@ def cmd_push(args):
                     wanted_nodes.remove((name, node))
                     continue
                 source = oconf_file
-                default_dest = '/opt/monitor/etc/oconf/from-master.cfg'
+                default_dest = '/etc/naemon/oconf/from-master.cfg'
             else:
-                source = node.options.get('oconf_source', '/opt/monitor/etc')
-                default_dest = '/opt/monitor'
+                source = node.options.get('oconf_source', naemon_cfg_dir)
+                default_dest = naemon_cfg_dir_parent
 
             oconf_dest = node.options.get('oconf_dest', default_dest)
             files_to_sync[source] = oconf_dest
