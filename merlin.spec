@@ -278,8 +278,8 @@ systemctl enable merlind.service
 # If mysql-server is running _or_ this is an upgrade
 # we import logs
 if [ $1 -eq 2 ]; then
-  mon log import --incremental || :
-  mon log import --only-notifications --incremental || :
+  mon log import --incremental > /dev/null || :
+  mon log import --only-notifications --incremental > /dev/null || :
 fi
 
 sed --follow-symlinks -i \
