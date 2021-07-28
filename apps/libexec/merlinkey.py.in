@@ -54,7 +54,7 @@ def cmd_generate(args):
 			fh.write("ipc_privatekey = {}".format(path + "/key.priv"))
 			fh.write('\n')
 
-	uid = pwd.getpwnam("monitor").pw_uid
+	uid = pwd.getpwnam("@naemon_user@").pw_uid
 	# -1 means we leave group unchanged
 	os.chown(path + "/key.priv", uid, -1)
 	os.chown(path + "/key.pub", uid, -1)
