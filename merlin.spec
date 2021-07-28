@@ -242,6 +242,12 @@ python2 tests/pyunit/test_oconf.py --verbose
 
 %post
 %create_service_control_function
+
+# Reload the .service file
+%if 0%{?rhel} >= 7
+systemctl daemon-reload
+%endif
+
 # we must stop the merlin deamon so it doesn't interfere with any
 # database upgrades, logfile imports and whatnot
 service_control_function stop merlind > /dev/null || :
@@ -269,7 +275,6 @@ fi
 %_libdir/merlin/install-merlin.sh
 
 %if 0%{?rhel} >= 7
-systemctl daemon-reload
 systemctl enable merlind.service
 %else
 /sbin/chkconfig --add merlind || :
