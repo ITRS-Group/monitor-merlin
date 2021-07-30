@@ -52,6 +52,7 @@ def cmd_generate(args):
 	if write_to_file:
 		with open(merlin_conf_dir + "/merlin.conf", 'a') as fh:
 			fh.write("ipc_privatekey = {}".format(path + "/key.priv"))
+			fh.write('\n')
 
 	uid = pwd.getpwnam("monitor").pw_uid
 	# -1 means we leave group unchanged
