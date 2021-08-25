@@ -1,6 +1,6 @@
 #!/bin/bash
 
-[ -n "$LS_SOCK" ] || LS_SOCK='/opt/monitor/var/rw/live'
+[ -n "$LS_SOCK" ] || LS_SOCK='@ls_socket@'
 
 if [ -n "$1" ]; then
   printf '%s\n' "$1" | unixcat "$LS_SOCK"
