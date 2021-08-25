@@ -1,3 +1,8 @@
 oconf.py
 oconf.fetch.sh
 merlinkey.py
+check.py
+query.ls.sh
+query.lsq.sh
+reportdata.py
+slim-poller.py

@@ -260,6 +260,9 @@ tests/merlincat/kvvec2nebev.c: tests/merlincat/nebev-col2key.c
 
 BUILT_SOURCES = $(GENERATED_NEBEV) tests/merlincat/nebev-col2key.c \
 	 apps/libexec/restart.sh apps/libexec/oconf.py apps/mon.py \
+	 apps/libexec/check.py apps/libexec/query.ls.sh \
+	 apps/libexec/query.lsq.sh apps/libexec/reportdata.py \
+	 apps/libexec/slim-poller.py apps/libexec/merlinkey.py \
 	 merlind.service
 CLEANFILES = $(BUILT_SOURCES)
 
