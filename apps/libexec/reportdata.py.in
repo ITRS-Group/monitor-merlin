@@ -3,7 +3,7 @@ import time
 import subprocess
 import merlin_db
 
-LS_SOCK='/opt/monitor/var/rw/live_tmp'
+LS_SOCK='@ls_socket@'
 
 def cmd_check_consistency(args):
 	"""

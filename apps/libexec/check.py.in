@@ -12,7 +12,7 @@ from coredump import *
 import compound_config as cconf
 
 # defaults, will use nagios.cfg for guidance
-ls_path = '/opt/monitor/var/rw/live'
+ls_path = '@ls_socket@'
 qh = '/opt/monitor/var/rw/nagios.qh'
 
 check_result_path = '/opt/monitor/var/spool/checkresults'
