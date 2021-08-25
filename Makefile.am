@@ -219,7 +219,7 @@ endif
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)/config
 
-merlind.service data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/merlin apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.py apps/mon.py apps/libexec/restart.sh apps/libexec/merlinkey.py apps/libexec/slim-poller.py apps/libexec/check.py apps/libexec/query.ls.sh apps/libexec/query.lsq.sh apps/libexec/reportdata.py: % : %.in
+merlind.service data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/merlin apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.py apps/mon.py apps/libexec/restart.sh apps/libexec/merlinkey.py apps/libexec/slim-poller.py apps/libexec/check.py apps/libexec/query.ls.sh apps/libexec/query.lsq.sh apps/libexec/reportdata.py apps/libexec/db.py: % : %.in
 	$(AM_V_GEN) sed \
 		-e 's,@PYTHON[@],$(PYTHON),g' \
 		-e 's,@pkgconfdir[@],$(pkgconfdir),g' \
@@ -238,6 +238,7 @@ merlind.service data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/
 		-e 's,@db_user[@],$(db_user),g' \
 		-e 's,@db_pass[@],$(db_pass),g' \
 		-e 's,@ls_socket[@],$(ls_socket),g' \
+		-e 's,@datarootdir[@],$(datarootdir),g' \
 		$< > $@
 
 GENERATED_NEBEV = \
@@ -263,6 +264,7 @@ BUILT_SOURCES = $(GENERATED_NEBEV) tests/merlincat/nebev-col2key.c \
 	 apps/libexec/check.py apps/libexec/query.ls.sh \
 	 apps/libexec/query.lsq.sh apps/libexec/reportdata.py \
 	 apps/libexec/slim-poller.py apps/libexec/merlinkey.py \
+	 apps/libexec/db.py \
 	 merlind.service
 CLEANFILES = $(BUILT_SOURCES)
 

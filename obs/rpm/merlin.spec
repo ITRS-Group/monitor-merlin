@@ -149,7 +149,7 @@ network monitoring setup.
 %build
 echo %{version} > .version_number
 autoreconf -i -s
-%configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=%naemon_confdir/module-conf.d --with-naemon-user=%daemon_user --with-naemon-group=%daemon_user --with-logdir=%{_localstatedir}/log/merlin %init_scripts
+%configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=%naemon_confdir/module-conf.d --with-naemon-user=%daemon_user --with-naemon-group=%daemon_user --with-logdir=%{_localstatedir}/log/merlin --datarootdir=%_datadir %init_scripts
 
 %__make V=1
 %__make V=1 check
