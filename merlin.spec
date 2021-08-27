@@ -216,10 +216,6 @@ cp cukemerlin %buildroot/%_bindir/cukemerlin
 cp -r apps/tests %buildroot/usr/share/merlin/app-tests
 
 
-# install crontabs
-mkdir -p %buildroot%_sysconfdir/cron.d
-cp apps/*.cron %buildroot%_sysconfdir/cron.d/
-
 mkdir -p %buildroot/opt/monitor/op5/nacoma/hooks/save/
 sed -i 's#@@LIBEXECDIR@@#%_libdir/merlin#' op5build/nacoma_hook.py
 install -m 0755 op5build/nacoma_hook.py %buildroot/opt/monitor/op5/nacoma/hooks/save/merlin_hook.py
@@ -380,7 +376,6 @@ fi
 %_libdir/merlin/mon
 %_bindir/mon
 %_bindir/op5
-%_sysconfdir/cron.d/*
 /opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
 
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/db_mysql_check.sh
@@ -422,7 +417,6 @@ fi
 %_libdir/merlin/keygen
 %_bindir/mon
 %_bindir/op5
-%_sysconfdir/cron.d/*
 /opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
 
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/db_mysql_check.sh
@@ -443,6 +437,8 @@ fi
 rm -rf %buildroot
 
 %changelog
+* Fri Aug 27 2021 Aksel Sjögren <asjogren@itrsgroup.com>
+- Remove cron jobs.
 * Thu Feb 11 2021 Aksel Sjögren <asjogren@itrsgroup.com>
 - Adapt for building on el8.
 * Tue Mar 17 2009 Andreas Ericsson <ae@op5.se>
