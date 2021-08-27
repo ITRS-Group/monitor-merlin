@@ -4,7 +4,7 @@ import compound_config as cconf
 from nagios_qh import nagios_qh
 from merlin_apps_utils import *
 
-qh = '/opt/monitor/var/rw/nagios.qh'
+qh = False
 single = False
 
 def module_init(args):
@@ -24,6 +24,15 @@ def module_init(args):
 			single = True
 			continue
 		rem_args.append(arg)
+
+	if not qh:
+		if os.access(nagios_cfg, os.R_OK):
+			comp = cconf.parse_nagios_cfg(nagios_cfg)
+			qh = comp.query_socket
+		else:
+			print "ERROR: Unable to find Naemon query socket"
+			return 1
+
 	return rem_args
 
 

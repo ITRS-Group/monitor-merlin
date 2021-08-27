@@ -13,7 +13,7 @@ import compound_config as cconf
 
 # defaults, will use nagios.cfg for guidance
 ls_path = '@ls_socket@'
-qh = '/opt/monitor/var/rw/nagios.qh'
+qh = False
 
 check_result_path = '/opt/monitor/var/spool/checkresults'
 lsc = False
@@ -65,6 +65,12 @@ def module_init(args):
 
 	if qh_path:
 		qh = qh_path
+
+	if not qh:
+		print "ERROR: Unable to find Naemon query socket"
+		return 1
+
+
 	lsc = livestatus.SingleSiteConnection('unix:' + ls_path)
 	return rem_args
 

@@ -7,3 +7,4 @@ query.lsq.sh
 reportdata.py
 slim-poller.py
 db.py
+log.py

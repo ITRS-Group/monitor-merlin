@@ -46,7 +46,8 @@ def module_init(args):
 			comp = cconf.parse_nagios_cfg(nagios_cfg)
 			query_socket = comp.query_socket
 		else:
-			query_socket = '/opt/monitor/var/rw/nagios.qh'
+			print "ERROR: Unable to find Naemon query socket"
+			return 1
 
 	# load the merlin configuration, and thus all nodes
 	mconf.parse()
