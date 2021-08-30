@@ -42,7 +42,7 @@ def cmd_generate(args):
 					print "Conflict, private key location already specified: " + line.strip()
 					sys.exit(1)
 
-	p = sp.Popen(['/usr/lib64/merlin/keygen', "-p", path], stdout=sp.PIPE,
+	p = sp.Popen(['@libdir@/merlin/keygen', "-p", path], stdout=sp.PIPE,
 			stderr=sp.PIPE, preexec_fn=initchildproc)
 	p.wait()
 	if p.returncode != 0:
