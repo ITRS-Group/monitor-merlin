@@ -110,6 +110,8 @@ def parse_nagios_cfg(path):
 	temp_file = False
 	comp.command_file = False
 	comp.query_socket = False
+	comp.log_archive_path = False
+	comp.log_file = False
 	i = -1
 	for k, v in comp.params:
 		i += 1
@@ -140,6 +142,10 @@ def parse_nagios_cfg(path):
 			comp.command_file = v
 		elif k == 'query_socket':
 			comp.query_socket = v
+		elif k == 'log_archive_path':
+			comp.log_archive_path = v
+		elif k == 'log_file':
+			comp.log_file = v
 
 	# This is how Nagios does it
 	if not temp_path_i:
@@ -168,6 +174,10 @@ def parse_nagios_cfg(path):
 		comp.command_file = '%s/rw/naemon.cmd' % (comp.temp_path)
 	if not comp.query_socket:
 		comp.query_socket = "%s/naemon.qh" % (os.path.dirname(comp.command_file))
+	if not comp.log_file:
+		comp.log_file = "/var/log/naemon/naemon.log"
+	if not comp.log_archive_path:
+		comp.log_archive_path = "%s/archives" % os.path.dirname(comp.log_file)
 
 	return comp
 

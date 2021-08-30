@@ -1,116 +1,16 @@
 import os, sys, subprocess, tempfile
-
-pushed_logs = "/opt/monitor/pushed_logs"
-archive_dir = "/opt/monitor/var/archives"
+import compound_config as cconf
 
 nagios_cfg = '/opt/monitor/etc/naemon.cfg'
+archive_dir = False
 
 class SubcommandException(Exception):
 	pass
-
-## log commands ##
-# force running push_logs on poller and peer systems
-def cmd_fetch(args):
-	"""[--incremental=<timestamp>]
-	Fetches logfiles from remote nodes and stashes them in a local path,
-	making them available for the 'sortmerge' command.
-	"""
-	since = ''
-	for arg in args:
-		if arg.startswith('--incremental='):
-			since = '--since=' + arg[14:]
-
-	for node in mconf.configured_nodes.values():
-		if node.ntype == 'master':
-			continue
-		ctrl = "mon log push"
-		if since:
-			ctrl += ' ' + since
-		if not node.ctrl(ctrl):
-			print("Failed to force %s to push its logs. Exiting" % node.name)
-			sys.exit(1)
-
-def cmd_sortmerge(orig_args):
-	"""[--since=<timestamp>] [--tempdir=path]
-	Runs a mergesort algorithm on logfiles from multiple systems to
-	create a single unified logfile suitable for importing into the
-	reports database.
-	--tempdir lets you specify an alternate temporary directory to
-	use when sorting files, to prevent a small /tmp dir from completing
-	the sort due to lack of diskspace
-	"""
-	since = False
-	args = []
-	sort_args = ['sort']
-	for arg in orig_args:
-		if (arg.startswith('--since=')):
-			since = arg.split('=', 1)[1]
-			continue
-		if arg.startswith('--tempdir='):
-			sort_args.append('--temporary-directory')
-			sort_args.append(arg.split('=', 1)[1])
-			continue
-		args.append(arg)
-
-	if since:
-		since = '--incremental=' + since
-
-	pushed = {}
-	for (name, node) in mconf.configured_nodes.items():
-		if node.ntype == 'master':
-			continue
-		if not os.access(pushed_logs + '/' + node.name, os.X_OK):
-			print("Failed to access() pushed_logs dir for %s" % node.name)
-			return False
-
-		pushed[name] = os.listdir(pushed_logs + '/' + node.name)
-		if len(pushed[name]) == 0:
-			print("%s hasn't pushed any logs yet" % name)
-			return False
-
-		if 'in-transit.log' in pushed[name]:
-			print("Log files still in transit for node '%s'" % node.name)
-			return False
-
-	if len(pushed) != mconf.num_nodes['peer'] + mconf.num_nodes['poller']:
-		print("Some nodes haven't pushed their logs. Aborting")
-		return False
-
-	last_files = False
-	for (name, files) in pushed.items():
-		if last_files and not last_files == files:
-			print("Some nodes appear to not have pushed the files they should have done")
-			return False
-		last_files = files
-
-	app = helper_dir + "/import"
-	cmd_args = [app, '--list-files'] + args + [archive_dir]
-	stuff = subprocess.Popen(cmd_args, stdout=subprocess.PIPE)
-	output = stuff.communicate()[0]
-	sort_args += output.strip().split('\n')
-	for (name, more_files) in pushed.items():
-		for fname in more_files:
-			sort_args.append(pushed_logs + '/' + name + '/' + fname)
-
-	print("sort-merging %d files. This could take a while" % (len(sort_args) - 1))
-	(fileno, tmpname) = tempfile.mkstemp()
-	retno = subprocess.call(sort_args, stdout=fileno)
-	if retno:
-		raise SubcommandException()
-	print("Logs sorted into temporary file %s" % tmpname)
-	return tmpname
-
 
 # run the import program
 def cmd_import(args):
 	"""[--fetch] [--help]
 	Runs the external log import helper.
-	If --fetch is specified, logs are first fetched from remote systems
-	and sorted using the merge sort algorithm provided by the sortmerge
-	command.
-	Using --fetch will also enable options from the 'mon log sortmerge'
-	command. See 'mon log sortmerge --help' for details.
-	--help will list a more extensive list of options
 	"""
 	since = ''
 	fetch = False
@@ -151,13 +51,7 @@ def cmd_import(args):
 				args.insert(0, '--db-port=%s' % db_port)
 
 		if mconf.num_nodes['poller'] or mconf.num_nodes['peer']:
-			if fetch == True:
-				cmd_fetch(since)
-				tmpname = cmd_sortmerge(['--since=' + since])
-				print("importing from %s" % tmpname)
-				import_args = [merlin_dir + '/import', tmpname] + args
-			else:
-				import_args = [merlin_dir + '/import'] + args
+			import_args = [merlin_dir + '/import'] + args
 			retcode = subprocess.call(import_args, stdout=sys.stdout.fileno(), stderr=sys.stderr.fileno())
 			if retcode:
 				print("Failed to run log import subcommand")
@@ -224,12 +118,25 @@ def cmd_purge(args):
 	dbc.execute('DELETE FROM notification WHERE end_time < %s', [int(oldest)])
 	dbc.execute('DELETE FROM report_data WHERE id NOT IN (SELECT id FROM (SELECT MAX(id) AS id FROM report_data WHERE timestamp < %s GROUP BY service_description, host_name) as tbl) AND timestamp < %s', [int(oldest),int(oldest)])
 	conn.commit()
-
 	return purge_naemon_log_files(oldest)
 
 def purge_naemon_log_files(oldest):
 	import time, glob
+	global archive_dir
 	logformat = {"naemon": "naemon.log-%Y%m%d", "nagios": "nagios-%m-%d-%Y-%H.log"}
+
+	# if the global variable wasn't set yet, we try to get it from the
+	# naemon config file.
+	if not archive_dir:
+		if os.access(nagios_cfg, os.R_OK):
+			comp = cconf.parse_nagios_cfg(nagios_cfg)
+			archive_dir = comp.log_archive_path
+
+	# Error out if we still didn't manage to find the path
+	if not archive_dir:
+		print "ERROR: Unable to find log archieve path"
+		return 1
+
 	for key in logformat:
 		for log in glob.glob("%s/%s*" % (archive_dir, key)):
 			try:

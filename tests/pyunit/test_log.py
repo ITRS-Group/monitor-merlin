@@ -6,6 +6,8 @@ import unittest
 import tempfile
 import shutil
 
+# needed for finding compound_config within log
+sys.path.append(os.path.abspath('apps/libexec/modules'))
 sys.path.append(os.path.abspath('apps/libexec'))
 import log
 
