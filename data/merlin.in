@@ -1,5 +1,5 @@
 @logdir@/*log {
-	create 644 monitor apache
+	create 644 @naemon_user@ @naemon_group@
 	weekly
 	rotate 4
 	sharedscripts
