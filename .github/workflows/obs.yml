@@ -1,0 +1,63 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - '20*.*'
+  workflow_dispatch:
+
+jobs:
+  build_obs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: install OBS tools
+        env:
+          OBS_USERNAME: ${{ secrets.OBS_USERNAME }}
+          OBS_PASSWORD: ${{ secrets.OBS_PASSWORD }}
+        run: |
+          curl -s "https://build.opensuse.org/projects/openSUSE:Tools/public_key" | sudo apt-key add -
+          sudo sh -c 'echo "deb http://download.opensuse.org/repositories/openSUSE:/Tools/xUbuntu_$(lsb_release -rs)/ ./" >> /etc/apt/sources.list.d/openSUSE-tools.list'
+          sudo apt-get -y update
+          sudo apt-get -y install osc
+          mkdir -p ~/.config/osc
+          cat > ~/.config/osc/oscrc << EOL
+          [general]
+          apiurl = https://api.opensuse.org
+          [https://api.opensuse.org]
+          user=$OBS_USERNAME
+          pass=$OBS_PASSWORD
+          credentials_mgr_class=osc.credentials.PlaintextConfigFileCredentialsManager
+          EOL
+      - name: Get tag
+        id: tag
+        uses: dawidd6/action-get-tag@v1
+      - name: Build and fetch binaries on OBS
+        env:
+          OBS_PROJECT: ${{ secrets.OBS_PROJECT }}
+          OBS_PACKAGE: ${{ secrets.OBS_PACKAGE }}
+          MERLIN_VERSION: ${{ steps.tag.outputs.tag }}
+        run: .github/make-release.sh
+      - uses: actions/upload-artifact@v2
+        with:
+          name: obs-binaries
+          path: release_archives/*.tar.xz
+  make_release:
+    runs-on: ubuntu-latest
+    needs:
+      - build_obs
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: obs-binaries
+      - name: Display structure of downloaded files
+        run: ls -R
+      - name: Release
+        uses: softprops/action-gh-release@v1
+      - name: Upload release binaries
+        uses: alexellis/upload-assets@0.2.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          asset_paths: '["./*.tar.xz"]'
+
