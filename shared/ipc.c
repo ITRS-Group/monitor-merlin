@@ -227,7 +227,7 @@ int ipc_grok_var(char *var, char *val)
 		token = strtok_r(hostgroups, delim, &saveptr);
 
 		while (token != NULL) {
-			prepend_object_to_objectlist(&ipc.ipc_blocked_hostgroups, strdup(val));
+			prepend_object_to_objectlist(&ipc.ipc_blocked_hostgroups, strdup(token));
 			token = strtok_r(NULL, delim, &saveptr);
 		}
 
