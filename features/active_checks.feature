@@ -422,3 +422,22 @@ Feature: Active checks
 		And file merlin.log matches Blocking check execution of hostA;PONG
 		And file merlin.log matches Blocking check execution of hostB
 		And file merlin.log matches Blocking check execution of hostB;PONG
+
+	Scenario: A non-distrubuted node shouldn't execute checks for
+		any objects in ipc_blocked_hostgroups. even with multiple
+		hostgroups in ipc_blocked_hostgroups.
+		Given I have merlin config ipc_blocked_hostgroups set to pollergroup, bogus_group
+		And I start naemon with merlin nodes connected
+			| type   | name       | port |
+		And I have an empty file checks.log
+
+		When I wait for 5 seconds
+
+		Then file checks.log does not match ^check host hostA$
+		And file checks.log does not match ^check host hostB$
+		And file checks.log does not match ^check service hostA PONG$
+		And file checks.log does not match ^check service hostB PONG$
+		And file merlin.log matches Blocking check execution of hostA
+		And file merlin.log matches Blocking check execution of hostA;PONG
+		And file merlin.log matches Blocking check execution of hostB
+		And file merlin.log matches Blocking check execution of hostB;PONG
