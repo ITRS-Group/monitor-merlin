@@ -266,6 +266,8 @@ systemctl restart nrpe || :
 %exclude %_libdir/merlin/mon/test.py*
 %exclude %_bindir/cukemerlin
 %exclude /usr/share/merlin/app-tests/
+%doc %{_docdir}/merlin/README.md
+%doc %{_docdir}/merlin/CHANGELOG.md
 
 %files -n monitor-merlin
 %defattr(-,root,root)
@@ -312,6 +314,8 @@ systemctl restart nrpe || :
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/run/merlin
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/cache/merlin
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/cache/merlin/config
+%doc %{_docdir}/merlin/README.md
+%doc %{_docdir}/merlin/CHANGELOG.md
 
 %files -n monitor-merlin-slim
 %defattr(-,root,root)
