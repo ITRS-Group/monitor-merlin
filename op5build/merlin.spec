@@ -352,7 +352,8 @@ fi
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/run/merlin
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/cache/merlin
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/cache/merlin/config
-
+%doc %{_docdir}/merlin/README.md
+%doc %{_docdir}/merlin/CHANGELOG.md
 
 %files -n monitor-merlin
 %defattr(-,root,root)
@@ -400,6 +401,8 @@ fi
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/run/merlin
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/cache/merlin
 %attr(-, %daemon_user, %daemon_group) %dir %_localstatedir/cache/merlin/config
+%doc %{_docdir}/merlin/README.md
+%doc %{_docdir}/merlin/CHANGELOG.md
 
 %files -n monitor-merlin-slim
 %defattr(-,root,root)
