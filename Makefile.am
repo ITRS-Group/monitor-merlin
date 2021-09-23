@@ -12,7 +12,7 @@ dist_doc_DATA = CHANGELOG.md README.md
 merlinlibdir = $(pkglibdir)
 merlinlib_PROGRAMS = import showlog rename oconf keygen
 merlinlib_SCRIPTS = install-merlin.sh
-bin_SCRIPTS = apps/op5
+bin_SCRIPTS = apps/op5 apps/cluster_tools/merlin_cluster_tools
 
 mondir = $(libdir)/merlin/mon
 mon_SCRIPTS = \
@@ -224,7 +224,7 @@ endif
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)/config
 
-merlind.service data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/merlin apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.py apps/mon.py apps/libexec/restart.sh apps/libexec/merlinkey.py apps/libexec/slim-poller.py apps/libexec/check.py apps/libexec/query.ls.sh apps/libexec/query.lsq.sh apps/libexec/reportdata.py apps/libexec/db.py apps/libexec/log.py: % : %.in
+merlind.service data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/merlin apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.py apps/mon.py apps/libexec/restart.sh apps/libexec/merlinkey.py apps/libexec/slim-poller.py apps/libexec/check.py apps/libexec/query.ls.sh apps/libexec/query.lsq.sh apps/libexec/reportdata.py apps/libexec/db.py apps/libexec/log.py apps/cluster_tools/cluster_tools.py: % : %.in
 	$(AM_V_GEN) sed \
 		-e 's,@PYTHON[@],$(PYTHON),g' \
 		-e 's,@pkgconfdir[@],$(pkgconfdir),g' \
@@ -271,7 +271,7 @@ BUILT_SOURCES = $(GENERATED_NEBEV) tests/merlincat/nebev-col2key.c \
 	 apps/libexec/query.lsq.sh apps/libexec/reportdata.py \
 	 apps/libexec/slim-poller.py apps/libexec/merlinkey.py \
 	 apps/libexec/db.py apps/libexec/log.py \
-	 merlind.service
+	 apps/cluster_tools/cluster_tools.py merlind.service
 CLEANFILES = $(BUILT_SOURCES)
 
 merlincat_SOURCES = tests/merlincat/merlincat.c \
@@ -318,6 +318,9 @@ cukemerlin_LDADD = $(naemon_LIBS) $(GLIB_LIBS) $(GIO_LIBS) $(GIO_UNIX_LIBS) -lso
 
 
 apps/op5: apps/mon.py
+	cp $< $@
+
+apps/cluster_tools/merlin_cluster_tools: apps/cluster_tools/cluster_tools.py
 	cp $< $@
 
 dist-hook:

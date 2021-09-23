@@ -14,6 +14,9 @@ of month.
 - Changelog has been added!
 - Configure option `--with-ls-socket` allows one to configure where the
   livestatus socket is expected to be for the apps.
+- For slim packages, the `merlin_cluster_tools` script has been added. This
+  script can be used with the `cluster_update` setting to automatically handle
+  clustering.
 
 ### Changed
 - Paths in the `mon` apps has been adjusted to configurable values. They are
