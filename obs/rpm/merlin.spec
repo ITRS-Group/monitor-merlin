@@ -130,6 +130,15 @@ Summary: Applications used to set up and aid a merlin/ninja installation
 Requires: rsync
 Requires: openssh
 Requires: openssh-clients
+%if 0%{?rhel} >= 8
+Requires: python3-docopt
+Requires: python3-cryptograph
+Requires: python3-paramiko
+%else
+Requires: python36-docopt
+Requires: python36-cryptography
+Requires: python36-paramiko
+%endif # 0%{?rhel} >= 8
 
 %description apps-slim
 This package contains standalone applications required by Ninja and
@@ -334,6 +343,7 @@ systemctl restart nrpe || :
 %_libdir/merlin/keygen
 %_bindir/mon
 %_bindir/op5
+%_bindir/merlin_cluster_tools
 %exclude %_libdir/merlin/mon/check.py
 
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/db_mysql_check.sh

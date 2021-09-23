@@ -83,3 +83,5 @@ sudo/merlin
 .DS_Store
 .pydevproject
 merlind.service
+apps/cluster_tools/cluster_tools.py
+apps/cluster_tools/merlin_cluster_tools
