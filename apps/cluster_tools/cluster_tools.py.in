@@ -30,6 +30,7 @@ from paramiko.ssh_exception import NoValidConnectionsError
 from docopt import docopt
 from contextlib import contextmanager
 from typing import List
+import warnings
 
 UUID_PATTERN = re.compile(r"ipc_uuid *= *(.*)$")
 
@@ -42,6 +43,8 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(level=LOGLEVEL)
 
+# supress warnings from paramiko on EL7
+warnings.filterwarnings("ignore", message="signer and verifier have been deprecated.*", module="paramiko")
 
 class SSHConnectionException(Exception):
     """Raised on failure to establish an ssh connection"""
