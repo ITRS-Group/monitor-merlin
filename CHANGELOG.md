@@ -8,6 +8,8 @@ format YYYY.MM.MICRO. The tag may occasionally be made just prior to the change
 of month.
 
 ## [Unreleased]
+
+## [2021.10.1] - 2021-10-01
 ### Added
 - Community packages for CentOS/RHEL 7 & 8 are now generated with Open Suse
   Build Service
