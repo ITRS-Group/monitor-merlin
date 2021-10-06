@@ -133,6 +133,8 @@ Requires: MySQL-python
 Requires: libdbi
 %endif
 Requires: unixcat
+# php-cli for mon node tree
+Requires: php-cli
 Obsoletes: monitor-distributed
 Obsoletes: merlin-apps-slim
 
@@ -157,6 +159,8 @@ Requires: rsync
 Requires: openssh
 Requires: openssh-clients
 Requires: python3
+# php-cli for mon node tree
+Requires: php-cli
 %if 0%{?rhel} >= 8
 Requires: python3-docopt
 Requires: python3-cryptograph

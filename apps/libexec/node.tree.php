@@ -898,7 +898,6 @@ try {
 	$o->exception_die($e);
 }
 
-// snel hest
 exit(0);
 
 ?>

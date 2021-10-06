@@ -12,6 +12,8 @@ of month.
 - OBS Build now correctly `Requires: python2-PyMySQL` instead of `BuildRequires`
   on EL8. This fixes a couple of mon scripts for example
   `mon status install-time`
+- Require `php-cli` for `-apps` packages ensuring `mon node tree` works
+  correctly
 
 ## [2021.10.1] - 2021-10-01
 ### Added
