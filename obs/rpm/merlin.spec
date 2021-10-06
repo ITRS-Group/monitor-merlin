@@ -101,7 +101,7 @@ Requires: libdbi1
 Requires: python-mysql
 %else
 %if 0%{?rhel} >= 8
-BuildRequires: python2-PyMySQL
+Requires: python2-PyMySQL
 %else
 Requires: MySQL-python
 %endif
