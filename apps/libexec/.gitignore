@@ -8,3 +8,5 @@ reportdata.py
 slim-poller.py
 db.py
 log.py
+sshkey.push.sh
+sshkey.fetch.sh

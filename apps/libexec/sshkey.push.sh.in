@@ -1,5 +1,8 @@
 #!/bin/sh
 
+naemon_user='@naemon_user@'
+naemon_user_home=$(eval echo ~$naemon_user)
+
 get_val ()
 {
 	expr "z$1" : 'z[^=]*=\(.*\)'
@@ -9,6 +12,8 @@ append_key() {
 	cat $1 | ssh "$2" -C '
 key=$(cat);
 uid=$(id -u)
+naemon_user="@naemon_user@"
+naemon_user_home=$(eval echo ~$naemon_user)
 
 install_key()
 {
@@ -33,10 +38,10 @@ install_key()
 }
 
 install_key ~/.ssh/authorized_keys
-# If we logged in as root we set up the key for monitor as well
+# If we logged in as root we set up the key for naemon_user as well
 if test "$uid" -eq 0; then
-	install_key ~monitor/.ssh/authorized_keys
-	chown -R monitor ~monitor/.ssh
+	install_key $naemon_user_home/.ssh/authorized_keys
+	chown -R $naemon_user $naemon_user_home/.ssh
 fi
 '
 }
@@ -104,18 +109,18 @@ find_key_for_user()
 	echo "$key"
 }
 
-# if we're root, make sure monitor's .ssh/known_hosts file exists
+# if we're root, make sure $naemon_users's .ssh/known_hosts file exists
 # so we don't get errors trying to insert the keys there
 if test $(id -u) -eq 0; then
-	if ! test -d ~monitor/.ssh; then
-		mkdir ~monitor/.ssh
-		chown monitor ~monitor/.ssh
-		chmod 700 ~monitor/.ssh
+	if ! test -d "$naemon_user_home"/.ssh; then
+		mkdir "$naemon_user_home"/.ssh
+		chown $naemon_user "$naemon_user_home"/.ssh
+		chmod 700 "$naemon_user_home"/.ssh
 	fi
-	if ! test -f ~monitor/.ssh/known_hosts; then
-		touch ~monitor/.ssh/known_hosts
-		chown monitor ~monitor/.ssh/known_hosts
-		chmod 600 ~monitor/.ssh/known_hosts
+	if ! test -f "$naemon_user_home"/.ssh/known_hosts; then
+		touch "$naemon_user_home"/.ssh/known_hosts
+		chown $naemon_user "$naemon_user_home"/.ssh/known_hosts
+		chmod 600 "$naemon_user_home"/.ssh/known_hosts
 	fi
 fi
 
@@ -127,16 +132,16 @@ for dest in $destinations; do
 		append_key $(find_key_for_user) $dest | sed 's/^./  &/'
 	;;
 	*)
-		# first install our key into (root and) monitor user
+		# first install our key into (root and) naemon_user
 		append_key $(find_key_for_user) $dest | sed 's/^./  &/'
-		# and then use that key for uploading monitor's key to monitor user
+		# and then use that key for uploading naemon_users's key to naemon_user
 		if [ -z "$key" -a $(whoami) == "root" ]; then
 			export -f find_key_for_user
-			append_key $(su monitor -c find_key_for_user) "monitor@$dest" | sed 's/^./  &/'
-			# now copy the known_hosts entry to monitor's
+			append_key $(su $naemon_user -c find_key_for_user) "$naemon_user@$dest" | sed 's/^./  &/'
+			# now copy the known_hosts entry to naemon_user's
 			# known_hosts file if it doesn't already exist.
-			if ! ssh-keygen -F $dest -f ~monitor/.ssh/known_hosts; then
-				ssh-keygen -H -F $dest | sed 1d >> ~monitor/.ssh/known_hosts
+			if ! ssh-keygen -F $dest -f "$naemon_user_home"/.ssh/known_hosts; then
+				ssh-keygen -H -F $dest | sed 1d >> "$naemon_user_home"/.ssh/known_hosts
 			fi
 		fi
 	;;

@@ -1,5 +1,8 @@
 #!/bin/sh
 
+naemon_user='@naemon_user@'
+naemon_user_home=$(eval echo ~$naemon_user)
+
 get_val ()
 {
 	expr "z$1" : 'z[^=]*=\(.*\)'
@@ -100,12 +103,12 @@ add_key_locally()
 add_key_for_all()
 {
 	# if we're root, we should setup
-	# root->root, root->monitor, monitor->monitor
-	# without doing monitor->root
+	# root->root, root->naemon_user, naemon_user->naemon_user
+	# without doing naemon_user->root
 	if [ "`whoami`" == "root" ]; then
 		export -f add_key_locally grab_key
-		su monitor --session-command "export outfile=~monitor/.ssh/authorized_keys; add_key_locally $1"
-		su monitor --session-command "export outfile=~monitor/.ssh/authorized_keys; add_key_locally root@$1"
+		su $naemon_user --session-command "export outfile=$naemon_user_home/.ssh/authorized_keys; add_key_locally $1"
+		su $naemon_user --session-command "export outfile=$naemon_user_home/.ssh/authorized_keys; add_key_locally root@$1"
 	fi
 	add_key_locally $1
 }
