@@ -111,6 +111,8 @@ requires: systemd
 Requires: sudo
 Requires: openssh-server
 Requires: naemon-livestatus
+# php-cli for mon node tree
+Requires: php-cli
 
 %description apps
 This package contains standalone applications required by Ninja and
@@ -130,6 +132,8 @@ Summary: Applications used to set up and aid a merlin/ninja installation
 Requires: rsync
 Requires: openssh
 Requires: openssh-clients
+# php-cli for mon node tree
+Requires: php-cli
 %if 0%{?rhel} >= 8
 Requires: python3-docopt
 Requires: python3-cryptograph
