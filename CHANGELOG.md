@@ -8,6 +8,10 @@ format YYYY.MM.MICRO. The tag may occasionally be made just prior to the change
 of month.
 
 ## [Unreleased]
+### Fixed
+- OBS Build now correctly `Requires: python2-PyMySQL` instead of `BuildRequires`
+  on EL8. This fixes a couple of mon scripts for example
+  `mon status install-time`
 
 ## [2021.10.1] - 2021-10-01
 ### Added
