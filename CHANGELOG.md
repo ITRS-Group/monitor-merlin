@@ -16,6 +16,7 @@ of month.
   correctly
 - mon sshkey tools are now correctly using the user set during configure.
 - `mon log` now correctly works with the OBS built package.
+- spec: fixed misspelled dependency on python3-cryptography for EL8 slim packages
 
 ## [2021.10.1] - 2021-10-01
 ### Added
