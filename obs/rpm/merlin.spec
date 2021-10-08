@@ -136,7 +136,7 @@ Requires: openssh-clients
 Requires: php-cli
 %if 0%{?rhel} >= 8
 Requires: python3-docopt
-Requires: python3-cryptograph
+Requires: python3-cryptography
 Requires: python3-paramiko
 %else
 Requires: python36-docopt
