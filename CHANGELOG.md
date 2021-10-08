@@ -15,6 +15,7 @@ of month.
 - Require `php-cli` for `-apps` packages ensuring `mon node tree` works
   correctly
 - mon sshkey tools are now correctly using the user set during configure.
+- `mon log` now correctly works with the OBS built package.
 
 ## [2021.10.1] - 2021-10-01
 ### Added

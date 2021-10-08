@@ -2,6 +2,7 @@ import os, sys, subprocess, tempfile
 import compound_config as cconf
 
 nagios_cfg = '@naemon_cfg@'
+archive_dir = False
 
 class SubcommandException(Exception):
 	pass
@@ -121,12 +122,18 @@ def cmd_purge(args):
 
 def purge_naemon_log_files(oldest):
 	import time, glob
+	global archive_dir
 	logformat = {"naemon": "naemon.log-%Y%m%d", "nagios": "nagios-%m-%d-%Y-%H.log"}
-	archive_dir = False
-	if os.access(nagios_cfg, os.R_OK):
-		comp = cconf.parse_nagios_cfg(nagios_cfg)
-		archive_dir = comp.log_archive_path
-	if not archive_dir :
+
+	# if the global variable wasn't set yet, we try to get it from the
+	# naemon config file.
+	if not archive_dir:
+		if os.access(nagios_cfg, os.R_OK):
+			comp = cconf.parse_nagios_cfg(nagios_cfg)
+			archive_dir = comp.log_archive_path
+
+	# Error out if we still didn't manage to find the path
+	if not archive_dir:
 		print "ERROR: Unable to find log archieve path"
 		return 1
 
