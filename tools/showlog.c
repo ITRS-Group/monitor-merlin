@@ -691,7 +691,6 @@ static void usage(const char *fmt, ...)
 	printf("  --html                                  print html output\n");
 	printf("  --ansi                                  force-colorize the output\n");
 	printf("  --ascii                                 don't colorize the output\n"),
-	printf("  --cgi-cfg=</path/to/cgi.cfg>            path to cgi.cfg\n");
 	printf("  --nagios-cfg=</path/to/nagios.cfg>      path to nagios.cfg\n");
 	printf("  --image-url=<image url>                 url to images. Implies --html\n");
 	printf("  --hide-state-dupes                      hide duplicate status messages\n");
@@ -815,7 +814,7 @@ int main(int argc, char **argv)
 {
 	int i, show_ltime_skews = 0, list_files = 0;
 	unsigned long long tot_lines = 0;
-	const char *nagios_cfg = NULL, *cgi_cfg = NULL;
+	const char *nagios_cfg = NULL;
 	int hosts_are_interesting = 0, services_are_interesting = 0;
 
 	progname = strrchr(argv[0], '/');
@@ -914,12 +913,6 @@ int main(int argc, char **argv)
 			if (!opt)
 				missing_opt = 1;
 			nagios_cfg = opt;
-			continue;
-		}
-		if (!strcmp(arg, "--cgi-cfg")) {
-			if (!opt)
-				missing_opt = 1;
-			cgi_cfg = opt;
 			continue;
 		}
 		if (!strcmp(arg, "--skip")) {
@@ -1032,9 +1025,7 @@ int main(int argc, char **argv)
 
 		/* non-argument, so treat as config- or log-file */
 		arg_len = strlen(arg);
-		if (arg_len > 7 && !strcmp(&arg[arg_len - 7], "cgi.cfg")) {
-			cgi_cfg = arg;
-		} else if (!strcmp(&arg[strlen(arg) - 10], "nagios.cfg")
+		if (!strcmp(&arg[strlen(arg) - 10], "nagios.cfg")
 		           || !strcmp(&arg[strlen(arg) - 10], "naemon.cfg"))
 		{
 			nagios_cfg = arg;
@@ -1053,27 +1044,13 @@ int main(int argc, char **argv)
 	if (logs_debug_level)
 		print_interesting_objects();
 
-	/* fallback for op5 systems */
+	/* fallback detection of nagios_cfg */
 	if (!nagios_cfg && !num_nfile) {
-		struct cfg_comp *conf;
-
-		conf = cfg_parse_file(cgi_cfg ? cgi_cfg : "/opt/monitor/etc/cgi.cfg");
-		if (conf) {
-			unsigned int vi;
-			for (vi = 0; vi < conf->vars; vi++) {
-				struct cfg_var *v = conf->vlist[vi];
-				if (!nagios_cfg && !strcmp(v->key, "main_config_file")) {
-					nagios_cfg = strdup(v->value);
-				}
-			}
-			cfg_destroy_compound(conf);
+		if (access("/opt/monitor/etc/naemon.cfg", F_OK) == 0 ) {
+			nagios_cfg = "/opt/monitor/etc/naemon.cfg";
 		} else {
-			if (cgi_cfg) {
-				crash("Failed to parse cgi.cfg file '%s'\n", cgi_cfg);
-			}
+			nagios_cfg = "/etc/naemon/naemon.cfg";
 		}
-
-		nagios_cfg = "/opt/monitor/etc/nagios.cfg";
 	}
 	if (nagios_cfg) {
 		struct cfg_comp *conf;

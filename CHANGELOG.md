@@ -8,6 +8,9 @@ format YYYY.MM.MICRO. The tag may occasionally be made just prior to the change
 of month.
 
 ## [Unreleased]
+### Removed
+- showlog no longer support the `--cgi-cfg=` argument.
+
 ### Fixed
 - OBS Build now correctly `Requires: python2-PyMySQL` instead of `BuildRequires`
   on EL8. This fixes a couple of mon scripts for example
@@ -17,6 +20,9 @@ of month.
 - mon sshkey tools are now correctly using the user set during configure.
 - `mon log` now correctly works with the OBS built package.
 - spec: fixed misspelled dependency on python3-cryptography for EL8 slim packages
+- showlog now fallsbacks to using either `/opt/monitor/etc/naemon.cfg` or
+  `/etc/naemon/naemon.cfg` for detecting the naemon.cfg file if no argument is
+  provided. This ensures `mon showlog` works correctly most systems.
 
 ## [2021.10.1] - 2021-10-01
 ### Added
