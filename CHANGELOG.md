@@ -9,6 +9,11 @@ of month.
 
 ## [Unreleased]
 
+## [2021.10.2] - 2021-10-13
+### Fixed
+- Fixed an issue introduced in 2021.10.1 where `mon oconf push` would fail to
+  work when pushing to pollers on systems with non upstream naemon paths.
+
 ## [2021.10.1] - 2021-10-01
 ### Added
 - Community packages for CentOS/RHEL 7 & 8 are now generated with Open Suse

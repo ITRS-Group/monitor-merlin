@@ -478,7 +478,7 @@ def cmd_push(args):
                     wanted_nodes.remove((name, node))
                     continue
                 source = oconf_file
-                default_dest = '/etc/naemon/oconf/from-master.cfg'
+                default_dest = naemon_cfg_dir + '/oconf/from-master.cfg'
             else:
                 source = node.options.get('oconf_source', naemon_cfg_dir)
                 default_dest = naemon_cfg_dir_parent
