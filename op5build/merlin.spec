@@ -135,6 +135,7 @@ Requires: libdbi
 Requires: unixcat
 # php-cli for mon node tree
 Requires: php-cli
+Requires: procps-ng
 Obsoletes: monitor-distributed
 Obsoletes: merlin-apps-slim
 
@@ -161,6 +162,7 @@ Requires: openssh-clients
 Requires: python3
 # php-cli for mon node tree
 Requires: php-cli
+Requires: procps-ng
 %if 0%{?rhel} >= 8
 Requires: python3-docopt
 Requires: python3-cryptography

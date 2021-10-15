@@ -113,6 +113,7 @@ Requires: openssh-server
 Requires: naemon-livestatus
 # php-cli for mon node tree
 Requires: php-cli
+Requires: procps-ng
 
 %description apps
 This package contains standalone applications required by Ninja and
@@ -134,6 +135,7 @@ Requires: openssh
 Requires: openssh-clients
 # php-cli for mon node tree
 Requires: php-cli
+Requires: procps-ng
 %if 0%{?rhel} >= 8
 Requires: python3-docopt
 Requires: python3-cryptography

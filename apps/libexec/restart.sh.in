@@ -1,17 +1,23 @@
-#!/bin/sh
+#!/bin/bash
 
 # Fix object config (does nothing if we're not a poller)
 mon oconf poller-fix
 
-# This script might be called from a Naemon worker process.
-# As a result, if we do a stop and start of naemon seperatly, it might happen 
-# that this script is killed before we issue the start command. Hence monitor
-# ends up in a stopped state. Calling restart fixes this issue.
-# However for some reason the service restart command does not exists until
-# we have called service stop of either merlin or naemon. Therefore we first
-# restart merlin with seperate commands, and thereafter restart naemon.
-/bin/systemctl stop merlind && /bin/systemctl start merlind
-/bin/systemctl restart naemon
-if systemctl list-units --full -all | grep -Fq "op5-monitor.service"; then
-    /bin/systemctl start op5-monitor
+# Check if we are running systemd first
+if [[ -x /run/systemd/system ]]; then
+    # This script might be called from a Naemon worker process.
+    # As a result, if we do a stop and start of naemon seperatly, it might happen
+    # that this script is killed before we issue the start command. Hence monitor
+    # ends up in a stopped state. Calling restart fixes this issue.
+    # However for some reason the service restart command does not exists until
+    # we have called service stop of either merlin or naemon. Therefore we first
+    # restart merlin with seperate commands, and thereafter restart naemon.
+    /bin/systemctl stop merlind && /bin/systemctl start merlind
+    /bin/systemctl restart naemon
+    if systemctl list-units --full -all | grep -Fq "op5-monitor.service"; then
+        /bin/systemctl start op5-monitor
+    fi
+else
+    # If not running in systemd send a SIGHUP to the oldest naemon proc
+    pkill --signal SIGHUP -o -f /usr/bin/naemon
 fi

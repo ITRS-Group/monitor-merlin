@@ -8,6 +8,10 @@ format YYYY.MM.MICRO. The tag may occasionally be made just prior to the change
 of month.
 
 ## [Unreleased]
+### Changed
+- `mon restart` now checks if we are running on an systemd system. If not, a
+  a SIGHUP is sent to Naemon process for reloading.
+
 ### Removed
 - showlog no longer support the `--cgi-cfg=` argument.
 
