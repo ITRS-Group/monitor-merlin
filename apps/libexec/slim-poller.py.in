@@ -88,6 +88,18 @@ def cmd_register(args):
     try:
         # Non blocking exclusive lock
         fcntl.flock(file_descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+        # sync the slim poller pubkey to peers first
+        if REGISTER_WITH_CLUSTER:
+            for merlin_node in mconf.configured_nodes.values():
+                if merlin_node.ntype == "peer":
+                    if not merlin_node.ssh_user:
+                        address = merlin_node.address
+                    else:
+                        address = merlin_node.ssh_user + '@' + merlin_node.address
+                    sync_pubkey_cmd = "scp " + PUBLIC_KEY + " " + address + ":" + PUBLIC_KEY
+                    _execute_shell_cmd(sync_pubkey_cmd)
+
         for cmd in (add_cmd, encryption_key_cmd, restart_cmd):
             if REGISTER_WITH_CLUSTER:
                 cmd = cluster_cmd + cmd

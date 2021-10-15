@@ -23,6 +23,8 @@ of month.
 - showlog now fallsbacks to using either `/opt/monitor/etc/naemon.cfg` or
   `/etc/naemon/naemon.cfg` for detecting the naemon.cfg file if no argument is
   provided. This ensures `mon showlog` works correctly most systems.
+- Sync slim pollers encryption keys to any peers, prior to restart, when
+  executing `mon slim-poller register`.
 
 ## [2021.10.2] - 2021-10-13
 ### Fixed
