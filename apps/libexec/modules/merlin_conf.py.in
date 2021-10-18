@@ -220,7 +220,7 @@ class merlin_node:
 	def get_exit_code(self):
 		return self.exit_code
 
-config_file = '/opt/monitor/op5/merlin/merlin.conf'
+config_file = '@pkgconfdir@/merlin.conf'
 num_nodes = {'poller': 0, 'peer': 0, 'master': 0}
 configured_nodes = {}
 sorted_nodes = []
@@ -228,6 +228,7 @@ dbopt = {}
 daemon = {}
 module = {}
 _node_defaults = {}
+ipc_socket = None
 
 def node_cmp(a, b):
 	if a.ntype == 'master' and b.ntype != 'master':
@@ -294,6 +295,11 @@ def parse():
 						node.sync_requires_restart = strtobool(sv)
 						continue
 					node.paths_to_sync[sk] = sv
+
+	for k, v in conf.params:
+		if k == 'ipc_socket':
+			global ipc_socket
+			ipc_socket = v
 
 	if len(sorted_nodes):
 		sorted_nodes.sort(node_cmp)
