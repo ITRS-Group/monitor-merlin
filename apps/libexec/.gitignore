@@ -10,3 +10,5 @@ db.py
 log.py
 sshkey.push.sh
 sshkey.fetch.sh
+containerhealth.py
+modules/merlin_conf.py

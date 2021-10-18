@@ -18,6 +18,7 @@ mondir = $(libdir)/merlin/mon
 mon_SCRIPTS = \
 	apps/libexec/ascii.py \
 	apps/libexec/check.py \
+	apps/libexec/containerhealth.py \
 	apps/libexec/db.py \
 	apps/libexec/ecmd.py \
 	apps/libexec/id.py \
@@ -224,7 +225,7 @@ endif
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)
 	$(mkinstalldirs) -o $(naemon_user):$(naemon_group) $(DESTDIR)$(cachedir)/config
 
-merlind.service data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/merlin apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.py apps/mon.py apps/libexec/restart.sh apps/libexec/merlinkey.py apps/libexec/slim-poller.py apps/libexec/check.py apps/libexec/query.ls.sh apps/libexec/query.lsq.sh apps/libexec/reportdata.py apps/libexec/db.py apps/libexec/log.py apps/cluster_tools/cluster_tools.py apps/libexec/sshkey.fetch.sh apps/libexec/sshkey.push.sh: % : %.in
+merlind.service data/merlin data/merlin.cfg data/merlin.conf data/kad.conf sudo/merlin apps/libexec/syscheck/proc_merlind.sh apps/libexec/oconf.py apps/mon.py apps/libexec/restart.sh apps/libexec/merlinkey.py apps/libexec/slim-poller.py apps/libexec/check.py apps/libexec/query.ls.sh apps/libexec/query.lsq.sh apps/libexec/reportdata.py apps/libexec/db.py apps/libexec/log.py apps/cluster_tools/cluster_tools.py apps/libexec/sshkey.fetch.sh apps/libexec/sshkey.push.sh apps/libexec/containerhealth.py apps/libexec/modules/merlin_conf.py: % : %.in
 	$(AM_V_GEN) sed \
 		-e 's,@PYTHON[@],$(PYTHON),g' \
 		-e 's,@pkgconfdir[@],$(pkgconfdir),g' \
@@ -272,7 +273,8 @@ BUILT_SOURCES = $(GENERATED_NEBEV) tests/merlincat/nebev-col2key.c \
 	 apps/libexec/slim-poller.py apps/libexec/merlinkey.py \
 	 apps/libexec/db.py apps/libexec/log.py \
 	 apps/cluster_tools/cluster_tools.py merlind.service \
-	 apps/libexec/sshkey.fetch.sh apps/libexec/sshkey.push.sh
+	 apps/libexec/sshkey.fetch.sh apps/libexec/sshkey.push.sh \
+	 apps/libexec/containerhealth.py apps/libexec/modules/merlin_conf.py
 CLEANFILES = $(BUILT_SOURCES)
 
 merlincat_SOURCES = tests/merlincat/merlincat.c \

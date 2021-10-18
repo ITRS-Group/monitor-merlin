@@ -308,6 +308,7 @@ systemctl restart nrpe || :
 %_bindir/mon
 %_bindir/op5
 %exclude %_libdir/merlin/mon/check.py
+%exclude %_libdir/merlin/mon/containerhealth.py
 
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/db_mysql_check.sh
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/fs_ext_state.sh

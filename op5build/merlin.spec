@@ -401,6 +401,7 @@ fi
 
 %exclude %_libdir/merlin/mon/test.py*
 %exclude %_libdir/merlin/merlin.*
+%exclude %_libdir/merlin/mon/containerhealth.py
 
 %if 0%{?rhel} >= 7
 %files slim

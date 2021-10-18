@@ -1,0 +1,156 @@
+import os, sys, re, time, socket, select
+
+from merlin_apps_utils import *
+from merlin_qh import *
+import merlin_conf as mconf
+import compound_config as cconf
+import subprocess as sp
+
+nagios_cfg = '@naemon_cfg@'
+query_socket = False
+
+def module_init(args):
+	global query_socket
+
+	if not query_socket:
+		if os.access(nagios_cfg, os.R_OK):
+			comp = cconf.parse_nagios_cfg(nagios_cfg)
+			query_socket = comp.query_socket
+		else:
+			query_socket = '/opt/monitor/var/rw/nagios.qh'
+
+	# load the merlin configuration, and thus all nodes
+	mconf.parse()
+	return 0
+
+
+def naemon_alive(sinfo):
+	"""
+	If we cannot get the nodeinfo (from the Naemon QH) naemon is considered
+	to bedead.
+	Returns False if naemon is not alive True otherwise
+	"""
+
+	if not sinfo or sinfo[0] == -1:
+		print("Error: Naemon is not alive")
+		return False
+
+	return True
+
+
+def masters_connected(sinfo):
+	"""
+	Checks that all "alive" masters are connected
+	Return False if any alive masters are not connected True otherwise
+	"""
+
+	errors = 0
+	for info in sinfo:
+		if info["type"] == "master":
+			node = mconf.configured_nodes.get(info['name'], False)
+			is_running = info.get('state') == 'STATE_CONNECTED'
+			last_alive = int(info.get('last_action', -1))
+			# master is not connected BUT does seem alive recently
+			# likely meaning we are misconfigured
+			current_time = time.time()
+			if not is_running and last_alive + 30 > current_time:
+				print "Error: %s is alive but not connected!" % node
+				errors += 1
+	return errors == 0
+
+
+def workers_alive():
+	"""
+	Checks if at least one Naemon worker is alive
+	Return False if no worker is alive, True otherwise
+	"""
+
+	cmd = ['/usr/bin/pgrep','-f','/usr/bin/naemon \-\-worker']
+
+	proc = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE)
+	try:
+		outs, errs = proc.communicate()
+	except:
+		print "Error: Couldn't get naemon worker count"
+		return False
+
+	if proc.returncode == 0:
+		return True
+	else:
+		print "Error: No naemon workers running"
+		return False
+
+
+def no_expired_checks(sinfo):
+	"""
+	Ensure that expired checks > handled checks
+	We don't error if there are just a few expired checks as that might
+	happen from time to time
+	Returns: False if expired_checks > handled_checks True otherwise
+	"""
+
+	for info in sinfo:
+		if info["type"] == "local":
+			hchecks = info.get('host_checks_executed')
+			schecks = info.get('service_checks_executed')
+			expired_hchecks = info.get('expired_hosts')
+			expired_schecks = info.get('expired_services')
+			if not (hchecks and schecks and expired_hchecks and expired_schecks):
+				print "Error: Unable to get expired checks"
+				return False
+			elif int(expired_hchecks) > int(hchecks):
+				print "Error: Host checks expired"
+				return False
+			elif int(expired_schecks) > int(schecks):
+				print "Error: Service checks expired"
+				return False
+			else:
+				return True
+
+	# "catch-all", shouldn't run
+	return True
+
+
+def cmd_core(args):
+	"""
+	Checks if a Slim Poller core container is considered healthy by checking
+	that Naemon is alive, checks are executed as expected, and that all
+	masters considers our configuration correct.
+	Returns 0 		Everything is OK
+	        1 		Naemon is not alive
+	        2		Master alive but not connected (misconfigured)
+	        3		No naemon workers found
+	        4		Expired checks
+	"""
+
+	sinfo = list(get_merlin_nodeinfo(query_socket))
+	if not naemon_alive(sinfo):
+		return 1
+
+	if not masters_connected(sinfo):
+		return 2
+
+	if not workers_alive():
+		return 3
+
+	if not no_expired_checks(sinfo):
+		return 4
+
+	# Everything was OK!
+	print "OK"
+	return 0
+
+
+def cmd_merlin(args):
+	"""
+	Checks if the merlin IPC socket exists at var/run/naemon/merlin.sock
+	returns 0 if file exists
+	        1 otherwise
+	"""
+
+	if os.path.exists(mconf.ipc_socket):
+		print "OK"
+		return 0
+	else:
+		print "Couldn't find IPC socket"
+		return 1
