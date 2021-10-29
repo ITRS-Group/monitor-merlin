@@ -8,6 +8,8 @@ format YYYY.MM.MICRO. The tag may occasionally be made just prior to the change
 of month.
 
 ## [Unreleased]
+
+## [2021.11.1] - 2021-11-01
 ### Added
 - Added `mon containerhealth` that can be used to perform healthchecks when
   Merlin and Naemon is running in a container. This mon command is only shipped
