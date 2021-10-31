@@ -1,0 +1,218 @@
+#
+# Sample configuration file for merlin
+#
+
+# ipc_socket describes where on the file system the unix socket used for
+# communicating between the merlin module and the merlin daemon should be
+# placed.
+ipc_socket = /var/lib/merlin/ipc.sock;
+
+# The log which both the module and daemon should log at.
+# Available options: debug, info (default), warn, err
+log_level = info;
+
+# Whether to log to the syslog.
+# 1 = enabled, 0 = disabled (default)
+use_syslog = 1;
+
+# The pulse interval sets the interval at which Merlin sends heartbeats to
+# remote nodes. Defaults to 10
+# pulse_interval = 10
+
+# The ipc_privatekey option is used to set the private key which should be
+# used to encrypt outgoing packages to remote nodes.
+# ipc_privatekey = /etc/merlin/key.priv
+
+# If enabled, a UUID will be attached to all packets sent to remote nodes.
+# Remote nodes, can the uuid to identify connecting nodes, instead of using
+# ip addresses, by setting the matching uuid in the corresponding node
+# configuration. The UUID must be exactly 36 chars long and can be generated
+# with `mon id generate`.
+# ipc_uuid = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx
+
+# A list of hostgroups which should be blocked from check execution on this
+# node. No re-assignment of the check is done - meaning the check is only done
+# if merlin would otherwise schedule the check on another node. This The
+# setting is intended as a safety-net if for some reason your (slim) pollers
+# are de-registered, and that masters are not supposed/able to execute checks
+# for specific hostgroups.
+# ipc_blocked_hostgroups = hostgroup1, hostgroup2
+
+# Defines where the binlog should be saved to disk.
+# binlog_dir = /var/lib/merlin/binlogs/
+
+# Maximum size (in MB) of the binlog, per node, to keep in memory
+# binlog_max_memory_size = 500
+
+# Maximum size (in MB) of the binlog, per node, to keep on disk when the
+# binlog_max_memory_size has been reached.
+# binlog_max_memory_size = 5000
+
+# When enabled (default) the binlog for every node is written to file
+# when Naemon shuts down, and then loaded in again during startup.
+# This ensures we don't loose any potential events, if there are offline nodes
+# when we restart.
+# binlog_persist = 1
+
+# module-specific configuration options.
+module {
+	# path of the logfile, or "stdout"
+	log_file = /var/log/merlin/neb.log;
+
+	# Enable or disable notifications sent from this node. Defaults to yes.
+	# notifies = yes
+
+	# Merlin keeps track of other nodes cluster configuration. If we detect
+	# that a node has an incompatible cluster config, we notifies the node
+	# with a special control packet. The receiver of the packet, will, if
+	# set execute the script configured in the cluster_update setting.  The
+	# script should be able to correct the cluster configuration.  With
+	# container/slim pollers the below setting is used. Defaults to empty.
+	# cluster_update = /usr/bin/merlin_cluster_tools --update
+}
+
+# daemon-specific config options
+daemon {
+	pidfile = /var/run/merlin/merlin.pid;
+
+	# same as the "module" section above
+	log_file = /var/log/merlin/daemon.log;
+
+	# address to listen to. 0.0.0.0 is default
+	#address = 0.0.0.0;
+
+	# port to listen to. 15551 is default. This is a daemon
+	# specific config setting, as the module never listens to
+	# the network
+	port = 15551;
+	database {
+		# change to no to disable database completely
+		# enabled = yes;
+
+		# write data necessary for creating availability reports
+		# into report_data
+		# log_report_data = yes;
+
+		# log contact notifications to the 'notifications' table
+		# log_notifications = yes;
+
+		# server location and authentication variables
+		name = merlin;
+		user = merlin;
+		pass = merlin;
+		host = localhost;
+		type = mysql;
+
+	}
+
+	# this section describes how we handle config synchronization
+	# It can also be configured on a per-node basis to override the
+	# globals set here.
+	# "push" and "fetch" point to a command supposed to be run when we
+	# want to push configuration to any or all nodes in the network.
+	# They're invoked with the following arguments:
+	# --merlin-cfg=/path/to/merlin.conf
+	object_config {
+		# a "push" happens for peers and pollers that we know have an
+		# older configuration than we do. This is what one would
+		# normally want to happen, since it originates from the node
+		# that already has all the information
+		push = mon oconf push;
+
+		# a "fetch" happens for peers and masters that we know
+		# have a newer configuration than we do.
+		#fetch = mon oconf fetch;
+	}
+}
+
+# It is possible to define up to 65534 neighbour nodes. Each node can have one
+# of the following types: peer, poller, master.
+
+#
+# Example peer
+#
+peer peer2.example.com {
+	address = 192.168.1.2;
+	port = 15551;
+}
+
+#
+# Example poller
+#
+poller poller1.example.com {
+ address = 192.168.1.3
+ port = 15551;
+ hostgroup = germany-hosts;
+}
+
+#
+# Example master
+#
+# master master1.example.com {
+# address = 192.168.1.1;
+# port = 15551;
+# }
+
+#
+# Exhaustive node config sample
+#
+# nodetype node_name {
+	# The address (IPv4 or DNS) of the remote node. Default to node_name if not set
+  	# address = 192.168.1.1;
+
+	# TCP port of the remote node
+	# port = 15551;
+
+	# For pollers, a comma seperated list of hostgroups, that this poller should
+	# be responsible for.
+	# hostgroups = pollergroup1, pollergroup2;
+	#
+	# The data_timeout settings allows specifying how long a remote node should be
+	# considered active after not receiving any events. Should be set to the same
+	# value on both nodes. Defaults to: pulse_interval * 2 (30 seconds).
+	# data_timeout = 30;
+	#
+	# Specifies whether connection to the remote node should be encrypted. Defaults
+	# to 0 (disabled)
+	# encryption = 0;
+	#
+	# Sets the path to the public_key used for encrypted communication. Should
+	# always be set if encryption is enabled.
+	# publickey = /etc/merlin/node_name.pub
+	#
+	# Identify this node by using its UUID instead of its address. Should match
+	# the ipc_uuid set on the remote nodes merlin.conf.
+	# uuid = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx;
+	#
+	# Remove this node from the cluster configuration when it's been inactive for
+	# at least x seconds. Nodes will only be removed when Other nodes in the
+	# peergroup are online A single node will never be removed. Defaults to
+	# disabled (0).
+	# auto_delete = 300;
+	#
+	# Configure whether we should takeover checks when all nodes in this peergroup
+	# is down. Only relevant for pollers. Defaults to yes
+	# takeover = yes;
+	#
+	# Configure whether we're expecting this node to send out notification.
+	# Should match the value set in the remote nodes module config section.
+	# Defaults to yes.
+	# notifies = yes;
+	#
+	# Configure whether we should try to establish a TCP connection to the remote
+	# node. Defaults to yes.
+	# connect = yes;
+	#
+	# Each node may have a custom object_config section, that overwrites the
+	# settings configured in the daemon section. See the daemon section for
+	# details. The below example fetches config from a master, instead of relying
+	# on the master to push data.
+	# object_config {
+	     # The fetch name should match the name of this node on the remote node.
+	     # fetch_name = nat_poller;
+
+	     # In this example, we fetch the configuration from master01, this should
+	     # usually match the node_name.
+	     # fetch = mon oconf fetch master01;
+	# }
+# }

@@ -85,3 +85,5 @@ sudo/merlin
 merlind.service
 apps/cluster_tools/cluster_tools.py
 apps/cluster_tools/merlin_cluster_tools
+!docs/Makefile
+docs/_build/
