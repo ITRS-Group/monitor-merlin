@@ -6,6 +6,8 @@
 Welcome to Merlin's documentation!
 ==================================
 
+Under construction!
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
