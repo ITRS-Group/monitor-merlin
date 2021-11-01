@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to Merlin’s documentation! &mdash; Merlin  documentation</title>
+  <title>NOTE: UNDER CONSTRUCTION &mdash; Merlin  documentation</title>
   
 
   
@@ -21,10 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -33,8 +33,11 @@
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Changelog" href="changelog.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -78,12 +81,18 @@
               
             
             
-              <!-- Local TOC -->
-              <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">Welcome to Merlin’s documentation!</a></li>
-<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+              <p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">NOTE: UNDER CONSTRUCTION</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
 </ul>
-</div>
+<p class="caption" role="heading"><span class="caption-text">Using merlin</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clustering.html">Clustering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+</ul>
+
             
           
         </div>
@@ -127,7 +136,7 @@
     
       <li><a href="#">Docs</a> &raquo;</li>
         
-      <li>Welcome to Merlin’s documentation!</li>
+      <li>NOTE: UNDER CONSTRUCTION</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -146,19 +155,56 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="welcome-to-merlin-s-documentation">
-<h1>Welcome to Merlin’s documentation!<a class="headerlink" href="#welcome-to-merlin-s-documentation" title="Permalink to this headline">¶</a></h1>
-<p>Under construction!</p>
+  <div class="section" id="note-under-construction">
+<h1>NOTE: UNDER CONSTRUCTION<a class="headerlink" href="#note-under-construction" title="Permalink to this headline">¶</a></h1>
+<p>This documentation is under construction!</p>
+</div>
+<div class="section" id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
+<p>The Merlin project, or Module for Effortless Redundancy and Loadbalancing In
+Naemon, is a Naemon module built to create an easy way to set up distributed
+Naemon installations, allowing Naemon processes to exchange information. Merlin
+can also save state changes to a database, which can be used for reporting
+purposes.</p>
+</div>
+<div class="section" id="brief-description-of-the-merlin-project">
+<h1>Brief description of the Merlin project<a class="headerlink" href="#brief-description-of-the-merlin-project" title="Permalink to this headline">¶</a></h1>
+<p>Merlin consists of:</p>
+<p><strong>merlin-mod:</strong> Responsible for jacking into the NEBCALLBACK_* calls and send them
+to a socket (remote Merlin and merlind). If the socket is not available the
+events are written to a backlog and sent when the socket is available again.</p>
+<p><strong>merlind:</strong> The Merlin deamon listens to the socket that merlin-mod writes to and
+sends all state changes to a database of your choice (using libdbi).</p>
+<p><strong>merlin database:</strong> This is a database that contains state changes.</p>
+<p><strong>mon scripts:</strong> A bunch of utility scripts utilized to add new nodes to the system,
+and other useful things.</p>
+<div class="section" id="table-of-contents">
+<h2>Table of Contents<a class="headerlink" href="#table-of-contents" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
-</div>
-</div>
-<div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
-<ul class="simple">
-<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
-<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
-<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">NOTE: UNDER CONSTRUCTION</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#unreleased">[Unreleased]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id1">[2021.10.2] - 2021-10-13</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id3">[2021.10.1] - 2021-10-01</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id8">[2021.9.1] - 2021-09-03</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id10">[2021.8.1] - 2021-07-30</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id14">[2021.4.1] - 2021-04-01</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#id17">[2021.2.1] - 2021-01-29</a></li>
 </ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Using merlin</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clustering.html">Clustering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+</ul>
+</div>
+</div>
 </div>
 
 
@@ -166,6 +212,13 @@
            
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="changelog.html" class="btn btn-neutral float-right" title="Changelog" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+    </div>
   
 
   <hr/>

@@ -1,0 +1,21 @@
+Clustering
+==================================
+
+Node types
+---------------------------------
+
+Install Naemon...
+
+Adding a peer
+---------------------------------
+
+curl ...
+
+
+Adding a poller
+---------------------------------
+
+Download from github release pages...
+
+.. toctree::
+   :maxdepth: 1 

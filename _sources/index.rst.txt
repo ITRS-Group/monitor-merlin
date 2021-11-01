@@ -3,20 +3,50 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Merlin's documentation!
-==================================
+NOTE: UNDER CONSTRUCTION
+=========================
+This documentation is under construction!
 
-Under construction!
+Introduction
+=============
+
+The Merlin project, or Module for Effortless Redundancy and Loadbalancing In
+Naemon, is a Naemon module built to create an easy way to set up distributed
+Naemon installations, allowing Naemon processes to exchange information. Merlin
+can also save state changes to a database, which can be used for reporting
+purposes.
+
+Brief description of the Merlin project
+========================================
+
+Merlin consists of:
+
+**merlin-mod:** Responsible for jacking into the NEBCALLBACK_* calls and send them
+to a socket (remote Merlin and merlind). If the socket is not available the
+events are written to a backlog and sent when the socket is available again.
+
+**merlind:** The Merlin deamon listens to the socket that merlin-mod writes to and
+sends all state changes to a database of your choice (using libdbi).
+
+**merlin database:** This is a database that contains state changes.
+
+**mon scripts:** A bunch of utility scripts utilized to add new nodes to the system,
+and other useful things.
+
+Table of Contents
+------------------
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: About
 
+   self
+   changelog.md
 
+.. toctree::
+   :caption: Using merlin
+   :maxdepth: 1
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   install
+   clustering
+   configuration

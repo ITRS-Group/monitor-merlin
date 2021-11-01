@@ -1,0 +1,31 @@
+Configuration
+==================================
+
+Configuration file format
+---------------------------------
+
+Install Naemon..
+
+General settings
+---------------------------------
+
+curl ...
+
+
+Daemon settings
+---------------------------------
+
+...
+
+Module settings
+---------------------------------
+
+Download from github release pages...
+
+Node settings
+---------------------------------
+
+Download from github release pages...
+
+.. toctree::
+   :maxdepth: 1 
