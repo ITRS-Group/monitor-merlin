@@ -24,24 +24,33 @@ the package manager.
 CentOS 7
 ^^^^^^^^^
 
-.. code-block:: bash
+.. code-block:: none
 
    yum install -y epel-release
    curl -s https://download.opensuse.org/repositories/home:/naemon/CentOS_7/home:naemon.repo >> /etc/yum.repos.d/naemon-stable.repo
    curl -s https://download.opensuse.org/repositories/home:/itrs-op5/CentOS_7/home:itrs-op5.repo >> /etc/yum.repos.d/itrs-op5.repo
    yum install merlin
-   systemctl start naemon
+   systemctl enable naemon && systemctl start naemon
 
 CentOS 8
 ^^^^^^^^^
 
-.. code-block:: bash
+.. code-block:: none
 
    dnf install -y epel-release
    curl -s https://download.opensuse.org/repositories/home:/naemon/CentOS_8_Stream/home:naemon.repo >> /etc/yum.repos.d/naemon-stable.repo
    curl -s https://download.opensuse.org/repositories/home:/itrs-op5/CentOS_8_Stream/home:itrs-op5.repo >> /etc/yum.repos.d/itrs-op5.repo
    dnf install merlin
-   systemctl start naemon
+   systemctl enable naemon && systemctl start naemon
+
+Post install steps
+^^^^^^^^^^^^^^^^^^^
+Clustering depends on having a running SSH server. Enable the SSH server by:
+
+.. code-block:: none
+
+   systemctl enable sshd
+   systemctl start sshd
 
 With Thruk
 ^^^^^^^^^^^

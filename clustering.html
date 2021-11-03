@@ -91,9 +91,18 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installing</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Clustering</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#node-types">Node types</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#adding-a-peer">Adding a peer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#adding-a-poller">Adding a poller</a><ul class="simple">
+<li class="toctree-l2"><a class="reference internal" href="#node-types">Node types</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#peer">Peer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#poller">Poller</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#master">Master</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#cluster-setup-walkthrough">Cluster setup walkthrough</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#preparation">Preparation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#adding-a-peer">Adding a peer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#adding-a-poller">Adding a poller</a><ul class="simple">
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -165,18 +174,187 @@
             
   <div class="section" id="clustering">
 <h1>Clustering<a class="headerlink" href="#clustering" title="Permalink to this headline">¶</a></h1>
+<p>Merlin allows clustering of multiple Naemon instances, to add redundancy and
+loadbalancing to the Naemon monitoring infrastructure.</p>
+<p>Merlin works in two main ways:
+- Sends Naemon events, such as check results, between nodes over a TCP connection
+- Keeps track, and syncs Naemon configuration across nodes over SSH</p>
+<p>A single Merlin node, can have up to 65534 neighbours, allowing one to build
+a large monitoring infrastructure.</p>
 <div class="section" id="node-types">
 <h2>Node types<a class="headerlink" href="#node-types" title="Permalink to this headline">¶</a></h2>
-<p>Install Naemon…</p>
+<p>Merlin has three different node types:</p>
+<div class="section" id="peer">
+<h3>Peer<a class="headerlink" href="#peer" title="Permalink to this headline">¶</a></h3>
+<p>A peer is a redundant and loadbalanced node. A collection of peers, called a
+peergroup, divides the check load equally. If you have three nodes in a peergroup,
+each peer will execute 33% of the configured Naemon checks each. If one of the
+nodes in a peergroup goes down, Merlin will redistribute the check load to the
+two online peers, so they execute 50% of the checks each.</p>
+<p>Peers will always run the same Naemon configuration.</p>
+</div>
+<div class="section" id="poller">
+<h3>Poller<a class="headerlink" href="#poller" title="Permalink to this headline">¶</a></h3>
+<p>A poller is responsible for checking host and services belonging to one more
+hostgroups. This makes it possible to put a Merlin no in a remote network. Each
+poller can also be peered, ensuring multiple ndoes are responsible for the set
+of hostgroups.</p>
+<p>A poller only has a subset of the full Naemon configuration (based on the
+hostgroup assignment), and will never know of any objects not belonging to the
+specified hostgroups.</p>
+<p>It is possible to setup multiple pollergroups which are responsible for different
+sets of hostgroups.</p>
+</div>
+<div class="section" id="master">
+<h3>Master<a class="headerlink" href="#master" title="Permalink to this headline">¶</a></h3>
+<p>A poller must connect to each node in the master peergroup. The master
+peergroup, keeps track of the full Naemon configuration set. Masters will split
+the Naemon configuration for pollers to use.</p>
+</div>
+</div>
+<div class="section" id="cluster-setup-walkthrough">
+<h2>Cluster setup walkthrough<a class="headerlink" href="#cluster-setup-walkthrough" title="Permalink to this headline">¶</a></h2>
+<p>In this walk-through we’ll go through creating a cluster with three nodes in
+total. A master peergroup with two masters, and a single remote poller.</p>
+<p>By the end we should have a node structure that looks like the following:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>+----------+    +----------+
+| master01 |----| master02 |
++----------+    +----------+
+   |
+   |
+   | HOSTGROUP: pollergroup  +----------+
+   = ------------------------| poller01 |
+                             +----------+
+</pre></div>
+</div>
+<div class="section" id="preparation">
+<h3>Preparation<a class="headerlink" href="#preparation" title="Permalink to this headline">¶</a></h3>
+<p>To begin with, prepare three machines (master01, master02, poller01), with
+Naemon and Merlin installed as per the installation instructions (LINK). Make
+sure that there are no firewalls blocking port 22 (for SSH) &amp; 15551 (Merlins
+default TCP port). Ensure that you had the root password for all machines at
+hand.</p>
 </div>
 <div class="section" id="adding-a-peer">
-<h2>Adding a peer<a class="headerlink" href="#adding-a-peer" title="Permalink to this headline">¶</a></h2>
-<p>curl …</p>
+<h3>Adding a peer<a class="headerlink" href="#adding-a-peer" title="Permalink to this headline">¶</a></h3>
+<p>We’ll start by peering master01 and master02. To begin we need to ensure that
+passwordless SSH connection is possible between the nodes. Merlin includes
+a convince script to setup and install SSH keys across the nodes, that we’ll
+use below.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[root@master01 ~]# mon sshkey push IP-OF-MASTER01
+[root@master02 ~]# mon sshkey push IP-OF-MASTER02
+</pre></div>
+</div>
+<p>With the above, we should be able to SSH between both nodes, both as the
+<code class="docutils literal notranslate"><span class="pre">root</span></code> user and the <code class="docutils literal notranslate"><span class="pre">naemon</span></code> user.</p>
+<p>Now we setup the peers in each nodes Merlin configuration. We’ll use another
+<code class="docutils literal notranslate"><span class="pre">mon</span></code> tool adjust Merlins configuration file.</p>
+<p>We’ll start by adding master01 to master02’s configuration.</p>
+<p>Start by adding add master01 to the Merlin config on master02.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[root@master02 ~]# non node add master01 type=peer address=IP-OF-MASTER02
+</pre></div>
+</div>
+<p>On master01 then, add master02 to the Merlin config, and push the Naemon
+configuration to master02. We always push configuration as the <code class="docutils literal notranslate"><span class="pre">naemon</span></code> user.
+Finally, restart Naemon &amp; Merlin.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[root@master01 ~]# mon node add master02 type=peer address=IP-OF-MASTER02
+[root@master01 ~]# su naemon -c &quot;mon oconf push master02&quot;
+[root@master01 ~]# mon restart
+</pre></div>
+</div>
+<p>At this point we should have a healthy cluster, and we can use a few more
+<code class="docutils literal notranslate"><span class="pre">mon</span></code> tools to look at our cluster state. These two nodes are now
+loadbalanced sharing the check executions equally.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[root@master01 ~]# mon node status
+Total checks (host / service): 4 / 21
+
+#00 0/1:1 local ipc: ACTIVE - 0.000s latency
+Uptime: 15m 47s. Connected: 15m 48s. Last alive: 8s ago
+Host checks (handled, expired, total)   : 2, 0, 4 (50.00% : 50.00%)
+Service checks (handled, expired, total): 11, 0, 21 (52.38% : 52.38%)
+
+#01 1/1:1 peer master02: ACTIVE - 0.000s latency - (UNENCRYPTED)
+Uptime: 15m 48s. Connected: 15m 48s. Last alive: 8s ago
+Host checks (handled, expired, total)   : 2, 0, 4 (50.00% : 50.00%)
+Service checks (handled, expired, total): 10, 0, 21 (47.62% : 47.62%)
+
+[root@master01 ~]# mon node tree
+ +-----+    +----------+
+ | ipc |----| master02 |
+ +-----+    +----------+
+</pre></div>
+</div>
 </div>
 <div class="section" id="adding-a-poller">
-<h2>Adding a poller<a class="headerlink" href="#adding-a-poller" title="Permalink to this headline">¶</a></h2>
-<p>Download from github release pages…</p>
+<h3>Adding a poller<a class="headerlink" href="#adding-a-poller" title="Permalink to this headline">¶</a></h3>
+<p>Now that we have two peers in the master peergroup, we can add a poller. We must
+first decide which hostgroup(s) the poller should be responsible for. Before
+getting started with the setup, ensure that the hostgroup has already been added
+to the masters Naemon configuration. In our example we’ll use a hostgroup called
+<code class="docutils literal notranslate"><span class="pre">pollergroup</span></code>.</p>
+<p>SSH connection must be established to both masters, so we start by adding SSH
+keys.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[root@poller01 ~]# mon sshkey push IP-OF-MASTER01
+[root@poller01 ~]# mon sshkey push IP-OF-MASTER02
+[root@master01 ~]# mon sshkey push IP-OF-POLLER01
+[root@master02 ~]# mon sshkey push IP-OF-POLLER02
+</pre></div>
+</div>
+<p>TODO: Fix naemon user .ssh/known_hosts</p>
+<p>With the above we have ensured that the poller can SSH to both masters, and
+that both masters can SSH to the poller. We now add the poller to both masters.
+Afterwards we restart both masters. This ensures the Merlin will prepare the
+a subset of the Naemon configuration for poller01.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[root@master01 ~]# mon node add poller01 type=poller hostgroup=pollergroup address=IP-OF-POLLER01
+[root@master02 ~]# mon node add poller01 type=poller hostgroup=pollergroup address=IP-OF-POLLER01
+[root@master01 ~]# mon restart
+[root@master02 ~]# mon restart
+</pre></div>
+</div>
+<p>On the poller, we now need to add both masters to the Merlin configuration.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[root@poller01 ~]# mon node add master01 type=master address=IP-OF-MASTER01
+[root@poller01 ~]# mon node add master02 type=master address=IP-OF-MASTER02
+</pre></div>
+</div>
+<p>Finally, on one of the masters, do the initial configuration push to the poller
+manually.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[root@master01 ~]# su naemon -c &quot;mon oconf push poller01&quot;
+</pre></div>
+</div>
+<p>We have now added a poller, and we use the <code class="docutils literal notranslate"><span class="pre">mon</span></code> tools again to view the state
+of our cluster.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[root@master01 ~]# mon node tree
+ +-----+    +----------+
+ | ipc |----| master02 |
+ +-----+    +----------+
+    |
+    |
+    | HOSTGROUP: pollergroup  +----------+
+    = ------------------------| poller01 |
+                              +----------+
+
+
+[root@master01 ~]# mon node status
+Total checks (host / service): 5 / 29
+
+#00 0/1:1 local ipc: ACTIVE - 0.000s latency
+Uptime: 12m 24s. Connected: 12m 25s. Last alive: 2s ago
+Host checks (handled, expired, total)   : 3, 0, 4 (75.00% : 60.00%)
+Service checks (handled, expired, total): 11, 0, 21 (52.38% : 37.93%)
+
+#01 1/1:1 peer master02: ACTIVE - 0.000s latency - (UNENCRYPTED)
+Uptime: 12m 22s. Connected: 12m 17s. Last alive: 2s ago
+Host checks (handled, expired, total)   : 1, 0, 4 (25.00% : 20.00%)
+Service checks (handled, expired, total): 10, 0, 21 (47.62% : 34.48%)
+
+#02 0/0:0 poller poller01: ACTIVE - 0.000s latency - (UNENCRYPTED)
+Uptime: 3m 39s. Connected: 3m 39s. Last alive: 4s ago
+Host checks (handled, expired, total)   : 1, 0, 1 (100.00% : 20.00%)
+Service checks (handled, expired, total): 8, 0, 8 (100.00% : 27.59%)
+</pre></div>
+</div>
 <div class="toctree-wrapper compound">
+</div>
 </div>
 </div>
 </div>

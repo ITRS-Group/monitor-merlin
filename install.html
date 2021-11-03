@@ -94,6 +94,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#from-package-repositories">From package repositories</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#centos-7">CentOS 7</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#centos-8">CentOS 8</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#post-install-steps">Post install steps</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#with-thruk">With Thruk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#development-snapshot">Development snapshot</a></li>
 </ul>
@@ -195,21 +196,29 @@ dependencies from EPEL are required. Hereafter we can install the relevant
 the package manager.</p>
 <div class="section" id="centos-7">
 <h3>CentOS 7<a class="headerlink" href="#centos-7" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>yum install -y epel-release
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>yum install -y epel-release
 curl -s https://download.opensuse.org/repositories/home:/naemon/CentOS_7/home:naemon.repo &gt;&gt; /etc/yum.repos.d/naemon-stable.repo
 curl -s https://download.opensuse.org/repositories/home:/itrs-op5/CentOS_7/home:itrs-op5.repo &gt;&gt; /etc/yum.repos.d/itrs-op5.repo
 yum install merlin
-systemctl start naemon
+systemctl enable naemon &amp;&amp; systemctl start naemon
 </pre></div>
 </div>
 </div>
 <div class="section" id="centos-8">
 <h3>CentOS 8<a class="headerlink" href="#centos-8" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>dnf install -y epel-release
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>dnf install -y epel-release
 curl -s https://download.opensuse.org/repositories/home:/naemon/CentOS_8_Stream/home:naemon.repo &gt;&gt; /etc/yum.repos.d/naemon-stable.repo
 curl -s https://download.opensuse.org/repositories/home:/itrs-op5/CentOS_8_Stream/home:itrs-op5.repo &gt;&gt; /etc/yum.repos.d/itrs-op5.repo
 dnf install merlin
-systemctl start naemon
+systemctl enable naemon &amp;&amp; systemctl start naemon
+</pre></div>
+</div>
+</div>
+<div class="section" id="post-install-steps">
+<h3>Post install steps<a class="headerlink" href="#post-install-steps" title="Permalink to this headline">¶</a></h3>
+<p>Clustering depends on having a running SSH server. Enable the SSH server by:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>systemctl enable sshd
+systemctl start sshd
 </pre></div>
 </div>
 </div>
