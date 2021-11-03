@@ -37,6 +37,7 @@
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Encrypted communication" href="encryption.html" />
     <link rel="prev" title="Clustering" href="clustering.html" /> 
 </head>
 
@@ -92,14 +93,16 @@
 <li class="toctree-l1"><a class="reference internal" href="clustering.html">Clustering</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#configuration-file-format">Configuration file format</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#general-settings">General settings</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#daemon-settings">Daemon settings</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-settings">Module settings</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#node-settings">Node settings</a><ul class="simple">
+<li class="toctree-l2"><a class="reference internal" href="#base-section">Base section</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#daemon-section">Daemon section</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-section">Module section</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#node-section">Node Section</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sample-config">Sample config</a><ul class="simple">
 </ul>
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="encryption.html">Encrypted communication</a></li>
 </ul>
 
             
@@ -168,23 +171,173 @@
 <h1>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="configuration-file-format">
 <h2>Configuration file format<a class="headerlink" href="#configuration-file-format" title="Permalink to this headline">¶</a></h2>
-<p>Install Naemon..</p>
+<p>The syntax is made up of a key without spaces and a value containing arbitrary
+characters (although no semi-colons). A configuration statement is terminated
+either by a newline or a semi-colon. A configuration statement starting with a
+hash-character (#) is considered a comment. Thus,</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>key = value; # comment
+</pre></div>
 </div>
-<div class="section" id="general-settings">
-<h2>General settings<a class="headerlink" href="#general-settings" title="Permalink to this headline">¶</a></h2>
-<p>curl …</p>
+<p>makes “key” the key, “value” the value, terminated by the semi-colon, and “#
+comment” all of the comment. Leading and trailing whitespace is ignored.</p>
+<p>Merlins configuration consists of several sections. A section scope are started
+by <code class="docutils literal notranslate"><span class="pre">{</span></code> and ended by <code class="docutils literal notranslate"><span class="pre">}</span></code>.</p>
 </div>
-<div class="section" id="daemon-settings">
-<h2>Daemon settings<a class="headerlink" href="#daemon-settings" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="base-section">
+<h2>Base section<a class="headerlink" href="#base-section" title="Permalink to this headline">¶</a></h2>
+<p>??</p>
+</div>
+<div class="section" id="daemon-section">
+<h2>Daemon section<a class="headerlink" href="#daemon-section" title="Permalink to this headline">¶</a></h2>
 <p>…</p>
 </div>
-<div class="section" id="module-settings">
-<h2>Module settings<a class="headerlink" href="#module-settings" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-section">
+<h2>Module section<a class="headerlink" href="#module-section" title="Permalink to this headline">¶</a></h2>
 <p>Download from github release pages…</p>
 </div>
-<div class="section" id="node-settings">
-<h2>Node settings<a class="headerlink" href="#node-settings" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="node-section">
+<h2>Node Section<a class="headerlink" href="#node-section" title="Permalink to this headline">¶</a></h2>
 <p>Download from github release pages…</p>
+</div>
+<div class="section" id="sample-config">
+<h2>Sample config<a class="headerlink" href="#sample-config" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>#
+# Sample configuration file for merlin
+#
+
+# ipc_socket describes where on the file system the unix socket used for
+# communicating between the merlin module and the merlin daemon should be
+# placed.
+ipc_socket = /var/lib/merlin/ipc.sock;
+
+# The log which both the module and daemon should log at.
+# Available options: debug, info (default), warn, err 
+log_level = info;
+
+# Whether to log to the syslog.
+# 1 = enabled, 0 = disabled (default)
+use_syslog = 1;
+
+# The pulse interval sets the interval at which Merlin sends heartbeats to
+# remote nodes. Defaults to 10
+# pulse_interval = 10
+
+# The ipc_privatekey option is used to set the private key which should be
+# used to encrypt outgoing packages to remote nodes.
+# ipc_privatekey = /etc/merlin/key.priv
+
+# If enabled, a UUID will be attached to all packets sent to remote nodes.
+# Remote nodes, can the uuid to identify connecting nodes, instead of using
+# ip addresses, by setting the matching uuid in the corresponding node 
+# configuration. The UUID must be exactly 36 chars long and can be generated
+# with `mon id generate`.
+# ipc_uuid = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx 
+
+# A list of hostgroups which should be blocked from check execution on this
+# node. No re-assignment of the check is done - meaning the check is only done
+# if merlin would otherwise schedule the check on another node. This The
+# setting is intended as a safety-net if for some reason your (slim) pollers
+# are de-registered, and that masters are not supposed/able to execute checks
+# for specific hostgroups.
+# ipc_blocked_hostgroups = hostgroup1, hostgroup2
+
+# Defines where the binlog should be saved to disk.
+# binlog_dir = /var/lib/merlin/binlogs/
+
+# Maximum size (in MB) of the binlog, per node, to keep in memory
+# binlog_max_memory_size = 500
+
+
+# Maximum size (in MB) of the binlog, per node, to keep on disk when the
+# binlog_max_memory_size has been reached.
+# binlog_max_memory_size = 5000
+
+# When enabled (default) the binlog for every node is written to file
+# when Naemon shuts down, and then loaded in again during startup.
+# This ensures we don&#39;t loose any potential events, if there are offline nodes
+# when we restart.
+# binlog_persist = 1
+
+# module-specific configuration options.
+module {
+	# path of the logfile, or &quot;stdout&quot;
+	log_file = /var/log/merlin/neb.log;
+
+	# event mask??
+	# handle_events
+	# ignore_events
+	# notifies
+	# cluster_update
+}
+
+# daemon-specific config options
+daemon {
+	pidfile = /var/run/merlin/merlin.pid;
+
+	# same as the &quot;module&quot; section above
+	log_file = /var/log/merlin/daemon.log;
+
+	# address to listen to. 0.0.0.0 is default
+	#address = 0.0.0.0;
+
+	# merlin_user: is it used / has an effect?
+	#
+	#
+
+	# port to listen to. 15551 is default. This is a daemon
+	# specific config setting, as the module never listens to
+	# the network
+	port = 15551;
+	database {
+		# change to no to disable database completely
+		# enabled = yes;
+
+		# write data necessary for creating availability reports
+		# into report_data
+		# log_report_data = yes;
+
+		# log contact notifications to the &#39;notifications&#39; table
+		# log_notifications = yes;
+
+		# server location and authentication variables
+		name = merlin;
+		user = merlin;
+		pass = merlin;
+		host = localhost;
+		type = mysql;
+		# host_perfdata_table
+		# service_perfdata_table
+		# perfdata_table
+		# commit_interval
+		# commit_queries
+	}
+
+	# this section describes how we handle config synchronization
+	# It can also be configured on a per-node basis to override the
+	# globals set here.
+	# &quot;push&quot; and &quot;fetch&quot; point to a command supposed to be run when we
+	# want to push configuration to any or all nodes in the network.
+	# They&#39;re invoked with the following arguments:
+	# --merlin-cfg=/path/to/merlin.conf
+	object_config {
+		# a &quot;push&quot; happens for peers and pollers that we know have an
+		# older configuration than we do. This is what one would
+		# normally want to happen, since it originates from the node
+		# that already has all the information
+		push = mon oconf push
+
+		# a &quot;fetch&quot; happens for peers and masters that we know
+		# have a newer configuration than we do. One won&#39;t normally
+		# configure this (and it currently lacks scripting support),
+		# but it&#39;s available for advanced users who know what they&#39;re
+		# doing
+		#fetch = mon oconf fetch
+	}
+}
+
+# TODO: Node config!
+</pre></div>
+</div>
 <div class="toctree-wrapper compound">
 </div>
 </div>
@@ -197,6 +350,8 @@
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="encryption.html" class="btn btn-neutral float-right" title="Encrypted communication" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="clustering.html" class="btn btn-neutral float-left" title="Clustering" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

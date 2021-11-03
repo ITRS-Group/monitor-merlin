@@ -50,3 +50,4 @@ Table of Contents
    install
    clustering
    configuration
+   encryption

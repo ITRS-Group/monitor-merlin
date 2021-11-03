@@ -4,28 +4,45 @@ Configuration
 Configuration file format
 ---------------------------------
 
-Install Naemon..
+The syntax is made up of a key without spaces and a value containing arbitrary
+characters (although no semi-colons). A configuration statement is terminated
+either by a newline or a semi-colon. A configuration statement starting with a
+hash-character (#) is considered a comment. Thus,
 
-General settings
+.. code-block:: none
+
+    key = value; # comment
+
+makes "key" the key, "value" the value, terminated by the semi-colon, and "#
+comment" all of the comment. Leading and trailing whitespace is ignored.
+
+Merlins configuration consists of several sections. A section scope are started
+by ``{`` and ended by ``}``. 
+
+Base section
 ---------------------------------
+??
 
-curl ...
 
-
-Daemon settings
+Daemon section
 ---------------------------------
 
 ...
 
-Module settings
+Module section
 ---------------------------------
 
 Download from github release pages...
 
-Node settings
+Node Section
 ---------------------------------
 
 Download from github release pages...
+
+Sample config
+---------------------------------
+.. literalinclude:: ../merlin.conf.sample
+    :language: none
 
 .. toctree::
    :maxdepth: 1 
