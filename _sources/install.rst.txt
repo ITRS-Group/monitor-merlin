@@ -1,14 +1,6 @@
 Installing
 ==================================
 
-Requirements & Dependencies
----------------------------------
-
-**OS Support**
-
-- CentOS 7
-- CentOS 8 (Stream or derivatives)
-
 From package repositories
 ---------------------------------
 
