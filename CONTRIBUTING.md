@@ -1,16 +1,14 @@
 
 # Contributing
 
-The developers at OP5 are very happy to accept and maintain patches, as long  
-as the code change fits with the general concepts of the project.  
-In general, we prefer patches to be in the form of pull requests on Github  
-if the project is available there, otherwise you can email patches to OP5  
-at [op5-users@lists.op5.com](op5-users@lists.op5.com).
+The developers of Merlin are very happy to accept and maintain patches, as long
+as the code change fits with the general concepts of the project. Patches
+should be sent as Github PRs.
 
-Once you have submitted your pull request or email, the pull request will  
-enter our internal verification process, where we might check the format of  
-the code, the amount of testing needed, etc. After this process is done, you  
-will be notified in the same place that you sent your patches.
+Once you have submitted your pull request, the pull request will enter our
+internal verification process, where we might check the format of the code, the
+amount of testing needed, etc. After this process is done, you will be notified
+in the same place that you sent your patches.
 
 ## Hints when writing commits
 
@@ -20,10 +18,10 @@ will be notified in the same place that you sent your patches.
   * The first line of the commit message should be a short description (50
   columns max) and should skip the full stop
   * The commit body should be wrapped at 72 columns
-  * One or more paragraphs, outlining the _what_ and the _why_ of the change.  
+  * One or more paragraphs, outlining the _what_ and the _why_ of the change.
   That is; What changed? Why was the change necessary?
-  * if you want your work included upstream, add a "Signed-off-by: Your Name  
-  <you@example.com>" line to the commit message (or just use the option "-s"  
+  * if you want your work included upstream, add a "Signed-off-by: Your Name
+  <you@example.com>" line to the commit message (or just use the option "-s"
   when committing) to confirm that you agree to the [Developer's Certificate of Origin](https://developercertificate.org/)
   * Make sure that you have tests for the bug you are fixing if possible
   * Make sure that the test suite passes after your commits
@@ -58,15 +56,15 @@ A (very) bad commit message looks like this:
 build fix
 it broke on solaris
 ```
-The latter is a horrible message, because it doesn't tell us which part of  
-the build broke, or why, or how the fixer came to the conclusion that the  
+The latter is a horrible message, because it doesn't tell us which part of
+the build broke, or why, or how the fixer came to the conclusion that the
 implemented fix was the best one, or what to look out for in the future.
 
 ## Pull requests
 
-A pull request should preferably contain tests, we don't merge anything that  
-isn't tested. If tests aren't included or the pull request causes build fails  
-we will create internal tickets to troubleshoot and/or add tests and take it  
+A pull request should preferably contain tests, we don't merge anything that
+isn't tested. If tests aren't included or the pull request causes build fails
+we will create internal tickets to troubleshoot and/or add tests and take it
 into consideration in the upcoming sprint review(s).
 
 
