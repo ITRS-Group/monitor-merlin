@@ -42,7 +42,6 @@ data/merlin.conf
 rename
 install-merlin.sh
 apps/op5
-/Documentation
 *.swp
 *~
 TAGS
