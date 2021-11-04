@@ -266,10 +266,6 @@ daemon {
 	# address to listen to. 0.0.0.0 is default
 	#address = 0.0.0.0;
 
-	# merlin_user: is it used / has an effect?
-	#
-	#
-
 	# port to listen to. 15551 is default. This is a daemon
 	# specific config setting, as the module never listens to
 	# the network
@@ -306,77 +302,76 @@ daemon {
 		# older configuration than we do. This is what one would
 		# normally want to happen, since it originates from the node
 		# that already has all the information
-		push = mon oconf push
+		push = mon oconf push;
 
 		# a &quot;fetch&quot; happens for peers and masters that we know
 		# have a newer configuration than we do.
-		#fetch = mon oconf fetch
+		#fetch = mon oconf fetch;
 	}
 }
 
 # It is possible to define up to 65534 neighbour nodes. Each node can have one
 # of the following types: peer, poller, master.
-
+#
 # nodetype node_name {
-#  The address (IPv4 or DNS) of the remote node. Default to node_name if not set
-#  address = 192.168.1.1;
-#
-#  TCP port of the remote node
-#  port = 15551;
-#
-#  For pollers, a comma seperated list of hostgroups, that this poller should
-#  be responsible for.
-#  hostgroups = pollergroup1, pollergroup2
-#
-#  The data_timeout settings allows specifying how long a remote node should be
-#  considered active after not receiving any events. Should be set to the same
-#  value on both nodes. Defaults to: pulse_interval * 2 (30 seconds).
-#  data_timeout = 30
-#
-#  Specifies whether connection to the remote node should be encrypted. Defaults
-#  to 0 (disabled)
-#  encryption = 0
-#
-#  Sets the path to the public_key used for encrypted communication. Should
-#  always be set if encryption is enabled.
-#  publickey = /etc/merlin/node_name.pub
-#
-#  Identify this node by using its UUID instead of its address. Should match
-#  the ipc_uuid set on the remote nodes merlin.conf.
-#  uuid = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx
-#
-#  Remove this node from the cluster configuration when it&#39;s been inactive for
-#  at least x seconds. Nodes will only be removed when Other nodes in the
-#  peergroup are online A single node will never be removed. Defaults to
-#  disabled (0).
-#  auto_delete = 300
-#
-#  Configure whether we should takeover checks when all nodes in this peergroup
-#  is down. Only relevant for pollers. Defaults to yes
-#  takeover = yes
-#
-#  Configure whether we&#39;re expecting this node to send out notification.
-#  Should match the value set in the remote nodes module config section.
-#  Defaults to yes.
-#  notifies = yes
-#
-#  Configure whether we should try to establish a TCP connection to the remote
-#  node. Defaults to yes.
-#  connect = yes
-#
-#  Each node may have a custom object_config section, that overwrites the
-#  settings configured in the daemon section. See the daemon section for
-#  details. The below example fetches config from a master, instead of relying
-#  on the master to push data.
-#  object_config {
-#      # The fetch name should match the name of this node on the remote node.
-#      fetch_name = nat_poller
-#
-#      # In this example, we fetch the configuration from master01, this should
-#      # usually match the node_name.
-#      fetch = mon oconf fetch master01
-#  }
+	# The address (IPv4 or DNS) of the remote node. Default to node_name if not set
+  	# address = 192.168.1.1;
 
+	# TCP port of the remote node
+	# port = 15551;
+
+	# For pollers, a comma seperated list of hostgroups, that this poller should
+	# be responsible for.
+	# hostgroups = pollergroup1, pollergroup2;
+	#
+	# The data_timeout settings allows specifying how long a remote node should be
+	# considered active after not receiving any events. Should be set to the same
+	# value on both nodes. Defaults to: pulse_interval * 2 (30 seconds).
+	# data_timeout = 30;
+	#
+	# Specifies whether connection to the remote node should be encrypted. Defaults
+	# to 0 (disabled)
+	# encryption = 0;
+	#
+	# Sets the path to the public_key used for encrypted communication. Should
+	# always be set if encryption is enabled.
+	# publickey = /etc/merlin/node_name.pub
+	#
+	# Identify this node by using its UUID instead of its address. Should match
+	# the ipc_uuid set on the remote nodes merlin.conf.
+	# uuid = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx;
+	#
+	# Remove this node from the cluster configuration when it&#39;s been inactive for
+	# at least x seconds. Nodes will only be removed when Other nodes in the
+	# peergroup are online A single node will never be removed. Defaults to
+	# disabled (0).
+	# auto_delete = 300;
+	#
+	# Configure whether we should takeover checks when all nodes in this peergroup
+	# is down. Only relevant for pollers. Defaults to yes
+	# takeover = yes;
+	#
+	# Configure whether we&#39;re expecting this node to send out notification.
+	# Should match the value set in the remote nodes module config section.
+	# Defaults to yes.
+	# notifies = yes;
+	#
+	# Configure whether we should try to establish a TCP connection to the remote
+	# node. Defaults to yes.
+	# connect = yes;
+	#
+	# Each node may have a custom object_config section, that overwrites the
+	# settings configured in the daemon section. See the daemon section for
+	# details. The below example fetches config from a master, instead of relying
+	# on the master to push data.
+	# object_config {
+	     # The fetch name should match the name of this node on the remote node.
+	     # fetch_name = nat_poller;
+
+	     # In this example, we fetch the configuration from master01, this should
+	     # usually match the node_name.
+	     # fetch = mon oconf fetch master01;
+	# }
 # }
 </pre></div>
 </div>
