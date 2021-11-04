@@ -12,9 +12,12 @@ Introduction
 
 The Merlin project, or Module for Effortless Redundancy and Loadbalancing In
 Naemon, is a Naemon module built to create an easy way to set up distributed
-Naemon installations, allowing Naemon processes to exchange information. Merlin
-can also save state changes to a database, which can be used for reporting
-purposes.
+Naemon installations, allowing Naemon processes to exchange information. This
+allows Naemon to scale past a single installation to handle a bigger monitoring
+workload.
+
+Merlin can also save state changes to a database, which can be
+used for reporting purposes.
 
 Brief description of the Merlin project
 ========================================
