@@ -1,5 +1,5 @@
 Encrypted communication
-==================================
+========================
 
 Merlin supports encrypting the packets send over the Merlin TCP protocol.
 Merlin uses libsodiums crypo_box. For more information on the encryption please
@@ -10,7 +10,7 @@ Note that the Merlin packets body is encrypted, the header remain unencrypted.
 
 
 Configuring encryption
----------------------------
+-----------------------
 
 In this example we'll set up encryption between two peers, *peer01*, and *peer02*.
 

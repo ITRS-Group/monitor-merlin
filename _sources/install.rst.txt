@@ -1,8 +1,14 @@
 Installing
-==================================
+===========
+
+Dependencies & Requirements
+----------------------------
+
+Merlin is currently supported and tested on CentOS 7 & CentOS 8. Merlin requires
+Naemon, and the Naemon binary must be installed at ``/usr/bin/naemon``.
 
 From package repositories
----------------------------------
+--------------------------
 
 Installing via repositories hosted at openSUSE Build Service is the recommended
 approach. This makes updating easy using the OS provided package manager.
@@ -11,7 +17,6 @@ Prior to installing we need to ensure that the EPEL release is included, as
 dependencies from EPEL are required. Hereafter we can install the relevant
 `.repo` files, both for Naemon and Merlin. Finally we can install merlin using
 the package manager. 
-
 
 CentOS 7
 ^^^^^^^^^
@@ -37,7 +42,7 @@ CentOS 8
 
 Post install steps
 ^^^^^^^^^^^^^^^^^^^
-Clustering depends on having a running SSH server. Enable the SSH server by:
+Clustering relies on having a running SSH server. Enable the SSH server by:
 
 .. code-block:: none
 
@@ -86,7 +91,7 @@ Some of the differences with the slim packages are noted below:
 - Includes the ``cluster_tools`` script which helps registering with master nodes
 
 Compiling from source
----------------------------------
+----------------------
 
 **Needs review, this section is potentially out of date and needs updating** 
 

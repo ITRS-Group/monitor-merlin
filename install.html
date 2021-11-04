@@ -90,6 +90,7 @@
 <p class="caption" role="heading"><span class="caption-text">Using merlin</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#dependencies-requirements">Dependencies &amp; Requirements</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#from-package-repositories">From package repositories</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#centos-7">CentOS 7</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#centos-8">CentOS 8</a></li>
@@ -179,6 +180,11 @@
             
   <div class="section" id="installing">
 <h1>Installing<a class="headerlink" href="#installing" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="dependencies-requirements">
+<h2>Dependencies &amp; Requirements<a class="headerlink" href="#dependencies-requirements" title="Permalink to this headline">¶</a></h2>
+<p>Merlin is currently supported and tested on CentOS 7 &amp; CentOS 8. Merlin requires
+Naemon, and the Naemon binary must be installed at <code class="docutils literal notranslate"><span class="pre">/usr/bin/naemon</span></code>.</p>
+</div>
 <div class="section" id="from-package-repositories">
 <h2>From package repositories<a class="headerlink" href="#from-package-repositories" title="Permalink to this headline">¶</a></h2>
 <p>Installing via repositories hosted at openSUSE Build Service is the recommended
@@ -209,7 +215,7 @@ systemctl enable naemon &amp;&amp; systemctl start naemon
 </div>
 <div class="section" id="post-install-steps">
 <h3>Post install steps<a class="headerlink" href="#post-install-steps" title="Permalink to this headline">¶</a></h3>
-<p>Clustering depends on having a running SSH server. Enable the SSH server by:</p>
+<p>Clustering relies on having a running SSH server. Enable the SSH server by:</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>systemctl enable sshd
 systemctl start sshd
 </pre></div>

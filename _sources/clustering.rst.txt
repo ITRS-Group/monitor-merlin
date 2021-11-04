@@ -1,5 +1,5 @@
 Clustering
-==================================
+===========
 
 Merlin allows clustering of multiple Naemon instances, to add redundancy and
 loadbalancing to the Naemon monitoring infrastructure.
@@ -13,7 +13,7 @@ a large monitoring infrastructure.
 
 
 Node types
----------------------------------
+-----------
 
 Merlin has three different node types:
 
