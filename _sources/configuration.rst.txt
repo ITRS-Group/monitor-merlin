@@ -19,29 +19,13 @@ comment" all of the comment. Leading and trailing whitespace is ignored.
 Merlins configuration consists of several sections. A section scope are started
 by ``{`` and ended by ``}``. 
 
-Base section
----------------------------------
-??
-
-
-Daemon section
----------------------------------
-
-...
-
-Module section
----------------------------------
-
-Download from github release pages...
-
-Node Section
----------------------------------
-
-Download from github release pages...
-
 Sample config
 ---------------------------------
-.. literalinclude:: ../merlin.conf.sample
+
+The sample configuration below contains a description of all notable
+configuration settings.
+
+.. literalinclude:: merlin.conf.sample
     :language: none
 
 .. toctree::

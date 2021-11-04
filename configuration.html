@@ -93,10 +93,6 @@
 <li class="toctree-l1"><a class="reference internal" href="clustering.html">Clustering</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#configuration-file-format">Configuration file format</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#base-section">Base section</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#daemon-section">Daemon section</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-section">Module section</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#node-section">Node Section</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#sample-config">Sample config</a><ul class="simple">
 </ul>
 </li>
@@ -183,24 +179,10 @@ comment” all of the comment. Leading and trailing whitespace is ignored.</p>
 <p>Merlins configuration consists of several sections. A section scope are started
 by <code class="docutils literal notranslate"><span class="pre">{</span></code> and ended by <code class="docutils literal notranslate"><span class="pre">}</span></code>.</p>
 </div>
-<div class="section" id="base-section">
-<h2>Base section<a class="headerlink" href="#base-section" title="Permalink to this headline">¶</a></h2>
-<p>??</p>
-</div>
-<div class="section" id="daemon-section">
-<h2>Daemon section<a class="headerlink" href="#daemon-section" title="Permalink to this headline">¶</a></h2>
-<p>…</p>
-</div>
-<div class="section" id="module-section">
-<h2>Module section<a class="headerlink" href="#module-section" title="Permalink to this headline">¶</a></h2>
-<p>Download from github release pages…</p>
-</div>
-<div class="section" id="node-section">
-<h2>Node Section<a class="headerlink" href="#node-section" title="Permalink to this headline">¶</a></h2>
-<p>Download from github release pages…</p>
-</div>
 <div class="section" id="sample-config">
 <h2>Sample config<a class="headerlink" href="#sample-config" title="Permalink to this headline">¶</a></h2>
+<p>The sample configuration below contains a description of all notable
+configuration settings.</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>#
 # Sample configuration file for merlin
 #
@@ -211,7 +193,7 @@ by <code class="docutils literal notranslate"><span class="pre">{</span></code> 
 ipc_socket = /var/lib/merlin/ipc.sock;
 
 # The log which both the module and daemon should log at.
-# Available options: debug, info (default), warn, err 
+# Available options: debug, info (default), warn, err
 log_level = info;
 
 # Whether to log to the syslog.
@@ -228,10 +210,10 @@ use_syslog = 1;
 
 # If enabled, a UUID will be attached to all packets sent to remote nodes.
 # Remote nodes, can the uuid to identify connecting nodes, instead of using
-# ip addresses, by setting the matching uuid in the corresponding node 
+# ip addresses, by setting the matching uuid in the corresponding node
 # configuration. The UUID must be exactly 36 chars long and can be generated
 # with `mon id generate`.
-# ipc_uuid = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx 
+# ipc_uuid = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx
 
 # A list of hostgroups which should be blocked from check execution on this
 # node. No re-assignment of the check is done - meaning the check is only done
@@ -246,7 +228,6 @@ use_syslog = 1;
 
 # Maximum size (in MB) of the binlog, per node, to keep in memory
 # binlog_max_memory_size = 500
-
 
 # Maximum size (in MB) of the binlog, per node, to keep on disk when the
 # binlog_max_memory_size has been reached.
@@ -263,11 +244,16 @@ module {
 	# path of the logfile, or &quot;stdout&quot;
 	log_file = /var/log/merlin/neb.log;
 
-	# event mask??
-	# handle_events
-	# ignore_events
-	# notifies
-	# cluster_update
+	# Enable or disable notifications sent from this node. Defaults to yes.
+	# notifies = yes
+
+	# Merlin keeps track of other nodes cluster configuration. If we detect
+	# that a node has an incompatible cluster config, we notifies the node
+	# with a special control packet. The receiver of the packet, will, if
+	# set execute the script configured in the cluster_update setting.  The
+	# script should be able to correct the cluster configuration.  With
+	# container/slim pollers the below setting is used. Defaults to empty.
+	# cluster_update = /usr/bin/merlin_cluster_tools --update
 }
 
 # daemon-specific config options
@@ -305,11 +291,7 @@ daemon {
 		pass = merlin;
 		host = localhost;
 		type = mysql;
-		# host_perfdata_table
-		# service_perfdata_table
-		# perfdata_table
-		# commit_interval
-		# commit_queries
+
 	}
 
 	# this section describes how we handle config synchronization
@@ -327,15 +309,75 @@ daemon {
 		push = mon oconf push
 
 		# a &quot;fetch&quot; happens for peers and masters that we know
-		# have a newer configuration than we do. One won&#39;t normally
-		# configure this (and it currently lacks scripting support),
-		# but it&#39;s available for advanced users who know what they&#39;re
-		# doing
+		# have a newer configuration than we do.
 		#fetch = mon oconf fetch
 	}
 }
 
-# TODO: Node config!
+# It is possible to define up to 65534 neighbour nodes. Each node can have one
+# of the following types: peer, poller, master.
+
+# nodetype node_name {
+#  The address (IPv4 or DNS) of the remote node. Default to node_name if not set
+#  address = 192.168.1.1;
+#
+#  TCP port of the remote node
+#  port = 15551;
+#
+#  For pollers, a comma seperated list of hostgroups, that this poller should
+#  be responsible for.
+#  hostgroups = pollergroup1, pollergroup2
+#
+#  The data_timeout settings allows specifying how long a remote node should be
+#  considered active after not receiving any events. Should be set to the same
+#  value on both nodes. Defaults to: pulse_interval * 2 (30 seconds).
+#  data_timeout = 30
+#
+#  Specifies whether connection to the remote node should be encrypted. Defaults
+#  to 0 (disabled)
+#  encryption = 0
+#
+#  Sets the path to the public_key used for encrypted communication. Should
+#  always be set if encryption is enabled.
+#  publickey = /etc/merlin/node_name.pub
+#
+#  Identify this node by using its UUID instead of its address. Should match
+#  the ipc_uuid set on the remote nodes merlin.conf.
+#  uuid = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx
+#
+#  Remove this node from the cluster configuration when it&#39;s been inactive for
+#  at least x seconds. Nodes will only be removed when Other nodes in the
+#  peergroup are online A single node will never be removed. Defaults to
+#  disabled (0).
+#  auto_delete = 300
+#
+#  Configure whether we should takeover checks when all nodes in this peergroup
+#  is down. Only relevant for pollers. Defaults to yes
+#  takeover = yes
+#
+#  Configure whether we&#39;re expecting this node to send out notification.
+#  Should match the value set in the remote nodes module config section.
+#  Defaults to yes.
+#  notifies = yes
+#
+#  Configure whether we should try to establish a TCP connection to the remote
+#  node. Defaults to yes.
+#  connect = yes
+#
+#  Each node may have a custom object_config section, that overwrites the
+#  settings configured in the daemon section. See the daemon section for
+#  details. The below example fetches config from a master, instead of relying
+#  on the master to push data.
+#  object_config {
+#      # The fetch name should match the name of this node on the remote node.
+#      fetch_name = nat_poller
+#
+#      # In this example, we fetch the configuration from master01, this should
+#      # usually match the node_name.
+#      fetch = mon oconf fetch master01
+#  }
+
+# }
 </pre></div>
 </div>
 <div class="toctree-wrapper compound">

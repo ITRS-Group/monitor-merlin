@@ -31,9 +31,9 @@ Peers will always run the same Naemon configuration.
 Poller
 ^^^^^^^
 
-A poller is responsible for checking host and services belonging to one more
-hostgroups. This makes it possible to put a Merlin no in a remote network. Each
-poller can also be peered, ensuring multiple ndoes are responsible for the set
+A poller is responsible for checking host and services belonging to one or more
+hostgroups. This makes it possible to put a Merlin node in a remote network. Each
+poller can also be peered, ensuring multiple nodes are responsible for the set
 of hostgroups.
 
 A poller only has a subset of the full Naemon configuration (based on the
