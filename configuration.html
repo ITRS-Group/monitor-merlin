@@ -99,6 +99,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="encryption.html">Encrypted communication</a></li>
+<li class="toctree-l1"><a class="reference internal" href="container-poller.html">Merlin container poller</a></li>
 </ul>
 
             
@@ -312,6 +313,34 @@ daemon {
 
 # It is possible to define up to 65534 neighbour nodes. Each node can have one
 # of the following types: peer, poller, master.
+
+#
+# Example peer
+#
+peer peer2.example.com {
+	address = 192.168.1.2;
+	port = 15551;
+}
+
+#
+# Example poller
+#
+poller poller1.example.com {
+ address = 192.168.1.3
+ port = 15551;
+ hostgroup = germany-hosts;
+}
+
+#
+# Example master
+#
+# master master1.example.com {
+# address = 192.168.1.1;
+# port = 15551;
+# }
+
+#
+# Exhaustive node config sample
 #
 # nodetype node_name {
 	# The address (IPv4 or DNS) of the remote node. Default to node_name if not set

@@ -47,7 +47,7 @@ Clustering depends on having a running SSH server. Enable the SSH server by:
 With Thruk
 ^^^^^^^^^^^
 
-If you wish to install the Thruk UI, add the ``naemon`` to the dnf/yum install
+If you wish to install the Thruk UI, add ``naemon`` to the dnf/yum install
 commands above.
 
 Development snapshot
