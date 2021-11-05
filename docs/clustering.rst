@@ -5,6 +5,7 @@ Merlin allows clustering of multiple Naemon instances, to add redundancy and
 loadbalancing to the Naemon monitoring infrastructure.
 
 Merlin works in two main ways:
+
 - Sends Naemon events, such as check results, between nodes over a TCP connection
 - Keeps track, and syncs Naemon configuration across nodes over SSH
 
@@ -73,22 +74,23 @@ Preparation
 ^^^^^^^^^^^^
 
 To begin with, prepare three machines (master01, master02, poller01), with
-Naemon and Merlin installed as per the installation instructions (LINK). Make
-sure that there are no firewalls blocking port 22 (for SSH) & 15551 (Merlins
-default TCP port). Ensure that you had the root password for all machines at
-hand.
+Naemon and Merlin installed as per the :doc:`installation instructions
+</install>`. Make sure that there are no firewalls blocking port 22 (for SSH) &
+15551 (Merlins default TCP port). Ensure that you had the root password for all
+machines at hand.
 
 Adding a peer
 ^^^^^^^^^^^^^^
 
 We'll start by peering master01 and master02. To begin we need to ensure that
 passwordless SSH connection is possible between the nodes. Merlin includes
-a convince script to setup and install SSH keys across the nodes, that we'll
+a convenience script to setup and install SSH keys across the nodes, that we'll
 use below.
 
 .. code-block:: none
 
    [root@master01 ~]# mon sshkey push IP-OF-MASTER01
+
    [root@master02 ~]# mon sshkey push IP-OF-MASTER02
 
 With the above, we should be able to SSH between both nodes, both as the
@@ -157,6 +159,7 @@ keys.
    [root@poller01 ~]# mon sshkey push IP-OF-MASTER01
    [root@poller01 ~]# mon sshkey push IP-OF-MASTER02
    [root@master01 ~]# mon sshkey push IP-OF-POLLER01
+
    [root@master02 ~]# mon sshkey push IP-OF-POLLER02
 
 
@@ -168,8 +171,9 @@ a subset of the Naemon configuration for poller01.
 .. code-block:: none
 
    [root@master01 ~]# mon node add poller01 type=poller hostgroup=pollergroup address=IP-OF-POLLER01
-   [root@master02 ~]# mon node add poller01 type=poller hostgroup=pollergroup address=IP-OF-POLLER01
    [root@master01 ~]# mon restart
+   
+   [root@master02 ~]# mon node add poller01 type=poller hostgroup=pollergroup address=IP-OF-POLLER01
    [root@master02 ~]# mon restart
 
 On the poller, we now need to add both masters to the Merlin configuration.

@@ -4,8 +4,8 @@ Installing
 Dependencies & Requirements
 ----------------------------
 
-Merlin is currently supported and tested on CentOS 7 & CentOS 8. Merlin requires
-Naemon, and the Naemon binary must be installed at ``/usr/bin/naemon``.
+Merlin is currently tested on CentOS 7 & CentOS 8. Merlin requires Naemon, and
+the Naemon binary must be installed at ``/usr/bin/naemon``.
 
 From package repositories
 --------------------------
@@ -62,9 +62,17 @@ Development snapshots are built anytime there is a merge to master. If you need
 a feature not yet included for release, you can install the development snapshot
 by replacing the repo definitions above with either corresponding one below.
 
-**CentOS 7:** ``https://download.opensuse.org/repositories/home:/itrs-op5:/master/CentOS_7/home:itrs-op5:master.repo``
+**CentOS 7:** 
 
-**CentOS 8:** ``https://download.opensuse.org/repositories/home:/itrs-op5:/master/CentOS_8_Stream/home:itrs-op5:master.repo``
+.. code-block:: none
+
+   https://download.opensuse.org/repositories/home:/itrs-op5:/master/CentOS_7/home:itrs-op5:master.repo
+
+**CentOS 8:**
+
+.. code-block:: none
+
+   https://download.opensuse.org/repositories/home:/itrs-op5:/master/CentOS_8_Stream/home:itrs-op5:master.repo
 
 From .rpm files
 ---------------------------------
@@ -131,7 +139,7 @@ Building and installation
 Building is a standard autotools flair. Checkout with git, or download the 
 release tarball and run
 
-.. code-block:: bash
+.. code-block:: none
 
    ./autogen.sh
    make

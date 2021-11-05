@@ -19,9 +19,9 @@
 
 # -- Project information -----------------------------------------------------
 
-project = u'Merlin'
-copyright = u'2021, ITRS Group'
-author = u'ITRS Group'
+project = 'Merlin'
+copyright = '2021, ITRS Group'
+author = 'ITRS Group'
 
 # The short X.Y version
 version = u''
@@ -65,7 +65,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path .
-exclude_patterns = [u'_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -130,8 +130,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'Merlin.tex', u'Merlin Documentation',
-     u'ITRS Group', 'manual'),
+    (master_doc, 'Merlin.tex', 'Merlin Documentation',
+     'ITRS Group', 'manual'),
 ]
 
 
@@ -140,7 +140,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'merlin', u'Merlin Documentation',
+    (master_doc, 'merlin', 'Merlin Documentation',
      [author], 1)
 ]
 
@@ -151,7 +151,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'Merlin', u'Merlin Documentation',
+    (master_doc, 'Merlin', 'Merlin Documentation',
      author, 'Merlin', 'One line description of project.',
      'Miscellaneous'),
 ]
