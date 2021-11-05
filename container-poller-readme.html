@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Merlin container poller &mdash; Merlin  documentation</title>
+  <title>merlin-container-poller &mdash; Merlin  documentation</title>
   
 
   
@@ -91,7 +91,7 @@
 <li class="toctree-l1"><a class="reference internal" href="clustering.html">Clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="encryption.html">Encrypted communication</a></li>
-<li class="toctree-l1"><a class="reference internal" href="container-poller.html">Merlin container poller</a></li>
+<li class="toctree-l1"><a class="reference internal" href="container-poller.html">merlin-container-poller</a></li>
 </ul>
 
             
@@ -137,7 +137,7 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Merlin container poller</li>
+      <li>merlin-container-poller</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -157,195 +157,7 @@
            <div itemprop="articleBody">
             
   <div class="tex2jax_ignore mathjax_ignore section" id="merlin-container-poller">
-<h1><a class="reference external" href="https://github.com/ITRS-Group/merlin-container-poller">Merlin container poller</a><a class="headerlink" href="#merlin-container-poller" title="Permalink to this headline">¶</a></h1>
-<p>A containerized version of <a class="reference external" href="https://www.naemon.org/">Naemon</a> with
-<a class="reference external" href="https://github.com/ITRS-Group/monitor-merlin">Merlin</a>, running in containers.
-The images are targeted to run mainly in Kubernetes, but also support running
-with docker-compose. When running in Kubernetes the Merlin poller can be scaled
-either manually by setting the number of replicas, or by using Kubernetes
-horizontal pod autoscaler.</p>
-<div class="section" id="usage">
-<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="adding-ssh-keys">
-<h3>Adding SSH keys<a class="headerlink" href="#adding-ssh-keys" title="Permalink to this headline">¶</a></h3>
-<p>In order for the poller to register with masters, SSH keys need to be added to
-the image. Generate a pair of SSH keys using <code class="docutils literal notranslate"><span class="pre">ssh-keygen</span></code> and build a custom
-Naemon image:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">FROM</span> <span class="n">op5com</span><span class="o">/</span><span class="n">merlin</span><span class="o">-</span><span class="n">naemon</span><span class="p">:</span><span class="n">latest</span>
-
-<span class="n">COPY</span> <span class="o">--</span><span class="n">chown</span><span class="o">=</span><span class="n">naemon</span><span class="p">:</span><span class="n">root</span> <span class="n">id_rsa</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">naemon</span><span class="o">/.</span><span class="n">ssh</span><span class="o">/</span><span class="n">id_rsa</span>
-<span class="n">COPY</span> <span class="o">--</span><span class="n">chown</span><span class="o">=</span><span class="n">naemon</span><span class="p">:</span><span class="n">root</span> <span class="n">id_rsa</span><span class="o">.</span><span class="n">pub</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">naemon</span><span class="o">/.</span><span class="n">ssh</span><span class="o">/</span><span class="n">authorized_keys</span>
-
-<span class="n">RUN</span> <span class="n">chmod</span> <span class="mi">600</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">naemon</span><span class="o">/.</span><span class="n">ssh</span><span class="o">/</span><span class="n">id_rsa</span>
-<span class="n">RUN</span> <span class="n">chmod</span> <span class="mi">644</span> <span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">naemon</span><span class="o">/.</span><span class="n">ssh</span><span class="o">/</span><span class="n">authorized_keys</span>
-</pre></div>
-</div>
-<p>Ensure that the public key is added to all masters (including master peers)
-<code class="docutils literal notranslate"><span class="pre">authorized_keys</span></code> file for the naemon user at:
-<code class="docutils literal notranslate"><span class="pre">/var/lib/naemon/.ssh/authorized_keys</span></code>.</p>
-</div>
-<div class="section" id="adding-plugins">
-<h3>Adding plugins<a class="headerlink" href="#adding-plugins" title="Permalink to this headline">¶</a></h3>
-<p>The Naemon image doesn’t contain any plugins by default, so users are required
-to ensure that plugins are added to the image. The recommended method is
-building a custom image, with all required plugins. The plugins should ideally
-be installed at the same paths that corrosponding plugins are installed on
-masters.</p>
-<p>An example dockerfile, that adds the plugin suite <code class="docutils literal notranslate"><span class="pre">nagios-plugins-all</span></code> can be
-seen below. In this example, we also include the SSH keys as mentioned in the
-previous section.</p>
-<p>Note that it’s required to change the user to root, and back to <code class="docutils literal notranslate"><span class="pre">$NAEMON_UID</span></code>.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>FROM op5com/merlin-naemon:latest
-
-USER root
-RUN yum install -y nagios-plugins-all
-USER $NAEMON_UID
-
-COPY --chown=naemon:root id_rsa /var/lib/naemon/.ssh/id_rsa
-COPY --chown=naemon:root id_rsa.pub /var/lib/naemon/.ssh/authorized_keys
-
-RUN chmod 600 /var/lib/naemon/.ssh/id_rsa
-RUN chmod 644 /var/lib/naemon/.ssh/authorized_keys
-</pre></div>
-</div>
-</div>
-<div class="section" id="deployment">
-<h3>Deployment<a class="headerlink" href="#deployment" title="Permalink to this headline">¶</a></h3>
-<p>After building your custom image, with SSH keys and plugins you can start
-deployment of your container poller. Use the example <a class="reference external" href="https://github.com/ITRS-Group/merlin-container-poller/tree/master/deployment_examples">deployment files</a>
-, ensure that the image for the Naemon container is
-updated to your custom image, and fill in the enviorment variables as needed
-(see below).</p>
-</div>
-<div class="section" id="configuration">
-<h3>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h3>
-<p>The Naemon image contains a number of enviorment variables that should be setup
-in order for the poller to be correctly registered with the master.</p>
-<table class="colwidths-auto docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Setting</p></th>
-<th class="head"><p>Description</p></th>
-<th class="head"><p>Required</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>MASTER_ADDRESS</p></td>
-<td><p>IP address of the designated master. Only provide one IP, any peers will be automatically added during startup of the poller.</p></td>
-<td><p>yes</p></td>
-</tr>
-<tr class="row-odd"><td><p>MASTER_NAME</p></td>
-<td><p>The name of the master which will be used on the poller.</p></td>
-<td><p>yes</p></td>
-</tr>
-<tr class="row-even"><td><p>MASTER_PORT</p></td>
-<td><p>Merlin TCP port, default 15551.</p></td>
-<td><p>no</p></td>
-</tr>
-<tr class="row-odd"><td><p>POLLER_ADDRESS</p></td>
-<td><p>Address of the poller. This IP needs to be accessible from any poller-peers. Use status.podIP in kubernetes</p></td>
-<td><p>yes</p></td>
-</tr>
-<tr class="row-even"><td><p>POLLER_NAME</p></td>
-<td><p>Name of the poller as registered on the master. On kubernetes use metadata.name</p></td>
-<td><p>yes</p></td>
-</tr>
-<tr class="row-odd"><td><p>POLLER_HOSTGROUPS</p></td>
-<td><p>Comma seperated list of hostgroups which the poller should monitor. These hostgroups should exists on the master prior to starting the deployment.</p></td>
-<td><p>yes</p></td>
-</tr>
-<tr class="row-even"><td><p>LOG_LEVEL</p></td>
-<td><p>Set the loglevel to either: debug, info (default), error, critical.</p></td>
-<td><p>no</p></td>
-</tr>
-<tr class="row-odd"><td><p>FILES_TO_SYNC</p></td>
-<td><p>Comma-separated list of paths to sync from the master server.</p></td>
-<td><p>no</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section" id="volumes">
-<h3>Volumes<a class="headerlink" href="#volumes" title="Permalink to this headline">¶</a></h3>
-<p>Two volumes are required, in order to share data between the two running containers.</p>
-<table class="colwidths-auto docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Volume</p></th>
-<th class="head"><p>Description</p></th>
-<th class="head"><p>Mount point</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>ipc</p></td>
-<td><p>This volume contains are unix socket, which is used for communicating between the Merlin NEB module and the merlin Daemon.</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">/var/lib/merlin/</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p>merlin_config</p></td>
-<td><p>This contains the merlin configuration, and is needed by both the Merlin NEB module and the merlin Daemon.</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">/etc/merlin/</span></code></p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section" id="kubernetes-quick-start">
-<h3>Kubernetes quick-start<a class="headerlink" href="#kubernetes-quick-start" title="Permalink to this headline">¶</a></h3>
-<p>Start by getting the <a class="reference external" href="https://raw.githubusercontent.com/ITRS-Group/merlin-container-poller/master/deployment_examples/k8s.yaml">example deployment file</a>
-and adjust the environment variable to appropriate values. Ensure that you’ve
-built an image included your SSH keys, installed some plugins, and that your
-kubenetes cluster has access to your own naemon image. Replace the <code class="docutils literal notranslate"><span class="pre">image</span></code> of
-the Naemon container to match your custom image.</p>
-<p>You can now start a single pod with:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">kubectl</span> <span class="n">apply</span> <span class="o">-</span><span class="n">f</span> <span class="o">./</span><span class="n">k8s</span><span class="o">.</span><span class="n">yaml</span>
-</pre></div>
-</div>
-<p>You should now see the poller registering with the master and any master-peers.
-It might take a little while for the cluster to stabilize.</p>
-<p>Now you can scale your deployment to include multiple poller-peers:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">kubectl</span> <span class="n">scale</span> <span class="n">deployment</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">apps</span><span class="o">/</span><span class="n">merlin</span><span class="o">-</span><span class="n">poller</span> <span class="o">--</span><span class="n">replicas</span><span class="o">=</span><span class="mi">2</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="overwriting-default-configuration">
-<h3>Overwriting default configuration<a class="headerlink" href="#overwriting-default-configuration" title="Permalink to this headline">¶</a></h3>
-<p>During startup both the Naemon and Merlin image copies default configuration
-from <code class="docutils literal notranslate"><span class="pre">/usr/local/etc/naemon</span></code> and <code class="docutils literal notranslate"><span class="pre">/usr/local/etc/naemon</span></code> respectively.</p>
-<p>If you wish to change configuration, from example Naemon/Merlin log level, the
-recommended way is to create your own images that overwrites the configuration
-at the above paths.</p>
-</div>
-</div>
-<div class="section" id="image-structure">
-<h2>Image structure<a class="headerlink" href="#image-structure" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="base-image">
-<h3>Base image<a class="headerlink" href="#base-image" title="Permalink to this headline">¶</a></h3>
-<p>The base image contains things which are common between the Naemon &amp; Daemon
-images. This include things such as tini, and a bunch of init/entry scripts
-for both Naemon &amp; the Merlin daemon.</p>
-<p>This image is not used in deployment, however it is created in order to be able
-to built custom images with less effort. For example if you wish to compile
-your own versions of Naemon/Merlin. This could be necessary if compiling
-Nameon/Merlin on masters servers, due to the installation and configuration
-paths between masters and pollers need to match.</p>
-</div>
-<div class="section" id="naemon-image">
-<h3>Naemon image<a class="headerlink" href="#naemon-image" title="Permalink to this headline">¶</a></h3>
-<p>The Naemon image contains, naemon-core, and the Merlin NEB module. This image
-is responsible for executing all checks. The image also contains logic that
-automatically registers the container poller with masters.</p>
-<p>Note that the image doesn’t contain any check plugins.</p>
-</div>
-<div class="section" id="daemon-image">
-<h3>Daemon image<a class="headerlink" href="#daemon-image" title="Permalink to this headline">¶</a></h3>
-<p>Contains the Merlin daemon.</p>
-</div>
-</div>
-<div class="section" id="building-images">
-<h2>Building images<a class="headerlink" href="#building-images" title="Permalink to this headline">¶</a></h2>
-<p>Building images from <a class="reference external" href="https://github.com/ITRS-Group/merlin-container-poller">source</a>
-is done with docker-compose:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">build</span>
-</pre></div>
-</div>
-</div>
+<h1>merlin-container-poller<a class="headerlink" href="#merlin-container-poller" title="Permalink to this headline">¶</a></h1>
 </div>
 
 

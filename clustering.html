@@ -109,7 +109,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="encryption.html">Encrypted communication</a></li>
-<li class="toctree-l1"><a class="reference internal" href="container-poller.html">Merlin container poller</a></li>
+<li class="toctree-l1"><a class="reference internal" href="container-poller.html">merlin-container-poller</a></li>
 </ul>
 
             
@@ -302,7 +302,6 @@ keys.</p>
 [root@master02 ~]# mon sshkey push IP-OF-POLLER02
 </pre></div>
 </div>
-<p>TODO: Fix naemon user .ssh/known_hosts</p>
 <p>With the above we have ensured that the poller can SSH to both masters, and
 that both masters can SSH to the poller. We now add the poller to both masters.
 Afterwards we restart both masters. This ensures the Merlin will prepare the

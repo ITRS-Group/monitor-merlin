@@ -160,8 +160,6 @@ keys.
    [root@master02 ~]# mon sshkey push IP-OF-POLLER02
 
 
-TODO: Fix naemon user .ssh/known_hosts
-
 With the above we have ensured that the poller can SSH to both masters, and
 that both masters can SSH to the poller. We now add the poller to both masters.
 Afterwards we restart both masters. This ensures the Merlin will prepare the
