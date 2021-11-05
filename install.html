@@ -176,14 +176,15 @@
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+
            <div itemprop="articleBody">
             
   <div class="section" id="installing">
 <h1>Installing<a class="headerlink" href="#installing" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="dependencies-requirements">
 <h2>Dependencies &amp; Requirements<a class="headerlink" href="#dependencies-requirements" title="Permalink to this headline">¶</a></h2>
-<p>Merlin is currently supported and tested on CentOS 7 &amp; CentOS 8. Merlin requires
-Naemon, and the Naemon binary must be installed at <code class="docutils literal notranslate"><span class="pre">/usr/bin/naemon</span></code>.</p>
+<p>Merlin is currently tested on CentOS 7 &amp; CentOS 8. Merlin requires Naemon, and
+the Naemon binary must be installed at <code class="docutils literal notranslate"><span class="pre">/usr/bin/naemon</span></code>.</p>
 </div>
 <div class="section" id="from-package-repositories">
 <h2>From package repositories<a class="headerlink" href="#from-package-repositories" title="Permalink to this headline">¶</a></h2>
@@ -231,8 +232,14 @@ commands above.</p>
 <p>Development snapshots are built anytime there is a merge to master. If you need
 a feature not yet included for release, you can install the development snapshot
 by replacing the repo definitions above with either corresponding one below.</p>
-<p><strong>CentOS 7:</strong> <code class="docutils literal notranslate"><span class="pre">https://download.opensuse.org/repositories/home:/itrs-op5:/master/CentOS_7/home:itrs-op5:master.repo</span></code></p>
-<p><strong>CentOS 8:</strong> <code class="docutils literal notranslate"><span class="pre">https://download.opensuse.org/repositories/home:/itrs-op5:/master/CentOS_8_Stream/home:itrs-op5:master.repo</span></code></p>
+<p><strong>CentOS 7:</strong></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>https://download.opensuse.org/repositories/home:/itrs-op5:/master/CentOS_7/home:itrs-op5:master.repo
+</pre></div>
+</div>
+<p><strong>CentOS 8:</strong></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>https://download.opensuse.org/repositories/home:/itrs-op5:/master/CentOS_8_Stream/home:itrs-op5:master.repo
+</pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="from-rpm-files">
@@ -285,7 +292,7 @@ The command that needs to be executed ‘sudo mon restart’.</p>
 <h3>Building and installation<a class="headerlink" href="#building-and-installation" title="Permalink to this headline">¶</a></h3>
 <p>Building is a standard autotools flair. Checkout with git, or download the
 release tarball and run</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./autogen.sh
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>./autogen.sh
 make
 sudo make install
 </pre></div>
@@ -308,6 +315,10 @@ directory with the <code class="docutils literal notranslate"><span class="pre">
            </div>
            
           </div>
+    <a href="https://github.com/ITRS-Group/monitor-merlin/">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub">
+    </a>
+
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">

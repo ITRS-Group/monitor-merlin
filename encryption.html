@@ -165,11 +165,12 @@
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+
            <div itemprop="articleBody">
             
   <div class="section" id="encrypted-communication">
 <h1>Encrypted communication<a class="headerlink" href="#encrypted-communication" title="Permalink to this headline">¶</a></h1>
-<p>Merlin supports encrypting the packets send over the Merlin TCP protocol.
+<p>Merlin supports encrypting the packets transmitted over the Merlin TCP protocol.
 Merlin uses libsodiums crypo_box. For more information on the encryption please
 refer to their <a class="reference external" href="https://doc.libsodium.org/public-key_cryptography/authenticated_encryption">documentation</a>.</p>
 <p>Note that the Merlin packets body is encrypted, the header remain unencrypted.</p>
@@ -178,9 +179,9 @@ refer to their <a class="reference external" href="https://doc.libsodium.org/pub
 <p>In this example we’ll set up encryption between two peers, <em>peer01</em>, and <em>peer02</em>.</p>
 <div class="section" id="generating-encryption-keys">
 <h3>Generating encryption keys<a class="headerlink" href="#generating-encryption-keys" title="Permalink to this headline">¶</a></h3>
-<p>To setup encryption, we first need to generating a encryption key pair consisting
+<p>To setup encryption, we first need to generate a encryption key pair consisting
 of a private key and a public key.</p>
-<p>To do so we can make sure of the <code class="docutils literal notranslate"><span class="pre">mon</span> <span class="pre">merlinkey</span></code> command.</p>
+<p>To do so we can make use of the <code class="docutils literal notranslate"><span class="pre">mon</span> <span class="pre">merlinkey</span></code> command.</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[root@peer01 ~]# mon merlinkey generate --write
 [root@peer02 ~]# mon merlinkey generate --write
 </pre></div>
@@ -192,16 +193,15 @@ of a private key and a public key.</p>
 </ol>
 <p>You can omit <code class="docutils literal notranslate"><span class="pre">--write</span></code> flag if you do not write the change to <code class="docutils literal notranslate"><span class="pre">merlin.conf</span></code>.</p>
 <p>We now need to copy the public keys, to the other node. Note the private key
-should never be shared! We can use rsync over ssh to copy the relevant public
-key.</p>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[root@peer01 ~]# rsync -a /etc/merlin/key.pub peer02:/etc/merlin/peer1.pub
-[root@peer02 ~]# rsync -a /etc/merlin/key.pub peer01:/etc/merlin/peer2.pub
+should never be shared! We can use <code class="docutils literal notranslate"><span class="pre">scp</span></code> to copy the relevant public key.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[root@peer01 ~]# scp /etc/merlin/key.pub peer02:/etc/merlin/peer01.pub
+[root@peer02 ~]# scp -a /etc/merlin/key.pub peer01:/etc/merlin/peer02.pub
 </pre></div>
 </div>
 </div>
 <div class="section" id="adjusting-configuration">
 <h3>Adjusting configuration<a class="headerlink" href="#adjusting-configuration" title="Permalink to this headline">¶</a></h3>
-<p>To enable encryption, we must set correct the node config in <code class="docutils literal notranslate"><span class="pre">merlin.conf</span></code>,
+<p>To enable encryption, we must adjust the node configuration in <code class="docutils literal notranslate"><span class="pre">merlin.conf</span></code>,
 on both <em>peer01</em> and <em>peer02</em>. Below is an example of how the node config
 should look on the two nodes.</p>
 <p><code class="docutils literal notranslate"><span class="pre">merlin.conf</span></code> on <em>peer01</em></p>
@@ -232,6 +232,10 @@ should look on the two nodes.</p>
            </div>
            
           </div>
+    <a href="https://github.com/ITRS-Group/monitor-merlin/">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub">
+    </a>
+
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
