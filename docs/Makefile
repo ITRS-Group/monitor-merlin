@@ -18,7 +18,7 @@ help:
 # Grabs the readme directly from the Merlin container poller repo, so we can
 # use it directly in the docs.
 container-poller-readme.md:
-	curl https://raw.githubusercontent.com/ITRS-Group/merlin-container-poller/master/README.md -o container-poller-readme.md
+	curl https://raw.githubusercontent.com/ITRS-Group/merlin-container-poller/feature/MON-12873-init/README.md -o container-poller-readme.md
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
