@@ -1,9 +1,6 @@
 name: Build and Release
 
 on:
-  push:
-    tags:
-      - 'v20*.*'
   workflow_dispatch:
 
 jobs:

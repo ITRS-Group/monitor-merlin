@@ -1,9 +1,6 @@
 name: Github Pages
 
 on:
-  push:
-    tags:
-      - 'v20*.*'
   workflow_dispatch:
 
 
