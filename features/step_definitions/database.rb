@@ -7,7 +7,7 @@ Given(/^I have a database running$/) do
     # alternative is to use mysqld_safe which is in $PATH but it doesn't terminate when
     # we try to kill it with SIGTERM
     steps %Q{
-      And I start command mysql_install_db #{args}
+      And I start command mysql_install_db --auth-root-authentication-method=normal #{args}
       And I start daemon /usr/libexec/mysqld --user=root #{args} --port=#{h.port}
       And I wait for 5 second
     }
