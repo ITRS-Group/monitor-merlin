@@ -45,7 +45,7 @@ post:
     fi
 
     cucumber \${VERBOSE:+-v} --strict --format html \
-        --out /mnt/logs/cucumber.html --format pretty
+        --out /mnt/logs/cucumber.html --format pretty --tags ~@unreliable_el8
     # Run the test suite again, but with encryption enabled
     # Some tests has been disabled. These tests pass just fine when running the
     # test suite with encryption enabled only, but for some reason fail when
@@ -58,4 +58,4 @@ post:
     export MERLIN_PRIVKEY=/opt/monitor/op5/merlin/key.priv
     cucumber \${VERBOSE:+-v} --strict --format html \
         --out /mnt/logs/cucumber_encrypted.html \
-        --format pretty --exclude "report_data" --tags ~@unstable
+        --format pretty --exclude "report_data" --tags ~@unstable ~@unreliable_el8

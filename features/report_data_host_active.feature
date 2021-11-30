@@ -79,6 +79,7 @@ Feature: Report data is logged from certain active host check results
             | state.perf_data                | Performance data   |
             | name                           | hostB              |
             
+    @unreliable_el8
     Scenario: Report data is logged when a host is initially up, then goes down and then back up again.
         Given I start naemon with merlin nodes connected
             | type   | name   | port | hostgroup    |
@@ -180,6 +181,7 @@ Feature: Report data is logged from certain active host check results
             | downtime_depth | 0                  |
         And report_data has 3 entries
             
+    @unreliable_el8
     Scenario: Report data is logged when a host is initially down, then goes up and then back down again.
         Given I start naemon with merlin nodes connected
             | type   | name   | port | hostgroup    |
