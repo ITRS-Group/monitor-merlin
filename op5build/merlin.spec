@@ -136,6 +136,7 @@ Requires: unixcat
 # php-cli for mon node tree
 Requires: php-cli
 Requires: procps-ng
+Requires: python2-livestatus
 Obsoletes: monitor-distributed
 Obsoletes: merlin-apps-slim
 
@@ -163,6 +164,7 @@ Requires: python3
 # php-cli for mon node tree
 Requires: php-cli
 Requires: procps-ng
+Requires: python2-livestatus
 %if 0%{?rhel} >= 8
 Requires: python3-docopt
 Requires: python3-cryptography
