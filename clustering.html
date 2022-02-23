@@ -256,7 +256,7 @@ use below.</p>
 <code class="docutils literal notranslate"><span class="pre">mon</span></code> tool adjust Merlins configuration file.</p>
 <p>We’ll start by adding master01 to master02’s configuration.</p>
 <p>Start by adding add master01 to the Merlin config on master02.</p>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[root@master02 ~]# non node add master01 type=peer address=IP-OF-MASTER02
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[root@master02 ~]# non node add master01 type=peer address=IP-OF-MASTER01
 </pre></div>
 </div>
 <p>On master01 then, add master02 to the Merlin config, and push the Naemon
