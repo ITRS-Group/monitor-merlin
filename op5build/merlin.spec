@@ -165,15 +165,6 @@ Requires: python3
 Requires: php-cli
 Requires: procps-ng
 Requires: python2-livestatus
-%if 0%{?rhel} >= 8
-Requires: python3-docopt
-Requires: python3-cryptography
-Requires: python3-paramiko
-%else
-Requires: python36-docopt
-Requires: python36-cryptography
-Requires: python36-paramiko
-%endif # 0%{?rhel} >= 8
 
 %description apps-slim
 This package contains standalone applications required by Ninja and
