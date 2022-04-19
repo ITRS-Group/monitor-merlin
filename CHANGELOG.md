@@ -8,6 +8,10 @@ format YYYY.MM.MICRO. The tag may occasionally be made just prior to the change
 of month.
 
 ## [Unreleased]
+### Changed
+- Encrypted nodes no longer accept runcmds by default. Instead a new configuration
+  option `accept_runcmd` has been introduced which can be set on nodes from which
+  runcmds should be allowed.
 
 ## [2021.11.1] - 2021-11-01
 ### Added

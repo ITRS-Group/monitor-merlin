@@ -538,6 +538,14 @@ static void grok_node(struct cfg_comp *c, merlin_node *node)
 					cfg_error(c, v, "Illegal value for auto_delete: %s\n", v->value);
 			}
 		}
+		else if (!strcmp(v->key, "accept_runcmd")) {
+			int value = atoi(v->value);
+			if (value == 1) {
+				node->accept_runcmd = true;
+			} else {
+				node->accept_runcmd = false;
+			}
+		}
 		else if (grok_node_flag(&node->flags, v->key, v->value) < 0) {
 			cfg_error(c, v, "Unknown variable\n");
 		}
