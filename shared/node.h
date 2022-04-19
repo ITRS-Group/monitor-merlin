@@ -268,6 +268,7 @@ struct merlin_node {
 	bool incompatible_cluster_config;
 	unsigned int auto_delete;
 	objectlist *ipc_blocked_hostgroups;       /* only used for IPC */
+	bool accept_runcmd;
 };
 
 struct merlin_runcmd {

@@ -53,6 +53,24 @@ void runcmd_wproc_callback(wproc_result *wpres, void * arg, int flags) {
 
 int handle_runcmd_event(merlin_node *node, merlin_event *pkt) {
 	if (pkt->hdr.code == RUNCMD_CMD) {
+
+		/* Validate that we are allowed to recieve this cmd */
+		// Check that we are encrypted
+		if(!node->encrypted) {
+			lwarn("RUNCMD: Can only accept runcmds over encrypted connections");
+			return 0;
+		}
+		// Check that sender is either master or peer
+		if((node->type != MODE_PEER) && (node->type != MODE_MASTER)) {
+			lwarn("RUNCMD: Can only accept runcmds from Masters or Peers");
+			return 0;
+		}
+		// Check that accept_runcmd is set
+		if (!node->accept_runcmd) {
+			lwarn("RUNCMD: accept_runcmd config setting not set for this node");
+			return 0;
+		}
+
 		/* Execute and return send RESP packet back */
 		runcmd_ctx * ctx;
 		merlin_runcmd * runcmd = (merlin_runcmd *) pkt->body;

@@ -302,6 +302,7 @@ def add_master(master_name, master_address, poller_name, master_port=15551):
         f"  port = {master_port}\n"
         f"  encrypted = 1\n"
         f"  publickey = {DEFAULT_ENCRYPTION_KEYS_LOCATION}/{master_name}.pub\n"
+        f"  accept_runcmd = 1\n"
         f"  sync {{\n"
         f"    {sync_seperator.join(FILES_TO_SYNC)}\n"
         f"  }}\n"
