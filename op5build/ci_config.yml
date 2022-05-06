@@ -38,7 +38,7 @@ post:
     # Uninstall unwanted dependency gems from cucumber installation.
     # Todo: We should upgrade cucumber to version 3.2.0 so that we use the same
     # version throughout our repos.
-    gem uninstall multi_test:1.0.0
+    gem uninstall multi_test -v 1.0.0
 
 
     # Run cucumber tests
