@@ -105,7 +105,7 @@ Start by adding add master01 to the Merlin config on master02.
 
 .. code-block:: none
 
-   [root@master02 ~]# non node add master01 type=peer address=IP-OF-MASTER01
+   [root@master02 ~]# non node add master01 type=peer address=IP-OF-MASTER02
 
 On master01 then, add master02 to the Merlin config, and push the Naemon
 configuration to master02. We always push configuration as the ``naemon`` user.
