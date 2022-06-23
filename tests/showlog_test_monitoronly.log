@@ -10,3 +10,4 @@
 [1412770330] HOST DOWNTIME ALERT: monitor;STARTED; Host has entered a period of scheduled downtime
 [1412770708] SERVICE NOTIFICATION: monitor;monitor;Cron process;CRITICAL;service-notify;CHECK_NRPE: Error - Could not complete SSL handshake.
 [1412770875] HOST NOTIFICATION: monitor;monitor;DOWN;host-notify;alert dammit
+[1412770876] HOST NOTIFICATION SUPPRESSED: monitor;Notification was blocked by a NEB module. Module '/usr/lib64/merlin/merlin.so' cancelled notification: 'Notification will be handled by a peer (peer01)'
