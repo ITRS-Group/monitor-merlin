@@ -8,6 +8,8 @@ format YYYY.MM.MICRO. The tag may occasionally be made just prior to the change
 of month.
 
 ## [Unreleased]
+
+## [2022.06.30] - 2022-06-30
 ### Fixed
 - Fixed issue in processing of host notification suppressed events where host 
   name is incorrectly parsed due to incorrect expected number of vectors
