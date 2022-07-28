@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <pwd.h>
 
 #ifdef __GLIBC__
@@ -147,10 +148,16 @@ rename_log(__attribute__((unused)) struct renames *renames, char *log_dir, char 
 	for(i = 0; i < num_nfile; i++) {
 		char new_path[512];
 		struct naglog_file *nf = &nfile[i];
+		struct stat old_path_stats;
+		stat(nf->path, &old_path_stats);
+
 		sprintf(new_path, "%s.new", nf->path);
 		linfo("Renaming in %s", nf->path);
 		new_file = fopen(new_path, "wb");
 		lparse_path(nf->path, nf->size, parse_line);
+
+		fchmod(fileno(new_file),old_path_stats.st_mode);
+
 		fclose(new_file);
 		rename(new_path, nf->path);
 	}
