@@ -100,7 +100,7 @@ class QhCheck(object):
 		self.channels[channel].join()
 
 	def drop_all(self):
-		for c in self.channels.keys():
+		for c in list(self.channels.keys()):
 			self.drop_channel(c)
 
 class ChannelOptions(object):
@@ -209,7 +209,7 @@ class Response(object):
 
 	def __repr__(self):
 		s = ''
-		for key, val in self._response_dict.iteritems():
+		for key, val in list(self._response_dict.items()):
 			s += '%s: %s\n' % (key, val)
 
 		return s
@@ -237,14 +237,14 @@ def run_tests():
 	#MERLIN - oneshot
 	qc_merlin = QhChannel('merlin', subscribe=False)
 	responses = []
-	responses.append(qc_merlin.query('cbstats').next())
+	responses.append(next(qc_merlin.query('cbstats')))
 	assert responses != [], 'expected a response but got none'
 	qc_merlin.close()
 
 	#MERLIN - subscribed
 	qc_merlin = QhChannel('merlin')
 	responses = []
-	responses.append(qc_merlin.query('nodeinfo').next())
+	responses.append(next(qc_merlin.query('nodeinfo')))
 	assert len(responses) == 1, 'expected one response but got %d' % len(responses)
 	qc_merlin.close()
 
@@ -253,8 +253,8 @@ def run_tests():
 
 	responses = []
 	generator = qc_nerd.query('subscribe hostchecks')
-	responses.append(generator.next())
-	responses.append(generator.next())
+	responses.append(next(generator))
+	responses.append(next(generator))
 	assert len(responses) == 2
 	qc_nerd.close()
 
@@ -282,9 +282,9 @@ def run_tests():
 
 		assert len(responses) == 3
 
-	print '='*40
-	print '%s: All tests passed!' % __file__
-	print '='*40
+	print(('='*40))
+	print(('%s: All tests passed!' % __file__))
+	print(('='*40))
 
 if __name__ == '__main__':
 	if len(sys.argv) > 1:
@@ -293,7 +293,7 @@ if __name__ == '__main__':
 
 	else:
 		with QhCheck() as qhcheck:
-			user_query = raw_input('Query: ')
+			user_query = eval(input('Query: '))
 			address, query = user_query.split(' ', 1)
 			if address[0] not in ('#', '@'):
 				raise Exception('Prefix channel with # or @ for oneshot or subscription mode')
@@ -308,11 +308,11 @@ if __name__ == '__main__':
 					response = ''
 					while response != None:
 						response = qhcheck.get_response(address)
-						print response
+						print(response)
 				else:
-					print qhcheck.get_response(address)
+					print((qhcheck.get_response(address)))
 			except KeyboardInterrupt:
-				print 'Goodbye.'
+				print('Goodbye.')
 
 
 

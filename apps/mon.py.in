@@ -17,7 +17,7 @@ def run_helper(helper, args):
 	app = libexec_dir + "/" + helpers[helper]
 	ret = os.spawnv(os.P_WAIT, app, [app] + args)
 	if ret < 0:
-		print("Helper %s was killed by signal %d" % (app, ret))
+		print(("Helper %s was killed by signal %d" % (app, ret)))
 
 	sys.exit(ret)
 
@@ -42,7 +42,7 @@ def load_command_module(path):
 	modname = os.path.basename(path)[:-3]
 	try:
 		module = __import__(modname)
-	except Exception, ex:
+	except Exception as ex:
 		# catch-all, primarily for development purposes
 		command_mod_load_fail[modname] = ex
 		return -1
@@ -171,14 +171,14 @@ def load_commands(name=False):
 				if not cat in categories:
 					categories[cat] = []
 				if cmd in categories[cat]:
-					print("Can't override builtin category+command with helper %s" % helper)
+					print(("Can't override builtin category+command with helper %s" % helper))
 					continue
 				categories[cat].append(cmd)
 			else:
 				help_helpers.append(helper)
 
 			if helper in commands:
-				print("Can't override builtin command with helper '%s'" % helper)
+				print(("Can't override builtin command with helper '%s'" % helper))
 				continue
 
 			commands[helper] = run_helper
@@ -206,34 +206,34 @@ def load_commands(name=False):
 
 def mod_fail_print(text, mod):
 	msg = command_mod_load_fail.get(mod)
-	print("%s %sFailed to load command module %s%s%s%s:\n   %s%s%s%s\n" %
+	print(("%s %sFailed to load command module %s%s%s%s:\n   %s%s%s%s\n" %
 		(text, color.red, color.yellow, color.bright, mod, color.reset,
-		color.red, color.bright, msg, color.reset))
+		color.red, color.bright, msg, color.reset)))
 
 def show_usage(ret):
 	load_commands()
-	print('usage: ' + os.path.basename(__file__) + ''' [category] <command> [options]
+	print(('usage: ' + os.path.basename(__file__) + ''' [category] <command> [options]
 
-Where category is sometimes optional.\n''')
+Where category is sometimes optional.\n'''))
 	topic = 'Available categorized commands:'
-	print("%s\n%s" % (topic, '-' * len(topic)))
-	cat_keys = categories.keys()
+	print(("%s\n%s" % (topic, '-' * len(topic))))
+	cat_keys = list(categories.keys())
 	cat_keys.sort()
 	cat_max_len = 0
 	for cat in cat_keys:
 		if len(cat) > cat_max_len:
 			cat_max_len = len(cat)
 	for cat in cat_keys:
-		print '  ' + cat.ljust(cat_max_len, ' ') + ' : ' + ', '.join(sorted(categories[cat]))
+		print('  ' + cat.ljust(cat_max_len, ' ') + ' : ' + ', '.join(sorted(categories[cat])))
 	if len(help_helpers):
 		help_helpers.sort()
 		topic = "Commands without category:"
-		print("\n%s\n%s\n   %s" % (topic, '-' * len(topic), ', '.join(help_helpers)))
+		print(("\n%s\n%s\n   %s" % (topic, '-' * len(topic), ', '.join(help_helpers))))
 
 	print('''\nCategorized commands are described by running: mon <category>
 Uncategorized commands are run by: mon <command>\n''')
 
-	for mod in command_mod_load_fail.keys():
+	for mod in list(command_mod_load_fail.keys()):
 		mod_fail_print("(nonfatal)", mod)
 	sys.exit(ret)
 
@@ -294,28 +294,28 @@ mconf.parse()
 
 # if a dev's managed to hack in a bug in a command module, we
 # should tell the user so politely and not just fail to do anything
-if cat in command_mod_load_fail.keys():
+if cat in list(command_mod_load_fail.keys()):
 	mod_fail_print('%sfatal%s:' % (color.yellow, color.reset), cat)
 	sys.exit(1)
 
 if not cmd in commands:
 	print("")
-	if not cat in categories.keys():
-		print("No category '%s' available, and it's not a raw command\n" % cat)
+	if not cat in list(categories.keys()):
+		print(("No category '%s' available, and it's not a raw command\n" % cat))
 	elif autohelp == True:
 		if not docstrings.get(cat):
-			print("Category '%s' has no help overview." % cat)
+			print(("Category '%s' has no help overview." % cat))
 		if docstrings.get(cat, {}).get('__doc__'):
-			print(docstrings[cat]['__doc__'])
+			print((docstrings[cat]['__doc__']))
 		cat_keys = categories[cat]
 		cat_keys.sort()
-		print("Available commands in category %s%s%s%s:" %
-			(color.blue, color.bright, cat, color.reset))
+		print(("Available commands in category %s%s%s%s:" %
+			(color.blue, color.bright, cat, color.reset)))
 		for cmd in cat_keys:
 			doc_string = docstrings.get(cat, {}).get(cmd, '\n(documentation missing)')
 			prettyprint_docstring(cmd, doc_string)
 	else:
-		print("Bad category/command: %s" % cmd.replace('.', ' '))
+		print(("Bad category/command: %s" % cmd.replace('.', ' ')))
 	sys.exit(1)
 
 if commands[cmd] == run_helper:

@@ -87,8 +87,8 @@ class fake_peer_group:
 					continue
 				n.add_node('peer', node.name, port=node.port)
 
-		print("Created peer group '%s' with %d nodes and base-port %d" %
-			(group_name, num_nodes, port))
+		print(("Created peer group '%s' with %d nodes and base-port %d" %
+			(group_name, num_nodes, port)))
 		return None
 
 
@@ -97,7 +97,7 @@ class fake_peer_group:
 			self.num_objects[otype] += 1
 			self.have_objects[otype][name] = True
 		# this way objects will filter up to master groups as well
-		for mg in self.master_groups.values():
+		for mg in list(self.master_groups.values()):
 			mg.add_object(otype, name)
 
 
@@ -111,13 +111,13 @@ class fake_peer_group:
 			self.group_type = 'poller'
 		else:
 			self.group_type = 'master'
-		print("Generating object config for %s group %s" % (self.group_type, self.group_name))
+		print(("Generating object config for %s group %s" % (self.group_type, self.group_name)))
 		if len(self.master_groups):
 			print("  Poller group. Symlinking config for master to generate")
 			for node in self.nodes:
 				src = "%s/config/%s.cfg" % (self.mesh.oconf_cache_dir, node.name)
 				dst = node.get_path("etc/oconf/from-master.cfg")
-				print("  Symlinking %s to %s" % (src, dst))
+				print(("  Symlinking %s to %s" % (src, dst)))
 				os.symlink(src, dst)
 
 
@@ -157,7 +157,7 @@ class fake_peer_group:
 		hname = copy.deepcopy(host['host_name'])
 		i = 0
 		obuf = 'define hostgroup {\n'
-		for (k, v) in hostgroup.items():
+		for (k, v) in list(hostgroup.items()):
 			obuf = "%s\t%s %s\n" % (obuf, k, v)
 
 		obuf = "%s}" % obuf
@@ -182,7 +182,7 @@ class fake_peer_group:
 
 			self.add_object('host', hobj['host_name'])
 			obuf = "define host{\n"
-			for (k, v) in hobj.items():
+			for (k, v) in list(hobj.items()):
 				obuf = "%s%s %s\n" % (obuf, k, v)
 			if i & 7:
 				hg_name = 'host%d_hosts' % (i & 7)
@@ -201,7 +201,7 @@ class fake_peer_group:
 				sname = "%s;%s" % (sobj['host_name'], sobj['service_description'])
 				self.add_object('service', sname)
 				obuf = "define service{\n"
-				for (k, v) in sobj.items():
+				for (k, v) in list(sobj.items()):
 					obuf = "%s%s %s\n" % (obuf, k, v)
 				if x & 7:
 					sg_name = 'service%d_services' % (x & 7)
@@ -213,19 +213,19 @@ class fake_peer_group:
 				ocbuf.append(obuf)
 
 		if num_hosts > 50:
-			print("\r%d hosts and %d services created" % (i, i * num_services_per_host))
+			print(("\r%d hosts and %d services created" % (i, i * num_services_per_host)))
 		self.oconf_buf = "\n".join(ocbuf)
 		ocbuf = False
 		poller_oconf_buf = ''
-		pgroup_names = self.poller_groups.keys()
+		pgroup_names = list(self.poller_groups.keys())
 		pgroup_names.sort()
 		for pgroup_name in pgroup_names:
 			pgroup = self.poller_groups[pgroup_name]
 			pgroup.create_object_config(num_hosts, num_services_per_host)
 			poller_oconf_buf += pgroup.oconf_buf
 
-		for otype in self.have_objects.keys():
-			self.have_objects[otype] = self.have_objects[otype].keys()
+		for otype in list(self.have_objects.keys()):
+			self.have_objects[otype] = list(self.have_objects[otype].keys())
 			self.have_objects[otype].sort()
 
 		self.oconf_buf = "%s\n%s" % (self.oconf_buf, poller_oconf_buf)
@@ -233,10 +233,10 @@ class fake_peer_group:
 			for node in self.nodes:
 				node.write_file('etc/oconf/generated.cfg', self.oconf_buf)
 
-		print("Peer group %s objects:" % self.group_name)
-		print("  hosts=%d; services=%d; hostgroups=%d; servicegroups=%d" %
+		print(("Peer group %s objects:" % self.group_name))
+		print(("  hosts=%d; services=%d; hostgroups=%d; servicegroups=%d" %
 			(self.num_objects['host'], self.num_objects['service'],
-			self.num_objects['hostgroup'], self.num_objects['servicegroup']))
+			self.num_objects['hostgroup'], self.num_objects['servicegroup'])))
 		return True
 
 
@@ -326,24 +326,24 @@ class fake_instance:
 
 	def submit_raw_command(self, cmd):
 		if self.cmd_object.submit_raw(cmd) == False:
-			print("Failed to submit command to %s" % self.cmd_pipe)
+			print(("Failed to submit command to %s" % self.cmd_pipe))
 			return False
 		return True
 
 	def submit_command(self, name, **kwargs):
 		if self.cmd_object.submit(name, kwargs) == False:
-			print("Failed to submit %s to %s" % (name, self.cmd_pipe))
+			print(("Failed to submit %s to %s" % (name, self.cmd_pipe)))
 			return False
 		return True
 
 	def start_daemons(self, daemons, dname=False):
 		fd = os.open("/dev/null", os.O_WRONLY)
-		for name, program in daemons.items():
+		for name, program in list(daemons.items()):
 			if dname and name != dname:
 				continue
 
 			if self.proc.get(name):
-				print("ERROR: %s already started, so not relaunching it" % name)
+				print(("ERROR: %s already started, so not relaunching it" % name))
 				sys.exit(1)
 
 			if name == 'naemon':
@@ -360,8 +360,8 @@ class fake_instance:
 				cmd = real_cmd
 			try:
 				self.proc[name] = subprocess.Popen(cmd, stdout=fd, stderr=fd)
-			except OSError, e:
-				print("Failed to run command '%s'" % cmd)
+			except OSError as e:
+				print(("Failed to run command '%s'" % cmd))
 				print(e)
 				raise OSError(e)
 
@@ -372,12 +372,12 @@ class fake_instance:
 
 	def signal_daemons(self, sig, dname=False):
 		remove = False
-		for name, proc in self.proc.items():
+		for name, proc in list(self.proc.items()):
 			if dname and dname != name:
 				continue
 			try:
 				os.kill(proc.pid, sig)
-			except OSError, e:
+			except OSError as e:
 				alive = False
 				if e.errno == errno.ESRCH:
 					remove = True
@@ -410,7 +410,7 @@ class fake_instance:
 		if not self.nodes[node_type].get(node_name, False):
 			self.nodes[node_type][node_name] = {}
 
-		for (k, v) in kwargs.items():
+		for (k, v) in list(kwargs.items()):
 			self.nodes[node_type][node_name][k] = v
 		if not self.nodes[node_type][node_name].get('address', False):
 			self.nodes[node_type][node_name]['address'] = '127.0.0.1'
@@ -422,16 +422,16 @@ class fake_instance:
 		configs = {}
 		if self.name.startswith('pg1'):
 			self.substitutions['#@@MERLIN_MODULE_EXTRAS@@'] = 'notifies = no'
-		conode_types = self.nodes.keys()
+		conode_types = list(self.nodes.keys())
 		conode_types.sort()
 		for ntype in conode_types:
 			nodes = self.nodes[ntype]
-			node_names = self.nodes[ntype].keys()
+			node_names = list(self.nodes[ntype].keys())
 			node_names.sort()
 			for name in node_names:
 				nconf = ("%s %s {\n" % (ntype, name))
 				node_vars = self.nodes[ntype][name]
-				for (k, v) in node_vars.items():
+				for (k, v) in list(node_vars.items()):
 					nconf += "\t%s = %s\n" % (k, v)
 				if ntype == 'poller':
 					group_name = name.split('-', 1)[0]
@@ -445,14 +445,14 @@ class fake_instance:
 		configs[self.macro_cfg_path] = self.macro_config
 		if not len(self.group.master_groups):
 			configs["%s/etc/oconf/shared.cfg" % (self.home)] = test_config_in.shared_object_config
-		for (path, buf) in configs.items():
-			for (key, value) in self.substitutions.items():
+		for (path, buf) in list(configs.items()):
+			for (key, value) in list(self.substitutions.items()):
 				buf = buf.replace(key, value)
 			self.write_file(path, buf)
 		return True
 
 
-	def create_file(self, path, mode=0644):
+	def create_file(self, path, mode=0o644):
 		return open(self.get_path(path), 'w', mode)
 
 	def get_path(self, path):
@@ -460,7 +460,7 @@ class fake_instance:
 			path = "%s/%s" % (self.home, path)
 		return path
 
-	def write_file(self, path, contents, mode=0644):
+	def write_file(self, path, contents, mode=0o644):
 		f = self.create_file(path, mode)
 		f.write(contents)
 		f.close()
@@ -511,12 +511,12 @@ class fake_mesh:
 		self.progs = {}
 		self.oconf_cache_dir = False
 
-		for (k, v) in kwargs.items():
+		for (k, v) in list(kwargs.items()):
 			if k.startswith('prog_'):
 				pname = k[5:]
 				self.progs[pname] = v
 				if not os.access(v, os.X_OK):
-					print("Failed to access '%s'" % v)
+					print(("Failed to access '%s'" % v))
 					sys.exit(1)
 			else:
 				setattr(self, k, v)
@@ -548,9 +548,9 @@ class fake_mesh:
 		# only print the animation if anyone's looking
 		if os.isatty(sys.stdout.fileno()) == False:
 			if msg:
-				print("Sleeping %.2f seconds: %s" % (sleeptime, msg))
+				print(("Sleeping %.2f seconds: %s" % (sleeptime, msg)))
 			else:
-				print("Sleeping %.2f seconds" % sleeptime)
+				print(("Sleeping %.2f seconds" % sleeptime))
 			time.sleep(sleeptime)
 		else:
 			i = sleeptime
@@ -568,7 +568,7 @@ class fake_mesh:
 					sys.stdout.flush()
 				i -= 0.07
 				time.sleep(0.07)
-			print("   Slept for %.2f seconds: %s      " % (sleeptime, msg))
+			print(("   Slept for %.2f seconds: %s      " % (sleeptime, msg)))
 
 
 	def _clear_notification_log(self):
@@ -595,7 +595,7 @@ class fake_mesh:
 
 		try:
 			result = os.waitpid(proc.pid, flags)
-		except OSError, e:
+		except OSError as e:
 			if e.errno == errno.ECHILD:
 				return sub.test(False, exp, msg)
 			return sub.fail("EXCEPTION for '%s': %s" % (msg, e))
@@ -636,7 +636,7 @@ class fake_mesh:
 		sig_ok = []
 		arg_sub = sub
 
-		for k, v in kwargs.items():
+		for k, v in list(kwargs.items()):
 			if k == 'daemon' and v != False:
 				daemon = v
 			elif k == 'expect':
@@ -665,7 +665,7 @@ class fake_mesh:
 		# systems
 		time.sleep(0.5)
 		for inst in self.instances:
-			for dname, proc in inst.proc.items():
+			for dname, proc in list(inst.proc.items()):
 				if daemon and dname != daemon:
 					continue
 				self._test_proc_alive(proc, expect, sig_ok, "%s on %s %s" % (dname, inst.name, how), sub)
@@ -829,10 +829,10 @@ class fake_mesh:
 		# Clear notification log, so we know previous tests doesn't affect the behaviour of the test
 		self._clear_notification_log()
 		self._test_parents(self.tap.sub_init('prep parents'), lambda x: False)
-		for i in xrange(1, 4):
+		for i in range(1, 4):
 			fname = "%s/tier%d-host-ok" % (self.basepath, i)
-			fd = os.open(fname, os.O_WRONLY | os.O_TRUNC | os.O_CREAT, 0644)
-			for k, v in vlist.items():
+			fd = os.open(fname, os.O_WRONLY | os.O_TRUNC | os.O_CREAT, 0o644)
+			for k, v in list(vlist.items()):
 				os.write(fd, "%s=%s\n" % (k, v))
 			hname = 'master.%04d' % i
 			offset = 20 - (i * 5)
@@ -990,7 +990,7 @@ class fake_mesh:
 				'UNREACHABLE hosts': inst.group.num_objects['host'] - expect_down,
 				'CRITICAL services': inst.group.num_objects['service'],
 			}
-			for otype, query in queries.items():
+			for otype, query in list(queries.items()):
 				value = inst.live.query(query)
 				ret = (sub.test(len(value), expected[otype], '%s should have %d %s, had %d' % (inst.name, expected[otype], otype, len(value))))
 				if ret == False:
@@ -1221,7 +1221,7 @@ class fake_mesh:
 		poller = self.pgroups[0].nodes[0]
 
 		sub = self.tap.sub_init('expiring downtime')
-		print("Submitting fixed expiring downtime to master %s" % master.name)
+		print(("Submitting fixed expiring downtime to master %s" % master.name))
 		start_time = int(time.time()) + 1
 		end_time = start_time + 15
 		duration = end_time - start_time
@@ -1239,7 +1239,7 @@ class fake_mesh:
 		sub.done()
 
 		sub = self.tap.sub_init('poller-scheduled downtime')
-		print("Submitting downtime to poller %s" % poller.name)
+		print(("Submitting downtime to poller %s" % poller.name))
 		self._schedule_downtime(sub, poller)
 		self._schedule_downtime(sub, master, poller.group.have_objects)
 
@@ -1255,7 +1255,7 @@ class fake_mesh:
 
 		sub = self.tap.sub_init('propagating triggered downtime')
 		# propagating triggered
-		print("Submitting propagating downtime to master %s" % master.name)
+		print(("Submitting propagating downtime to master %s" % master.name))
 		master.submit_raw_command('SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME;%s;%d;%d;%d;%d;%d;%s;%s' %
 			(poller.group_name + '.0001', time.time(), time.time() + 54321, 1, 0, 0, poller.group_name + '.0001', master.name))
 		self._test_until_or_fail('propagating downtime: spread', self._test_dt_count, 30, sub,
@@ -1368,7 +1368,7 @@ class fake_mesh:
 			# catch exceptions until we run out of time
 			try:
 				ret = func(sub, **kwargs)
-			except Exception, e:
+			except Exception as e:
 				if last:
 					raise
 				time.sleep(interval)
@@ -1423,7 +1423,7 @@ class fake_mesh:
 				status = 0
 				try:
 					ary = os.waitpid(0, os.WNOHANG)
-				except OSError, e:
+				except OSError as e:
 					print(e)
 				if len(ary) == 2:
 					reaped += 1
@@ -1456,11 +1456,11 @@ class fake_mesh:
 		self.shutting_down = True
 
 		if msg != False:
-			print("%s" % msg)
+			print(("%s" % msg))
 
 		ret = self.tap.done()
 		if not self.batch:
-			print("Tests completed at %f (%s)" % (time.time(), time.ctime()))
+			print(("Tests completed at %f (%s)" % (time.time(), time.ctime())))
 			print("When done testing and examining, just press enter")
 			buf = sys.stdin.readline()
 
@@ -1533,10 +1533,10 @@ class fake_mesh:
 			return
 		try:
 			self.dbc.execute('DROP DATABASE %s' % inst.db_name)
-		except Exception, e:
+		except Exception as e:
 			if verbose:
-				print("Failed to drop db %s for instance %s: %s" %
-					(inst.db_name, inst.name, e))
+				print(("Failed to drop db %s for instance %s: %s" %
+					(inst.db_name, inst.name, e)))
 			pass
 
 
@@ -1578,9 +1578,9 @@ class fake_mesh:
 				#	(inst.db_name, tname, tname))
 				#print("Running query %s" % query)
 				self.dbc.execute(query)
-			print("Database %s for %s created properly" % (inst.db_name, inst.name))
+			print(("Database %s for %s created properly" % (inst.db_name, inst.name)))
 
-		except Exception, e:
+		except Exception as e:
 			print(e)
 			sys.exit(1)
 			return False
@@ -1622,13 +1622,13 @@ class fake_mesh:
 			self.db.close()
 			self.dbc = False
 			self.db = False
-		except Exception, e:
+		except Exception as e:
 			pass
 
 
 dist_test_mesh = False
 def dist_test_sighandler(signo, stackframe):
-	print("Caught signal %d" % signo)
+	print(("Caught signal %d" % signo))
 	if dist_test_mesh == False:
 		sys.exit(1)
 	print("Killing leftover daemons")
@@ -1677,7 +1677,7 @@ def cmd_ocount(args):
 	ret = {}
 	for p in path:
 		xret = cconf.count_compound_types(p)
-		for k, v in xret.items():
+		for k, v in list(xret.items()):
 			if ret.get(k, False) == False:
 				ret[k] = 0
 			ret[k] += v
@@ -1691,9 +1691,9 @@ def cmd_ocount(args):
 	otypes.sort()
 	for t, num in otypes:
 		total += num
-		print("%s=%d" % (t, num))
-	print("passed=%d" % (len(result['pass'])))
-	print("failed=%d" % (len(result['fail'])))
+		print(("%s=%d" % (t, num)))
+	print(("passed=%d" % (len(result['pass']))))
+	print(("failed=%d" % (len(result['fail']))))
 	if len(result['fail']):
 		sys.exit(1)
 	sys.exit(0)
@@ -1778,8 +1778,8 @@ def cmd_dist(args):
 		try:
 			monuser = getpwnam('monitor')
 		except KeyError:
-			print "mon test dist can't be run as root, and I couldn't find\n" \
-				"a monitor user to become. Exiting"
+			print("mon test dist can't be run as root, and I couldn't find\n" \
+				"a monitor user to become. Exiting")
 			os.exit(1)
 		os.setgid(monuser.pw_gid)
 		os.setuid(monuser.pw_uid)
@@ -1859,17 +1859,17 @@ def cmd_dist(args):
 			sys.exit(ecode)
 
 	if 'list' in arg_tests:
-		print("Available tests:\n  %s" % "\n  ".join(avail_tests))
+		print(("Available tests:\n  %s" % "\n  ".join(avail_tests)))
 		print("\nNote that not all tests are optional")
 		sys.exit(0)
 
 	for t in show_tests:
-		print("%s%s%s" % (color.yellow, t, color.reset))
+		print(("%s%s%s" % (color.yellow, t, color.reset)))
 		if not t in avail_tests:
-			print("  %s%s%s" % (color.red, "No such test. Typo?", color.reset))
+			print(("  %s%s%s" % (color.red, "No such test. Typo?", color.reset)))
 		else:
 			d = test_doc.get(t)
-			print("  %s\n" % d.replace("\n\t\t", "\n  ").strip())
+			print(("  %s\n" % d.replace("\n\t\t", "\n  ").strip()))
 
 	if len(show_tests):
 		sys.exit(0)
@@ -1892,7 +1892,7 @@ def cmd_dist(args):
 			if t == 'acks':
 				stash.append('passive_checks')
 		else:
-			print("No such test: %s" % t)
+			print(("No such test: %s" % t))
 			sys.exit(1)
 
 	if not len(selected_tests):
@@ -2007,12 +2007,12 @@ def cmd_dist(args):
 		# Some of the helper functions call sys.exit(1) to bail out.
 		# Let's assume they take care of cleaning up before doing so
 		raise
-	except Exception, e:
+	except Exception as e:
 		# Don't leave stuff running, just because we messed up
-		print '*'*40
-		print 'Exception while running tests:'
+		print('*'*40)
+		print('Exception while running tests:')
 		traceback.print_exc()
-		print '*'*40
+		print('*'*40)
 		mesh.tap.fail("System exception caught: %s" % e)
 		mesh.shutdown()
 		raise
@@ -2092,7 +2092,7 @@ def _pasv_cmd_pipe_sighandler(one, two):
 
 def _pasv_open_cmdpipe(cmd_pipe):
 	if not os.access(cmd_pipe, os.W_OK):
-		print("%s doesn't exist or isn't writable. Exiting" % cmd_pipe)
+		print(("%s doesn't exist or isn't writable. Exiting" % cmd_pipe))
 		sys.exit(1)
 
 	# pipes that aren't being read stall while we connect
@@ -2115,7 +2115,7 @@ class mconf_mockup:
 	dbopt = {}
 	def __init__(self, **kwargs):
 		self.dbopt = {}
-		for k, v in kwargs.items():
+		for k, v in list(kwargs.items()):
 			self.dbopt[k.replace('db', '')] = v
 
 
@@ -2243,11 +2243,11 @@ def cmd_pasv(args):
 			min_services = services
 
 	if num_hosts > host_list:
-		print("Can't run tests for %d hosts when only %d are configured" % (num_hosts, len(host_list)))
+		print(("Can't run tests for %d hosts when only %d are configured" % (num_hosts, len(host_list))))
 
 	if num_services > min_services:
-		print("Can't run tests for %d services / host when %s has only %d configured"
-			% (num_services, min_services_host, min_services))
+		print(("Can't run tests for %d services / host when %s has only %d configured"
+			% (num_services, min_services_host, min_services)))
 
 	# primary testing loop
 	loops = 0
@@ -2274,7 +2274,7 @@ def cmd_pasv(args):
 		status = loops % 3
 
 		loop_start = time.time()
-		print("Submitting passive check results (%s) @ %s" % (cnt_hash, time.time()))
+		print(("Submitting passive check results (%s) @ %s" % (cnt_hash, time.time())))
 		for t in test_objs:
 			cmd = _pasv_build_cmd(t, status)
 			cmd += "%s|%s\n" % (cnt_hash, cnt_string)
@@ -2287,7 +2287,7 @@ def cmd_pasv(args):
 		db = merlin_db.connect(mconf)
 		dbc = db.cursor()
 
-		print("Sleeping %d seconds before reaping results" % delay)
+		print(("Sleeping %d seconds before reaping results" % delay))
 		time.sleep(delay)
 		for t in test_objs:
 			query = ("SELECT "
@@ -2303,13 +2303,13 @@ def cmd_pasv(args):
 		if loops < num_loops:
 			interval_sleep = (loop_start + interval) - time.time()
 			if interval_sleep > 0:
-				print("Sleeping %d seconds until next test-set" % interval_sleep)
+				print(("Sleeping %d seconds until next test-set" % interval_sleep))
 				time.sleep(interval_sleep)
 
 	total_tests = failed + passed
-	print("failed: %d/%.3f%%" % (failed, float(failed * 100) / total_tests))
-	print("passed: %d/%.3f%%" % (passed, float(passed * 100) / total_tests))
-	print("total tests: %d" % total_tests)
+	print(("failed: %d/%.3f%%" % (failed, float(failed * 100) / total_tests)))
+	print(("passed: %d/%.3f%%" % (passed, float(passed * 100) / total_tests)))
+	print(("total tests: %d" % total_tests))
 
 
 def mark(path, mark_name='mark', params=[], oneline=False):
@@ -2461,9 +2461,9 @@ def cmd_check(args):
 	if not output:
 		output = ' '.join(args)
 	if perfdata:
-		print(build_output(stext, [output, '|', perfdata]))
+		print((build_output(stext, [output, '|', perfdata])))
 	else:
-		print(build_output(stext, [output]))
+		print((build_output(stext, [output])))
 
 	if mark_file:
 		params = []
@@ -2487,7 +2487,7 @@ def cmd_check_flap(args):
 	else:
 		estate = 0
 
-	print("Got state=%d, so exiting with %d" % (state, estate))
+	print(("Got state=%d, so exiting with %d" % (state, estate)))
 	sys.exit(0)
 
 def _test_run(command):

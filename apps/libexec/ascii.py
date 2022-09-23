@@ -7,7 +7,7 @@ def cmd_merlin(discard):
 	Draws the Merlin logo in ascii art.
 	"""
 	print(color)
-	print("""%s%s
+	print(("""%s%s
   ... . ...   . .   .  .   ..        .=M7        .   ..   .
 ...  . .      . . .     .           ?MMM. .     .    .
 . .       . .. . .   .  ... . .   =MMMM=...     ... ...  .
@@ -46,13 +46,13 @@ def cmd_merlin(discard):
      .       .   . ..:~+=.   .   .   .   .   ZOOOOOOOOON
                ..       .   .   .   .   .   .  ~7ZZZZZZO+
    .              .   .    . . .   .    .            .      %s""" %
-(color.blue, color.bright, color.reset))
+(color.blue, color.bright, color.reset)))
 
 def cmd_ninja(discard):
 	"""
 	Draws the Ninja logo in ascii art.
 	"""
-	print("""%s%s%s%s                                                                   
+	print(("""%s%s%s%s                                                                   
              ..     ...::::::::::::::::::::...     ..                
             .8$, .:MMMMMMMMMMMMMMMMMMMMMMMMMMMM:. .$8=.              
            MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM             
@@ -92,7 +92,7 @@ def cmd_ninja(discard):
            .MMMMM.                                 .MMMMM.           
             :MMM=                                   =MMM:            
              CM#                                     #MD             %s""" %
-(color.bright + color.esc, "40;7m", ' ', ' ', color.reset))
+(color.bright + color.esc, "40;7m", ' ', ' ', color.reset)))
 
 def cmd_screensaver(args):
 	"""

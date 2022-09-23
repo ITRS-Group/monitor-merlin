@@ -1019,7 +1019,7 @@ class nagios_command:
 		for k in template_ary[1:]:
 			v = params.get(k, False)
 			if v == False:
-				print("No value for parameter %s" % k)
+				print(("No value for parameter %s" % k))
 				return False
 			cmd_string = "%s;%s" % (cmd_string, v)
 		self.command_string = cmd_string
@@ -1042,7 +1042,7 @@ class nagios_command:
 		signal.alarm(2)
 		try:
 			cmd_fd = os.open(self.pipe_path, posix.O_WRONLY)
-		except OSError, ose:
+		except OSError as ose:
 			if ose.errno == errno.EAGAIN:
 				return False
 			return False

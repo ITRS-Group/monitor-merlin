@@ -57,5 +57,5 @@ def ok(msg):
 
 
 def die(state, msg):
-	print("%s: %s" % (state_name(state), msg))
+	print(("%s: %s" % (state_name(state), msg)))
 	sys.exit(state)

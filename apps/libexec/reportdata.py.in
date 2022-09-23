@@ -41,13 +41,13 @@ def cmd_check_consistency(args):
 				ls_query="GET services\nColumns: last_hard_state\nFilter: host_name = " + host_name + "\nFilter: description = " + service_description
 				ls_state=subprocess.Popen("echo \"" + ls_query + "\" | unixcat " + LS_SOCK, shell=True, stdout=subprocess.PIPE).stdout.read()
 				if (int(state) != int(ls_state)):
-					print "ERROR: " + host_name + ";" + service_description + " : db_state=" + str(state) + " ls_state: " + ls_state.rstrip()
+					print("ERROR: " + host_name + ";" + service_description + " : db_state=" + str(state) + " ls_state: " + ls_state.rstrip())
 					errors=errors+1
 			elif host_name:
 				ls_query="GET hosts\nColumns: last_hard_state\nFilter: host_name = " + host_name
 				ls_state=subprocess.Popen("echo \"" + ls_query + "\" | unixcat " + LS_SOCK, shell=True, stdout=subprocess.PIPE).stdout.read()
 				if (int(state) != int(ls_state)):
-					print "ERROR: " + host_name + " : db_state=" + str(state) + " ls_state: " + ls_state.rstrip()
+					print("ERROR: " + host_name + " : db_state=" + str(state) + " ls_state: " + ls_state.rstrip())
 					errors=errors+1
 		# probably means state or ls_state is not an int, so we just continue
 		except ValueError as e:
@@ -55,8 +55,8 @@ def cmd_check_consistency(args):
 
 	merlin_db.disconnect()
 	if (errors == 0):
-		print "OK"
+		print("OK")
 		return True
 	else:
-		print "Errors: {}".format(errors)
+		print("Errors: {}".format(errors))
 		return False

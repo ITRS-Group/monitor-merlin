@@ -14,7 +14,7 @@ class nagios_qh:
 		"""Ask a raw query to nagios' query handler socket, return the raw
 		response as a lazily generated sequence."""
 		if not query:
-			print "Missing query argument"
+			print("Missing query argument")
 			return
 		try:
 			self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -28,15 +28,15 @@ class nagios_qh:
 						break
 					yield out
 				except KeyboardInterrupt:
-					print "Good bye."
+					print("Good bye.")
 					break
 			self.socket.close()
-		except socket.error, e:
-			print "Couldn't connect to nagios socket %s: %s" % (self.query_handler, str(e))
+		except socket.error as e:
+			print(("Couldn't connect to nagios socket %s: %s" % (self.query_handler, str(e))))
 
 	def format(self, data, rowsep='\n', pairsep=';', kvsep='='):
 		"""Lazily format a response into a sequence of dicts"""
-		for row in filter(None, ''.join(data).split(rowsep)):
+		for row in [_f for _f in ''.join(data).split(rowsep) if _f]:
 			if row == "404: merlin: No such handler":
 				print("ERROR: Could not get nodeinfo. See /var/log/op5/merlin/neb.log for more information")
 				yield -1

@@ -56,11 +56,11 @@ class pytap:
 
 		self._indent()
 		if self.tap_compat:
-			print("%s %d # %s" % (what, self.num_tests, msg))
+			print(("%s %d # %s" % (what, self.num_tests, msg)))
 		else:
 			if type(what) == type('foo'):
 				sys.stdout.write(' ' * (4 - len(what)))
-			print("%-4s: %s" % (self._colorize(what), msg))
+			print(("%-4s: %s" % (self._colorize(what), msg)))
 
 
 	def get_status(self):
@@ -87,7 +87,7 @@ class pytap:
 			return what
 
 		if not self.colors.get(color, False):
-			print("No color found to match %s" % color)
+			print(("No color found to match %s" % color))
 			return what
 
 		return "%s%s%s" % (self.colors[color], what, self.color_reset)
@@ -118,13 +118,13 @@ class pytap:
 			summary += self._colorize("All self.num_tests tests passed in %.2fs" % self.runtime, 'brightgreen')
 		else:
 			summary += "%.2fs total: %d" % (self.runtime, self.num_tests)
-			for (cat, num) in self.tcount.items():
+			for (cat, num) in list(self.tcount.items()):
 				if not num:
 					continue
 				summary += ", " + self._colorize("%s: %s" % (cat, num), cat)
 
 		self._indent()
-		print("%s" % summary)
+		print(("%s" % summary))
 
 
 	#####################################
@@ -220,8 +220,8 @@ class pytap:
 	def show_colors(self):
 		"""List which colors are set"""
 		color_reset = "\033[0m"
-		for (name, color) in self.colors.items():
-			print("%s%s%s" % (color, name, color_reset))
+		for (name, color) in list(self.colors.items()):
+			print(("%s%s%s" % (color, name, color_reset)))
 
 
 	def set_color(self, name=False, color=False):
@@ -316,7 +316,7 @@ class pytap:
 		suite += self.suite
 
 		self._indent()
-		print(self._colorize("### @%d %s ###" % (self.start_time, suite), 'description'))
+		print((self._colorize("### @%d %s ###" % (self.start_time, suite), 'description')))
 
 
 	def ok(self, result, msg, flags=0):
@@ -457,11 +457,11 @@ class pytap:
 			msg = [msg]
 		for v in msg:
 			self._indent(1)
-			if type(v) == type(unicode('lala')):
+			if type(v) == type(str('lala')):
 				v = str(v)
 			elif type(v) != type('foo'):
 				v = pformat(v)
-			print("%s# %s" % ('  ' * diag_depth, v))
+			print(("%s# %s" % ('  ' * diag_depth, v)))
 
 
 	def is_array_subset(self, a, b, msg, flags=0):
@@ -492,7 +492,7 @@ class pytap:
 
 		if self.parent:
 			self.parent.num_tests += self.num_tests
-			for (cat, num) in self.tcount.items():
+			for (cat, num) in list(self.tcount.items()):
 				if not self.parent.tcount.get(cat):
 					self.parent.tcount[cat] = 0
 				self.parent.tcount[cat] += num

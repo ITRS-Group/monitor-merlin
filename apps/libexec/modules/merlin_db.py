@@ -50,7 +50,7 @@ def connect(mconf, reuse_conn=True):
 			sys.exit(1)
 		conn = db.connect(user=db_user, password=db_pass, host=db_host, database=db_name)
 	else:
-		print("Invalid database type selected: %s" % db_type)
+		print(("Invalid database type selected: %s" % db_type))
 		print("Cannot continue")
 		sys.exit(1)
 

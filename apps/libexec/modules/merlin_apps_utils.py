@@ -33,8 +33,8 @@ class ansi_color:
 	def print_colors(self):
 		for name in self._color_names.split():
 			col = getattr(self, name)
-			print("%s%s\t%sbright_%s%s" % (col, name, self.bright, name, self.reset))
-		print("%syellow%s" % (self.yellow, self.reset))
+			print(("%s%s\t%sbright_%s%s" % (col, name, self.bright, name, self.reset)))
+		print(("%syellow%s" % (self.yellow, self.reset)))
 
 
 color = ansi_color()
@@ -67,10 +67,10 @@ def strtobool(str):
 	return False
 
 
-def mkdir_p(dirname, mode=0777):
+def mkdir_p(dirname, mode=0o777):
 	try:
 		os.makedirs(dirname, mode)
-	except OSError, exc:
+	except OSError as exc:
 		if exc.errno == errno.EEXIST:
 			pass
 		else:
@@ -98,6 +98,6 @@ def find_in_path(basename):
 def prettyprint_docstring(cmd, str, extra=False):
 	hlp = str.replace('\n\t', '\n').rstrip()
 	hlp = hlp.replace('\n', '\n   ')
-	print(" %s%s%s %s\n" % (color.green, cmd, color.reset, hlp))
+	print((" %s%s%s %s\n" % (color.green, cmd, color.reset, hlp)))
 	if extra != False:
-		print("%s%s*** %s%s" % (color.yellow, color.bright, extra, color.reset))
+		print(("%s%s*** %s%s" % (color.yellow, color.bright, extra, color.reset)))

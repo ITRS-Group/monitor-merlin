@@ -6,7 +6,7 @@ from compound_config import parse_nagios_cfg
 
 def search(arg):
 	arg = arg.upper()
-	for cname, ci in nagios_command.command_info.items():
+	for cname, ci in list(nagios_command.command_info.items()):
 		if ci['description'] == 'This command is not implemented':
 			continue
 
@@ -17,7 +17,7 @@ def search(arg):
 				t_str = separator.join(template[1:])
 			else:
 				t_str = 'This command takes no parameters'
-			print("%s%s%s\n  %s" % (color.green, cname, color.reset, t_str))
+			print(("%s%s%s\n  %s" % (color.green, cname, color.reset, t_str)))
 
 
 def cmd_search(args):
@@ -35,7 +35,7 @@ Retrieves everything we know about commands, in JSON form.
 This command shouldn't be that useful for the ordinary user, but it's
 needed for some internal API:s.
 	"""
-	print(json.dumps(nagios_command.command_info, sort_keys=True, indent=2))
+	print((json.dumps(nagios_command.command_info, sort_keys=True, indent=2)))
 
 
 def cmd_submit(args):
@@ -71,7 +71,7 @@ def cmd_submit(args):
 			if not cmd:
 				cmd = nagios_command(arg)
 				if not cmd.info:
-					print("Failed to find command '%s'" % arg)
+					print(("Failed to find command '%s'" % arg))
 					search(args[0])
 					sys.exit(1)
 			else:
@@ -102,15 +102,15 @@ def cmd_submit(args):
 			param_dict[ary[0]] = ary[1]
 		params = param_dict
 	if cmd.set_params(params) == False:
-		print("Failed to set parameters for command %s" % cmd.name)
+		print(("Failed to set parameters for command %s" % cmd.name))
 		print("The following parameters are required:")
 		search(cmd.name)
 		sys.exit(1)
 
 	if cmd.submit() == True:
-		print("%sOK%s: Successfully submitted %s for processing" %
-			(color.green, color.reset, cmd.command_string))
+		print(("%sOK%s: Successfully submitted %s for processing" %
+			(color.green, color.reset, cmd.command_string)))
 	else:
-		print("%sERROR%s: Failed to submit %s for processing" %
-			(color.red, color.reset, cmd.command_string))
+		print(("%sERROR%s: Failed to submit %s for processing" %
+			(color.red, color.reset, cmd.command_string)))
 		sys.exit(1)

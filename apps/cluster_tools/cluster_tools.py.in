@@ -488,8 +488,8 @@ def update():
         logger.error(f"Failed to fetch cluster info from {MASTER_NAME}")
         raise UpdateFailure() from ex
 
-    nodes_to_add = remote_cluster_info.keys() - local_cluster_info.keys()
-    nodes_to_remove = local_cluster_info.keys() - remote_cluster_info.keys()
+    nodes_to_add = list(remote_cluster_info.keys()) - list(local_cluster_info.keys())
+    nodes_to_remove = list(local_cluster_info.keys()) - list(remote_cluster_info.keys())
 
     if not (nodes_to_add or nodes_to_remove):
         # Nothing to update
@@ -633,7 +633,7 @@ def clean_up_local_state():
     local_info = get_local_cluster_info()
     if not local_info:
         return
-    cmd.extend(local_info.keys())
+    cmd.extend(list(local_info.keys()))
     try:
         execute_shell_cmd(cmd)
     except ShellExecutionFailure:
@@ -706,7 +706,7 @@ def register():
     # We'll use that to get information about all master peers
     # and add them to our config
     cluster_info = parse_mon_node_show(output)
-    for node in cluster_info.values():
+    for node in list(cluster_info.values()):
         if node["type"] == "peer":
             logger.info(f"New master: {node['name']}")
             add_master(

@@ -46,7 +46,7 @@ def module_init(args):
 			comp = cconf.parse_nagios_cfg(nagios_cfg)
 			query_socket = comp.query_socket
 		else:
-			print "ERROR: Unable to find Naemon query socket"
+			print("ERROR: Unable to find Naemon query socket")
 			return 1
 
 	# load the merlin configuration, and thus all nodes
@@ -82,7 +82,7 @@ def cmd_status(args):
 		host_checks += int(n['assigned_hosts'])
 		service_checks += int(n['assigned_services'])
 
-	print("Total checks (host / service): %s / %s" % (host_checks, service_checks))
+	print(("Total checks (host / service): %s / %s" % (host_checks, service_checks)))
 
 	latency_thresholds = {'min': -1.0, 'avg': 100.0, 'max': -1.0}
 
@@ -138,20 +138,20 @@ def cmd_status(args):
 			name += " (%sINACTIVE%s)" % (color.red, color.reset)
 			exit_code = 1
 
-		print("%s" % name)
+		print(("%s" % name))
 
 		sa_peer_id = int(info.get('self_assigned_peer_id', 0))
 		conn_time = int(info.get('connect_time', 0))
 		if is_running and info['type'] == 'peer' and sa_peer_id != peer_id:
 			if conn_time + 30 > int(time.time()):
-				print("%sPeer id negotiation in progress%s" % (color.green, color.reset))
+				print(("%sPeer id negotiation in progress%s" % (color.green, color.reset)))
 			else:
-				print("%sPeer id mismatch: self-assigned=%d; real=%d%s" %
-				(color.yellow, sa_peer_id, peer_id, color.reset))
+				print(("%sPeer id mismatch: self-assigned=%d; real=%d%s" %
+				(color.yellow, sa_peer_id, peer_id, color.reset)))
 
 		if iid and not node:
-			print("%sThis node is currently not in the configuration file%s" %
-				(color.yellow, color.reset))
+			print(("%sThis node is currently not in the configuration file%s" %
+				(color.yellow, color.reset)))
 
 		proc_start = float(info.get('start', False))
 		if proc_start:
@@ -174,8 +174,8 @@ def cmd_status(args):
 			else:
 				la_color = color.red
 
-		print("Uptime: %s. Connected: %s. Last alive: %s%s%s" %
-			(uptime, conn_delta, la_color, alive_delta, color.reset))
+		print(("Uptime: %s. Connected: %s. Last alive: %s%s%s" %
+			(uptime, conn_delta, la_color, alive_delta, color.reset)))
 
 		hchecks = int(info.get('host_checks_executed'))
 		schecks = int(info.get('service_checks_executed'))
@@ -204,40 +204,40 @@ def cmd_status(args):
 		if pg_services:
 			pg_spercent = float(schecks) / float(pg_services) * 100
 
-		print("Host checks (handled, expired, total)   : %d, %s%d%s, %d (%.2f%% : %.2f%%)" %
+		print(("Host checks (handled, expired, total)   : %d, %s%d%s, %d (%.2f%% : %.2f%%)" %
 			(hchecks, hc_color, expired_hchecks, color.reset, pg_hosts,
-			pg_hpercent, hpercent))
-		print("Service checks (handled, expired, total): %d, %s%d%s, %d (%.2f%% : %.2f%%)" %
+			pg_hpercent, hpercent)))
+		print(("Service checks (handled, expired, total): %d, %s%d%s, %d (%.2f%% : %.2f%%)" %
 			(schecks, sc_color, expired_schecks, color.reset, pg_services,
-			pg_spercent, spercent))
+			pg_spercent, spercent)))
 
 	oconf_bad = {}
-	for pg_id, d in pg_oconf_hash.items():
+	for pg_id, d in list(pg_oconf_hash.items()):
 		last = None
 		if len(d) == 1:
 			continue
-		for name, hash in d.items():
+		for name, hash in list(d.items()):
 			if last != None and last != hash:
 				oconf_bad[pg_id] = d
 				break
 
 	if len(oconf_bad):
-		print("\n%s%sObject config sync problem detected in the following groups%s" %
-			(color.red, color.bright, color.reset))
-		for pg_id, bad_nodes in oconf_bad.items():
-			bad = bad_nodes.keys()
+		print(("\n%s%sObject config sync problem detected in the following groups%s" %
+			(color.red, color.bright, color.reset)))
+		for pg_id, bad_nodes in list(oconf_bad.items()):
+			bad = list(bad_nodes.keys())
 			bad.sort()
-			print("  peer-group %d: %s" % (pg_id, ', '.join(bad)))
-		print("%sPlease ensure that configuration synchronization works properly%s" %
-			(color.yellow, color.reset))
+			print(("  peer-group %d: %s" % (pg_id, ', '.join(bad))))
+		print(("%sPlease ensure that configuration synchronization works properly%s" %
+			(color.yellow, color.reset)))
 
 	# now check merlin configuration
 	pconf_bad = {}
-	for pg_id, d in pg_conf.items():
+	for pg_id, d in list(pg_conf.items()):
 		have_first = False
 		if len(d) == 1:
 			continue
-		for name, d2 in d.items():
+		for name, d2 in list(d.items()):
 			cur_masters = d2.get('masters', -1)
 			cur_peers = d2.get('peers', -1)
 			cur_pollers = d2.get('pollers', -1)
@@ -252,14 +252,14 @@ def cmd_status(args):
 
 
 	if len(pconf_bad):
-		print("\n%s%sMerlin config error detected in the following groups%s" %
-			(color.red, color.bright, color.reset))
-		for pg_id, bad_nodes in pconf_bad.items():
-			bad = bad_nodes.keys()
+		print(("\n%s%sMerlin config error detected in the following groups%s" %
+			(color.red, color.bright, color.reset)))
+		for pg_id, bad_nodes in list(pconf_bad.items()):
+			bad = list(bad_nodes.keys())
 			bad.sort()
-			print("  peer-group %d: %s" % (pg_id, ', '.join(bad)))
-		print("%sPlease ensure that all peered nodes share neighbours%s" %
-			(color.yellow, color.reset))
+			print(("  peer-group %d: %s" % (pg_id, ', '.join(bad))))
+		print(("%sPlease ensure that all peered nodes share neighbours%s" %
+			(color.yellow, color.reset)))
 	return exit_code
 
 
@@ -271,13 +271,13 @@ def cmd_list(args):
 	"""
 	global wanted_types
 
-	names = mconf.configured_nodes.keys()
+	names = list(mconf.configured_nodes.keys())
 	names.sort()
 	for name in names:
 		node = mconf.configured_nodes[name]
 		if not node.ntype in wanted_types:
 			continue
-		print("  %s" % node.name)
+		print(("  %s" % node.name))
 
 
 def cmd_show(args):
@@ -292,18 +292,18 @@ def cmd_show(args):
 		print("No nodes configured")
 		return
 	if len(args) == 0:
-		names = mconf.configured_nodes.keys()
+		names = list(mconf.configured_nodes.keys())
 		names.sort()
 		for name in names:
 			node = mconf.configured_nodes[name]
 			if not node.ntype in wanted_types:
 				continue
-			print("\n# %s" % name)
+			print(("\n# %s" % name))
 			node.show()
 
 	for arg in args:
-		if not arg in mconf.configured_nodes.keys():
-			print("'%s' is not a configured node. Try the 'list' command" % arg)
+		if not arg in list(mconf.configured_nodes.keys()):
+			print(("'%s' is not a configured node. Try the 'list' command" % arg))
 			# scripts will list one node at a time. If the command
 			# fails, they don't have to check the output to see if
 			# the got anything sensible or not
@@ -313,7 +313,7 @@ def cmd_show(args):
 		if not mconf.configured_nodes[arg].ntype in wanted_types:
 			continue
 		if len(args) > 1:
-			print("\n# %s" % arg)
+			print(("\n# %s" % arg))
 		mconf.configured_nodes[arg].show()
 
 
@@ -324,8 +324,8 @@ def cmd_add(args):
 	if len(args) < 1:
 		return False
 	name = args[0]
-	if name in mconf.configured_nodes.keys():
-		print("%s is already configured. Aborting" % name)
+	if name in list(mconf.configured_nodes.keys()):
+		print(("%s is already configured. Aborting" % name))
 		return False
 
 	node = mconf.merlin_node(name)
@@ -338,10 +338,10 @@ def cmd_add(args):
 		node.set(ary[0], ary[1])
 
 	if node.save():
-		print("Successfully added %s node '%s'" % (node.ntype, node.name))
+		print(("Successfully added %s node '%s'" % (node.ntype, node.name)))
 		return True
 
-	print("Failed to add %s node '%s'" % (node.ntype, node.name))
+	print(("Failed to add %s node '%s'" % (node.ntype, node.name)))
 	return False
 
 
@@ -351,8 +351,8 @@ def _cmd_edit(args):
 		return False
 
 	name = args[0]
-	if not name in mconf.configured_nodes.keys():
-		print("%s isn't configured yet. Use 'add' to add it" % name)
+	if not name in list(mconf.configured_nodes.keys()):
+		print(("%s isn't configured yet. Use 'add' to add it" % name))
 		return False
 
 	node = mconf.merlin_node(args[0])
@@ -376,7 +376,7 @@ def cmd_remove(args):
 		mconf.parse()
 		node = mconf.configured_nodes.get(arg, False)
 		if not node:
-			print("'%s' is not a configured node. Try the 'list' command" % arg)
+			print(("'%s' is not a configured node. Try the 'list' command" % arg))
 			continue
 
 		sed_range = str(node.comp.line_start) + ',' + str(node.comp.line_end)
@@ -414,7 +414,7 @@ def cmd_ctrl(args):
 	for arg in args:
 		i += 1
 		if arg == '--all':
-			wanted_names = mconf.configured_nodes.keys()
+			wanted_names = list(mconf.configured_nodes.keys())
 			continue
 		elif arg == '--self':
 			run_on_self = True
@@ -426,7 +426,7 @@ def cmd_ctrl(args):
 			# to run the command on all configured nodes, possibly
 			# including --self
 			if not len(wanted_names):
-				wanted_names = mconf.configured_nodes.keys()
+				wanted_names = list(mconf.configured_nodes.keys())
 			break
 
 		node = mconf.configured_nodes.get(arg, False)
@@ -437,12 +437,12 @@ def cmd_ctrl(args):
 		by_name = True
 
 	if have_type_arg and not len(wanted_names):
-		wanted_names = mconf.configured_nodes.keys()
+		wanted_names = list(mconf.configured_nodes.keys())
 
 	for name in wanted_names:
 		node = mconf.configured_nodes.get(name, False)
 		if not node:
-			print("%s is not a configured node. Aborting" % name)
+			print(("%s is not a configured node. Aborting" % name))
 			sys.exit(1)
 
 		# check type and add it if we want it
@@ -458,7 +458,7 @@ def cmd_ctrl(args):
 		os.spawnvp(os.P_WAIT, "/bin/sh", ["/bin/sh", "-c", cmd])
 
 	blocked = 0
-	for name, node in nodes.items():
+	for name, node in list(nodes.items()):
 		if str(node.connect) == "no":
 			blocked += 1
 		else:
@@ -472,14 +472,14 @@ def cmd_ctrl(args):
 		sys.exit(node.get_exit_code())
 
 def _cmd_rename(args):
-	if len(args) != 2 or not args[0] in mconf.configured_nodes.keys():
+	if len(args) != 2 or not args[0] in list(mconf.configured_nodes.keys()):
 		print("Which node do you want to rename? Try the 'list' command")
 		return False
 
 	node = mconf.configured_nodes[args[0]]
 	dest = args[1]
-	if dest in mconf.configured_nodes.keys():
-		print("A node named '%s' already exists. Remove it first" % dest)
+	if dest in list(mconf.configured_nodes.keys()):
+		print(("A node named '%s' already exists. Remove it first" % dest))
 		return False
 	mconf.configured_nodes.pop(args[0])
 	mconf.configured_nodes[dest] = node
@@ -494,9 +494,9 @@ def cmd_info(args):
 		if node == -1:
 			return 1
 
-		print node['name']
-		items = node.items()
+		print(node['name'])
+		items = list(node.items())
 		items.sort()
 		for key, val in items:
-			print '    %s = %s' % (key, val)
-		print ''
+			print('    %s = %s' % (key, val))
+		print('')
