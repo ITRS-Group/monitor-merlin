@@ -7,19 +7,10 @@ post:
     mon test dist --basepath=/mnt/logs/merlin_dtest
     mon test rsync
     rm --force --recursive /mnt/logs/merlin_dtest
-    # fake asmonitor rights since we don't want to depend on monitor-nacoma
-    # for op5-naemon, asmonitor should be moved to op5-monitor-user package
-    echo 'Defaults>monitor !requiretty' > /etc/sudoers.d/asmonitor
-    echo 'ALL ALL=(monitor) NOPASSWD: ALL' >> /etc/sudoers.d/asmonitor
-    chmod 440 /etc/sudoers.d/asmonitor
     sudo -u monitor mon test rsync
 
     # Run unit tests
-    if [ \$RHEL_VERSION == "8" ]; then
-      nosetests-2 \${VERBOSE:+-v} --nocapture --where apps/libexec/modules
-    else
-      nosetests \${VERBOSE:+-v} --nocapture --where apps/libexec/modules
-    fi
+    nosetests-2 ${VERBOSE:+-v} --nocapture --where apps/libexec/modules
 
     # Verify file permissions after installation
     stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 660" = "{}"
@@ -37,14 +28,8 @@ post:
     # Run cucumber tests
     ulimit -c unlimited
     mkdir -p /mnt/logs
-    echo "core ulimit: \$(ulimit -c)"
 
-    # Workaround for EL7.7 bug BZ#1731062 (https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/7.7_release_notes/known_issues)
-    if grep -F 'release 7.7' /etc/redhat-release; then
-        ln -vs /usr/bin/resolveip /usr/libexec/resolveip
-    fi
-
-    cucumber \${VERBOSE:+-v} --strict --format html \
+    cucumber ${VERBOSE:+-v} --strict --format html \
         --out /mnt/logs/cucumber.html --format pretty\
         --tags ~@encrypted
     # Run the test suite again, but with encryption enabled
@@ -57,6 +42,6 @@ post:
     export MERLIN_ENCRYPTED=TRUE
     export MERLIN_PUBKEY=/opt/monitor/op5/merlin/key.pub
     export MERLIN_PRIVKEY=/opt/monitor/op5/merlin/key.priv
-    cucumber \${VERBOSE:+-v} --strict --format html \
+    cucumber ${VERBOSE:+-v} --strict --format html \
         --out /mnt/logs/cucumber_encrypted.html \
         --format pretty --exclude "report_data" --tags ~@unstable --tags ~@unencrypted
