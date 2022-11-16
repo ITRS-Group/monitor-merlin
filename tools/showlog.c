@@ -1,6 +1,9 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <dirent.h>
 
 #include "shared.h"
 #include "lparse.h"
@@ -24,6 +27,13 @@ static int hide_state_dupes; /* if set, we hide duplicate state messages */
 static int count;
 static unsigned long printed_lines;
 static int restrict_objects = 0;
+static int all_nodes = 0;
+static const char all_node_command_string[] = "asmonitor mon node ctrl %s -- mon log show --time-format=raw";
+static const char all_node_log_warning[] = "showlog: No log from %s. Check connectivity or maybe this is a passive poller";
+
+
+#define all_node_tmp_dir "/opt/monitor/var"
+#define GET_TMP_FILE_PATH(path) all_node_tmp_dir "/" path
 
 #define EVT_PROCESS  (1 << 0)
 #define EVT_NOTIFY   (1 << 1)
@@ -85,6 +95,8 @@ static struct string_code event_codes[] = {
 	add_code(4, "SERVICE FLAPPING ALERT", EVT_FLAPPING | EVT_SERVICE),
 	{ 0, NULL, 0, 0 },
 };
+
+static struct err_message *err_message_list;
 
 static void exit_nicely(int code)
 {
@@ -204,12 +216,36 @@ static void print_line_count(__attribute__((unused)) int type, __attribute__((un
 	return;
 }
 
+static void print_error_ascii(__attribute__((unused)) char *header,char *line)
+{
+	time_t epochTime;
+	struct tm localTime;
+
+	epochTime=time(NULL);
+	localtime_r(&epochTime, &localTime);
+	print_time(&localTime);
+	puts(line);
+}
+
 static void print_line_ascii(__attribute__((unused)) int type, struct tm *t, char *line, __attribute__((unused)) uint len)
 {
 	print_time(t);
 	puts(line);
 }
 
+static void print_error_ansi(__attribute__((unused)) char *header, char *line)
+{
+	const char *color = CLR_RED;
+	time_t epochTime;
+	struct tm localTime;
+
+	epochTime=time(NULL);
+	localtime_r(&epochTime, &localTime);
+
+	printf("%s", color);
+	print_time(&localTime);
+	printf("%s%s\n", line, CLR_RESET);
+}
 
 static void print_line_ansi(int type, struct tm *t, char *line, __attribute__((unused)) uint len)
 {
@@ -273,6 +309,29 @@ static void print_time_break(struct tm *t)
 	line = ++tmp; \
 	i = 0; \
 }while(0);
+
+static void print_error_html(char* headline, char *message)
+{
+	const char *image = NULL;
+	time_t epochTime;
+	struct tm localTime;
+
+	epochTime=time(NULL);
+	localtime_r(&epochTime, &localTime);
+
+	if (headline != NULL) {
+		printf("<h2>");
+		fwrite(headline, 1, strlen(headline), stdout);
+		puts("</h2>");
+	}
+
+	image = "shield-unknown.png";
+	printf("<img src=\"%s/%s\" alt=\"%s\" /> ", image_url, image, image);
+
+	print_time(&localTime);
+	fwrite(message, 1, strlen(message), stdout);
+	puts("<br />");
+}
 
 static void print_line_html(int type, struct tm *t, char *line, __attribute__((unused)) uint len)
 {
@@ -344,6 +403,104 @@ static void print_line_html(int type, struct tm *t, char *line, __attribute__((u
 	puts("<br />");
 }
 
+struct err_message *getErrMsgInstance(void)
+{
+	struct err_message *newErrorMessage = NULL;
+
+	newErrorMessage = calloc (1, sizeof(struct err_message));
+	if (newErrorMessage != NULL){
+		if (err_message_list == NULL) {
+			err_message_list = newErrorMessage;
+		}
+		else {
+			struct err_message *curr_err_message = err_message_list;
+			while(curr_err_message->next != NULL)
+			{
+				curr_err_message = curr_err_message->next;
+			}
+			curr_err_message->next = newErrorMessage;
+		}
+	}
+	return newErrorMessage;
+}
+
+static void (*real_print_error)(char *, char *) = print_error_ascii;
+static void printErrMsgList(void)
+{
+	struct err_message *curr_err_message = err_message_list;
+
+	while (curr_err_message != NULL) {
+		char *header = "SHOWLOG WARNING";
+		real_print_error(header, curr_err_message->message);
+		curr_err_message = curr_err_message->next;
+		if (header != NULL) {
+			header = NULL;
+		}
+	}
+}
+
+static void cleanupErrMsgList(void)
+{
+	if (err_message_list != NULL)
+	{
+		struct err_message *curr_err_message = err_message_list, *next_err_message = NULL;
+		while (curr_err_message != NULL){
+			next_err_message = curr_err_message->next;
+			if (curr_err_message->message) free(curr_err_message->message);
+			free(curr_err_message);
+			curr_err_message = next_err_message;
+		}
+	}
+}
+
+static void cleanupTmpLog(void)
+{
+	struct dirent *pCurrFile;
+	char *pTmpFilePath = NULL;
+	int szTmpFilePath = 0;
+	char *tmpPath = GET_TMP_FILE_PATH("tmp");
+	DIR *tmpFolder = NULL;
+
+	if (remove(GET_TMP_FILE_PATH("naemon_merged.log")) == -1){
+		if (errno != ENOENT ){
+			printf("Error accessing %s. Check permissions\n", GET_TMP_FILE_PATH("naemon_merged.log"));
+			exit(1);
+		}
+	}
+
+	tmpFolder = opendir(tmpPath);
+	if (tmpFolder != NULL){
+		while ( (pCurrFile = readdir(tmpFolder)) != NULL )
+		{
+			int szCurrFile = strlen(tmpPath) + strlen(pCurrFile->d_name) + 2; //\0 and / for directory
+			if(pCurrFile->d_name[0] == '.') //skip . and ..
+				continue;
+
+			if (szTmpFilePath < szCurrFile) {
+				szTmpFilePath = szCurrFile;
+				pTmpFilePath = realloc (pTmpFilePath, szTmpFilePath);
+				if (pTmpFilePath == NULL){
+					printf("Failed to allocate memory");
+					exit(1);
+				}
+			}
+			sprintf(pTmpFilePath, "%s/%s", tmpPath, pCurrFile->d_name);
+			if (remove(pTmpFilePath) == -1) {
+				printf("Error accessing %s. Check permissions.\n", pTmpFilePath);
+				exit(1);
+			}
+		}
+		closedir(tmpFolder);
+		if (rmdir(tmpPath) == -1) {
+			printf("Error accessing %s. Check permissions.\n", tmpPath);
+			exit(1);
+		}
+		free(pTmpFilePath);
+	} else if (errno != ENOENT ){
+		printf("Error accessing %s. Check permissions\n", tmpPath);
+		exit(1);
+	}
+}
 
 static void (*real_print_line)(int type, struct tm *, char *, uint) = print_line_ascii;
 static void print_line(int type, char *line, uint len)
@@ -381,8 +538,14 @@ static void print_line(int type, char *line, uint len)
 	}
 
 	/* if we've printed all the lines we should, just exit */
-	if (limit && !--limit)
+	if (limit && !--limit){
+		if (all_nodes){
+			cleanupTmpLog();
+			cleanupErrMsgList();
+
+		}
 		exit_nicely(0);
+	}
 }
 
 
@@ -810,6 +973,164 @@ static int show_hide(char *arg, char *opt)
 	return 0;
 }
 
+static int createTmpLog(FILE* fpNodeLog, const char * nodeName)
+{
+	char *pNodeLine = NULL;
+	size_t szNodeLine = 0;
+	FILE* fpNewFile;
+	char *pNewFileName = NULL;
+	char *tmpFilePath = GET_TMP_FILE_PATH("tmp/naemon_%s.log");
+
+	pNewFileName = malloc(strlen (nodeName) + strlen(tmpFilePath));
+	if (pNewFileName == NULL){
+		warn("Failed to allocate memory");
+		return -1;
+	}
+
+	sprintf(pNewFileName, tmpFilePath, nodeName);
+	fpNewFile = fopen (pNewFileName, "w");
+	if (fpNewFile == NULL) {
+		warn("Failed to create temporary file %s with errno %d", pNewFileName, errno);
+		free(pNewFileName);
+		return -1;
+	}
+
+	while (getline(&pNodeLine, &szNodeLine, fpNodeLog) != -1) {
+		time_t timeStamp;
+		char *message;
+		message = strchr (pNodeLine, ']'); //get string after timestamp
+		if (message == 0){
+			continue; //skip non timestamped message
+		}
+		message[strcspn(message, "\r\n")] = 0;
+
+		timeStamp = strtoul(pNodeLine + 1, NULL, 10); //get timestamp
+		fprintf(fpNewFile, "[%ld] %s (%s)\n", timeStamp, message + 1, nodeName);
+	}
+
+	//Empty file. Probably cannot connect to the remote node. Log as a warning.
+	if(ftell(fpNewFile) == 0)
+	{
+		int length = sizeof(all_node_log_warning) + strlen(nodeName);
+		struct err_message *newErrorMessage = getErrMsgInstance(); //reference to error message instance in linked list
+
+		if (newErrorMessage == NULL){
+			if (pNodeLine) free(pNodeLine);
+			if (pNewFileName) free(pNewFileName);
+			fclose(fpNewFile);
+
+			warn("Failed to allocate memory");
+			return -1;
+		}
+
+		newErrorMessage->message = malloc(length);
+		if (newErrorMessage->message == NULL){
+			if (pNodeLine) free(pNodeLine);
+			if (pNewFileName) free(pNewFileName);
+			fclose(fpNewFile);
+
+			warn("Failed to allocate memory");
+			return -1;
+		}
+		sprintf(newErrorMessage->message, all_node_log_warning, nodeName);
+	}
+
+	if (pNodeLine) free(pNodeLine);
+	if (pNewFileName) free(pNewFileName);
+	fclose(fpNewFile);
+
+	return 0;
+}
+
+static int processNodeLogs(const char * pCommand, const char *pNodeName)
+{
+	FILE *fpNodeLog = NULL;
+	int ret = 0;
+
+	fpNodeLog = popen(pCommand, "r");
+	if (fpNodeLog != NULL) {
+		if (createTmpLog (fpNodeLog, pNodeName) != 0){
+			ret = -1;
+		}
+		pclose(fpNodeLog);
+	}
+	else {
+		warn("Failed to run command%s\n", pCommand);
+		ret = -1;
+	}
+	return ret;
+}
+
+static int processAllNodes(void)
+{
+	FILE *fpNode;
+	char *pNode = NULL;
+	size_t szNode = 0;
+	char *pNodeName = NULL, *pCommand = NULL;
+	size_t szNodeName = 0;
+	int ret = 0;
+
+	/* Open the command for reading. */
+	fpNode = popen("asmonitor mon node list", "r");
+	if (fpNode == NULL) {
+		warn("Failed to run mon command\n" );
+		return -1;
+	}
+
+	//temporary directory to store the logs
+	mkdir(GET_TMP_FILE_PATH("tmp") , S_IRWXU );
+
+	//Process each remote node logs
+	while (getline(&pNode, &szNode, fpNode) != -1 && ret == 0) {
+
+		if (szNodeName < szNode)
+		{
+			szNodeName = szNode;
+			pNodeName = realloc (pNodeName, szNodeName);
+			if (pNodeName == NULL) {
+				warn("Failed to allocate memory\n");
+				ret = -1;
+				break;
+			}
+			pCommand = realloc (pCommand, szNodeName + sizeof(all_node_command_string));
+			if (pCommand == NULL) {
+				warn("Failed to allocate memory\n");
+				ret = -1;
+				break;
+			}
+		}
+		sscanf(pNode, "%s", pNodeName); //remove spaces from the node name
+		sprintf(pCommand, all_node_command_string, pNodeName);
+		ret = processNodeLogs(pCommand, pNodeName);
+	}
+	//close and free
+	if (pNodeName) free(pNodeName);
+	if (pCommand) free(pCommand);
+	if (pNode) free(pNode);
+	pclose(fpNode);
+
+	//Process local logs
+	if (ret == 0){
+		ret = processNodeLogs("asmonitor mon log show --time-format=raw", "local");
+	}
+
+	if (ret == 0) {
+		char cmd[100];
+
+		//merge logs (should already be sorted) and store outside the temp dir in case a host name is named merged.
+
+		sprintf(cmd, "sort --merge %s >> %s", GET_TMP_FILE_PATH("tmp/*"), GET_TMP_FILE_PATH("naemon_merged.log"));
+		system (cmd);
+		add_naglog_path(GET_TMP_FILE_PATH("naemon_merged.log"));
+	}
+	else {
+		//cleanup the created files on error
+		cleanupTmpLog();
+	}
+
+	return ret;
+}
+
 int main(int argc, char **argv)
 {
 	int i, show_ltime_skews = 0, list_files = 0;
@@ -826,6 +1147,8 @@ int main(int argc, char **argv)
 
 	if (isatty(fileno(stdout))) {
 		real_print_line = print_line_ansi;
+		real_print_error = print_error_ansi;
+
 		event_filter &= ~(EVT_LROTATE | EVT_PROCESS);
 	}
 
@@ -847,20 +1170,27 @@ int main(int argc, char **argv)
 			real_print_line = print_line_count;
 			continue;
 		}
+		if (!strcmp(arg, "--all-nodes")) {
+			all_nodes = 1;
+			continue;
+		}
 		if (!strcmp(arg, "--reverse")) {
 			reverse_parse_files = 1;
 			continue;
 		}
 		if (!strcmp(arg, "--html")) {
 			real_print_line = print_line_html;
+			real_print_error = print_error_html;
 			continue;
 		}
 		if (!strcmp(arg, "--ansi")) {
 			real_print_line = print_line_ansi;
+			real_print_error = print_error_ansi;
 			continue;
 		}
 		if (!strcmp(arg, "--ascii")) {
 			real_print_line = print_line_ascii;
+			real_print_error = print_error_ascii;
 			continue;
 		}
 		if (!strcmp(arg, "--debug") || !strcmp(arg, "-d")) {
@@ -1026,7 +1356,7 @@ int main(int argc, char **argv)
 		/* non-argument, so treat as config- or log-file */
 		arg_len = strlen(arg);
 		if (!strcmp(&arg[strlen(arg) - 10], "nagios.cfg")
-		           || !strcmp(&arg[strlen(arg) - 10], "naemon.cfg"))
+				   || !strcmp(&arg[strlen(arg) - 10], "naemon.cfg"))
 		{
 			nagios_cfg = arg;
 		} else {
@@ -1052,20 +1382,35 @@ int main(int argc, char **argv)
 			nagios_cfg = "/etc/naemon/naemon.cfg";
 		}
 	}
-	if (nagios_cfg) {
-		struct cfg_comp *conf;
-		uint vi;
 
-		conf = cfg_parse_file(nagios_cfg);
-		if (!conf)
-			usage("Failed to parse nagios' main config file '%s'\n", nagios_cfg);
-		for (vi = 0; vi < conf->vars; vi++) {
-			struct cfg_var *v = conf->vlist[vi];
-			if (!strcmp(v->key, "log_file")) {
-				add_naglog_path(v->value);
-			}
-			if (!strcmp(v->key, "log_archive_path")) {
-				add_naglog_path(v->value);
+	if (all_nodes){
+		int ret = 0;
+
+		//Cleanup logs in case there were left over logs fromn previous
+		//interrupted execution
+		cleanupTmpLog();
+		ret = processAllNodes();
+		if (ret == -1) {
+			exit(1);
+		}
+		printErrMsgList();
+	}
+	else{
+		if (nagios_cfg) {
+			struct cfg_comp *conf;
+			uint vi;
+
+			conf = cfg_parse_file(nagios_cfg);
+			if (!conf)
+				usage("Failed to parse nagios' main config file '%s'\n", nagios_cfg);
+			for (vi = 0; vi < conf->vars; vi++) {
+				struct cfg_var *v = conf->vlist[vi];
+				if (!strcmp(v->key, "log_file")) {
+					add_naglog_path(v->value);
+				}
+				if (!strcmp(v->key, "log_archive_path")) {
+					add_naglog_path(v->value);
+				}
 			}
 		}
 	}
@@ -1137,6 +1482,13 @@ int main(int argc, char **argv)
 
 		print_unhandled_events();
 	}
+
+	//cleanup temporary log files
+	if (all_nodes){
+		cleanupTmpLog();
+		cleanupErrMsgList();
+	}
+
 	state_deinit();
 	exit_nicely(0);
 	return 0;
