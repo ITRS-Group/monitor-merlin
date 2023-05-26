@@ -17,7 +17,7 @@ post:
 
     # Install requirements for cucumber test
     ruby -v
-    gem update
+    gem update --system 2.6.*
     ruby -v
 
     gem install --no-ri --no-rdoc \
