@@ -23,6 +23,7 @@ post:
         parallel_tests:2.23.0 \
         syntax:1.0.0 \
         sequel \
+        libmysqlclient-dev \
         mysql2
 
     # Run cucumber tests
