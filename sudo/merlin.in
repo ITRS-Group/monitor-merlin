@@ -14,4 +14,8 @@ Cmnd_Alias      MON_OPERATOR =  /usr/bin/mon node,\
         /usr/bin/mon stop,\
         /usr/bin/mon restart
 
+Cmnd_Alias      SELF_MON_CMDS =  /usr/bin/mon check *,\
+        /opt/plugins/check_op5_license
+
 %mon_operators  ALL = (ALL) NOPASSWD: MON_OPERATOR
+%nrpe  ALL = (@naemon_user@) NOPASSWD: SELF_MON_CMDS
