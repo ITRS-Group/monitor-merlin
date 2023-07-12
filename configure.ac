@@ -51,10 +51,10 @@ PKG_CHECK_MODULES([GIO_UNIX], [gio-unix-2.0])
 PKG_CHECK_MODULES([check], [check])
 
 # am_missing_prog doesn't seem to fail, so add redundant checks
-AM_MISSING_PROG([PYTHON], [python2])
-AC_CHECK_PROG(PYTHON_CHECK,python2,yes)
+AM_MISSING_PROG([PYTHON], [python3.9])
+AC_CHECK_PROG(PYTHON_CHECK,python3.9,yes)
 if test x"$PYTHON_CHECK" != x"yes" ; then
-	AC_MSG_ERROR([You need to install python2])
+	AC_MSG_ERROR([You need to install python3.9])
 fi
 
 AM_MISSING_PROG([GPERF], [gperf])

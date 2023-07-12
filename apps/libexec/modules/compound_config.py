@@ -65,40 +65,35 @@ def parse_conf(path, splitchar='='):
 	pushed_objs = []
 
 	lnum = 0
-	f = open(path)
-	for line in f:
-		lnum += 1
-		line = line.strip()
-		# this barfs on latin1 characters, but those aren't handled properly by
-		# merlin anyway.
-		line = line.decode('latin1')
-		if not line or line[0] == '#':
-			continue
+	with open(path, encoding='latin1') as f:
+		for line in f:
+			lnum += 1
+			line = line.strip()
 
-		if line[0] == '}' and cur.parent:
-			cur.line_end = lnum
-			cur = cur.close()
-			continue
+			if not line or line[0] == '#':
+				continue
 
-		if line[-1] == '{':
-			pushed_objs.insert(0, cur)
-			n = compound_object(line[:-1].strip(), cur)
-			cur.objects.append(n)
-			cur = n
-			cur.line_start = lnum
-			continue
+			if line[0] == '}' and cur.parent:
+				cur.line_end = lnum
+				cur = cur.close()
+				continue
 
-		kv = line.split(splitchar, 1)
-		if len(kv) != 2:
-			cur.add(line, True)
-			continue
-		key, value = kv
-		key = key.rstrip()
-		value = value.lstrip().rstrip(';')
-		cur.add(key, value)
+			if line[-1] == '{':
+				pushed_objs.insert(0, cur)
+				n = compound_object(line[:-1].strip(), cur)
+				cur.objects.append(n)
+				cur = n
+				cur.line_start = lnum
+				continue
 
-	f.close()
-
+			kv = line.split(splitchar, 1)
+			if len(kv) != 2:
+				cur.add(line, True)
+				continue
+			key, value = kv
+			key = key.rstrip()
+			value = value.lstrip().rstrip(';')
+			cur.add(key, value)
 	return cur
 
 def parse_nagios_cfg(path):

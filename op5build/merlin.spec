@@ -1,4 +1,5 @@
 %define mod_path /opt/monitor/op5/merlin
+%define nacoma_hook_dir /opt/monitor/op5/nacoma/hooks/save
 
 # function service_control_function ("action", "service")
 # start/stop/restart a service
@@ -52,7 +53,7 @@ Requires: op5kad
 BuildRequires: mysql-devel
 %endif
 BuildRequires: op5-naemon-devel
-BuildRequires: python2
+BuildRequires: python39-devel
 BuildRequires: gperf
 BuildRequires: check-devel
 BuildRequires: autoconf, automake, libtool
@@ -75,7 +76,7 @@ Requires: merlin-apps-slim >= %version
 Requires: glib2
 Requires: op5-monitor-user
 BuildRequires: op5-naemon-devel
-BuildRequires: python2
+BuildRequires: python39-devel
 BuildRequires: gperf
 BuildRequires: check-devel
 BuildRequires: autoconf, automake, libtool
@@ -126,7 +127,7 @@ Requires: libdbi1
 Requires: python-mysql
 %else
 %if 0%{?rhel} >= 8
-Requires: python2-PyMySQL
+Requires: python3-PyMySQL
 %else
 Requires: MySQL-python
 %endif
@@ -136,7 +137,7 @@ Requires: unixcat
 # php-cli for mon node tree
 Requires: php-cli
 Requires: procps-ng
-Requires: python2-livestatus
+Requires: python39-livestatus
 Obsoletes: monitor-distributed
 Obsoletes: merlin-apps-slim
 
@@ -164,7 +165,7 @@ Requires: python3
 # php-cli for mon node tree
 Requires: php-cli
 Requires: procps-ng
-Requires: python2-livestatus
+Requires: python39-livestatus
 %if 0%{?rhel} >= 8
 Requires: python3-docopt
 Requires: python3-cryptography
@@ -200,7 +201,7 @@ Requires: abrt-cli
 Requires: libyaml
 Requires: mariadb-devel
 Requires: ruby-devel
-Requires: python2-nose
+Requires: python3-pytest
 # Required development tools for building gems
 Requires: make automake gcc
 Requires: redhat-rpm-config
@@ -233,10 +234,10 @@ ln -s op5 %buildroot/%_bindir/mon
 cp cukemerlin %buildroot/%_bindir/cukemerlin
 cp -r apps/tests %buildroot/usr/share/merlin/app-tests
 
-
-mkdir -p %buildroot/opt/monitor/op5/nacoma/hooks/save/
+mkdir -p %{buildroot}%{nacoma_hook_dir}
 sed -i 's#@@LIBEXECDIR@@#%_libdir/merlin#' op5build/nacoma_hook.py
-install -m 0755 op5build/nacoma_hook.py %buildroot/opt/monitor/op5/nacoma/hooks/save/merlin_hook.py
+install -m 0755 op5build/nacoma_hook.py %{buildroot}%{nacoma_hook_dir}/merlin_hook.py
+%py_byte_compile %{python3} %{buildroot}%{nacoma_hook_dir}/
 
 mkdir -p %buildroot%_sysconfdir/nrpe.d
 cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
@@ -250,8 +251,8 @@ cp data/kad.conf %buildroot%_sysconfdir/op5kad/conf.d/merlin.kad
 %endif
 
 %check
-python2 tests/pyunit/test_log.py --verbose
-python2 tests/pyunit/test_oconf.py --verbose
+%{python3} tests/pyunit/test_log.py --verbose
+%{python3} tests/pyunit/test_oconf.py --verbose
 
 
 %post
@@ -395,7 +396,7 @@ fi
 %_libdir/merlin/mon
 %_bindir/mon
 %_bindir/op5
-/opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
+%pycached %{nacoma_hook_dir}/merlin_hook.py
 
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/db_mysql_check.sh
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/fs_ext_state.sh
@@ -440,7 +441,7 @@ fi
 %_bindir/mon
 %_bindir/op5
 %_bindir/merlin_cluster_tools
-/opt/monitor/op5/nacoma/hooks/save/merlin_hook.py*
+%pycached %{nacoma_hook_dir}/merlin_hook.py
 
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/db_mysql_check.sh
 %attr(600, root, root) %_libdir/merlin/mon/syscheck/fs_ext_state.sh

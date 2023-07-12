@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3.9
 
 import sys
 import os
@@ -24,7 +24,7 @@ class PurgeLogTestMalformatCase(unittest.TestCase):
 			"naemon.log-1337"
 		]
 		for file in files:
-			with open(os.path.join(log.archive_dir, file), 'wb') as temp_file:
+			with open(os.path.join(log.archive_dir, file), 'w') as temp_file:
 				temp_file.write('Testing file')
 
 	def tearDown(self):
@@ -60,7 +60,7 @@ class PurgeLogTestMoreThan10YearsOldCase(unittest.TestCase):
 			"nagios-07-21-1992-14.log",
 		]
 		for file in files:
-			with open(os.path.join(log.archive_dir, file), 'wb') as temp_file:
+			with open(os.path.join(log.archive_dir, file), 'w') as temp_file:
 				temp_file.write('Testing file')
 
 	def tearDown(self):
@@ -95,7 +95,7 @@ class PurgeLogTestCase(unittest.TestCase):
 			"nagios-08-03-2015-14.log",
 		]
 		for file in files:
-			with open(os.path.join(log.archive_dir, file), 'wb') as temp_file:
+			with open(os.path.join(log.archive_dir, file), 'w') as temp_file:
 				temp_file.write('Testing file')
 
 	def tearDown(self):
