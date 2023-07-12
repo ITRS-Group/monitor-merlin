@@ -97,7 +97,7 @@ class fake_peer_group:
 			self.num_objects[otype] += 1
 			self.have_objects[otype][name] = True
 		# this way objects will filter up to master groups as well
-		for mg in self.master_groups.values():
+		for mg in list(self.master_groups.values()):
 			mg.add_object(otype, name)
 
 
@@ -157,7 +157,7 @@ class fake_peer_group:
 		hname = copy.deepcopy(host['host_name'])
 		i = 0
 		obuf = 'define hostgroup {\n'
-		for (k, v) in hostgroup.items():
+		for (k, v) in list(hostgroup.items()):
 			obuf = "%s\t%s %s\n" % (obuf, k, v)
 
 		obuf = "%s}" % obuf
@@ -182,7 +182,7 @@ class fake_peer_group:
 
 			self.add_object('host', hobj['host_name'])
 			obuf = "define host{\n"
-			for (k, v) in hobj.items():
+			for (k, v) in list(hobj.items()):
 				obuf = "%s%s %s\n" % (obuf, k, v)
 			if i & 7:
 				hg_name = 'host%d_hosts' % (i & 7)
@@ -201,7 +201,7 @@ class fake_peer_group:
 				sname = "%s;%s" % (sobj['host_name'], sobj['service_description'])
 				self.add_object('service', sname)
 				obuf = "define service{\n"
-				for (k, v) in sobj.items():
+				for (k, v) in list(sobj.items()):
 					obuf = "%s%s %s\n" % (obuf, k, v)
 				if x & 7:
 					sg_name = 'service%d_services' % (x & 7)
@@ -217,15 +217,15 @@ class fake_peer_group:
 		self.oconf_buf = "\n".join(ocbuf)
 		ocbuf = False
 		poller_oconf_buf = ''
-		pgroup_names = self.poller_groups.keys()
+		pgroup_names = list(self.poller_groups.keys())
 		pgroup_names.sort()
 		for pgroup_name in pgroup_names:
 			pgroup = self.poller_groups[pgroup_name]
 			pgroup.create_object_config(num_hosts, num_services_per_host)
 			poller_oconf_buf += pgroup.oconf_buf
 
-		for otype in self.have_objects.keys():
-			self.have_objects[otype] = self.have_objects[otype].keys()
+		for otype in list(self.have_objects.keys()):
+			self.have_objects[otype] = list(self.have_objects[otype].keys())
 			self.have_objects[otype].sort()
 
 		self.oconf_buf = "%s\n%s" % (self.oconf_buf, poller_oconf_buf)
@@ -303,7 +303,7 @@ class fake_instance:
 			self.valgrind = True
 
 	def stat(self, path):
-		return os.stat('%s/%s' (self.home, path))
+		return os.stat('%s/%s' % (self.home, path))
 
 	def fpath(self, path):
 		return "%s/%s" % (self.home, path)
@@ -338,7 +338,7 @@ class fake_instance:
 
 	def start_daemons(self, daemons, dname=False):
 		fd = os.open("/dev/null", os.O_WRONLY)
-		for name, program in daemons.items():
+		for name, program in list(daemons.items()):
 			if dname and name != dname:
 				continue
 
@@ -360,7 +360,7 @@ class fake_instance:
 				cmd = real_cmd
 			try:
 				self.proc[name] = subprocess.Popen(cmd, stdout=fd, stderr=fd)
-			except OSError, e:
+			except OSError as e:
 				print("Failed to run command '%s'" % cmd)
 				print(e)
 				raise OSError(e)
@@ -372,12 +372,12 @@ class fake_instance:
 
 	def signal_daemons(self, sig, dname=False):
 		remove = False
-		for name, proc in self.proc.items():
+		for name, proc in list(self.proc.items()):
 			if dname and dname != name:
 				continue
 			try:
 				os.kill(proc.pid, sig)
-			except OSError, e:
+			except OSError as e:
 				alive = False
 				if e.errno == errno.ESRCH:
 					remove = True
@@ -410,7 +410,7 @@ class fake_instance:
 		if not self.nodes[node_type].get(node_name, False):
 			self.nodes[node_type][node_name] = {}
 
-		for (k, v) in kwargs.items():
+		for (k, v) in list(kwargs.items()):
 			self.nodes[node_type][node_name][k] = v
 		if not self.nodes[node_type][node_name].get('address', False):
 			self.nodes[node_type][node_name]['address'] = '127.0.0.1'
@@ -422,16 +422,16 @@ class fake_instance:
 		configs = {}
 		if self.name.startswith('pg1'):
 			self.substitutions['#@@MERLIN_MODULE_EXTRAS@@'] = 'notifies = no'
-		conode_types = self.nodes.keys()
+		conode_types = list(self.nodes.keys())
 		conode_types.sort()
 		for ntype in conode_types:
 			nodes = self.nodes[ntype]
-			node_names = self.nodes[ntype].keys()
+			node_names = list(self.nodes[ntype].keys())
 			node_names.sort()
 			for name in node_names:
 				nconf = ("%s %s {\n" % (ntype, name))
 				node_vars = self.nodes[ntype][name]
-				for (k, v) in node_vars.items():
+				for (k, v) in list(node_vars.items()):
 					nconf += "\t%s = %s\n" % (k, v)
 				if ntype == 'poller':
 					group_name = name.split('-', 1)[0]
@@ -445,14 +445,14 @@ class fake_instance:
 		configs[self.macro_cfg_path] = self.macro_config
 		if not len(self.group.master_groups):
 			configs["%s/etc/oconf/shared.cfg" % (self.home)] = test_config_in.shared_object_config
-		for (path, buf) in configs.items():
-			for (key, value) in self.substitutions.items():
+		for (path, buf) in list(configs.items()):
+			for (key, value) in list(self.substitutions.items()):
 				buf = buf.replace(key, value)
 			self.write_file(path, buf)
 		return True
 
 
-	def create_file(self, path, mode=0644):
+	def create_file(self, path, mode=0o644):
 		return open(self.get_path(path), 'w', mode)
 
 	def get_path(self, path):
@@ -460,7 +460,7 @@ class fake_instance:
 			path = "%s/%s" % (self.home, path)
 		return path
 
-	def write_file(self, path, contents, mode=0644):
+	def write_file(self, path, contents, mode=0o644):
 		f = self.create_file(path, mode)
 		f.write(contents)
 		f.close()
@@ -511,7 +511,7 @@ class fake_mesh:
 		self.progs = {}
 		self.oconf_cache_dir = False
 
-		for (k, v) in kwargs.items():
+		for (k, v) in list(kwargs.items()):
 			if k.startswith('prog_'):
 				pname = k[5:]
 				self.progs[pname] = v
@@ -595,7 +595,7 @@ class fake_mesh:
 
 		try:
 			result = os.waitpid(proc.pid, flags)
-		except OSError, e:
+		except OSError as e:
 			if e.errno == errno.ECHILD:
 				return sub.test(False, exp, msg)
 			return sub.fail("EXCEPTION for '%s': %s" % (msg, e))
@@ -636,7 +636,7 @@ class fake_mesh:
 		sig_ok = []
 		arg_sub = sub
 
-		for k, v in kwargs.items():
+		for k, v in list(kwargs.items()):
 			if k == 'daemon' and v != False:
 				daemon = v
 			elif k == 'expect':
@@ -665,7 +665,7 @@ class fake_mesh:
 		# systems
 		time.sleep(0.5)
 		for inst in self.instances:
-			for dname, proc in inst.proc.items():
+			for dname, proc in list(inst.proc.items()):
 				if daemon and dname != daemon:
 					continue
 				self._test_proc_alive(proc, expect, sig_ok, "%s on %s %s" % (dname, inst.name, how), sub)
@@ -768,10 +768,10 @@ class fake_mesh:
 			sub.diag(cmd)
 			if len(out):
 				sub.diag("Naemon STDOUT:")
-				sub.diag(out.split('\n'))
+				sub.diag(out.split(b'\n'))
 			if len(err):
 				sub.diag("Naemon STDERR:")
-				sub.diag(err.split('\n'))
+				sub.diag(err.split(b'\n'))
 
 		return sub.done()
 
@@ -829,11 +829,12 @@ class fake_mesh:
 		# Clear notification log, so we know previous tests doesn't affect the behaviour of the test
 		self._clear_notification_log()
 		self._test_parents(self.tap.sub_init('prep parents'), lambda x: False)
-		for i in xrange(1, 4):
+		for i in range(1, 4):
 			fname = "%s/tier%d-host-ok" % (self.basepath, i)
-			fd = os.open(fname, os.O_WRONLY | os.O_TRUNC | os.O_CREAT, 0644)
-			for k, v in vlist.items():
-				os.write(fd, "%s=%s\n" % (k, v))
+			fd = os.open(fname, os.O_WRONLY | os.O_TRUNC | os.O_CREAT, 0o644)
+			for k, v in list(vlist.items()):
+				strItem = "%s=%s\n" % (k, v)
+				os.write(fd, strItem.encode())
 			hname = 'master.%04d' % i
 			offset = 20 - (i * 5)
 			master.submit_raw_command('SCHEDULE_HOST_CHECK;%s;%d' % (hname, now + offset))
@@ -990,7 +991,7 @@ class fake_mesh:
 				'UNREACHABLE hosts': inst.group.num_objects['host'] - expect_down,
 				'CRITICAL services': inst.group.num_objects['service'],
 			}
-			for otype, query in queries.items():
+			for otype, query in list(queries.items()):
 				value = inst.live.query(query)
 				ret = (sub.test(len(value), expected[otype], '%s should have %d %s, had %d' % (inst.name, expected[otype], otype, len(value))))
 				if ret == False:
@@ -1368,7 +1369,7 @@ class fake_mesh:
 			# catch exceptions until we run out of time
 			try:
 				ret = func(sub, **kwargs)
-			except Exception, e:
+			except Exception as e:
 				if last:
 					raise
 				time.sleep(interval)
@@ -1423,7 +1424,7 @@ class fake_mesh:
 				status = 0
 				try:
 					ary = os.waitpid(0, os.WNOHANG)
-				except OSError, e:
+				except OSError as e:
 					print(e)
 				if len(ary) == 2:
 					reaped += 1
@@ -1533,7 +1534,7 @@ class fake_mesh:
 			return
 		try:
 			self.dbc.execute('DROP DATABASE %s' % inst.db_name)
-		except Exception, e:
+		except Exception as e:
 			if verbose:
 				print("Failed to drop db %s for instance %s: %s" %
 					(inst.db_name, inst.name, e))
@@ -1580,7 +1581,7 @@ class fake_mesh:
 				self.dbc.execute(query)
 			print("Database %s for %s created properly" % (inst.db_name, inst.name))
 
-		except Exception, e:
+		except Exception as e:
 			print(e)
 			sys.exit(1)
 			return False
@@ -1622,7 +1623,7 @@ class fake_mesh:
 			self.db.close()
 			self.dbc = False
 			self.db = False
-		except Exception, e:
+		except Exception as e:
 			pass
 
 
@@ -1677,7 +1678,7 @@ def cmd_ocount(args):
 	ret = {}
 	for p in path:
 		xret = cconf.count_compound_types(p)
-		for k, v in xret.items():
+		for k, v in list(xret.items()):
 			if ret.get(k, False) == False:
 				ret[k] = 0
 			ret[k] += v
@@ -1778,8 +1779,8 @@ def cmd_dist(args):
 		try:
 			monuser = getpwnam('monitor')
 		except KeyError:
-			print "mon test dist can't be run as root, and I couldn't find\n" \
-				"a monitor user to become. Exiting"
+			print("mon test dist can't be run as root, and I couldn't find\n" \
+				"a monitor user to become. Exiting")
 			os.exit(1)
 		os.setgid(monuser.pw_gid)
 		os.setuid(monuser.pw_uid)
@@ -2007,12 +2008,12 @@ def cmd_dist(args):
 		# Some of the helper functions call sys.exit(1) to bail out.
 		# Let's assume they take care of cleaning up before doing so
 		raise
-	except Exception, e:
+	except Exception as e:
 		# Don't leave stuff running, just because we messed up
-		print '*'*40
-		print 'Exception while running tests:'
+		print('*'*40)
+		print('Exception while running tests:')
 		traceback.print_exc()
-		print '*'*40
+		print('*'*40)
 		mesh.tap.fail("System exception caught: %s" % e)
 		mesh.shutdown()
 		raise
@@ -2115,7 +2116,7 @@ class mconf_mockup:
 	dbopt = {}
 	def __init__(self, **kwargs):
 		self.dbopt = {}
-		for k, v in kwargs.items():
+		for k, v in list(kwargs.items()):
 			self.dbopt[k.replace('db', '')] = v
 
 
@@ -2491,7 +2492,7 @@ def cmd_check_flap(args):
 	sys.exit(0)
 
 def _test_run(command):
-	proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 	(out, err) = proc.communicate()
 	result = proc.wait()
 	return (out, err, result)
@@ -2505,9 +2506,8 @@ def cmd_rsync(args):
 	tap = pytap.pytap("mon oconf push rsync command tests")
 	tap.verbose = 2
 	foo_path = tempfile.mkdtemp()
-	path = os.tempnam(None,'rsync')
-	fd = open(path, 'w')
-	fd.write("""peer thepeer {
+	fd = tempfile.NamedTemporaryFile(prefix='rsync', delete=False)
+	conf = """peer thepeer {
 	address = localhost
 	hostgroups = oddment, tweak, nitwit
 	sync {
@@ -2515,12 +2515,13 @@ def cmd_rsync(args):
 		%s = /usr/bin/test
 	}
 }
-	""" % foo_path)
+	""" % foo_path
+	fd.write(conf.encode())
 	fd.close()
-	cmd = ['mon', '--merlin-conf=%s' % path, 'oconf', 'push', '--dryrun']
-	expect_out_extras = """rsync command: rsync -aotzc --delete -b --backup-dir=%s/backups %s -e ssh -C -o KbdInteractiveAuthentication=no localhost:/usr/bin/test
-rsync command: rsync -aotzc --delete -b --backup-dir=%s/backups /etc/passwd -e ssh -C -o KbdInteractiveAuthentication=no localhost:/etc/passwd
-""" % (cache_dir, foo_path, cache_dir)
+	cmd = ['mon', '--merlin-conf=%s' % fd.name, 'oconf', 'push', '--dryrun']
+	expect_out_extras = """rsync command: rsync -aotzc --delete -b --backup-dir=%s/backups /etc/passwd -e ssh -C -o KbdInteractiveAuthentication=no localhost:/etc/passwd
+rsync command: rsync -aotzc --delete -b --backup-dir=%s/backups %s -e ssh -C -o KbdInteractiveAuthentication=no localhost:/usr/bin/test
+""" % (cache_dir, cache_dir, foo_path)
 	(out, err, result) = _test_run(cmd + ['--push=extras'])
 	tap.test(err, '', "Error output should be none")
 	tap.test(result, 0, "Result should be 0")

@@ -13,7 +13,7 @@ def module_init(args):
 
 def _eprint(string):
     """Print to stderr"""
-    print >>sys.stderr, string
+    print(string, file=sys.stderr)
 
 
 def _execute_shell_cmd(cmd):
@@ -91,7 +91,7 @@ def cmd_register(args):
 
         # sync the slim poller pubkey to peers first
         if REGISTER_WITH_CLUSTER:
-            for merlin_node in mconf.configured_nodes.values():
+            for merlin_node in list(mconf.configured_nodes.values()):
                 if merlin_node.ntype == "peer":
                     if not merlin_node.ssh_user:
                         address = merlin_node.address

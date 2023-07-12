@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3.9
 
 
 import os
@@ -18,7 +18,7 @@ query_socket = False
 
 def idx_get(otype):
     global obj_index
-    if otype not in obj_index.keys():
+    if otype not in list(obj_index.keys()):
         obj_index[otype] = 0
     obj_index[otype] += 1
     return obj_index[otype]
@@ -55,7 +55,7 @@ def module_init(args):
             comp = cconf.parse_nagios_cfg(nagios_cfg)
             query_socket = comp.query_socket
         else:
-            print "ERROR: Unable to find Naemon query socket"
+            print("ERROR: Unable to find Naemon query socket")
             return 1
 
     return rem_args
@@ -245,7 +245,7 @@ def cmd_fetch(args):
     files_to_fetch.append((config_source, config_destination))
 
     if sync:
-        for (source, destination) in node.paths_to_sync.items():
+        for (source, destination) in list(node.paths_to_sync.items()):
             # If no destination is given the value will be True
             # in that case we assume that source == destination
             if destination is True:
@@ -262,10 +262,10 @@ def cmd_fetch(args):
         )
         errors += return_code
         if output:
-            print output
+            print(output)
 
     if errors != 0:
-        print "Errors occured while synchronizing files!"
+        print("Errors occured while synchronizing files!")
         sys.exit(1)
     # Restart this node after config files has been fetch
     sp.call("sudo mon restart", shell=True)
@@ -308,14 +308,14 @@ def cmd_remote_fetch(args):
     if node_type:
         qh_args += "type=%s" %node_type
     if not qh_args:
-        print "No node type or node specified. See `mon oconf remote-fetch help` for more details."
+        print("No node type or node specified. See `mon oconf remote-fetch help` for more details.")
         return False
 
     qh = nagios_qh.nagios_qh(query_socket)
     res = qh.query('#merlin remote-fetch ' + qh_args + '\0')
     for line in res:
         if qh_args not in line:
-            print line
+            print(line)
 
     return True
 
@@ -357,19 +357,20 @@ def rsync_file_from_remote(
 
     rsync_cmd = base_rsync_cmd + ['-e', ssh_cmd, source, destination]
     if dryrun:
-        out.write(u'rsync command: %s\n' % ' '.join(rsync_cmd))
+        out.write('rsync command: %s\n' % ' '.join(rsync_cmd))
     else:
         p = sp.Popen(rsync_cmd, stdout=sp.PIPE, stderr=sp.PIPE)
         output, error = p.communicate()
-        output and out.write(u'%s\n' % output)
-        error and out.write(u'%s\n' % error)
+        output and out.write('%s\n' % output)
+        error and out.write('%s\n' % error)
         return_code = p.returncode
 
     return (return_code, out.getvalue().rstrip('\n'))
 
 
-def sync_files((node, ssh_user, ssh_key, files_to_sync, dryrun)):
+def sync_files(sync_files_params):
 
+    (node, ssh_user, ssh_key, files_to_sync, dryrun) = sync_files_params
     global cache_dir
     retval = True
     out = io.StringIO()
@@ -390,19 +391,19 @@ def sync_files((node, ssh_user, ssh_key, files_to_sync, dryrun)):
     base_rsync_args = ['-aotzc', '--delete',
                        '-b', '--backup-dir=%s/backups' % cache_dir]
 
-    for (src, dest) in files_to_sync.items():
+    for (src, dest) in list(files_to_sync.items()):
 
         address_dest = "%s:%s" % (node.address, dest)
         if ssh_user:
             address_dest = ssh_user + '@' + address_dest
         args = base_rsync_args + [src, '-e', ssh_cmd, address_dest]
         if dryrun:
-            out.write(u'rsync command: %s\n' % ' '.join(['rsync'] + args))
+            out.write('rsync command: %s\n' % ' '.join(['rsync'] + args))
         else:
             p = sp.Popen(['rsync'] + args, stdout=sp.PIPE, stderr=sp.PIPE)
             output, error = p.communicate()
-            output and out.write(u'%s\n' % output)
-            error and out.write(u'%s\n' % error)
+            output and out.write('%s\n' % output)
+            error and out.write('%s\n' % error)
             if p.returncode != 0:
                 retval = False
 
@@ -448,19 +449,19 @@ def cmd_push(args):
         sys.exit(1)
 
     if not os.getuid() and 'oconf' in push_items:
-        print """\
+        print("""\
   Using 'mon oconf push' to push object config as root is prohibited
-  Use 'mon oconf push --push=extras' to safely push items as root"""
+  Use 'mon oconf push --push=extras' to safely push items as root""")
         sys.exit(1)
 
     # if no nodes were explicitly configured, get all nodes
     if not len(wanted_nodes):
-        wanted_nodes = mconf.configured_nodes.items()
+        wanted_nodes = list(mconf.configured_nodes.items())
         # remove nodes with connect = no
         for name, node in wanted_nodes:
-            if isinstance(node.connect, basestring) and node.connect.lower() == "no":
+            if isinstance(node.connect, str) and node.connect.lower() == "no":
                 wanted_nodes.remove((name, node))
-                print 'Not pushing to node: %s, as connect = no' % name
+                print('Not pushing to node: %s, as connect = no' % name)
 
     sync_list = []
     for name, node in wanted_nodes:
@@ -473,8 +474,8 @@ def cmd_push(args):
             oconf_file = '%s/%s.cfg' % (config_dir, name)
             if node.ntype == 'poller':
                 if not os.path.exists(oconf_file):
-                    print 'Cannot push to poller %s ' \
-                            'because %s does not exist' % (name, oconf_file)
+                    print('Cannot push to poller %s ' \
+                            'because %s does not exist' % (name, oconf_file))
                     wanted_nodes.remove((name, node))
                     continue
                 source = oconf_file
@@ -490,7 +491,7 @@ def cmd_push(args):
             node.paths_to_sync = {}
 
         if node.paths_to_sync:
-            for src, dest in node.paths_to_sync.items():
+            for src, dest in list(node.paths_to_sync.items()):
                 if dest is True:
                     dest = src
                 files_to_sync[src] = dest
@@ -509,22 +510,22 @@ def cmd_push(args):
          and not os.file.exists(ssh_file)]
     if len(non_existing_ssh_key_files) > 0:
         for node, filename in non_existing_ssh_key_files:
-            print 'ssh key %s for node %s could not be found!' \
-                % (ssh_file, node)
+            print('ssh key %s for node %s could not be found!' \
+                % (ssh_file, node))
         sys.exit(1)
 
     # Make sure the files to be synched actually exists locally
     non_existing_sync_files = \
         [(node.name, src) for (node, _, _, files, _) in sync_list
-         for (src, _) in files.items() if not os.path.exists(src)]
+         for (src, _) in list(files.items()) if not os.path.exists(src)]
     if len(non_existing_sync_files) > 0:
         for node, filename in non_existing_sync_files:
-            print 'failed to sync file %s to %s, file does not exist' \
-                % (filename, node)
+            print('failed to sync file %s to %s, file does not exist' \
+                % (filename, node))
         sys.exit(1)
 
     # Filter out masters as we don't want to push things upwards
-    l = filter(lambda x: x[0].ntype != 'master', sync_list)
+    l = [x for x in sync_list if x[0].ntype != 'master']
 
     num_threads = max(1, len(mconf.configured_nodes))
     p = Pool(num_threads)
@@ -532,20 +533,20 @@ def cmd_push(args):
 
     for (res, out) in results:
         if out:
-            print out
+            print(out)
 
     exitval = 0
     if not all([ret for (ret, _) in results]):
-        print 'Some error occured while synchronizing files!'
+        print('Some error occured while synchronizing files!')
         exitval = 1
 
     if restart:
         results = p.map(restart_node, [node for (_, node) in wanted_nodes])
         for (res, out) in results:
             if out:
-                print out
+                print(out)
         if not all([ret for (ret, _) in results]):
-            print 'Failed to restart all nodes'
+            print('Failed to restart all nodes')
             exitval = 1
 
     sys.exit(exitval)
@@ -557,7 +558,7 @@ def get_last_changed(files=False):
 
     if not files:
         files = grab_nagios_cfg(nagios_cfg)
-    map(update_last_changed, files)
+    list(map(update_last_changed, files))
 
     return last_changed
 
@@ -586,7 +587,7 @@ def cmd_poller_fix(args=[]):
     global naemon_cfg
     global mconf
     have_master = False
-    for name, node in mconf.configured_nodes.items():
+    for name, node in list(mconf.configured_nodes.items()):
         if node.ntype == 'master':
             have_master = True
             break
