@@ -64,7 +64,7 @@ def cmd_import(args):
 		ret = subprocess.call([app] + args, stdout=None, stderr=sys.stderr)
 		if ret < 0:
 			print("The import program was killed by signal %d" % ret)
-	except OSError, e:
+	except OSError as e:
 		print("An exception was thrown running the import program: %s" % e.strerror)
 		ret = -1
 	return ret
@@ -102,13 +102,13 @@ def cmd_purge(args):
 	oldest = False
 	for arg in args:
 		if arg.startswith('--remove-older-than='):
-			if not arg[-1] in units.keys():
+			if not arg[-1] in list(units.keys()):
 				print("Invalid unit: " + arg[-1])
 				return False
 			try:
 				diff = float(arg[20:-1]) * units[arg[-1]]
 			except ValueError:
-				print "Invalid number: " + arg[20:-1]
+				print("Invalid number: " + arg[20:-1])
 				return False
 			oldest = time.mktime(time.gmtime()) - diff
 	if not oldest:
@@ -134,7 +134,7 @@ def purge_naemon_log_files(oldest):
 
 	# Error out if we still didn't manage to find the path
 	if not archive_dir:
-		print "ERROR: Unable to find log archieve path"
+		print("ERROR: Unable to find log archieve path")
 		return 1
 
 	for key in logformat:

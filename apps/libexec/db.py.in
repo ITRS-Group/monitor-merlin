@@ -12,10 +12,10 @@ def cmd_fixindexes(args):
 	"""
 	Fixes indexes on merlin tables containing historical data.
 	"""
-	print 'Adding indexes...'
-	print '(if this takes forever, aborting this and running'
-	print '\tmon log import --truncate-db'
-	print 'might be quicker, but could permanently remove some old logs)'
+	print('Adding indexes...')
+	print('(if this takes forever, aborting this and running')
+	print('\tmon log import --truncate-db')
+	print('might be quicker, but could permanently remove some old logs)')
 	conn = merlin_db.connect(mconf)
 	cursor = conn.cursor()
 	log = []
@@ -23,19 +23,19 @@ def cmd_fixindexes(args):
 		queries = file(table)
 		try:
 			cursor.execute(queries.read())
-		except Exception, ex:
+		except Exception as ex:
 			log.append('%s: %s' % (os.path.basename(table), ex[1]))
 		queries.close()
 	conn.commit()
 	conn.close()
 	if not log:
-		print 'Indexes installed successfully'
+		print('Indexes installed successfully')
 	else:
-		print '\nThere were problems. This is normal if the indexes already',
-		print '(partially) exist,\nbut could also indicate a problem.'
-		print '\nMessages:'
+		print('\nThere were problems. This is normal if the indexes already', end=' ')
+		print('(partially) exist,\nbut could also indicate a problem.')
+		print('\nMessages:')
 		for msg in log:
-			print '  %s' % msg
+			print('  %s' % msg)
 
 def module_init(args):
 	return args

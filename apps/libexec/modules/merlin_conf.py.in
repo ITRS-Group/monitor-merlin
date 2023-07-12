@@ -4,8 +4,10 @@ import io
 import re
 import locale
 import subprocess as sp
+from functools import cmp_to_key
 from compound_config import *
 from merlin_apps_utils import *
+
 
 class merlin_node:
 	valid_types = ['poller', 'master', 'peer']
@@ -127,7 +129,7 @@ class merlin_node:
 		if k == 'hostgroup' or k == 'hostgroups':
 			k = 'hostgroup'
 			v = re.split("[\t ]*,[\t ]*", v)
-			if self.options.has_key(k):
+			if k in self.options:
 				self.options[k] += v
 			else:
 				self.options[k] = v
@@ -177,7 +179,6 @@ class merlin_node:
 			locale.setlocale(locale.LC_CTYPE, '')
 		except locale.Error:
 			locale.setlocale(locale.LC_CTYPE, 'C')
-		command = command.decode(locale.getpreferredencoding())
 
 		if not self.ssh_user:
 			prefix_args = ["ssh", self.address]
@@ -239,13 +240,17 @@ def node_cmp(a, b):
 		return -1
 	if a.ntype == 'poller' and b.ntype != 'poller':
 		return 1
-	return cmp(a.name, b.name)
+	if a.name < b.name:
+		return -1
+	if a.name > b.name:
+		return 1
+	return 0
 
 def parse():
 	try:
 		conf = parse_conf(config_file)
-	except Exception, e:
-		print("Failed to parse %s: %s" % (config_file, e.strerror))
+	except Exception as e:
+		print("Failed to parse %s: %s" % (config_file, str(e)))
 		sys.exit(1)
 
 	for comp in conf.objects:
@@ -302,7 +307,7 @@ def parse():
 			ipc_socket = v
 
 	if len(sorted_nodes):
-		sorted_nodes.sort(node_cmp)
+		sorted_nodes.sort(key=cmp_to_key(node_cmp))
 
 	# check and store how many peers each node has.
 	i = 0
