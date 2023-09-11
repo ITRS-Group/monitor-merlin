@@ -5,6 +5,9 @@ post:
     set -x
     mkdir --parents --mode=777 /mnt/logs/merlin_dtest
     mon test dist --basepath=/mnt/logs/merlin_dtest
+
+    exit 125
+
     mon test rsync
     rm --force --recursive /mnt/logs/merlin_dtest
     sudo -u monitor mon test rsync
