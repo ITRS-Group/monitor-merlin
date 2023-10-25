@@ -127,7 +127,7 @@ Requires: libdbi1
 Requires: python-mysql
 %else
 %if 0%{?rhel} >= 8
-Requires: python3-PyMySQL
+Requires: python39-PyMySQL
 %else
 Requires: MySQL-python
 %endif
