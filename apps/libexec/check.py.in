@@ -83,9 +83,6 @@ def cmd_distribution(args):
 	"""
 
 	print_perfdata = True
-	for arg in args:
-		if arg == '--no-perfdata':
-			print_perfdata = False
 
 	expired = get_expired(qh)
 	if expired and expired[0] == -1:
@@ -101,6 +98,8 @@ def cmd_distribution(args):
 			warn = int(arg.split('=', 1)[1])
 		elif arg.startswith('--critical='):
 			crit = int(arg.split('=', 1)[1])
+		elif arg == '--no-perfdata':
+			print_perfdata = False
 		else:
 			nplug.unknown("Unknown argument: %s" % arg)
 	if len(expired) >= crit:
