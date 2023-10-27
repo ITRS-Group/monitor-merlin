@@ -327,7 +327,7 @@ def parse():
 
 		# poller. check how many nodes shares this poller's
 		# hostgroup configuration.
-		for n2 in configured_nodes.values()[i:]:
+		for n2 in list(configured_nodes.values())[i:]:
 			# the node is not a peer to itself, and it's not a
 			# peer to nodes of different kinds.
 			if n2.name == node.name or n2.ntype != node.ntype:
