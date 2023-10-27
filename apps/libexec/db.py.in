@@ -20,11 +20,11 @@ def cmd_fixindexes(args):
 	cursor = conn.cursor()
 	log = []
 	for table in glob.glob('@datarootdir@/merlin/sql/mysql/*-indexes.sql'):
-		queries = file(table)
+		queries = open(table)
 		try:
 			cursor.execute(queries.read())
 		except Exception as ex:
-			log.append('%s: %s' % (os.path.basename(table), ex[1]))
+			log.append(f'%s: %s' % (os.path.basename(table), ex))
 		queries.close()
 	conn.commit()
 	conn.close()
