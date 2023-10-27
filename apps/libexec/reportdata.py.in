@@ -39,13 +39,13 @@ def cmd_check_consistency(args):
 		try:
 			if service_description:
 				ls_query="GET services\nColumns: last_hard_state\nFilter: host_name = " + host_name + "\nFilter: description = " + service_description
-				ls_state=subprocess.Popen("echo \"" + ls_query + "\" | unixcat " + LS_SOCK, shell=True, stdout=subprocess.PIPE).stdout.read()
+				ls_state=subprocess.Popen("echo \"" + ls_query + "\" | unixcat " + LS_SOCK, shell=True, stdout=subprocess.PIPE, text=True).stdout.read()
 				if (int(state) != int(ls_state)):
 					print("ERROR: " + host_name + ";" + service_description + " : db_state=" + str(state) + " ls_state: " + ls_state.rstrip())
 					errors=errors+1
 			elif host_name:
 				ls_query="GET hosts\nColumns: last_hard_state\nFilter: host_name = " + host_name
-				ls_state=subprocess.Popen("echo \"" + ls_query + "\" | unixcat " + LS_SOCK, shell=True, stdout=subprocess.PIPE).stdout.read()
+				ls_state=subprocess.Popen("echo \"" + ls_query + "\" | unixcat " + LS_SOCK, shell=True, stdout=subprocess.PIPE, text=True).stdout.read()
 				if (int(state) != int(ls_state)):
 					print("ERROR: " + host_name + " : db_state=" + str(state) + " ls_state: " + ls_state.rstrip())
 					errors=errors+1

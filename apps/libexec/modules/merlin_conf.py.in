@@ -8,7 +8,6 @@ from functools import cmp_to_key
 from compound_config import *
 from merlin_apps_utils import *
 
-
 class merlin_node:
 	valid_types = ['poller', 'master', 'peer']
 	exit_code = False
@@ -164,13 +163,9 @@ class merlin_node:
 											io.TextIOBase))
 		assert err is None or isinstance(err, (io.RawIOBase, io.BufferedIOBase,
 											io.TextIOBase))
-		
-		# Int Python 3 stdout and stderr are instances of TextIOBase but in
-		# Python 2 they're still instances of file which is a none existent
-		# type in Python 3. That's why we must wrap stdout/stderr in a FileIO
-		# object if no other out/err is given.
-		out = out or io.FileIO(sys.stdout.fileno(), mode='w', closefd=False)
-		err = err or io.FileIO(sys.stderr.fileno(), mode='w', closefd=False)
+
+		out = out or open(sys.stdout.fileno(), mode='w', closefd=False)
+		err = err or open(sys.stderr.fileno(), mode='w', closefd=False)
 		
 		col = color.yellow + color.bright
 		reset = color.reset
@@ -188,9 +183,9 @@ class merlin_node:
 		if self.ssh_key:
 			prefix_args += ['-i', self.ssh_key]
 		cmd = prefix_args + [command]
-		out.write(u'Connecting to \'%s\' with the following command:\n  %s\n'
+		out.write('Connecting to \'%s\' with the following command:\n  %s\n'
 			  % (self.name, ' '.join(cmd)))
-		out.write(u'%s#--- REMOTE OUTPUT START ---%s\n' % (col, reset))
+		out.write('%s#--- REMOTE OUTPUT START ---%s\n' % (col, reset))
 
 		# Ideally we would have liked to pass out and err directly to a
 		# subprocess call in all cases, but unfortunately not all objects that
@@ -201,20 +196,20 @@ class merlin_node:
 		if isinstance(out, io.FileIO) and isinstance(err, io.FileIO):
 			ret = sp.call(cmd, stdout=out, stderr=err)
 		else:
-			p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE)
+			p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, text=True)
 			output, error = p.communicate()
 			output and out.write(u'%s\n' % output)
 			error and err.write(u'%s\n' % error)
 			ret = p.returncode
 
-		out.write(u'%s#--- REMOTE OUTPUT DONE ----%s\n' % (col, reset))
+		out.write('%s#--- REMOTE OUTPUT DONE ----%s\n' % (col, reset))
 		self.exit_code = ret
 
 		if ret < 0:
-			out.write(u'ssh was killed by signal %d\n' % ret)
+			out.write('ssh was killed by signal %d\n' % ret)
 			return False
 		if ret != 0:
-			out.write(u'ssh exited with return code %d\n' % ret)
+			out.write('ssh exited with return code %d\n' % ret)
 			return False
 		return True
 
@@ -327,7 +322,7 @@ def parse():
 
 		# poller. check how many nodes shares this poller's
 		# hostgroup configuration.
-		for n2 in configured_nodes.values()[i:]:
+		for n2 in list(configured_nodes.values())[i:]:
 			# the node is not a peer to itself, and it's not a
 			# peer to nodes of different kinds.
 			if n2.name == node.name or n2.ntype != node.ntype:
