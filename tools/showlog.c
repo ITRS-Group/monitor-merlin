@@ -28,8 +28,9 @@ static int count;
 static unsigned long printed_lines;
 static int restrict_objects = 0;
 static int all_nodes = 0;
-static const char all_node_command_string[] = "asmonitor mon node ctrl %s -- mon log show --time-format=raw";
+static const char all_node_command_string[] = "asmonitor mon node ctrl %s -- mon log show --time-format=raw --first=%d --last=%d";
 static const char all_node_log_warning[] = "showlog: No log from %s. Check connectivity or maybe this is a passive poller";
+static const int max_epoch_len = 11;
 
 
 #define all_node_tmp_dir "/opt/monitor/var"
@@ -1092,7 +1093,7 @@ static int processAllNodes(void)
 				ret = -1;
 				break;
 			}
-			pCommand = realloc (pCommand, szNodeName + sizeof(all_node_command_string));
+			pCommand = realloc (pCommand, szNodeName + sizeof(all_node_command_string) + max_epoch_len * 2);
 			if (pCommand == NULL) {
 				warn("Failed to allocate memory\n");
 				ret = -1;
@@ -1100,7 +1101,7 @@ static int processAllNodes(void)
 			}
 		}
 		sscanf(pNode, "%s", pNodeName); //remove spaces from the node name
-		sprintf(pCommand, all_node_command_string, pNodeName);
+		sprintf(pCommand, all_node_command_string, pNodeName, first_time, last_time);
 		ret = processNodeLogs(pCommand, pNodeName);
 	}
 	//close and free
@@ -1111,14 +1112,15 @@ static int processAllNodes(void)
 
 	//Process local logs
 	if (ret == 0){
-		ret = processNodeLogs("asmonitor mon log show --time-format=raw", "local");
+		char aCommand[100];
+		sprintf(aCommand, "asmonitor mon log show --time-format=raw --first=%d --last=%d", first_time, last_time);
+		ret = processNodeLogs(aCommand, "local");
 	}
 
 	if (ret == 0) {
 		char cmd[100];
 
 		//merge logs (should already be sorted) and store outside the temp dir in case a host name is named merged.
-
 		sprintf(cmd, "sort --merge %s >> %s", GET_TMP_FILE_PATH("tmp/*"), GET_TMP_FILE_PATH("naemon_merged.log"));
 		system (cmd);
 		add_naglog_path(GET_TMP_FILE_PATH("naemon_merged.log"));
@@ -1383,6 +1385,20 @@ int main(int argc, char **argv)
 		}
 	}
 
+	/* make sure first_time and last_time are set */
+	last_time = last_time ? last_time : time(NULL);
+	first_time = first_time ? first_time : 1;
+
+	/* flip them if the user made an error (common when reverse-importing) */
+	if (last_time < first_time) {
+		int temp = last_time;
+		last_time = first_time;
+		first_time = temp;
+	}
+
+	/* make sure we always have last_ltime */
+	last_ltime = first_time;
+
 	if (all_nodes){
 		int ret = 0;
 
@@ -1419,20 +1435,6 @@ int main(int argc, char **argv)
 		usage(NULL);
 
 	state_init();
-
-	/* make sure first_time and last_time are set */
-	last_time = last_time ? last_time : time(NULL);
-	first_time = first_time ? first_time : 1;
-
-	/* flip them if the user made an error (common when reverse-importing) */
-	if (last_time < first_time) {
-		int temp = last_time;
-		last_time = first_time;
-		first_time = temp;
-	}
-
-	/* make sure we always have last_ltime */
-	last_ltime = first_time;
 
 	if (reverse_parse_files)
 		qsort(nfile, num_nfile, sizeof(*nfile), nfile_rev_cmp);
