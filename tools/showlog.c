@@ -28,9 +28,10 @@ static int count;
 static unsigned long printed_lines;
 static int restrict_objects = 0;
 static int all_nodes = 0;
-static const char all_node_command_string[] = "asmonitor mon node ctrl %s -- mon log show --time-format=raw --first=%d --last=%d";
+static const char all_node_command_string[] = "asmonitor mon node ctrl %s -- mon log show --time-format=raw --first=%d --last=%d --limit=%llu";
 static const char all_node_log_warning[] = "showlog: No log from %s. Check connectivity or maybe this is a passive poller";
-static const int max_epoch_len = 11;
+static const int max_epoch_len = 11; /* max characters of largest epoch number*/
+static const int max_llu_len = 21; /* max characters of largest unsigned long long*/
 
 
 #define all_node_tmp_dir "/opt/monitor/var"
@@ -1093,7 +1094,7 @@ static int processAllNodes(void)
 				ret = -1;
 				break;
 			}
-			pCommand = realloc (pCommand, szNodeName + sizeof(all_node_command_string) + max_epoch_len * 2);
+			pCommand = realloc (pCommand, szNodeName + sizeof(all_node_command_string) + max_epoch_len * 2 + max_llu_len);
 			if (pCommand == NULL) {
 				warn("Failed to allocate memory\n");
 				ret = -1;
@@ -1101,7 +1102,7 @@ static int processAllNodes(void)
 			}
 		}
 		sscanf(pNode, "%s", pNodeName); //remove spaces from the node name
-		sprintf(pCommand, all_node_command_string, pNodeName, first_time, last_time);
+		sprintf(pCommand, all_node_command_string, pNodeName, first_time, last_time, limit);
 		ret = processNodeLogs(pCommand, pNodeName);
 	}
 	//close and free
@@ -1112,8 +1113,8 @@ static int processAllNodes(void)
 
 	//Process local logs
 	if (ret == 0){
-		char aCommand[100];
-		sprintf(aCommand, "asmonitor mon log show --time-format=raw --first=%d --last=%d", first_time, last_time);
+		char aCommand[200];
+		sprintf(aCommand, "asmonitor mon log show --time-format=raw --first=%d --last=%d --limit=%llu", first_time, last_time, limit);
 		ret = processNodeLogs(aCommand, "local");
 	}
 
