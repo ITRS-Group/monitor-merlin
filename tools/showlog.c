@@ -28,8 +28,10 @@ static int count;
 static unsigned long printed_lines;
 static int restrict_objects = 0;
 static int all_nodes = 0;
-static const char all_node_command_string[] = "asmonitor mon node ctrl %s -- mon log show --time-format=raw";
+static const char all_node_command_string[] = "asmonitor mon node ctrl %s -- mon log show --time-format=raw --first=%ld --last=%ld --limit=%llu";
 static const char all_node_log_warning[] = "showlog: No log from %s. Check connectivity or maybe this is a passive poller";
+static const int max_epoch_len = 11; /* max characters of largest epoch number*/
+static const int max_llu_len = 21; /* max characters of largest unsigned long long*/
 
 
 #define all_node_tmp_dir "/opt/monitor/var"
@@ -1092,7 +1094,7 @@ static int processAllNodes(void)
 				ret = -1;
 				break;
 			}
-			pCommand = realloc (pCommand, szNodeName + sizeof(all_node_command_string));
+			pCommand = realloc (pCommand, szNodeName + sizeof(all_node_command_string) + max_epoch_len * 2 + max_llu_len);
 			if (pCommand == NULL) {
 				warn("Failed to allocate memory\n");
 				ret = -1;
@@ -1100,7 +1102,7 @@ static int processAllNodes(void)
 			}
 		}
 		sscanf(pNode, "%s", pNodeName); //remove spaces from the node name
-		sprintf(pCommand, all_node_command_string, pNodeName);
+		sprintf(pCommand, all_node_command_string, pNodeName, first_time, last_time, limit);
 		ret = processNodeLogs(pCommand, pNodeName);
 	}
 	//close and free
@@ -1111,17 +1113,25 @@ static int processAllNodes(void)
 
 	//Process local logs
 	if (ret == 0){
-		ret = processNodeLogs("asmonitor mon log show --time-format=raw", "local");
+		char aCommand[200];
+		sprintf(aCommand, "asmonitor mon log show --time-format=raw --first=%ld --last=%ld --limit=%llu", first_time, last_time, limit);
+		ret = processNodeLogs(aCommand, "local");
 	}
 
 	if (ret == 0) {
 		char cmd[100];
 
 		//merge logs (should already be sorted) and store outside the temp dir in case a host name is named merged.
-
 		sprintf(cmd, "sort --merge %s >> %s", GET_TMP_FILE_PATH("tmp/*"), GET_TMP_FILE_PATH("naemon_merged.log"));
-		system (cmd);
-		add_naglog_path(GET_TMP_FILE_PATH("naemon_merged.log"));
+		if (system (cmd) == -1) {
+			warn("Failed to merge logs via sort command");
+			//cleanup the created files on error
+			cleanupTmpLog();
+			ret = -1;
+		}
+		else {
+			add_naglog_path(GET_TMP_FILE_PATH("naemon_merged.log"));
+		}
 	}
 	else {
 		//cleanup the created files on error
@@ -1154,7 +1164,7 @@ int main(int argc, char **argv)
 
 	for (i = 1; i < argc; i++) {
 		char *opt = NULL, *arg = argv[i];
-		int arg_len, eq_opt = 0;
+		int eq_opt = 0;
 		int missing_opt = 0;
 
 		if ((opt = strchr(arg, '='))) {
@@ -1301,8 +1311,6 @@ int main(int argc, char **argv)
 				if (!opt || !*opt)
 					crash("%s requires a timestamp as argument", arg);
 				when = strtoul(opt, NULL, 0);
-				if (opt && !eq_opt)
-					i++;
 				if (!strcmp(arg, "--first"))
 					first_time = when;
 				else
@@ -1354,7 +1362,6 @@ int main(int argc, char **argv)
 		}
 
 		/* non-argument, so treat as config- or log-file */
-		arg_len = strlen(arg);
 		if (!strcmp(&arg[strlen(arg) - 10], "nagios.cfg")
 				   || !strcmp(&arg[strlen(arg) - 10], "naemon.cfg"))
 		{
@@ -1382,6 +1389,20 @@ int main(int argc, char **argv)
 			nagios_cfg = "/etc/naemon/naemon.cfg";
 		}
 	}
+
+	/* make sure first_time and last_time are set */
+	last_time = last_time ? last_time : time(NULL);
+	first_time = first_time ? first_time : 1;
+
+	/* flip them if the user made an error (common when reverse-importing) */
+	if (last_time < first_time) {
+		int temp = last_time;
+		last_time = first_time;
+		first_time = temp;
+	}
+
+	/* make sure we always have last_ltime */
+	last_ltime = first_time;
 
 	if (all_nodes){
 		int ret = 0;
@@ -1419,20 +1440,6 @@ int main(int argc, char **argv)
 		usage(NULL);
 
 	state_init();
-
-	/* make sure first_time and last_time are set */
-	last_time = last_time ? last_time : time(NULL);
-	first_time = first_time ? first_time : 1;
-
-	/* flip them if the user made an error (common when reverse-importing) */
-	if (last_time < first_time) {
-		int temp = last_time;
-		last_time = first_time;
-		first_time = temp;
-	}
-
-	/* make sure we always have last_ltime */
-	last_ltime = first_time;
 
 	if (reverse_parse_files)
 		qsort(nfile, num_nfile, sizeof(*nfile), nfile_rev_cmp);

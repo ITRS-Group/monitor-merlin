@@ -406,6 +406,44 @@ START_TEST (select_single_service)
 }
 END_TEST
 
+START_TEST (use_limit)
+{
+	//include no =(equal) handling in --first and --last parameter
+	char *args[] = {
+		NULL,
+		"tests/showlog_test.log",
+		"--show-all",
+		"--first",
+		"1386686225",
+		"--last",
+		"1412770876",
+		"--ascii",
+		"--time-format=raw",
+		"--host=monitor",
+		"--hide-process",
+		"--hide-command",
+		"--limit=1",
+		NULL
+	};
+	char *actual;
+	int diff;
+	FILE *fd = fopen("tests/showlog_test_monitoronly.log", "r");
+	char expected[6000];
+
+	//Expected one line only
+	if (fgets(expected, sizeof(expected), fd) == NULL){
+		ck_abort_msg("Could not read from expected log");
+	}
+
+	actual = run_with(args, NULL);
+	if ((diff = strcmp(expected, actual))) {
+		ck_abort_msg("showlog didn't return the input. It looked like %s", actual);
+	}
+	free(actual);
+}
+END_TEST
+
+
 Suite *
 showlog_suite(void)
 {
@@ -431,6 +469,7 @@ showlog_suite(void)
   tcase_add_test(log_selection, none);
   tcase_add_test(log_selection, select_single_host);
   tcase_add_test(log_selection, select_single_service);
+  tcase_add_test(log_selection, use_limit);
   suite_add_tcase(s, log_selection);
 
   return s;
