@@ -8,7 +8,6 @@ from functools import cmp_to_key
 from compound_config import *
 from merlin_apps_utils import *
 
-
 class merlin_node:
 	valid_types = ['poller', 'master', 'peer']
 	exit_code = False
@@ -164,11 +163,7 @@ class merlin_node:
 											io.TextIOBase))
 		assert err is None or isinstance(err, (io.RawIOBase, io.BufferedIOBase,
 											io.TextIOBase))
-		
-		# Int Python 3 stdout and stderr are instances of TextIOBase but in
-		# Python 2 they're still instances of file which is a none existent
-		# type in Python 3. That's why we must wrap stdout/stderr in a FileIO
-		# object if no other out/err is given.
+
 		out = out or open(sys.stdout.fileno(), mode='w', closefd=False)
 		err = err or open(sys.stderr.fileno(), mode='w', closefd=False)
 		
