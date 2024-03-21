@@ -54,7 +54,7 @@ def masters_connected(sinfo):
 			# likely meaning we are misconfigured
 			current_time = time.time()
 			if not is_running and last_alive + 30 > current_time:
-				print "Error: %s is alive but not connected!" % node
+				print("Error: %s is alive but not connected!" % node)
 				errors += 1
 	return errors == 0
 
@@ -71,13 +71,13 @@ def workers_alive():
 	try:
 		outs, errs = proc.communicate()
 	except:
-		print "Error: Couldn't get naemon worker count"
+		print("Error: Couldn't get naemon worker count")
 		return False
 
 	if proc.returncode == 0:
 		return True
 	else:
-		print "Error: No naemon workers running"
+		print("Error: No naemon workers running")
 		return False
 
 
@@ -96,13 +96,13 @@ def no_expired_checks(sinfo):
 			expired_hchecks = info.get('expired_hosts')
 			expired_schecks = info.get('expired_services')
 			if not (hchecks and schecks and expired_hchecks and expired_schecks):
-				print "Error: Unable to get expired checks"
+				print("Error: Unable to get expired checks")
 				return False
 			elif int(expired_hchecks) > int(hchecks):
-				print "Error: Host checks expired"
+				print("Error: Host checks expired")
 				return False
 			elif int(expired_schecks) > int(schecks):
-				print "Error: Service checks expired"
+				print("Error: Service checks expired")
 				return False
 			else:
 				return True
@@ -137,7 +137,7 @@ def cmd_core(args):
 		return 4
 
 	# Everything was OK!
-	print "OK"
+	print("OK")
 	return 0
 
 
@@ -149,8 +149,8 @@ def cmd_merlin(args):
 	"""
 
 	if os.path.exists(mconf.ipc_socket):
-		print "OK"
+		print("OK")
 		return 0
 	else:
-		print "Couldn't find IPC socket"
+		print("Couldn't find IPC socket")
 		return 1

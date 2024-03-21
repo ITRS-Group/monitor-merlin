@@ -42,7 +42,7 @@ def load_command_module(path):
 	modname = os.path.basename(path)[:-3]
 	try:
 		module = __import__(modname)
-	except Exception, ex:
+	except Exception as ex:
 		# catch-all, primarily for development purposes
 		command_mod_load_fail[modname] = ex
 		return -1
@@ -217,14 +217,14 @@ def show_usage(ret):
 Where category is sometimes optional.\n''')
 	topic = 'Available categorized commands:'
 	print("%s\n%s" % (topic, '-' * len(topic)))
-	cat_keys = categories.keys()
+	cat_keys = list(categories.keys())
 	cat_keys.sort()
 	cat_max_len = 0
 	for cat in cat_keys:
 		if len(cat) > cat_max_len:
 			cat_max_len = len(cat)
 	for cat in cat_keys:
-		print '  ' + cat.ljust(cat_max_len, ' ') + ' : ' + ', '.join(sorted(categories[cat]))
+		print('  ' + cat.ljust(cat_max_len, ' ') + ' : ' + ', '.join(sorted(categories[cat])))
 	if len(help_helpers):
 		help_helpers.sort()
 		topic = "Commands without category:"
@@ -233,7 +233,7 @@ Where category is sometimes optional.\n''')
 	print('''\nCategorized commands are described by running: mon <category>
 Uncategorized commands are run by: mon <command>\n''')
 
-	for mod in command_mod_load_fail.keys():
+	for mod in list(command_mod_load_fail.keys()):
 		mod_fail_print("(nonfatal)", mod)
 	sys.exit(ret)
 
@@ -294,13 +294,13 @@ mconf.parse()
 
 # if a dev's managed to hack in a bug in a command module, we
 # should tell the user so politely and not just fail to do anything
-if cat in command_mod_load_fail.keys():
+if cat in list(command_mod_load_fail.keys()):
 	mod_fail_print('%sfatal%s:' % (color.yellow, color.reset), cat)
 	sys.exit(1)
 
 if not cmd in commands:
 	print("")
-	if not cat in categories.keys():
+	if not cat in list(categories.keys()):
 		print("No category '%s' available, and it's not a raw command\n" % cat)
 	elif autohelp == True:
 		if not docstrings.get(cat):

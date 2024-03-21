@@ -34,7 +34,7 @@ def connect(mconf, reuse_conn=True):
 				import pymysql as db
 			except ImportError:
 				print("Failed to import MySQLdb or PyMySQL")
-				print("Install MySQL-python or python2-PyMySQL to make this command work")
+				print("Install PyMySQL to make this command work")
 				sys.exit(1)
 		if db_pass == False:
 			conn = db.connect(host=db_host, user=db_user, db=db_name)

@@ -7,7 +7,7 @@ import subprocess as sp
 merlin_conf_dir = "@pkgconfdir@"
 
 def initchildproc():
-	os.umask(0377)
+	os.umask(0o377)
 
 def cmd_generate(args):
 	""" --path=</path/to/save/keys>
@@ -28,25 +28,25 @@ def cmd_generate(args):
 	has_priv_key = os.path.isfile(path + '/key.priv')
 
 	if has_pub_key and has_priv_key:
-		print 'File already exists. Keys will not be generated.'
+		print('File already exists. Keys will not be generated.')
 		sys.exit(0)
 
 	if has_pub_key or has_priv_key:
-		print 'One of the encryption keys already exists. Remove and try again'
+		print('One of the encryption keys already exists. Remove and try again')
 		sys.exit(1)
 
 	if write_to_file:
 		with open(merlin_conf_dir + "/merlin.conf", 'r') as fh:
 			for line in fh:
 				if "ipc_privatekey" in line:
-					print "Conflict, private key location already specified: " + line.strip()
+					print("Conflict, private key location already specified: " + line.strip())
 					sys.exit(1)
 
 	p = sp.Popen(['@libdir@/merlin/keygen', "-p", path], stdout=sp.PIPE,
 			stderr=sp.PIPE, preexec_fn=initchildproc)
 	p.wait()
 	if p.returncode != 0:
-		print 'Key generation failed'
+		print('Key generation failed')
 		sys.exit(1)
 
 	if write_to_file:
@@ -58,4 +58,4 @@ def cmd_generate(args):
 	# -1 means we leave group unchanged
 	os.chown(path + "/key.priv", uid, -1)
 	os.chown(path + "/key.pub", uid, -1)
-	print 'Key generated and saved at ' + path
+	print('Key generated and saved at ' + path)

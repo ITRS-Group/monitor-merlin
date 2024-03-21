@@ -1,4 +1,4 @@
-from nagios_qh import nagios_qh
+from modules.nagios_qh import nagios_qh
 
 
 def test_format_one_block_one_row_one_value():

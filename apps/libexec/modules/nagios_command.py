@@ -1042,7 +1042,7 @@ class nagios_command:
 		signal.alarm(2)
 		try:
 			cmd_fd = os.open(self.pipe_path, posix.O_WRONLY)
-		except OSError, ose:
+		except OSError as ose:
 			if ose.errno == errno.EAGAIN:
 				return False
 			return False
@@ -1062,7 +1062,7 @@ class nagios_command:
 		if self.open_pipe() == False:
 			return False
 
-		if os.write(self.pipe_fd, cmd) == len(cmd):
+		if os.write(self.pipe_fd, cmd.encode()) == len(cmd):
 			return True
 
 		return False

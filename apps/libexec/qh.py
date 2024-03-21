@@ -30,7 +30,7 @@ def module_init(args):
 			comp = cconf.parse_nagios_cfg(nagios_cfg)
 			qh = comp.query_socket
 		else:
-			print "ERROR: Unable to find Naemon query socket"
+			print("ERROR: Unable to find Naemon query socket")
 			return 1
 
 	return rem_args
@@ -59,7 +59,7 @@ def cmd_query(args):
 		prettyprint_docstring('query', cmd_query.__doc__, 'Not enough arguments')
 		return
 	for block in handler.query(query):
-		print block,
+		print(block, end=' ')
 		sys.stdout.flush()
 		if single:
 			return
@@ -78,9 +78,9 @@ def cmd_get(args):
 	resp = handler.query(query)
 	try:
 		for row in handler.format(resp):
-			for pair in row.items():
-				print "%-25s %s" % pair
-			print ""
-	except ValueError, v:
-		print "WARNING: Couldn't format response, printing raw response:\n"
+			for pair in list(row.items()):
+				print("%-25s %s" % pair)
+			print("")
+	except ValueError as v:
+		print("WARNING: Couldn't format response, printing raw response:\n")
 		cmd_query(args)

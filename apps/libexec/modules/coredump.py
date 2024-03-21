@@ -46,7 +46,7 @@ class coredump:
 		the coredump. We'll be majorly fucked if it's not one we know of
 		or if it's not in the path.
 		"""
-		stuff = subprocess.Popen(['/usr/bin/file', '-b', self.path], stdout=subprocess.PIPE)
+		stuff = subprocess.Popen(['/usr/bin/file', '-b', self.path], stdout=subprocess.PIPE, text=True)
 		self.file_cmd_output = stuff.communicate()[0].strip()
 		ary = re.split(".*, from '", self.file_cmd_output, 1)
 		if len(ary) == 1:
@@ -81,7 +81,7 @@ class coredump:
 			return False
 		gdb = ['/usr/bin/gdb', '-batch', '-ex', 'bt full',
 			'-c', self.path, '--exec=%s' % self.executable]
-		stuff = subprocess.Popen(gdb, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		stuff = subprocess.Popen(gdb, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 		(self.gdb_stdout, self.gdb_stderr) = stuff.communicate()
 		self.gdb_stdout = self.gdb_stdout.strip()
 		self.gdb_stderr = self.gdb_stderr.strip()

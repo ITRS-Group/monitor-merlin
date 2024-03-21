@@ -21,4 +21,4 @@ def cmd_install_time(args):
 
 	merlin_db.disconnect()
 
-	print starttime
+	print(starttime)

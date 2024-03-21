@@ -67,10 +67,10 @@ def strtobool(str):
 	return False
 
 
-def mkdir_p(dirname, mode=0777):
+def mkdir_p(dirname, mode=0o777):
 	try:
 		os.makedirs(dirname, mode)
-	except OSError, exc:
+	except OSError as exc:
 		if exc.errno == errno.EEXIST:
 			pass
 		else:

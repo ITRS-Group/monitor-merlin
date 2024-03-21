@@ -457,7 +457,7 @@ class pytap:
 			msg = [msg]
 		for v in msg:
 			self._indent(1)
-			if type(v) == type(unicode('lala')):
+			if type(v) == type(str('lala')):
 				v = str(v)
 			elif type(v) != type('foo'):
 				v = pformat(v)

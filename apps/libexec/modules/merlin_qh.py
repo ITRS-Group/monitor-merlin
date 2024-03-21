@@ -1,4 +1,5 @@
 import nagios_qh
+from functools import cmp_to_key
 
 def get_merlin_nodeinfo(query_handler):
 	def nodeinfo_sorter(a, b):
@@ -11,11 +12,11 @@ def get_merlin_nodeinfo(query_handler):
 	ninfo = []
 	for info in qh.get('#merlin nodeinfo\0'):
 		ninfo.append(info)
-	ninfo.sort(nodeinfo_sorter)
+	ninfo.sort(key=cmp_to_key(nodeinfo_sorter))
 	return ninfo
 
 def get_expired(query_handler):
-	def sort(a, b):
+	def expired_cmp(a, b):
 		res = cmp(a['responsible'], b['responsible']) or cmp(a['responsible'], b['responsible'])
 		if res:
 			return res
@@ -28,5 +29,5 @@ def get_expired(query_handler):
 	expired = []
 	for info in qh.get('#merlin expired\0'):
 		expired.append(info)
-	expired.sort(sort)
+	expired.sort(key=cmp_to_key(expired_cmp))
 	return expired

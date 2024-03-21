@@ -29,7 +29,7 @@ class merlin_status:
 		return ret
 
 	def sum_global(self, key):
-		return sum([int(x.get(key)) for x in self.ni.values() if x.get('type') in ('peer', 'local')])
+		return sum([int(x.get(key)) for x in list(self.ni.values()) if x.get('type') in ('peer', 'local')])
 
 	def num_entries(self, table):
 		"""
@@ -50,7 +50,7 @@ class merlin_status:
 
 	def status(self, node_name=None):
 		nodes = []
-		for name, row in self.ni.items():
+		for name, row in list(self.ni.items()):
 			if node_name and node_name != row['instance_name']:
 				continue
 			if row['state'] == 'STATE_NONE':

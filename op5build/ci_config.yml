@@ -10,7 +10,9 @@ post:
     sudo -u monitor mon test rsync
 
     # Run unit tests
-    nosetests-2 ${VERBOSE:+-v} --nocapture --where apps/libexec/modules
+    pushd /mnt/git/apps/libexec
+    python3 -m pytest
+    popd
 
     # Verify file permissions after installation
     stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 660" = "{}"
