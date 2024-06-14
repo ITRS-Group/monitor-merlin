@@ -6,8 +6,6 @@ post:
     mkdir --parents --mode=777 /mnt/logs/merlin_dtest
     mon test dist --basepath=/mnt/logs/merlin_dtest
 
-    exit 125
-
     mon test rsync
     rm --force --recursive /mnt/logs/merlin_dtest
     sudo -u monitor mon test rsync
@@ -23,10 +21,10 @@ post:
     # Install requirements for cucumber test
     gem install --no-ri --no-rdoc \
         mysql2 \
-        cucumber:1.3.18 \
-        rspec:2.14.1 \
         parallel:1.13.0 \
         parallel_tests:2.23.0 \
+        cucumber:1.3.18 \
+        rspec:2.14.1 \
         syntax:1.0.0 \
         sequel:5.71.0
 
