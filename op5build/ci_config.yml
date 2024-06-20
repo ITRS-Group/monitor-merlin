@@ -26,6 +26,8 @@ post:
         syntax:1.0.0 \
         sequel:5.71.0
 
+    gem install parallel_tests:3.12.1
+
     # Run cucumber tests
     ulimit -c unlimited
     mkdir -p /mnt/logs
