@@ -18,7 +18,7 @@ post:
     stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 660" = "{}"
 
     # Install requirements for cucumber test
-    gem install --no-ri --no-rdoc bundler
+    gem install --no-ri --no-rdoc bundler -v '~> 2.3.0'
     bundle install
 
     gem install parallel_tests:2.32.0
