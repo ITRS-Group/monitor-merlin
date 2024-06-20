@@ -21,8 +21,6 @@ post:
     gem install --no-ri --no-rdoc bundler -v '~> 2.3.0'
     bundle install
 
-    gem install parallel_tests:2.32.0
-
     # Run cucumber tests
     ulimit -c unlimited
     mkdir -p /mnt/logs
