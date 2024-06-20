@@ -1,6 +1,6 @@
 source "https://rubygems.org"
 
-ruby '2.5.0'
+ruby '~> 2.5.0'
 
 gem 'mysql2', '~> 0.5.2'
 gem 'cucumber', '1.3.18'
