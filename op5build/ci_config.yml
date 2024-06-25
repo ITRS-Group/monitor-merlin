@@ -18,6 +18,7 @@ post:
     stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 660" = "{}"
 
     # Install requirements for cucumber test
+    gem install rubygems-update -v 3.3.27
     gem install --no-ri --no-rdoc bundler -v '~> 2.3.0'
     bundle install
 

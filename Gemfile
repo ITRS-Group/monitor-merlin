@@ -2,7 +2,6 @@ source "https://rubygems.org"
 
 ruby '~> 2.5'
 
-gem 'rubygems-update', '~> 3.3'
 gem 'mysql2', '~> 0.5.2'
 gem 'cucumber', '1.3.18'
 gem 'rspec', '2.14.1'
