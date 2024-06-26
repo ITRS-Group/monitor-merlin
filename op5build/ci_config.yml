@@ -17,6 +17,11 @@ post:
     # Verify file permissions after installation
     stat --printf='%U:%G %a' /opt/monitor/op5/merlin/merlin.conf | xargs -I{} test "root:apache 660" = "{}"
 
+    source ~/.rvm/scripts/rvm
+    rvm install 2.7
+    rvm use 2.7 --default
+    ruby -v
+
     # Install requirements for cucumber test
     gem install --no-ri --no-rdoc bundler -v '~> 2.3.0'
     bundle install
