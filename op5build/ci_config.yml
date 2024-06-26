@@ -25,7 +25,7 @@ post:
     ruby -v
 
     # Install requirements for cucumber test
-    gem install --no-ri --no-rdoc bundler -v '~> 2.3.0'
+    gem install --no-rdoc bundler -v '~> 2.3.0'
     bundle install
 
     # Run cucumber tests
