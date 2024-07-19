@@ -678,7 +678,7 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 		if (ds->comment_type == HOST_COMMENT) {
 			cmnt = get_first_comment_by_host(ds->host_name);
 			for (; cmnt; cmnt = next_cmnt) {
-				next_cmnt = cmnt->nexthash;
+				next_cmnt = cmnt->next;
 				if (matching_comment(cmnt, ds)) {
 					merlin_set_block_comment(ds);
 					delete_comment(cmnt->comment_type, cmnt->comment_id);
@@ -687,7 +687,7 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 			}
 		} else {
 			/* this is *really* expensive. Sort of wtf? */
-			for (cmnt = comment_list; cmnt; cmnt = next_cmnt) {
+			for (cmnt = comment_hashtable; cmnt; cmnt = next_cmnt) {
 				next_cmnt = cmnt->next;
 
 				if (matching_comment(cmnt, ds)) {
