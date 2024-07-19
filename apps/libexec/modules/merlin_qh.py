@@ -17,14 +17,14 @@ def get_merlin_nodeinfo(query_handler):
 
 def get_expired(query_handler):
 	def expired_cmp(a, b):
-		res = cmp(a['responsible'], b['responsible']) or cmp(a['responsible'], b['responsible'])
+		res = (a['responsible'] > b['responsible']) - (a['responsible'] < b['responsible'])
 		if res:
 			return res
 		if not a.get('service_description'):
 			return -1
 		if not b.get('service_description'):
 			return 1
-		return a['service_description'] > b['service_description']
+		return (a['service_description'] > b['service_description']) - (a['service_description'] < b['service_description'])
 	qh = nagios_qh.nagios_qh(query_handler)
 	expired = []
 	for info in qh.get('#merlin expired\0'):
