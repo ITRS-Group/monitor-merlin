@@ -620,8 +620,6 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 	nebstruct_comment_data *ds = (nebstruct_comment_data *)buf;
 	unsigned long comment_id = 0;
 
-	initialize_comment_data();
-
 	if (!node) {
 		lerr("handle_comment_data() with NULL node? Impossible...");
 		return 0;
@@ -819,6 +817,7 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 	node->stats.events.read++;
 	node->stats.bytes.read += packet_size(pkt);
 	node_log_event_count(node, 0);
+	initialize_comment_data();
 
 	/* send to daemon before we decode */
 	if (daemon_wants(pkt->hdr.type)) {
