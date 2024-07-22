@@ -620,6 +620,8 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 	nebstruct_comment_data *ds = (nebstruct_comment_data *)buf;
 	unsigned long comment_id = 0;
 
+	initialize_comment_data();
+
 	if (!node) {
 		lerr("handle_comment_data() with NULL node? Impossible...");
 		return 0;
@@ -640,11 +642,12 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 
 	if (ds->type == NEBTYPE_COMMENT_DELETE) {
 		host *hs = find_host(ds->host_name);
+		service *ss = find_service(ds->host_name, ds->service_description);
 
 		if (ds->comment_type == HOST_COMMENT) {
 			delete_all_host_comments(hs);
 		} else {
-			delete_all_service_comments(hs);
+			delete_all_service_comments(ss);
 		}
 		return 0;
 	} else {
