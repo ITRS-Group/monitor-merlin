@@ -884,6 +884,7 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 	}
 	merlin_sender = NULL;
 	recv_event = NULL;
+	free_comment_data();
 
 	return ret;
 }

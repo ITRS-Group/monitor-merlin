@@ -93,6 +93,8 @@ int grok_confsync_compound(struct cfg_comp *comp, merlin_confsync *csync)
  */
 static int read_positive_number(const char *value, unsigned long long int *out)
 {
+	char *endptr = NULL;
+	
 	assert(value != NULL);
 	assert(out != NULL);
 
@@ -100,7 +102,6 @@ static int read_positive_number(const char *value, unsigned long long int *out)
 		return 0;
 	}
 
-	char *endptr = NULL;
 	*out = strtoull(value, &endptr, 10);
 
 	if (*endptr != '\0' || endptr == value) {
