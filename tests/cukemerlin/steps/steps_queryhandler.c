@@ -147,7 +147,6 @@ static void qh_conn_close(gpointer conn_user_data) {
 	gchar *response;
 	gchar **resplines;
 	JsonNode *curmatch;
-	int i;
 
 	qhs->cur_conn = NULL;
 

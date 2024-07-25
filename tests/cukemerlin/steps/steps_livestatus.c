@@ -169,7 +169,6 @@ STEP_DEF(step_ls_result) {
 	LivestatusScenario *lss = (LivestatusScenario*) scenario;
 	JsonNode *resultnode;
 	JsonNode *str_result, *str_expect;
-	int diff;
 
 	/* Only one argument: a match table */
 	if (!jsonx_locate(args, 'a', 0, 'j', &resultnode)) {
