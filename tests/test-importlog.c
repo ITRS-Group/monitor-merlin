@@ -4,6 +4,7 @@
 #include "auth.c"
 
 #define pipe(a) ck_assert(0 == pipe(a))
+#define assert_write(a, b, c) ck_assert((int)c == write(a, b, c))
 
 static char *
 run_with(char *args[], char *input_str)

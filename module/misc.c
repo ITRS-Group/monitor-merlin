@@ -92,17 +92,17 @@ static struct file_list *recurse_cfg_dir(char *path, struct file_list *list,
 
 	memset(cwd, 0, sizeof(cwd));
 	memset(wd, 0, sizeof(wd));
-	getcwd(cwd, sizeof(cwd));
+	(void) getcwd(cwd, sizeof(cwd));
 
 	dp = opendir(path);
 	if (!dp || chdir(path) < 0) {
-		chdir(cwd);
+		(void) chdir(cwd);
 		return NULL;
 	}
 
 	depth++;
 
-	getcwd(wd, sizeof(wd));
+	(void) getcwd(wd, sizeof(wd));
 	wdl = strlen(wd);
 
 	while ((df = readdir(dp))) {
@@ -141,7 +141,7 @@ static struct file_list *recurse_cfg_dir(char *path, struct file_list *list,
 	}
 
 	closedir(dp);
-	chdir(cwd);
+	(void) chdir(cwd);
 
 	return list;
 }

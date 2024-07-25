@@ -4,6 +4,7 @@
 #include <string.h>
 #include <base/jsonx.h>
 #include <errno.h>
+#include <sys/wait.h>
 
 /* TODO: For kill() call, which should be converted to glib-style */
 #include <sys/types.h>
@@ -73,10 +74,8 @@ STEP_DEF(step_start_daemon) {
 	STEP_OK;
 }
 STEP_DEF(step_start_command) {
-	StepsDaemons *stps = (StepsDaemons *) scenario;
-	StepsDaemonProcess *dproc;
-
 	gchar *cmdline = NULL;
+
 	if (!jsonx_locate(args, 'a', 0, 's', &cmdline)) {
 		STEP_FAIL("Invalid arguments");
 		return;
