@@ -75,7 +75,7 @@ static int send_generic(merlin_event *pkt, void *data)
 			   pkt->hdr.code == MAGIC_NONET ? "No-net magic" : "No nodes");
 		return 0;
 	}
-	if (!(pkt->hdr.code == MAGIC_NONET) && !daemon_wants(pkt->hdr.type)) {
+	if (!pkt->hdr.code == MAGIC_NONET && !daemon_wants(pkt->hdr.type)) {
 		ldebug("ipcfilter: Not sending %s event. No-net magic and daemon doesn't want it",
 			   callback_name(pkt->hdr.type));
 		return 0;
