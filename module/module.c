@@ -639,12 +639,13 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 	}
 
 	if (ds->type == NEBTYPE_COMMENT_DELETE) {
-		host *hs = find_host(ds->host_name);
-		service *ss = find_service(ds->host_name, ds->service_description);
-
 		if (ds->comment_type == HOST_COMMENT) {
+			host *hs = find_host(ds->host_name);
+
 			delete_all_host_comments(hs);
 		} else {
+			service *ss = find_service(ds->host_name, ds->service_description);
+			
 			delete_all_service_comments(ss);
 		}
 		return 0;
@@ -746,7 +747,8 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 {
 	uint i;
 	int ret = 0;
-
+	
+	ldebug("module::handle_event: start");
 	if (!pkt) {
 		lerr("MM: pkt is NULL in handle_event()");
 		return 0;
@@ -775,6 +777,7 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 		return handle_runcmd_event(node, pkt);
 	}
 
+	ldebug("module::handle_event: node state: %d, master: %d, poller: %d", node->state, num_masters, num_pollers);
 	if (node->state != STATE_CONNECTED) {
 		/* the f*ck did that happen? An unconnected node talking to us */
 		lerr("Received data from not connected node '%s'. State is %s\n",
@@ -785,6 +788,8 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 		       node->name, num_masters);
 		net_sendto_many(noc_table, num_masters, pkt);
 	} else if (node->type == MODE_MASTER && num_pollers) {
+		ldebug("module::handle_event: header type: %d", pkt->hdr.type);
+
 		/*
 		 * @todo maybe we should also check if self.peer_id == 0
 		 * before we forward events to our pollers. Hmm...
@@ -800,6 +805,8 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 	}
 
 	/* let the various handler know which node sent the packet */
+	ldebug("module::handle_event: node id: %d, state: %d, byte order: %d",
+			node->id, node->state, node->info.byte_order);
 	pkt->hdr.selection = node->id;
 
 	if (!(node->state == STATE_CONNECTED)) {
@@ -820,6 +827,7 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 	initialize_comment_data();
 
 	/* send to daemon before we decode */
+	ldebug("module::handle_event: header type: %d", pkt->hdr.type);
 	if (daemon_wants(pkt->hdr.type)) {
 		ipc_send_event(pkt);
 	}
@@ -853,6 +861,7 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 	 * with the exception that checkresults also cause performance
 	 * data to be handled.
 	 */
+	ldebug("module::handle_event: header type: %d", pkt->hdr.type);
 	switch (pkt->hdr.type) {
 
 	case NEBCALLBACK_HOST_CHECK_DATA:
@@ -882,6 +891,7 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 		lwarn("Ignoring unrecognized/unhandled callback type: %d (%s)",
 		      pkt->hdr.type, callback_name(pkt->hdr.type));
 	}
+	ldebug("module::handle_event: ret: %d", ret);
 	merlin_sender = NULL;
 	recv_event = NULL;
 	free_comment_data();
