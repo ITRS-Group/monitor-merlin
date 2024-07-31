@@ -615,6 +615,40 @@ static int handle_external_command(merlin_node *node, void *buf)
 	process_external_command2(ds->command_type, ds->entry_time, ds->command_args);
 	return 1;
 }
+
+static int matching_comment(comment *cmnt, nebstruct_comment_data *ds)
+{
+	/*
+	 * hash collisioDelete ns can cause comments from other objects
+	 * (a, cmnt->comment_idnd other types of objects) to be listed here, so we
+	 * must match on host_name and service_description as
+	 * well and skip comments that don't match the type
+	 */
+	if (cmnt->comment_type == ds->comment_type &&
+		cmnt->entry_type == ds->entry_type &&
+		cmnt->source == ds->source &&
+		cmnt->expires == ds->expires &&
+		cmnt->expire_time == ds->expire_time &&
+		cmnt->entry_time == ds->entry_time &&
+		cmnt->persistent == ds->persistent &&
+		!strcmp(cmnt->author, ds->author_name) &&
+		!strcmp(cmnt->comment_data, ds->comment_data) &&
+		!strcmp(cmnt->host_name, ds->host_name) &&
+		(cmnt->service_description == ds->service_description ||
+		 !strcmp(cmnt->service_description, ds->service_description)))
+	{
+		ldebug("CMNT: cmnt->host_name: %s; ds->host_name: %s",
+			   cmnt->host_name, ds->host_name);
+		ldebug("CMNT: cmnt->author: %s; ds->author_name: %s",
+			   cmnt->author, ds->author_name);
+		ldebug("CMNT: cmnt->comment_data: %s; ds->comment_data: %s",
+			   cmnt->comment_data, ds->comment_data);
+		return 1;
+	}
+
+	return 0;
+}
+
 static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 {
 	nebstruct_comment_data *ds = (nebstruct_comment_data *)buf;
@@ -639,15 +673,28 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 	}
 
 	if (ds->type == NEBTYPE_COMMENT_DELETE) {
-		if (ds->comment_type == HOST_COMMENT) {
-			host *hs = find_host(ds->host_name);
+		comment *cmnt;
+		GHashTableIter iter;
+		gpointer comment_;
 
-			delete_all_host_comments(hs);
-		} else {
-			service *ss = find_service(ds->host_name, ds->service_description);
-			
-			delete_all_service_comments(ss);
+		if (comment_hashtable == NULL) {
+			ldebug("COMMENTS: Empty comment hashtable. Ignoring delete event");
+			return 0;
 		}
+
+		g_hash_table_iter_init(&iter, comment_hashtable);
+
+		while (g_hash_table_iter_next(&iter, NULL, &comment_)) {
+			cmnt = (comment *)comment_;
+			
+			if (matching_comment(cmnt, ds)) {
+				merlin_set_block_comment(ds);
+				ldebug("COMMENTS: Delete Id: %lu", cmnt->comment_id);
+				delete_comment(cmnt->comment_type, cmnt->comment_id);
+				merlin_set_block_comment(NULL);
+			}
+		}
+
 		return 0;
 	} else {
 		/*
@@ -747,8 +794,7 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 {
 	uint i;
 	int ret = 0;
-	
-	ldebug("module::handle_event: start");
+
 	if (!pkt) {
 		lerr("MM: pkt is NULL in handle_event()");
 		return 0;
@@ -777,7 +823,6 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 		return handle_runcmd_event(node, pkt);
 	}
 
-	ldebug("module::handle_event: node state: %d, master: %d, poller: %d", node->state, num_masters, num_pollers);
 	if (node->state != STATE_CONNECTED) {
 		/* the f*ck did that happen? An unconnected node talking to us */
 		lerr("Received data from not connected node '%s'. State is %s\n",
@@ -788,8 +833,6 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 		       node->name, num_masters);
 		net_sendto_many(noc_table, num_masters, pkt);
 	} else if (node->type == MODE_MASTER && num_pollers) {
-		ldebug("module::handle_event: header type: %d", pkt->hdr.type);
-
 		/*
 		 * @todo maybe we should also check if self.peer_id == 0
 		 * before we forward events to our pollers. Hmm...
@@ -805,11 +848,9 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 	}
 
 	/* let the various handler know which node sent the packet */
-	ldebug("module::handle_event: node id: %d, state: %d, byte order: %d",
-			node->id, node->state, node->info.byte_order);
 	pkt->hdr.selection = node->id;
 
-	if (!(node->state == STATE_CONNECTED)) {
+	if (!node->state == STATE_CONNECTED) {
 		lwarn("STATE: Discarding %s event from %s %s",
 			  callback_name(pkt->hdr.type), node_type(node), node->name);
 		return 0;
@@ -824,10 +865,8 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 	node->stats.events.read++;
 	node->stats.bytes.read += packet_size(pkt);
 	node_log_event_count(node, 0);
-	initialize_comment_data();
 
 	/* send to daemon before we decode */
-	ldebug("module::handle_event: header type: %d", pkt->hdr.type);
 	if (daemon_wants(pkt->hdr.type)) {
 		ipc_send_event(pkt);
 	}
@@ -861,7 +900,6 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 	 * with the exception that checkresults also cause performance
 	 * data to be handled.
 	 */
-	ldebug("module::handle_event: header type: %d", pkt->hdr.type);
 	switch (pkt->hdr.type) {
 
 	case NEBCALLBACK_HOST_CHECK_DATA:
@@ -891,11 +929,10 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 		lwarn("Ignoring unrecognized/unhandled callback type: %d (%s)",
 		      pkt->hdr.type, callback_name(pkt->hdr.type));
 	}
-	ldebug("module::handle_event: ret: %d", ret);
 	merlin_sender = NULL;
 	recv_event = NULL;
 	free_comment_data();
-
+	
 	return ret;
 }
 
