@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <ctype.h>
 
 int write_key(char *path, unsigned char *key, size_t len) {
   FILE *f;

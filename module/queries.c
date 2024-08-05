@@ -134,7 +134,7 @@ static int remote_runcmd(int sd, char *buf, unsigned int len)
 	}
 
 	if (node->type == MODE_MASTER) {
-		nsock_printf_nul(sd, "outstd=Sending commands from pollers (%s) is forbidden\n", node->name);
+		nsock_printf_nul(sd, "outstd=Sending commands from pollers is forbidden\n", node->name);
 		return 1;
 	}
 

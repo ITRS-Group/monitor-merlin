@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
-#include <base/jsonx.h>
 
 /* For umask */
 #include <sys/types.h>
@@ -87,8 +86,8 @@ STEP_BEGIN(step_begin_scenario) {
 		g_error_free(error);
 	} else {
 		sc->last_dir = g_malloc0(PATH_MAX);
-		(void) getcwd(sc->last_dir, PATH_MAX);
-		(void) chdir(sc->current_dir);
+		getcwd(sc->last_dir, PATH_MAX);
+		chdir(sc->current_dir);
 		g_message("Switched to: %s", sc->current_dir);
 	}
 	return sc;
@@ -97,7 +96,7 @@ STEP_BEGIN(step_begin_scenario) {
 STEP_END(step_end_scenario) {
 	StepsConfig *sc = (StepsConfig*) scenario;
 	if (sc->last_dir) {
-		(void) chdir(sc->last_dir);
+		chdir(sc->last_dir);
 		g_message("Switched back to: %s from %s", sc->last_dir, sc->current_dir);
 		g_free(sc->last_dir);
 	}
@@ -107,9 +106,12 @@ STEP_END(step_end_scenario) {
 }
 
 STEP_DEF(step_file) {
+	StepsConfig *sc = (StepsConfig *) scenario;
+
 	gchar *filename = NULL;
 	gchar *content = NULL;
 	GError *error = NULL;
+	gint fd = 0;
 
 	if (!jsonx_locate(args, 'a', 0, 's', &filename)
 		|| !jsonx_locate(args, 'a', 1, 's', &content)) {
@@ -127,10 +129,13 @@ STEP_DEF(step_file) {
 }
 
 STEP_DEF(step_file_perm) {
+	StepsConfig *sc = (StepsConfig *) scenario;
+
 	gchar *filename = NULL;
 	gchar *content = NULL;
 	gchar *perm_str = NULL;
 	GError *error = NULL;
+	gint fd = 0;
 	int perm = 0;
 
 	if (!jsonx_locate(args, 'a', 0, 's', &filename)
@@ -157,7 +162,11 @@ STEP_DEF(step_file_perm) {
 }
 
 STEP_DEF(step_dir) {
+	StepsConfig *sc = (StepsConfig *) scenario;
+
 	gchar *dirname = NULL;
+	GError *error = NULL;
+	gint fd = 0;
 
 	if (!jsonx_locate(args, 'a', 0, 's', &dirname)) {
 		STEP_FAIL("Invalid arguments");
@@ -174,8 +183,11 @@ STEP_DEF(step_dir) {
 }
 
 STEP_DEF(step_file_empty) {
+	StepsConfig *sc = (StepsConfig *) scenario;
+
 	gchar *filename = NULL;
 	GError *error = NULL;
+	gint fd = 0;
 
 	if (!jsonx_locate(args, 'a', 0, 's', &filename)) {
 		STEP_FAIL("Invalid arguments");
@@ -192,8 +204,11 @@ STEP_DEF(step_file_empty) {
 }
 
 STEP_DEF(step_file_exists) {
+	StepsConfig *sc = (StepsConfig *) scenario;
+
 	gchar *filename = NULL;
 	GError *error = NULL;
+	gint fd = 0;
 
 	if (!jsonx_locate(args, 'a', 0, 's', &filename)) {
 		STEP_FAIL("Invalid arguments");
@@ -210,8 +225,11 @@ STEP_DEF(step_file_exists) {
 }
 
 STEP_DEF(step_file_not_exists) {
+	StepsConfig *sc = (StepsConfig *) scenario;
+
 	gchar *filename = NULL;
 	GError *error = NULL;
+	gint fd = 0;
 
 	if (!jsonx_locate(args, 'a', 0, 's', &filename)) {
 		STEP_FAIL("Invalid arguments");
@@ -228,6 +246,8 @@ STEP_DEF(step_file_not_exists) {
 }
 
 static glong file_match_step(gpointer *scenario, const gchar *filename, const gchar *pattern, CukeResponseRef respref) {
+	StepsConfig *sc = (StepsConfig *) scenario;
+
 	GIOChannel *fp = NULL;
 	GError *error = NULL;
 	GIOStatus status;
@@ -275,6 +295,8 @@ static glong file_match_step(gpointer *scenario, const gchar *filename, const gc
 }
 
 static glong file_multiline_match_step(gpointer *scenario, const gchar *filename, const gchar *pattern, CukeResponseRef respref) {
+	StepsConfig *sc = (StepsConfig *) scenario;
+
 	GError *error = NULL;
 	glong matching_count = 0;
 	GRegex *re = NULL;
@@ -350,7 +372,7 @@ STEP_DEF(step_file_matches_count) {
 
 	matching_lines = file_match_step(scenario, filename, pattern, respref);
 	if(matching_lines != expected_count) {
-		gchar *error_line = g_strdup_printf("Matched %ld lines, expected %ld", matching_lines, expected_count);
+		gchar *error_line = g_strdup_printf("Matched %d lines, expected %d", matching_lines, expected_count);
 		STEP_FAIL(error_line);
 		g_free(error_line);
 	} else {
@@ -373,7 +395,7 @@ STEP_DEF(step_file_multiline_matches_count) {
 
 	match_count = file_multiline_match_step(scenario, filename, pattern, respref);
 	if(match_count != expected_count) {
-		gchar *error_line = g_strdup_printf("Found %ld matches, expected %ld", match_count, expected_count);
+		gchar *error_line = g_strdup_printf("Found %d matches, expected %d", match_count, expected_count);
 		STEP_FAIL(error_line);
 		g_free(error_line);
 	} else {
@@ -402,7 +424,7 @@ STEP_DEF(step_file_size) {
 			return;
 		}
 
-		if(our_file.st_size > *max_file_size) {
+		if(our_file.st_size > max_file_size) {
 			STEP_FAIL("The file is too large");
 			return;
 		}

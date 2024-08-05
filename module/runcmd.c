@@ -53,12 +53,6 @@ void runcmd_wproc_callback(wproc_result *wpres, void * arg, int flags) {
 
 int handle_runcmd_event(merlin_node *node, merlin_event *pkt) {
 	if (pkt->hdr.code == RUNCMD_CMD) {
-		runcmd_ctx * ctx;
-		merlin_runcmd * runcmd;
-		char * full_cmd;
-		size_t full_cmd_sz;
-		char * cmd_prefix = "/usr/bin/mon qh query --single '@runcmd run ";
-		int ret;
 
 		/* Validate that we are allowed to recieve this cmd */
 		// Check that we are encrypted
@@ -78,7 +72,12 @@ int handle_runcmd_event(merlin_node *node, merlin_event *pkt) {
 		}
 
 		/* Execute and return send RESP packet back */
-		runcmd = (merlin_runcmd *) pkt->body;
+		runcmd_ctx * ctx;
+		merlin_runcmd * runcmd = (merlin_runcmd *) pkt->body;
+		char * full_cmd;
+		size_t full_cmd_sz;
+		char * cmd_prefix = "/usr/bin/mon qh query --single '@runcmd run ";
+		int ret;
 
 		ldebug("RUNCMD: Got RUNCMD_CMD packet from: %s", node->name);
 
