@@ -639,7 +639,7 @@ static void mrlscenconn_destroy(MerlinScenarioConnection *msc) {
 	}
 	client_source_destroy(msc->cs);
 	server_source_destroy(msc->ss);
-	g_free(msc->tag);
+	g_free((void *) msc->tag);
 	g_free(msc);
 }
 static void mrlscenconn_clear_buffer(MerlinScenarioConnection *msc) {

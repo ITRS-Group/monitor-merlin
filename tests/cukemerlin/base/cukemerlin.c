@@ -26,7 +26,9 @@ int main(int argc, char *argv[]) {
 	GError *error = NULL;
 	CukeSocket *cs = NULL;
 
+#if !GLIB_CHECK_VERSION(2,36,0)
 	g_type_init();
+#endif
 
 	optctx = g_option_context_new("- Merlin protocol cucumber test daemon");
 	g_option_context_add_main_entries(optctx, opt_entries, NULL);

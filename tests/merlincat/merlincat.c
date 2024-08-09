@@ -46,7 +46,9 @@ int main(int argc, char *argv[]) {
 	ConnectionInfo conn_info;
 	parse_args(&conn_info, argc, argv);
 
+#if !GLIB_CHECK_VERSION(2,36,0)
 	g_type_init();
+#endif
 
 	/*
 	 * Create main loop, contains information about what should be checked. Is a
