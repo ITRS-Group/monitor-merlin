@@ -619,8 +619,8 @@ static int handle_external_command(merlin_node *node, void *buf)
 static int matching_comment(comment *cmnt, nebstruct_comment_data *ds)
 {
 	/*
-	 * hash collisioDelete ns can cause comments from other objects
-	 * (a, cmnt->comment_idnd other types of objects) to be listed here, so we
+	 * hash collisions can cause comments from other objects
+	 * (and other types of objects) to be listed here, so we
 	 * must match on host_name and service_description as
 	 * well and skip comments that don't match the type
 	 */
@@ -653,6 +653,8 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 {
 	nebstruct_comment_data *ds = (nebstruct_comment_data *)buf;
 	unsigned long comment_id = 0;
+	host	*hs = NULL;
+	service	*sv = NULL;
 
 	if (!node) {
 		lerr("handle_comment_data() with NULL node? Impossible...");
@@ -661,38 +663,47 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 
 	/* make sure the object this comment is for exists */
 	if (!ds->service_description) {
-		if (!find_host(ds->host_name)) {
+		hs	= find_host(ds->host_name);
+
+		if (!hs) {
 			lwarn("Host '%s' not found. Ignoring %s event.",
 				  ds->host_name, callback_name(hdr->type));
 			return 0;
 		}
-	} else if (!find_service(ds->host_name, ds->service_description)) {
-		lwarn("Service '%s;%s' not found. Ignoring %s event.",
-		      ds->host_name, ds->service_description, callback_name(hdr->type));
-		return 0;
+	} else {
+		sv	= find_service(ds->host_name, ds->service_description);
+
+		if (!sv) {
+			lwarn("Service '%s;%s' not found. Ignoring %s event.",
+				ds->host_name, ds->service_description, callback_name(hdr->type));
+			return 0;
+		}
 	}
 
 	if (ds->type == NEBTYPE_COMMENT_DELETE) {
-		comment *cmnt;
-		GHashTableIter iter;
-		gpointer comment_;
+		objectlist	*temp_obj, *next = NULL;
+		comment		*cmnt = NULL;
 
-		if (comment_hashtable == NULL) {
-			ldebug("COMMENTS: Empty comment hashtable. Ignoring delete event");
-			return 0;
+		if (ds->comment_type == HOST_COMMENT) {
+			ldebug("COMMENTS: Received host comment delete event");
+			temp_obj = hs->comments_list;
+		} else {
+			ldebug("COMMENTS: Received service comment delete event");
+			temp_obj = sv->comments_list;
 		}
 
-		g_hash_table_iter_init(&iter, comment_hashtable);
+		/* Delete matching comment */
+		while (temp_obj != NULL) {
+			next = temp_obj->next;
+			cmnt = (comment *)temp_obj->object_ptr;
 
-		while (g_hash_table_iter_next(&iter, NULL, &comment_)) {
-			cmnt = (comment *)comment_;
-			
 			if (matching_comment(cmnt, ds)) {
 				merlin_set_block_comment(ds);
 				ldebug("COMMENTS: Delete Id: %lu", cmnt->comment_id);
 				delete_comment(cmnt->comment_type, cmnt->comment_id);
 				merlin_set_block_comment(NULL);
 			}
+			temp_obj = next;
 		}
 
 		return 0;
@@ -931,7 +942,7 @@ int handle_event(merlin_node *node, merlin_event *pkt)
 	}
 	merlin_sender = NULL;
 	recv_event = NULL;
-	
+
 	return ret;
 }
 
