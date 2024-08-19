@@ -681,21 +681,21 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 	}
 
 	if (ds->type == NEBTYPE_COMMENT_DELETE) {
-		objectlist	*temp_obj, *next = NULL;
+		objectlist	*comment_list, *next = NULL;
 		comment		*cmnt = NULL;
 
 		if (ds->comment_type == HOST_COMMENT) {
 			ldebug("COMMENTS: Received host comment delete event");
-			temp_obj = hs->comments_list;
+			comment_list = hs->comments_list;
 		} else {
 			ldebug("COMMENTS: Received service comment delete event");
-			temp_obj = sv->comments_list;
+			comment_list = sv->comments_list;
 		}
 
 		/* Delete matching comment */
-		while (temp_obj != NULL) {
-			next = temp_obj->next;
-			cmnt = (comment *)temp_obj->object_ptr;
+		while (comment_list != NULL) {
+			next = comment_list->next;
+			cmnt = (comment *)comment_list->object_ptr;
 
 			if (matching_comment(cmnt, ds)) {
 				merlin_set_block_comment(ds);
@@ -703,7 +703,7 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 				delete_comment(cmnt->comment_type, cmnt->comment_id);
 				merlin_set_block_comment(NULL);
 			}
-			temp_obj = next;
+			comment_list = next;
 		}
 
 		return 0;
