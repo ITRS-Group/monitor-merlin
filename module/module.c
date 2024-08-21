@@ -653,8 +653,8 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 {
 	nebstruct_comment_data *ds = (nebstruct_comment_data *)buf;
 	unsigned long comment_id = 0;
-	host	*hs = NULL;
-	service	*sv = NULL;
+	host *hs = NULL;
+	service *sv = NULL;
 
 	if (!node) {
 		lerr("handle_comment_data() with NULL node? Impossible...");
@@ -663,26 +663,26 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 
 	/* make sure the object this comment is for exists */
 	if (!ds->service_description) {
-		hs	= find_host(ds->host_name);
+		hs = find_host(ds->host_name);
 
 		if (!hs) {
 			lwarn("Host '%s' not found. Ignoring %s event.",
-				  ds->host_name, callback_name(hdr->type));
+			      ds->host_name, callback_name(hdr->type));
 			return 0;
 		}
 	} else {
-		sv	= find_service(ds->host_name, ds->service_description);
+		sv = find_service(ds->host_name, ds->service_description);
 
 		if (!sv) {
 			lwarn("Service '%s;%s' not found. Ignoring %s event.",
-				ds->host_name, ds->service_description, callback_name(hdr->type));
+			      ds->host_name, ds->service_description, callback_name(hdr->type));
 			return 0;
 		}
 	}
 
 	if (ds->type == NEBTYPE_COMMENT_DELETE) {
-		objectlist	*comment_list, *next = NULL;
-		comment		*cmnt = NULL;
+		objectlist *comment_list, *next = NULL;
+		comment *cmnt = NULL;
 
 		if (ds->comment_type == HOST_COMMENT) {
 			ldebug("COMMENTS: Received host comment delete event");
