@@ -9,6 +9,9 @@ of month.
 
 ## [Unreleased]
 ### Changed
+- Add support for Naemon 1.4.2. Merlin now requires Naemon version >= 1.4.2.
+  Updated Merlin to parse comment list from host or service data instead of the
+  global comment list.
 - Updated merlin applications to use Python3.9
 
 ### Fixed
