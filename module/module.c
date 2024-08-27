@@ -653,6 +653,8 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 {
 	nebstruct_comment_data *ds = (nebstruct_comment_data *)buf;
 	unsigned long comment_id = 0;
+	host *hs = NULL;
+	service *sv = NULL;
 
 	if (!node) {
 		lerr("handle_comment_data() with NULL node? Impossible...");
@@ -661,42 +663,49 @@ static int handle_comment_data(merlin_node *node, merlin_header *hdr, void *buf)
 
 	/* make sure the object this comment is for exists */
 	if (!ds->service_description) {
-		if (!find_host(ds->host_name)) {
+		hs = find_host(ds->host_name);
+
+		if (!hs) {
 			lwarn("Host '%s' not found. Ignoring %s event.",
-				  ds->host_name, callback_name(hdr->type));
+			      ds->host_name, callback_name(hdr->type));
 			return 0;
 		}
-	} else if (!find_service(ds->host_name, ds->service_description)) {
-		lwarn("Service '%s;%s' not found. Ignoring %s event.",
-		      ds->host_name, ds->service_description, callback_name(hdr->type));
-		return 0;
+	} else {
+		sv = find_service(ds->host_name, ds->service_description);
+
+		if (!sv) {
+			lwarn("Service '%s;%s' not found. Ignoring %s event.",
+			      ds->host_name, ds->service_description, callback_name(hdr->type));
+			return 0;
+		}
 	}
 
 	if (ds->type == NEBTYPE_COMMENT_DELETE) {
-		comment *cmnt, *next_cmnt;
+		objectlist *comment_list, *next = NULL;
+		comment *cmnt = NULL;
 
 		if (ds->comment_type == HOST_COMMENT) {
-			cmnt = get_first_comment_by_host(ds->host_name);
-			for (; cmnt; cmnt = next_cmnt) {
-				next_cmnt = cmnt->nexthash;
-				if (matching_comment(cmnt, ds)) {
-					merlin_set_block_comment(ds);
-					delete_comment(cmnt->comment_type, cmnt->comment_id);
-					merlin_set_block_comment(NULL);
-				}
-			}
+			ldebug("COMMENTS: Received host comment delete event");
+			comment_list = hs->comments_list;
 		} else {
-			/* this is *really* expensive. Sort of wtf? */
-			for (cmnt = comment_list; cmnt; cmnt = next_cmnt) {
-				next_cmnt = cmnt->next;
-
-				if (matching_comment(cmnt, ds)) {
-					merlin_set_block_comment(ds);
-					delete_comment(cmnt->comment_type, cmnt->comment_id);
-					merlin_set_block_comment(NULL);
-				}
-			}
+			ldebug("COMMENTS: Received service comment delete event");
+			comment_list = sv->comments_list;
 		}
+
+		/* Delete matching comment */
+		while (comment_list != NULL) {
+			next = comment_list->next;
+			cmnt = (comment *)comment_list->object_ptr;
+
+			if (matching_comment(cmnt, ds)) {
+				merlin_set_block_comment(ds);
+				ldebug("COMMENTS: Delete Id: %lu", cmnt->comment_id);
+				delete_comment(cmnt->comment_type, cmnt->comment_id);
+				merlin_set_block_comment(NULL);
+			}
+			comment_list = next;
+		}
+
 		return 0;
 	} else {
 		/*
