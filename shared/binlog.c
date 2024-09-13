@@ -155,24 +155,28 @@ void binlog_wipe(binlog *bl, int flags)
 		unlink(bl->path);
 	}
 
-	if (bl->cache) {
+	if (bl->cache || bl->fd > -1) {
 		unsigned int i;
 
 		for (i = 0; i < bl->write_index; i++) {
 			struct binlog_entry *entry = bl->cache[i];
 
-			if (!entry)
+			if (!entry )
 				continue;
 
 			if (entry->data) {
 				free(entry->data);
 				entry->data = NULL;
 			}
-			free(entry);
-			entry = NULL;
+			if (entry) {
+				free(entry);
+				entry = NULL;
+			}
 		}
-		free(bl->cache);
-		bl->cache = NULL;
+		if (bl->cache) {
+			free(bl->cache);
+			bl->cache = NULL;
+		}
 	}
 
 	memset(bl, 0, sizeof(*bl));
@@ -203,8 +207,10 @@ void binlog_destroy(binlog *bl, int flags)
 		bl->file_metadata_path = NULL;
 	}
 
-	free(bl);
-	bl = NULL;
+	if (bl) {
+		free(bl);
+		bl = NULL;
+	}
 }
 
 static int binlog_file_read(binlog *bl, void **buf, unsigned int *len)
@@ -258,8 +264,10 @@ static int binlog_mem_read(binlog *bl, void **buf, unsigned int *len)
 	bl->mem_avail -= *len;
 
 	/* free the entry and mark it as empty */
-	free(bl->cache[bl->read_index]);
-	bl->cache[bl->read_index] = NULL;
+	if (bl->cache[bl->read_index]) {
+		free(bl->cache[bl->read_index]);
+		bl->cache[bl->read_index] = NULL;
+	}
 	bl->read_index++;
 
 	/*
@@ -522,13 +530,19 @@ int binlog_flush(binlog *bl)
 		while (bl->read_index < bl->write_index) {
 			binlog_entry *entry = bl->cache[bl->read_index++];
 			binlog_file_add(bl, entry->data, entry->size);
-			free(entry->data);
-			entry->data = NULL;
-			free(entry);
-			entry = NULL;
+			if (entry->data) {
+				free(entry->data);
+				entry->data = NULL;
+			}
+			if (entry) {
+				free(entry);
+				entry = NULL;
+			}
 		}
-		free(bl->cache);
-		bl->cache = NULL;
+		if (bl->cache) {
+			free(bl->cache);
+			bl->cache = NULL;
+		}
 	}
 	bl->mem_size = bl->write_index = bl->read_index = bl->alloc = 0;
 
