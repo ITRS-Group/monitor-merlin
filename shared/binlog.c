@@ -106,6 +106,7 @@ binlog *binlog_create(const char *path, unsigned long long int msize, unsigned l
 		bl->path = strdup(path);
 		if (!bl->path) {
 			free(bl);
+			bl = NULL;
 			return NULL;
 		}
 	}
@@ -163,11 +164,15 @@ void binlog_wipe(binlog *bl, int flags)
 			if (!entry)
 				continue;
 
-			if (entry->data)
+			if (entry->data) {
 				free(entry->data);
+				entry->data = NULL;
+			}
 			free(entry);
+			entry = NULL;
 		}
 		free(bl->cache);
+		bl->cache = NULL;
 	}
 
 	memset(bl, 0, sizeof(*bl));
@@ -199,6 +204,7 @@ void binlog_destroy(binlog *bl, int flags)
 	}
 
 	free(bl);
+	bl = NULL;
 }
 
 static int binlog_file_read(binlog *bl, void **buf, unsigned int *len)
@@ -434,6 +440,7 @@ static int binlog_mem_add(binlog *bl, void *buf, unsigned int len)
 	entry->data = malloc(len);
 	if (!entry->data) {
 		free(entry);
+		entry = NULL;
 		return BINLOG_EDROPPED;
 	}
 
@@ -516,7 +523,9 @@ int binlog_flush(binlog *bl)
 			binlog_entry *entry = bl->cache[bl->read_index++];
 			binlog_file_add(bl, entry->data, entry->size);
 			free(entry->data);
+			entry->data = NULL;
 			free(entry);
+			entry = NULL;
 		}
 		free(bl->cache);
 		bl->cache = NULL;
