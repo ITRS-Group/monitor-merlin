@@ -189,39 +189,39 @@ void binlog_wipe(binlog *bl, int flags)
 
 void binlog_destroy(binlog *bl, int flags)
 {
-	log_msg(LOG_DEBUG,"binlog_destroy: bl=%p, flags=%d", bl, flags);
+	ldebug("binlog_destroy: bl=%p, flags=%d", bl, flags);
 	if (!bl) {
-		log_msg(LOG_DEBUG,"binlog_destroy: bl is NULL");
+		ldebug("binlog_destroy: bl is NULL");
 		return;
 	}
 
 	binlog_wipe(bl, flags);
 
-	log_msg(LOG_DEBUG,"binlog_destroy:   path=%s", bl->path);
+	ldebug("binlog_destroy:   path=%s", bl->path);
 	if (bl->path) {
-		log_msg(LOG_DEBUG,"binlog_destroy:   free path");
+		ldebug("binlog_destroy:   free path");
 		free(bl->path);
 		bl->path = NULL;
 	}
-	log_msg(LOG_DEBUG,"binlog_destroy:   meta=%s", bl->file_metadata_path);
+	ldebug("binlog_destroy:   meta=%s", bl->file_metadata_path);
 	if (bl->file_metadata_path) {
-		log_msg(LOG_DEBUG,"binlog_destroy:   free meta");
+		ldebug("binlog_destroy:   free meta");
 		free(bl->file_metadata_path);
 		bl->file_metadata_path = NULL;
 	}
-	log_msg(LOG_DEBUG,"binlog_destroy:   save=%s", bl->file_save_path);
+	ldebug("binlog_destroy:   save=%s", bl->file_save_path);
 	if (bl->file_save_path) {
-		log_msg(LOG_DEBUG,"binlog_destroy:   free save");
+		ldebug("binlog_destroy:   free save");
 		free(bl->file_save_path);
 		bl->file_metadata_path = NULL;
 	}
 
 	if (bl) {
-		log_msg(LOG_DEBUG,"binlog_destroy:   free bl");
+		ldebug("binlog_destroy:   free bl");
 		free(bl);
 		bl = NULL;
 	}
-	log_msg(LOG_DEBUG,"binlog_destroy: end.");
+	ldebug("binlog_destroy: end.");
 }
 
 static int binlog_file_read(binlog *bl, void **buf, unsigned int *len)
@@ -417,27 +417,27 @@ static int binlog_open(binlog *bl)
 {
 	int flags = O_RDWR | O_APPEND | O_CREAT;
 
-	log_msg(LOG_DEBUG,"binlog_open: start, bl=%p", bl);
+	ldebug("binlog_open: start, bl=%p", bl);
 	if (bl->fd != -1) {
-		log_msg(LOG_DEBUG,"binlog_get_saved: FD already open");
+		ldebug("binlog_get_saved: FD already open");
 		return bl->fd;
 	}
 
 	if (!bl->path) {
-		log_msg(LOG_DEBUG,"binlog_get_saved: Path not set");
+		ldebug("binlog_get_saved: Path not set");
 		return BINLOG_ENOPATH;
 	}
 
 	if (!binlog_is_valid(bl)) {
-		log_msg(LOG_DEBUG,"binlog_get_saved: Invalid");
+		ldebug("binlog_get_saved: Invalid");
 		bl->file_read_pos = bl->file_write_pos = bl->file_size = 0;
 		flags = O_RDWR | O_CREAT | O_TRUNC;
 	}
 
-	log_msg(LOG_DEBUG,"binlog_get_saved:   Read file content to binlog struct");
+	ldebug("binlog_get_saved:   Read file content to binlog struct");
 	bl->fd = open(bl->path, flags, 0600);
 	if (bl->fd < 0) {
-		log_msg(LOG_DEBUG,"binlog_get_saved: Unable to open file");
+		ldebug("binlog_get_saved: Unable to open file");
 		return -1;
 	}
 
@@ -612,67 +612,67 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 	struct binlog *bl;
 	FILE * file;
 
-	log_msg(LOG_DEBUG,"binlog_get_saved: start, node_binlog=%p", node_binlog);
+	ldebug("binlog_get_saved: start, node_binlog=%p", node_binlog);
 	/* Check if there is a saved binlog to read */
 	if( access( node_binlog->file_metadata_path, F_OK ) != 0 ) {
-		log_msg(LOG_DEBUG,"binlog_get_saved: No saved meta file.");
+		ldebug("binlog_get_saved: No saved meta file.");
 		return NULL;
 	}
 
 	if( access( node_binlog->file_save_path, F_OK ) != 0 ) {
 		/* For some reason we had a metadata file, but no save file. */
 		/* Delete the metadata file */
-		log_msg(LOG_DEBUG,"binlog_get_saved: No save file. Delete metadata file (%s).", node_binlog->file_metadata_path);
+		ldebug("binlog_get_saved: No save file. Delete metadata file (%s).", node_binlog->file_metadata_path);
 		unlink(node_binlog->file_metadata_path);
 		return NULL;
 	}
 
-	log_msg(LOG_DEBUG,"binlog_get_saved:   Open meta file (%s).", node_binlog->file_metadata_path);
+	ldebug("binlog_get_saved:   Open meta file (%s).", node_binlog->file_metadata_path);
 	file = fopen(node_binlog->file_metadata_path, "rb");
 	/* Make sure we could open the file correctly */
 	if (file == NULL) {
-		log_msg(LOG_DEBUG,"binlog_get_saved: Unable to open meta file.");
+		ldebug("binlog_get_saved: Unable to open meta file.");
 		return NULL;
 	}
 
 	/* free'd either here (binlog_destroy) or by the caller (node_binlog_read_saved) */
-	log_msg(LOG_DEBUG,"binlog_get_saved:   Alloc binlog struct");
+	ldebug("binlog_get_saved:   Alloc binlog struct");
 	bl = malloc(sizeof(struct binlog));
 	if (bl == NULL) {
-		log_msg(LOG_DEBUG,"binlog_get_saved: Failed to open meta file.");
+		ldebug("binlog_get_saved: Failed to open meta file.");
 		fclose(file);
 		return NULL;
 	}
 
-	log_msg(LOG_DEBUG,"binlog_get_saved:   Read file content (%p) to binlog struct", file);
+	ldebug("binlog_get_saved:   Read file content (%p) to binlog struct", file);
 	elements_read = fread(bl, sizeof(struct binlog), 1, file);
-	log_msg(LOG_DEBUG,"binlog_get_saved:   File elements %d. Close file.", elements_read);
+	ldebug("binlog_get_saved:   File elements %d. Close file.", elements_read);
 	fclose(file);
 
 	/* Make sure we sucessfully read one binlog struct */
-	log_msg(LOG_DEBUG,"binlog_get_saved:   Read file content to binlog struct");
+	ldebug("binlog_get_saved:   Read file content to binlog struct");
 	if (elements_read != 1) {
 		binlog_destroy(bl,BINLOG_UNLINK);
 		return NULL;
 	}
 
-	log_msg(LOG_DEBUG,"binlog_get_saved:   Dup meta file path");
+	ldebug("binlog_get_saved:   Dup meta file path");
 	bl->file_metadata_path = strdup(node_binlog->file_metadata_path);
-	log_msg(LOG_DEBUG,"binlog_get_saved:   Dup save file path");
+	ldebug("binlog_get_saved:   Dup save file path");
 	bl->path = strdup(node_binlog->file_save_path);
 	/* Need to reset the file descriptor as it won't be valid anymore */
-	log_msg(LOG_DEBUG,"binlog_get_saved:   Set FD to -1");
+	ldebug("binlog_get_saved:   Set FD to -1");
 	bl->fd = -1;
 	ret = binlog_open(bl);
-	log_msg(LOG_DEBUG,"binlog_get_saved:   binlog_open ret=%d", ret);
+	ldebug("binlog_get_saved:   binlog_open ret=%d", ret);
 	if (ret < 0) {
 		binlog_destroy(bl, BINLOG_UNLINK);
 		return NULL;
 	}
 	/* get rid of the metadata file now */
-	log_msg(LOG_DEBUG,"binlog_get_saved:   Delete meta file (%s)", node_binlog->file_metadata_path);
+	ldebug("binlog_get_saved:   Delete meta file (%s)", node_binlog->file_metadata_path);
 	unlink(node_binlog->file_metadata_path);
-	log_msg(LOG_DEBUG,"binlog_get_saved: end, bl=%p", bl);
+	ldebug("binlog_get_saved: end, bl=%p", bl);
 	return bl;
 }
 

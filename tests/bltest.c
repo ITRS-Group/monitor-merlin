@@ -2,6 +2,7 @@
 #include "colors.h"
 #include "test_utils.h"
 #include "shared.h"
+#include "logging.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -543,7 +544,7 @@ static char *msg_list[] = {
 	"Thou art That...",
 	"The chain which can be yanked is not the eternal chain.",
 	"You can't survive by sucking the juice from a wet mitten.",
-	"Der bestirnte Himmel über mir und das moralische Gesetz in mir",
+	"Der bestirnte Himmel ï¿½ber mir und das moralische Gesetz in mir",
 	"The starry sky above me, and the Moral Law inside me.",
 	"At least they're ___________EXPERIENCED incompetents",
 	"But don't you worry, its for a cause -- feeding global corporations' paws.",
