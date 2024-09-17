@@ -155,7 +155,7 @@ void binlog_wipe(binlog *bl, int flags)
 		unlink(bl->path);
 	}
 
-	if (bl->cache || bl->fd > -1) {
+	if (bl->cache) {
 		unsigned int i;
 
 		for (i = 0; i < bl->write_index; i++) {
@@ -612,6 +612,10 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 
 	/* free'd either here (binlog_destroy) or by the caller (node_binlog_read_saved) */
 	bl = malloc(sizeof(struct binlog));
+	if (bl == NULL) {
+		fclose(file);
+		return NULL;
+	}
 
 	elements_read = fread(bl, sizeof(struct binlog), 1, file);
 	fclose(file);
