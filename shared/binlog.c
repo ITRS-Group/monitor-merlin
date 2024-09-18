@@ -42,35 +42,35 @@ static int safe_write(binlog *bl, void *buf, int len)
 	int result;
 	off_t pos;
 	
-	ldebug("binlog_file_add: start, bl=%p", bl);
+	ldebug("safe_write: start, bl=%p", bl);
 	pos = lseek(bl->fd, 0, SEEK_CUR);
-	ldebug("binlog_file_add:  lseek, pos=%d", (int) pos);
+	ldebug("safe_write:  lseek, pos=%d", (int) pos);
 	if (pos != bl->file_size) {
-		ldebug("binlog_file_add:  pos (%d) != file_size (%d)", (int) pos, (int) bl->file_size);
+		ldebug("safe_write:  pos (%d) != file_size (%d)", (int) pos, (int) bl->file_size);
 		lseek(bl->fd, 0, SEEK_END);
 	}
-	ldebug("binlog_file_add:  call write");
+	ldebug("safe_write:  call write");
 	result = write(bl->fd, buf, len);
-	ldebug("binlog_file_add:    result=%d", result);
+	ldebug("safe_write:    result=%d", result);
 	if (result == len) {
-		ldebug("binlog_file_add:  result(%d) == len(%d)", result, len);
+		ldebug("safe_write:  result(%d) == len(%d)", result, len);
 		bl->file_write_pos = lseek(bl->fd, 0, SEEK_CUR);
-		ldebug("binlog_file_add:  lseek, pos=%d", bl->file_write_pos);
+		ldebug("safe_write:  lseek, pos=%d", bl->file_write_pos);
 		return 0;
 	}
 	if (result < 0) {
-		ldebug("binlog_file_add:  result is < 0");
+		ldebug("safe_write:  result is < 0");
 		return result;
 	}
 
 	/* partial write. this will mess up the sync */
 	if (pos != lseek(bl->fd, pos, SEEK_SET)) {
-		ldebug("binlog_file_add:  lseek, pos (%d) != lseek pos (%d)", (int) pos, (int) lseek(bl->fd, pos, SEEK_SET));
+		ldebug("safe_write:  lseek, pos (%d) != lseek pos (%d)", (int) pos, (int) lseek(bl->fd, pos, SEEK_SET));
 		binlog_invalidate(bl);
-		ldebug("binlog_file_add:  call safe_write");
+		ldebug("safe_write:  call safe_write");
 		return BINLOG_EINVALID;
 	}
-	ldebug("binlog_file_add: end, incomplete (%d).", BINLOG_EINCOMPLETE);
+	ldebug("safe_write: end, incomplete (%d).", BINLOG_EINCOMPLETE);
 	return BINLOG_EINCOMPLETE;
 }
 
@@ -82,12 +82,12 @@ int binlog_is_valid(binlog *bl)
 
 void binlog_invalidate(binlog *bl)
 {
-	ldebug("binlog_file_add: start, bl=%p", bl);
+	ldebug("binlog_invalidate: start, bl=%p", bl);
 	binlog_close(bl);
 	bl->is_valid = 0;
-	ldebug("binlog_file_add:   unlink path (%s)", bl->path);
+	ldebug("binlog_invalidate:   unlink path (%s)", bl->path);
 	unlink(bl->path);
-	ldebug("binlog_file_add: end.");
+	ldebug("binlog_invalidate: end.");
 }
 
 const char *binlog_path(binlog *bl)
@@ -463,29 +463,29 @@ static int binlog_open(binlog *bl)
 
 	ldebug("binlog_open: start, bl=%p", bl);
 	if (bl->fd != -1) {
-		ldebug("binlog_get_saved: FD already open");
+		ldebug("binlog_open: FD already open");
 		return bl->fd;
 	}
 
 	if (!bl->path) {
-		ldebug("binlog_get_saved: Path not set");
+		ldebug("binlog_open: Path not set");
 		return BINLOG_ENOPATH;
 	}
 
 	if (!binlog_is_valid(bl)) {
-		ldebug("binlog_get_saved: Invalid");
+		ldebug("binlog_open: Invalid");
 		bl->file_read_pos = bl->file_write_pos = bl->file_size = 0;
 		flags = O_RDWR | O_CREAT | O_TRUNC;
 	}
 
-	ldebug("binlog_get_saved:   Read file content to binlog struct");
+	ldebug("binlog_open:   Read file content to binlog struct");
 	bl->fd = open(bl->path, flags, 0600);
 	if (bl->fd < 0) {
-		ldebug("binlog_get_saved: Unable to open file");
+		ldebug("binlog_open: Unable to open file");
 		return -1;
 	}
 
-	ldebug("binlog_get_saved: end.");
+	ldebug("binlog_open: end.");
 	return 0;
 }
 
@@ -723,6 +723,7 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 		fclose(file);
 		return NULL;
 	}
+	memset(bl, 0, sizeof(struct binlog));
 
 	ldebug("binlog_get_saved:   Read file content (%p) to binlog struct", file);
 	elements_read = fread(bl, sizeof(struct binlog), 1, file);
