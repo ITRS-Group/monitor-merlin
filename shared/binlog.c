@@ -41,25 +41,36 @@ static int safe_write(binlog *bl, void *buf, int len)
 {
 	int result;
 	off_t pos;
-
+	
+	ldebug("binlog_file_add: start, bl=%p", bl);
 	pos = lseek(bl->fd, 0, SEEK_CUR);
-	if (pos != bl->file_size)
+	ldebug("binlog_file_add:  lseek, pos=%d", (int) pos);
+	if (pos != bl->file_size) {
+		ldebug("binlog_file_add:  pos (%d) != file_size (%d)", (int) pos, (int) bl->file_size);
 		lseek(bl->fd, 0, SEEK_END);
+	}
+	ldebug("binlog_file_add:  call write");
 	result = write(bl->fd, buf, len);
-
+	ldebug("binlog_file_add:    result=%d", result);
 	if (result == len) {
+		ldebug("binlog_file_add:  result(%d) == len(%d)", result, len);
 		bl->file_write_pos = lseek(bl->fd, 0, SEEK_CUR);
+		ldebug("binlog_file_add:  lseek, pos=%d", bl->file_write_pos);
 		return 0;
 	}
-	if (result < 0)
+	if (result < 0) {
+		ldebug("binlog_file_add:  result is < 0");
 		return result;
+	}
 
 	/* partial write. this will mess up the sync */
 	if (pos != lseek(bl->fd, pos, SEEK_SET)) {
+		ldebug("binlog_file_add:  lseek, pos (%d) != lseek pos (%d)", (int) pos, (int) lseek(bl->fd, pos, SEEK_SET));
 		binlog_invalidate(bl);
+		ldebug("binlog_file_add:  call safe_write");
 		return BINLOG_EINVALID;
 	}
-
+	ldebug("binlog_file_add: end, incomplete (%d).", BINLOG_EINCOMPLETE);
 	return BINLOG_EINCOMPLETE;
 }
 
@@ -71,9 +82,12 @@ int binlog_is_valid(binlog *bl)
 
 void binlog_invalidate(binlog *bl)
 {
+	ldebug("binlog_file_add: start, bl=%p", bl);
 	binlog_close(bl);
 	bl->is_valid = 0;
+	ldebug("binlog_file_add:   unlink path (%s)", bl->path);
 	unlink(bl->path);
+	ldebug("binlog_file_add: end.");
 }
 
 const char *binlog_path(binlog *bl)
@@ -138,58 +152,86 @@ void binlog_wipe(binlog *bl, int flags)
 	unsigned long long int max_mem_size, max_file_size;
 	char *path;
 
-	if (!bl)
+	ldebug("binlog_wipe: bl=%p, flags=%d", bl, flags);
+	if (!bl) {
+		ldebug("binlog_wipe: bl is NULL");
 		return;
+	}
 
+	ldebug("binlog_wipe:   get info from bl");
 	max_mem_size = bl->max_mem_size;
 	max_file_size = bl->max_file_size;
 	path = bl->path;
 
+	ldebug("binlog_wipe:   path=%s msize=%d fsize=%d", path, max_mem_size, max_file_size);
 	if (!(flags & BINLOG_UNLINK)) {
+		ldebug("binlog_wipe:   get info from bl");
 		binlog_flush(bl);
 	}
 
 	binlog_close(bl);
 
+	ldebug("binlog_wipe:   check read vs write pos");
 	if (!(flags & BINLOG_UNLINK) || bl->file_read_pos == bl->file_write_pos) {
+		ldebug("binlog_wipe:   unlink path (%s)", bl->path);
 		unlink(bl->path);
 	}
 
+	ldebug("binlog_wipe:   check cache (%p)", bl->cache);
 	if (bl->cache) {
 		unsigned int i;
 
+		ldebug("binlog_wipe:   check read vs write pos");
 		for (i = 0; i < bl->write_index; i++) {
+			ldebug("binlog_wipe:   check entry (%d)", i);
 			struct binlog_entry *entry = bl->cache[i];
 
-			if (!entry )
+			if (!entry ) {
+				ldebug("binlog_wipe:   entry is NULL, skippping...");
 				continue;
+			}
 
+			ldebug("binlog_wipe:   check entry data (%p)", entry->data);
 			if (entry->data) {
+				ldebug("binlog_wipe:   free entry data (%p)", entry->data);
 				free(entry->data);
 				entry->data = NULL;
 			}
+
+			ldebug("binlog_wipe:   check entry (%p)", entry);
 			if (entry) {
+				ldebug("binlog_wipe:   free entry (%p)", entry);
 				free(entry);
 				entry = NULL;
 			}
 		}
+
+		ldebug("binlog_wipe:   check cache (%p)", bl->cache);
 		if (bl->cache) {
+			ldebug("binlog_wipe:   free cache (%p)", bl->cache);
 			free(bl->cache);
 			bl->cache = NULL;
 		}
 	}
 
+	ldebug("binlog_wipe:   memset bl ptr");
 	memset(bl, 0, sizeof(*bl));
+	ldebug("binlog_wipe:   reassign mem size (%d)", max_mem_size);
 	bl->max_mem_size = max_mem_size;
+	ldebug("binlog_wipe:   reassign file size (%d)", max_file_size);
 	bl->max_file_size = max_file_size;
+	ldebug("binlog_wipe:   reassign path (%s)", path);
 	bl->path = path;
+	ldebug("binlog_wipe:   reset is_valid");
 	bl->is_valid = 1;
+	ldebug("binlog_wipe:   reset fd");
 	bl->fd = -1;
+	ldebug("binlog_wipe: end.");
 }
 
 void binlog_destroy(binlog *bl, int flags)
 {
-	ldebug("binlog_destroy: bl=%p, flags=%d", bl, flags);
+	ldebug("binlog_destroy: start, bl=%p, flags=%d", bl, flags);
 	if (!bl) {
 		ldebug("binlog_destroy: bl is NULL");
 		return;
@@ -441,6 +483,7 @@ static int binlog_open(binlog *bl)
 		return -1;
 	}
 
+	ldebug("binlog_get_saved: end.");
 	return 0;
 }
 
@@ -485,21 +528,36 @@ static int binlog_file_add(binlog *bl, void *buf, unsigned int len)
 {
 	int ret;
 
+	ldebug("binlog_file_add: start, bl=%p", bl);
 	/* bail out early if there's no room */
-	if (bl->file_size + (off_t)len > bl->max_file_size)
+	if (bl->file_size + (off_t)len > bl->max_file_size) {
+		ldebug("binlog_file_add: file size (%d) exceeds max file size (%d)", bl->file_size + (off_t)len, bl->max_file_size);
 		return BINLOG_ENOSPC;
+	}
 
+	ldebug("binlog_file_add:   call binlog_open");
 	ret = binlog_open(bl);
-	if (ret < 0)
+	ldebug("binlog_file_add:     ret=%d", ret);
+	if (ret < 0) {
+		ldebug("binlog_file_add: failed to open");
 		return ret;
+	}
 
+	ldebug("binlog_file_add:   call safe_write");
 	ret = safe_write(bl, &len, sizeof(len));
-	if (ret)
+	ldebug("binlog_file_add:     ret=%d", ret);
+	if (ret) {
+		ldebug("binlog_file_add: return");
 		return ret;
-	ret = safe_write(bl, buf, len);
-	bl->file_size += len + sizeof(len);
-	bl->file_entries++;
+	}
 
+	ldebug("binlog_file_add:  call safe_write");
+	ret = safe_write(bl, buf, len);
+	ldebug("binlog_file_add:    ret=%d", ret);
+	bl->file_size += len + sizeof(len);
+	ldebug("binlog_file_add:  file size (%d)", bl->file_size);
+	bl->file_entries++;
+	ldebug("binlog_file_add: end, ret=%d file_entries=%d", ret, bl->file_entries);
 	return ret;
 }
 
@@ -528,44 +586,64 @@ int binlog_add(binlog *bl, void *buf, unsigned int len)
 
 int binlog_close(binlog *bl)
 {
+	ldebug("binlog_close: start, bl=%p", bl);
 	int ret = 0;
-
-	if (!bl)
+	
+	if (!bl) {
+		ldebug("binlog_close: bl is NULL");
 		return BINLOG_EADDRESS;
+	}
 
 	if (bl->fd != -1) {
+		ldebug("binlog_close:   close fd (%d)", bl->fd);
 		ret = close(bl->fd);
 		bl->fd = -1;
 	}
 
+	ldebug("binlog_close: end, ret=%d", ret);
 	return ret;
 }
 
 int binlog_flush(binlog *bl)
 {
-	if (!bl)
+	ldebug("binlog_flush: start, bl=%p", bl);
+	if (!bl) {
+		ldebug("binlog_flush: bl is NULL");
 		return BINLOG_EADDRESS;
+	}
 
+	ldebug("binlog_flush:   check cache (%p)", bl->cache);
 	if (bl->cache) {
+		ldebug("binlog_flush:   read index (%d) < write index (%d)", bl->read_index, bl->write_index);
 		while (bl->read_index < bl->write_index) {
+			ldebug("binlog_flush:   read index (%d)", bl->read_index);
 			binlog_entry *entry = bl->cache[bl->read_index++];
+			ldebug("binlog_flush:   call binlog_file_add");
 			binlog_file_add(bl, entry->data, entry->size);
+			ldebug("binlog_flush:   check entry data (%p)", entry->data);
 			if (entry->data) {
+				ldebug("binlog_flush:   free entry data (%p)", entry->data);
 				free(entry->data);
 				entry->data = NULL;
 			}
+			ldebug("binlog_flush:   check entry (%p)", entry);
 			if (entry) {
+				ldebug("binlog_flush:   free entry (%p)", entry);
 				free(entry);
 				entry = NULL;
 			}
 		}
+		ldebug("binlog_flush:   check cache (%p)", bl->cache);
 		if (bl->cache) {
+			ldebug("binlog_flush:   free cache (%p)", bl->cache);
 			free(bl->cache);
 			bl->cache = NULL;
 		}
 	}
+	ldebug("binlog_flush:   reset members to 0");
 	bl->mem_size = bl->write_index = bl->read_index = bl->alloc = 0;
 
+	ldebug("binlog_flush: end.");
 	return 0;
 }
 
