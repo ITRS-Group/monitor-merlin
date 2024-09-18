@@ -158,12 +158,14 @@ void binlog_wipe(binlog *bl, int flags)
 		return;
 	}
 
-	ldebug("binlog_wipe:   get info from bl");
+	ldebug("binlog_wipe:   get info from bl max_mem_size");
 	max_mem_size = bl->max_mem_size;
+	ldebug("binlog_wipe:   get info from bl max_file_size");
 	max_file_size = bl->max_file_size;
+	ldebug("binlog_wipe:   get info from bl path");
 	path = bl->path;
 
-	ldebug("binlog_wipe:   path=%s msize=%d fsize=%d", path, max_mem_size, max_file_size);
+	//ldebug("binlog_wipe:   path=%s msize=%d fsize=%d", path, max_mem_size, max_file_size);
 	if (!(flags & BINLOG_UNLINK)) {
 		ldebug("binlog_wipe:   get info from bl");
 		binlog_flush(bl);
