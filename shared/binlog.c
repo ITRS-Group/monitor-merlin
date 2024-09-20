@@ -589,6 +589,11 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 
 	/* free'd either here (binlog_destroy) or by the caller (node_binlog_read_saved) */
 	bl = malloc(sizeof(struct binlog));
+	if (bl == NULL) {
+		fclose(file);
+		return NULL;
+	}
+	memset(bl, 0, sizeof(struct binlog));
 
 	elements_read = fread(bl, sizeof(struct binlog), 1, file);
 	fclose(file);
