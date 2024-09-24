@@ -249,12 +249,22 @@ void binlog_destroy(binlog *bl, int flags)
 	}
 	ldebug("binlog_destroy:   meta=%s", bl->file_metadata_path);
 	if (bl->file_metadata_path) {
+		if( access( bl->file_metadata_path, F_OK ) == 0 ) {
+			ldebug("binlog_destroy:   delete meta file (%s).", bl->file_metadata_path);
+			unlink(bl->file_metadata_path);
+		}
 		ldebug("binlog_destroy:   free meta");
 		free(bl->file_metadata_path);
 		bl->file_metadata_path = NULL;
 	}
 	ldebug("binlog_destroy:   save=%s", bl->file_save_path);
 	if (bl->file_save_path) {
+		if( access( bl->file_save_path, F_OK ) == 0 ) {
+			/* For some reason we had a metadata file, but no save file. */
+			/* Delete the metadata file */
+			ldebug("binlog_destroy:   delete save file (%s).", bl->file_save_path);
+			unlink(bl->file_save_path);
+		}
 		ldebug("binlog_destroy:   free save");
 		free(bl->file_save_path);
 		bl->file_metadata_path = NULL;
@@ -734,16 +744,6 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 	ldebug("binlog_get_saved:   Read file content to binlog struct");
 	if (elements_read != 1) {
 		binlog_destroy(bl,BINLOG_UNLINK);
-		if( access( node_binlog->file_metadata_path, F_OK ) == 0 ) {
-			ldebug("binlog_get_saved: Delete invalid meta file (%s - %d).", node_binlog->file_metadata_path, elements_read);
-			unlink(node_binlog->file_metadata_path);
-		}
-		if( access( node_binlog->file_save_path, F_OK ) == 0 ) {
-			/* For some reason we had a metadata file, but no save file. */
-			/* Delete the metadata file */
-			ldebug("binlog_get_saved: Invalid meta file (%s - %d). Delete save file (%s).", node_binlog->file_metadata_path, elements_read, node_binlog->file_save_path);
-			unlink(node_binlog->file_save_path);
-		}
 		return NULL;
 	}
 
