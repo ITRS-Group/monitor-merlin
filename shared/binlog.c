@@ -20,22 +20,6 @@ struct binlog_entry {
 typedef struct binlog_entry binlog_entry;
 #define entry_size(entry) (entry->size + sizeof(struct binlog_entry))
 
-struct binlog {
-	struct binlog_entry **cache;
-	unsigned int write_index, read_index, file_entries;
-	unsigned int alloc;
-	unsigned int mem_size;
-	unsigned long long int max_mem_size;
-	unsigned int mem_avail;
-	off_t max_file_size, file_size, file_read_pos, file_write_pos;
-	int is_valid;
-	int should_warn_if_full;
-	char *path;
-	char *file_metadata_path;
-	char *file_save_path;
-	int fd;
-};
-
 /*** private helpers ***/
 static int safe_write(binlog *bl, void *buf, int len)
 {
@@ -173,10 +157,18 @@ void binlog_wipe(binlog *bl, int flags)
 
 	binlog_close(bl);
 
-	ldebug("binlog_wipe:   check read vs write pos");
+	ldebug("binlog_wipe:   check read (%d) vs write pos (%d)", bl->file_read_pos, bl->file_write_pos);
 	if (!(flags & BINLOG_UNLINK) || bl->file_read_pos == bl->file_write_pos) {
 		ldebug("binlog_wipe:   unlink path (%s)", bl->path);
 		unlink(bl->path);
+	}
+	
+	if (bl->file_save_path) {
+		ldebug("binlog_wipe:   check save file (%s) for delete (%d)", bl->file_save_path, (flags == BINLOG_DELALL));
+		if( (flags == BINLOG_DELALL) && (access( bl->file_save_path, F_OK ) == 0) ) {
+			ldebug("binlog_wipe:   unlink save (%s)", bl->file_save_path);
+			unlink(bl->file_save_path);
+		}
 	}
 
 	ldebug("binlog_wipe:   check cache (%p)", bl->cache);
@@ -249,22 +241,12 @@ void binlog_destroy(binlog *bl, int flags)
 	}
 	ldebug("binlog_destroy:   meta=%s", bl->file_metadata_path);
 	if (bl->file_metadata_path) {
-		if( access( bl->file_metadata_path, F_OK ) == 0 ) {
-			ldebug("binlog_destroy:   delete meta file (%s).", bl->file_metadata_path);
-			unlink(bl->file_metadata_path);
-		}
 		ldebug("binlog_destroy:   free meta");
 		free(bl->file_metadata_path);
 		bl->file_metadata_path = NULL;
 	}
 	ldebug("binlog_destroy:   save=%s", bl->file_save_path);
 	if (bl->file_save_path) {
-		if( access( bl->file_save_path, F_OK ) == 0 ) {
-			/* For some reason we had a metadata file, but no save file. */
-			/* Delete the metadata file */
-			ldebug("binlog_destroy:   delete save file (%s).", bl->file_save_path);
-			unlink(bl->file_save_path);
-		}
 		ldebug("binlog_destroy:   free save");
 		free(bl->file_save_path);
 		bl->file_metadata_path = NULL;
@@ -703,12 +685,15 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 	FILE * file;
 
 	ldebug("binlog_get_saved: start, node_binlog=%p", node_binlog);
+
 	/* Check if there is a saved binlog to read */
+	ldebug("binlog_get_saved:   Check if meta file exists (%s)", node_binlog->file_metadata_path);
 	if( access( node_binlog->file_metadata_path, F_OK ) != 0 ) {
 		ldebug("binlog_get_saved: No saved meta file.");
 		return NULL;
 	}
 
+	ldebug("binlog_get_saved:   Check if save file exists (%s)", node_binlog->file_save_path);
 	if( access( node_binlog->file_save_path, F_OK ) != 0 ) {
 		/* For some reason we had a metadata file, but no save file. */
 		/* Delete the metadata file */
@@ -734,7 +719,8 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 		return NULL;
 	}
 	memset(bl, 0, sizeof(struct binlog));
-
+	bl->path = strdup(node_binlog->file_metadata_path);
+	bl->file_save_path = strdup(node_binlog->file_save_path);
 	ldebug("binlog_get_saved:   Read file content (%p) to binlog struct", file);
 	elements_read = fread(bl, sizeof(struct binlog), 1, file);
 	ldebug("binlog_get_saved:   File elements %d. Close file.", elements_read);
@@ -743,7 +729,7 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 	/* Make sure we sucessfully read one binlog struct */
 	ldebug("binlog_get_saved:   Read file content to binlog struct");
 	if (elements_read != 1) {
-		binlog_destroy(bl,BINLOG_UNLINK);
+		binlog_destroy(bl,BINLOG_DELALL);
 		return NULL;
 	}
 
