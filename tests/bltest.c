@@ -727,10 +727,10 @@ static void test_binlog_empty(void)
 	struct binlog *bl, *saved_binlog;
 	FILE *meta, *save;
 
-	log_grok_var("log_file", "stdout");
-	log_grok_var("log_level", "debug");
-	log_grok_var("use_syslog", "1");
-	log_init();
+	// log_grok_var("log_file", "stdout");
+	// log_grok_var("log_level", "debug");
+	// log_grok_var("use_syslog", "1");
+	// log_init();
 
 	/* Create empty files */
 	meta = fopen(FILE_META, "w");
