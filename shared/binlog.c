@@ -18,6 +18,23 @@ struct binlog_entry {
 	void *data;
 };
 typedef struct binlog_entry binlog_entry;
+
+struct binlog {
+	struct binlog_entry **cache;
+	unsigned int write_index, read_index, file_entries;
+	unsigned int alloc;
+	unsigned int mem_size;
+	unsigned long long int max_mem_size;
+	unsigned int mem_avail;
+	off_t max_file_size, file_size, file_read_pos, file_write_pos;
+	int is_valid;
+	int should_warn_if_full;
+	char *path;
+	char *file_metadata_path;
+	char *file_save_path;
+	int fd;
+};
+
 #define entry_size(entry) (entry->size + sizeof(struct binlog_entry))
 
 /*** private helpers ***/
