@@ -154,6 +154,12 @@ void binlog_wipe(binlog *bl, int flags)
 		unlink(bl->path);
 	}
 
+	if (bl->file_save_path) {
+		if( (flags == BINLOG_DELALL) && (access( bl->file_save_path, F_OK ) == 0) ) {
+			unlink(bl->file_save_path);
+		}
+	}
+
 	if (bl->cache) {
 		unsigned int i;
 
@@ -595,6 +601,8 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 	}
 	memset(bl, 0, sizeof(struct binlog));
 
+	bl->path = strdup(node_binlog->file_metadata_path);
+	bl->file_save_path = strdup(node_binlog->file_save_path);
 	elements_read = fread(bl, sizeof(struct binlog), 1, file);
 	fclose(file);
 
