@@ -608,7 +608,7 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 
 	/* Make sure we sucessfully read one binlog struct */
 	if (elements_read != 1) {
-		binlog_destroy(bl,BINLOG_UNLINK);
+		binlog_destroy(bl,BINLOG_DELALL);
 		return NULL;
 	}
 

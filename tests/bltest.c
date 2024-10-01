@@ -741,6 +741,8 @@ static void test_binlog_empty(void)
 #define FILE_SAVE "/tmp/empty-binlog.save"
 	struct binlog *bl, *saved_binlog;
 	FILE *meta, *save;
+	unsigned long long int binlog_max_memory_size = 500;
+	unsigned long long int binlog_max_file_size = 5000;
 
 	// log_grok_var("log_file", "stdout");
 	// log_grok_var("log_level", "debug");
