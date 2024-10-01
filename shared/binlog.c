@@ -601,9 +601,9 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 	}
 	memset(bl, 0, sizeof(struct binlog));
 
+	elements_read = fread(bl, sizeof(struct binlog), 1, file);
 	bl->path = strdup(node_binlog->file_metadata_path);
 	bl->file_save_path = strdup(node_binlog->file_save_path);
-	elements_read = fread(bl, sizeof(struct binlog), 1, file);
 	fclose(file);
 
 	/* Make sure we sucessfully read one binlog struct */
