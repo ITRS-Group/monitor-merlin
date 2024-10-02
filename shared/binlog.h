@@ -15,6 +15,7 @@ typedef struct binlog binlog;
 
 #define BINLOG_APPEND 1
 #define BINLOG_UNLINK 2
+#define BINLOG_DELALL 3
 
 /**
  * Check if binlog is valid.
