@@ -155,7 +155,7 @@ void binlog_wipe(binlog *bl, int flags)
 	}
 
 	if (bl->file_save_path) {
-		if( (flags == BINLOG_DELALL) && (access( bl->file_save_path, F_OK ) == 0) ) {
+		if( (flags & BINLOG_UNLINK) && (access( bl->file_save_path, F_OK ) == 0) ) {
 			unlink(bl->file_save_path);
 		}
 	}
@@ -201,7 +201,7 @@ void binlog_destroy(binlog *bl, int flags)
 	}
 	if (bl->file_save_path) {
 		free(bl->file_save_path);
-		bl->file_metadata_path = NULL;
+		bl->file_save_path = NULL;
 	}
 
 	free(bl);
@@ -608,10 +608,12 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 
 	/* Make sure we sucessfully read one binlog struct */
 	if (elements_read != 1) {
-		binlog_destroy(bl,BINLOG_DELALL);
+		binlog_destroy(bl,BINLOG_UNLINK);
 		return NULL;
 	}
 
+	free(bl->file_save_path);
+	bl->file_save_path = NULL;
 	bl->file_metadata_path = strdup(node_binlog->file_metadata_path);
 	bl->path = strdup(node_binlog->file_save_path);
 	/* Need to reset the file descriptor as it won't be valid anymore */
