@@ -586,8 +586,9 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 	if (elements_read != 1) {
 		unlink(node_binlog->file_save_path);
 		unlink(node_binlog->file_metadata_path);
-		binlog_destroy(bl,BINLOG_UNLINK);
-		return NULL;
+		free(bl);
+		bl = NULL;
+		return NULL;																														
 	}
 
 	bl->file_metadata_path = strdup(node_binlog->file_metadata_path);
