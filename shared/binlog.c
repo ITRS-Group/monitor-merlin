@@ -20,22 +20,6 @@ struct binlog_entry {
 typedef struct binlog_entry binlog_entry;
 #define entry_size(entry) (entry->size + sizeof(struct binlog_entry))
 
-struct binlog {
-	struct binlog_entry **cache;
-	unsigned int write_index, read_index, file_entries;
-	unsigned int alloc;
-	unsigned int mem_size;
-	unsigned long long int max_mem_size;
-	unsigned int mem_avail;
-	off_t max_file_size, file_size, file_read_pos, file_write_pos;
-	int is_valid;
-	int should_warn_if_full;
-	char *path;
-	char *file_metadata_path;
-	char *file_save_path;
-	int fd;
-};
-
 /*** private helpers ***/
 static int safe_write(binlog *bl, void *buf, int len)
 {
@@ -195,7 +179,7 @@ void binlog_destroy(binlog *bl, int flags)
 	}
 	if (bl->file_save_path) {
 		free(bl->file_save_path);
-		bl->file_metadata_path = NULL;
+		bl->file_save_path = NULL;
 	}
 
 	free(bl);
@@ -589,14 +573,22 @@ binlog * binlog_get_saved(binlog * node_binlog) {
 
 	/* free'd either here (binlog_destroy) or by the caller (node_binlog_read_saved) */
 	bl = malloc(sizeof(struct binlog));
+	if (bl == NULL) {
+		fclose(file);
+		return NULL;
+	}
+	memset(bl, 0, sizeof(struct binlog));
 
 	elements_read = fread(bl, sizeof(struct binlog), 1, file);
 	fclose(file);
 
 	/* Make sure we sucessfully read one binlog struct */
 	if (elements_read != 1) {
-		binlog_destroy(bl,BINLOG_UNLINK);
-		return NULL;
+		unlink(node_binlog->file_save_path);
+		unlink(node_binlog->file_metadata_path);
+		free(bl);
+		bl = NULL;
+		return NULL;																														
 	}
 
 	bl->file_metadata_path = strdup(node_binlog->file_metadata_path);
