@@ -1,0 +1,17 @@
+diff --git a/Makefile.am b/Makefile.am
+index 154d65dc..54e5061b 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -43,10 +43,10 @@ mon_SCRIPTS = \
+ 	apps/libexec/test.py
+ 
+ monmoduledir = $(mondir)/modules
+-monmodule_PYTHON = apps/libexec/modules/*.py
++monmodule_DATA = apps/libexec/modules/*.py
+ # mai gawd
+ monmodulepytapdir = $(monmoduledir)/pytap
+-monmodulepytap_PYTHON = apps/libexec/modules/pytap/*.py
++monmodulepytap_DATA = apps/libexec/modules/pytap/*.py
+ monsyscheckdir = $(mondir)/syscheck
+ monsyscheck_SCRIPTS = \
+ 	apps/libexec/syscheck/db_mysql_check.sh \

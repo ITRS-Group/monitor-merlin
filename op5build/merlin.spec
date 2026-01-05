@@ -1,5 +1,7 @@
 %define mod_path /opt/monitor/op5/merlin
 %define nacoma_hook_dir /opt/monitor/op5/nacoma/hooks/save
+%define python_ver 3.12
+%define mon_dir %{_libdir}/merlin/mon
 
 # function service_control_function ("action", "service")
 # start/stop/restart a service
@@ -32,6 +34,7 @@ License: GPLv2
 Group: op5/Monitor
 URL: https://www.itrsgroup.com
 Source0: %name-%version.tar.gz
+Patch0: op5build/MON-13561_disable_py_compile.patch
 BuildRoot: %{_tmppath}/%{name}-%{version}
 Prefix: /opt/monitor
 Requires: libaio
@@ -53,7 +56,7 @@ Requires: op5kad
 BuildRequires: mysql-devel
 %endif
 BuildRequires: op5-naemon-devel
-BuildRequires: python39-devel
+BuildRequires: python%{python_ver}-devel
 BuildRequires: gperf
 BuildRequires: check-devel
 BuildRequires: autoconf, automake, libtool
@@ -76,7 +79,7 @@ Requires: merlin-apps-slim >= %version
 Requires: glib2
 Requires: op5-monitor-user
 BuildRequires: op5-naemon-devel
-BuildRequires: python39-devel
+BuildRequires: python%{python_ver}-devel
 BuildRequires: gperf
 BuildRequires: check-devel
 BuildRequires: autoconf, automake, libtool
@@ -127,7 +130,7 @@ Requires: libdbi1
 Requires: python-mysql
 %else
 %if 0%{?rhel} >= 8
-Requires: python39-PyMySQL
+Requires: python%{python_ver}-PyMySQL
 %else
 Requires: MySQL-python
 %endif
@@ -137,7 +140,7 @@ Requires: unixcat
 # php-cli for mon node tree
 Requires: php-cli
 Requires: procps-ng
-Requires: python39-livestatus
+Requires: python%{python_ver}-livestatus
 Obsoletes: monitor-distributed
 Obsoletes: merlin-apps-slim
 
@@ -165,12 +168,11 @@ Requires: python3
 # php-cli for mon node tree
 Requires: php-cli
 Requires: procps-ng
-Requires: python39-livestatus
 %if 0%{?rhel} >= 8
-Requires: python3-docopt
-Requires: python3-cryptography
-Requires: python3-paramiko
+Requires: python%{python_ver}-livestatus
+Requires: python%{python_ver}-cryptography
 %else
+Requires: python39-livestatus
 Requires: python36-docopt
 Requires: python36-cryptography
 Requires: python36-paramiko
@@ -201,7 +203,7 @@ Requires: abrt-cli
 Requires: libyaml
 Requires: mariadb-devel
 Requires: ruby-devel
-Requires: python3-pytest
+Requires: python%{python_ver}-pytest
 # Required development tools for building gems
 Requires: make automake gcc
 Requires: redhat-rpm-config
@@ -212,6 +214,9 @@ Some additional test files for merlin
 
 %prep
 %setup -q
+# Apply patch to disable byte compilation for python modules. This can be
+# removed once a newer version of automake (>1.16.1) can be used.
+%patch0 -p1
 
 %build
 echo %{version} > .version_number
@@ -238,6 +243,7 @@ mkdir -p %{buildroot}%{nacoma_hook_dir}
 sed -i 's#@@LIBEXECDIR@@#%_libdir/merlin#' op5build/nacoma_hook.py
 install -m 0755 op5build/nacoma_hook.py %{buildroot}%{nacoma_hook_dir}/merlin_hook.py
 %py_byte_compile %{python3} %{buildroot}%{nacoma_hook_dir}/
+%py_byte_compile %{python3} %{buildroot}%{mon_dir}/
 
 mkdir -p %buildroot%_sysconfdir/nrpe.d
 cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
@@ -461,6 +467,9 @@ fi
 rm -rf %buildroot
 
 %changelog
+* Wed Sep 24 2025 Jerick Macario <jmacario@itrsgroup.com>
+- Update Python to version 3.12
+- Temporary patch to move out python byte compile for apps module.
 * Fri Aug 27 2021 Aksel Sjögren <asjogren@itrsgroup.com>
 - Remove cron jobs.
 * Thu Feb 11 2021 Aksel Sjögren <asjogren@itrsgroup.com>
