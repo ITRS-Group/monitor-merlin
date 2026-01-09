@@ -51,10 +51,21 @@ PKG_CHECK_MODULES([GIO_UNIX], [gio-unix-2.0])
 PKG_CHECK_MODULES([check], [check])
 
 # am_missing_prog doesn't seem to fail, so add redundant checks
-AM_MISSING_PROG([PYTHON], [python3.9])
-AC_CHECK_PROG(PYTHON_CHECK,python3.9,yes)
-if test x"$PYTHON_CHECK" != x"yes" ; then
-	AC_MSG_ERROR([You need to install python3.9])
+# AM_PATH_PYTHON (called above) sets PYTHON variable
+# Verify that PYTHON is set and check version is 3.9 or higher
+if test -z "$PYTHON"; then
+	AC_MSG_ERROR([Python not found])
+fi
+
+# Verify the Python version is 3.9 or higher
+AC_MSG_CHECKING([Python version])
+PYTHON_VERSION=`$PYTHON -c "import sys; print('%d.%d' % (sys.version_info.major, sys.version_info.minor))"`
+PYTHON_MAJOR=`$PYTHON -c "import sys; print(sys.version_info.major)"`
+PYTHON_MINOR=`$PYTHON -c "import sys; print(sys.version_info.minor)"`
+AC_MSG_RESULT([$PYTHON_VERSION])
+
+if test "$PYTHON_MAJOR" -lt 3 || test "$PYTHON_MAJOR" -eq 3 -a "$PYTHON_MINOR" -lt 9; then
+	AC_MSG_ERROR([Python 3.9 or higher is required, but found version $PYTHON_VERSION])
 fi
 
 AM_MISSING_PROG([GPERF], [gperf])
