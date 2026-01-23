@@ -12,7 +12,7 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
-AM_PATH_PYTHON
+AM_PATH_PYTHON([3.9])
 
 
 AM_CFLAGS=$naemon_CFLAGS
@@ -49,13 +49,6 @@ PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GIO], [gio-2.0])
 PKG_CHECK_MODULES([GIO_UNIX], [gio-unix-2.0])
 PKG_CHECK_MODULES([check], [check])
-
-# am_missing_prog doesn't seem to fail, so add redundant checks
-AM_MISSING_PROG([PYTHON], [python3.9])
-AC_CHECK_PROG(PYTHON_CHECK,python3.9,yes)
-if test x"$PYTHON_CHECK" != x"yes" ; then
-	AC_MSG_ERROR([You need to install python3.9])
-fi
 
 AM_MISSING_PROG([GPERF], [gperf])
 AC_CHECK_PROG(GPERF_CHECK,gperf,yes)

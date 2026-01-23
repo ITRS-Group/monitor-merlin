@@ -223,6 +223,7 @@ echo %{version} > .version_number
 autoreconf -i -s
 %configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=/opt/monitor/etc/mconf --with-naemon-user=monitor --with-naemon-group=%daemon_user --with-logdir=/var/log/op5/merlin --with-ls-socket=/opt/monitor/var/rw/live_tmp --datarootdir=%_datadir %init_scripts
 
+export PYTHON=python%{python_ver}
 %__make V=1
 %__make V=1 check
 
