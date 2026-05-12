@@ -18,7 +18,7 @@ post:
 
     # Run unit tests
     pushd /mnt/git/apps/libexec
-    python3 -m pytest
+    python3.12 -m pytest
     popd
 
     # Verify file permissions after installation

@@ -1,3 +1,4 @@
+#include "config.h"
 #include "shared.h"
 #include "misc.h"
 #include "logging.h"
@@ -194,7 +195,11 @@ static gboolean nsplit_cache_host(gpointer _name, gpointer _hst, __attribute__((
 	nsplit_cache_slaves(h);
 
 	tmphst = create_host(h->name);
+#ifdef HAVE_SETUP_HOST_VARIABLES_CHECK_TIMEOUT
+	setup_host_variables(tmphst, h->display_name, h->alias, h->address, h->check_period, h-> initial_state, host_check_timeout, h->check_interval, h->retry_interval, h->max_attempts, h->notification_options, h->notification_interval, h->first_notification_delay, h->notification_period, h->notifications_enabled, h->check_command, h->checks_enabled, h->accept_passive_checks, h->event_handler, h->event_handler_enabled, h->flap_detection_enabled, h->low_flap_threshold, h->high_flap_threshold, h->flap_detection_options, h->stalking_options, h->process_performance_data, h->check_freshness, h->freshness_threshold, h->notes, h->notes_url, h->action_url, h->icon_image, h->icon_image_alt, h->vrml_image, h->statusmap_image, h->x_2d, h->y_2d, h->have_2d_coords, h->x_3d, h->y_3d, h->z_3d, h->have_3d_coords, h->retain_status_information, h->retain_nonstatus_information, h->obsess, h->hourly_value);
+#else
 	setup_host_variables(tmphst, h->display_name, h->alias, h->address, h->check_period, h-> initial_state, h->check_interval, h->retry_interval, h->max_attempts, h->notification_options, h->notification_interval, h->first_notification_delay, h->notification_period, h->notifications_enabled, h->check_command, h->checks_enabled, h->accept_passive_checks, h->event_handler, h->event_handler_enabled, h->flap_detection_enabled, h->low_flap_threshold, h->high_flap_threshold, h->flap_detection_options, h->stalking_options, h->process_performance_data, h->check_freshness, h->freshness_threshold, h->notes, h->notes_url, h->action_url, h->icon_image, h->icon_image_alt, h->vrml_image, h->statusmap_image, h->x_2d, h->y_2d, h->have_2d_coords, h->x_3d, h->y_3d, h->z_3d, h->have_3d_coords, h->retain_status_information, h->retain_nonstatus_information, h->obsess, h->hourly_value);
+#endif
 
 	g_tree_foreach(h->parent_hosts, copy_relevant_parents, tmphst);
 	for (cm = h->contacts; cm; cm = cm->next)
@@ -219,7 +224,11 @@ static gboolean nsplit_cache_host(gpointer _name, gpointer _hst, __attribute__((
 	for (sm = h->services; sm; sm = sm->next) {
 		struct service *s = sm->service_ptr;
 		struct service *tmpsvc = create_service(tmphst, s->description);
+#ifdef HAVE_SETUP_SERVICE_VARIABLES_CHECK_TIMEOUT
+		setup_service_variables(tmpsvc, s->display_name, s->check_period, s->check_command, s->initial_state, service_check_timeout, s->max_attempts, s->accept_passive_checks, s->check_interval, s->retry_interval, s->notification_interval, s->first_notification_delay, s->notification_period, s->notification_options, s->notifications_enabled, s->is_volatile, s->event_handler, s->event_handler_enabled, s->checks_enabled, s->flap_detection_enabled, s->low_flap_threshold, s->high_flap_threshold, s->flap_detection_options, s->stalking_options, s->process_performance_data, s->check_freshness, s->freshness_threshold, s->notes, s->notes_url, s->action_url, s->icon_image, s->icon_image_alt, s->retain_status_information, s->retain_nonstatus_information, s->obsess, s->hourly_value);
+#else
 		setup_service_variables(tmpsvc, s->display_name, s->check_command, s->check_period, s->initial_state, s->max_attempts, s->accept_passive_checks, s->check_interval, s->retry_interval, s->notification_interval, s->first_notification_delay, s->notification_period, s->notification_options, s->notifications_enabled, s->is_volatile, s->event_handler, s->event_handler_enabled, s->checks_enabled, s->flap_detection_enabled, s->low_flap_threshold, s->high_flap_threshold, s->flap_detection_options, s->stalking_options, s->process_performance_data, s->check_freshness, s->freshness_threshold, s->notes, s->notes_url, s->action_url, s->icon_image, s->icon_image_alt, s->retain_status_information, s->retain_nonstatus_information, s->obsess, s->hourly_value);
+#endif
 		for (cm = s->contacts; cm; cm = cm->next)
 			add_contact_to_service(tmpsvc, cm->contact_name);
 		for (cgm = s->contact_groups; cgm; cgm = cgm->next)

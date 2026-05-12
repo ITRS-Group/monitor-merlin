@@ -959,6 +959,27 @@ class fake_mesh:
 			'%s should %ssend service notifications' % (inst.name, ('', 'not ')[services == False]))
 
 
+	def _test_passive_checks_all_hosts_down(self, sub):
+		"""Ensure first passive host results are visible on all nodes.
+		Before verifying DOWN vs UNREACHABLE masking we need all hosts to be
+		in a non-OK problem state everywhere, otherwise early second-wave
+		submits can cause non-deterministic host masking.
+		"""
+		query = 'GET hosts\nColumns: host_name\nFilter: state = 0'
+		for inst in self.instances:
+			value = inst.live.query(query)
+			ret = sub.test(
+				len(value), 0,
+				'%s should have no UP hosts before masking submit, had %d UP hosts'
+				% (inst.name, len(value))
+			)
+			if ret == False:
+				sub.diag('UP hosts:')
+				for l in value:
+					sub.diag('  %s' % l[0])
+		return sub.get_status() == 0
+
+
 	def _test_passive_checks(self, sub):
 		"""verifies passive check propagation
 		One host per peer-group should be DOWN, the rest should be
@@ -1025,8 +1046,15 @@ class fake_mesh:
 			ret = master.submit_raw_command('PROCESS_HOST_CHECK_RESULT;%s;1;Plugin output for host %s' % (host, host))
 			sub.test(ret, True, "Setting status of host %s" % host)
 		
-		# make sure all hosts are in some down state, so parents will be masked
-		self.intermission("Letting down states propagate", 5)
+		# Make sure first-wave host states are visible on every node before
+		# doing the second masking submission. A fixed sleep is too fragile on
+		# slower environments (for example EL9), causing DOWN/UNREACHABLE skew.
+		if not self._test_until_or_fail(
+			"passive host down propagation",
+			self._test_passive_checks_all_hosts_down,
+			30
+		):
+			return sub.done() == 0
 		
 		# resubmit to mask hosts, according to previously down states
 		for host in self.masters.have_objects['host']:
@@ -1558,6 +1586,10 @@ class fake_mesh:
 		ret = []
 		try:
 			self.dbc.execute("CREATE DATABASE %s" % inst.db_name)
+   			# Grant both localhost and wildcard hosts. On EL9/MariaDB, a
+			# pre-existing merlin@localhost account can take precedence over
+			# merlin@'%' and otherwise cause access denied for local connects.
+			self.dbc.execute("GRANT ALL ON %s.* TO merlin@'localhost' IDENTIFIED BY 'merlin'" % inst.db_name)
 			self.dbc.execute("GRANT ALL ON %s.* TO merlin@'%%' IDENTIFIED BY 'merlin'" % inst.db_name)
 			self.dbc.execute("USE merlin")
 			self.dbc.execute('SHOW TABLES')
