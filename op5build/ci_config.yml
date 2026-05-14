@@ -8,6 +8,7 @@ post:
     - gcc
     - zlib-devel
     - mariadb-devel
+    - bzip2
   steps: |
     set -x
     mkdir --parents --mode=777 /mnt/logs/merlin_dtest
