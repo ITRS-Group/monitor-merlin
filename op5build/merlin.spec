@@ -2,6 +2,10 @@
 %define nacoma_hook_dir /opt/monitor/op5/nacoma/hooks/save
 %define python_ver 3.12
 %define mon_dir %{_libdir}/merlin/mon
+%if 0%{?rhel} >= 9
+%global __python3 /usr/bin/python%{python_ver}
+%endif
+
 
 # function service_control_function ("action", "service")
 # start/stop/restart a service
@@ -50,7 +54,7 @@ BuildRequires: libsodium-devel
 %if 0%{?rhel} >= 7
 BuildRequires: systemd
 BuildRequires: mariadb-devel
-Obsoletes: merlin-slim
+Obsoletes: merlin-slim < %{version}-%{release}
 %else
 Requires: op5kad
 BuildRequires: mysql-devel
@@ -164,7 +168,11 @@ Group: op5/Monitor
 Requires: rsync
 Requires: openssh
 Requires: openssh-clients
+%if 0%{?rhel} >= 9
+Requires: python%{python_ver}
+%else
 Requires: python3
+%endif
 # php-cli for mon node tree
 Requires: php-cli
 Requires: procps-ng
@@ -176,7 +184,7 @@ Requires: python39-livestatus
 Requires: python36-docopt
 Requires: python36-cryptography
 Requires: python36-paramiko
-%endif # 0%{?rhel} >= 8
+%endif
 
 %description apps-slim
 This package contains standalone applications required by Ninja and
@@ -199,7 +207,11 @@ Requires: op5-lmd
 Requires: op5-naemon
 Requires: merlin merlin-apps monitor-merlin
 Requires: monitor-testthis
+%if 0%{?rhel} >= 9
+Requires: /usr/bin/coredumpctl
+%else
 Requires: abrt-cli
+%endif
 Requires: libyaml
 Requires: mariadb-devel
 Requires: ruby-devel
@@ -219,15 +231,17 @@ Some additional test files for merlin
 %patch0 -p1
 
 %build
+export PYTHON=%__python3
 echo %{version} > .version_number
 autoreconf -i -s
+
 %configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=/opt/monitor/etc/mconf --with-naemon-user=monitor --with-naemon-group=%daemon_user --with-logdir=/var/log/op5/merlin --with-ls-socket=/opt/monitor/var/rw/live_tmp --datarootdir=%_datadir %init_scripts
 
-export PYTHON=python%{python_ver}
 %__make V=1
 %__make V=1 check
 
 %install
+export PYTHON=%__python3
 %make_install naemon_user=$(id -un) naemon_group=$(id -gn)
 
 ln -s ../../../../usr/bin/merlind %buildroot/%mod_path/merlind
