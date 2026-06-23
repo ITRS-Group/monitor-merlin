@@ -2,9 +2,7 @@
 %define nacoma_hook_dir /opt/monitor/op5/nacoma/hooks/save
 %define python_ver 3.12
 %define mon_dir %{_libdir}/merlin/mon
-%if 0%{?rhel} >= 9
 %global __python3 /usr/bin/python%{python_ver}
-%endif
 
 
 # function service_control_function ("action", "service")
@@ -168,11 +166,7 @@ Group: op5/Monitor
 Requires: rsync
 Requires: openssh
 Requires: openssh-clients
-%if 0%{?rhel} >= 9
 Requires: python%{python_ver}
-%else
-Requires: python3
-%endif
 # php-cli for mon node tree
 Requires: php-cli
 Requires: procps-ng
@@ -207,11 +201,7 @@ Requires: op5-lmd
 Requires: op5-naemon
 Requires: merlin merlin-apps monitor-merlin
 Requires: monitor-testthis
-%if 0%{?rhel} >= 9
-Requires: /usr/bin/coredumpctl
-%else
-Requires: abrt-cli
-%endif
+Requires: systemd-udev
 Requires: libyaml
 Requires: mariadb-devel
 Requires: ruby-devel
