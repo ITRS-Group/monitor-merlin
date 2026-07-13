@@ -487,7 +487,7 @@ rm -rf %buildroot
 
 %changelog
 * Mon Jul 13 2026 Jerick Macario <jmacario@itrsgroup.com>
-- Fix EL9 shebangs via py3_shebang_fix, sed, and ordered byte-compile.
+- EL9 platform support: Python 3.12 packaging, Naemon ABI, CI and test fixes
 * Wed Sep 24 2025 Jerick Macario <jmacario@itrsgroup.com>
 - Update Python to version 3.12
 - Temporary patch to move out python byte compile for apps module.
