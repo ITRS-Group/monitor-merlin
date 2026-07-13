@@ -253,10 +253,16 @@ install -m 0755 op5build/nacoma_hook.py %{buildroot}%{nacoma_hook_dir}/merlin_ho
 
 # brp-mangle-shebangs still runs after install; rewrites env python3 to 3.9.
 # Set shebangs to Python 3.12 before that step.
-%py3_shebang_fix -pni "%{__python3} %{py3_shbang_opts}" \
+%py3_shebang_fix \
 	%{buildroot}%{mon_dir} \
 	%{buildroot}%{_bindir}/merlin_cluster_tools \
 	%{buildroot}%{nacoma_hook_dir}/merlin_hook.py
+# pathfix writes "#! /path" (space after #!); normalize to "#!/path"
+sed -i '1s/^#! \//#!\//' \
+	%{buildroot}%{_bindir}/merlin_cluster_tools \
+	%{buildroot}%{nacoma_hook_dir}/merlin_hook.py
+find %{buildroot}%{mon_dir} -name '*.py' -exec grep -Il '^#! ' {} + 2>/dev/null \
+	| while read -r f; do sed -i '1s/^#! \//#!\//' "$f"; done
 
 mkdir -p %buildroot%_sysconfdir/nrpe.d
 cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
