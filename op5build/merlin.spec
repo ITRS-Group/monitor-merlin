@@ -1,8 +1,9 @@
+# Drop automatic brp-python-bytecompile; we compile manually in install.
+%global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-bytecompile[[:space:]].*$!!g')
 %define mod_path /opt/monitor/op5/merlin
 %define nacoma_hook_dir /opt/monitor/op5/nacoma/hooks/save
-%define python_ver 3.12
 %define mon_dir %{_libdir}/merlin/mon
-%global __python3 /usr/bin/python%{python_ver}
+%global python3_pkgversion 3.12
 
 
 # function service_control_function ("action", "service")
@@ -58,7 +59,7 @@ Requires: op5kad
 BuildRequires: mysql-devel
 %endif
 BuildRequires: op5-naemon-devel
-BuildRequires: python%{python_ver}-devel
+BuildRequires: python%{python3_pkgversion}-devel
 BuildRequires: gperf
 BuildRequires: check-devel
 BuildRequires: autoconf, automake, libtool
@@ -81,7 +82,7 @@ Requires: merlin-apps-slim >= %version
 Requires: glib2
 Requires: op5-monitor-user
 BuildRequires: op5-naemon-devel
-BuildRequires: python%{python_ver}-devel
+BuildRequires: python%{python3_pkgversion}-devel
 BuildRequires: gperf
 BuildRequires: check-devel
 BuildRequires: autoconf, automake, libtool
@@ -132,7 +133,7 @@ Requires: libdbi1
 Requires: python-mysql
 %else
 %if 0%{?rhel} >= 8
-Requires: python%{python_ver}-PyMySQL
+Requires: python%{python3_pkgversion}-PyMySQL
 %else
 Requires: MySQL-python
 %endif
@@ -142,7 +143,7 @@ Requires: unixcat
 # php-cli for mon node tree
 Requires: php-cli
 Requires: procps-ng
-Requires: python%{python_ver}-livestatus
+Requires: python%{python3_pkgversion}-livestatus
 Obsoletes: monitor-distributed
 Obsoletes: merlin-apps-slim
 
@@ -166,13 +167,13 @@ Group: op5/Monitor
 Requires: rsync
 Requires: openssh
 Requires: openssh-clients
-Requires: python%{python_ver}
+Requires: python%{python3_pkgversion}
 # php-cli for mon node tree
 Requires: php-cli
 Requires: procps-ng
 %if 0%{?rhel} >= 8
-Requires: python%{python_ver}-livestatus
-Requires: python%{python_ver}-cryptography
+Requires: python%{python3_pkgversion}-livestatus
+Requires: python%{python3_pkgversion}-cryptography
 %else
 Requires: python39-livestatus
 Requires: python36-docopt
@@ -205,7 +206,7 @@ Requires: systemd-udev
 Requires: libyaml
 Requires: mariadb-devel
 Requires: ruby-devel
-Requires: python%{python_ver}-pytest
+Requires: python%{python3_pkgversion}-pytest
 # Required development tools for building gems
 Requires: make automake gcc
 Requires: redhat-rpm-config
@@ -247,8 +248,15 @@ cp -r apps/tests %buildroot/usr/share/merlin/app-tests
 mkdir -p %{buildroot}%{nacoma_hook_dir}
 sed -i 's#@@LIBEXECDIR@@#%_libdir/merlin#' op5build/nacoma_hook.py
 install -m 0755 op5build/nacoma_hook.py %{buildroot}%{nacoma_hook_dir}/merlin_hook.py
-%py_byte_compile %{python3} %{buildroot}%{nacoma_hook_dir}/
-%py_byte_compile %{python3} %{buildroot}%{mon_dir}/
+%py_byte_compile %{__python3} %{buildroot}%{nacoma_hook_dir}/
+%py_byte_compile %{__python3} %{buildroot}%{mon_dir}/
+
+# brp-mangle-shebangs still runs after install; rewrites env python3 to 3.9.
+# Set shebangs to Python 3.12 before that step.
+%py3_shebang_fix -pni "%{__python3} %{py3_shbang_opts}" \
+	%{buildroot}%{mon_dir} \
+	%{buildroot}%{_bindir}/merlin_cluster_tools \
+	%{buildroot}%{nacoma_hook_dir}/merlin_hook.py
 
 mkdir -p %buildroot%_sysconfdir/nrpe.d
 cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
@@ -262,8 +270,8 @@ cp data/kad.conf %buildroot%_sysconfdir/op5kad/conf.d/merlin.kad
 %endif
 
 %check
-%{python3} tests/pyunit/test_log.py --verbose
-%{python3} tests/pyunit/test_oconf.py --verbose
+%{__python3} tests/pyunit/test_log.py --verbose
+%{__python3} tests/pyunit/test_oconf.py --verbose
 
 
 %post
