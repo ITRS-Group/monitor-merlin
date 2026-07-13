@@ -1586,7 +1586,7 @@ class fake_mesh:
 		ret = []
 		try:
 			self.dbc.execute("CREATE DATABASE %s" % inst.db_name)
-   			# Grant both localhost and wildcard hosts. On EL9/MariaDB, a
+			# Grant both localhost and wildcard hosts. On EL9/MariaDB, a
 			# pre-existing merlin@localhost account can take precedence over
 			# merlin@'%' and otherwise cause access denied for local connects.
 			self.dbc.execute("GRANT ALL ON %s.* TO merlin@'localhost' IDENTIFIED BY 'merlin'" % inst.db_name)

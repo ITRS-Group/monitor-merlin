@@ -248,15 +248,21 @@ cp -r apps/tests %buildroot/usr/share/merlin/app-tests
 mkdir -p %{buildroot}%{nacoma_hook_dir}
 sed -i 's#@@LIBEXECDIR@@#%_libdir/merlin#' op5build/nacoma_hook.py
 install -m 0755 op5build/nacoma_hook.py %{buildroot}%{nacoma_hook_dir}/merlin_hook.py
-%py_byte_compile %{__python3} %{buildroot}%{nacoma_hook_dir}/
-%py_byte_compile %{__python3} %{buildroot}%{mon_dir}/
 
-# brp-mangle-shebangs still runs after install; rewrites env python3 to 3.9.
-# Set shebangs to Python 3.12 before that step.
-%py3_shebang_fix -pni "%{__python3} %{py3_shbang_opts}" \
+# brp-mangle-shebangs still runs after install;
+# Set shebangs to Python 3.12, normalize, then byte-compile final sources.
+%py3_shebang_fix \
 	%{buildroot}%{mon_dir} \
 	%{buildroot}%{_bindir}/merlin_cluster_tools \
 	%{buildroot}%{nacoma_hook_dir}/merlin_hook.py
+# pathfix writes "#! /path" (space after #!); normalize to "#!/path"
+sed -i '1s/^#! \//#!\//' \
+	%{buildroot}%{_bindir}/merlin_cluster_tools \
+	%{buildroot}%{nacoma_hook_dir}/merlin_hook.py
+find %{buildroot}%{mon_dir} -name '*.py' -exec grep -Il '^#! ' {} + 2>/dev/null \
+	| while read -r f; do sed -i '1s/^#! \//#!\//' "$f"; done
+%py_byte_compile %{__python3} %{buildroot}%{nacoma_hook_dir}/merlin_hook.py
+%py_byte_compile %{__python3} %{buildroot}%{mon_dir}/
 
 mkdir -p %buildroot%_sysconfdir/nrpe.d
 cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
@@ -480,6 +486,8 @@ fi
 rm -rf %buildroot
 
 %changelog
+* Mon Jul 13 2026 Jerick Macario <jmacario@itrsgroup.com>
+- EL9 platform support: Python 3.12 packaging, Naemon ABI, CI and test fixes
 * Wed Sep 24 2025 Jerick Macario <jmacario@itrsgroup.com>
 - Update Python to version 3.12
 - Temporary patch to move out python byte compile for apps module.
