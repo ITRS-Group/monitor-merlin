@@ -261,7 +261,7 @@ sed -i '1s/^#! \//#!\//' \
 	%{buildroot}%{nacoma_hook_dir}/merlin_hook.py
 find %{buildroot}%{mon_dir} -name '*.py' -exec grep -Il '^#! ' {} + 2>/dev/null \
 	| while read -r f; do sed -i '1s/^#! \//#!\//' "$f"; done
-%py_byte_compile %{__python3} %{buildroot}%{nacoma_hook_dir}/
+%py_byte_compile %{__python3} %{buildroot}%{nacoma_hook_dir}/merlin_hook.py
 %py_byte_compile %{__python3} %{buildroot}%{mon_dir}/
 
 mkdir -p %buildroot%_sysconfdir/nrpe.d
