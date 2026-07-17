@@ -715,6 +715,63 @@ static void test_binlog_leakage(void)
 	binlog_destroy(bl, BINLOG_UNLINK);
 }
 
+
+/*
+ * Test the binlog api for empty binlog file
+ */
+static void test_binlog_empty(void)
+{
+#define FILE_BLOG "/tmp/empty-binlog"
+#define FILE_META "/tmp/empty-binlog.meta"
+#define FILE_SAVE "/tmp/empty-binlog.save"
+	struct binlog *bl, *saved_binlog;
+	FILE *meta, *save;
+	unsigned long long int binlog_max_memory_size = 500;
+	unsigned long long int binlog_max_file_size = 5000;
+
+	/* Create empty files */
+	meta = fopen(FILE_META, "w");
+	if (!meta) {
+		t_fail("Failed to open %s", FILE_META);
+		return;
+	}
+	save = fopen(FILE_SAVE, "w");
+	if (!save) {
+		t_fail("Failed to open %s", FILE_SAVE);
+		fclose(meta);
+		return;
+	}
+	fclose(meta);
+	fclose(save);
+
+	bl = binlog_create(FILE_BLOG, binlog_max_memory_size * 1024 * 1024, binlog_max_file_size * 1024 * 1024, BINLOG_UNLINK);
+	if (!bl) {
+		t_fail("Failed to create binlog");
+		return;
+	}
+
+	saved_binlog = binlog_get_saved(bl);
+	if (saved_binlog) {
+		t_fail("Unexpected saved binlog returned");
+		binlog_destroy(bl, BINLOG_UNLINK);
+		return;
+	} else {
+		t_pass("No saved binlog returned");
+	}
+
+	if( access( bl->file_metadata_path, F_OK ) == 0 ) {
+		t_fail("Metadata file should not exist");
+		return;
+	}
+
+	if( access( bl->file_save_path, F_OK ) == 0 ) {
+		t_fail("Save file should not exist");
+		return;
+	}
+
+	t_pass("Metadata handling is correct");
+}
+
 int main(__attribute__((unused)) int argc, __attribute__((unused)) char **argv)
 {
 	uint i;
@@ -756,5 +813,6 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char **argv)
 	}
 
 	test_binlog_leakage();
+	test_binlog_empty();
 	return t_end();
 }

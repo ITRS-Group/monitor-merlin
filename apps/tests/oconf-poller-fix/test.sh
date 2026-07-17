@@ -11,7 +11,7 @@ echo "self_path=$self_path"
 echo "cwd=$cwd"
 cp $self_path/test-config.cfg $self_path/fixme.cfg
 # Running this command twice should still result in the same output file
-cmd="python3.9 $mon
+cmd="$PYTHON $mon
 	--libexecdir=$libexecdir
 	--merlin-cfg=$self_path/merlin.conf
 	--nagios-conf=$self_path/fixme.cfg
