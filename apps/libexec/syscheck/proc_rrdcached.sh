@@ -1,7 +1,15 @@
 handler_desc='Checks the process state of the RRD caching daemon.'
 handler_exec()
 {
-  lockfile_rhel='/opt/monitor/var/rrdtool/rrdcached/rrdcached.pid'
+  local state_dir sock_path journal_dir perfdata_dir
+  local rrdcached_bin _pid
+
+  state_dir='/opt/monitor/var/rrdtool/rrdcached'
+  sock_path="${state_dir}/rrdcached.sock"
+  lockfile_rhel="${state_dir}/rrdcached.pid"
+  journal_dir="${state_dir}/journal"
+  perfdata_dir='/opt/monitor/op5/pnp/perfdata'
+  rrdcached_bin='/usr/bin/rrdcached'
   lockfile_sles="$lockfile_rhel"
   max='1'
 
@@ -14,6 +22,11 @@ handler_exec()
     # Trim trailing whitespace left by the final NUL.
     raw="${raw%"${raw##*[![:space:]]}"}"
     [ -n "$raw" ] || return 1
+    # Reject recycled PIDs that are not rrdcached.
+    case "$raw" in
+      "${rrdcached_bin} "*|"rrdcached "*) ;;
+      *) return 1 ;;
+    esac
     printf '%s' "$raw"
   }
 
@@ -29,7 +42,7 @@ handler_exec()
     [ "$_pid" != '0' ] && cmdline_rhel="$(_rrdcached_cmdline_from_pid "$_pid")"
   fi
   if [ -z "$cmdline_rhel" ]; then
-    cmdline_rhel='/usr/bin/rrdcached -g -l unix:/opt/monitor/var/rrdtool/rrdcached/rrdcached.sock -b /opt/monitor/op5/pnp/perfdata -B -R -p /opt/monitor/var/rrdtool/rrdcached/rrdcached.pid'
+    cmdline_rhel="${rrdcached_bin} -g -l unix:${sock_path} -b ${perfdata_dir} -B -R -p ${lockfile_rhel} -j ${journal_dir}"
   fi
   cmdline_sles="$cmdline_rhel"
 
