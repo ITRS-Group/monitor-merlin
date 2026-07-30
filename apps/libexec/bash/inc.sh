@@ -99,8 +99,18 @@ cmd_debug_section()
 # DESC: Basic check if this is a RHEL system.
 is_rhel()
 {
-  test -f /etc/rc.d/init.d/functions
-  return $?
+  # EL7/EL8 SysV marker (absent on EL9+).
+  [ -f /etc/rc.d/init.d/functions ] && return 0
+  # EL9+ (Rocky/RHEL/Alma) — detect via os-release.
+  [ -r /etc/os-release ] || return 1
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  case " ${ID} ${ID_LIKE} " in
+    *" rhel "*|*" centos "*|*" fedora "*|*" rocky "*|*" almalinux "*)
+      return 0
+      ;;
+  esac
+  return 1
 }
 
 # SNTX: is_sles
