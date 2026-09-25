@@ -1,7 +1,10 @@
+# Drop automatic brp-python-bytecompile; we compile manually in install.
+%global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-bytecompile[[:space:]].*$!!g')
 %define mod_path /opt/monitor/op5/merlin
 %define nacoma_hook_dir /opt/monitor/op5/nacoma/hooks/save
-%define python_ver 3.12
 %define mon_dir %{_libdir}/merlin/mon
+%global python3_pkgversion 3.12
+
 
 # function service_control_function ("action", "service")
 # start/stop/restart a service
@@ -50,13 +53,13 @@ BuildRequires: libsodium-devel
 %if 0%{?rhel} >= 7
 BuildRequires: systemd
 BuildRequires: mariadb-devel
-Obsoletes: merlin-slim
+Obsoletes: merlin-slim < %{version}-%{release}
 %else
 Requires: op5kad
 BuildRequires: mysql-devel
 %endif
 BuildRequires: op5-naemon-devel
-BuildRequires: python%{python_ver}-devel
+BuildRequires: python%{python3_pkgversion}-devel
 BuildRequires: gperf
 BuildRequires: check-devel
 BuildRequires: autoconf, automake, libtool
@@ -79,7 +82,7 @@ Requires: merlin-apps-slim >= %version
 Requires: glib2
 Requires: op5-monitor-user
 BuildRequires: op5-naemon-devel
-BuildRequires: python%{python_ver}-devel
+BuildRequires: python%{python3_pkgversion}-devel
 BuildRequires: gperf
 BuildRequires: check-devel
 BuildRequires: autoconf, automake, libtool
@@ -130,7 +133,7 @@ Requires: libdbi1
 Requires: python-mysql
 %else
 %if 0%{?rhel} >= 8
-Requires: python%{python_ver}-PyMySQL
+Requires: python%{python3_pkgversion}-PyMySQL
 %else
 Requires: MySQL-python
 %endif
@@ -140,7 +143,7 @@ Requires: unixcat
 # php-cli for mon node tree
 Requires: php-cli
 Requires: procps-ng
-Requires: python%{python_ver}-livestatus
+Requires: python%{python3_pkgversion}-livestatus
 Obsoletes: monitor-distributed
 Obsoletes: merlin-apps-slim
 
@@ -164,19 +167,19 @@ Group: op5/Monitor
 Requires: rsync
 Requires: openssh
 Requires: openssh-clients
-Requires: python3
+Requires: python%{python3_pkgversion}
 # php-cli for mon node tree
 Requires: php-cli
 Requires: procps-ng
 %if 0%{?rhel} >= 8
-Requires: python%{python_ver}-livestatus
-Requires: python%{python_ver}-cryptography
+Requires: python%{python3_pkgversion}-livestatus
+Requires: python%{python3_pkgversion}-cryptography
 %else
 Requires: python39-livestatus
 Requires: python36-docopt
 Requires: python36-cryptography
 Requires: python36-paramiko
-%endif # 0%{?rhel} >= 8
+%endif
 
 %description apps-slim
 This package contains standalone applications required by Ninja and
@@ -199,11 +202,11 @@ Requires: op5-lmd
 Requires: op5-naemon
 Requires: merlin merlin-apps monitor-merlin
 Requires: monitor-testthis
-Requires: abrt-cli
+Requires: systemd-udev
 Requires: libyaml
 Requires: mariadb-devel
 Requires: ruby-devel
-Requires: python%{python_ver}-pytest
+Requires: python%{python3_pkgversion}-pytest
 # Required development tools for building gems
 Requires: make automake gcc
 Requires: redhat-rpm-config
@@ -219,15 +222,17 @@ Some additional test files for merlin
 %patch0 -p1
 
 %build
+export PYTHON=%__python3
 echo %{version} > .version_number
 autoreconf -i -s
+
 %configure --disable-auto-postinstall --with-pkgconfdir=%mod_path --with-naemon-config-dir=/opt/monitor/etc/mconf --with-naemon-user=monitor --with-naemon-group=%daemon_user --with-logdir=/var/log/op5/merlin --with-ls-socket=/opt/monitor/var/rw/live_tmp --datarootdir=%_datadir %init_scripts
 
-export PYTHON=python%{python_ver}
 %__make V=1
 %__make V=1 check
 
 %install
+export PYTHON=%__python3
 %make_install naemon_user=$(id -un) naemon_group=$(id -gn)
 
 ln -s ../../../../usr/bin/merlind %buildroot/%mod_path/merlind
@@ -243,8 +248,21 @@ cp -r apps/tests %buildroot/usr/share/merlin/app-tests
 mkdir -p %{buildroot}%{nacoma_hook_dir}
 sed -i 's#@@LIBEXECDIR@@#%_libdir/merlin#' op5build/nacoma_hook.py
 install -m 0755 op5build/nacoma_hook.py %{buildroot}%{nacoma_hook_dir}/merlin_hook.py
-%py_byte_compile %{python3} %{buildroot}%{nacoma_hook_dir}/
-%py_byte_compile %{python3} %{buildroot}%{mon_dir}/
+
+# brp-mangle-shebangs still runs after install;
+# Set shebangs to Python 3.12, normalize, then byte-compile final sources.
+%py3_shebang_fix \
+	%{buildroot}%{mon_dir} \
+	%{buildroot}%{_bindir}/merlin_cluster_tools \
+	%{buildroot}%{nacoma_hook_dir}/merlin_hook.py
+# pathfix writes "#! /path" (space after #!); normalize to "#!/path"
+sed -i '1s/^#! \//#!\//' \
+	%{buildroot}%{_bindir}/merlin_cluster_tools \
+	%{buildroot}%{nacoma_hook_dir}/merlin_hook.py
+find %{buildroot}%{mon_dir} -name '*.py' -exec grep -Il '^#! ' {} + 2>/dev/null \
+	| while read -r f; do sed -i '1s/^#! \//#!\//' "$f"; done
+%py_byte_compile %{__python3} %{buildroot}%{nacoma_hook_dir}/merlin_hook.py
+%py_byte_compile %{__python3} %{buildroot}%{mon_dir}/
 
 mkdir -p %buildroot%_sysconfdir/nrpe.d
 cp nrpe-merlin.cfg %buildroot%_sysconfdir/nrpe.d
@@ -258,8 +276,8 @@ cp data/kad.conf %buildroot%_sysconfdir/op5kad/conf.d/merlin.kad
 %endif
 
 %check
-%{python3} tests/pyunit/test_log.py --verbose
-%{python3} tests/pyunit/test_oconf.py --verbose
+%{__python3} tests/pyunit/test_log.py --verbose
+%{__python3} tests/pyunit/test_oconf.py --verbose
 
 
 %post
@@ -468,6 +486,8 @@ fi
 rm -rf %buildroot
 
 %changelog
+* Mon Jul 13 2026 Jerick Macario <jmacario@itrsgroup.com>
+- EL9 platform support: Python 3.12 packaging, Naemon ABI, CI and test fixes
 * Wed Sep 24 2025 Jerick Macario <jmacario@itrsgroup.com>
 - Update Python to version 3.12
 - Temporary patch to move out python byte compile for apps module.

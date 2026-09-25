@@ -8,6 +8,7 @@ post:
     - gcc
     - zlib-devel
     - mariadb-devel
+    - bzip2
   steps: |
     set -x
     mkdir --parents --mode=777 /mnt/logs/merlin_dtest
@@ -18,7 +19,7 @@ post:
 
     # Run unit tests
     pushd /mnt/git/apps/libexec
-    python3 -m pytest
+    python3.12 -m pytest
     popd
 
     # Verify file permissions after installation

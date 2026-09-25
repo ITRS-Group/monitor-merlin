@@ -39,6 +39,27 @@ AC_SUBST([AM_CPPFLAGS])
 AC_SUBST([AM_CFLAGS])
 
 PKG_CHECK_MODULES([naemon], [naemon >= 1.4.2])
+saved_CPPFLAGS=$CPPFLAGS
+CPPFLAGS="$CPPFLAGS $naemon_CFLAGS"
+AC_MSG_CHECKING([whether setup_service_variables() requires check_timeout])
+AC_COMPILE_IFELSE(
+	[AC_LANG_PROGRAM(
+		[[#include <naemon/naemon.h>]],
+		[[service *svc = (service *)0;
+		  setup_service_variables(svc, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);]])],
+	[AC_MSG_RESULT([yes])
+	 AC_DEFINE([HAVE_SETUP_SERVICE_VARIABLES_CHECK_TIMEOUT], [1], [Define if setup_service_variables() has a check_timeout argument])],
+	[AC_MSG_RESULT([no])])
+AC_MSG_CHECKING([whether setup_host_variables() requires check_timeout])
+AC_COMPILE_IFELSE(
+	[AC_LANG_PROGRAM(
+		[[#include <naemon/naemon.h>]],
+		[[host *h = (host *)0;
+		  setup_host_variables(h, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);]])],
+	[AC_MSG_RESULT([yes])
+	 AC_DEFINE([HAVE_SETUP_HOST_VARIABLES_CHECK_TIMEOUT], [1], [Define if setup_host_variables() has a check_timeout argument])],
+	[AC_MSG_RESULT([no])])
+CPPFLAGS=$saved_CPPFLAGS
 naemon_cfg=`$PKG_CONFIG --variable=mainconf naemon`
 AS_IF([test "x$naemon_cfg" == "x"],
 	  [naemon_cfg=/etc/naemon/naemon.cfg])

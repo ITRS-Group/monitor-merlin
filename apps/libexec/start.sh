@@ -5,6 +5,6 @@ mon oconf poller-fix
 
 /bin/systemctl start merlind
 /bin/systemctl start naemon
-if systemctl list-units --full -all | grep -Fq "op5-monitor.service"; then
+if [ "$(systemctl show -p LoadState --value op5-monitor.service 2>/dev/null)" = "loaded" ]; then
     /bin/systemctl start op5-monitor
 fi
