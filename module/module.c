@@ -565,20 +565,39 @@ static int handle_notification_data(__attribute__((unused)) merlin_node *node, v
 		struct host *h = find_host(ds->host_name);
 		if (!h)
 			return -1;
-		h->current_notification_number = (int)(uintptr_t)(ds->object_ptr);
+		/*
+		 * Normal recovery notifications carry a stale nonzero
+		 * current_notification_number from the sender (serialized
+		 * at NEBTYPE_NOTIFICATION_END before the sender's local
+		 * reset). Blindly applying it overwrites the receiver's
+		 * correct post-recovery reset of 0, causing
+		 * first_notification_delay to be bypassed on the next
+		 * incident. Treat normal recovery as a reset instead.
+		 */
+		if (ds->reason_type == NOTIFICATION_NORMAL && ds->state == STATE_UP) {
+			h->current_notification_number = 0;
+			h->notified_on = 0;
+		} else {
+			h->current_notification_number = (int)(uintptr_t)(ds->object_ptr);
+			add_notified_on(h, ds->state);
+		}
 		h->last_notification = ds->start_time.tv_sec;
 		h->next_notification = ds->end_time.tv_sec;
 		h->no_more_notifications = ds->start_time.tv_usec;
-		add_notified_on(h, ds->state);
 	} else {
 		struct service *s = find_service(ds->host_name, ds->service_description);
 		if (!s)
 			return -1;
-		s->current_notification_number = (int)(uintptr_t)(ds->object_ptr);
+		if (ds->reason_type == NOTIFICATION_NORMAL && ds->state == STATE_OK) {
+			s->current_notification_number = 0;
+			s->notified_on = 0;
+		} else {
+			s->current_notification_number = (int)(uintptr_t)(ds->object_ptr);
+			add_notified_on(s, ds->state);
+		}
 		s->last_notification = ds->start_time.tv_sec;
 		s->next_notification = ds->end_time.tv_sec;
 		s->no_more_notifications = ds->start_time.tv_usec;
-		add_notified_on(s, ds->state);
 	}
 	return 0;
 }
